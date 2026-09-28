@@ -24,20 +24,42 @@ import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
 
 /* A question in, an answer out. A cached recipe answers at once: its SQL
    runs again for fresh rows and no model is asked. Otherwise a model
-   writes the SQL: Haiku for a plain question about one thing, Sonnet
-   for comparisons, follow-ups, and anything Haiku could not finish.
-   Every step reports as it ends, so the page can show the work. */
+   writes the SQL: Sonnet 5.5 at low effort for a plain question about
+   one thing, at medium effort for comparisons, follow-ups, and anything
+   the first could not finish. Every step reports as it ends, so the
+   page can show the work. */
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 /** the writers, each with its own output cap. The SDK sends a model's cap only for the models it knows, and gave
     claude-sonnet-5 4096 tokens, which a written-out query with its drill can pass: a cut call is lost. 16k is five
     times the longest call the traces saw (2,835 tokens, D20's final with its WITH written out) */
-export const WRITERS = {
+interface WriterSpec {
+  id: string;
+  label: string;
+  steps: number;
+  maxOutputTokens: number;
+  /** sent only when set: Sonnet 5.5 recalibrated its levels, so a writer on it names one */
+  effort?: "low" | "medium" | "high";
+}
+type Writer = "fast" | "full";
+/* On 35 blind-graded questions (r22, 2026-09-28) these two were right on 31 against 27 for Haiku 4.5 and
+   Sonnet 5, at a 6.9 s median answer against 13.5 s. Their one wrong answer skipped its test (D07) */
+export const WRITERS: Record<Writer, WriterSpec> = {
+  fast: { id: "claude-sonnet-5-5", label: "Sonnet 5.5 low", steps: 8, maxOutputTokens: 16_000, effort: "low" },
+  full: { id: "claude-sonnet-5-5", label: "Sonnet 5.5 medium", steps: 14, maxOutputTokens: 16_000, effort: "medium" },
+};
+/** Fuji keeps the writers it had */
+export const FUJI_WRITERS: Record<Writer, WriterSpec> = {
   fast: { id: "claude-haiku-4-5-20251001", label: "Haiku 4.5", steps: 8, maxOutputTokens: 16_000 },
   full: { id: "claude-sonnet-5", label: "Sonnet 5", steps: 14, maxOutputTokens: 16_000 },
-} as const;
-type Writer = keyof typeof WRITERS;
+};
+
+/* Models that refuse a forced tool call (tool_choice any or tool is a 400 on Sonnet 5.5). They run on auto: the
+   question turn tells them every reply is a tool call, and a reply in prose goes back once */
+const FREE_TOOL_MODELS = new Set(["claude-sonnet-5-5"]);
+export const TOOLS_ONLY = "Reply only with tool calls: run_sql to test a query, render_chart to hand back the answer. Your last call is render_chart.";
+export const PROSE_BACK = "That reply was prose. Call a tool: run_sql to test a query, or render_chart with the final query.";
 
 /** the tests (run_sql) each writer may run before it must answer from what they showed. Of the 147 writer runs
     that answered in the audits, 141 tested 4 times or fewer; the runs past that made the slow tail (10 tests and
@@ -200,7 +222,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     messages.push({ role: "assistant", content: `Chart "${String(t.title).slice(0, 120)}" from:\n${collapseMacros(String(t.sql), a.chainId).slice(0, 3000)}` });
   }
   // a follow-up keeps the window of the chart it refines, so only a question on its own is told a series default
-  messages.push({ role: "user", content: userTurn(a.chainId, a.prompt, new Date(), !messages.length) });
+  const question = userTurn(a.chainId, a.prompt, new Date(), !messages.length);
+  messages.push({ role: "user", content: question });
 
   const timings: StepTiming[] = [];
   const errors: string[] = [];
@@ -221,8 +244,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   // 2,300 more output tokens, 25 s a call (D20's final); asked for the shorthand, 6 of 6 replays of that final kept it
   const shorthand = isCChain(a.chainId) && !fuji;
 
+  const writers = fuji ? FUJI_WRITERS : WRITERS;
+
   const loop = async (writer: Writer): Promise<QueryAnswer | null> => {
-    const w = WRITERS[writer];
+    const w = writers[writer];
+    const free = FREE_TOOL_MODELS.has(w.id);
+    const turns: ModelMessage[] = free ? [...messages.slice(0, -1), { role: "user", content: `${question}\n\n${TOOLS_ONLY}` }] : messages;
     let final: QueryAnswer | null = null;
     let emptyOnce = false;
     let capOnce = false;
@@ -454,18 +481,20 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       },
     });
 
-    const out = await generateText({
+    const call = (msgs: ModelMessage[], budget: number) => generateText({
       model: anthropic(w.id),
       // the writer's own cap on mainnet; Fuji keeps the SDK's
       ...(fuji ? {} : { maxOutputTokens: w.maxOutputTokens }),
+      ...(w.effort ? { providerOptions: { anthropic: { effort: w.effort } } } : {}),
       // the prompt and the tools are the same on every step and every
       // question; the cache mark lets each step after the first skip them
       system: { role: "system", content: system, providerOptions: CACHE },
-      messages,
+      messages: msgs,
       tools: { run_sql, render_chart },
-      // every step calls a tool, so a reply in prose never ends the run with no answer
-      toolChoice: "required",
-      stopWhen: [stepCountIs(w.steps), () => final !== null],
+      // every step calls a tool, so a reply in prose never ends the run with no answer; a model that refuses a
+      // forced call runs on auto, and its prose goes back once (below)
+      toolChoice: free ? "auto" : "required",
+      stopWhen: [stepCountIs(budget), () => final !== null],
       prepareStep: ({ stepNumber, messages: sent }) => {
         // mark the newest turn too, so the next step reads the whole
         // conversation so far from the cache
@@ -476,26 +505,35 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         // runs a tool that activeTools leaves out when the model calls it, so on mainnet the call itself is forced,
         // with the tools every step before sent: a new tool list misses the prompt cache (D20's final wrote its
         // 31.8k tokens again), and a new tool choice reads it. Fuji narrows its tools as it did
-        if (final || (stepNumber < w.steps - 2 && (fuji || tested < TESTS))) return { messages: m };
+        // a free model is not forced: once its tests are spent, run_sql tells it to answer
+        if (final || free || (stepNumber < w.steps - 2 && (fuji || tested < TESTS))) return { messages: m };
         return fuji ? { messages: m, activeTools: ["render_chart" as const] } : { messages: m, toolChoice: { type: "tool" as const, toolName: "render_chart" as const } };
       },
       onStepFinish: () => {
         steps += 1;
       },
     });
+    let out = await call(turns, w.steps);
     cacheRead += out.totalUsage.inputTokenDetails?.cacheReadTokens ?? 0;
     inputTokens += out.totalUsage.inputTokens ?? 0;
+    // on auto a reply in prose ends the run with no answer: it goes back once, as a send-back
+    if (free && !final && out.steps.length < w.steps && !out.steps.at(-1)?.toolCalls.length) {
+      step("final", 0, false, "replied in prose, not a tool call");
+      out = await call([...turns, ...out.response.messages, { role: "user", content: PROSE_BACK }], w.steps - out.steps.length);
+      cacheRead += out.totalUsage.inputTokenDetails?.cacheReadTokens ?? 0;
+      inputTokens += out.totalUsage.inputTokens ?? 0;
+    }
     return final;
   };
 
   let writer = pickWriter(a.prompt, a.history);
-  a.emit({ type: "stage", stage: "writing", writer: WRITERS[writer].label });
+  a.emit({ type: "stage", stage: "writing", writer: writers[writer].label });
   let final: QueryAnswer | null = null;
   try {
     final = await loop(writer);
     if (!final && writer === "fast") {
       writer = "full";
-      a.emit({ type: "stage", stage: "escalated", writer: WRITERS.full.label });
+      a.emit({ type: "stage", stage: "escalated", writer: writers.full.label });
       final = await loop("full");
     }
   } catch (e) {
@@ -527,10 +565,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     done.visual = basicVisual(done.chart, done.result.columns);
     done.draftVisual = true;
   }
-  done.model = { steps, ms: Date.now() - t0, tries, writer: WRITERS[writer].label, cached: false, timings, cacheRead, inputTokens };
+  done.model = { steps, ms: Date.now() - t0, tries, writer: writers[writer].label, cached: false, timings, cacheRead, inputTokens };
   // an answer with no rows is not kept: the next asker may find some
   if (done.result && done.result.rowCount > 0) {
-    await putRecipe(key, { question: a.prompt, title: done.title, note: done.note, sql: done.sql, chart: done.chart, drill: done.drill, visual: null, writer: WRITERS[writer].label, at: Date.now() });
+    await putRecipe(key, { question: a.prompt, title: done.title, note: done.note, sql: done.sql, chart: done.chart, drill: done.drill, visual: null, writer: writers[writer].label, at: Date.now() });
   }
   return done;
 }

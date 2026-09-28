@@ -18,41 +18,56 @@ vi.mock('@/lib/explorer-query/sources', () => ({ versionLines: vi.fn(async () =>
 vi.mock('@/lib/explorer-query/examples', () => ({ PCHAIN_EXAMPLES: [], examplesFor: vi.fn(() => []) }));
 
 import { generateText } from 'ai';
-import { TESTS, WRITERS, answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
+import { FUJI_WRITERS, PROSE_BACK, TESTS, TOOLS_ONLY, WRITERS, answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
 import { userTurn } from '@/lib/explorer-query/prompt';
 
 const ROWS = { columns: [{ name: 't', type: 'DateTime' }, { name: 'swaps', type: 'UInt64' }], rows: [{ t: '2026-09-27 00:00:00', swaps: 2 }], rowCount: 1, elapsedMs: 1, rowsRead: 1, truncated: false };
 const FINAL = { title: 'Swaps per hour', note: 'Swaps on the C-Chain.', sql: 'SELECT t, swaps FROM x', chart: { kind: 'bar', x: 't', series: [{ column: 'swaps', label: 'Swaps' }] } };
 
 // the SDK's loop around a model that calls run_sql on every step, and render_chart only when the step's tool
-// choice names it: the SDK still runs a tool that activeTools leaves out, as the audits' long loops showed
-type Run = { choices: unknown[]; results: unknown[]; description?: string; chart?: string; tools: unknown[]; cap?: number };
+// choice names it: the SDK still runs a tool that activeTools leaves out, as the audits' long loops showed. On auto
+// (a model that refuses a forced call) it answers once its tests are spent, as run_sql then tells it to
+type Run = { choices: unknown[]; results: unknown[]; description?: string; chart?: string; tools: unknown[]; cap?: number; effort?: string; last?: unknown };
 type Call = {
   tools: { run_sql: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> }; render_chart: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> } };
   toolChoice: unknown;
   maxOutputTokens?: number;
+  messages: { content: unknown }[];
+  providerOptions?: { anthropic?: { effort?: string } };
   stopWhen: ((o: { steps: unknown[] }) => boolean | PromiseLike<boolean>)[];
   prepareStep: (o: { stepNumber: number; steps: unknown[]; messages: unknown[] }) => { toolChoice?: { type: string; toolName?: string }; activeTools?: string[] } | undefined;
   onStepFinish: (s: unknown) => void;
 };
 const runs: Run[] = [];
-const writer = (final: object) =>
-  (async (opts: Call) => {
-    const steps: unknown[] = [];
-    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description, chart: opts.tools.render_chart.description, tools: [], cap: opts.maxOutputTokens };
+const USAGE = { inputTokens: 0, inputTokenDetails: { cacheReadTokens: 0 } };
+// its first `prose` calls reply in prose: one step, with no tool call
+const writer = (final: object, prose = 0) => {
+  let told = prose;
+  return (async (opts: Call) => {
+    const steps: { toolCalls: unknown[] }[] = [];
+    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description, chart: opts.tools.render_chart.description, tools: [], cap: opts.maxOutputTokens, effort: opts.providerOptions?.anthropic?.effort, last: opts.messages.at(-1)?.content };
     runs.push(run);
+    if (told > 0) {
+      told -= 1;
+      opts.onStepFinish({});
+      return { steps: [{ toolCalls: [] }], response: { messages: [{ role: 'assistant', content: 'SELECT t, swaps FROM x' }] }, totalUsage: USAGE };
+    }
+    let tested = 0;
     for (let n = 0; ; n++) {
       const p = await opts.prepareStep({ stepNumber: n, steps, messages: [{ role: 'user', content: 'q' }] });
-      run.choices.push(p?.toolChoice ?? opts.toolChoice);
+      const choice = p?.toolChoice ?? opts.toolChoice;
+      run.choices.push(choice);
       run.tools.push(p?.activeTools ?? 'all');
-      const answers = p?.toolChoice?.toolName === 'render_chart';
+      const answers = p?.toolChoice?.toolName === 'render_chart' || (choice === 'auto' && tested >= TESTS);
+      if (!answers) tested += 1;
       run.results.push(await (answers ? opts.tools.render_chart.execute(final, {}) : opts.tools.run_sql.execute({ sql: 'SELECT t, swaps FROM x' }, {})));
-      steps.push({});
+      steps.push({ toolCalls: [{}] });
       opts.onStepFinish({});
       if ((await Promise.all(opts.stopWhen.map((s) => s({ steps })))).some(Boolean)) break;
     }
-    return { totalUsage: { inputTokens: 0, inputTokenDetails: { cacheReadTokens: 0 } } };
+    return { steps, response: { messages: [] }, totalUsage: USAGE };
   }) as unknown as typeof generateText;
+};
 
 const ask = async (chainId: number) => {
   const events: QueryEvent[] = [];
@@ -78,10 +93,55 @@ describe('the writer tests a set number of times, then answers', () => {
     expect(runs).toHaveLength(1);
     expect(tests()).toBe(TESTS);
     expect(runs[0].results.slice(0, TESTS).map((r) => (r as { testsLeft?: number }).testsLeft)).toEqual(Array.from({ length: TESTS }, (_, i) => TESTS - 1 - i));
-    // the step after the last test can only answer, with the tools every step before had, so it reads the prompt cache
-    expect(runs[0].choices).toEqual([...Array(TESTS).fill('required'), forced]);
+    // Sonnet 5.5 refuses a forced call: it runs on auto, told on the question turn to reply in tool calls
+    expect(runs[0].choices).toEqual(Array(TESTS + 1).fill('auto'));
     expect(runs[0].tools).toEqual(Array(TESTS + 1).fill('all'));
+    expect(runs[0].last).toBe(`Swaps per hour today\n\n${TOOLS_ONLY}`);
+    expect(runs[0].effort).toBe('low');
     expect(answer?.model).toMatchObject({ steps: TESTS + 1, tries: TESTS });
+  });
+
+  it('forces the answer from a model that takes a forced call, once its tests are spent', async () => {
+    const kept = { ...WRITERS };
+    Object.assign(WRITERS, FUJI_WRITERS);
+    try {
+      runQuery.mockResolvedValue(ROWS);
+      vi.mocked(generateText).mockImplementation(writer(FINAL));
+      const { answer, error } = await ask(43114);
+      expect(error).toBeUndefined();
+      expect(answer?.result?.rowCount).toBe(1);
+      // the step after the last test can only answer, with the tools every step before had, so it reads the prompt cache
+      expect(runs[0].choices).toEqual([...Array(TESTS).fill('required'), forced]);
+      expect(runs[0].tools).toEqual(Array(TESTS + 1).fill('all'));
+      expect(runs[0].last).toBe('Swaps per hour today');
+      expect(runs[0].effort).toBeUndefined();
+    } finally {
+      Object.assign(WRITERS, kept);
+    }
+  });
+
+  it('sends a reply in prose back once, with the steps its writer has left', async () => {
+    runQuery.mockResolvedValue(ROWS);
+    vi.mocked(generateText).mockImplementation(writer(FINAL, 1));
+    const { answer, error } = await ask(43114);
+    expect(error).toBeUndefined();
+    expect(answer?.result?.rowCount).toBe(1);
+    expect(runs.map((r) => r.last)).toEqual([`Swaps per hour today\n\n${TOOLS_ONLY}`, PROSE_BACK]);
+    expect(answer?.model?.timings.map((t) => t.detail)).toContain('replied in prose, not a tool call');
+    runs.length = 0;
+    // a final that never passes spends every step: the prose took one of the fast writer's
+    vi.mocked(generateText).mockImplementation(writer({ ...FINAL, chart: { ...FINAL.chart, x: 'hour' } }, 1));
+    await ask(43114);
+    expect(runs.map((r) => r.results.length)).toEqual([0, WRITERS.fast.steps - 1, WRITERS.full.steps]);
+  });
+
+  it('hands the question to the full writer when a reply sent back comes back in prose', async () => {
+    runQuery.mockResolvedValue(ROWS);
+    vi.mocked(generateText).mockImplementation(writer(FINAL, 2));
+    const { answer, error } = await ask(43114);
+    expect(error).toBeUndefined();
+    expect(runs.map((r) => r.effort)).toEqual(['low', 'low', 'medium']);
+    expect(answer?.model?.writer).toBe(WRITERS.full.label);
   });
 
   it('says it ran out of steps when no answer comes of the tests, not that the database failed', async () => {
@@ -145,8 +205,10 @@ describe('the writer tests a set number of times, then answers', () => {
     const { answer, error } = await ask(43113);
     expect(answer).toBeNull();
     // the model tests on every step, as before: the last steps only narrow its list of tools
-    expect(tests()).toBe(WRITERS.fast.steps + WRITERS.full.steps);
+    expect(tests()).toBe(FUJI_WRITERS.fast.steps + FUJI_WRITERS.full.steps);
     expect(runs.flatMap((r) => r.choices).every((c) => c === 'required')).toBe(true);
+    // its writers are the ones it had, with no effort and no line on the question turn
+    expect(runs.map((r) => [r.effort, r.last])).toEqual([[undefined, 'Swaps per hour today'], [undefined, 'Swaps per hour today']]);
     expect(runs[0].tools.slice(-2)).toEqual([['render_chart'], ['render_chart']]);
     expect(runs[0].results.every((r) => !('testsLeft' in (r as object)))).toBe(true);
     expect(error).toMatchObject({ status: 422, error: expect.stringContaining('kept failing on the database') });
