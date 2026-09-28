@@ -1,12 +1,12 @@
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 
 const markLayers = [
-  { x: 151, y: 233, width: 360, height: 311, opacity: 0.9 },
-  { x: 167, y: 247, width: 328, height: 283, opacity: 0.8 },
-  { x: 183, y: 261, width: 296, height: 255, opacity: 0.7 },
-  { x: 199, y: 275, width: 264, height: 227, opacity: 0.6 },
-  { x: 215, y: 289, width: 232, height: 199, opacity: 0.5 },
-  { x: 231, y: 303, width: 200, height: 171, opacity: 0.4 },
+  { x: 101, y: 188, width: 360, height: 311, opacity: 0.9 },
+  { x: 117, y: 202, width: 328, height: 283, opacity: 0.8 },
+  { x: 133, y: 216, width: 296, height: 255, opacity: 0.7 },
+  { x: 149, y: 230, width: 264, height: 227, opacity: 0.6 },
+  { x: 165, y: 244, width: 232, height: 199, opacity: 0.5 },
+  { x: 181, y: 258, width: 200, height: 171, opacity: 0.4 },
 ];
 
 export function LoginArtwork({ className = '', ...props }: React.SVGProps<SVGSVGElement>) {
@@ -18,30 +18,15 @@ export function LoginArtwork({ className = '', ...props }: React.SVGProps<SVGSVG
       aria-hidden="true"
       {...props}
     >
-      <rect x="61" y="28" width="421" height="499" rx="11" stroke="currentColor" strokeOpacity="0.6" strokeWidth="2" />
-      <rect
-        x="288"
-        y="267"
-        width="270"
-        height="417"
-        rx="11"
-        stroke="currentColor"
-        strokeOpacity="0.6"
-        strokeWidth="2"
-      />
-
-      <path
-        d="M26 105h70M59 16c1-2 3-2 4 0l15 28c2 4 5 5 9 2l20-18c3-3 6-1 5 3L97 81c-1 3-3 4-6 4H31c-3 0-5-1-6-4L10 31c-1-4 2-6 5-3l21 18c4 3 7 2 9-2l14-28Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      {markLayers.map((layer) => (
+      <rect x="58" y="82" width="444" height="521" rx="11" stroke="currentColor" strokeOpacity="0.45" strokeWidth="2" />
+      <path d="M58 142h444" stroke="currentColor" strokeOpacity="0.45" strokeWidth="2" />
+      <circle cx="88" cy="112" r="5" fill="currentColor" fillOpacity="0.45" />
+      <circle cx="107" cy="112" r="5" fill="currentColor" fillOpacity="0.45" />
+      <circle cx="126" cy="112" r="5" fill="currentColor" fillOpacity="0.45" />
+      {markLayers.map((layer, index) => (
         <AvalancheLogo
           key={layer.width}
-          id={`login-mark-${layer.width}`}
+          className={index === 0 ? 'text-[#FD3648] dark:text-[#FF5A68]' : undefined}
           x={layer.x}
           y={layer.y}
           width={layer.width}
