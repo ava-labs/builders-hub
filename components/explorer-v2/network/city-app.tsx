@@ -2264,12 +2264,13 @@ export function CityApp({
           data-city-chrome
           className="flex h-11 items-stretch gap-0.5 rounded-2xl border border-zinc-200/90 bg-white/[0.94] p-1 text-[13px] font-medium shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]"
         >
-          <span aria-current="page" className="flex items-center rounded-xl bg-zinc-100 px-3 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50">
-            City
-          </span>
+          {/* Explorer first, City second: the same order as the 2D subnav's toggle */}
           <Link href={EXPLORER_2D} transitionTypes={VIEW_SWITCH} className="flex items-center rounded-xl px-3 text-zinc-500 transition-colors hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100">
             Explorer
           </Link>
+          <span aria-current="page" className="flex items-center rounded-xl bg-zinc-100 px-3 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50">
+            City
+          </span>
         </div>
       </div>
 
