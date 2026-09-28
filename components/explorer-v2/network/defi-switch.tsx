@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-/* The C-Chain DeFi tab's two views, protocols and stablecoins, as the Query
-   panels' pill switch. Each view keeps its own URL, so links and search
-   results land on the right one. */
+/* The C-Chain DeFi tab's views, protocols, on-chain flows and stablecoins,
+   as the Query panels' pill switch. Each view keeps its own URL, so links
+   and search results land on the right one. */
 
 const VIEWS = [
   { key: "apps", label: "Protocols", href: "/explorer/mainnet/c-chain/defi" },
+  { key: "flows", label: "Flows", href: "/explorer/mainnet/c-chain/defi/flows" },
   { key: "stablecoins", label: "Stablecoins", href: "/explorer/mainnet/c-chain/defi/stablecoins" },
 ] as const;
 
-export function DefiSwitch({ on }: { on: "apps" | "stablecoins" }) {
+export function DefiSwitch({ on }: { on: "apps" | "flows" | "stablecoins" }) {
   return (
     <nav aria-label="DeFi view" className="flex w-fit items-center gap-px rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800">
       {VIEWS.map((v) => {

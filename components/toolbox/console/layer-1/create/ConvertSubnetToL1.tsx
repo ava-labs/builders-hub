@@ -2,7 +2,8 @@
 
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { isAddress } from 'viem';
 import { type ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { ValidatorListInput } from '@/components/toolbox/components/ValidatorListInput';
 import InputChainId from '@/components/toolbox/components/InputChainId';
@@ -23,6 +24,8 @@ import { CoreWalletTransactionButton } from '@/components/toolbox/components/Cor
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { usePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
+import { C_CHAIN_IDS, conversionProblems, isCB58Id, readCChainManager, type CChainManager } from './conversionChecks';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Convert Subnet to L1',
@@ -51,6 +54,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     setManagerAddress: setValidatorManagerAddress,
     convertToL1TxId: _convertToL1TxId,
     setConvertToL1TxId,
+    genesisData: storeGenesisData,
   } = useCreateChainStore()();
 
   const [selection, setSelection] = useState<SubnetSelection>({
@@ -70,6 +74,54 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
 
   const { notify } = useConsoleNotifications();
   const { submitPChainTx } = useSubmitPChainTx();
+
+  // What the manager address holds on the C-Chain decides which chain the
+  // conversion may name, so read it before anything is signed.
+  const cChainId = isTestnet ? C_CHAIN_IDS.testnet : C_CHAIN_IDS.mainnet;
+  const cChainClient = usePublicClientForChain(cChainId);
+  const [cChainManager, setCChainManager] = useState<CChainManager | null>(null);
+  const [cChainReadError, setCChainReadError] = useState<string | null>(null);
+  const [cChainReadAttempt, setCChainReadAttempt] = useState(0);
+  const [chainTouched, setChainTouched] = useState(false);
+
+  useEffect(() => {
+    setCChainManager(null);
+    setCChainReadError(null);
+    const subnetId = selection.subnetId;
+    if (!cChainClient || !isAddress(validatorManagerAddress) || !isCB58Id(subnetId)) return;
+    let cancelled = false;
+    readCChainManager(cChainClient, validatorManagerAddress as `0x${string}`, subnetId)
+      .then((manager) => {
+        if (!cancelled) setCChainManager(manager);
+      })
+      .catch((err) => {
+        if (!cancelled) setCChainReadError((err as Error).message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cChainClient, validatorManagerAddress, selection.subnetId, cChainReadAttempt]);
+
+  // A manager on the C-Chain names the C-Chain, whatever chain the create
+  // flow made last. The store default used to pair the C-Chain proxy with
+  // the new L1's chain, which no contract can ever manage.
+  const managerOnCChain = cChainManager?.kind === 'bound' || cChainManager?.kind === 'unset';
+  useEffect(() => {
+    if (managerOnCChain && !chainTouched) setValidatorManagerChainID(cChainId);
+  }, [managerOnCChain, chainTouched, cChainId]);
+
+  const problems = conversionProblems({
+    managerChainId: validatorManagerChainID,
+    managerAddress: validatorManagerAddress,
+    validators,
+    cChainId,
+    subnetChainIds: selection.subnet ? selection.subnet.blockchains.map((b) => b.blockchainId) : null,
+    cChainManager,
+    managerChainGenesis: validatorManagerChainID === storeChainID ? storeGenesisData : null,
+  });
+  const checkingCChain =
+    !cChainManager && !cChainReadError && isAddress(validatorManagerAddress) && isCB58Id(selection.subnetId);
+  const blocked = !selection.subnet || checkingCChain || !!cChainReadError || problems.length > 0;
 
   function buildConvertCliCommand() {
     const parts = [
@@ -99,7 +151,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function handleConvertToL1() {
-    if (!coreWalletClient) return;
+    if (!coreWalletClient || blocked) return;
 
     setConvertToL1TxId('');
     setConvertError(null);
@@ -172,10 +224,17 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
           <div className="space-y-4">
             <InputChainId
               value={validatorManagerChainID}
-              onChange={setValidatorManagerChainID}
+              onChange={(value) => {
+                setChainTouched(true);
+                setValidatorManagerChainID(value);
+              }}
               error={null}
               label="Manager Chain ID"
-              helperText="Chain where the manager contract is deployed"
+              helperText={
+                managerOnCChain && validatorManagerChainID === cChainId
+                  ? 'A Validator Manager exists at this address on the C-Chain, so the C-Chain is selected.'
+                  : 'Chain where the manager contract is deployed'
+              }
             />
             <EVMAddressInput
               value={validatorManagerAddress}
@@ -218,12 +277,28 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
               on the P-Chain.
             </p>
           </div>
+          {checkingCChain && <Alert variant="info">Checking the manager address on the C-Chain...</Alert>}
+          {cChainReadError && (
+            <Alert variant="error">
+              Could not read the manager address on the C-Chain: {cChainReadError}{' '}
+              <button type="button" className="underline" onClick={() => setCChainReadAttempt((n) => n + 1)}>
+                Try again
+              </button>
+            </Alert>
+          )}
+          {selection.subnetId && problems.length > 0 && (
+            <Alert variant="warning">
+              <ul className="list-disc space-y-1 pl-4">
+                {problems.map((problem) => (
+                  <li key={problem}>{problem}</li>
+                ))}
+              </ul>
+            </Alert>
+          )}
           <CoreWalletTransactionButton
             variant="primary"
             onClick={handleConvertToL1}
-            disabled={
-              !selection.subnetId || !validatorManagerAddress || validators.length === 0 || selection.subnet?.isL1
-            }
+            disabled={!selection.subnetId || validators.length === 0 || selection.subnet?.isL1 || blocked}
             loading={isConverting}
             loadingText={isConfirming ? 'Waiting for P-Chain confirmation...' : 'Converting...'}
             className="w-full"

@@ -7,6 +7,8 @@ import { Button } from '@/components/toolbox/components/Button';
 import { AbiEvent } from 'viem';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { PRIMARY_NETWORK_SUBNET_ID } from '@/components/toolbox/components/InputSubnetId';
+import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { initializeValidatorManager } from '@avalanche-sdk/interchain/validator-manager';
 import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
@@ -78,13 +80,16 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     }
   }, [walletEVMAddress, adminAddress]);
 
+  // A wallet on the L1 names the subnet. The create flow's subnet stands in
+  // only when the wallet is on the C-Chain (a manager hosted there): the
+  // persisted value can come from an older run, and initialize() binds the
+  // manager to its subnet for good.
+  const walletSubnetId =
+    selectedL1?.subnetId && selectedL1.subnetId !== PRIMARY_NETWORK_SUBNET_ID ? selectedL1.subnetId : '';
   useEffect(() => {
-    if (createChainStoreSubnetId && !subnetId) {
-      setSubnetId(createChainStoreSubnetId);
-    } else if (selectedL1?.subnetId && selectedL1.subnetId !== '11111111111111111111111111111111LpoYY' && !subnetId) {
-      setSubnetId(selectedL1.subnetId);
-    }
-  }, [createChainStoreSubnetId, selectedL1, subnetId]);
+    const next = walletSubnetId || createChainStoreSubnetId;
+    if (next) setSubnetId(next);
+  }, [walletSubnetId, createChainStoreSubnetId]);
 
   // Auto-check initialization status when manager address is available
   // (e.g. carried over from a previous step in the flow)
@@ -183,7 +188,8 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     }
   }
 
-  const canInitialize = managerAddress && subnetId && adminAddress && isInitialized === false;
+  // A converted subnet's manager lives on one chain; a call from any other chain reaches another account.
+  const canInitialize = managerAddress && subnetId && adminAddress && isInitialized === false && !vmcData.chainMismatch;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -191,6 +197,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="p-4 space-y-3">
           {error && <Alert variant="error">{error}</Alert>}
+          {vmcData.chainMismatch && <VmcChainSwitchBanner mismatch={vmcData.chainMismatch} />}
           {/* Step 1: Select Manager */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
@@ -231,6 +238,19 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                     <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isChecking ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
+                {vmcData.validatorManagerAddress &&
+                  managerAddress &&
+                  vmcData.validatorManagerAddress.toLowerCase() !== managerAddress.toLowerCase() && (
+                    <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        The conversion for this subnet records the validator manager at{' '}
+                        <span className="font-mono break-all">{vmcData.validatorManagerAddress}</span>. Initializing{' '}
+                        <span className="font-mono break-all">{managerAddress}</span> stores settings at a different
+                        address, and initializing the validator set against the recorded manager will fail. Use the
+                        recorded address unless you know why they differ.
+                      </p>
+                    </div>
+                  )}
                 {isInitialized !== null && (
                   <div
                     className={`mt-2 text-xs flex items-center gap-1 ${isInitialized ? 'text-amber-600' : 'text-green-600'}`}
