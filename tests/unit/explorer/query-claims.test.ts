@@ -48,6 +48,53 @@ describe('a note held against its rows', () => {
   });
 });
 
+// L02: a test counted 48,336 borrowers and the final rows 48,292; the note kept the test's total
+const L02_NOTE = 'The 15 largest borrowers on Aave by debt, of 48,336 total borrowers on the protocol now.';
+const l02 = (ofTotal: number) => ({
+  columns: [{ name: 'borrower_address', type: 'String' }, { name: 'debt_usd', type: 'Float64' }, { name: 'debts', type: 'UInt64' }, { name: 'share_pct', type: 'Float64' }, { name: 'of_total', type: 'UInt64' }],
+  rows: Array.from({ length: 15 }, (_, i) => ({ borrower_address: `0x${String(i).padStart(40, '0')}`, debt_usd: 52826683.82 / (i + 1), debts: 1 + (i % 3), share_pct: 29.4 / (i + 1), of_total: ofTotal })),
+  rowCount: 15,
+});
+
+describe('a count or a total the note gives, held against the column that holds it', () => {
+  it('sends back the total an earlier test returned, with the rows\' figure written the note\'s way', () => {
+    expect(contradictions(L02_NOTE, 'Largest Aave borrowers now', l02(48292))).toEqual([{
+      sentence: L02_NOTE,
+      error: 'the note gives 48,336 ("The 15 largest borrowers on Aave by debt, of 48,336 total borrowers on the protocol now."), but the rows\' of_total is 48,292.',
+      fix: 'The 15 largest borrowers on Aave by debt, of 48,292 total borrowers on the protocol now.',
+    }]);
+    expect(withoutContradictions(`${L02_NOTE} Debt is valued at today's prices.`, 'Largest Aave borrowers now', l02(48292))).toBe('The 15 largest borrowers on Aave by debt, of 48,292 total borrowers on the protocol now. Debt is valued at today\'s prices.');
+    expect(contradictions('The 15 largest borrowers, out of 48,336.', 'Largest Aave borrowers now', l02(48292))[0].fix).toBe('The 15 largest borrowers, out of 48,292.');
+  });
+
+  it('passes a total within its rounding, a bound, the rows\' own count, and a total of another kind', () => {
+    for (const note of [
+      'The 15 largest borrowers, of 48,292 total borrowers.',
+      'The 15 largest borrowers, of 48.3k total borrowers.',
+      'The 15 largest borrowers, of 48,000 borrowers in all.',
+      'The 15 largest borrowers, of about 48,500 borrowers.',
+      'The 15 largest borrowers, of over 40,000 borrowers.',
+      'The top 15 borrowers hold 58% of the debt.',
+      'The 15 largest borrowers, of 48,336 total swaps.',
+    ]) expect(contradictions(note, 'Largest Aave borrowers now', l02(48292))).toEqual([]);
+    // no column holds the total: the figure is left alone
+    const noTotal = { ...l02(48292), columns: l02(48292).columns.slice(0, 4) };
+    expect(contradictions(L02_NOTE, 'Largest Aave borrowers now', noTotal)).toEqual([]);
+  });
+
+  it('holds a one-row answer\'s counts and dollars by the names of its columns, unless a clause qualifies them', () => {
+    const today = { columns: [{ name: 'swaps', type: 'UInt64' }, { name: 'traders', type: 'UInt64' }, { name: 'total_volume_usd', type: 'Float64' }], rows: [{ swaps: 1250, traders: 312, total_volume_usd: 1.79e9 }], rowCount: 1 };
+    const [c] = contradictions('There were 1,234 swaps today by 312 traders.', 'Uniswap swaps today', today);
+    expect(c.error).toBe('the note gives 1,234 ("There were 1,234 swaps today by 312 traders."), but the rows\' swaps is 1,250.');
+    expect(c.fix).toBe('There were 1,250 swaps today by 312 traders.');
+    // a figure that names nothing it counts is left alone
+    expect(contradictions('Swaps came to 1.1k today.', 'Uniswap swaps today', today)).toEqual([]);
+    expect(contradictions('Volume came to $2.1B in total volume.', 'Uniswap swaps today', today)[0].fix).toBe('Volume came to $1.8B in total volume.');
+    expect(contradictions('There were 1.2k swaps and $1.8B of total volume today.', 'Uniswap swaps today', today)).toEqual([]);
+    expect(contradictions('1,234 swaps were over $10k.', 'Uniswap swaps today', today)).toEqual([]);
+  });
+});
+
 // a writer that hands render_chart the same answer on every step
 type Call = { tools: { render_chart: { execute: (input: unknown, o: unknown) => Promise<unknown> } }; stopWhen: ((o: { steps: unknown[] }) => boolean | PromiseLike<boolean>)[]; onStepFinish: (s: unknown) => void };
 const results: unknown[] = [];
@@ -78,6 +125,15 @@ describe('the writer is sent back a note its rows contradict', () => {
     expect(results).toHaveLength(2);
     expect(runQuery).toHaveBeenCalledOnce();
     expect(answer?.note).toBe('Flash loans on Aave, valued at each hour\'s price.');
+  });
+
+  it('once, for a total the rows hold another figure of, and writes the rows\' figure in when it is still wrong', async () => {
+    runQuery.mockReset().mockResolvedValue({ ...l02(48292), elapsedMs: 1, rowsRead: 1, truncated: false });
+    vi.mocked(generateText).mockImplementation(writes({ ...FINAL, title: 'Largest Aave borrowers now', note: L02_NOTE, sql: 'SELECT borrower_address, debt_usd, debts, share_pct, count() OVER () AS of_total FROM debts ORDER BY debt_usd DESC LIMIT 15' }));
+    const answer = await ask(43114);
+    expect(results[0]).toEqual({ error: 'the note gives 48,336 ("The 15 largest borrowers on Aave by debt, of 48,336 total borrowers on the protocol now."), but the rows\' of_total is 48,292. Write the note from these rows, and call render_chart again with the same SQL.' });
+    expect(results).toHaveLength(2);
+    expect(answer?.note).toBe('The 15 largest borrowers on Aave by debt, of 48,292 total borrowers on the protocol now.');
   });
 
   it('leaves Fuji\'s note as it was', async () => {
