@@ -145,7 +145,7 @@ describe('the date and the calendar', () => {
     const p = (chainId: number) => pchainPrompt({ chainId, network: '', schema: '', coverage: null, lines: null });
     for (const text of [c(43114), c(43114, true), c(432204), p(1)]) {
       expect(text).toContain('A calendar window never starts earlier: this week is never toMonday(now()) - INTERVAL 7 DAY.');
-      expect(text).toContain('Write these windows with now(), and in the note in words ("since Monday"), never with today\'s date or a date written out (not toMonday(toDateTime(\'2026-09-27\'))): a kept answer and its note are shown again on later days.');
+      expect(text).toContain('Write these windows with now(), and in the note in words ("since Monday"), never with today\'s date or a date written out (not toMonday(toDateTime(\'2022-03-09\'))): a kept answer and its note are shown again on later days.');
       expect(text).toContain("in the year of today's date (the question's first line) unless it names another");
     }
     for (const text of [c(43113), p(5)]) {
