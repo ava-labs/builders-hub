@@ -18,6 +18,7 @@ import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
 import { scopeError, sqlWindow, withWindow } from "./scope";
 import { contradictions, withoutContradictions } from "./claims";
+import { absurdFigure } from "./magnitude";
 import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
 
 /* A question in, an answer out. A cached recipe answers at once: its SQL
@@ -195,6 +196,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let capOnce = false;
     let wordsOnce = false;
     let negOnce = false;
+    let bigOnce = false;
     let datedOnce = false;
     let windowOnce = false;
     let scopeOnce = false;
@@ -345,6 +347,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           if (neg) {
             negOnce = true;
             return fail(neg, Date.now() - q0);
+          }
+          // a figure in dollars past a trillion, or a token amount past a quadrillion units, is a decimals or a sign gone wrong: ask once
+          const big = bigOnce ? null : absurdFigure(result, a.chainId);
+          if (big) {
+            bigOnce = true;
+            return fail(big, Date.now() - q0);
           }
           // a time series the row cap cut from its latest end runs again for its newest rows, and is kept that way
           let kept = g.sql;
