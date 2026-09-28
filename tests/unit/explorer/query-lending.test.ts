@@ -180,8 +180,8 @@ describe('the lending worked examples', () => {
   const example = (l: string) => /^\$(LEND|DEBTS|LIQUIDATIONS|MARKETS|PRICES)\(/.test(l);
   const row = { day: '2026-09-27', hour: '2026-09-27 10:00:00', protocol: AAVE_SLUG, borrower_address: hex(1, 'a'), token: AAVE_ASSETS[0].token };
 
-  it('are seven, at least one for each shorthand, and each group opens into its records', () => {
-    expect(lines.filter(example).map((l) => /^\$(\w+)/.exec(l)![1])).toEqual(['LEND', 'LEND', 'LEND', 'DEBTS', 'LIQUIDATIONS', 'MARKETS', 'PRICES']);
+  it('are eight, at least one for each shorthand, and each group opens into its records', () => {
+    expect(lines.filter(example).map((l) => /^\$(\w+)/.exec(l)![1])).toEqual(['LEND', 'LEND', 'LEND', 'DEBTS', 'LIQUIDATIONS', 'MARKETS', 'LEND', 'PRICES']);
     expect(lines.filter((l) => l.startsWith('drill: '))).toHaveLength(5);
   });
 
@@ -192,7 +192,7 @@ describe('the lending worked examples', () => {
       const d = fillDrill(l.slice(7), row);
       return d.ok ? [d.sql] : [`not filled: ${d.error}`];
     });
-    expect(sqls).toHaveLength(12);
+    expect(sqls).toHaveLength(13);
     for (const sql of sqls) {
       const g = guardSql(sql, 43114);
       expect(g.ok ? '' : `${g.error}: ${sql.slice(0, 80)}`).toBe('');

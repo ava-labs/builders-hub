@@ -468,21 +468,25 @@ const join = (side: Side, aave: string, benqi: string) => (side === "aave" ? aav
 /** the end of a window, as a filter on `col`, or nothing for a window that runs to now */
 const until = (col: string, end?: string) => (end ? ` AND ${col} < ${end}` : "");
 
-/** every supply, withdrawal, borrow and repayment from `start` (to `end`): who, the asset, the amount in its units and in USD at the hour's price */
+/** the asset of an Aave action: a flash loan names it in topic2, every other action in topic1 */
+const FLASH_ASSET = "substring(if(a.topic0 = flash_loan_t, a.topic2, a.topic1), 13, 20)";
+/** every supply, withdrawal, borrow, repayment and Aave flash loan from `start` (to `end`): who, the asset, the amount in
+    its units and in USD at the hour's price, and a flash loan's premium in both */
 export function lendWith(start: string, end?: string, slug?: string): string {
   const aave =
-    `SELECT a.block_time AS t, '${AAVE_SLUG}' AS protocol, multiIf(a.topic0 = supply_t, 'supply', a.topic0 = withdraw_t, 'withdraw', a.topic0 = borrow_t, 'borrow', 'repay') AS action, substring(a.topic1, 13, 20) AS asset, ` +
-    `substring(a.topic2, 13, 20) AS who, ${W("if(a.topic0 IN (supply_t, borrow_t), 33, 1)", "a.data")} / pow(10, k.decimals) AS amount, k.price AS kind, a.transaction_hash AS tx ` +
-    `FROM raw_logs AS a LEFT JOIN ${TOK} AS k ON substring(a.topic1, 13, 20) = k.token WHERE a.chain_id = ${C} AND a.block_time >= ${start}${until("a.block_time", end)} AND a.address = aave_pool AND a.topic0 IN (supply_t, withdraw_t, borrow_t, repay_t)`;
+    `SELECT a.block_time AS t, '${AAVE_SLUG}' AS protocol, multiIf(a.topic0 = supply_t, 'supply', a.topic0 = withdraw_t, 'withdraw', a.topic0 = borrow_t, 'borrow', a.topic0 = flash_loan_t, 'flash_loan', 'repay') AS action, ${FLASH_ASSET} AS asset, ` +
+    `if(a.topic0 = flash_loan_t, substring(a.data, 13, 20), substring(a.topic2, 13, 20)) AS who, ${W("if(a.topic0 IN (supply_t, borrow_t, flash_loan_t), 33, 1)", "a.data")} / pow(10, k.decimals) AS amount, ` +
+    `if(a.topic0 = flash_loan_t, ${W(97, "a.data")} / pow(10, k.decimals), 0) AS premium, k.price AS kind, a.transaction_hash AS tx ` +
+    `FROM raw_logs AS a LEFT JOIN ${TOK} AS k ON ${FLASH_ASSET} = k.token WHERE a.chain_id = ${C} AND a.block_time >= ${start}${until("a.block_time", end)} AND a.address = aave_pool AND a.topic0 IN (supply_t, withdraw_t, borrow_t, repay_t, flash_loan_t)`;
   const benqi =
     `SELECT l.block_time AS t, m.protocol AS protocol, multiIf(l.topic0 = qi_mint_t, 'supply', l.topic0 = qi_redeem_t, 'withdraw', l.topic0 = qi_borrow_t, 'borrow', 'repay') AS action, m.asset AS asset, ` +
-    `substring(l.data, if(l.topic0 = qi_repay_t, 45, 13), 20) AS who, ${W("if(l.topic0 = qi_repay_t, 65, 33)", "l.data")} / pow(10, m.decimals) AS amount, m.price AS kind, l.transaction_hash AS tx ` +
+    `substring(l.data, if(l.topic0 = qi_repay_t, 45, 13), 20) AS who, ${W("if(l.topic0 = qi_repay_t, 65, 33)", "l.data")} / pow(10, m.decimals) AS amount, 0 AS premium, m.price AS kind, l.transaction_hash AS tx ` +
     `FROM raw_logs AS l INNER JOIN ${CORE} AS m ON l.address = m.market WHERE l.chain_id = ${C} AND l.block_time >= ${start}${until("l.block_time", end)} AND l.topic0 IN (qi_mint_t, qi_redeem_t, qi_borrow_t, qi_repay_t)`;
   // the kind's last ratio at or before the event (ASOF), times the AVAX price of the event's hour for a kind quoted in AVAX;
   // the prices start a day before the window (a start such as toMonday(now()) is a Date, which toStartOfHour does not take)
   return (
     `WITH ${hourPricesCte(`toStartOfHour(toDateTime(${start})) - INTERVAL 1 DAY`, until("block_time", end))}, ${core(sideOf(slug))}ev AS (${join(sideOf(slug), aave, benqi)}), ` +
-    `actions AS (SELECT e.*, e.amount * nullIf(r.v, 0) * if(e.kind IN ${IN_AVAX}, nullIf(x.avax, 0), 1) AS usd FROM ev AS e ASOF LEFT JOIN lp AS r ON e.kind = r.k AND e.t >= r.d LEFT JOIN lpx AS x ON toStartOfHour(e.t) = x.d)`
+    `actions AS (SELECT e.*, e.amount * (nullIf(r.v, 0) * if(e.kind IN ${IN_AVAX}, nullIf(x.avax, 0), 1) AS hour_price) AS usd, e.premium * hour_price AS premium_usd FROM ev AS e ASOF LEFT JOIN lp AS r ON e.kind = r.k AND e.t >= r.d LEFT JOIN lpx AS x ON toStartOfHour(e.t) = x.d)`
   );
 }
 
