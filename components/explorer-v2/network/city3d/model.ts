@@ -4,8 +4,10 @@ import { diceOf, TILT } from "@/components/explorer-v2/network/city-geometry";
 import type { City } from "@/components/explorer-v2/network/city";
 import type { Ground } from "@/components/explorer-v2/network/ground";
 import type { Site } from "@/components/explorer-v2/network/newcomers";
+import { PRIVATE_IDS } from "@/components/explorer-v2/network/private";
 import { hubWindows } from "./HubTower";
 import { noShapes, plannerOf, type FormPart, type ShapeKey } from "./forms";
+import { estateOf } from "./forms/estate";
 
 /* The city as a model in three dimensions, worked out once per plan: the
    map's plan (city.ts) and its buildings' forms (icm-map.tsx) stood up in
@@ -41,10 +43,11 @@ export interface Inst {
   yaw: number;
   pitch?: number;
   /** its own paint, over the massing's white, where a district's form gives one (palette.ts PAINT) */
-  paint?: "pitch" | "line";
+  paint?: "pitch" | "line" | "brass";
 }
-/** what a ribbon's glass shows: its storey's, its building's top storey's, downtown's white light, or a sky lobby's warm one */
-export type Tone = "floor" | "top" | "white" | "crown" | "lobby";
+/** what a ribbon's glass shows: its storey's, its building's top storey's, downtown's white light, a sky lobby's warm one, or
+    a landmark's crown of its top storey's glass that takes its district's hue whole (the private bank's) */
+export type Tone = "floor" | "top" | "white" | "crown" | "lobby" | "gem";
 export interface Ribbon extends Inst {
   /** its storey, 0 on the ground */
   k: number;
@@ -164,7 +167,7 @@ function facesOf(l: number, r: number) {
   ];
 }
 
-export function modelOf(nodes: Node[]): CityModel {
+export function modelOf(nodes: Node[], city?: City): CityModel {
   const m: CityModel = {
     buildings: [],
     byId: new Map(),
@@ -194,8 +197,8 @@ export function modelOf(nodes: Node[]): CityModel {
       .map((n) => n.id),
   );
   const order = new Map([...nodes].sort((a, b) => riseDelay(a) - riseDelay(b)).map((n, i) => [n.id, i]));
-  // each district's own architecture, where it has one (forms/)
-  const designOf = plannerOf(nodes);
+  // each district's own architecture, where it has one (forms/), and the streets its lots front
+  const designOf = plannerOf(nodes, city);
   nodes.forEach((n) => {
     const b = m.buildings.length;
     const [x, z] = planOf(n.x, n.y);
@@ -276,6 +279,8 @@ export function modelOf(nodes: Node[]): CityModel {
     });
     if (plan) plan.dress(m, building, b);
     else roofOf(m, building);
+    // a private L1 stands in its walled estate, its gate on its street (forms/estate.ts)
+    if (PRIVATE_IDS.has(n.id)) estateOf(m, building, b, city?.lots.get(n.id), city?.lot);
   });
   return m;
 }

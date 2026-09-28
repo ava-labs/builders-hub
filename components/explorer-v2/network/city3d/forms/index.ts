@@ -1,11 +1,13 @@
 import { CX, CY, H_TOP_MIN, TALL, validatorHeight, type Node } from "@/components/explorer-v2/network/icm-map";
 import { diceOf, TILT } from "@/components/explorer-v2/network/city-geometry";
-import { financePlan, type Front } from "./finance";
+import type { City } from "@/components/explorer-v2/network/city";
+import { bankPlan, BANKS, financePlan, type Front } from "./finance";
 import { civicPlan, stadiumPlan, STADIUMS } from "./culture";
 import { hallPlan } from "./infrastructure";
 import { enterprisePlan } from "./enterprise";
 import { gamingPlan } from "./gaming";
 import { aiPlan } from "./ai";
+import { faceToward, streetOf } from "./estate";
 import { planAt, type Plan } from "./frame";
 
 export { noShapes, SHAPE_KEYS, type FormPart, type Plan, type ShapeKey } from "./frame";
@@ -26,9 +28,9 @@ const HOME_RISE = Math.tan(Math.PI / 6);
 const TEMPLE_H = 26;
 const TEMPLE_W = 12;
 
-/** a planner for one plan of the city: each set's form, knowing the sets round it */
+/** a planner for one plan of the city: each set's form, knowing the sets round it and, where it has one, the street its lot fronts */
 
-export function plannerOf(nodes: Node[]): (n: Node) => Plan | null {
+export function plannerOf(nodes: Node[], city?: City): (n: Node) => Plan | null {
   // the sets by size: the most validators, then the first by ID
   const ranked = nodes.filter((n) => n.role !== "hub" && n.newAt === null).sort((a, b) => b.validators - a.validators || (a.id < b.id ? -1 : 1));
   /* how far a set's lot is free: its lot's pitch, read back from its footprint, and the room to the nearest
@@ -79,10 +81,10 @@ export function plannerOf(nodes: Node[]): (n: Node) => Plan | null {
   const financeLargest = ranked.find((n) => n.district === "finance");
   /* the temple front, one to the district, where the home camera sees it: on the largest set with a clear face
      toward the home view that is large enough to carry it, the lit face first; else a smaller portico on the
-     largest set in that front row */
+     largest set in that front row. The private bank keeps its own front */
   const front = ((): (Front & { id: string }) | null => {
     const row = ranked.flatMap((n) => {
-      const face = n.district === "finance" ? [0, 1].find((f) => shows(n, f)) : undefined;
+      const face = n.district === "finance" && !BANKS.has(n.id) ? [0, 1].find((f) => shows(n, f)) : undefined;
       return face === undefined ? [] : [{ n, face }];
     });
     const big = row.find(({ n }) => standOf(n) >= TEMPLE_H && n.w >= TEMPLE_W);
@@ -94,6 +96,8 @@ export function plannerOf(nodes: Node[]): (n: Node) => Plan | null {
     const roll = diceOf(`${n.id}:arch`);
     switch (n.district) {
       case "finance":
+        // the private bank's door faces its street, as its estate's gate does
+        if (BANKS.has(n.id)) return bankPlan(n, faceToward(streetOf(city?.lots.get(n.id), ...at(n))));
         return financePlan(n, roll, front?.id === n.id ? front : null, financeLargest?.id === n.id);
       case "culture":
         return STADIUMS.has(n.id) ? stadiumPlan(n, roomOf(n)) : civicPlan(n, roll);

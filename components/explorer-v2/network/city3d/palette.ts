@@ -91,10 +91,12 @@ export const GROUND = {
 
 /** the paints a district's form may give its shapes, over the massing's white: a stadium's pitch, a calm sage by day and a
     graphite-green by night, which the massing's shade at its foot takes down to the lawns' lightness, and its lines, white
-    by day and pale by night, as the helipad's are */
+    by day and pale by night, as the helipad's are; and the private bank's one band of brass, a satin brass by day and a
+    dim bronze by night, the only warm metal in the city */
 export const PAINT = {
   pitch: P("#DCF8DC", "#263428"),
   line: P("#FFFFFF", "#9AA0AE"),
+  brass: P("#C8AE72", "#7D6A45"),
 };
 
 /** the roofs' furniture: steel and glass, nothing warm */

@@ -10,7 +10,8 @@ import { FLOOR, boxAt, boxPart, dropAt, facesOf, glassHalf, glassRound, halvesOn
    a two-storey colonnade, and one set fronts its base with a temple:
    columns, entablature, pediment, on the face the home view sees
    (index.ts chooses it). Each podium's top carries a ticker, a band of
-   glass that flashes with its chain's transactions. */
+   glass that flashes with its chain's transactions. Lynq's chain, a
+   private L1, stands apart as the district's private bank (bankPlan). */
 
 /** a set this large (about 40 on the city's validator scale) steps back and wears a Deco crown, where its height gives it room */
 const DECO_VALIDATORS = 8;
@@ -163,6 +164,124 @@ export function financePlan(n: Node, roll: Roll, front: Front | null, largest = 
         m.boxes.push(boxAt(bd, b, su, sv, hu, hv, step + colH, pod));
         m.shapes.gable.push(shapeAt(bd, b, su, sv, pod, span * 2, span * 0.42, deep, f.turn));
       }
+    },
+  };
+}
+
+/** the sets that stand as a private bank, by chain ID: Lynq's (constants/l1-chains.json), a private L1 (private.ts) */
+export const BANKS = new Set(["BXLoBWScGdbWcFozx2PDv9hEcH3fXNvNmX3GAc25gbbRxs7nc"]);
+/** the bank's tower: its windows' glass, shorter than a curtain wall's so its stone shows between the storeys, and its piers:
+    their width, how far they stand off the wall, and the bay they aim for */
+const WINDOW = 3;
+const PIER_W = 0.5;
+const PIER_D = 0.6;
+const PIER_BAY = 2.8;
+/** the vault's stone: its courses over its plinth, and the channel under each */
+const COURSES = 4;
+const CHANNEL = 0.3;
+const PLINTH = 1.1;
+
+/* The private bank: a vault of banded stone with no window and one steel
+   door, on the face toward its street (its estate's gate opens there too:
+   estate.ts), under an Art Deco tower of stone piers that steps back twice
+   to a crown of the district's emerald glass, whole where the district's
+   other glass is calmed, set on a thin band of brass. Its chain's
+   transactions are not public, so its base carries no ticker. It stands as
+   tall as its validators, as every set does: its form alone says what it is */
+export function bankPlan(n: Node, door: number): Plan {
+  const { w, h } = n;
+  const H = w / Math.SQRT2;
+  // the vault, two storeys of stone; the tower's setback near three fifths up, and its crown's foot near four fifths
+  const vault = Math.min(storeyAt(2, LINE), h * 0.34);
+  const back1 = Math.max(vault + FLOOR, storeyAt(Math.round((h * 0.62) / FLOOR), LINE));
+  const back2 = Math.min(h - 6, Math.max(back1 + FLOOR * 0.8, storeyAt(Math.round((h * 0.79) / FLOOR), LINE)));
+  const Ht = H * 0.8;
+  const H2 = H * 0.63;
+  const Hc = H * 0.46;
+  // the crown's cornice, and the attic over it in two steps up to the set's height
+  const cornice = h - 1.5;
+  const Ha = Hc * 0.8;
+  const Hb = Hc * 0.56;
+  const parts: FormPart[] = [
+    boxPart(H - 0.18, H - 0.18, 0, vault - 0.05, 0, 0, { none: true }),
+    boxPart(Ht, Ht, vault - LAP, back1, 0, 0, { h: WINDOW }),
+    boxPart(H2, H2, back1 - LAP / 2, back2, 0, 0, { h: WINDOW }),
+    boxPart(Hc, Hc, back2 - LAP / 2, cornice, 0, 0, { none: true }),
+    boxPart(Ha, Ha, cornice, cornice + 0.75, 0, 0, { none: true }),
+    boxPart(Hb, Hb, cornice + 0.75, h, 0, 0, { none: true }),
+  ];
+  return {
+    parts,
+    crest: h,
+    extent: w * 1.05,
+    shaft: 1,
+    // the drone lands on the attic's roof
+    drop: dropAt(0, 0, h, Hb - 0.3),
+    dress(m, bd, b) {
+      const trim = m.shapes.trim;
+      // the vault: its plinth, its courses of stone standing off its core (their edges draw its joints), and its cornice
+      m.boxes.push(boxAt(bd, b, 0, 0, H + 0.3, H + 0.3, 0, PLINTH));
+      const top = vault - 0.9;
+      const course = (top - PLINTH - CHANNEL * COURSES) / COURSES;
+      for (let i = 0; i < COURSES; i++) {
+        const z0 = PLINTH + CHANNEL + i * (course + CHANNEL);
+        m.boxes.push(boxAt(bd, b, 0, 0, H, H, z0, z0 + course));
+      }
+      trim.push(boxAt(bd, b, 0, 0, H + 0.55, H + 0.55, top, vault));
+      // its one door, in a stone surround proud of the courses, a storey and more tall
+      const f = facesOf(H, H)[door];
+      const dw = 1.7;
+      const dz = PLINTH + Math.min(7.4, top - PLINTH - 1.4);
+      const [du, dv] = onFace(f, 0, 0.1);
+      const [dhu, dhv] = halvesOn(f, dw, 0.1);
+      m.steel.push(boxAt(bd, b, du, dv, dhu, dhv, PLINTH, dz));
+      for (const s of [-(dw + 0.3), dw + 0.3]) {
+        const [u, v] = onFace(f, s, 0.2);
+        const [hu, hv] = halvesOn(f, 0.3, 0.2);
+        trim.push(boxAt(bd, b, u, v, hu, hv, PLINTH, dz));
+      }
+      const [lu, lv] = onFace(f, 0, 0.25);
+      const [lhu, lhv] = halvesOn(f, dw + 0.8, 0.25);
+      trim.push(boxAt(bd, b, lu, lv, lhu, lhv, dz, dz + 0.9));
+      // the tower's piers up each tier, across its windows on every face, and a coping at each setback
+      const piers = (half: number, z0: number, z1: number) => {
+        for (const g of facesOf(half, half)) {
+          const run = glassHalf(half, half, g);
+          const bays = Math.max(2, Math.round((2 * run) / PIER_BAY));
+          for (let j = 0; j <= bays; j++) {
+            const [u, v] = onFace(g, -run + (2 * run * j) / bays, PIER_D / 2);
+            const [hu, hv] = halvesOn(g, PIER_W / 2, PIER_D / 2);
+            trim.push(boxAt(bd, b, u, v, hu, hv, z0, z1));
+          }
+        }
+      };
+      piers(Ht, vault, back1);
+      trim.push(boxAt(bd, b, 0, 0, Ht + PIER_D + 0.1, Ht + PIER_D + 0.1, back1 - 0.45, back1));
+      piers(H2, back1, back2);
+      trim.push(boxAt(bd, b, 0, 0, H2 + PIER_D + 0.1, H2 + PIER_D + 0.1, back2 - 0.45, back2));
+      // the crown: its band of brass, the emerald glass round its four faces, a pier at each corner and three mullions a face
+      trim.push({ ...boxAt(bd, b, 0, 0, Hc + 0.14, Hc + 0.14, back2 + 0.3, back2 + 0.75), paint: "brass" });
+      const g0 = back2 + 0.9;
+      const g1 = cornice - 0.7;
+      glassRound(m, bd, b, Hc, g0, g1 - g0, "gem", 0.03);
+      for (const [su, sv] of [
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+      ])
+        trim.push(boxAt(bd, b, su * Hc, sv * Hc, 0.4, 0.4, back2 + 0.75, g1));
+      for (const g of facesOf(Hc, Hc)) {
+        for (const s of [-0.5, 0, 0.5]) {
+          const [u, v] = onFace(g, s * Hc, 0.15);
+          const [hu, hv] = halvesOn(g, 0.12, 0.15);
+          trim.push(boxAt(bd, b, u, v, hu, hv, back2 + 0.75, g1));
+        }
+      }
+      // its cornice, whose line lights at night as every crown's in the district does, and the attic's cap
+      trim.push(boxAt(bd, b, 0, 0, Hc + 0.35, Hc + 0.35, g1, cornice));
+      glassRound(m, bd, b, Hc + 0.35, g1 + 0.1, 0.3, "white", 0.03);
+      trim.push(boxAt(bd, b, 0, 0, Hb + 0.15, Hb + 0.15, h - 0.3, h));
     },
   };
 }

@@ -367,9 +367,10 @@ export function Buildings({
       if (tone === "crown") return crownOf;
       return glassOf(glassAt(b, k, tone)!);
     };
+    // a landmark's gem crown takes its district's hue whole, where the rest of the district's glass is calmed
     const hueOf = (b: number, k: number, tone: string) => {
       const g = glassAt(b, k, tone);
-      return g === null || whole.has(g) ? 1 : district;
+      return g === null || whole.has(g) || tone === "gem" ? 1 : district;
     };
     for (const [mesh, list] of [
       [meshes.ribbons, model.ribbons],

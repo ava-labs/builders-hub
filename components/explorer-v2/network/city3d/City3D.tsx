@@ -39,6 +39,7 @@ import { Lighting } from "./Lighting";
 import { Post } from "./Post";
 import { hurry, Rise, Stage, useSteady, Warmup, WARM } from "./warmup";
 import { webglProbe, webglSeen } from "@/components/explorer-v2/network/webgl-probe";
+import { PRIVATE_IDS } from "@/components/explorer-v2/network/private";
 
 /* The city in 3D: the same plan, towers, streets and traffic as the map
    (icm-map.tsx), drawn in WebGL so the reader can turn it, tilt it and
@@ -328,7 +329,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   const painted = paint ?? sizeBy === "versions";
 
   /* the plan, stood up: the buildings, the ground and its trees, the outskirts and the streets */
-  const model = useMemo(() => modelOf(nodes), [nodes]);
+  const model = useMemo(() => modelOf(nodes, city), [nodes, city]);
   const terrain = useMemo(() => groundOf(city, { cx: CX, cy: CY, ringIn: RING_IN }), [city]);
   const outskirts = useMemo(() => outskirtsOf(city, sites, terrain), [city, sites, terrain]);
   const trees = useMemo(() => [...groundTrees(city, terrain), ...outskirts.trees], [city, terrain, outskirts]);
@@ -820,12 +821,16 @@ export default function City3D({ data: incoming, versions = null, target = "", s
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-zinc-900 dark:text-zinc-100">
           <Logo uri={tipNode.logo} name={tipNode.name} />
           {tipNode.name}
+          {/* a private L1 (private.ts), in the badge the chains list gives it */}
+          {PRIVATE_IDS.has(tipNode.id) && (
+            <span className="shrink-0 border border-[#A2AFB2] px-1 py-px font-mono text-[8px] font-bold tracking-[0.1em] text-[#5F6B7A] dark:border-[#5F6B7A] dark:text-[#A2AFB2]">PRIVATE</span>
+          )}
         </p>
         {tipNode.newAt !== null && <TipRow label="Joined the P-Chain" value={`${ageShort(tipNode.newAt)} ago`} />}
         <TipRow label="Validators" value={tipNode.validators.toLocaleString("en-US")} />
         {m && target && (
           <>
-            <TipRow label={`On ${target}+`} value={pct === null ? "n/a" : `${m.on} · ${pct}%`} />
+            <TipRow label={`On ${target}+`} value={pct === null ? (PRIVATE_IDS.has(tipNode.id) ? "private" : "n/a") : `${m.on} · ${pct}%`} />
             {m.near + m.stale > 0 && <TipRow label="Behind" value={String(m.near + m.stale)} />}
           </>
         )}
