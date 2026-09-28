@@ -178,10 +178,6 @@ export function listBoards(scope: string): Board[] {
   return (parse(readRaw())[scope] ?? []).slice().sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function getBoard(scope: string, id: string): Board | undefined {
-  return (parse(readRaw())[scope] ?? []).find((b) => b.id === id);
-}
-
 export function createBoard(scope: string, name = "Untitled board", tiles: Tile[] = []): Board {
   const now = Date.now();
   const board: Board = { id: uid(), name, createdAt: now, updatedAt: now, tiles: tiles.map((t, i) => ({ ...t, id: uid(), order: i })) };

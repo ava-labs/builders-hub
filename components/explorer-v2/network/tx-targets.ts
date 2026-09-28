@@ -242,12 +242,6 @@ const subscribe = (l: () => void) => {
   };
 };
 
-/** the subnet one tx acts on, looked up once a session; null when it names
- *  none or the P-Chain could not say */
-export function txTarget(network: string, hash: string, type: string): Promise<string | null> {
-  return asksAbout(type) ? lookup(network, hash, type) : Promise.resolve(null);
-}
-
 /** tx hash to the subnetID it acts on, for each tx in `txs` whose answer has
  *  landed; the rest fill in as theirs land. The map keeps its identity until
  *  one of these answers changes, so a memo on it holds across polls. */

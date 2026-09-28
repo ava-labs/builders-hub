@@ -387,13 +387,6 @@ export const cRoofAt = (model: CityModel) =>
 /** cRoofAt's first name, which Helicopters.tsx reads */
 export const cDropAt = (model: CityModel) => cRoofAt(model);
 
-/* the transfers the tower has been asked to play, out of the P-Chain to the C-Chain or into it, which it takes each frame */
-const asked: ("toC" | "toP")[] = [];
-/** plays a transfer: "toC" for an export from the P-Chain, "toP" for an import into it. The tower plays one itself for each import or export in the ledger it is given */
-export function pulseBridge(dir: "toC" | "toP") {
-  if (asked.length < 16) asked.push(dir);
-}
-
 /* the C wing's front, where a transfer's light climbs: its front face from over its upper lobby (z0) to under its lantern (z1), a point of it t across and `proud` out from it at a height */
 function spineOf(f: Frame) {
   const cc = f.centre("c");
@@ -1460,10 +1453,6 @@ export function HubTower({
     }
   }, [pulse, still]);
   useFrame(({ gl }) => {
-    while (asked.length) {
-      const dir = asked.shift();
-      if (!still) runOut(dir === "toC", TIME.value);
-    }
     stepHubTower(parts, { dark, still, riseAt, lightAt, flashes: flashes.current, runs: runs.current, px: gl.getPixelRatio(), view: gl.getDrawingBufferSize(_view) });
   });
 

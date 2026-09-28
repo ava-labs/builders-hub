@@ -773,7 +773,6 @@ export function PrimaryStakingContent({
   // the APY feed carries the P-Chain supply (AVAX units, before burns) and
   // the all-time burn: the ratio is THE number behind the reward rate
   const supplyAvax = num(apy?.current?.supply);
-  const totalBurned = num(apy?.current?.totalBurned);
   const stakingRatio =
     totalStaked !== null && supplyAvax !== null && supplyAvax > 0
       ? (totalStaked / supplyAvax) * 100

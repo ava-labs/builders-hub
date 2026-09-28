@@ -7,10 +7,6 @@
     {
       "path": "/api/verify/cleanup",
       "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/explorer/query/warm",
-      "schedule": "30 */6 * * *"
     }
   ],
   "functions": {

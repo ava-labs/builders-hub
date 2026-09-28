@@ -10,7 +10,7 @@ import { formatNumber, truncate, ageShort } from "@/components/explorer-v2/forma
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
-import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
+import { useTokenList, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
 import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
 

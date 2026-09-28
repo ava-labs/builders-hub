@@ -116,12 +116,6 @@ function xText(names: Names, x: string | undefined, v: unknown, span: Span): str
 const inSelection = (sel: Selection, r: Row) => sel.every((p) => matches(r, p));
 const pickValue = (v: unknown): string | number => (typeof v === "number" ? v : String(v ?? ""));
 
-/** the column a panel's gestures select on, or undefined when it has none
-    (tables, scatters: their x is a measure, not an index) */
-export function panelFilterColumn(panel: Panel): string | undefined {
-  return panel.kind === "table" || panel.kind === "scatter" ? undefined : panel.x;
-}
-
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** a time as a person says it: "Sep 3", or "Sep 3 14:00" inside a day */

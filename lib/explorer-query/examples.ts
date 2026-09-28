@@ -113,9 +113,6 @@ export const L1_EXAMPLES: typeof EXAMPLES = [
   },
 ];
 
-/** every suggested question, in order */
-export const EXAMPLE_PROMPTS = EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
-
 /** an EVM chain's suggestions: the C-Chain's own, or the generic set */
 export function examplesFor(chainId: number | string): typeof EXAMPLES {
   return isCChain(chainId) ? EXAMPLES : L1_EXAMPLES;

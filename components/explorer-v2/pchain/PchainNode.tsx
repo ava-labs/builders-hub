@@ -870,10 +870,6 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
   const [showAll, setShowAll] = useState(false);
   const { periods, totals } = data;
   const lifetimeReward = BigInt(totals.validationReward) + BigInt(totals.delegationReward);
-  // delegations, not people: the same delegator re-staking across two terms
-  // counts twice, which is the honest reading of "how much work has this node
-  // taken on" rather than a unique-holder count the API can't give us
-  const delegationsServed = periods.reduce((s, p) => s + p.delegatorCount, 0);
   const rows = showAll ? periods : periods.slice(0, LIST_CAP);
 
   return (

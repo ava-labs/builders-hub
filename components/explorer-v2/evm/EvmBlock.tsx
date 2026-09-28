@@ -5,7 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, INK, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";

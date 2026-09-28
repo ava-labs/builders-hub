@@ -1,5 +1,4 @@
 import type { District } from "@/components/explorer-v2/network/districts";
-import { TILT } from "@/components/explorer-v2/network/city-geometry";
 
 /* The city model's materials and shared shapes: its massing and glass by
    face, the storey, and the drum's faces, for the map (icm-map.tsx) and
@@ -101,20 +100,3 @@ export const FLOOR = 6;
 export const TALL = 58;
 /** how long a set's colors take to come on */
 export const LIGHTS_MS = 1100;
-
-/* a point on a drum's rim, t radians round from its right, a quarter turn at its front */
-export const rimAt = (x: number, y: number, r: number, t: number, z: number): [number, number] => [x + r * Math.cos(t), y + r * TILT * Math.sin(t) - z];
-/* a band of a drum's face between two turns, z0 to z1: its lit half runs from the left to the front, its shaded half on to the right */
-export function drumBand(x: number, y: number, r: number, z0: number, z1: number, t0: number, t1: number): string {
-  const f = (v: number) => v.toFixed(1);
-  const ry = r * TILT;
-  const [ax, ay] = rimAt(x, y, r, t0, z0);
-  const [bx, by] = rimAt(x, y, r, t1, z0);
-  const [cx, cy] = rimAt(x, y, r, t1, z1);
-  const [dx, dy] = rimAt(x, y, r, t0, z1);
-  return `M${f(ax)},${f(ay)}A${f(r)},${f(ry)} 0 0 0 ${f(bx)},${f(by)}L${f(cx)},${f(cy)}A${f(r)},${f(ry)} 0 0 1 ${f(dx)},${f(dy)}Z`;
-}
-export const DRUM_FACE: [number, number][] = [
-  [Math.PI, Math.PI / 2],
-  [Math.PI / 2, 0],
-];

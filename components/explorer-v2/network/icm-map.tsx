@@ -9,8 +9,8 @@ import { LEDGER, usePchainPulse, type PchainPulse } from "@/components/explorer-
 import { NEW_DAYS, useNewcomers, type Newcomer, type Site } from "@/components/explorer-v2/network/newcomers";
 import { GUEST_LOGOS } from "@/components/explorer-v2/network/guest-logos";
 import { type Ground } from "@/components/explorer-v2/network/ground";
-import { BAND_ORDER, EDGE, FLOOR, GLASS, GROUND, LIGHTS_MS, MASS, TALL, type Band, type Glass } from "@/components/explorer-v2/network/city-model";
-import { HUB_LOBBY, HUB_PLINTH, hubMast } from "@/components/explorer-v2/network/hub-tower";
+import { BAND_ORDER, FLOOR, TALL, type Band, type Glass } from "@/components/explorer-v2/network/city-model";
+import { HUB_LOBBY, HUB_PLINTH } from "@/components/explorer-v2/network/hub-tower";
 export { DISTRICT_GLASS, EDGE, FLOOR, GLASS, GROUND, LIGHTS_MS, MASS, TALL, type Glass } from "@/components/explorer-v2/network/city-model";
 export { HUB_CHAMFER, HUB_FACES, HUB_LOBBY, HUB_LOBBY_W, HUB_PLINTH, HUB_STEP, HUB_TAPER, chamferOf, hubMast, hubScale } from "@/components/explorer-v2/network/hub-tower";
 import { arcPath, diceOf, HUB_W, TILT } from "@/components/explorer-v2/network/city-geometry";
@@ -190,21 +190,8 @@ export function famOf(type: string): Fam {
 export const RING_SLOTS = LEDGER + 1;
 export const SLOT = 360 / RING_SLOTS;
 export const RING_IN = PLATE - 32;
-export const RING_OUT = PLATE - 12;
 /** how far a tile's face stands above the plate */
 export const RING_LIFT = 3;
-export const STRATA = (
-  [
-    [0, 2, "fill-[#6B6A66] dark:fill-[#1C1D21]"],
-    [2, 11.2, "fill-[#E6E2DA] dark:fill-[#2B2C31]"],
-    [11.2, PLATE_T, "fill-[#CFCAC0] dark:fill-[#222328]"],
-  ] as const
-).map(([y0, y1, className]) => ({
-  y0,
-  y1,
-  d: `M${CX - PLATE},${CY + y0} A${PLATE},${PLATE * TILT} 0 0 0 ${CX + PLATE},${CY + y0} L${CX + PLATE},${CY + y1} A${PLATE},${PLATE * TILT} 0 0 1 ${CX - PLATE},${CY + y1} Z`,
-  className,
-}));
 
 /* a street route on screen: its path, its length, and the point halfway along it */
 function onScreen(s: Street): { d: string; length: number; mid: [number, number] } {
@@ -904,6 +891,3 @@ export function outskirtsOf(city: City, sites: Site[], terrain: Ground) {
   out.masses.sort((a, b) => a.y - b.y);
   return out;
 }
-
-/* the city's canvas: it draws what useCityData planned, lights what the
-   app points at, and hands every click back to the app */

@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect, useState, createContext, useContext } from "react";
 import { ExplorerProvider } from "@/components/explorer/ExplorerContext";
-import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
 import { L1Chain } from "@/types/stats";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";

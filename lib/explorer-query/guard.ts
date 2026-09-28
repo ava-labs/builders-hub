@@ -8,10 +8,8 @@
 import { strayHex, typedLending } from "./lending";
 import { expandMacros } from "./macros";
 import { DEX_TOPICS } from "./protocols";
-import { EVM_TABLES, isFuji, targetOf } from "./target";
+import { isFuji, targetOf } from "./target";
 
-/** the EVM chains' tables; each target carries its own list (target.ts) */
-export const ALLOWED_TABLES = EVM_TABLES;
 export type AllowedTable = string;
 
 /** the most rows one answer may carry back to the browser */

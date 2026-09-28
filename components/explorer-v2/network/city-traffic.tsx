@@ -1,22 +1,6 @@
 import { TILT } from "@/components/explorer-v2/network/city-geometry";
 import type { Route } from "@/components/explorer-v2/network/icm-map";
 
-export interface TrafficRoute {
-  route: Route;
-  /** the id of the route's path in the map; the traffic's own lane takes its name from it */
-  pathId: string;
-  /** one of its ends is in what the search, a cut or the camera's district shows */
-  on: boolean;
-  /** hovered, or one of its ends is the lit chain */
-  hot: boolean;
-  /** one of its ends is the picked chain */
-  blue: boolean;
-  /** the sender's color, when it has one */
-  ink: string | null;
-  /** its place in the map's list: the roads light out one after another */
-  index: number;
-}
-
 /** a lot's pitch in plan, which the streets and the vehicles are sized against */
 const LOT = 46;
 
@@ -359,7 +343,3 @@ function lanesOf(plans: Plan[], counts: number[]): { lane: number[]; ways: numbe
   }
   return { lane, ways };
 }
-type Face = "front" | "rear" | "right" | "left";
-/** a mark on a face of a solid: the solid, the face, a run along the face and a band of height */
-type Mark = [number, Face, [number, number], [number, number]];
-const on = (i: number, face: Face, z: [number, number]) => (u: [number, number]): Mark => [i, face, u, z];

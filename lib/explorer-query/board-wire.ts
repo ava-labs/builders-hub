@@ -83,7 +83,6 @@ export const boardBodySchema = z.object({
   createdAt: z.number().int().positive(),
   updatedAt: z.number().int().positive(),
 });
-export type BoardBody = z.infer<typeof boardBodySchema>;
 
 /** a board as anyone with its link reads it: no owner, no tombstone */
 export interface SharedBoard {

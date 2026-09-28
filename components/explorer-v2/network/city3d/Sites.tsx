@@ -66,7 +66,6 @@ function craneParts(mast: number, reach: number, k: number): { tower: Part[]; to
   top.push({ g: bar(new Vector3(-mw * 0.55, 2.2 * k, 0), apex, rail), tone: "steel" }, { g: bar(new Vector3(mw * 0.55, 2.2 * k, 0), apex, rail), tone: "steel" });
   const j0 = mw / 2;
   const h = 2.2 * k;
-  const tip = new Vector3(reach, h, 0);
   const chord = (x: number) => h + 2.6 * k - 1.8 * k * ((x - j0) / Math.max(1, reach - j0));
   for (const z of [-r * 0.8, r * 0.8]) top.push({ g: bar(new Vector3(j0, h, z), new Vector3(reach, h, z), rail), tone: "steel" });
   top.push({ g: bar(new Vector3(j0, chord(j0), 0), new Vector3(reach, chord(reach), 0), rail), tone: "steel" });

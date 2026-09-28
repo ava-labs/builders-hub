@@ -19,11 +19,6 @@ export const boostEase = (s: number) => (s <= 0 ? 0 : s >= BOOST_S ? 1 : 1 - Mat
 
 type Shader = WebGLProgramParametersWithUniforms;
 
-/** the brand's ease, fast attack and long decay (cubic-bezier(0.16, 1, 0.3, 1) as an exponential), for the shaders' curves */
-export const EASE_GLSL = /* glsl */ `
-float brandEase( float t ) { return t >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * t ); }
-`;
-
 /* the build-out: a vertex's height eases up from under the ground at its building's turn */
 const RISE_PARS = /* glsl */ `
 uniform float uTime;

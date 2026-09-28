@@ -1,12 +1,8 @@
-import { FLOOR } from "@/components/explorer-v2/network/city-model";
-
 /** the cut of the tower's corners at its foot and at its roof, as shares of its half-width */
 export const HUB_CHAMFER = 0.1;
 export const HUB_CHAMFER_TOP = 0.25;
 /** its roof's width over its foot's */
 export const HUB_TAPER = 0.84;
-/** the mark's size over the tower's half-width: as large as the cut roof holds */
-export const HUB_CROWN = 0.8;
 /** the podium's height: the tower's first floor stands on it */
 export const HUB_LOBBY = 20;
 /** the forecourt's two steps: how far each one's corners reach over the tower's half-width, and each step's rise */
@@ -19,15 +15,10 @@ export const HUB_LOBBY_W = 1.6;
 export const CROWN = 13;
 /** how far a sky lobby stands back from the walls, as a share of the tower's half-width */
 export const LOBBY_SET = 0.07;
-/** how far a ribbon's ends stand in from its face's corners, in plan */
-export const RIBBON_END = 1.8;
 /** the forecourt's steps and the podium: their half-widths over the tower's, and their cuts */
 export const STEPS = [2.2, 1.95];
 export const STEP_CUT = 0.2;
 export const PODIUM_CUT = 0.24;
-/** the porch's half-width over the tower's, how far it stands out from the podium, and its ridge */
-export const PORCH_W = 0.34;
-export const PORCH_OUT = 5;
 /** where the mast stands on the roof, right of its middle, over the tower's half-width */
 const MAST_AT = 0.52;
 
@@ -52,8 +43,6 @@ const riseOf = (z: number, h: number) => Math.max(0, Math.min(1, (z - HUB_LOBBY)
 export const hubScale = (z: number, h: number) => 1 - (1 - HUB_TAPER) * riseOf(z, h);
 /** the cut of its corners at a height: chamferOf(w * hubScale(z, h), hubChamfer(z, h)) is its plan there */
 export const hubChamfer = (z: number, h: number) => HUB_CHAMFER + (HUB_CHAMFER_TOP - HUB_CHAMFER) * riseOf(z, h);
-/** the storeys the sky lobbies take, at a third and two thirds of its height */
-export const hubLobbies = (h: number): [number, number] => [Math.round(h / 3 / FLOOR) + 1, Math.round((h * 2) / 3 / FLOOR)];
 
 /** where downtown's mast stands on its roof, on screen: by the roof's right corner, clear of the mark */
 export function hubMast(x: number, y: number, h: number, w: number): [number, number] {

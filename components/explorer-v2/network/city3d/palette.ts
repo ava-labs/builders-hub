@@ -1,4 +1,4 @@
-import { FAM, GLASS, type Fam, type Glass } from "@/components/explorer-v2/network/icm-map";
+import { GLASS, type Fam, type Glass } from "@/components/explorer-v2/network/icm-map";
 
 /* The 3D city's colors. The glass and the ledger's tiles are read from the
    city's classes (city-model.ts), so the districts' calmed hues show here as
@@ -121,7 +121,6 @@ export const HUB3 = {
 
 /** the ledger's tiles by tx family: their tops, read from the map's */
 export type { Fam };
-export const FAM3 = Object.fromEntries(Object.entries(FAM).map(([f, v]) => [f, pair(v.top)])) as Record<Fam, Pair>;
 
 /** the fleet's glass, lamps and paint */
 export const FLEET = {

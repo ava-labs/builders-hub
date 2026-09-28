@@ -60,7 +60,6 @@ class Builder {
 }
 
 const UP = new Vector3(0, 1, 0);
-const DOWN = new Vector3(0, -1, 0);
 const polar = (r: number, a: number, y: number) => new Vector3(r * Math.cos(a), y, r * Math.sin(a));
 
 /** slabs on annular sectors, merged: their tops (group 0), which read the ground's paint, and their walls (group 1) */
@@ -127,31 +126,6 @@ export function polygonsOfPath(d: string): Pt[][] {
       return out;
     })
     .filter((p) => p.length > 2);
-}
-
-/** a prism from one plan at z0 to another of as many corners at z1, with its top and its underside: a run of downtown's shaft */
-export function prismBetween(A: Pt[], B: Pt[], z0: number, z1: number): BufferGeometry {
-  const g = new Builder();
-  const k = A.length;
-  const at = (p: Pt, y: number) => new Vector3(p[0], y, p[1]);
-  for (let i = 0; i < k; i++) {
-    const a0 = at(A[i], z0);
-    const b0 = at(A[(i + 1) % k], z0);
-    const b1 = at(B[(i + 1) % k], z1);
-    const a1 = at(B[i], z1);
-    const n = new Vector3().subVectors(b0, a0).cross(new Vector3().subVectors(a1, a0)).normalize();
-    const mid = new Vector3().addVectors(a0, b0).multiplyScalar(0.5);
-    if (n.x * mid.x + n.z * mid.z < 0) n.negate();
-    g.quad(a0, b0, b1, a1, n);
-  }
-  const top = new Vector3(0, z1, 0);
-  const bottom = new Vector3(0, z0, 0);
-  for (let i = 0; i < k; i++) {
-    g.triangle(top, at(B[i], z1), at(B[(i + 1) % k], z1), UP);
-    g.triangle(bottom, at(A[i], z0), at(A[(i + 1) % k], z0), DOWN);
-  }
-  g.group(0);
-  return g.build();
 }
 
 /** the band round the plate's rim that carries its words, left to right as seen from outside */
