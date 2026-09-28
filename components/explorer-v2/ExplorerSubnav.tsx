@@ -10,7 +10,8 @@ import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
-import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, wantsTestnet } from "@/lib/explorer-catalog";
+import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
+import { isPrivateChain } from "@/components/explorer-v2/network/private";
 import { ExplorerRangeControl, useRangeConsumersPresent } from "@/components/explorer-v2/time-range";
 import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
 import { queryTarget } from "@/lib/explorer-query/board";
@@ -598,6 +599,7 @@ export function ExplorerSubnav({
   const pathname = usePathname();
   const tabs = useMemo(() => buildTabs(network, chainSlug), [network, chainSlug]);
   const inert = useMemo(() => isUnindexedChain(network, chainSlug), [network, chainSlug]);
+  const shut = useMemo(() => isPrivateChain(resolveCatalogChain(network, chainSlug)), [network, chainSlug]);
 
   // the tab rail scrolls when the inventory outgrows the row — the edge
   // fades say so (a hard clip reads as "there is no ICM tab"). The mask
@@ -684,7 +686,7 @@ export function ExplorerSubnav({
                   <span
                     key={tab.label}
                     aria-disabled
-                    title="This chain isn't indexed yet"
+                    title={shut ? "A private L1: its data is not public" : "This chain isn't indexed yet"}
                     className={cn(cls, "cursor-not-allowed text-zinc-300 dark:text-zinc-700")}
                   >
                     {tabText(tab)}

@@ -17,6 +17,7 @@ import { classifyLocally } from "@/lib/pchain-explorer";
 import { ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
 import { DISTRICT_GLASS, GroundKey, Logo, TONE, Tower, mixTotal, pctInk, type CameraHandle, type CityData, type Inset, type Node, type VersionMix } from "@/components/explorer-v2/network/icm-map";
 import { DISTRICTS, LIST_ORDER, districtAbout, districtLabel, type District } from "@/components/explorer-v2/network/districts";
+import { isPrivateChain, PRIVATE_NOTE } from "@/components/explorer-v2/network/private";
 import { NEW_DAYS } from "@/components/explorer-v2/network/newcomers";
 import { RANGE_DAYS, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import { useChainPulse } from "@/components/explorer-v2/network/chain-pulse";
@@ -212,6 +213,15 @@ function NewBadge() {
   return <span className="shrink-0 border border-[#A2AFB2] px-1 py-px font-mono text-[8px] font-bold tracking-[0.1em] text-[#5F6B7A] dark:border-[#5F6B7A] dark:text-[#A2AFB2]">NEW</span>;
 }
 
+/* a private L1 (private.ts), in the badge grammar NEW wears: its data is not public, which is why its panel is short */
+function PrivateBadge() {
+  return (
+    <span title="A private, permissioned L1: its RPC, blocks and node versions are not public" className="shrink-0 border border-[#A2AFB2] px-1 py-px font-mono text-[8px] font-bold tracking-[0.1em] text-[#5F6B7A] dark:border-[#5F6B7A] dark:text-[#A2AFB2]">
+      PRIVATE
+    </span>
+  );
+}
+
 /* the share on target, in the fleet's ink */
 function Pct({ row, className }: { row: Row; className?: string }) {
   return <span className={cn("font-mono text-[10.5px] tabular-nums", pctInk(row.mix, row.pct), className)}>{row.pct === null ? "—" : `${row.pct}%`}</span>;
@@ -283,6 +293,7 @@ const RowButton = memo(function RowButton({ row, metric, painted, on: picked, on
           {row.node?.role === "hub" ? "C-Chain" : row.name}
           {tag && <span className="ml-1.5 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{tag}</span>}
         </span>
+        {isPrivateChain(row.chain) && <PrivateBadge />}
         {row.newAt !== null && <NewBadge />}
         <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-zinc-400 dark:text-zinc-500">{metric}</span>
         {painted && <Pct row={row} className="w-8 shrink-0 text-right" />}
@@ -373,6 +384,7 @@ function ChainView({
               <span>{c?.isTestnet ? "Fuji" : "Not in the city"}</span>
             )}
             {c?.category && !hub && c.category.toLowerCase() !== (row.district ? districtLabel(row.district).toLowerCase() : "") && <span>· {c.category}</span>}
+            {isPrivateChain(c) && <PrivateBadge />}
             {row.newAt !== null && <NewBadge />}
           </p>
         </div>
@@ -385,6 +397,7 @@ function ChainView({
     <div className="px-4 pb-6 pt-3">
       {head}
       {c?.description && <p className="mt-3 line-clamp-4 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">{c.description}</p>}
+      {isPrivateChain(c) && <p className="mt-3 rounded-xl bg-zinc-50 px-3 py-2.5 text-[12.5px] leading-relaxed text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">{PRIVATE_NOTE}</p>}
 
       <div className="mt-4 flex flex-wrap gap-2">
         {canAdd && c?.rpcUrl && (
@@ -413,7 +426,7 @@ function ChainView({
       {(row.node || row.validators > 0) && (
         <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800">
           {figure("Validators", row.validators.toLocaleString("en-US"), behind > 0 ? `${behind} behind ${target}` : undefined)}
-          {figure(`On ${target}+`, row.pct === null ? "—" : <span className={pctInk(row.mix, row.pct)}>{row.pct}%</span>, row.mix ? `${row.mix.on} of ${mixTotal(row.mix)} nodes` : "not reported")}
+          {figure(`On ${target}+`, row.pct === null ? "—" : <span className={pctInk(row.mix, row.pct)}>{row.pct}%</span>, row.mix && !isPrivateChain(c) ? `${row.mix.on} of ${mixTotal(row.mix)} nodes` : isPrivateChain(c) ? "private" : "not reported")}
           {figure(`Tx · ${windowShort}`, row.tx === null ? "—" : fmtCompact(row.tx))}
           {figure(`ICM · ${windowShort}`, row.out + row.in > 0 ? fmtCompact(row.out + row.in) : "0", row.out + row.in > 0 ? `${fmtCompact(row.out)} out · ${fmtCompact(row.in)} in` : undefined)}
         </dl>
@@ -447,6 +460,7 @@ function ChainView({
             </a>,
           )}
         {c?.slug &&
+          !isPrivateChain(c) &&
           fact(
             "Accounts",
             <Link href={`/explorer/${net}/${c.slug}/accounts`} className="inline-flex items-center gap-1 font-mono text-[11.5px] text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50">
@@ -2062,6 +2076,7 @@ export function CityApp({
                     <span className="mt-auto flex items-center gap-2 font-mono text-[10.5px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {net === "testnet" ? r.chain?.networkToken?.symbol ?? "" : `${metricOf(r)}${sort === "tx" ? " tx" : sort === "icm" ? " msgs" : " val"}`}
                       {painted && net === "mainnet" && r.node && <Pct row={r} />}
+                      {isPrivateChain(r.chain) && <PrivateBadge />}
                       {r.newAt !== null && <NewBadge />}
                     </span>
                   </button>

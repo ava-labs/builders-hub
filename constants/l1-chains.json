@@ -1312,10 +1312,12 @@
     "slug": "lynq-01-17e4e0",
     "color": "#d67cd9",
     "category": "Finance",
+    "description": "A private, permissioned L1 for institutional digital asset firms.",
     "isTestnet": false,
     "isActive": true,
     "isEvm": true,
-    "isIndexed": false
+    "isIndexed": false,
+    "isPrivate": true
   },
   {
     "chainId": "2TfGh1pyDoumsDgTxDmWoseRD7GGRwrpX19HLsQdeCRqwK9BqZ",

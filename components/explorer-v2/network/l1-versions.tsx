@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Board, EmptyRow, LoadMore, RowSkeleton, SectionHeader } from "@/components/explorer-v2/ui";
 import { PRIMARY_NETWORK_ID, mixOf, useValidatorStats } from "@/components/explorer-v2/validator-stats";
+import { isPrivateChain } from "@/components/explorer-v2/network/private";
 import { compareVersions, defaultVersionTarget } from "@/components/stats/VersionBreakdown";
 import type { VersionMix } from "@/components/explorer-v2/network/icm-map";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -47,6 +48,8 @@ interface VersionRow {
   /** newest first, unreported last */
   versions: [string, number][];
   mix: VersionMix;
+  /** a private L1's nodes report no version to the public network, so its share names why, not a zero */
+  isPrivate: boolean;
 }
 
 export function L1Versions({ className }: { className?: string }) {
@@ -76,6 +79,7 @@ export function L1Versions({ className }: { className?: string }) {
         nodes,
         versions,
         mix: mixOf(sn.byClientVersion, target),
+        isPrivate: isPrivateChain(c),
       });
     }
     // the Primary Network leads, then the sets by size
@@ -111,9 +115,15 @@ export function L1Versions({ className }: { className?: string }) {
                   <span className="h-4 w-4 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
                 )}
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{r.name}</span>
-                <span className={cn("shrink-0 font-mono text-[11px] tabular-nums", shareInk(r.mix, pct))}>
-                  {pct}% on {target}+
-                </span>
+                {r.isPrivate && r.mix.on + r.mix.near + r.mix.stale === 0 ? (
+                  <span title="A private, permissioned L1: its nodes report no version to the public network" className="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
+                    Private
+                  </span>
+                ) : (
+                  <span className={cn("shrink-0 font-mono text-[11px] tabular-nums", shareInk(r.mix, pct))}>
+                    {pct}% on {target}+
+                  </span>
+                )}
               </span>
               <span className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[26px] font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                 {r.versions.map(([v, n]) => (
