@@ -100,6 +100,18 @@ describe('a title and a note name the window the query reads', () => {
     expect(scopeError('Swaps this week vs last week', '', twelve, NOW)).toBeNull();
   });
 
+  it('turns back a date the window does not start at, as a note wrote "Since Monday 2026-09-21" over this week', () => {
+    const w = win(`SELECT 1 ${LOGS} AND block_time >= toMonday(now())`);
+    const note = 'Net flow is supplies less withdrawals. Since Monday 2026-09-21.';
+    expect(scopeError('Net flow per asset this week', note, w, NOW)).toContain('the note says "Since Monday 2026-09-21"');
+    expect(scoped({ title: 'Net flow per asset this week', note }, w, NOW).note).toBe('Net flow is supplies less withdrawals.');
+    // the date the window starts at passes, and so does a day inside the window
+    expect(scopeError('Net flow per asset this week', 'Since Monday 2026-09-28.', w, NOW)).toBeNull();
+    expect(scopeError('Swaps per day', 'The busiest day was 2026-08-03.', win(`SELECT 1 ${LOGS} AND block_time >= toMonday(now()) - INTERVAL 11 WEEK`), NOW)).toBeNull();
+    // a title's own date names its day
+    expect(scopeError('Swaps, September 21', '', w, NOW)).toContain('the title says "September 21"');
+  });
+
   it('moves a possessive scope to the end, and keeps one preposition', () => {
     const day = win(`SELECT 1 ${LOGS} AND block_time >= now() - INTERVAL 24 HOUR`);
     expect(scoped({ title: "Today's busiest contracts", note: '' }, day, NOW).title).toBe('Busiest contracts in the last 24 hours');

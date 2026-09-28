@@ -159,7 +159,8 @@ export function rowsWindow(rows: readonly Record<string, unknown>[], x: string |
 
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 const MONTH = String.raw`(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)`;
-const DATE = String.raw`(?:(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day,?\s+)?${MONTH}\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{4}-\d{2}-\d{2})`;
+/** a date as a title or a note writes it, a weekday before it or not: Monday September 21, Sep 21, 2026, Monday 2026-09-21 */
+const DATE = String.raw`(?:(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day,?\s+)?(?:${MONTH}\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{4}-\d{2}-\d{2}))`;
 const NUMS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fourteen: 14, fifteen: 15, twenty: 20, "twenty-four": 24, thirty: 30, sixty: 60, ninety: 90 };
 const NUM = String.raw`(\d+|${Object.keys(NUMS).sort((p, q) => q.length - p.length).join("|")})`;
 const numOf = (s: string) => NUMS[s.toLowerCase()] ?? Number(s);
@@ -205,8 +206,9 @@ const rolling = (n: number, unit: string, now: number) => {
 };
 const RULES: Rule[] = [
   // the chart's own start, not each week's (a week starting Monday)
-  { re: new RegExp(String.raw`\b(?:chart|window|data|series|query|range|period|history)\s+(?:starts?|started|begins?|began)\s+(?:on\s+|at\s+|from\s+|in\s+)?(?:the\s+)?(monday(?:\s+of\s+this\s+week)?|this\s+week|this\s+month|today|midnight|${DATE})`, "gi"), kind: "start", of: (m, now) => ({ windows: [open(startOf(m[1], now), now)], tol: HOUR }) },
-  { re: new RegExp(String.raw`\bsince\s+(?:the\s+start\s+of\s+(?:the\s+|this\s+)?(day|week|month|year)|(monday|midnight|${DATE}))`, "gi"), kind: "whole", of: (m, now) => ({ windows: [open(startOf(m[1] ?? m[2], now), now)], tol: HOUR }) },
+  { re: new RegExp(String.raw`\b(?:chart|window|data|series|query|range|period|history)\s+(?:starts?|started|begins?|began)\s+(?:on\s+|at\s+|from\s+|in\s+)?(?:the\s+)?(${DATE}|monday(?:\s+of\s+this\s+week)?|this\s+week|this\s+month|today|midnight)`, "gi"), kind: "start", of: (m, now) => ({ windows: [open(startOf(m[1], now), now)], tol: HOUR }) },
+  // a weekday's date is the start it names: since Monday 2026-09-21 starts on the 21st, whatever this week is
+  { re: new RegExp(String.raw`\bsince\s+(?:the\s+start\s+of\s+(?:the\s+|this\s+)?(day|week|month|year)|(${DATE}|monday|midnight))`, "gi"), kind: "whole", of: (m, now) => ({ windows: [open(startOf(m[1] ?? m[2], now), now)], tol: HOUR }) },
   { re: new RegExp(String.raw`\b(?:(?:in|over|during|for|across|within)\s+)?(?:the\s+)?(?:last|past|previous|prior)\s+${NUM}\s+(minute|hour|day|week|month)s?\b`, "gi"), kind: "whole", prep: true, of: (m, now) => rolling(numOf(m[1]), m[2].toLowerCase(), now) },
   { re: /\b(?:(?:in|over|during|for|across|within)\s+)?the\s+(?:last|past)\s+(hour|day|week|month|year)\b/gi, kind: "whole", prep: true, of: (m, now) => {
       const r = rolling(1, m[1].toLowerCase(), now);
@@ -228,6 +230,8 @@ const RULES: Rule[] = [
   { re: /\blast\s+month\b/gi, kind: "calendar", of: (_m, now) => ({ windows: [shut(monthOf(now, 1), monthOf(now)), open(now - 30 * DAY, now)], tol: DAY }) },
   { re: /\bthis\s+year\b/gi, kind: "calendar", of: (_m, now) => ({ windows: [open(yearOf(now), now)], tol: HOUR }) },
   { re: new RegExp(String.raw`\bon\s+(${DATE})`, "gi"), kind: "calendar", of: (m, now) => ({ windows: [shut(dateOf(m[1], now), dateOf(m[1], now) + DAY)], tol: HOUR }) },
+  // any other date: a title's names its day, and a note's falls inside the window
+  { re: new RegExp(String.raw`\b(${DATE})`, "gi"), kind: "calendar", of: (m, now) => ({ windows: [shut(dateOf(m[1], now), dateOf(m[1], now) + DAY)], tol: HOUR }) },
 ];
 const PREP = /^(?:in|over|during|for|across|within)\s/i;
 
