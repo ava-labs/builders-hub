@@ -18,6 +18,17 @@ describe('Figures on a period beside the one before it', () => {
     expect(f.find((l) => l.startsWith('Matched rows'))).toContain('Matched rows: today_txs has values up to hour_offset 7, so it compares with yesterday_txs over the 8 rows up to there, total 111106 against 105744: today_txs is +5.1% against yesterday_txs.');
   });
 
+  it('leaves out the last row of a current period that runs to now, which is still filling', () => {
+    // the regression audit's R01: today's hour 8 held 34 minutes, set against yesterday's whole hour 8
+    const sql = 'SELECT toHour(block_time) AS hour_offset, countIf(block_time >= toStartOfDay(now())) AS today_txs, countIf(block_time < toStartOfDay(now())) AS yesterday_txs FROM raw_txs WHERE chain_id = 43114 AND block_time >= toStartOfDay(now()) - INTERVAL 1 DAY GROUP BY hour_offset ORDER BY hour_offset';
+    const line = figures({ columns: hourColumns, rows: hours, names: {}, x: 'hour_offset', sql }).find((l) => l.startsWith('Matched rows'))!;
+    // hours 0 to 6: today 102,492 against yesterday 95,989
+    expect(line).toContain('Matched rows: today_txs has values up to hour_offset 7, so it compares with yesterday_txs over the 7 complete rows before it, total 102492 against 95989: today_txs is +6.8% against yesterday_txs. hour_offset 7 is still filling, so it is left out');
+    // a period that has reached one row only, which is still filling, is never compared
+    const first = hours.map((r, h) => ({ ...r, today_txs: h === 0 ? 50 : 0 }));
+    expect(figures({ columns: hourColumns, rows: first, names: {}, x: 'hour_offset', sql }).find((l) => l.startsWith('Matched rows'))).toBe("Matched rows: today_txs has a value only at hour_offset 0, which is still filling: never set it against yesterday_txs's whole period.");
+  });
+
   it('gives no such line when the current period has reached every row', () => {
     const full = hours.map((r) => ({ ...r, today_txs: r.yesterday_txs + 1 }));
     expect(figures({ columns: hourColumns, rows: full, names: {}, x: 'hour_offset' }).join('\n')).not.toContain('Matched rows');
@@ -77,6 +88,28 @@ describe('Figures on an average or a maximum in each row', () => {
     }) as unknown as typeof generateText);
     await designVisual({ question: 'Compare it with the day before', title: 'Gas price today vs yesterday', note: '', symbol: 'AVAX', columns, rows, names: {}, chart: { kind: 'line', x: 'offset_hour', series: [{ column: 'current_avg_gwei', label: 'Today' }] } });
     expect(results[0]).toMatchObject({ error: expect.stringContaining('current_avg_gwei holds an average or an extreme in each row') });
+    expect(results[1]).toEqual({ ok: true });
+  });
+});
+
+describe('an average over a series with a partial period', () => {
+  it('is refused as a stat of a count, while a total passes', async () => {
+    // the regression audit's R16: "1,694 a day" with today's 8.8 hours in it, where the 14 whole days average 1,745.8
+    type DesignCall = { tools: { design: { execute: (input: unknown) => Promise<unknown> } } };
+    const day = (k: number) => new Date(Date.now() - k * 86_400_000).toISOString().slice(0, 10);
+    const rows = Array.from({ length: 15 }, (_, i) => ({ t: day(14 - i), delegations: i === 14 ? 964 : 1745 }));
+    const columns = [{ name: 't', type: 'Date' }, { name: 'delegations', type: 'UInt64' }];
+    const sql = 'SELECT toDate(block_time) AS t, count() AS delegations FROM decoded_p_txs WHERE chain_id = 1 AND block_time >= toDate(now()) - INTERVAL 14 DAY GROUP BY t ORDER BY t';
+    const panel = { title: 'Delegations', kind: 'bar', x: 't', series: [{ column: 'delegations', label: 'Delegations', format: 'number', axis: 'left', mark: 'auto', transform: 'none', dashed: false }], markers: [], bands: [], stacked: false, sortDir: 'desc', referenceLines: [], width: 'full' };
+    const stat = (agg: string) => ({ label: 'Delegations', column: 'delegations', agg, format: 'number', sub: 'per day' });
+    const results: unknown[] = [];
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      results.push(await opts.tools.design.execute({ stats: [stat('avg')], panels: [panel], callouts: [] }));
+      results.push(await opts.tools.design.execute({ stats: [stat('sum')], panels: [panel], callouts: [] }));
+      return {};
+    }) as unknown as typeof generateText);
+    await designVisual({ question: 'How many delegations were made per day over the last 14 days?', title: 'Delegations per day', note: '', symbol: 'AVAX', columns, rows, names: {}, sql, chart: { kind: 'bar', x: 't', series: [{ column: 'delegations', label: 'Delegations' }] } });
+    expect(results[0]).toMatchObject({ error: expect.stringContaining('the last period of these rows is partial') });
     expect(results[1]).toEqual({ ok: true });
   });
 });

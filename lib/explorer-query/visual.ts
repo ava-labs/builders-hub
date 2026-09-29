@@ -322,6 +322,8 @@ const MEAN_NAME = /(?:^|_)(?:avg|average|mean|median|p\d{2})(?:_|$)/i;
 const MAX_NAME = /(?:^|_)(?:max|maximum|peak|highest)(?:_|$)/i;
 const EXTREME_NAME = /(?:^|_)(?:max|maximum|peak|highest|min|minimum|lowest)(?:_|$)/i;
 const COUNT_NAME = /(?:^|_)(?:txs|transactions|transfers|count|blocks|calls|swaps)(?:_|$)/i;
+/** the period words of a period that runs to now */
+const CURRENT_PERIOD = /^(?:current|today|this|this_week|this_month|cur)$/;
 
 /* a period's column beside the same column of the period before: today_txs and yesterday_txs, current_x and
    previous_x, txs_this_week and txs_last_week */
@@ -466,8 +468,7 @@ export function figures(input: Seen): string[] {
   }
   // which edge buckets the window cuts, from the same reading of the SQL as the chart's labels
   if (input.sql && label && TIME.test(label.type)) {
-    const win = windowOf(input.sql, input.anchor);
-    const edge = win && edgesOf(rows.map((r) => r[label.name]), win);
+    const edge = edgeOf(input);
     if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? (staleOf(input.anchor) ? "cut where the index ends" : "still filling") : "complete"}.`);
   }
   for (const c of columns) {
@@ -541,12 +542,23 @@ export function figures(input: Seen): string[] {
     out.push(`${c.name} (${c.type}): ${count}${range}`);
   }
   // a period beside the one before it, over the rows the current one has reached, so a reading compares like with
-  // like: the follow-up audit's T15 summed yesterday's first 8 hours as 112.7k, where they hold 105,744
+  // like: the follow-up audit's T15 summed yesterday's first 8 hours as 112.7k, where they hold 105,744. A current
+  // period runs to now, so the last row it has reached is still filling and is left out: the regression audit's R01
+  // set today's 34 minutes of hour 8 against yesterday's whole hour (+17.1%, where the same time reads +21.5%)
+  const running = !!input.sql && /\b(?:now|today)\(\s*\)/i.test(input.sql);
+  const filling = staleOf(input.anchor) ? "cut where the index ends" : "still filling";
   if (label && rows.length > 2 && runOf(rows.map((r) => ({ r })), label.name) === 1) {
     for (const [now, before] of pairsOf(columns)) {
       const last = rows.map((r) => numOf(now, r[now.name])).findLastIndex((v) => v !== null && v !== 0);
-      if (last < 1 || last === rows.length - 1) continue;
-      const span = rows.slice(0, last + 1);
+      if (last < 0) continue;
+      const partial = running && CURRENT_PERIOD.test(periodOf(now.name)?.word ?? "");
+      const end = partial ? last - 1 : last;
+      if (!partial && (last < 1 || last === rows.length - 1)) continue;
+      if (end < 0) {
+        out.push(`Matched rows: ${now.name} has a value only at ${at(rows[last])}, which is ${filling}: never set it against ${before.name}'s whole period.`);
+        continue;
+      }
+      const span = rows.slice(0, end + 1);
       const each = perRow.has(now.name) || MEAN_NAME.test(now.name);
       const of = (c: ColumnMeta) => {
         const v = span.map((r) => numOf(c, r[c.name])).filter((x): x is number => x !== null);
@@ -558,7 +570,8 @@ export function figures(input: Seen): string[] {
       if (x === null || y === null) continue;
       const what = each ? (MEAN_NAME.test(now.name) && weightOf(columns, now) ? "average weighted by the counts beside them" : "mean of the row values") : "total";
       const change = y ? `: ${now.name} is ${x >= y ? "+" : "-"}${pct(Math.abs(x - y) / Math.abs(y))} against ${before.name}` : "";
-      out.push(`Matched rows: ${now.name} has values up to ${at(rows[last])}, so it compares with ${before.name} over the ${span.length} rows up to there, ${what} ${plain(x)} against ${plain(y)}${change}. Compare the two periods over these rows, never one period's part with the other's whole.`);
+      const left = partial ? ` ${at(rows[last])} is ${filling}, so it is left out: never set its part against ${before.name}'s whole period.` : "";
+      out.push(`Matched rows: ${now.name} has values up to ${at(rows[last])}, so it compares with ${before.name} over the ${span.length} ${partial ? "complete rows before it" : "rows up to there"}, ${what} ${plain(x)} against ${plain(y)}${change}.${left} Compare the two periods over these rows, never one period's part with the other's whole.`);
     }
   }
   return out;
@@ -622,6 +635,15 @@ const staleBrief = (anchor?: string | null) => {
   const line = staleOf(anchor);
   return line ? [`${line} Name each day by its date, never as today, this week or so far.`] : [];
 };
+
+/** the edge periods a series' window cuts through: the first when it begins inside it, the last while it is still
+    filling (or cut where a stale index ends); null for rows that are not a series along time */
+function edgeOf(input: Seen): ReturnType<typeof edgesOf> {
+  const label = labelOf(input);
+  if (!input.sql || !label || !TIME.test(label.type)) return null;
+  const win = windowOf(input.sql, input.anchor);
+  return win && edgesOf(input.rows.map((r) => r[label.name]), win);
+}
 
 /** what a model reads about the rows: the figures over all of them, then a sample */
 function rowsBrief(input: Seen): string[] {
@@ -726,6 +748,11 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     // a sum over the rows counts a distinct thing once for each row it is in
     const summed = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && perRow.has(s.column)) : [];
     if (summed.length) return { error: `${summed.map((s) => s.column).join(", ")} counts distinct ones in each row, so a sum over the rows counts one that is in several rows once for each: use avg or max, or leave the stat out` };
+    // an average of a count over a series whose first or last period is partial counts it as a whole one (the regression
+    // audit's R16: "1,694 a day" with today's 8.8 hours in it, where the 14 whole days average 1,745.8)
+    const edge = edgeOf(seen);
+    const thin = edge && (edge.first || edge.last) ? spec.stats.filter((s) => s.agg === "avg" && !MEAN_NAME.test(s.column) && !RATE.test(s.column)) : [];
+    if (thin.length) return { error: `the ${edge!.last ? "last" : "first"} period of these rows is partial, so an average over them counts it as a whole one: ${thin.map((s) => s.column).join(", ")} needs max, a total or no stat` };
     const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
     if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
