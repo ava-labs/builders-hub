@@ -94,6 +94,16 @@ describe('withEdges', () => {
     expect(out.panels[0].markers).toEqual([{ x: day(27), label: 'so far' }]);
   });
 
+  it("joins a bar's own mark instead of a second label on it", () => {
+    // the audit's V11: the designer marked today "Today, partial", and the edge's "so far" stood over it
+    const own = (markers: { x: string; label: string }[]): VisualSpec => ({ ...visual, panels: [{ ...visual.panels[0], markers }] });
+    const sql = answer.sql.replace('now() - INTERVAL 7 DAY', 'toStartOfDay(now()) - INTERVAL 7 DAY');
+    expect(withEdges(own([{ x: day(27), label: 'Today, partial' }]), { ...answer, sql })!.panels[0].markers).toEqual([{ x: day(27), label: 'Today, partial' }]);
+    expect(withEdges(own([{ x: day(27), label: 'Day not over' }]), { ...answer, sql })!.panels[0].markers).toEqual([{ x: day(27), label: 'Day not over' }]);
+    expect(withEdges(own([{ x: day(27), label: 'Peak 519k' }]), { ...answer, sql })!.panels[0].markers).toEqual([{ x: day(27), label: 'Peak 519k, so far' }]);
+    expect(withEdges(own([{ x: day(21), label: 'Low' }]), answer)!.panels[0].markers).toEqual([{ x: day(21), label: 'Low' }, { x: day(20), label: 'partial' }, { x: day(27), label: 'so far' }]);
+  });
+
   it('reads the window a query ends now: on a bucket edge, inside one, or none', () => {
     const now = Date.parse('2026-09-27T06:10:00Z');
     const days = [20, 21, 22, 23, 24, 25, 26, 27].map(day);
