@@ -4,6 +4,8 @@
    and the page draws each new block as it comes. The index behind the SQL answers runs minutes behind the chain;
    a monitor does not. DeFi events come from the catalog in monitor-events.ts, which only the server reads. */
 
+import { short } from "./values";
+
 export const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
 /** transfers: one ERC-20's Transfer logs, or every token's when an address is the filter. native: the chain's own
@@ -147,9 +149,6 @@ function amountText(n: number): string {
   if (n >= 1e6 && n % 1e5 === 0) return `${n / 1e6}M`;
   return n.toLocaleString("en-US", { maximumFractionDigits: 6 });
 }
-
-/** "0x1234…abcd": an address by its ends, as a title writes it (the page's copy is short in format.ts, which lib code does not import) */
-export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 /** the card's name for what it reads: "USDT transfers over 10,000 to 0x1234…abcd" */
 export function monitorTitle(spec: Omit<MonitorSpec, "title">): string {

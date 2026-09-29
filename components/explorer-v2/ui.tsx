@@ -696,24 +696,7 @@ export function HashChip({
 /* ------------------------------------------------------------------ */
 /* TxTypePill — squared badge, tinted by tx/block-type family          */
 
-/* Full static class strings (so Tailwind's scanner keeps the arbitrary
-   hex utilities) — one tone per functional family. */
-const PILL_TONES = {
-  stake:
-    "border-[#4e9a52]/40 bg-[#4e9a52]/10 text-[#3f7d43] dark:border-[#4e9a52]/45 dark:text-[#77c47b]",
-  reward:
-    "border-[#C7911B]/40 bg-[#C7911B]/12 text-[#9c7112] dark:border-[#C7911B]/45 dark:text-[#e2b953]",
-  subnet:
-    "border-[#0061E2]/35 bg-[#0061E2]/10 text-[#0052bd] dark:border-[#0061E2]/50 dark:text-[#5f9dff]",
-  crosschain:
-    "border-[#0891B2]/40 bg-[#0891B2]/10 text-[#0c7590] dark:border-[#0891B2]/50 dark:text-[#3fc1dc]",
-  danger:
-    "border-[#E6212F]/40 bg-[#E6212F]/10 text-[#c11824] dark:border-[#E6212F]/50 dark:text-[#ff6b73]",
-  neutral:
-    "border-zinc-300 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
-} as const;
-
-export function pillTone(type: string): keyof typeof PILL_TONES {
+export function pillTone(type: string): keyof typeof TONE_TEXT {
   const t = type.toLowerCase();
   if (t.includes("abort") || t.includes("disable") || t.includes("remove")) return "danger";
   if (t.includes("reward")) return "reward";
@@ -763,8 +746,8 @@ export function TxTypePill({
   );
 }
 
-/* Text-only variant of the pill tones, for surfaces (like the block tape)
-   where a bordered badge is too heavy but the family color still reads. */
+/* The pill tones: one text color per functional family. The pill wears it
+   on its square; surfaces like the block tape color their word with it. */
 const TONE_TEXT = {
   stake: "text-[#3f7d43] dark:text-[#77c47b]",
   reward: "text-[#9c7112] dark:text-[#e2b953]",

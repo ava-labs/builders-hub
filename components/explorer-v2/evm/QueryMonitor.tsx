@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import { Bar, ComposedChart, Line, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
-import { compact, formatNumber, short } from "@/components/explorer-v2/format";
+import { compact, formatNumber } from "@/components/explorer-v2/format";
+import { short } from "@/lib/explorer-query/values";
 import type { MonitorItem, MonitorRead, MonitorSpec } from "@/lib/explorer-query/monitor";
 import { CARD } from "./QueryVisual";
 

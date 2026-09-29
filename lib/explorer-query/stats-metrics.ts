@@ -139,8 +139,8 @@ export interface Point {
   value: number;
 }
 
-/** a day as the route writes it, 2026-09-21: a pattern, not the DAY span in values.ts */
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** a day as the route writes it, 2026-09-21 */
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** one metric's days from the route's answer, oldest first; an ICM count is its messages */
 export function pointsOf(body: unknown, metric: MetricKey): Point[] {
@@ -150,7 +150,7 @@ export function pointsOf(body: unknown, metric: MetricKey): Point[] {
   for (const p of m.data as { date?: unknown; value?: unknown; messageCount?: unknown }[]) {
     const raw = metric === "icmMessages" ? p?.messageCount : p?.value;
     const value = typeof raw === "string" ? Number.parseFloat(raw) : raw;
-    if (typeof p?.date === "string" && DAY.test(p.date) && typeof value === "number" && Number.isFinite(value)) out.push({ date: p.date, value });
+    if (typeof p?.date === "string" && ISO_DAY.test(p.date) && typeof value === "number" && Number.isFinite(value)) out.push({ date: p.date, value });
   }
   return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }

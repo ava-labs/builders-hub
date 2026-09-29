@@ -57,8 +57,8 @@ export function fmtX(v: unknown, span: Span): string {
   return typeof v === "number" ? formatNumber(v) : String(v ?? "");
 }
 
-/** "1.20M", "12.3k", "9,999": fixed places, and k only from 10,000; not the Intl compact in format.ts (1.2M, 12K) */
-function compact(v: number): string {
+/** "1.20M", "12.3k", "9,999": compact to fixed places, and k only from 10,000 (compact in format.ts is Intl's: 1.2M, 12K) */
+function compactFixed(v: number): string {
   const a = Math.abs(v);
   if (a >= 1e12) return `${(v / 1e12).toFixed(2)}T`;
   if (a >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
@@ -74,18 +74,18 @@ export function fmt(v: unknown, format: Format, sym: string, axis = false): stri
     case "percent":
       return `${v >= 10 || v === 0 ? v.toFixed(1) : v.toFixed(2)}%`;
     case "avax":
-      return `${v >= 1000 ? compact(v) : v >= 1 ? v.toFixed(3) : v >= 0.001 ? v.toFixed(5) : v.toPrecision(3)}${axis ? "" : ` ${sym}`}`;
+      return `${v >= 1000 ? compactFixed(v) : v >= 1 ? v.toFixed(3) : v >= 0.001 ? v.toFixed(5) : v.toPrecision(3)}${axis ? "" : ` ${sym}`}`;
     case "gas":
-      return `${compact(v)}${axis ? "" : " gas"}`;
+      return `${compactFixed(v)}${axis ? "" : " gas"}`;
     case "seconds":
       return `${v.toFixed(2)} s`;
     case "usd":
-      return `$${v >= 1000 ? compact(v) : v.toFixed(2)}`;
+      return `$${v >= 1000 ? compactFixed(v) : v.toFixed(2)}`;
     case "compact":
-      return compact(v);
+      return compactFixed(v);
     default:
       return axis
-        ? compact(v)
+        ? compactFixed(v)
         : Number.isInteger(v)
           ? formatNumber(v)
           : Math.abs(v) >= 1

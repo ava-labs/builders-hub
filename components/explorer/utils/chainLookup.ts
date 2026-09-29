@@ -47,7 +47,7 @@ export function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | n
   };
       }
     }
-  } catch (e) {
+  } catch {
     // localStorage might not be available (SSR), silently fail
   }
   
