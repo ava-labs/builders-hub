@@ -31,11 +31,11 @@ const anchors = (html: string) =>
 const hrefOf = (anchor: string) => anchor.match(/href="([^"]+)"/)?.[1];
 
 describe('Developers menu (desktop)', () => {
-  it('opens on the Docs landing and offers exactly Docs and Academy as picture cards', () => {
+  it('opens on the docs landing and offers exactly Documentation and Academy as picture cards', () => {
     expect(developersMenu).toMatchObject({ type: 'menu', text: 'Developers', url: '/docs/primary-network' });
     const items = itemsOf(developersMenu);
     expect(items.map((item) => [item.text, item.url])).toEqual([
-      ['Docs', '/docs/primary-network'],
+      ['Documentation', '/docs/primary-network'],
       ['Academy', '/academy'],
     ]);
     expect(items.map(bannerSrc)).toEqual(['/nav/docs.webp', '/nav/academy.webp']);
@@ -47,7 +47,7 @@ describe('Developers section (phone)', () => {
     const developers = phoneSection('Developers');
     expect(developers.href).toBe('/docs/primary-network');
     expect(developers.items.map((item) => [item.text, item.href, item.image])).toEqual([
-      ['Docs', '/docs/primary-network', '/nav/docs.webp'],
+      ['Documentation', '/docs/primary-network', '/nav/docs.webp'],
       ['Academy', '/academy', '/nav/academy.webp'],
     ]);
   });
@@ -57,7 +57,7 @@ describe('Developers section (phone)', () => {
     const cards = anchors(html).filter((anchor) => anchor.includes('<img'));
     expect(cards.map(hrefOf)).toEqual(['/docs/primary-network', '/academy']);
     expect(cards[0]).toContain('docs.webp');
-    expect(cards[0]).toContain('>Docs<');
+    expect(cards[0]).toContain('>Documentation<');
     expect(cards[1]).toContain('academy.webp');
     expect(cards[1]).toContain('>Academy<');
   });

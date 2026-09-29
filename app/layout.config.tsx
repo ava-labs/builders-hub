@@ -227,7 +227,7 @@ export const developersMenu: LinkItemType = {
   url: '/docs/primary-network',
   items: [
     {
-      text: 'Docs',
+      text: 'Documentation',
       description: 'Reference for the network, nodes, APIs, tools, and ACPs.',
       url: '/docs/primary-network',
       menu: {

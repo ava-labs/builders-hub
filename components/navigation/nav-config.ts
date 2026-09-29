@@ -45,7 +45,7 @@ export const menuSections: NavSection[] = [
     title: 'Developers',
     href: '/docs/primary-network',
     items: [
-      { text: 'Docs', href: '/docs/primary-network', image: '/nav/docs.webp' },
+      { text: 'Documentation', href: '/docs/primary-network', image: '/nav/docs.webp' },
       { text: 'Academy', href: '/academy', image: '/nav/academy.webp' },
     ],
   },
