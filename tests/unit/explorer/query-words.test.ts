@@ -5,7 +5,7 @@ import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
 import type { QueryEvent } from '@/lib/explorer-query/answer';
 import { MAX_ROWS } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { codeWords, figures, plainLabel, plainWords, readerSpec, rowWords, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
+import { averageLabel, codeWords, figures, plainLabel, plainWords, readerSpec, rowWords, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
 
 const totals = (rows: number): Totals => ({ rows, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} });
 const result = (rows: Record<string, unknown>[], truncated = false) => ({ columns: [], rows, rowCount: rows.length, elapsedMs: 0, rowsRead: 0, bytesRead: 0, truncated, ranAt: '' });
@@ -227,6 +227,21 @@ describe('reader words', () => {
     const v: VisualSpec = { stats: [], panels: [], callouts: ['POPA_SUBMISSIONS_TIERS used 10.2B gas.', 'Its gas_used is 10.2B.'] };
     expect(readerSpec(v, cols, [], shown).callouts).toEqual(['POPA_SUBMISSIONS_TIERS used 10.2B gas.']);
     expect(plainLabel('Gas of POPA_SUBMISSIONS_TIERS, seen_7d', shown)).toBe('Gas of POPA_SUBMISSIONS_TIERS, seen 7d');
+  });
+
+  it("says average in a stat of the rows' highest or lowest average", () => {
+    // the final audit's X04: "Peak gas price 35.58 gwei" was the highest hour's average; the highest price paid was 19,999.92
+    const stat = (label: string, agg: string, column: string, sub?: string) => ({ label, agg, column, format: 'number' as const, ...(sub ? { sub } : {}) });
+    expect(averageLabel(stat('Peak gas price', 'max', 'avg_gas_price_gwei', 'gwei, 01:00')).label).toBe('Peak average gas price');
+    expect(averageLabel(stat('Lowest base fee', 'min', 'avg_base_fee_navax')).label).toBe('Lowest average base fee');
+    expect(averageLabel(stat('Gas price', 'max', 'mean_gwei')).label).toBe('Gas price (average)');
+    // a label or sub that says so, another aggregate, a median or a plain column stay as written
+    expect(averageLabel(stat('Peak hourly average', 'max', 'avg_gas_price_gwei')).label).toBe('Peak hourly average');
+    expect(averageLabel(stat('Peak gas price', 'max', 'avg_gas_price_gwei', 'hourly average')).label).toBe('Peak gas price');
+    expect(averageLabel(stat('Gas price', 'avg', 'avg_gas_price_gwei')).label).toBe('Gas price');
+    expect(averageLabel(stat('Peak gas price', 'max', 'median_gwei')).label).toBe('Peak gas price');
+    expect(averageLabel(stat('Peak gas price', 'max', 'max_gas_price_gwei')).label).toBe('Peak gas price');
+    expect(readerSpec({ stats: [stat('Peak base fee', 'max', 'avg_base_fee_navax')], panels: [], callouts: [] } as VisualSpec, ['avg_base_fee_navax']).stats[0].label).toBe('Peak average base fee');
   });
 
   it('counts a callout as the page draws it, each full address and hash short', () => {

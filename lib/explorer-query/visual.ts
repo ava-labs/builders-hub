@@ -236,6 +236,18 @@ function labelsOf(v: VisualSpec): string[] {
   ];
 }
 
+/* the highest or lowest of the rows' own averages is an average, not a price paid: the final audit's X04 read "Peak
+   gas price 35.58 gwei", the highest hour's average, where the highest price paid was 19,999.92 gwei. A stat of one
+   whose label and sub never say so says average ("Peak average gas price") */
+const AVERAGE_NAME = /(?:^|_)(?:avg|average|mean)(?:_|$)/i;
+const SAYS_AVERAGE = /\b(?:avg|averages?|mean|median|typical)\b/i;
+const EXTREME_WORD = /^(?:peak|highest|lowest|top|max(?:imum)?|min(?:imum)?|busiest|cheapest)\b/i;
+export function averageLabel<S extends { label: string; sub?: string; agg: string; column: string }>(s: S): S {
+  if ((s.agg !== "max" && s.agg !== "min") || !AVERAGE_NAME.test(s.column) || SAYS_AVERAGE.test(`${s.label} ${s.sub ?? ""}`)) return s;
+  const m = EXTREME_WORD.exec(s.label);
+  return { ...s, label: m ? `${m[0]} average${s.label.slice(m[0].length)}` : `${s.label} (average)` };
+}
+
 /** a visual in the reader's words: a snake_case name left in a label reads as words, and a callout that names a column,
     or an address the rows do not hold, is left out. A name the rows hold (shown) stays as written */
 export function readerSpec(v: VisualSpec, names: readonly string[], held?: readonly string[], shown: ReadonlySet<string> = new Set()): VisualSpec {
@@ -244,7 +256,7 @@ export function readerSpec(v: VisualSpec, names: readonly string[], held?: reado
   const worded = <T extends { label: string }>(o: T): T => ({ ...o, label: label(o.label) });
   return {
     ...v,
-    stats: v.stats.map((s) => ({ ...worded(s), ...(s.sub ? { sub: label(s.sub) } : {}) })),
+    stats: v.stats.map((s) => averageLabel({ ...worded(s), ...(s.sub ? { sub: label(s.sub) } : {}) })),
     panels: v.panels.map((p) => ({ ...p, title: label(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
     callouts: v.callouts.map((c) => plainDecimals(plainWords(c))).filter((c) => codeWords(c, names, shown).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
   };
