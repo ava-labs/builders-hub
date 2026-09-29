@@ -834,7 +834,8 @@ export default function City3D({ data: incoming, versions = null, target = "", s
             {m.near + m.stale > 0 && <TipRow label="Behind" value={String(m.near + m.stale)} />}
           </>
         )}
-        {!tipNode.guest && (
+        {/* a chain with no ICM in the window shows no counts */}
+        {!tipNode.guest && tipNode.out + tipNode.in > 0 && (
           <>
             <TipRow label="Messages out" value={fmtCompact(tipNode.out)} />
             <TipRow label="Messages in" value={fmtCompact(tipNode.in)} />
