@@ -5,6 +5,7 @@
 
 import { withQuerySlot } from "@/lib/clickhouse/client";
 import { MAX_ROWS } from "./guard";
+import { headTime } from "./head";
 import { refSchema, withSources } from "./sources";
 import { targetOf } from "./target";
 import type { SourceNote } from "./types";
@@ -402,5 +403,8 @@ async function anchorNow(sql: string, chainId: number): Promise<{ sql: string; a
   const c = await coverage(chainId);
   if (!c) return { sql, anchor: null };
   if (!Number.isFinite(c.untilUnix) || Date.now() / 1000 - c.untilUnix < LAG_S) return { sql, anchor: null };
+  // a quiet chain is not a late index: when the index holds the chain's newest block, now() stays now
+  const head = await headTime(chainId);
+  if (head !== null && head <= (c.untilUnix + 60) * 1000) return { sql, anchor: null };
   return { sql: sql.replace(/\bnow\(\s*\)/gi, `toDateTime(${Math.floor(c.untilUnix)})`), anchor: c.until };
 }

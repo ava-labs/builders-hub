@@ -1,7 +1,5 @@
 import "server-only";
-import l1ChainsData from "@/constants/l1-chains.json";
-import { isPublicRpcUrl } from "@/lib/explorer-rpc";
-import { targetOf } from "./target";
+import { chainRpc } from "./head";
 import { tokenList } from "./enrich";
 import { TRANSFER_TOPIC, addressesOf, mayBeEvents, mayBeMonitor, minAmountOf, monitorWords, parseMonitor, tokenOf, type MonitorItem, type MonitorRead, type MonitorSpec, type MonitorToken, type TokenMeta } from "./monitor";
 import { MONITOR_CHAIN_ID, MONITOR_EVENTS, decodeMonitorLog, eventsFor, fitsMonitorLog, type MonitorEventDef } from "./monitor-events";
@@ -21,7 +19,6 @@ const MAX_ITEMS = 2_000;
 const SHARE_MS = 2_000;
 const TIMEOUT_MS = 8_000;
 const BATCH = 50;
-const C_CHAIN_PUBLIC = "https://api.avax.network/ext/bc/C/rpc";
 const HEX40 = /^0x[0-9a-f]{40}$/;
 
 interface RpcLog {
@@ -56,10 +53,7 @@ type Answer<T> = { result?: T | null; error?: { message?: string } } | undefined
 /** the RPC a monitor of this chain reads: our own node for the C-Chain, else the chain's public RPC; null for a
     chain with none, and for the P-Chain, which has no logs to read */
 export function monitorRpc(chainId: number): string | null {
-  if (targetOf(chainId).kind === "pchain") return null;
-  if (chainId === 43114) return process.env.CCHAIN_DEBUG_RPC_URL || C_CHAIN_PUBLIC;
-  const c = (l1ChainsData as { chainId: string; rpcUrl?: string; isTestnet?: boolean }[]).find((x) => x.chainId === String(chainId) && x.isTestnet !== true);
-  return c && isPublicRpcUrl(c.rpcUrl) ? c.rpcUrl : null;
+  return chainRpc(chainId);
 }
 
 /** each call's answer, in batches; a failure never names the RPC, whose URL can carry a token */
