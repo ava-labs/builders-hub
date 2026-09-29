@@ -1,4 +1,5 @@
 import { GROUPS, type GroupKey } from "@/lib/defi/taxonomy";
+import { compact, compact2 } from "@/components/explorer-v2/format";
 
 /* The DeFi page's colors as CSS variables, scoped to .defi-map so the
    light and dark steps swap in one place (the stablecoins page's
@@ -44,19 +45,16 @@ export function changeTone(pct: number | null, cap = 25): string {
   return `color-mix(in oklab, ${pole} ${Math.round(35 + k * 65)}%, var(--d-flat))`;
 }
 
-const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
-const compactB = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
-
 /** $622.2M, $1.69B, $48K */
 export function usd(v: number): string {
   const a = Math.abs(v);
-  const s = a >= 1e9 ? compactB.format(a) : compact.format(a);
+  const s = a >= 1e9 ? compact2(a) : compact(a);
   return `${v < 0 ? "−" : ""}$${s}`;
 }
 
 /** +$23.1M, −$4.2M */
 export function signedUsd(v: number): string {
-  return `${v > 0 ? "+" : v < 0 ? "−" : ""}$${(Math.abs(v) >= 1e9 ? compactB : compact).format(Math.abs(v))}`;
+  return `${v > 0 ? "+" : v < 0 ? "−" : ""}$${(Math.abs(v) >= 1e9 ? compact2 : compact)(Math.abs(v))}`;
 }
 
 /** +12.4%, −3.1% */

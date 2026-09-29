@@ -11,6 +11,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names, Totals } from "@/lib/explorer-query/types";
 import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPick, type Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
+import { MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 import { rowCount } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
@@ -39,10 +40,6 @@ const DOT_INK = { "--qv-on": 1, "--qv-off": 0.35 } as CSSProperties;
 type Row = Record<string, unknown>;
 type Span = "minutes" | "hours" | "days" | "other";
 
-const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
-const isHash = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
-const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
-
 export function spanOf(xs: unknown[]): Span {
   const ts = xs.filter(isTime).map((s) => new Date(s.replace(" ", "T") + (s.length <= 10 ? "T00:00:00Z" : "Z")).getTime());
   if (ts.length < 2) return "other";
@@ -60,7 +57,8 @@ export function fmtX(v: unknown, span: Span): string {
   return typeof v === "number" ? formatNumber(v) : String(v ?? "");
 }
 
-function compact(v: number): string {
+/** "1.20M", "12.3k", "9,999": compact to fixed places, and k only from 10,000 (compact in format.ts is Intl's: 1.2M, 12K) */
+function compactFixed(v: number): string {
   const a = Math.abs(v);
   if (a >= 1e12) return `${(v / 1e12).toFixed(2)}T`;
   if (a >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
@@ -76,18 +74,18 @@ export function fmt(v: unknown, format: Format, sym: string, axis = false): stri
     case "percent":
       return `${v >= 10 || v === 0 ? v.toFixed(1) : v.toFixed(2)}%`;
     case "avax":
-      return `${v >= 1000 ? compact(v) : v >= 1 ? v.toFixed(3) : v >= 0.001 ? v.toFixed(5) : v.toPrecision(3)}${axis ? "" : ` ${sym}`}`;
+      return `${v >= 1000 ? compactFixed(v) : v >= 1 ? v.toFixed(3) : v >= 0.001 ? v.toFixed(5) : v.toPrecision(3)}${axis ? "" : ` ${sym}`}`;
     case "gas":
-      return `${compact(v)}${axis ? "" : " gas"}`;
+      return `${compactFixed(v)}${axis ? "" : " gas"}`;
     case "seconds":
       return `${v.toFixed(2)} s`;
     case "usd":
-      return `$${v >= 1000 ? compact(v) : v.toFixed(2)}`;
+      return `$${v >= 1000 ? compactFixed(v) : v.toFixed(2)}`;
     case "compact":
-      return compact(v);
+      return compactFixed(v);
     default:
       return axis
-        ? compact(v)
+        ? compactFixed(v)
         : Number.isInteger(v)
           ? formatNumber(v)
           : Math.abs(v) >= 1
@@ -116,13 +114,11 @@ function xText(names: Names, x: string | undefined, v: unknown, span: Span): str
 const inSelection = (sel: Selection, r: Row) => sel.every((p) => matches(r, p));
 const pickValue = (v: unknown): string | number => (typeof v === "number" ? v : String(v ?? ""));
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 /** a time as a person says it: "Sep 3", or "Sep 3 14:00" inside a day */
 function when(v: string): { day: string; hm: string } {
   const d = new Date(order(v) as number);
   const hm = v.length > 10 ? v.replace("T", " ").slice(11, 16) : "";
-  return { day: `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`, hm: hm === "00:00" ? "" : hm };
+  return { day: `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}`, hm: hm === "00:00" ? "" : hm };
 }
 
 function chipValue(names: Names, column: string, v: string | number): string {
@@ -279,6 +275,7 @@ function totalValue(totals: Totals | null | undefined, s: Stat): number | null {
   }
 }
 
+/** a percent's digits, before its %: whole from 10, one place below */
 const pct = (p: number) => (p >= 10 || p === 0 ? p.toFixed(0) : p.toFixed(1));
 
 /** how the selection's figure stands against the whole answer's */

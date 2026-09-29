@@ -21,6 +21,7 @@ import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { usePchainData } from "@/components/explorer-v2/pchain/hooks";
 import { hasRealChainLogo, type Stats } from "@/lib/pchain-explorer";
+import { SECONDS_PER_DAY } from "@/lib/explorer-query/values";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import {
@@ -42,7 +43,6 @@ import {
 
 const L1_COLOR = "#0061E2";
 const NANO = 1e9;
-const SECONDS_PER_DAY = 86_400;
 const SECONDS_PER_MONTH = 30 * SECONDS_PER_DAY;
 
 interface SeatPoint {

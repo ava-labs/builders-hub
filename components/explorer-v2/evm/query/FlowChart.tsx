@@ -55,6 +55,7 @@ function nodeText(n: FlowNode, chars: number): string {
 /** what a band or Other holds when it folds smaller flows: 1 smaller flow, 12 smaller flows */
 const folds = (n: number) => `${n} smaller ${n === 1 ? "flow" : "flows"}, folded`;
 
+/** a flow's share of the total: whole from 10%, one place down to 0.1%, then <0.1% */
 const pct = (v: number, total: number) => {
   const p = total > 0 ? (v / total) * 100 : 0;
   return `${p >= 10 || p === 0 ? p.toFixed(0) : p >= 0.1 ? p.toFixed(1) : "<0.1"}%`;

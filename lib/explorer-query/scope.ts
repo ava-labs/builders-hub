@@ -4,11 +4,8 @@
    range, never from the question's words. */
 
 import { msOf, STALE_MS } from "./edges";
+import { DAY, HOUR, MINUTE, MONTHS, WEEK } from "./values";
 
-const MINUTE = 60_000;
-const HOUR = 3_600_000;
-const DAY = 86_400_000;
-const WEEK = 7 * DAY;
 /** the day after the C-Chain's first: a bound this early reads the whole history, as the DEX pools do beside the window */
 const FIRST = Date.UTC(2020, 8, 24);
 
@@ -194,7 +191,6 @@ export function rowsWindow(rows: readonly Record<string, unknown>[], x: string |
 /* ------------------------------------------------------------------ */
 /* The words */
 
-const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 const MONTH = String.raw`(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)`;
 /** a date as a title or a note writes it, a weekday before it or not: Monday September 21, Sep 21, 2026, Monday 2026-09-21 */
 const DATE = String.raw`(?:(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day,?\s+)?(?:${MONTH}\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{4}-\d{2}-\d{2}))`;
@@ -209,7 +205,7 @@ function dateOf(text: string, now: number): number {
   if (iso) return msOf(iso[1]);
   const m = new RegExp(String.raw`(${MONTH})\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?`, "i").exec(text);
   if (!m) return NaN;
-  const month = MONTHS.findIndex((n) => n.startsWith(m[1].toLowerCase().slice(0, 3)));
+  const month = MONTHS.findIndex((n) => n.toLowerCase().startsWith(m[1].toLowerCase().slice(0, 3)));
   const year = m[3] ? Number(m[3]) : new Date(now).getUTCFullYear();
   const t = Date.UTC(year, month, Number(m[2]));
   return !m[3] && t > now + 2 * DAY ? Date.UTC(year - 1, month, Number(m[2])) : t;
@@ -306,7 +302,7 @@ const sentences = (text: string) => text.split(/(?<=[.!?])\s+/);
 
 const dayWords = (t: number, now: number) => {
   const d = new Date(t);
-  const day = `${MONTHS[d.getUTCMonth()][0].toUpperCase()}${MONTHS[d.getUTCMonth()].slice(1)} ${d.getUTCDate()}`;
+  const day = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
   return d.getUTCFullYear() === new Date(now).getUTCFullYear() ? day : `${day}, ${d.getUTCFullYear()}`;
 };
 const timeWords = (t: number, now: number) => (t % DAY === 0 ? dayWords(t, now) : `${dayWords(t, now)}, ${new Date(t).toISOString().slice(11, 16)} UTC`);

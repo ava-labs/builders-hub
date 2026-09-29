@@ -465,7 +465,7 @@ drill: ${RECORD(opts)} AND substring(input, 1, 4) = {{method_id:bytes}} ORDER BY
 
 Counts over time with reverts; drill into one bucket:
 SELECT toStartOfFiveMinutes(block_time) AS t, count() AS txs, countIf(NOT success) AS reverted, round(100 * countIf(NOT success) / count(), 2) AS revert_pct FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR GROUP BY t ORDER BY t
-drill: ${RECORD(opts, "toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR")} AND toStartOfFiveMinutes(block_time) = {{t}} ORDER BY block_time DESC LIMIT 50
+drill: ${RECORD(opts, "toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR")} AND toStartOfFiveMinutes(block_time) = {{t}} ORDER BY fee_${opts.symbol.toLowerCase()} DESC LIMIT 50
 
 Fees per bucket with the largest single fee and its transaction (toFloat64 before multiplying, so the product cannot wrap)${
   c
@@ -504,7 +504,7 @@ SELECT block_number, block_time AS t, gas_used AS ${c ? "gas_reserved" : "block_
 ## Drill: every group opens into its records
 Whenever a row is a group (a method, a contract, a sender, a time bucket, a block), render_chart MUST carry drill: a SELECT template that lists the records behind ONE row, plus a title for that list.
 - Placeholders name the picked row's columns: {{col}} inserts the value as a SQL literal (quoted string or number); {{col:bytes}} inserts unhex('…') for a 0x hex value, so compare binary columns like \`to\` = {{address:bytes}} or substring(input, 1, 4) = {{method_id:bytes}}. For a time bucket compare the same bucket expression: toStartOfHour(block_time) = {{t}}.
-- The drill keeps the same chain_id and time-window filters as the main query, ORDER BY block_time DESC, LIMIT 50.
+- The drill keeps the same chain_id and time-window filters as the main query, ORDER BY block_time DESC, LIMIT 50. A drill into a time bucket of transactions orders by the fee instead, ORDER BY fee_${opts.symbol.toLowerCase()} DESC: the 50 latest of a busy bucket are its last seconds, and its 50 largest fees spread across it.
 - Return record columns in this order when they apply: block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(\`from\`))) AS from_address, lower(concat('0x', hex(\`to\`))) AS to_address, method_id (hex text), gas_used AS gas_charged, toFloat64(gas_used) * gas_price / 1e18 AS fee_${opts.symbol.toLowerCase()}, toUInt8(success) AS status.
 - drill.title reads like "Transactions calling {{method_id}} in the last 7 days" or "Transactions in the 5 minutes from {{t}}". The server fills the placeholders with names where it knows them.
 - Rows that already are records need no drill. A list of transactions MUST carry the same record columns as a drill (t, block_number, tx_hash, from_address, to_address, method_id, gas_charged, fee, status) next to the figure the question is about. A list of token transfers is a list of Transfer logs, one row per transfer, as in the worked example: t, block_number, tx_hash (from transaction_hash), from_address and to_address from topic1 and topic2, the amount in token units, and the token contract (token) when more than one token is listed; tx_sender (tx_from) may follow. For what a transfer row does not carry (gas, fee, status), join raw_logs to raw_txs on raw_logs.transaction_hash = raw_txs.hash with the same chain_id and time bound on both.

@@ -54,8 +54,8 @@ const glassOf = (base: string, hue: string, lit: Rgb, shade: Rgb, k: number): [R
   const g = mix(rgb(base), rgb(hue), 0.5);
   return [mix(lit, g, k), mix(shade, g, k * 0.86)];
 };
-const DAY = { lit: rgb("#EEF1F5"), shade: rgb("#D3DAE3") };
-const NIGHT = { lit: rgb("#3B434B"), shade: rgb("#2B3036") };
+const BY_DAY = { lit: rgb("#EEF1F5"), shade: rgb("#D3DAE3") };
+const BY_NIGHT = { lit: rgb("#3B434B"), shade: rgb("#2B3036") };
 const INK: Record<"light" | "dark", Ink> = {
   light: {
     plate: "#E3E9F1",
@@ -64,11 +64,11 @@ const INK: Record<"light" | "dark", Ink> = {
     rim: "rgba(255,255,255,0.9)",
     lot: "rgba(30,40,55,0.12)",
     roof: "#FAFBFD",
-    lit: DAY.lit,
-    shade: DAY.shade,
+    lit: BY_DAY.lit,
+    shade: BY_DAY.shade,
     edge: "rgba(140,152,166,0.55)",
-    dim: [mix(DAY.lit, rgb("#6E7F92"), 0.2), mix(DAY.shade, rgb("#6E7F92"), 0.2)],
-    glass: HUES.light.map((hue) => glassOf("#6E7F92", hue, DAY.lit, DAY.shade, 0.72)),
+    dim: [mix(BY_DAY.lit, rgb("#6E7F92"), 0.2), mix(BY_DAY.shade, rgb("#6E7F92"), 0.2)],
+    glass: HUES.light.map((hue) => glassOf("#6E7F92", hue, BY_DAY.lit, BY_DAY.shade, 0.72)),
     flash: rgb("#FFFFFF"),
     pass: 0.5,
   },
@@ -79,11 +79,11 @@ const INK: Record<"light" | "dark", Ink> = {
     rim: "rgba(255,255,255,0.08)",
     lot: "rgba(255,255,255,0.07)",
     roof: "#434D55",
-    lit: NIGHT.lit,
-    shade: NIGHT.shade,
+    lit: BY_NIGHT.lit,
+    shade: BY_NIGHT.shade,
     edge: "rgba(79,91,102,0.9)",
     dim: [rgb("#23282D"), rgb("#1C2024")],
-    glass: HUES.dark.map((hue) => glassOf("#EBF0FA", hue, NIGHT.lit, NIGHT.shade, 0.7)),
+    glass: HUES.dark.map((hue) => glassOf("#EBF0FA", hue, BY_NIGHT.lit, BY_NIGHT.shade, 0.7)),
     flash: rgb("#FFFFFF"),
     pass: 0.6,
   },

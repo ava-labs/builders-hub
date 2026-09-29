@@ -2,6 +2,7 @@ import "server-only";
 import { chainRpc } from "./head";
 import { tokenList } from "./enrich";
 import { TRANSFER_TOPIC, addressesOf, mayBeEvents, mayBeMonitor, minAmountOf, monitorWords, parseMonitor, tokenOf, type MonitorItem, type MonitorRead, type MonitorSpec, type MonitorToken, type TokenMeta } from "./monitor";
+import { short } from "./values";
 import { MONITOR_CHAIN_ID, MONITOR_EVENTS, decodeMonitorLog, eventsFor, fitsMonitorLog, type MonitorEventDef } from "./monitor-events";
 
 /* A monitor's read of its chain (monitor.ts says what a monitor is): the chain's own RPC, block by block. A first
@@ -256,7 +257,6 @@ export function eventsMonitor(prompt: string, chainId: number, tokens: Map<strin
   if (min !== undefined) spec.minAmount = min;
   const who = addressesOf(rest)[0];
   if (who) spec[who.role] = who.address;
-  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
   // the reader's own word for the events, for a title over protocols that name them differently
   const asked = bare.toLowerCase().split(/[^a-z0-9.]+/).find((w) => defs.some((d) => d.words.includes(w)));
   spec.title = `${eventsTitle(defs, asked)}${token ? ` in ${token.symbol}` : ""}${min !== undefined ? ` over ${min.toLocaleString("en-US")}` : ""}${who ? ` ${who.role === "to" ? "at" : "of"} ${short(who.address)}` : ""}`;

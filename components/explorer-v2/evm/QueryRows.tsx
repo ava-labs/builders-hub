@@ -12,8 +12,10 @@ import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
+import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { noteParts } from "./query-client";
+import type { DrillCut } from "./drill-plot";
 
 /* The rows of a query answer, as the explorer reads them: the column
    words, the doors out of a cell and a row, the generic table, a table
@@ -58,11 +60,6 @@ export function formatOf(col: string, visual: VisualSpec | null): Format {
   if (/gas/.test(col)) return "gas";
   return "number";
 }
-
-export const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
-export const isHash = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
-export const isSelector = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v);
-export const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
 
 /** a column that holds transaction hashes, by its name: hash, tx_hash, transaction_hash, and any *_tx or *_tx_hash.
     Elsewhere a 32-byte value is not known to be a transaction (a v4 pool id, a topic, a message id) and stays text */
@@ -117,11 +114,6 @@ export function duration(secs: number): string {
   if (secs < 5400) return `${Math.round(secs / 60)} min`;
   if (secs < 172800) return `${(secs / 3600).toFixed(1)} h`;
   return `${Math.round(secs / 86400)} days`;
-}
-
-export function ago(unix: number): string {
-  const s = Math.max(0, Math.floor(Date.now() / 1000) - unix);
-  return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -387,16 +379,18 @@ export function RecordPlot({
   onHoverTx: (h: string | null) => void;
   /** the bucket the records stand in, in unix seconds: the opened mark's day, hour or five minutes */
   span?: [number, number] | null;
-  /** the records' cut when a LIMIT ends them: "the 50 largest fees" */
-  cut?: string | null;
+  /** the records' cut when a LIMIT ends them: "the 50 largest fees", "the 50 latest" */
+  cut?: DrillCut | null;
 }) {
   const router = useRouter();
   // plot the figure that actually varies: a run of calls all charged the
   // half-limit floor is a flat line in gas and still spreads in fee
   const spread = (k: string) => new Set(rows.map((r) => r[k]).filter((v) => typeof v === "number")).size;
-  // the query's own figure (an amount) first, then gas, then fee
+  // the figure the rows are ranked by first (the 50 largest fees plot their fees), then the query's own figure (an
+  // amount), then gas, then fee
+  const ranked = cut && !cut.byTime && typeof rows[0]?.[cut.col] === "number" && spread(cut.col) > 1 ? cut.col : undefined;
   const own = Object.keys(rows[0] ?? {}).find((k) => !LEDGER_KNOWN.has(k) && typeof rows[0][k] === "number" && spread(k) > 1);
-  const yCol = own ?? (spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null);
+  const yCol = ranked ?? own ?? (spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null);
   const timed = rows.every((r) => isTime(r.t));
   if (!yCol || rows.length < 2) return null;
   const pts = rows.map((r, i) => ({
@@ -410,8 +404,9 @@ export function RecordPlot({
   }));
   const clock = (u: number) => new Date(u * 1000).toISOString().slice(11, 19);
   // records that all fall in the opened mark's bucket stand across all of it: the 50 largest fees of a day are the
-  // burst they are, not a gap in the day
-  const within = timed && span && pts.every((p) => p.x >= span[0] && p.x <= span[1]) ? span : null;
+  // burst they are, not a gap in the day. The 50 latest are no sample of the bucket but its last seconds: they plot
+  // across the seconds they cover, not in a corner of the bucket
+  const within = timed && span && !cut?.byTime && pts.every((p) => p.x >= span[0] && p.x <= span[1]) ? span : null;
   const ticks = within ? [0, 1, 2, 3, 4].map((i) => within[0] + ((within[1] - within[0]) * i) / 4) : undefined;
   const tickText = (v: number) => {
     if (!timed) return `#${v + 1}`;
@@ -425,7 +420,7 @@ export function RecordPlot({
     <div className="flex flex-col gap-2 border-b border-zinc-200 px-5 pb-3 pt-4 md:px-6 dark:border-zinc-800">
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
         <span className="font-bold uppercase tracking-[0.18em]">{yCol === "fee_avax" ? "Fee" : yCol === "gas_charged" ? "Gas charged" : header(yCol)} per transaction</span>
-        {cut && <span>{cut}</span>}
+        {cut && <span>{cut.words}</span>}
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
           succeeded
@@ -439,7 +434,7 @@ export function RecordPlot({
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="rgba(161,161,170,0.18)" />
-            <XAxis type="number" dataKey="x" domain={within ?? ["dataMin", "dataMax"]} ticks={ticks} tickFormatter={tickText} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
+            <XAxis type="number" dataKey="x" domain={within ?? ["dataMin", "dataMax"]} ticks={ticks} allowDecimals={false} tickFormatter={tickText} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
             <YAxis type="number" dataKey="y" tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={56} />
             <ZAxis range={[36, 36]} />
             <RechartsTooltip

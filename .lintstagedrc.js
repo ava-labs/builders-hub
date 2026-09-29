@@ -19,6 +19,14 @@ module.exports = {
     `./scripts/check-console-design.sh ${shellArgs(files)}`,
   ],
 
-  // All TypeScript: type check (runs once, not per-file)
-  '*.{ts,tsx}': () => 'tsc --noEmit',
+  // All TypeScript: ESLint on each file an ESLint block covers but the
+  // toolbox, which has its entry above (the explorer's, eslint.config.mjs;
+  // ESLint skips the rest), then a type check (runs once, not per-file)
+  '*.{ts,tsx}': [
+    (files) => {
+      const rest = files.filter((f) => !f.includes('/components/toolbox/'));
+      return rest.length ? `eslint --max-warnings 0 --no-warn-ignored ${shellArgs(rest)}` : [];
+    },
+    () => 'tsc --noEmit',
+  ],
 };

@@ -156,6 +156,7 @@ export function SupplyModel({
   const sinceOpen = useTween(live.sum, 900) ?? 0;
 
   const floors = useMemo<Floor[]>(() => {
+    // a floor's share of the cap, to one place
     const pct = (v: number) => `${((v / TOKEN_CAP) * 100).toFixed(1)}% of cap`;
     const usd = (v: number) => (usdOf(v, price) ? ` · ${usdOf(v, price)}` : "");
     const liquid = Math.max(0, circulating - staked - locked);
