@@ -56,6 +56,15 @@ describe('the DEX shorthand', () => {
     expect(expanded(`$DEX(${today}), d AS (SELECT pool FROM legs) SELECT count() AS n FROM d`)).toContain('x.hour), d AS (SELECT pool FROM legs)');
   });
 
+  it("names its quotes dex_quotes, so a query's own WITH may call a part q", () => {
+    // the latency audit's D20: a writer's own CTE named q met the shorthand's and failed its test
+    const own = expanded(`$DEX(${today}), q AS (SELECT pool, usd FROM legs) SELECT count() AS n FROM q`);
+    expect(own).toContain('dex_quotes AS (SELECT groupArrayIf(token, quote = \'usd\') AS S');
+    expect(own).toContain('CROSS JOIN dex_quotes LEFT JOIN px AS x');
+    expect(own.match(/\bq AS \(/g)).toHaveLength(1);
+    expect(guardSql(`$DEX(${today}), q AS (SELECT pool, usd FROM legs) SELECT count() AS n FROM q`, 43114).ok).toBe(true);
+  });
+
   it('refuses any other name, a second shorthand, one after the start, a slug no protocol has, and a WITH with nothing after it', () => {
     expect(refused(`$SWAPS(${today})${OWN}`)).toMatch(/^\$SWAPS is no shorthand here: open the query with one shorthand: \$DEX, \$LEND or \$LIQUIDATIONS with the window's start/);
     expect(refused(`$DEX($START)${OWN}`)).toMatch(/^\$START is no shorthand here/);
