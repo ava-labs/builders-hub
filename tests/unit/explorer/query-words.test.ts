@@ -118,6 +118,9 @@ describe('withEdges', () => {
     // the month's first day is whole, and its last still fills
     const days = Array.from({ length: 29 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`);
     expect(edgesOf(days, windowOf('WHERE block_time >= toStartOfMonth(now())', null, now)!)).toEqual({ lo: 0, hi: 28, first: false, last: true });
+    // two rows are enough: this week on a Tuesday is a whole Monday and a Tuesday still filling (the audit's V13)
+    expect(edgesOf(['2026-09-28', '2026-09-29'], windowOf('WHERE block_time >= toMonday(now())', null, now)!)).toEqual({ lo: 0, hi: 1, first: false, last: true });
+    expect(edgesOf(['2026-09-29'], windowOf('WHERE block_time >= toMonday(now())', null, now)!)).toBeNull();
     // a window of an index that ended on an earlier day ends there
     expect(windowOf('WHERE block_time >= toMonday(now())', '2026-09-24 12:00:00', now)).toEqual({ start: Date.parse('2026-09-21T00:00:00Z'), end: Date.parse('2026-09-24T12:00:00Z') });
     // a subtraction from a calendar start is not read as one, and a calendar start that bounds nothing is no window

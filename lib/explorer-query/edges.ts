@@ -55,10 +55,11 @@ export function windowOf(sql: string, anchor?: string | null, now = Date.now()):
 }
 
 /** the rows that hold a series' first and last buckets, and whether the window cuts each: the first when it
-    begins before the window, the last while it is still filling */
+    begins before the window, the last while it is still filling. Two rows are enough: "this week" on a Tuesday is a
+    whole Monday and a Tuesday still filling (the audit's V13 read "transactions fell from 318k to 134.7k") */
 export function edgesOf(xs: unknown[], win: { start: number; end: number }): { lo: number; hi: number; first: boolean; last: boolean } | null {
   const ms = xs.map(msOf);
-  if (ms.length < 3 || ms.some((t) => !Number.isFinite(t))) return null;
+  if (ms.length < 2 || ms.some((t) => !Number.isFinite(t))) return null;
   // a bucket is the smallest step between times
   const times = [...new Set(ms)].sort((p, q) => p - q);
   let step = Infinity;
