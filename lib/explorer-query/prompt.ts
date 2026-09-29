@@ -360,6 +360,10 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   // a sender's partners are the addresses it sent to, often wallets: the night audit's G11 counted them as contracts
   // and its reading said an account "called 778 distinct contracts" with plain AVAX sends. Fuji's prompt stays as it was
   const partners = isFuji(opts.chainId) ? "" : " a ranking of senders carries how many addresses each sent to (recipients, uniqExact over `to`), never contracts, since a plain transfer goes to a wallet;";
+  // a token's senders are the addresses its Transfers move it from (topic1), not the transactions' signers: the
+  // follow-up audit's T06 counted tx_from from this example, 10 to 25% below the USDT senders each hour. Fuji's
+  // example stays as it was
+  const tokenSenders = isFuji(opts.chainId) ? "uniqExact(tx_from)" : "uniqExactIf(topic1, topic1 != unhex(repeat('00', 32)))";
   const created = isFuji(opts.chainId)
     ? ""
     : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.
@@ -461,7 +465,7 @@ SELECT block_time AS t, block_number, concat('0x', hex(transaction_hash)) AS tx_
 `
     : ""
 }${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}${families ? familyExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
-SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, uniqExact(tx_from) AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL ${c ? "1 DAY" : "7 DAY"} AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15
+SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, ${tokenSenders} AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL ${c ? "1 DAY" : "7 DAY"} AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15
 
 Active addresses per day, each address once:
 SELECT toDate(block_time) AS t, uniqExactArray([\`from\`, \`to\`]) AS active_addresses, uniqExact(\`from\`) AS senders, count() AS txs FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfDay(now()) - INTERVAL 7 DAY GROUP BY t ORDER BY t

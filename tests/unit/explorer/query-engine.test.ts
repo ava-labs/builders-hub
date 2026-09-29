@@ -129,6 +129,13 @@ describe('the NFT and new-contract rules', () => {
     expect(prompt(43113)).not.toContain('Contracts by transactions');
   });
 
+  it("take a token's senders from its Transfers, not the transactions' signers, on each chain but Fuji", () => {
+    // the follow-up audit's T06 counted tx_from after the token example, 10 to 25% below the USDT senders
+    const example = (p: string) => p.split('\n').find((l) => l.startsWith("SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers"))!;
+    for (const p of [prompt(43114), prompt(43419)]) expect(example(p)).toContain("uniqExactIf(topic1, topic1 != unhex(repeat('00', 32))) AS senders");
+    expect(example(prompt(43113))).toContain('uniqExact(tx_from) AS senders');
+  });
+
   it("count a sender's recipients, never its contracts, on each chain but Fuji", () => {
     // the night audit's G11 counted a sender's partners as contracts, and its reading said an account called 778 of them
     for (const p of [prompt(43114), prompt(43419)]) expect(p).toContain('a ranking of senders carries how many addresses each sent to (recipients, uniqExact over `to`), never contracts');
