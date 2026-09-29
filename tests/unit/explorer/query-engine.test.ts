@@ -119,6 +119,16 @@ describe('the NFT and new-contract rules', () => {
     expect(prompt(43113)).not.toContain("'CREAT'");
   });
 
+  it('leave the zero address out of a token\'s wallets, and keep a contract\'s plain transfers in its count', () => {
+    // the L1 audit's L16 counted mints as sends and called an ERC-721's transfers ERC-20; its L05 dropped plain transfers
+    for (const p of [prompt(43114), prompt(43419)]) {
+      expect(p).toContain("uniqExactIf(topic1, topic1 != unhex(repeat('00', 32)))");
+      expect(p).toContain('HAVING countIf(length(input) >= 4) > 0');
+    }
+    expect(prompt(43113)).not.toContain('Mints and burns');
+    expect(prompt(43113)).not.toContain('Contracts by transactions');
+  });
+
   it('teaches a creation filter the guard passes', () => {
     const sql = "SELECT count() AS new_contracts FROM raw_traces WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 24 HOUR AND startsWith(call_type, 'CREAT') AND tx_success";
     expect(guardSql(sql, 43114).ok).toBe(true);

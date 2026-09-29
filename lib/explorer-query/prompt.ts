@@ -353,12 +353,16 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   // the query service cannot send an inf or a nan; Fuji's prompt stays as it was
   const finite = c && opts.chainId !== DEX_CHAIN_ID ? "" : " Divide by nullIf(x, 0), and wrap a ratio or a quantile in ifNotFinite(x, NULL): an inf or a nan in the rows fails the whole answer.";
   // NFTs of both standards, and contracts created inside a transaction too: the writer read ERC-721 alone (ERC-1155
-  // held 8 of the true top 15 collections) and counted deploying transactions (457 of 2,088 new contracts). Fuji's
+  // held 8 of the true top 15 collections) and counted deploying transactions (457 of 2,088 new contracts). Mints
+  // and contracts by transactions: the L1 audit's L16 called an ERC-721's transfers ERC-20 and counted the zero address
+  // as a sender, and its L05 dropped a contract's plain transfers with the selector rule's length(input) filter. Fuji's
   // prompt stays as it was
   const created = isFuji(opts.chainId)
     ? ""
     : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.
 - New contracts: every contract is created by a CREATE or CREATE2 call in raw_traces, whether a transaction deploys it directly or a factory or an account-abstraction bundler creates it inside one (often most of them); the trace's \`to\` is the new contract. Count them with startsWith(call_type, 'CREAT') AND tx_success, and write the prefix 'CREAT': the server refuses the word CREATE even inside a string. raw_txs.contract_address holds only the direct deployments, so a question about new, created or deployed contracts reads raw_traces.
+- Mints and burns: a Transfer from the zero address mints the token to its recipient, and one to the zero address burns it. A count of the wallets a token moved from (topic1) or to (topic2) leaves the zero address out, uniqExactIf(topic1, topic1 != unhex(repeat('00', 32))), and a count of one token's transfers counts its mints and burns beside them: countIf(topic1 = unhex(repeat('00', 32))) AS mints. A note calls a token's transfers ERC-20 or ERC-721 only when the query reads topic3; otherwise it says transfers.
+- Contracts by transactions: a ranking of contracts counts every transaction to each, plain transfers included, and tells a contract from a wallet with HAVING countIf(length(input) >= 4) > 0. A WHERE on length(input) is for method_id alone.
 `;
   const sym = opts.symbol.toLowerCase();
   return `You turn a question about ${opts.chainName} (${c ? "" : "an Avalanche L1, "}EVM chain id ${opts.chainId}, native token ${opts.symbol}) into one ClickHouse SELECT and a chart spec. You are precise, terse, and you never invent data.
