@@ -769,7 +769,7 @@ const config = {
       },
       {
         source: '/introduction',
-        destination: '/docs/api-reference/introduction',
+        destination: '/docs/api-reference/data-api',
         permanent: false,
       },
       {
@@ -1048,7 +1048,7 @@ const config = {
       },
       {
         source: "/docs/nodes/configure/chain-configs/p-chain",
-        destination: "/docs/nodes/chain-configs/p-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/p-chain",
         permanent: true,
       },
       {
@@ -2444,7 +2444,7 @@ const config = {
       },
       {
         source: '/docs/rpcs/other/admin-rpc',
-        destination: '/docs/rpcs/other/admin-api',
+        destination: '/docs/rpcs/other',
         permanent: true,
       },
       {

@@ -66,7 +66,7 @@ const metadata: ConsoleToolMetadata = {
         C-Chain
       </Link>{' '}
       and{' '}
-      <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain" className="text-primary hover:underline">
         P-Chain
       </Link>
       . Requires two{' '}
