@@ -20,6 +20,8 @@ interface ChainContextValue {
   rpcUrl?: string;
   socials?: { twitter?: string; linkedin?: string };
   sourcifySupport?: boolean;
+  /** the chain's token has a market price (a CoinGecko id), so its price cells keep their place while it loads */
+  priced?: boolean;
 }
 
 const ChainContext = createContext<ChainContextValue | null>(null);
@@ -46,6 +48,7 @@ interface StaticChainProps {
   blockchainId?: string;
   socials?: { twitter?: string; linkedin?: string };
   sourcifySupport?: boolean;
+  priced?: boolean;
   isCustomChain?: false;
   children: ReactNode;
 }
@@ -75,6 +78,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
       blockchainId,
       socials,
       sourcifySupport,
+      priced,
       children,
     } = props;
     
@@ -90,6 +94,7 @@ export function ChainExplorerLayoutClient(props: ChainExplorerLayoutClientProps)
       rpcUrl,
       socials,
       sourcifySupport,
+      priced,
     };
 
     return (
