@@ -12,6 +12,7 @@ import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
 import { hasRealChainLogo } from "@/lib/pchain-explorer";
 import type { TxListResponse } from "@/lib/evm-explorer";
+import { RATE_WINDOW_MS, chainClock, coverRates, extendCover, type Cover } from "./throughput";
 
 /* The splash's live boards: the C-Chain home's Latest Blocks and Latest
    Transactions, merged across the busiest chains. Every row wears the
@@ -85,10 +86,6 @@ const SWEEP_PER_CHAIN = 2;
 const KEEP = 40;
 const ROWS = 10;
 
-/* the sliding window the live TPS reading is measured over */
-const PULSE_WINDOW_MS = 75_000;
-const PULSE_MIN_SPAN_S = 15;
-
 const toNum = (v: string | number) => Number(String(v).replace(/,/g, ""));
 
 function toLiveBlocks(chain: LiveChain, blocks: ApiBlock[]): LiveBlock[] {
@@ -128,7 +125,7 @@ const blockNewer = (a: LiveBlock, b: LiveBlock) => b.at - a.at || b.height - a.h
 const txNewer = (a: LiveTx, b: LiveTx) =>
   b.timestamp - a.timestamp || b.blockNumber - a.blockNumber || b.txIndex - a.txIndex;
 
-function useNetworkLive(chains: LiveChain[], onTps?: (tps: number | null) => void) {
+function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, number>) => void) {
   const [blocks, setBlocks] = useState<LiveBlock[]>([]);
   const [txs, setTxs] = useState<LiveTx[]>([]);
   const [settled, setSettled] = useState(false);
@@ -148,18 +145,15 @@ function useNetworkLive(chains: LiveChain[], onTps?: (tps: number | null) => voi
     const haveTx = new Map<string, number>();
     const lag = new Map<string, number>();
     const seenTx = new Set<string>();
-    // every fresh block feeds the pulse, so the reading is real
+    // every fresh block feeds its chain's run, so the reading is real
     // throughput, not what the board chooses to show
-    const pulse: { at: number; txCount: number }[] = [];
+    const covers = new Map<string, Cover>();
 
-    const reportTps = () => {
-      if (!onTps) return;
-      const cutoff = Date.now() - PULSE_WINDOW_MS;
-      while (pulse.length > 0 && pulse[0].at < cutoff) pulse.shift();
-      if (pulse.length < 2) return;
-      const spanS = (pulse[pulse.length - 1].at - pulse[0].at) / 1000;
-      if (spanS < PULSE_MIN_SPAN_S) return;
-      onTps(pulse.reduce((sum, p) => sum + p.txCount, 0) / spanS);
+    const reportRates = () => {
+      if (!onRates) return;
+      const now = chainClock(covers, Date.now());
+      onRates(coverRates(covers, now));
+      for (const c of covers.values()) c.blocks = c.blocks.filter((b) => b.at >= now - RATE_WINDOW_MS);
     };
 
     async function pollBlocks(chain: LiveChain, first: boolean): Promise<LiveBlock[]> {
@@ -173,7 +167,11 @@ function useNetworkLive(chains: LiveChain[], onTps?: (tps: number | null) => voi
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as { blocks?: ApiBlock[] };
         const fresh = toLiveBlocks(chain, data.blocks ?? []);
+        // three failures in a row drop a chain, not three in a session
+        failures.set(id, 0);
         if (fresh.length > 0) {
+          const run = extendCover(covers.get(id), fresh, lastBlock.get(id));
+          if (run) covers.set(id, run);
           lastBlock.set(id, Math.max(...fresh.map((b) => b.height)));
           idle.set(id, 0);
           nextSweep.set(id, sweepN + 1);
@@ -187,6 +185,8 @@ function useNetworkLive(chains: LiveChain[], onTps?: (tps: number | null) => voi
         return fresh;
       } catch {
         failures.set(id, (failures.get(id) ?? 0) + 1);
+        // a missed poll breaks the run: the pulse rates the chain until a new run covers it
+        covers.delete(id);
         return [];
       }
     }
@@ -255,9 +255,7 @@ function useNetworkLive(chains: LiveChain[], onTps?: (tps: number | null) => voi
       setSettled(true);
       const freshBlocks = results.flatMap((r) => r.b);
       const freshTxs = results.flatMap((r) => r.t);
-      pulse.push(...freshBlocks.map((b) => ({ at: b.at, txCount: b.txCount })));
-      pulse.sort((a, b) => a.at - b.at);
-      reportTps();
+      reportRates();
       const perChain = first ? OPEN_PER_CHAIN : SWEEP_PER_CHAIN;
       if (freshBlocks.length > 0) {
         const add = sample(freshBlocks, perChain, blockNewer);
@@ -281,7 +279,7 @@ function useNetworkLive(chains: LiveChain[], onTps?: (tps: number | null) => voi
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [chains, onTps]);
+  }, [chains, onRates]);
 
   return { blocks, txs, settled };
 }
@@ -476,16 +474,17 @@ function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) 
   );
 }
 
-/** Both boards side by side, fed by one poller. Reports the live TPS it
- *  measures from the block feed; null until the window has enough span. */
+/** Both boards side by side, fed by one poller. Reports each chain's
+ *  transactions a second off the block feed, once the feed covers enough
+ *  of that chain (see throughput.ts). */
 export function OverviewLiveBoards({
   chains,
-  onTps,
+  onRates,
 }: {
   chains: LiveChain[];
-  onTps?: (tps: number | null) => void;
+  onRates?: (rates: Map<string, number>) => void;
 }) {
-  const { blocks, txs, settled } = useNetworkLive(chains, onTps);
+  const { blocks, txs, settled } = useNetworkLive(chains, onRates);
   // every chain failed: the boards bow out rather than sit empty
   if (settled && blocks.length === 0 && txs.length === 0) return null;
   const loading = !settled;

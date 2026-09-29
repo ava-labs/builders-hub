@@ -10,6 +10,8 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { useDapps } from "@/app/(home)/stats/dapps/_hooks/useDapps";
 import { OverviewLiveBoards, type LiveChain } from "./overview-live";
+import { useChainPulse } from "./chain-pulse";
+import { networkTps } from "./throughput";
 import { L1Versions } from "./l1-versions";
 import {
   SPARK_MIN_DAYS,
@@ -137,9 +139,18 @@ export function NetworkOverview() {
 
   const agg = data?.aggregated;
 
-  /* real throughput measured off the live block feed: moves as the
-     network does, instead of a window average sitting still */
-  const [liveTps, setLiveTps] = useState<number | null>(null);
+  /* throughput now, over every chain the server's pulse reads: the live
+     feed rates the chains it watches once it covers 15 seconds of each,
+     and the pulse rates the rest. True from the first paint, and it moves
+     as the network does, instead of a window average sitting still */
+  const pulse = useChainPulse();
+  const [liveRates, setLiveRates] = useState<Map<string, number> | null>(null);
+  // a chain no RPC reads counts at its average over the window
+  const averages = useMemo(
+    () => new Map((data?.chains ?? []).flatMap((c) => (c.tps !== null ? [[String(c.chainId), c.tps] as const] : []))),
+    [data],
+  );
+  const liveTps = useMemo(() => networkTps(pulse, liveRates, averages), [pulse, liveRates, averages]);
 
 
   /* the live boards' roster: the busiest RPC-backed chains, latched to the
@@ -240,7 +251,7 @@ export function NetworkOverview() {
 
         {/* the C-Chain home's live boards, merged across the busiest
             chains: each row wears the logo of the chain it came from */}
-        <OverviewLiveBoards chains={liveChains} onTps={setLiveTps} />
+        <OverviewLiveBoards chains={liveChains} onRates={setLiveRates} />
 
         {/* the window's figures, each with its move against the window before */}
         <section className="flex flex-col gap-4">
