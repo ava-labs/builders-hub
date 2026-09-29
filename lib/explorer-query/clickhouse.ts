@@ -30,6 +30,36 @@ export interface QueryResult {
 
 const QUERY_TIMEOUT_S = 45;
 
+/** what a reader is told when ClickHouse stops a read as too large or too slow; answer.ts ends the question on it */
+export class ScanLimitError extends Error {
+  constructor(rows: number | null, max: number | null) {
+    super(`This question scans too much of the chain${rows ? `: about ${quantity(rows)} rows${max ? `, and one question may read ${quantity(max)}` : ""}` : ""}. Narrow the time range or add a filter.`);
+    this.name = "ScanLimitError";
+  }
+}
+
+const quantity = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : `${Math.round(n / 1e6)} million`);
+
+/* ClickHouse's words when it stops a read before or early in it:
+   - past max_rows_to_read or max_bytes_to_read (TOO_MANY_ROWS, TOO_MANY_BYTES): "Limit for rows (controlled by
+     'max_rows_to_read' setting) exceeded, max rows: 1.20 billion, current rows: 1.59 billion", or "Limit for rows to
+     read exceeded, ..." in older versions;
+   - past max_estimated_execution_time (TOO_SLOW): "Estimated query execution time (120.5 seconds) is too long.
+     Maximum: 45. Estimated rows to process: 1592500817", after timeout_before_checking_execution_speed.
+   A result past max_result_rows says "Limit for result exceeded", which is no scan */
+const OVER_SCAN = /Limit for (?:rows|\(uncompressed\) bytes) (?:\(controlled by 'max_(?:rows|bytes)_to_read' setting\) |to read )exceeded|Estimated query execution time \([\d.]+ seconds\) is too long/i;
+const SCALE: Record<string, number> = { thousand: 1e3, million: 1e6, billion: 1e9, trillion: 1e12 };
+
+/** the refusal an error's text is, or null for any other error */
+export function scanLimit(text: string): ScanLimitError | null {
+  if (!OVER_SCAN.test(text)) return null;
+  const count = (label: string) => {
+    const m = new RegExp(`${label}: ([\\d.]+)(?:\\s*(thousand|million|billion|trillion))?`, "i").exec(text);
+    return m ? Number(m[1]) * (SCALE[m[2]?.toLowerCase() ?? ""] ?? 1) : null;
+  };
+  return new ScanLimitError(count("current rows") ?? count("Estimated rows to process"), count("max rows"));
+}
+
 function endpoint(): string {
   const url = process.env.QUERY_CLICKHOUSE_URL || process.env.CLICKHOUSE_URL;
   if (!url) throw new Error("CLICKHOUSE_URL is not set");
@@ -55,6 +85,9 @@ const SETTINGS: Record<string, string> = {
   max_bytes_before_external_group_by: "3000000000",
   max_memory_usage: "9000000000",
   max_rows_to_read: "20000000000",
+  // a read ClickHouse expects to run past the timeout stops early (after timeout_before_checking_execution_speed),
+  // and a cheap read of many rows, such as a count over the whole history, still runs
+  max_estimated_execution_time: String(QUERY_TIMEOUT_S),
   // a SELECT that aliases hex(method_id) AS method_id must still filter on
   // the column in WHERE, not on its own alias
   prefer_column_name_to_alias: "1",
@@ -147,6 +180,8 @@ async function postStats(sql: string): Promise<RawJson> {
     // the reason is in message ("clickhouse: … code: 47, message: …"); error is only the status text
     const why = body.message ?? body.error ?? `stats-api ${res.status}`;
     const inner = why.match(/message:\s*(.+?)(?:\s*\(version [^)]*\))?$/s)?.[1] ?? why;
+    const over = scanLimit(why);
+    if (over) throw over;
     throw new Error(inner.replace(/^clickhouse:\s*/, "").slice(0, 500));
   }
   // an empty answer can carry null in place of its lists
@@ -181,6 +216,8 @@ async function post(sql: string): Promise<RawJson> {
   if (!res.ok) {
     // ClickHouse puts the readable reason on one line after the code
     const line = text.split("\n").find((l) => /DB::Exception/.test(l)) ?? text;
+    const over = scanLimit(line);
+    if (over) throw over;
     throw new Error(line.replace(/^Code:\s*\d+\.\s*/, "").slice(0, 500));
   }
   return JSON.parse(text) as RawJson;
