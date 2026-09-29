@@ -376,6 +376,8 @@ export function RecordPlot({
   sym,
   hoverTx,
   onHoverTx,
+  span,
+  cut,
 }: {
   rows: Row[];
   names: Names;
@@ -383,6 +385,10 @@ export function RecordPlot({
   sym: string;
   hoverTx: string | null;
   onHoverTx: (h: string | null) => void;
+  /** the bucket the records stand in, in unix seconds: the opened mark's day, hour or five minutes */
+  span?: [number, number] | null;
+  /** the records' cut when a LIMIT ends them: "the 50 largest fees" */
+  cut?: string | null;
 }) {
   const router = useRouter();
   // plot the figure that actually varies: a run of calls all charged the
@@ -403,11 +409,23 @@ export function RecordPlot({
     row: r,
   }));
   const clock = (u: number) => new Date(u * 1000).toISOString().slice(11, 19);
+  // records that all fall in the opened mark's bucket stand across all of it: the 50 largest fees of a day are the
+  // burst they are, not a gap in the day
+  const within = timed && span && pts.every((p) => p.x >= span[0] && p.x <= span[1]) ? span : null;
+  const ticks = within ? [0, 1, 2, 3, 4].map((i) => within[0] + ((within[1] - within[0]) * i) / 4) : undefined;
+  const tickText = (v: number) => {
+    if (!timed) return `#${v + 1}`;
+    if (!within) return clock(v);
+    // a day ends at 24:00, not at the next day's 00:00; a bucket of an hour or more reads to the minute
+    if (v === within[1] && (within[1] - within[0]) % 86_400 === 0) return "24:00";
+    return within[1] - within[0] >= 3600 ? clock(v).slice(0, 5) : clock(v);
+  };
   const yFmt: Format = yCol === "fee_avax" ? "avax" : yCol === "gas_charged" ? "gas" : "compact";
   return (
     <div className="flex flex-col gap-2 border-b border-zinc-200 px-5 pb-3 pt-4 md:px-6 dark:border-zinc-800">
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
         <span className="font-bold uppercase tracking-[0.18em]">{yCol === "fee_avax" ? "Fee" : yCol === "gas_charged" ? "Gas charged" : header(yCol)} per transaction</span>
+        {cut && <span>{cut}</span>}
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
           succeeded
@@ -421,7 +439,7 @@ export function RecordPlot({
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="rgba(161,161,170,0.18)" />
-            <XAxis type="number" dataKey="x" domain={["dataMin", "dataMax"]} tickFormatter={(v) => (timed ? clock(v) : `#${v + 1}`)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
+            <XAxis type="number" dataKey="x" domain={within ?? ["dataMin", "dataMax"]} ticks={ticks} tickFormatter={tickText} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
             <YAxis type="number" dataKey="y" tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={56} />
             <ZAxis range={[36, 36]} />
             <RechartsTooltip
