@@ -17,7 +17,7 @@ import {
   type AbiParameter,
 } from "viem";
 import { cn } from "@/lib/utils";
-import { Board, HashChip, SectionHeader, HEAD, LoadMore } from "@/components/explorer-v2/ui";
+import { Board, HashChip, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { truncate } from "@/components/explorer-v2/format";
 import { Tabs, EmptyRow } from "./AddressTables";
 import { TokenMark, NativeMark } from "./TokenMark";
@@ -767,8 +767,6 @@ export function EvmTrace({
     for (let i = 1; i < parts.length; i++) if (collapsed.has(parts.slice(0, i).join("."))) return true;
     return false;
   };
-  const totalGas = trace ? hexInt(trace.call.gasUsed) : 0;
-  const errors = frames.filter((f) => f.frame.error).length;
 
   /** a storage word: an amount on a token contract, else an address,
    *  an integer, or the full hex */

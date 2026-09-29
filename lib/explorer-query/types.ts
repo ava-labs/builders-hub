@@ -40,6 +40,40 @@ export interface Turn {
   title: string;
 }
 
+/** a reference table an answer read (sources.ts), and how much of its
+    set it knows. Made on every run, never kept with a recipe, so its
+    figures are always the rows' own */
+export interface SourceNote {
+  /** the table the SQL names */
+  table: string;
+  /** what the table is, for the reader, mid-sentence: "validator versions" */
+  label: string;
+  /** unix ms our server read the source */
+  at: number;
+  /** members of the set, and those the table's figure is known for */
+  total: number;
+  known: number;
+  /** the coverage and where the figure comes from, in plain sentences */
+  text: string;
+}
+
+/** the whole result when the rows stop at a LIMIT: its size and each column's figures, read once past the limit */
+export interface Totals {
+  rows: number;
+  /** the rows shown are a time series' newest, not its first */
+  newest: boolean;
+  sum: Record<string, number>;
+  /** the rows that hold a number in each column, for an average */
+  count: Record<string, number>;
+  min: Record<string, number>;
+  max: Record<string, number>;
+  distinct: Record<string, number>;
+  /** the column the rows are known by, and its value in the row that holds each column's max and min */
+  label?: string;
+  maxAt?: Record<string, string>;
+  minAt?: Record<string, string>;
+}
+
 /** one model step, timed: what the model spent thinking and what the database spent */
 export interface StepTiming {
   n: number;
@@ -59,6 +93,8 @@ export interface QueryAnswer {
   chart: ChartSpec;
   drill: Drill | null;
   result: QueryResult | null;
+  /** when the rows stop at a LIMIT: how many the query had, and its figures over all of them */
+  totals?: Totals | null;
   names: Names;
   /** how the designer laid the answer out; the page draws this */
   visual: VisualSpec | null;
@@ -66,6 +102,8 @@ export interface QueryAnswer {
   coverage: Coverage | null;
   /** now() was read as this block time, because the index runs behind the clock */
   anchor?: string | null;
+  /** the reference tables the SQL read, with their coverage */
+  sources?: SourceNote[];
   /** visual is the basic layout, drawn while the designer works */
   draftVisual?: boolean;
   /** the cache key of this answer's recipe; the layout is kept under it */
@@ -93,6 +131,7 @@ export interface QueryAnswer {
 export interface DrillAnswer {
   sql: string;
   anchor?: string | null;
+  sources?: SourceNote[];
   result: QueryResult;
   names: Names;
 }

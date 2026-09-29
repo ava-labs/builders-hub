@@ -3,12 +3,14 @@
    a model; its last rows ride along as a snapshot, so a board opens drawn
    and refreshes behind the reader. The device keeps every board, per
    chain and network (a board's SQL names one chain_id); a signed-in
-   reader's boards also sync to the account (board-sync.ts). */
+   reader's boards also sync to the account (board-sync.ts), and a board
+   the account keeps opens for anyone with its link (board-shared.ts). */
 
 import { useSyncExternalStore } from "react";
 import type { ColumnMeta } from "./clickhouse";
-import type { Names, QueryAnswer } from "./types";
+import type { Drill, Names, QueryAnswer } from "./types";
 import type { Panel, VisualSpec } from "./visual";
+import { metricColumns, seriesLabels, type MetricKey } from "./stats-metrics";
 import { useBoardSync } from "./board-sync";
 // the gate lives with the targets, so a server page can read it too
 export { queryTarget } from "./target";
@@ -16,6 +18,8 @@ export { queryTarget } from "./target";
 const KEY = "explorer-query-boards:v1";
 /** deleted board ids and when, per scope, until the account has the delete */
 const GONE_KEY = "explorer-query-boards:gone:v1";
+/** old id -> new id, for a board whose id another account turned out to hold */
+const MOVED_KEY = "explorer-query-boards:moved:v1";
 const EVENT = "explorer-query-boards";
 /** rows kept per snapshot; enough to draw any panel, small enough to store */
 export const SNAPSHOT_ROWS = 500;
@@ -48,6 +52,10 @@ export interface ChartTile {
   panelIndex: number | null;
   /** the reader's choice of chart for the panel, over the designer's */
   view?: Panel["kind"];
+  /** the follow-ups asked after the question, in order */
+  then?: string[];
+  /** how a mark opens into the records behind it */
+  drill?: Drill | null;
   size: TileSize;
   order: number;
   snapshot?: Snapshot;
@@ -62,7 +70,37 @@ export interface NoteTile {
   order: number;
 }
 
-export type Tile = ChartTile | NoteTile;
+/** one daily series of a metric tile, as the stats API names it */
+export interface MetricSeries {
+  /** an EVM chain id, "all" (every chain at once) or "primary" (the Primary Network) */
+  chainId: string;
+  chainName: string;
+  metric: MetricKey;
+  mark: "bar" | "line" | "area";
+  axis: "left" | "right";
+}
+
+/** a chart of stats API series (stats-metrics.ts): what a Playground
+    dashboard's chart drew, brought over as a tile (playground.ts) */
+export interface MetricTile {
+  kind: "metric";
+  id: string;
+  title: string;
+  series: MetricSeries[];
+  stacked: boolean;
+  /** the last this many days; with neither this nor dates, every day there is */
+  days?: number | null;
+  /** fixed days, YYYY-MM-DD, both or neither; they win over days */
+  from?: string | null;
+  to?: string | null;
+  size: TileSize;
+  order: number;
+  snapshot?: Snapshot;
+}
+
+export type Tile = ChartTile | NoteTile | MetricTile;
+/** a change to one tile, of any kind */
+export type TilePatch = Partial<ChartTile> | Partial<NoteTile> | Partial<MetricTile>;
 
 export interface Board {
   id: string;
@@ -72,21 +110,8 @@ export interface Board {
   tiles: Tile[];
 }
 
-/** which boards a page sees: a board's SQL is bound to one chain on one network */
-export function boardScope(network: string, chainSlug: string): string {
-  return `${network}:${chainSlug}`;
-}
-
-export function boardsHref(network: string, chainSlug: string): string {
-  return `/explorer/${network}/${chainSlug}/query/boards`;
-}
-export function boardHref(network: string, chainSlug: string, id: string): string {
-  return `${boardsHref(network, chainSlug)}/${id}`;
-}
-export function askHref(network: string, chainSlug: string, q?: string): string {
-  const base = `/explorer/${network}/${chainSlug}/query`;
-  return q ? `${base}?q=${encodeURIComponent(q)}` : base;
-}
+// the paths live apart from the store, so a server page can build them too
+export { askHref, boardHref, boardScope, boardsHref } from "./board-links";
 
 /* ------------------------------------------------------------------ */
 /* the store                                                           */
@@ -121,8 +146,9 @@ function parse(raw: string | null): Store {
 function write(store: Store): void {
   const attempts: ((t: Tile) => Tile)[] = [
     (t) => t,
-    (t) => (t.kind === "chart" && t.snapshot ? { ...t, snapshot: { ...t.snapshot, rows: t.snapshot.rows.slice(0, 100) } } : t),
-    (t) => (t.kind === "chart" ? { ...t, snapshot: undefined } : t),
+    // a chart's first rows lead; a metric tile's newest days are its last
+    (t) => (t.kind !== "note" && t.snapshot ? { ...t, snapshot: { ...t.snapshot, rows: t.kind === "metric" ? t.snapshot.rows.slice(-100) : t.snapshot.rows.slice(0, 100) } } : t),
+    (t) => (t.kind !== "note" ? { ...t, snapshot: undefined } : t),
   ];
   for (const shrink of attempts) {
     const next: Store = Object.fromEntries(Object.entries(store).map(([k, bs]) => [k, bs.map((b) => ({ ...b, tiles: b.tiles.map(shrink) }))]));
@@ -152,10 +178,6 @@ export function listBoards(scope: string): Board[] {
   return (parse(readRaw())[scope] ?? []).slice().sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function getBoard(scope: string, id: string): Board | undefined {
-  return (parse(readRaw())[scope] ?? []).find((b) => b.id === id);
-}
-
 export function createBoard(scope: string, name = "Untitled board", tiles: Tile[] = []): Board {
   const now = Date.now();
   const board: Board = { id: uid(), name, createdAt: now, updatedAt: now, tiles: tiles.map((t, i) => ({ ...t, id: uid(), order: i })) };
@@ -172,6 +194,38 @@ export function deleteBoard(scope: string, id: string): void {
   gone[scope] = { ...(gone[scope] ?? {}), [id]: Date.now() };
   writeGone(gone);
   mutate(scope, (bs) => bs.filter((b) => b.id !== id));
+}
+
+function readMoved(): Record<string, string> {
+  try {
+    const m = JSON.parse(localStorage.getItem(MOVED_KEY) ?? "{}") as unknown;
+    return m && typeof m === "object" ? (m as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** where a board went when its id had to change; undefined when it never moved */
+export function movedBoard(id: string): string | undefined {
+  return readMoved()[id];
+}
+
+/* the account refused this id because another account holds it: the
+   board takes a new one (its link changes with it), and the old id
+   points to the new, so an open page follows. The store change sends it. */
+export function reidBoard(scope: string, id: string): Board | null {
+  const store = parse(readRaw());
+  const b = (store[scope] ?? []).find((x) => x.id === id);
+  if (!b) return null;
+  const next: Board = { ...b, id: uid(), updatedAt: Date.now() };
+  try {
+    localStorage.setItem(MOVED_KEY, JSON.stringify({ ...readMoved(), [id]: next.id }));
+  } catch {
+    /* the page falls back to the board list */
+  }
+  store[scope] = (store[scope] ?? []).map((x) => (x.id === id ? next : x));
+  write(store);
+  return next;
 }
 
 /* ------------------------------------------------------------------ */
@@ -259,7 +313,9 @@ export function mergeRemote(scope: string, remote: RemoteBoard[], complete: bool
     const kept = new Map((l?.tiles ?? []).map((t) => [t.id, t]));
     const tiles = (r.tiles as Tile[]).map(normalTile).map((t) => {
       const old = kept.get(t.id);
-      return t.kind === "chart" && old?.kind === "chart" && old.snapshot && old.sql === t.sql ? { ...t, snapshot: old.snapshot } : t;
+      if (t.kind === "chart" && old?.kind === "chart" && old.snapshot && old.sql === t.sql) return { ...t, snapshot: old.snapshot };
+      if (t.kind === "metric" && old?.kind === "metric" && old.snapshot && sameMetrics(old, t)) return { ...t, snapshot: old.snapshot };
+      return t;
     });
     local.set(r.id, { id: r.id, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt, tiles });
   }
@@ -275,6 +331,26 @@ export function mergeRemote(scope: string, remote: RemoteBoard[], complete: bool
   return out;
 }
 
+/** whether two metric tiles draw the same rows */
+function sameMetrics(a: MetricTile, b: MetricTile): boolean {
+  const key = (t: MetricTile) => JSON.stringify([t.series, t.days ?? null, t.from ?? null, t.to ?? null]);
+  return key(a) === key(b);
+}
+
+/* boards made elsewhere, as they are: their ids and times stay, so every
+   device that makes one makes the same board. One this device has, or
+   has deleted, is left out. Returns the boards it took in. */
+export function adoptBoards(scope: string, boards: Board[]): Board[] {
+  const store = parse(readRaw());
+  const have = new Set((store[scope] ?? []).map((b) => b.id));
+  const gone = goneBoards(scope);
+  const taken = boards.filter((b) => !have.has(b.id) && gone[b.id] === undefined);
+  if (!taken.length) return [];
+  store[scope] = [...(store[scope] ?? []), ...taken];
+  write(store);
+  return taken;
+}
+
 /** a tile goes to the end of the board */
 export function addTile(scope: string, boardId: string, tile: Tile): Tile {
   const placed = { ...tile, id: uid() };
@@ -282,8 +358,11 @@ export function addTile(scope: string, boardId: string, tile: Tile): Tile {
   return placed;
 }
 
-export function updateTile(scope: string, boardId: string, tileId: string, patch: Partial<ChartTile> | Partial<NoteTile>): void {
-  touch(scope, boardId, (b) => ({ ...b, tiles: b.tiles.map((t) => (t.id === tileId ? ({ ...t, ...patch, id: t.id, kind: t.kind } as Tile) : t)) }));
+export function updateTile(scope: string, boardId: string, tileId: string, patch: TilePatch): void {
+  const apply = (b: Board): Board => ({ ...b, tiles: b.tiles.map((t) => (t.id === tileId ? ({ ...t, ...patch, id: t.id, kind: t.kind } as Tile) : t)) });
+  // fresh rows are not an edit: the board keeps its time, and the account is not written
+  if (Object.keys(patch).every((k) => k === "snapshot")) mutate(scope, (bs) => bs.map((b) => (b.id === boardId ? apply(b) : b)));
+  else touch(scope, boardId, apply);
 }
 
 export function removeTile(scope: string, boardId: string, tileId: string): void {
@@ -331,23 +410,32 @@ export function snapshotOf(result: { columns: ColumnMeta[]; rows: Row[] }, names
   return { columns: result.columns, rows: result.rows.slice(0, SNAPSHOT_ROWS), names, at: Date.now(), anchor: anchor ?? null };
 }
 
+/** the rows a metric tile keeps for its first paint: its window's newest days, capped as a chart's rows are */
+export function metricSnapshot(tile: MetricTile, rows: Row[]): Snapshot {
+  return { columns: metricColumns(seriesLabels(tile.series)), rows: rows.slice(-SNAPSHOT_ROWS), names: {}, at: Date.now() };
+}
+
 /** an answer, or one of its panels, as a tile; null when there is no SQL to run again */
-export function pinAnswer(answer: QueryAnswer, opts: { panelIndex?: number | null; question?: string } = {}): ChartTile | null {
+export function pinAnswer(answer: QueryAnswer, opts: { panelIndex?: number | null; thread?: string[] } = {}): ChartTile | null {
   if (!answer.sql) return null;
   const visual = answer.visual ?? TABLE_VISUAL;
   const panelIndex = opts.panelIndex ?? null;
   const panel = panelIndex !== null ? visual.panels[panelIndex] : undefined;
   if (panelIndex !== null && !panel) return null;
   const size: TileSize = !panel ? "w" : panel.kind === "table" ? "w" : panel.width === "half" ? "m" : "l";
+  // the whole thread, so Open asks the refined question and not its last words
+  const [question = answer.title, ...then] = (opts.thread ?? []).map((q) => q.trim()).filter(Boolean);
   return {
     kind: "chart",
     id: uid(),
-    question: (opts.question ?? answer.title).trim(),
+    question,
+    ...(then.length ? { then } : {}),
     title: panel?.title || answer.title,
     sql: answer.sql,
     // callouts are sentences about one day's rows; a board reruns them
     visual: { ...visual, callouts: [] },
     panelIndex,
+    drill: answer.drill ?? null,
     size,
     order: 0,
     snapshot: answer.result ? snapshotOf(answer.result, answer.names, answer.anchor) : undefined,
@@ -385,8 +473,14 @@ function normalTile(t: Tile): Tile {
   return t.kind === "chart" ? { ...t, visual: normalVisual(t.visual) } : t;
 }
 
+/** tiles as another account keeps them (a shared board), in their order and drawable */
+export function sharedTiles(raw: unknown[]): Tile[] {
+  return (raw as Tile[]).filter((t) => t && (t.kind === "chart" || t.kind === "note" || t.kind === "metric")).map(normalTile).sort(byOrder);
+}
+
 /* ------------------------------------------------------------------ */
-/* share links: the board without its rows, as base64url JSON           */
+/* the first share links: the board without its rows, as base64url JSON.
+   A board's own page is its link now; links already sent still open.  */
 
 interface Shared {
   v: 1;
@@ -397,29 +491,10 @@ interface Shared {
 /** a shared tile before it is checked: any field may be missing or wrong */
 type Loose = Partial<Omit<ChartTile, "kind">> & Partial<Omit<NoteTile, "kind">> & { kind?: string };
 
-function toB64url(s: string): string {
-  const bytes = new TextEncoder().encode(s);
-  let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 function fromB64url(s: string): string {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4);
   const bin = atob(b64);
   return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
-}
-
-export function encodeBoard(board: Board): string {
-  const shared: Shared = {
-    v: 1,
-    name: board.name,
-    tiles: sortedTiles(board).map((t) => {
-      if (t.kind === "note") return { kind: "note", text: t.text, size: t.size };
-      return { kind: "chart", question: t.question, title: t.title, sql: t.sql, visual: t.visual, panelIndex: t.panelIndex, view: t.view, size: t.size };
-    }),
-  };
-  return toB64url(JSON.stringify(shared));
 }
 
 const isSize = (s: unknown): s is TileSize => TILE_SIZES.includes(s as TileSize);
@@ -454,11 +529,6 @@ export function decodeBoard(s: string): { name: string; tiles: Tile[] } | null {
   }
 }
 
-/** a shared board, kept as a new board of this device's */
-export function importBoard(scope: string, encoded: string): Board | null {
-  const d = decodeBoard(encoded);
-  return d ? createBoard(scope, d.name, d.tiles) : null;
-}
 
 /* ------------------------------------------------------------------ */
 /* the hook                                                            */
@@ -504,7 +574,7 @@ export function useBoards(scope: string) {
     rename: (id: string, name: string) => renameBoard(scope, id, name),
     remove: (id: string) => deleteBoard(scope, id),
     addTile: (id: string, tile: Tile) => addTile(scope, id, tile),
-    updateTile: (id: string, tileId: string, patch: Partial<ChartTile> | Partial<NoteTile>) => updateTile(scope, id, tileId, patch),
+    updateTile: (id: string, tileId: string, patch: TilePatch) => updateTile(scope, id, tileId, patch),
     removeTile: (id: string, tileId: string) => removeTile(scope, id, tileId),
     duplicateTile: (id: string, tileId: string) => duplicateTile(scope, id, tileId),
     reorder: (id: string, ids: string[]) => reorderTiles(scope, id, ids),

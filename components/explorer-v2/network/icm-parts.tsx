@@ -529,23 +529,31 @@ export function CutChips({ chips, onDrop, onClear }: { chips: CutChip[]; onDrop:
 const SEG =
   "relative flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-2.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50";
 
-/** a pill that slides to the choice; scrolls sideways when it runs long */
-export function ViewSwitch<T extends string>({ id, value, onChange, options }: { id: string; value: T; onChange: (v: T) => void; options: { v: T; label: string }[] }) {
+/** a pill that slides to the choice; scrolls sideways when it runs long, or with `fill` spans its box in equal parts */
+export function ViewSwitch<T extends string>({ id, value, onChange, options, fill = false }: { id: string; value: T; onChange: (v: T) => void; options: { v: T; label: string; disabled?: boolean }[]; fill?: boolean }) {
   const reduced = useReduced();
   return (
     <div
       role="group"
-      className="flex max-w-full items-center gap-px overflow-x-auto rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 [scrollbar-width:none] dark:bg-zinc-900 dark:ring-zinc-800 [&::-webkit-scrollbar]:hidden"
+      className={cn(
+        "flex max-w-full items-center gap-px overflow-x-auto rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 [scrollbar-width:none] dark:bg-zinc-900 dark:ring-zinc-800 [&::-webkit-scrollbar]:hidden",
+        fill && "w-full",
+      )}
     >
-      {options.map(({ v, label }) => {
+      {options.map(({ v, label, disabled = false }) => {
         const on = value === v;
         return (
           <button
             key={v}
             type="button"
             aria-pressed={on}
+            disabled={disabled}
             onClick={() => onChange(v)}
-            className={cn(SEG, on ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-500 hover:bg-white/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100")}
+            className={cn(
+              SEG,
+              fill && "flex-1",
+              on ? "text-zinc-900 dark:text-zinc-50" : disabled ? "cursor-default text-zinc-300 dark:text-zinc-700" : "text-zinc-500 hover:bg-white/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100",
+            )}
           >
             {on && <motion.span layoutId={`${id}-pill`} transition={reduced ? { duration: 0 } : MOTION} className="absolute inset-0 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] dark:bg-zinc-700" />}
             <span className="relative whitespace-nowrap font-mono text-[10.5px] font-medium">{label}</span>

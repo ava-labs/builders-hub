@@ -1,10 +1,13 @@
 /* Runs a guarded query against the read-only ClickHouse and describes
    the tables it may read. The schema card is read from the database
-   itself, so the model always sees the real columns and types. */
+   itself, so the model always sees the real columns and types; the
+   reference tables our server builds (sources.ts) add their own lines. */
 
 import { withQuerySlot } from "@/lib/clickhouse/client";
 import { MAX_ROWS } from "./guard";
+import { refSchema, withSources } from "./sources";
 import { targetOf } from "./target";
+import type { SourceNote } from "./types";
 
 export interface ColumnMeta {
   name: string;
@@ -101,6 +104,9 @@ async function statsSlot<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+/** what a writer and a reader are told when the rows stop short, and how to write the query so they do not */
+const CUT_OFF = "the query service cut its answer off, as it does when a value is NaN or infinite: divide by nullIf(x, 0), and wrap ratios and quantiles in ifNotFinite(x, NULL)";
+
 async function postStats(sql: string): Promise<RawJson> {
   const key = process.env.STATS_QUERY_KEY;
   if (!key) throw new Error("STATS_QUERY_KEY is not set");
@@ -131,6 +137,8 @@ async function postStats(sql: string): Promise<RawJson> {
   try {
     body = JSON.parse(text) as StatsQueryJson;
   } catch {
+    // rows that began and stopped: the service ends its answer where a value is NaN or infinite, which JSON cannot hold
+    if (text.startsWith('{"columns":')) throw new Error(CUT_OFF);
     throw new Error(`stats-api ${res.status}: ${text.slice(0, 200)}`);
   }
   // the endpoint streams, so a query can fail after the rows began: the trailer says so
@@ -189,26 +197,77 @@ function binaryColumns(body: RawJson): string[] {
     .map((c) => c.name);
 }
 
+/** a column an address name marks: address, from, to_address, sender; never token0, topic2 or token_id */
+const ADDRESS_NAME = /address|^(from|to)(_|$)|sender|recipient|caller|contract/i;
+
+/** the 20 bytes of an address a log topic carries, left-padded to 32; null for a 32-byte number such as a v3 position
+    id, whose 20 low bytes start with 8 zero bytes (the zero address stays an address) */
+export function paddedAddress(v: unknown): string | null {
+  if (typeof v !== "string" || !/^0x0{24}[0-9a-fA-F]{40}$/.test(v)) return null;
+  const a = v.slice(26).toLowerCase();
+  return /^0{16}/.test(a) && /[^0]/.test(a) ? null : `0x${a}`;
+}
+
+/** an address read from a log topic is left-padded to 32 bytes; show the 20, in the columns an address name marks */
+export function unpadAddresses(meta: ColumnMeta[], rows: Record<string, unknown>[]): void {
+  for (const c of meta) {
+    if (!ADDRESS_NAME.test(c.name)) continue;
+    for (const r of rows) {
+      const a = paddedAddress(r[c.name]);
+      if (a) r[c.name] = a;
+    }
+  }
+}
+
+/** the types the query service sends right when a value is NULL. It scans each row into the row before's holders
+    (stats-api query.go), and its driver clears a holder on NULL only for these (clickhouse-go nullable.go). Every
+    other Nullable type, and every LowCardinality(Nullable(...)) (lowcardinality.go), keeps the row before's value */
+const NULL_SAFE = /^(U?Int(8|16|32|64)|Float(32|64)|String|FixedString\(\d+\)|Enum(8|16)\(.*\)|Date|Date32|DateTime(\(.*\))?|DateTime64\(.*\)|Nothing)$/;
+
+/** how a column whose NULLs arrive wrong is read again so a NULL stays NULL: a LowCardinality one as its plain type
+    (toString keeps LowCardinality), the rest as text. back turns the text into what the endpoint writes for the type */
+function reread(type: string): { sql: (q: string) => string; back?: (v: string) => unknown } | undefined {
+  const lc = /^LowCardinality\(Nullable\((.*)\)\)$/.exec(type)?.[1];
+  const inner = lc ?? /^Nullable\((.*)\)$/.exec(type)?.[1];
+  if (inner === undefined || (lc === undefined && NULL_SAFE.test(inner))) return undefined;
+  const plain = (q: string) => (lc === undefined ? q : `CAST(${q} AS Nullable(${inner}))`);
+  if (NULL_SAFE.test(inner)) return { sql: plain };
+  const back = /^U?Int(128|256)$/.test(inner) ? Number : inner === "Bool" ? (v: string) => v === "true" : undefined;
+  return { sql: (q) => `toString(${plain(q)})`, back };
+}
+
 export async function runQuery(sql: string): Promise<QueryResult> {
   let body = await post(sql);
   // a query that returned bytes (a model forgot hex()) runs once more with
-  // those columns as 0x text, so the page never shows mangled bytes
+  // those columns as 0x text, so the page never shows mangled bytes; one
+  // with a column whose NULLs arrive wrong runs once more with it read so a NULL stays NULL
   const bytes = binaryColumns(body);
-  if (bytes.length) {
+  const stale = body.meta.flatMap((c) => {
+    const r = reread(c.type);
+    return r ? [{ column: c, ...r }] : [];
+  });
+  if (bytes.length || stale.length) {
     const cols = body.meta
       .map((c) => {
         const q = "`" + c.name.replace(/`/g, "") + "`";
-        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : q;
+        const s = stale.find((x) => x.column === c);
+        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : s ? `${s.sql(q)} AS ${q}` : q;
       })
       .join(", ");
-    body = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+    const again = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+    // each keeps its type, and its values read as the endpoint writes them: a big integer as a number, a Bool as
+    // true or false, a decimal, UUID or IP as text
+    for (const { column, back } of stale) {
+      if (back) for (const r of again.data) if (typeof r[column.name] === "string") r[column.name] = back(r[column.name] as string);
+    }
+    body = { ...again, meta: again.meta.map((m) => stale.find((x) => x.column.name === m.name)?.column ?? m) };
   }
-  // an address read from a log topic is left-padded to 32 bytes; show the 20
-  for (const c of body.meta) {
-    if (!/address|^from|^to|sender|recipient|caller|contract/i.test(c.name)) continue;
-    for (const r of body.data) {
-      const v = r[c.name];
-      if (typeof v === "string" && /^0x0{24}[0-9a-fA-F]{40}$/.test(v)) r[c.name] = `0x${v.slice(26).toLowerCase()}`;
+  unpadAddresses(body.meta, body.data);
+  // hex() writes capitals; the explorer writes every hash and selector in lowercase
+  for (const r of body.data) {
+    for (const k in r) {
+      const v = r[k];
+      if (typeof v === "string" && v.startsWith("0x") && /[A-F]/.test(v) && /^0x[0-9a-fA-F]+$/.test(v)) r[k] = v.toLowerCase();
     }
   }
   return {
@@ -229,11 +288,13 @@ export async function runQuery(sql: string): Promise<QueryResult> {
 const schemaCache = new Map<string, { at: number; text: string }>();
 const SCHEMA_TTL_MS = 60 * 60_000;
 
-/** the tables as the database describes them, one line per table */
+/** the tables as the database describes them, one line per table, then
+    the reference tables this network has (sources.ts) */
 export async function schemaCard(chainId: number): Promise<string> {
   const { kind, tables } = targetOf(chainId);
+  const refs = refSchema(chainId);
   const hit = schemaCache.get(kind);
-  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.text;
+  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return [hit.text, ...refs].join("\n");
   const list = tables.map((t) => `'${t}'`).join(", ");
   const r = await runQuery(
     `SELECT table, name, type FROM system.columns WHERE database = currentDatabase() AND table IN (${list}) ORDER BY table, position`,
@@ -248,7 +309,7 @@ export async function schemaCard(chainId: number): Promise<string> {
     .join("\n");
   if (!text) throw new Error("schema card empty");
   schemaCache.set(kind, { at: Date.now(), text });
-  return text;
+  return [text, ...refs].join("\n");
 }
 
 export interface Coverage {
@@ -311,11 +372,20 @@ export function coverageText(chainId: number, c: Coverage): string {
 /** how far behind the clock the index may run before "now" means its last block */
 const LAG_S = 15 * 60;
 
+/** a question's SQL as it goes to the database: now() as the data knows
+    it, and the reference tables it reads (sources.ts) defined in front of
+    it as they are now. Every path that runs a question's SQL comes here. */
+export async function anchored(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null; sources: SourceNote[] }> {
+  const a = await anchorNow(sql, chainId);
+  const s = await withSources(a.sql, chainId);
+  return { sql: s.sql, anchor: a.anchor, sources: s.sources };
+}
+
 /** "now" as the data knows it. When the index runs behind the clock, a
     window such as the last hour would end past the data and come back
     empty; so now() is read as the time of the last indexed block. The
     query as written keeps now(), so it stays right once the index is live. */
-export async function anchored(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null }> {
+async function anchorNow(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null }> {
   if (!/\bnow\(\s*\)/i.test(sql)) return { sql, anchor: null };
   const c = await coverage(chainId);
   if (!c) return { sql, anchor: null };

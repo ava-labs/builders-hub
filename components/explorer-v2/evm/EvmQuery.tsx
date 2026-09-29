@@ -12,18 +12,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { setSelection as setDigSelection, askAbout } from "@/components/explorer-v2/dig/selection";
-import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
+import type { ChartSpec, DrillAnswer, Names, QueryAnswer, SourceNote, Turn } from "@/lib/explorer-query/types";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
-import { type Row, doorFor, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, toUnix } from "./QueryRows";
+import { type Row, NoteText, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, rowDoor, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
-import { AvalancheLoader } from "./AvalancheLoader";
+import { QueryLoader } from "./QueryLoader";
+import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
@@ -38,9 +39,10 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
    a mark zooms in place into the records behind it. Where the figures
    came from (tables, window, timings, SQL) folds away under the chart. */
 
-/* the selection rides along with a follow-up after this mark, so the
-   question the reader sees stays the one they typed */
-const FILTER_MARK = "\n\n(Only the rows where ";
+
+/* the thread rides in the URL: ?q= the question, one &then= per
+   follow-up, so a copied link opens the refined answer and not the first */
+const threadKey = (p: URLSearchParams) => JSON.stringify([p.get("q"), ...p.getAll("then")]);
 
 
 
@@ -56,47 +58,6 @@ function useCopy() {
 }
 
 
-
-/** one line on where the answer is: who is writing, and the last step */
-/** the callouts as one paragraph: every sentence closed, no 1.395e+6, short addresses */
-function reads(callouts: string[]): string {
-  return callouts
-    .map((c) =>
-      c
-        .trim()
-        .replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => formatNumber(Number(m)))
-        // an address reads the way the charts write it
-        .replace(/\b0x[0-9a-fA-F]{40}\b/g, (m) => truncate(m.toLowerCase(), 6)),
-    )
-    .filter(Boolean)
-    .map((c) => (/[.!?]$/.test(c) ? c : `${c}.`))
-    .join(" ");
-}
-
-/** under every answer: the figures rest on SQL a model wrote */
-/** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
-class QueryError extends Error {
-  constructor(message: string, readonly signIn = false) {
-    super(message);
-  }
-}
-
-const SQL_CAVEAT = "The SQL behind this answer is written by an AI model and may not be 100% accurate. Check it before you rely on a figure.";
-
-/* the loader's line: what is happening, never which model does it */
-function progress(events: QueryEvent[]): string {
-  let line = "Writing the SQL";
-  for (const e of events) {
-    if (e.type === "stage") {
-      if (e.stage === "cached") return "Kept answer: running its SQL for fresh rows";
-      line = e.stage === "escalated" ? "Taking a second pass at the SQL" : "Writing the SQL";
-    } else if (e.type === "step") {
-      const what = e.kind === "test" ? `Test ${e.n}` : "Final query";
-      line = e.ok ? `${what} ran, ${e.detail}` : `${what} failed, fixing`;
-    }
-  }
-  return line;
-}
 
 /** the chain a Query page asks: its table chain_id and how the page names it */
 interface QueryChain {
@@ -199,6 +160,7 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
     const url = new URL(window.location.href);
     url.searchParams.set("chain", next);
     url.searchParams.delete("from");
+    url.searchParams.delete("then");
     if (q) url.searchParams.set("q", q);
     else url.searchParams.delete("q");
     if (from) url.searchParams.set("from", from);
@@ -348,39 +310,13 @@ function QueryPage({
     return () => clearInterval(id);
   }, [started]);
 
-  const post = async <T,>(body: object): Promise<T> => {
-    const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
-    const out = (await res.json()) as T & { error?: string };
-    if (!res.ok || out.error) throw new Error(out.error ?? `HTTP ${res.status}`);
-    return out;
-  };
+  const post = <T,>(body: object): Promise<T> => postQuery<T>({ chainId: c.chainId, ...body });
 
   /** a question, streamed: each step as it ends, then the answer */
-  const stream = async (body: object, my: number): Promise<QueryAnswer> => {
-    const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
-    if (!res.ok || !res.body) {
-      const out = (await res.json().catch(() => ({}))) as { error?: string; signIn?: boolean };
-      throw new QueryError(out.error ?? `HTTP ${res.status}`, !!out.signIn);
-    }
-    const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let buf = "";
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (value) buf += dec.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, nl).trim();
-        buf = buf.slice(nl + 1);
-        if (!line) continue;
-        const e = JSON.parse(line) as QueryEvent;
-        if (e.type === "answer") return e.answer;
-        if (e.type === "error") throw new Error(e.error);
-        if (my === token.current) setEvents((prev) => [...prev, e]);
-      }
-      if (done) throw new Error("The answer stopped before it finished.");
-    }
-  };
+  const stream = (body: object, my: number): Promise<QueryAnswer> =>
+    streamQuery({ chainId: c.chainId, ...body }, (e) => {
+      if (my === token.current) setEvents((prev) => [...prev, e]);
+    });
 
   /** a kept layout's sentences, written again from the rows just fetched */
   const reread = async (a: QueryAnswer) => {
@@ -423,13 +359,31 @@ function QueryPage({
     [c.chainId],
   );
 
+  /** the thread as the URL keeps it; the page will not ask it again */
+  const writeThread = (text: string, refine: boolean) => {
+    const url = new URL(window.location.href);
+    if (refine) url.searchParams.append("then", text);
+    else {
+      url.searchParams.set("q", text);
+      url.searchParams.delete("then");
+    }
+    asked.current = threadKey(url.searchParams);
+    window.history.replaceState(null, "", url.toString());
+  };
+
+  /* a question, or a follow-up on the answer in view. A replay (a link
+     with its thread) passes each step's history along and leaves the URL
+     as it came. Resolves to the thread so far, or null when it stopped. */
   const ask = useCallback(
-    async (q: string, refine: boolean) => {
+    async (q: string, refine: boolean, opts: { replay?: boolean; hist?: Turn[] } = {}): Promise<Turn[] | null> => {
       const text = q.trim();
-      if (!text) return;
+      if (!text) return null;
       // a new question that names another chain is asked there; a follow-up stays on this chain
       const named = !refine && resolve && onRoute ? resolve(text) : null;
-      if (named && named !== c.chainSlug) return onRoute!(named, text);
+      if (named && named !== c.chainSlug) {
+        onRoute!(named, text);
+        return null;
+      }
       const my = ++token.current;
       setEvents([]);
       setReading(false);
@@ -444,44 +398,39 @@ function QueryPage({
       setInspect(false);
       setDesigning(false);
       setSqlOpen(false);
-      const hist = refine ? history : [];
+      const hist = refine ? (opts.hist ?? history) : [];
       try {
         const a = await stream({ prompt: text, history: hist }, my);
-        if (my !== token.current) return;
+        if (my !== token.current) return null;
         // a question about the other chain's data is asked on that chain's page
         if (a.route && a.route !== c.chainSlug) {
-          if (onRoute) return onRoute(a.route, text);
-          router.push(`/explorer/${network}/${a.route}/query?q=${encodeURIComponent(text)}&from=${c.chainSlug ?? ""}`);
-          return;
+          if (onRoute) onRoute(a.route, text);
+          else router.push(`/explorer/${network}/${a.route}/query?q=${encodeURIComponent(text)}&from=${c.chainSlug ?? ""}`);
+          return null;
         }
+        const next = [...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6);
         answerSql.current = a.sql;
         setAnswer(a);
         setSqlDraft(a.sql);
-        setHistory([...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6));
+        setHistory(next);
         setPrompt("");
-        const url = new URL(window.location.href);
-        if (!refine) {
-          asked.current = text;
-          url.searchParams.set("q", text);
-          rememberQuestion(c.chainSlug ?? String(c.chainId), text);
-        }
-        window.history.replaceState(null, "", url.toString());
+        if (!opts.replay) writeThread(text, refine);
+        if (!refine) rememberQuestion(c.chainSlug ?? String(c.chainId), text);
         setPhase("idle");
         setStarted(null);
         if (a.draftVisual) void design(text, a);
         else if (a.model?.cached && a.key && a.result?.rowCount) void reread(a);
+        return next;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "The query failed.");
+        setError(e instanceof Error ? readerError(e.message) : "The query failed.");
         if (e instanceof QueryError && e.signIn) {
-          // after sign-in the page reloads on ?q and asks again
-          asked.current = text;
-          const url = new URL(window.location.href);
-          url.searchParams.set("q", text);
-          window.history.replaceState(null, "", url.toString());
+          // after sign-in the page reloads on its thread and asks it again
+          if (!opts.replay) writeThread(text, refine);
           setGated(true);
         }
         setPhase("idle");
         setStarted(null);
+        return null;
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -498,7 +447,7 @@ function QueryPage({
     setSel([]);
     setInspect(false);
     try {
-      const out = await post<{ sql: string; result: QueryResult; names: Names }>({ sql: sqlDraft });
+      const out = await post<{ sql: string; result: QueryResult; names: Names; sources?: SourceNote[] }>({ sql: sqlDraft });
       const cols = new Set(out.result.columns.map((k) => k.name));
       let next: QueryAnswer | null = null;
       setAnswer((prev) => {
@@ -506,7 +455,7 @@ function QueryPage({
         const v = prev?.visual;
         const fits = !!v && v.panels.every((p) => (!p.x || cols.has(p.x)) && p.series.every((s) => cols.has(s.column))) && v.stats.every((s) => cols.has(s.column));
         const dFits = !!prev?.drill && [...prev.drill.sql.matchAll(/\{\{\s*(\w+)/g)].every((m) => cols.has(m[1]));
-        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, names: out.names ?? {}, visual: fits ? v! : null };
+        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, totals: null, names: out.names ?? {}, sources: out.sources ?? [], visual: fits ? v! : null };
         return next;
       });
       if (next && !(next as QueryAnswer).visual) void design(history[history.length - 1]?.prompt ?? "", next);
@@ -551,22 +500,31 @@ function QueryPage({
     [answer, drill, sel, c.chainId, base],
   );
 
-  // a shared link asks on load, and so does a question typed into the
-  // search bar while this page is open (same route, new ?q)
+  // a shared link asks on load, its follow-ups after it, and so does a
+  // question typed into the search bar while this page is open (same
+  // route, new ?q)
   const params = useSearchParams();
   const qParam = params.get("q");
+  const thread = threadKey(params);
   // sent here from the other chain's Query page
   const cameFrom = params.get("from");
   const asked = useRef<string | null>(null);
   // the latest ask, read by the effect below without making it a trigger:
-  // only a new ?q may ask, never a re-render (New question changes ask)
+  // only a new thread in the URL may ask, never a re-render (New question changes ask)
   const askRef = useRef(ask);
   askRef.current = ask;
   useEffect(() => {
-    if (!qParam || qParam === asked.current) return;
-    asked.current = qParam;
-    void askRef.current(qParam, false);
-  }, [qParam]);
+    if (!qParam || thread === asked.current) return;
+    asked.current = thread;
+    const [first, ...then] = JSON.parse(thread) as string[];
+    void (async () => {
+      let h = await askRef.current(first, false, { replay: true });
+      for (const t of then) {
+        if (!h || asked.current !== thread) return;
+        h = await askRef.current(t, true, { replay: true, hist: h });
+      }
+    })();
+  }, [thread, qParam]);
   useEffect(() => () => setDigSelection(null), []);
 
   const reset = () => {
@@ -586,6 +544,7 @@ function QueryPage({
     asked.current = null;
     const url = new URL(window.location.href);
     url.searchParams.delete("q");
+    url.searchParams.delete("then");
     window.history.replaceState(null, "", url.toString());
     setTimeout(() => inputRef.current?.focus(), 50);
   };
@@ -594,6 +553,8 @@ function QueryPage({
   const allRows: Row[] = answer?.result?.rows ?? [];
   const names = answer?.names ?? {};
   const visual = answer?.visual ?? null;
+  // a time series' edge buckets that the window cuts through wear a label
+  const drawn = useMemo(() => withEdges(visual, answer), [visual, answer]);
   const canDrill = !!answer?.drill;
   const charted = !!visual && visual.panels.some((p) => p.kind !== "table");
   // the basic layout is never drawn while the real one is on its way
@@ -605,10 +566,17 @@ function QueryPage({
   const busy = phase !== "idle";
   const stale = index && index !== "empty" && Date.now() / 1000 - index.untilUnix > STALE_S ? index : null;
   const elapsed = started ? Math.floor((Date.now() - started) / 1000) : 0;
-  const shareUrl = typeof window !== "undefined" && history[0] ? `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(history[0].prompt)}` : "";
 
   // every surface below the chart reads the rows through the selection
   const picked = useMemo(() => applySelection(allRows, sel), [allRows, sel]);
+
+  /** a row opens what it is about: its transaction, the thing its axis names, else its records */
+  const openRow = (r: Row) => {
+    const door = rowDoor(r, answer?.result?.columns ?? [], visual, base);
+    if (door) return router.push(door);
+    const i = allRows.indexOf(r);
+    if (i >= 0) void openDrill(r, i);
+  };
   const drilled = drill?.answer?.result ?? null;
   // what the inspector lists: the drilled records, else the picked rows
   const level = drill
@@ -797,7 +765,7 @@ function QueryPage({
               Indexed {stale.since.slice(0, 10)} to {stale.until.slice(0, 10)} UTC. Answers read that window, not today.
             </p>
           )}
-          {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
+          {busy && <QueryLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
           {error && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-l-2 border-[#E6212F] pl-3">
               <p className="font-mono text-[12px] text-[#E6212F]">{error}</p>
@@ -830,7 +798,7 @@ function QueryPage({
               )}
               <div className="flex items-start justify-between gap-4">
                 <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
-                {c.chainSlug && !laying && <PinToBoard chain={c.chainSlug} network={network} answer={answer} question={history.at(-1)?.prompt} className="mt-1 shrink-0" />}
+                {c.chainSlug && !laying && <PinToBoard chain={c.chainSlug} network={network} answer={answer} thread={history.map((t) => t.prompt)} className="mt-1 shrink-0" />}
               </div>
               {!laying && reading && (
                 <span aria-busy="true" aria-label="Writing the reading" className="flex max-w-3xl flex-col gap-1.5 pt-1">
@@ -842,8 +810,14 @@ function QueryPage({
               {!laying && !reading && visual && visual.callouts.length > 0 ? (
                 <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{reads(visual.callouts)}</p>
               ) : (
-                !reading && answer.note && <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>
+                !reading && answer.note && <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>
               )}
+              {/* what a table from our server covers, and how recent it is */}
+              {sourceLines(answer).map((t) => (
+                <p key={t} className="max-w-3xl font-mono text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                  {t}
+                </p>
+              ))}
             </div>
 
             {/* the chart, full width; a drill zooms it in place */}
@@ -853,7 +827,7 @@ function QueryPage({
                   <Crumbs items={[{ label: answer.title, onClick: popZoom }, { label: drill.title }]} />
                 ) : (
                   <span className="min-w-0 truncate font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {sel.length ? `${formatNumber(picked.length)} of ${formatNumber(allRows.length)} rows` : charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""}
+                    {sel.length ? `${formatNumber(picked.length)} of ${rowCount(allRows.length)}` : [cutLine(answer), charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""].filter(Boolean).join(" · ")}
                   </span>
                 )}
                 <span className="flex items-center gap-1">
@@ -866,7 +840,7 @@ function QueryPage({
                       className="flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 font-mono text-[11px] tabular-nums text-zinc-700 transition-colors hover:bg-zinc-200/80 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                     >
                       <Rows3 className="h-3.5 w-3.5" />
-                      Rows ({formatNumber(level.rows.length)})
+                      Rows ({drill || sel.length || !answer ? formatNumber(level.rows.length) : rowsLabel(answer, level.rows.length)})
                       <kbd className="hidden rounded bg-white px-1 text-[10px] text-zinc-400 sm:inline dark:bg-zinc-950 dark:text-zinc-500">R</kbd>
                     </button>
                   )}
@@ -881,24 +855,20 @@ function QueryPage({
                 ) : laying ? (
                   // one draw: the loader holds the space until the layout is final
                   <div aria-busy="true" className={cn(CARD, "flex min-h-[18rem] flex-1 flex-col")}>
-                    <AvalancheLoader status="Rows are in. Laying out the chart" fill framed={false} />
+                    <QueryLoader status="Rows are in. Laying out the chart" fill framed={false} />
                   </div>
                 ) : charted && visual ? (
                   <QueryVisual
-                    visual={visual}
+                    visual={drawn ?? visual}
                     rows={allRows}
                     names={names}
                     sym={sym}
+                    totals={answer.totals}
+                    base={base}
                     canDrill={canDrill || recordRows}
-                    onPick={(r) => {
-                      if (recordRows && r.tx_hash) return router.push(`${base}/tx/${String(r.tx_hash)}`);
-                      // a mark that is one thing on the chain (a contract, a
-                      // validator, a block) opens that thing's own page
-                      const door = visual?.panels.map((p) => p.x && doorFor(p.x, r[p.x], base)).find(Boolean);
-                      if (door) return router.push(door);
-                      const i = allRows.indexOf(r);
-                      if (i >= 0) void openDrill(r, i);
-                    }}
+                    // a mark that is one thing on the chain (a transaction, a
+                    // contract, a validator, a block) opens that thing's own page
+                    onPick={openRow}
                     hoverKey={hoverKey}
                     onHoverKey={setHoverKey}
                     range={range}
@@ -906,7 +876,21 @@ function QueryPage({
                     onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
                     selection={sel}
                     onSelection={setSel}
-                    panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} question={history.at(-1)?.prompt} /> : undefined}
+                    panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} thread={history.map((t) => t.prompt)} /> : undefined}
+                    // the designer's tables: the rows in its columns, each row a door
+                    renderTable={(p) => (
+                      <PanelRows
+                        panel={p}
+                        columns={answer.result?.columns ?? []}
+                        rows={picked}
+                        names={names}
+                        visual={visual}
+                        base={base}
+                        sym={sym}
+                        onPick={canDrill || recordRows ? openRow : undefined}
+                        onAll={() => setInspect(true)}
+                      />
+                    )}
                   />
                 ) : allRows.length === 1 ? (
                   // one row is a set of figures: each column on its own card
@@ -938,7 +922,7 @@ function QueryPage({
                     />
                   </div>
                 ) : (
-                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>The query returned no rows.</p>
+                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>{answer.result ? "The query returned no rows." : NO_QUERY}</p>
                 )}
               </ZoomStage>
             </div>
@@ -967,9 +951,9 @@ function QueryPage({
                     className="overflow-hidden"
                   >
                     <div className="flex flex-col gap-5 pb-2 pl-5 pt-4">
-                      {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>}
+                      {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>}
                       <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
-                        <Fact label="Source" sub="Indexed ClickHouse tables, read-only">
+                        <Fact label="Source" sub={answer.sources?.length ? `Indexed ClickHouse tables, read-only, with ${answer.sources.map((s) => s.label).join(" and ")} from our API` : "Indexed ClickHouse tables, read-only"}>
                           {tables.length ? tables.join(", ") : "none"}
                         </Fact>
                         {cov && (
@@ -997,14 +981,13 @@ function QueryPage({
                           </Fact>
                         )}
                         {answer.result && (
-                          <Fact label="Result" sub={`${formatNumber(answer.result.rowsRead)} rows scanned in ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
-                            {formatNumber(answer.result.rowCount)} row{answer.result.rowCount === 1 ? "" : "s"}
-                            {answer.result.truncated ? " (capped)" : ""}
+                          <Fact label="Result" sub={`${answer.result.rowsRead > 0 ? `${formatNumber(answer.result.rowsRead)} rows scanned in` : "Ran in"} ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
+                            {cutLine(answer) ?? rowCount(answer.result.rowCount)}
                           </Fact>
                         )}
                       </dl>
 
-                      <div className="flex flex-col gap-2">
+                      <div className={cn("flex flex-col gap-2", !answer.result && "hidden")}>
                         <span className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px]">
                           <button type="button" onClick={() => setSqlOpen((v) => !v)} className="text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-50">
                             {sqlOpen ? "Hide SQL" : "Edit SQL"}
@@ -1017,8 +1000,8 @@ function QueryPage({
                               <Download className="h-3 w-3" /> All rows as CSV
                             </button>
                           )}
-                          {shareUrl && (
-                            <button type="button" onClick={() => copy("link", shareUrl)} className={quiet}>
+                          {history.length > 0 && (
+                            <button type="button" onClick={() => copy("link", window.location.href)} className={quiet}>
                               {copied === "link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Link
                             </button>
                           )}
@@ -1086,7 +1069,7 @@ function QueryPage({
                 )}
               </AnimatePresence>
             </div>
-            <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>
+            {answer.result && <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>}
           </section>
         )}
       </div>
@@ -1105,6 +1088,7 @@ function QueryPage({
           visual={level.visual}
           base={base}
           sym={sym}
+          sql={drill ? drill.answer?.sql : answer.sql}
           onOpen={
             !drill && canDrill && !recordRows
               ? (r) => {

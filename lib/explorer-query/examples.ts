@@ -71,7 +71,7 @@ export const PCHAIN_EXAMPLES: typeof EXAMPLES = [
     group: "Supply and transactions",
     hue: "#d97706",
     items: [
-      { q: "AVAX supply per day over the last 90 days", hint: "What staking mints", glyph: "line" },
+      { q: "AVAX supply per day over the last 90 days", hint: "P-Chain supply, before burns", glyph: "line" },
       { q: "P-Chain transactions by type this week", hint: "What the chain does", glyph: "stack" },
     ],
   },
@@ -84,7 +84,7 @@ export const L1_EXAMPLES: typeof EXAMPLES = [
     hue: "#E6212F",
     items: [
       { q: "Daily transactions over the last 30 days, with reverts", hint: "Throughput and failure, per day", glyph: "stack" },
-      { q: "Daily active addresses over the last 30 days", hint: "Distinct senders per day", glyph: "line" },
+      { q: "Daily active addresses over the last 30 days", hint: "Senders and recipients, per day", glyph: "line" },
     ],
   },
   {
@@ -112,9 +112,6 @@ export const L1_EXAMPLES: typeof EXAMPLES = [
     ],
   },
 ];
-
-/** every suggested question, in order */
-export const EXAMPLE_PROMPTS = EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
 
 /** an EVM chain's suggestions: the C-Chain's own, or the generic set */
 export function examplesFor(chainId: number | string): typeof EXAMPLES {

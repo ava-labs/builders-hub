@@ -83,21 +83,6 @@ export function usePriceHistory(days: number): number[] | null {
   });
 }
 
-/** every validator seat on the network, Primary and L1, by day. The feed's
- *  total drops the L1 seats on days their series is missing, which would
- *  read as the set halving, so only days that carry both parts count. */
-export function useSeatHistory(): DayPoint[] | null {
-  return useJson("/api/total-ecosystem-validators?timeRange=all", (raw) => {
-    const r = raw as { l1_validator_seats?: { data?: Raw[] }; primary_network_validator_count?: { data?: Raw[] } };
-    const primary = new Map(toPoints(r.primary_network_validator_count?.data).map((p) => [p.t, p.v]));
-    const seats = toPoints(r.l1_validator_seats?.data).flatMap((p) => {
-      const pn = primary.get(p.t);
-      return pn === undefined ? [] : [{ t: p.t, v: p.v + pn }];
-    });
-    return seats.length ? complete(seats) : null;
-  });
-}
-
 /** the Primary Network's stake by day, in AVAX: own stake plus delegations */
 export function useStakeHistory(): DayPoint[] | null {
   return useJson("/api/primary-network-stats?timeRange=all", (raw) => {
@@ -117,18 +102,6 @@ export function useBurnHistory(): DayPoint[] | null {
   });
 }
 
-/** a volume over the clock: the window's days as the spark, and the
- *  window's sum against the window before it */
-export function flowWindow(points: DayPoint[] | null | undefined, days: number): { spark?: number[]; delta: number | null } {
-  if (!points?.length) return { delta: null };
-  const vals = points.map((p) => p.v);
-  const cur = vals.slice(-days);
-  const prev = vals.slice(-2 * days, -days);
-  const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
-  const delta = prev.length === days && sum(prev) > 0 ? ((sum(cur) - sum(prev)) / sum(prev)) * 100 : null;
-  return { spark: days >= SPARK_MIN_DAYS ? cur : undefined, delta };
-}
-
 /** a level over the clock (a count, a balance): the window's days as the
  *  spark, and the latest reading against the one the window opened on.
  *  Dated, not counted, so a feed with missing days still spans the window. */
@@ -142,6 +115,5 @@ export function levelWindow(points: DayPoint[] | null | undefined, days: number)
   return { spark, delta: open && open.v > 0 ? ((last.v - open.v) / open.v) * 100 : null };
 }
 
-/* compact figures in the C-Chain's voice: 57.8M, $612.3M */
+/* compact figures in the C-Chain's voice: 57.8M */
 export { fmtCompact };
-export const fmtUsdCompact = (v: number) => `$${fmtCompact(v)}`;

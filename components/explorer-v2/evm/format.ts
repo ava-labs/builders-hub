@@ -46,19 +46,6 @@ export function formatGwei(wei: string | number | undefined): string {
   return `${formatUnits(wei, WEI_PER_GWEI, 4)} Gwei`;
 }
 
-/** gasUsed / gasLimit ratio → "42.1%" (or "—" when limit is 0/absent). */
-export function gasUsedPct(used?: number, limit?: number): string {
-  if (!limit || limit <= 0 || used === undefined) return "—";
-  return `${((used / limit) * 100).toFixed(1)}%`;
-}
-
-/** Short label for an EVM tx: contract-creation, native transfer, or call. */
-export function txKind(to: string, input: string): string {
-  if (!to) return "Contract Creation";
-  if (!input || input === "0x") return "Transfer";
-  return "Contract Call";
-}
-
 /** wei → "0.22 nAVAX": gas prices in the chain's nano unit (gwei on
  *  Ethereum, nAVAX here), two places under 100, whole above */
 export function formatNano(wei: string | number | undefined, symbol = "AVAX"): string {

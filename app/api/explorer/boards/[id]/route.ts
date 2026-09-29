@@ -8,7 +8,8 @@ import { MAX_BOARDS, MAX_TILES_BYTES, boardBodySchema, boardIdSchema, withoutRow
    Every read and write is keyed on (the session's user, id): a reader
    only ever touches their own boards. The newer edit wins: a write older
    than the kept copy is refused with 409 and the kept copy, so the device
-   can take it instead. */
+   can take it instead. An id belongs to one account, deleted or not, so
+   a board's link (board-shared.ts) never opens another reader's board. */
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -50,6 +51,8 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
       const keptAt = Math.max(kept.updated_at.getTime(), kept.deleted_at?.getTime() ?? 0);
       if (keptAt > updatedAt) return NextResponse.json({ error: "A newer edit is kept", board: wire(kept) }, { status: 409 });
     } else {
+      const taken = await prisma.queryBoard.findFirst({ where: { id, NOT: { user_id: userId } }, select: { id: true } });
+      if (taken) return NextResponse.json({ error: "Board id taken", taken: true }, { status: 409 });
       const count = await prisma.queryBoard.count({ where: { user_id: userId, deleted_at: null } });
       if (count >= MAX_BOARDS) return NextResponse.json({ error: `At most ${MAX_BOARDS} boards` }, { status: 429 });
     }
