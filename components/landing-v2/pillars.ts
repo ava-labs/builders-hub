@@ -238,7 +238,7 @@ export const PILLARS: Pillar[] = [
         heading: "DOCUMENTATION",
         links: [
           { text: "Avalanche L1s", href: "/docs/avalanche-l1s" },
-          { text: "Validator-only configuration", href: "/docs/nodes/configure/avalanche-l1-configs" },
+          { text: "Validator-only configuration", href: "/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs" },
           { text: "Node configuration flags", href: "/docs/nodes/configure/configs-flags" },
         ],
       },

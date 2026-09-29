@@ -5,7 +5,6 @@ export const primaryNetworkParser: SectionParser = createParser(primaryNetworkPi
 export const apisParser: SectionParser = createParser(defaultPipeline);
 export const sdksParser: SectionParser = createParser(sdksPipeline);
 export const acpsParser: SectionParser = createParser(acpsPipeline);
-export const toolingParser: SectionParser = createParser(defaultPipeline);
 export const crossChainParser: SectionParser = createParser(crossChainPipeline);
 export const avalancheL1sParser: SectionParser = createParser(avalancheL1sPipeline);
 
@@ -16,7 +15,6 @@ export const parsers: ParserMap = {
   'APIs': apisParser,
   'SDKS': sdksParser,
   'ACPs': acpsParser,
-  'Tooling': toolingParser,
   'Cross-Chain': crossChainParser,
   'Avalanche L1s': avalancheL1sParser,
 };
