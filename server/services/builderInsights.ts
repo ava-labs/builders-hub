@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/prisma/prisma";
-import { BUILD_GAMES_HACKATHON_ID } from "@/constants/build-games";
 import {
   BUILDER_HUB_PROJECT_ID,
   HOGQL_HOST_FILTER,
@@ -202,6 +201,8 @@ function toTopTeamReferrerRow(row: RawTeamReferrerRow): TopTeamReferrerRow {
     totalReferrals: toNumber(row.totalReferrals),
   };
 }
+
+const BUILD_GAMES_HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
 
 // Conversion buckets shared by every referral aggregation (all-time, per
 // month, per day; by person and by team). Requires the query to alias
