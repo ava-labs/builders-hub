@@ -105,6 +105,24 @@ describe('the DEX chapter', () => {
   });
 });
 
+describe("the P-Chain audit's rules", () => {
+  const prompt = (chainId: number) => pchainPrompt({ chainId, network: chainId === 1 ? 'mainnet' : 'Fuji', schema: '', coverage: null, lines: null });
+
+  it('read rewards from their outputs, name registrations, and read the last N days whole, on mainnet only', () => {
+    const p = prompt(1);
+    expect(p).toContain('Its AVAX is reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8))) / 1e9');
+    expect(p).toContain('its title and note say registrations, never new validators');
+    expect(p).toContain('the last 7 days start at toDate(now()) - INTERVAL 7 DAY, never 6');
+    // the auto-renewed staking transactions (ACP-236), and a reward read from its outputs, not reward_paid
+    expect(p).toContain('RewardAutoRenewedValidatorTx (an auto-renewed validator');
+    expect(p).toContain('SetAutoRenewedValidatorConfigTx (an auto-renewed validator');
+    expect(p).toContain('staking_tx_id names it, its reward is in raw_p_reward_utxos');
+    const fuji = prompt(5);
+    for (const line of ['raw_p_reward_utxos: one row per reward output', 'Registrations: an AddPermissionlessValidatorTx', 'The last N days as a daily series', 'RewardAutoRenewedValidatorTx']) expect(fuji).not.toContain(line);
+    expect(fuji).toContain('staking_tx_id names it, reward_paid = 1 when it earned');
+  });
+});
+
 describe('the NFT and new-contract rules', () => {
   const prompt = (chainId: number, dex = false) => systemPrompt({ chainId, chainName: 'a chain', symbol: 'AVAX', schema: '', coverage: null, dex });
 
