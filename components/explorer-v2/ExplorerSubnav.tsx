@@ -532,8 +532,12 @@ function NetworkControl({
   const isTestnetChain = wantsTestnet(network);
   const other = TESTNET_COUNTERPART[chainSlug] ?? MAINNET_COUNTERPART[chainSlug];
   if (other) {
-    const mainnetSlug = isTestnetChain ? other : chainSlug;
-    const testnetSlug = isTestnetChain ? chainSlug : other;
+    const slugIsTestnet =
+      chainSlug in TESTNET_COUNTERPART && chainSlug in MAINNET_COUNTERPART
+        ? isTestnetChain
+        : chainSlug in MAINNET_COUNTERPART;
+    const mainnetSlug = slugIsTestnet ? other : chainSlug;
+    const testnetSlug = slugIsTestnet ? chainSlug : other;
     const segments = [
       { label: "Mainnet", network: "mainnet", slug: mainnetSlug, active: !isTestnetChain },
       { label: "Fuji", network: "fuji", slug: testnetSlug, active: isTestnetChain },

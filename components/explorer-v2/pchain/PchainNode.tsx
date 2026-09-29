@@ -21,6 +21,7 @@ import { RailRow } from "@/components/explorer-v2/evm/EvmTx";
 import { dayLong, dayShort, formatAvax, formatNumber, formatTime, hourLong, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
+import { SubscribeAlerts } from "./SubscribeAlerts";
 import { balanceAt, useSecondClock, type SettledBalance } from "./seat-balance";
 import {
   PRIMARY_SUBNET_ID,
@@ -429,18 +430,22 @@ export function PchainNode({
                 ) : undefined
               }
             />
-            <div className="flex flex-col gap-2">
-              <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
-              {/* who it is, in one line a human can read */}
-              <p className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                {[
-                  n.nodeInfo?.version,
-                  n.nodeInfo?.publicIp,
-                  validations?.totals.firstStart ? `validating since ${dayLong(validations.totals.firstStart)}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="flex min-w-0 flex-col gap-2">
+                <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
+                {/* who it is, in one line a human can read */}
+                <p className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                  {[
+                    n.nodeInfo?.version,
+                    n.nodeInfo?.publicIp,
+                    validations?.totals.firstStart ? `validating since ${dayLong(validations.totals.firstStart)}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              {/* alerts watch the mainnet Primary Network set only */}
+              {network === "mainnet" && n.hasSnapshot && <SubscribeAlerts nodeId={n.nodeId} />}
             </div>
             {!n.hasSnapshot && (
               <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
