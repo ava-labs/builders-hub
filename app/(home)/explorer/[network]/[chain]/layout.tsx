@@ -164,6 +164,7 @@ export default async function ChainExplorerLayout({
         rpcUrl={chain.rpcUrl}
         blockchainId={chain.blockchainId}
         sourcifySupport={(chain as L1Chain & { sourcifySupport?: boolean }).sourcifySupport}
+        priced={!!chain.coingeckoId}
       >
         {unindexed ? (
           <ChainNotIndexed network={network} chainName={chain.chainName} isPrivate={isPrivateChain(chain)} />

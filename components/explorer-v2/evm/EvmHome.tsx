@@ -39,6 +39,8 @@ export function EvmHome({ network }: { network: string }) {
   const txList = txs.data?.transactions ?? [];
   const { price, settled: priceSettled } = usePrice(c.chainId);
   const isCchain = String(c.chainId) === "43114";
+  // a chain whose token has a market price keeps its price cells in place while the price loads
+  const priced = isCchain || !!c.priced;
 
   // The tip, read from the RPC header once a second. The indexer list
   // trails the chain by seconds and refreshes every five, so the tape and
@@ -204,26 +206,26 @@ export function EvmHome({ network }: { network: string }) {
                   values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
                 },
 
-                ...(price
+                ...(price || priced
                   ? [
                       {
                         label: "Price",
                         live: true,
                         href: isCchain ? `/explorer/${network}/token` : undefined,
                         series: "price" as const,
-                        value: formatPrice(price.price),
+                        value: price ? formatPrice(price.price) : "—",
                         // the readout turns these into the move over the clock's window
-                        raw: price.price,
-                        change24h: price.change24h,
-                        sub: price.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX` : undefined,
+                        raw: price?.price,
+                        change24h: price?.change24h,
+                        sub: price?.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX` : undefined,
                       },
                       {
                         label: "Market Cap",
                         live: true,
                         href: isCchain ? `/explorer/${network}/token` : undefined,
                         series: "marketCap" as const,
-                        value: price.marketCap ? formatMarketCap(price.marketCap) : "—",
-                        raw: price.marketCap || undefined,
+                        value: price?.marketCap ? formatMarketCap(price.marketCap) : "—",
+                        raw: price?.marketCap || undefined,
                       },
                     ]
                   : []),
