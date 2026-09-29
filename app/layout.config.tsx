@@ -2,24 +2,18 @@ import Image from 'next/image';
 import { type LinkItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
-  Sprout,
   SendHorizontal,
-  Computer,
   Hexagon,
   Waypoints,
   HandCoins,
   Network,
-  Database,
   Ticket,
   Earth,
   ArrowLeftRight,
   BookOpen,
-  Code,
-  GitBranch,
   DraftingCompass,
   Gamepad2,
   Flame,
-  Layers,
   Blocks,
   Search,
   Bell,
@@ -29,7 +23,6 @@ import {
   Landmark,
 } from 'lucide-react';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
-import { DocsLearnCard } from '@/components/navigation/docs-learn-card';
 
 export const solutionsMenu: LinkItemType = {
   type: 'menu',
@@ -104,12 +97,14 @@ export const ecosystemMenu: LinkItemType = {
   type: 'menu',
   text: 'Ecosystem',
   items: [
+    // grouped columns: events, then programs, then reading and tools
     {
       icon: <Ticket />,
       text: 'Hackathons & Events',
       description:
         'Hands-on learning and real building, from hackathons to workshops and bootcamps.',
       url: '/events',
+      menu: { className: 'lg:col-start-1 lg:row-start-1' },
     },
     {
       icon: <Gamepad2 />,
@@ -117,6 +112,7 @@ export const ecosystemMenu: LinkItemType = {
       description:
         "Avalanche's premier gathering for builders and enterprise leaders. NYC, September 16–17.",
       url: 'https://www.avalanchesummit.com',
+      menu: { className: 'lg:col-start-1 lg:row-start-2' },
     },
     {
       icon: <Earth />,
@@ -124,6 +120,7 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Global meetups, workshops and events organized by Avalanche Team1.',
       url: 'https://lu.ma/Team1?utm_source=builder_hub',
+      menu: { className: 'lg:col-start-1 lg:row-start-3' },
     },
     {
       icon: <HandCoins />,
@@ -131,6 +128,7 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Research grants and the Blizzard Fund for your project.',
       url: '/grants',
+      menu: { className: 'lg:col-start-2 lg:row-start-1' },
     },
     {
       icon: <ShieldCheck />,
@@ -145,6 +143,23 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Quotes from every vetted firm, free. Subsidized up to 75% by the program.',
       url: '/audits',
+      menu: { className: 'lg:col-start-2 lg:row-start-2' },
+    },
+    {
+      icon: <BookOpen />,
+      text: 'Blog & Guides',
+      description:
+        'Read the latest articles, tutorials, and insights from the Avalanche ecosystem.',
+      url: '/guides',
+      menu: { className: 'lg:col-start-3 lg:row-start-1' },
+    },
+    {
+      icon: <Blocks />,
+      text: 'Integrations',
+      description:
+        'Browse wallet SDKs, block explorers, indexers, data feeds, and more.',
+      url: '/integrations',
+      menu: { className: 'lg:col-start-3 lg:row-start-2' },
     },
   ],
 };
@@ -206,120 +221,44 @@ export const explorerMenu: LinkItemType = {
   ],
 };
 
-export const docsMenu: LinkItemType = {
+export const developersMenu: LinkItemType = {
   type: 'menu',
-  text: 'Documentation',
+  text: 'Developers',
   url: '/docs/primary-network',
   items: [
     {
-      type: 'custom',
-      children: (
-        <DocsLearnCard
-          className='lg:col-start-1 lg:row-start-1'
-          icon={<Sprout />}
-          title='Primary Network'
-          description='Connect to Avalanche and start building dApps.'
-          links={[
-            { label: 'Docs', href: '/docs/primary-network' },
-            { label: 'Stake AVAX', href: '/console/primary-network/stake' },
-          ]}
-        />
-      ),
-    },
-    {
-      type: 'custom',
-      children: (
-        <DocsLearnCard
-          className='lg:col-start-1 lg:row-start-2'
-          icon={<Layers />}
-          title='Avalanche L1s'
-          description='Launch and customize your own Avalanche L1 blockchain.'
-          docsHref='/docs/avalanche-l1s'
-          learnHref='/academy/avalanche-l1'
-        />
-      ),
-    },
-    {
-      type: 'custom',
-      children: (
-        <DocsLearnCard
-          className='lg:col-start-1 lg:row-start-3'
-          icon={<ArrowLeftRight />}
-          title='Interchain Messaging'
-          description='Move messages and assets natively between Avalanche chains.'
-          docsHref='/docs/cross-chain'
-          learnHref='/academy/avalanche-l1/interchain-messaging'
-        />
-      ),
-    },
-    {
-      type: 'custom',
-      children: (
-        <DocsLearnCard
-          className='lg:col-start-2 lg:row-start-1'
-          icon={<Computer />}
-          title='Nodes & Validators'
-          description='Set up, configure, and maintain Avalanche nodes and validators.'
-          links={[
-            { label: 'Docs', href: '/docs/nodes' },
-            { label: 'L1 Node Setup', href: '/console/layer-1/l1-node-setup' },
-          ]}
-        />
-      ),
-    },
-    {
-      icon: <Database />,
-      text: 'Data APIs',
-      description:
-        'Explore the Data, Metrics, and Webhook APIs for the C-Chain, P-Chain, and X-Chain.',
-      url: '/docs/api-reference/data-api',
+      text: 'Documentation',
+      description: 'Reference for the network, nodes, APIs, tools, and ACPs.',
+      url: '/docs/primary-network',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-2',
+        // two featured cards side by side: .nav-featured + .nav-duo in global.css
+        className: 'nav-featured nav-duo',
+        banner: (
+          <Image
+            src="/nav/documentation.webp"
+            alt=""
+            width={1536}
+            height={864}
+            className="nav-banner border border-zinc-200 dark:border-zinc-800"
+          />
+        ),
       },
     },
     {
-      type: 'custom',
-      children: (
-        <DocsLearnCard
-          className='lg:col-start-2 lg:row-start-3'
-          icon={<Code />}
-          title='Developer Tools'
-          description='Explore the Avalanche SDKs, CLI, and more.'
-          links={[
-            { label: 'SDK', href: '/docs/tooling/avalanche-sdk' },
-            { label: 'Platform CLI', href: '/docs/tooling/platform-cli' },
-          ]}
-        />
-      ),
-    },
-    {
-      icon: <BookOpen />,
-      text: 'Blog & Guides',
-      description:
-        'Read the latest articles, tutorials, and insights from the Avalanche ecosystem.',
-      url: '/guides',
+      text: 'Academy',
+      description: 'Guided courses, from blockchain fundamentals to launching your own L1.',
+      url: '/academy',
       menu: {
-        className: 'lg:col-start-3 lg:row-start-1',
-      },
-    },
-    {
-      icon: <GitBranch />,
-      text: 'ACPs',
-      description:
-        "Explore Avalanche's Community Proposals (ACPs) for network improvements.",
-      url: '/docs/acps',
-      menu: {
-        className: 'lg:col-start-3 lg:row-start-2',
-      },
-    },
-    {
-      icon: <Blocks />,
-      text: 'Integrations',
-      description:
-        'Browse wallet SDKs, block explorers, indexers, data feeds, and more.',
-      url: '/integrations',
-      menu: {
-        className: 'lg:col-start-3 lg:row-start-3',
+        className: 'nav-featured nav-duo',
+        banner: (
+          <Image
+            src="/nav/academy-fundamentals.webp"
+            alt=""
+            width={1536}
+            height={864}
+            className="nav-banner border border-zinc-200 dark:border-zinc-800"
+          />
+        ),
       },
     },
   ],
@@ -393,7 +332,7 @@ export const baseOptions: BaseLayoutProps = {
   },
   links: [
     solutionsMenu,
-    docsMenu,
+    developersMenu,
     consoleMenu,
     explorerMenu,
     ecosystemMenu,

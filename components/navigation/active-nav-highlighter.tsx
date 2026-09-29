@@ -3,6 +3,23 @@
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
+/** The navbar section a page belongs to ('' when none). */
+export function activeNavSection(pathname: string): string {
+  // Developers (url '/docs/primary-network') covers both Docs and Academy
+  if (pathname.startsWith('/docs') || pathname.startsWith('/academy')) return '/docs';
+  if (pathname.startsWith('/console')) return '/console';
+  if (pathname.startsWith('/blog') || pathname.startsWith('/guides')) return '/guides'; // Blog menu has url '/guides'
+  if (pathname.startsWith('/integrations')) return '/integrations';
+  if (pathname.startsWith('/explorer')) return '/explorer';
+  if (pathname.startsWith('/stats')) return '/stats';
+  if (pathname.startsWith('/hackathons') || pathname.startsWith('/events')) return '/events';
+  if (pathname.startsWith('/grants')) return '/grants';
+  if (pathname.startsWith('/audits')) return '/audits';
+  if (pathname.startsWith('/university')) return '/university';
+  if (pathname.startsWith('/chat')) return '/chat';
+  return '';
+}
+
 export function ActiveNavHighlighter() {
   const pathname = usePathname();
 
@@ -17,33 +34,7 @@ export function ActiveNavHighlighter() {
     });
 
     // Determine which section is active and find matching nav items
-    let activeSection = '';
-
-    if (pathname.startsWith('/docs')) {
-      activeSection = '/docs';
-    } else if (pathname.startsWith('/academy')) {
-      activeSection = '/academy';
-    } else if (pathname.startsWith('/console')) {
-      activeSection = '/console';
-    } else if (pathname.startsWith('/blog') || pathname.startsWith('/guides')) {
-      activeSection = '/guides'; // Blog menu has url '/guides'
-    } else if (pathname.startsWith('/integrations')) {
-      activeSection = '/integrations';
-    } else if (pathname.startsWith('/explorer')) {
-      activeSection = '/explorer';
-    } else if (pathname.startsWith('/stats')) {
-      activeSection = '/stats';
-    } else if (pathname.startsWith('/hackathons') || pathname.startsWith('/events')) {
-      activeSection = '/events';
-    } else if (pathname.startsWith('/grants')) {
-      activeSection = '/grants';
-    } else if (pathname.startsWith('/audits')) {
-      activeSection = '/audits';
-    } else if (pathname.startsWith('/university')) {
-      activeSection = '/university';
-    } else if (pathname.startsWith('/chat')) {
-      activeSection = '/chat';
-    }
+    const activeSection = activeNavSection(pathname);
 
     if (activeSection) {
       // Find nav links that match the active section
