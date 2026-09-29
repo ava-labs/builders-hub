@@ -1,13 +1,15 @@
 /* A monitor: a live feed of one chain's own activity, for words such as "monitor USDT transfers", "watch
-   USDC transfers over 10k" or "live AVAX transfers". No model and no SQL: the words pick what to read and the
-   filters, the route (app/api/explorer/monitor) reads the chain's RPC block by block, and the page draws each
-   new block as it comes. The index behind the SQL answers runs minutes behind the chain; a monitor does not. */
+   USDC transfers over 10k", "live AVAX transfers" or "monitor aave liquidations". No model and no SQL: the words
+   pick what to read and the filters, the route (app/api/explorer/monitor) reads the chain's RPC block by block,
+   and the page draws each new block as it comes. The index behind the SQL answers runs minutes behind the chain;
+   a monitor does not. DeFi events come from the catalog in monitor-events.ts, which only the server reads. */
 
 export const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
 /** transfers: one ERC-20's Transfer logs, or every token's when an address is the filter. native: the chain's own
-    coin, moved by transactions with a value */
-export type MonitorKind = "transfers" | "native";
+    coin, moved by transactions with a value. events: DeFi events of the C-Chain catalog (swaps, lending actions,
+    stakes, bridge burns and mints, vault deposits) */
+export type MonitorKind = "transfers" | "native" | "events";
 
 export interface MonitorToken {
   /** lowercase 0x address */
@@ -27,10 +29,15 @@ export interface MonitorSpec {
   coin?: string;
   /** only moves of at least this much, in whole tokens or coins */
   minAmount?: number;
-  /** lowercase 0x addresses: only moves from it, to it, or either way */
+  /** lowercase 0x addresses: only moves from it, to it, or either way. On an events monitor from and involving are
+      the account an event is about, and to the contract that emits it */
   from?: string;
   to?: string;
   involving?: string;
+  /** an events monitor's catalog keys ("aave-v3/liquidation"); the server reads the catalog, the page only rows */
+  events?: string[];
+  /** the one token every amount of an events monitor is in ("AVAX"), when there is one */
+  unit?: string;
 }
 
 /** one move the feed read */
@@ -45,9 +52,12 @@ export interface MonitorItem {
   to: string;
   /** whole tokens or coins; null when the token's decimals are unknown */
   amount: number | null;
-  /** the token contract, for a transfers monitor that reads every token */
+  /** the token contract, for a transfers monitor that reads every token, and for an event's amount */
   token?: string;
   symbol?: string;
+  /** an events monitor's row: what happened ("Liquidation", or "Aave v3 liquidation" where the monitor reads more
+      than one protocol). from is the account it is about (empty for none) and to the contract that emitted it */
+  event?: string;
 }
 
 /** what one read of the feed returns: the moves in blocks from..head, newest first */
@@ -79,7 +89,8 @@ export interface ChainCoin {
 const LEAD = /\b(?:monitor|watch|track|tail|stream)\b\s*/i;
 const LIVE = /\b(?:live|real[\s-]?time|as (?:they|it) happens?)\b/i;
 const MOVES = /\b(?:transfers?|transferred|sends?|sent|moves?|movements?|payments?|flows?)\b/i;
-/* words a monitor cannot read yet: these go to the SQL engine, which answers them as a chart of the index */
+/* words of events, not moves: the server reads them as DeFi events (monitor-events.ts), else the SQL engine
+   answers them as a chart of the index */
 const OTHER = /\b(?:swaps?|trades?|liquidations?|borrows?|loans?|supplies|supply|deposits?|withdrawals?|stak\w*|bridg\w*|mints?|burns?|gas|fees?|blocks?|validators?|prices?|tvl|volume)\b/i;
 const ADDRESS = /0x[0-9a-fA-F]{40}\b/g;
 const AMOUNT =
@@ -99,7 +110,7 @@ const CANONICAL: Record<number, Record<string, string>> = {
 const NAMED: Record<string, string> = { tether: "usdt", "usd coin": "usdc", "wrapped avax": "wavax" };
 
 /** the address a phrase names, lowercase, with the role the words before it give it */
-function addressesOf(text: string): { address: string; role: "from" | "to" | "involving" }[] {
+export function addressesOf(text: string): { address: string; role: "from" | "to" | "involving" }[] {
   return [...text.matchAll(ADDRESS)].map((m) => {
     const before = text.slice(Math.max(0, (m.index ?? 0) - 24), m.index).toLowerCase();
     const role = /\b(?:from|by|sender)\s*$/.test(before) ? "from" : /\b(?:to|into|recipient|received by)\s*$/.test(before) ? "to" : "involving";
@@ -149,6 +160,7 @@ export function monitorTitle(spec: Omit<MonitorSpec, "title">): string {
 
 /** the line under the title: what the card reads and where from */
 export function monitorNote(spec: MonitorSpec, chainName: string): string {
+  if (spec.kind === "events") return `${spec.title}, read live from ${chainName}'s RPC: the last few minutes, then each new block as it is made.`;
   const what =
     spec.kind === "native"
       ? `Every transaction that moves ${spec.coin ?? "the chain's coin"}`
@@ -165,12 +177,24 @@ export function mayBeMonitor(prompt: string): boolean {
   return LEAD.test(prompt) || (LIVE.test(prompt) && MOVES.test(prompt));
 }
 
+/** the words after the verb that asks for a monitor: "aave liquidations" of "monitor aave liquidations" */
+export function monitorWords(prompt: string): string {
+  const text = prompt.trim();
+  const lead = LEAD.exec(text);
+  return lead ? text.slice((lead.index ?? 0) + lead[0].length) : text;
+}
+
+/** whether the words could ask for a monitor of events: the verb, or "live" and "real-time" before any event word
+    ("live sAVAX staking"); the catalog of events itself is the server's */
+export function mayBeEvents(prompt: string): boolean {
+  return LEAD.test(prompt) || LIVE.test(prompt);
+}
+
 /** a monitor the words ask for, or null: a question the SQL engine answers instead */
 export function parseMonitor(prompt: string, coin: ChainCoin, tokens: Map<string, TokenMeta>): MonitorSpec | null {
   const text = prompt.trim();
   if (!mayBeMonitor(text)) return null;
-  const lead = LEAD.exec(text);
-  const rest = lead ? text.slice((lead.index ?? 0) + lead[0].length) : text;
+  const rest = monitorWords(text);
   const minAmount = minAmountOf(rest);
   const addresses = addressesOf(rest);
   const words = rest

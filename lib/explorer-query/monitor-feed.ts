@@ -3,15 +3,18 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { isPublicRpcUrl } from "@/lib/explorer-rpc";
 import { targetOf } from "./target";
 import { tokenList } from "./enrich";
-import { TRANSFER_TOPIC, mayBeMonitor, parseMonitor, type MonitorItem, type MonitorRead, type MonitorSpec, type TokenMeta } from "./monitor";
+import { TRANSFER_TOPIC, addressesOf, mayBeEvents, mayBeMonitor, minAmountOf, monitorWords, parseMonitor, tokenOf, type MonitorItem, type MonitorRead, type MonitorSpec, type MonitorToken, type TokenMeta } from "./monitor";
+import { MONITOR_CHAIN_ID, MONITOR_EVENTS, decodeMonitorLog, eventsFor, fitsMonitorLog, type MonitorEventDef } from "./monitor-events";
 
 /* A monitor's read of its chain (monitor.ts says what a monitor is): the chain's own RPC, block by block. A first
    read covers the last few minutes; each next read starts where the last one ended. One read covers at most
    MAX_BLOCKS, so a page that comes back after longer starts again at the head and says so. Viewers of the same
-   monitor share one read for SHARE_MS: the RPC sees one call however many are watching. */
+   monitor share one read for SHARE_MS: the RPC sees one call however many are watching. An events monitor reads
+   the DeFi catalog's logs (monitor-events.ts), and tells a pool's protocol by its factory, asked once per pool. */
 
-/** about ten minutes of C-Chain blocks; a native read fetches whole blocks, so it opens on fewer */
-const OPEN_BLOCKS = 450;
+/** ten minutes of C-Chain blocks and a little more (at 1.2 s a block); a native read fetches whole blocks, so it
+    opens on fewer */
+const OPEN_BLOCKS = 500;
 const OPEN_BLOCKS_NATIVE = 150;
 const MAX_BLOCKS = 1_000;
 const MAX_ITEMS = 2_000;
@@ -48,6 +51,7 @@ interface RpcBlock {
 }
 
 type Call = { method: string; params: unknown[] };
+type Answer<T> = { result?: T | null; error?: { message?: string } } | undefined;
 
 /** the RPC a monitor of this chain reads: our own node for the C-Chain, else the chain's public RPC; null for a
     chain with none, and for the P-Chain, which has no logs to read */
@@ -58,24 +62,33 @@ export function monitorRpc(chainId: number): string | null {
   return c && isPublicRpcUrl(c.rpcUrl) ? c.rpcUrl : null;
 }
 
-/** calls in batches; a failure never names the RPC, whose URL can carry a token */
-async function rpc<T>(url: string, calls: Call[]): Promise<T[]> {
-  const out: T[] = [];
+/** each call's answer, in batches; a failure never names the RPC, whose URL can carry a token */
+async function answers<T>(url: string, calls: Call[]): Promise<Answer<T>[]> {
+  const out: Answer<T>[] = [];
   for (let i = 0; i < calls.length; i += BATCH) {
     const chunk = calls.slice(i, i + BATCH);
     const body = chunk.length === 1 ? { jsonrpc: "2.0", id: 0, ...chunk[0] } : chunk.map((c, j) => ({ jsonrpc: "2.0", id: j, ...c }));
     const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
     if (!res.ok) throw new Error(`the chain's RPC answered ${res.status}`);
     const got = (await res.json()) as unknown;
-    const list = (Array.isArray(got) ? got : [got]) as { id: number; result?: T; error?: { message?: string } }[];
+    const list = (Array.isArray(got) ? got : [got]) as ({ id: number } & NonNullable<Answer<T>>)[];
     const byId = new Map(list.map((g) => [g.id, g]));
-    chunk.forEach((c, j) => {
-      const g = byId.get(j);
-      if (!g || g.error || g.result === undefined || g.result === null) throw new Error(`the chain's RPC refused ${c.method}${g?.error?.message ? `: ${g.error.message.slice(0, 120)}` : ""}`);
-      out.push(g.result);
-    });
+    chunk.forEach((_, j) => out.push(byId.get(j)));
   }
   return out;
+}
+
+/** calls in batches, every one of which must answer */
+async function rpc<T>(url: string, calls: Call[]): Promise<T[]> {
+  return (await answers<T>(url, calls)).map((g, i) => {
+    if (!g || g.error || g.result === undefined || g.result === null) throw new Error(`the chain's RPC refused ${calls[i].method}${g?.error?.message ? `: ${g.error.message.slice(0, 120)}` : ""}`);
+    return g.result;
+  });
+}
+
+/** calls in batches where a revert is an answer too: null */
+async function rpcOrNull<T>(url: string, calls: Call[]): Promise<(T | null)[]> {
+  return (await answers<T>(url, calls)).map((g) => (g && !g.error && g.result !== undefined ? g.result : null));
 }
 
 const hex = (n: number) => `0x${n.toString(16)}`;
@@ -96,7 +109,7 @@ export function checkedSpec(raw: unknown): MonitorSpec | null {
   const s = raw as Record<string, unknown>;
   const chainId = Number(s.chainId);
   if (!Number.isInteger(chainId) || !monitorRpc(chainId)) return null;
-  if (s.kind !== "transfers" && s.kind !== "native") return null;
+  if (s.kind !== "transfers" && s.kind !== "native" && s.kind !== "events") return null;
   const addr = (v: unknown) => (typeof v === "string" && HEX40.test(v.toLowerCase()) ? v.toLowerCase() : undefined);
   const spec: MonitorSpec = { chainId, kind: s.kind, title: typeof s.title === "string" ? s.title.slice(0, 160) : "" };
   if (s.token !== undefined) {
@@ -120,6 +133,13 @@ export function checkedSpec(raw: unknown): MonitorSpec | null {
   }
   // every token's transfers on a whole chain is too much to read: that monitor names an address
   if (spec.kind === "transfers" && !spec.token && !spec.from && !spec.to && !spec.involving) return null;
+  // an events monitor names catalog events, each once, on the C-Chain the catalog describes
+  if (spec.kind === "events") {
+    const keys = Array.isArray(s.events) ? s.events : [];
+    if (chainId !== MONITOR_CHAIN_ID || !keys.length || keys.length > MAX_EVENTS || new Set(keys).size !== keys.length || !keys.every((k) => typeof k === "string" && EVENT_DEFS.has(k))) return null;
+    spec.events = keys as string[];
+    if (typeof s.unit === "string" && /^[\w.$+-]{1,24}$/.test(s.unit)) spec.unit = s.unit;
+  }
   return spec;
 }
 
@@ -136,10 +156,225 @@ export async function monitorTokens(chainId: number, baseUrl: string): Promise<M
   return out;
 }
 
-/** the monitor a question asks for on this chain, or null: the token list is read only when the words could be one */
+/** the monitor a question asks for on this chain, or null: the token list is read only when the words could be one.
+    DeFi events come first: "monitor wavax wraps" is WAVAX's Deposit logs, not its transfers */
 export async function monitorFor(prompt: string, chainId: number, symbol: string, baseUrl: string): Promise<MonitorSpec | null> {
-  if (!mayBeMonitor(prompt) || !monitorRpc(chainId)) return null;
-  return parseMonitor(prompt, { chainId, symbol }, await monitorTokens(chainId, baseUrl));
+  if (!(mayBeMonitor(prompt) || mayBeEvents(prompt)) || !monitorRpc(chainId)) return null;
+  const tokens = await monitorTokens(chainId, baseUrl);
+  return eventsMonitor(prompt, chainId, tokens) ?? parseMonitor(prompt, { chainId, symbol }, tokens);
+}
+
+/* ------------------------------------------------------------------ */
+/* DeFi events: the catalog's logs on the C-Chain                       */
+
+/** the catalog's events by key: what an events monitor may read */
+const EVENT_DEFS = new Map(MONITOR_EVENTS.map((d) => [d.key, d]));
+/** the most events one monitor reads: every DEX's swaps is 18 */
+const MAX_EVENTS = 24;
+/** a busy events monitor (every DEX's swaps) opens on more rows than one token's transfers */
+const MAX_EVENT_ITEMS = 5_000;
+const NATIVE = "0x0000000000000000000000000000000000000000";
+const ADDRESS = /0x[0-9a-fA-F]{40}\b/g;
+/** words no token filter is read from, though a token may have one of them as its symbol */
+const PLAIN = new Set(["the", "and", "for", "all", "any", "new", "big", "top", "live", "over", "from", "into", "with", "each", "every", "real", "time", "large", "largest"]);
+/** the pool checks' calls: factory() and getFactory() on a pool, isPair(address) on a Solidly factory */
+const FACTORY = "0xc45a0155";
+const GET_FACTORY = "0x88cc58e4";
+const IS_PAIR = "0xe5e31b13";
+/** each pool's factory (null where no getter answers), and each Solidly factory's pairs, for the life of the
+    server: a pool never changes its factory. At most MAX_POOLS of each, the oldest going first */
+const factoryOf = new Map<string, string | null>();
+const pairOf = new Map<string, boolean>();
+const MAX_POOLS = 50_000;
+function remember<V>(m: Map<string, V>, k: string, v: V) {
+  if (m.size >= MAX_POOLS) m.delete(m.keys().next().value as string);
+  m.set(k, v);
+}
+
+/** what an event's label says after its protocol: "flash loans" of "Aave v3 flash loans" */
+const kindOf = (d: MonitorEventDef) => (d.label.startsWith(d.protocol) ? d.label.slice(d.protocol.length).trim() : d.label) || d.label;
+const lastWord = (t: string) => t.split(/\s+/).at(-1) ?? t;
+const listed = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+/** the words every kind begins with: "sAVAX" of "sAVAX stakes" and "sAVAX redemptions" */
+function leading(kinds: string[]): string {
+  const split = kinds.map((k) => k.split(/\s+/));
+  const out: string[] = [];
+  for (let i = 0; split.every((w) => i < w.length - 1 && w[i] === split[0][i]); i++) out.push(split[0][i]);
+  return out.join(" ");
+}
+
+/** the card's name for a set of events: its one label; "Pharaoh swaps"; "Liquidations on Aave v3 and Benqi"; over
+    protocols whose events have different names, the reader's own word for them ("Deposits on 6 protocols") */
+export function eventsTitle(defs: MonitorEventDef[], asked?: string): string {
+  if (defs.length === 1) return defs[0].label;
+  const protocols = [...new Set(defs.map((d) => d.protocol))];
+  const kinds = [...new Set(defs.map(kindOf))];
+  const words = [...new Set(kinds.map(lastWord))];
+  if (protocols.length === 1) {
+    const [p] = protocols;
+    if (words.length === 1) return `${p} ${words[0]}`;
+    if (kinds.length <= 3) return `${p} ${listed(kinds)}`;
+    const common = leading(kinds);
+    return words.length <= 3 ? `${p}${common ? ` ${common}` : ""} ${listed(words)}` : `${p}${common ? ` ${common}` : ""} activity`;
+  }
+  const where = protocols.length <= 3 ? listed(protocols) : `${protocols.length} protocols`;
+  const word = words.length === 1 ? words[0] : asked;
+  return word ? `${word[0].toUpperCase()}${word.slice(1)} on ${where}` : `DeFi activity on ${where}`;
+}
+
+/** a row's name for its event: its label in the singular, less the protocol when the monitor reads one ("Repayment"
+    under "Aave v3 activity", "Pangolin v3 swap" under "Swaps on 8 protocols") */
+function rowLabel(d: MonitorEventDef, oneProtocol: boolean): string {
+  const t = (oneProtocol ? kindOf(d) : d.label).replace(/ies$/, "y").replace(/(?<!s)s$/, "");
+  // "repayment" takes a capital; a name with its own ("sAVAX unlock request") keeps it
+  return /^[a-z]+[A-Z]/.test(t) ? t : `${t[0].toUpperCase()}${t.slice(1)}`;
+}
+
+const symbolOf = (token: string, tokens: Map<string, TokenMeta>) => (token === NATIVE ? "AVAX" : tokens.get(token)?.symbol);
+
+/** the DeFi events the words ask for, as a monitor: "monitor aave liquidations", "watch pharaoh swaps", "live sAVAX
+    staking". Mainnet C-Chain only. Any token's ERC-20 Transfer is not one: a transfers monitor reads one token's,
+    or one address's. A token the words name beside events whose token varies keeps the rows in it: "usdc supplies
+    on aave" */
+export function eventsMonitor(prompt: string, chainId: number, tokens: Map<string, TokenMeta>): MonitorSpec | null {
+  if (chainId !== MONITOR_CHAIN_ID || !mayBeEvents(prompt)) return null;
+  const rest = monitorWords(prompt);
+  const bare = rest.replace(ADDRESS, " ");
+  const defs = eventsFor(bare).filter((d) => d.key !== "erc-20/transfer");
+  if (!defs.length || defs.length > MAX_EVENTS) return null;
+  // a token named apart from the events' own names, for events whose amounts can be in any token
+  const own = new Set(defs.flatMap((d) => `${d.label} ${d.protocol}`.toLowerCase().split(/[^a-z0-9.]+/)));
+  const varies = defs.every((d) => d.amount && !d.amount.token);
+  let token: MonitorToken | null = null;
+  if (varies)
+    for (const w of bare.toLowerCase().split(/[^a-z0-9.]+/)) {
+      if (w.length < 3 || PLAIN.has(w) || own.has(w)) continue;
+      token = tokenOf(w, chainId, tokens);
+      if (token) break;
+    }
+  // one unit for the figures: the named token, or the one token every event's amount is in
+  const fixed = [...new Set(defs.map((d) => (d.amount ? (d.amount.token ?? "") : "-")))];
+  const unit = token?.symbol ?? (fixed.length === 1 && fixed[0] !== "" && fixed[0] !== "-" ? symbolOf(fixed[0], tokens) : undefined);
+  const spec: MonitorSpec = { chainId, kind: "events", events: defs.map((d) => d.key), title: "" };
+  if (token) spec.token = token;
+  if (unit) spec.unit = unit;
+  const min = unit ? minAmountOf(rest) : undefined;
+  if (min !== undefined) spec.minAmount = min;
+  const who = addressesOf(rest)[0];
+  if (who) spec[who.role] = who.address;
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+  // the reader's own word for the events, for a title over protocols that name them differently
+  const asked = bare.toLowerCase().split(/[^a-z0-9.]+/).find((w) => defs.some((d) => d.words.includes(w)));
+  spec.title = `${eventsTitle(defs, asked)}${token ? ` in ${token.symbol}` : ""}${min !== undefined ? ` over ${min.toLocaleString("en-US")}` : ""}${who ? ` ${who.role === "to" ? "at" : "of"} ${short(who.address)}` : ""}`;
+  return spec;
+}
+
+/** the account an event is about, by the first of its fields that names one: the account credited, the borrower,
+    the staker, the depositor, a swap's recipient */
+const ACTOR = ["onBehalfOf", "user", "borrower", "minter", "redeemer", "owner", "lender", "depositor", "mintRecipient", "dst", "src", "recipient", "to", "sender", "from", "initiator"];
+function actorOf(fields: Record<string, string | bigint | boolean>): string {
+  for (const k of ACTOR) {
+    const v = fields[k];
+    if (typeof v !== "string") continue;
+    if (HEX40.test(v)) return v;
+    // a bytes32 that holds an address, as CCTP's mintRecipient does for an EVM chain
+    if (/^0x0{24}[0-9a-f]{40}$/.test(v)) return `0x${v.slice(26)}`;
+  }
+  return "";
+}
+
+/** an event's figure in whole units of its token, by the catalog's amount: a field that holds the token, a fixed
+    token, the token of each emitting contract, or the emitter itself; null for a swap or a token the list lacks */
+function eventAmount(d: MonitorEventDef, fields: Record<string, string | bigint | boolean>, emitter: string, tokens: Map<string, TokenMeta>): { amount: number | null; token?: string; symbol?: string } {
+  if (!d.amount) return { amount: null };
+  const held = d.amount.tokenField ? fields[d.amount.tokenField] : undefined;
+  const token = (d.amount.token ?? (typeof held === "string" ? held : undefined) ?? d.amount.tokens?.[emitter] ?? emitter).toLowerCase();
+  const meta = token === NATIVE ? { symbol: "AVAX", decimals: 18 } : tokens.get(token);
+  const raw = fields[d.amount.field];
+  if (!meta || typeof raw !== "bigint") return { amount: null, token, symbol: meta?.symbol };
+  return { amount: unitsOf(raw < 0n ? -raw : raw, meta.decimals), token, symbol: meta.symbol };
+}
+
+/** the def each log is, by its topic0, shape and address and, for a pool, its factory; null for none of them. A
+    pool's factory is asked once for the life of the server: getFactory() of an LB pair, factory() of the rest,
+    and isPair(pool) of each Solidly factory for a pool no getter names */
+async function eventDefsOf(url: string, logs: RpcLog[], defs: MonitorEventDef[]): Promise<(MonitorEventDef | null)[]> {
+  const fits = logs.map((l) => defs.filter((d) => fitsMonitorLog(d, l)));
+  const getters = new Map<string, string>();
+  logs.forEach((l, i) => {
+    const p = l.address.toLowerCase();
+    for (const d of fits[i]) if (d.poolCheck && "getter" in d.poolCheck && !factoryOf.has(p)) getters.set(p, d.poolCheck.getter === "getFactory()" ? GET_FACTORY : FACTORY);
+  });
+  const pools = [...getters.keys()];
+  const named = await rpcOrNull<string>(url, pools.map((p) => ({ method: "eth_call", params: [{ to: p, data: getters.get(p) }, "latest"] })));
+  pools.forEach((p, i) => {
+    const r = named[i];
+    remember(factoryOf, p, typeof r === "string" && /^0x[0-9a-f]{64}$/i.test(r) && BigInt(r) !== 0n ? addressOf(r) : null);
+  });
+  const asks = new Map<string, { factory: string; pool: string }>();
+  logs.forEach((l, i) => {
+    const p = l.address.toLowerCase();
+    if (factoryOf.get(p)) return;
+    for (const d of fits[i])
+      if (d.poolCheck && "onFactory" in d.poolCheck)
+        for (const f of d.factories ?? []) if (!pairOf.has(`${f}:${p}`)) asks.set(`${f}:${p}`, { factory: f, pool: p });
+  });
+  const pairs = [...asks.values()];
+  const said = await rpcOrNull<string>(url, pairs.map((a) => ({ method: "eth_call", params: [{ to: a.factory, data: `${IS_PAIR}${"0".repeat(24)}${a.pool.slice(2)}` }, "latest"] })));
+  pairs.forEach((a, i) => remember(pairOf, `${a.factory}:${a.pool}`, typeof said[i] === "string" && /^0x0*1$/.test(said[i]!)));
+  return logs.map((l, i) => {
+    const p = l.address.toLowerCase();
+    return (
+      fits[i].find((d) => {
+        // a def of listed contracts: fitsMonitorLog held the log to them
+        if (!d.factories) return true;
+        if (d.poolCheck && "getter" in d.poolCheck) return d.factories.includes(factoryOf.get(p) ?? "");
+        return d.factories.some((f) => pairOf.get(`${f}:${p}`) === true);
+      }) ?? null
+    );
+  });
+}
+
+async function events(url: string, spec: MonitorSpec, start: number, head: number, tokens: Map<string, TokenMeta>): Promise<{ items: MonitorItem[]; headAt: number; fromAt: number }> {
+  const defs = (spec.events ?? []).map((k) => EVENT_DEFS.get(k)).filter((d): d is MonitorEventDef => !!d);
+  // one filter a topic: its listed contracts, or every contract once a pool family emits it
+  const byTopic = new Map<string, Set<string> | null>();
+  for (const d of defs) {
+    const had = byTopic.get(d.topic0);
+    byTopic.set(d.topic0, !d.addresses || had === null ? null : new Set([...(had ?? []), ...d.addresses]));
+  }
+  const range = { fromBlock: hex(start), toBlock: hex(head) };
+  const found = (await rpc<RpcLog[]>(url, [...byTopic].map(([topic0, at]) => ({ method: "eth_getLogs", params: [{ ...range, ...(at ? { address: [...at] } : {}), topics: [topic0] }] })))).flat();
+  const seen = new Set<string>();
+  const logs = found.filter((l) => {
+    const k = `${l.transactionHash}:${l.logIndex}`;
+    if (l.removed || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  const which = await eventDefsOf(url, logs, defs);
+  const oneProtocol = new Set(defs.map((d) => d.protocol)).size === 1;
+  const heights = [...new Set([head, start, ...logs.map((l) => num(l.blockNumber))])];
+  const blocks = await rpc<RpcBlock>(url, heights.map((h) => ({ method: "eth_getBlockByNumber", params: [hex(h), false] })));
+  const at = new Map(blocks.map((b) => [num(b.number), timeOf(b)]));
+  const items: MonitorItem[] = [];
+  logs.forEach((l, i) => {
+    const d = which[i];
+    if (!d) return;
+    let fields: Record<string, string | bigint | boolean>;
+    try {
+      fields = decodeMonitorLog(d, l);
+    } catch {
+      return;
+    }
+    const emitter = l.address.toLowerCase();
+    const { amount, token, symbol } = eventAmount(d, fields, emitter, tokens);
+    if (spec.token && token !== spec.token.address) return;
+    const from = actorOf(fields);
+    if ((spec.from && from !== spec.from) || (spec.involving && from !== spec.involving) || (spec.to && emitter !== spec.to)) return;
+    items.push({ block: num(l.blockNumber), at: at.get(num(l.blockNumber)) ?? 0, tx: l.transactionHash, index: num(l.logIndex), from, to: emitter, amount, event: rowLabel(d, oneProtocol), ...(token ? { token } : {}), ...(symbol ? { symbol } : {}) });
+  });
+  return { items, headAt: at.get(head) ?? 0, fromAt: at.get(start) ?? 0 };
 }
 
 /** the log filters a transfers monitor reads: an address both ways is two filters */
@@ -227,13 +462,16 @@ async function freshRead(spec: MonitorSpec, from: number | null, tokens: Map<str
   }
   start = Math.max(0, start);
   if (start > head) return { head, headAt: 0, from: start, fromAt: 0, items: [], gap: false };
-  const read = spec.kind === "native" ? await native(url, spec, start, head) : await transfers(url, spec, start, head, tokens);
+  const read = spec.kind === "native" ? await native(url, spec, start, head) : spec.kind === "events" ? await events(url, spec, start, head, tokens) : await transfers(url, spec, start, head, tokens);
   const min = spec.minAmount ?? 0;
   const kept = read.items
     .filter((i) => !min || (i.amount !== null && i.amount >= min))
     .sort((a, b) => b.block - a.block || b.index - a.index);
-  if (kept.length > MAX_ITEMS) gap = true;
-  return { head, headAt: read.headAt, from: start, fromAt: read.fromAt, items: kept.slice(0, MAX_ITEMS), gap };
+  // a read that keeps only its newest rows covers from the oldest one it keeps: the page draws nothing before it
+  const cap = spec.kind === "events" ? MAX_EVENT_ITEMS : MAX_ITEMS;
+  const items = kept.slice(0, cap);
+  const cut = kept.length > cap ? items[items.length - 1] : null;
+  return { head, headAt: read.headAt, from: cut ? cut.block : start, fromAt: cut ? cut.at : read.fromAt, items, gap: gap || !!cut };
 }
 
 const shared = new Map<string, { at: number; read: Promise<MonitorRead> }>();

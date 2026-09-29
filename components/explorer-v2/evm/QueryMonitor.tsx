@@ -60,7 +60,7 @@ interface Bucket {
   v: number | null;
 }
 
-function BucketTip({ active, payload, sym }: { active?: boolean; payload?: { payload: Bucket }[]; sym: string | null }) {
+function BucketTip({ active, payload, sym, noun }: { active?: boolean; payload?: { payload: Bucket }[]; sym: string | null; noun: [string, string] }) {
   if (!active || !payload?.[0]) return null;
   const b = payload[0].payload;
   return (
@@ -72,7 +72,7 @@ function BucketTip({ active, payload, sym }: { active?: boolean; payload?: { pay
         <p className="text-zinc-500 dark:text-zinc-400">before the first block read</p>
       ) : (
         <>
-          <p className="text-zinc-900 dark:text-zinc-50">{formatNumber(b.n)} {b.n === 1 ? "move" : "moves"}</p>
+          <p className="text-zinc-900 dark:text-zinc-50">{formatNumber(b.n)} {b.n === 1 ? noun[0] : noun[1]}</p>
           {sym && <p className="text-[#0061E2] dark:text-[#5b9bff]">{amountText(b.v ?? 0)} {sym}</p>}
         </>
       )}
@@ -144,7 +144,12 @@ export function QueryMonitor({ spec, base }: { spec: MonitorSpec; base: string }
     return () => clearInterval(t);
   }, []);
 
-  const sym = spec.kind === "native" ? (spec.coin ?? null) : (spec.token?.symbol ?? null);
+  const sym = spec.kind === "native" ? (spec.coin ?? null) : spec.kind === "events" ? (spec.unit ?? null) : (spec.token?.symbol ?? null);
+  // an events monitor counts events, of one kind or several; the others count moves
+  const events = spec.kind === "events";
+  const several = events && (spec.events?.length ?? 0) > 1;
+  const noun = useMemo<[string, string]>(() => (events ? ["event", "events"] : ["move", "moves"]), [events]);
+  const Noun = events ? "Events" : "Moves";
   const least = Number(atLeast.replace(/,/g, ""));
   const shown = useMemo(() => (least > 0 ? items.filter((i) => i.amount !== null && i.amount >= least) : items), [items, least]);
 
@@ -172,7 +177,15 @@ export function QueryMonitor({ spec, base }: { spec: MonitorSpec; base: string }
     const oldest = inWindow.reduce((m, i) => Math.min(m, i.at), end);
     const since = covered === null ? oldest : Math.max(covered, end - WINDOW_MS);
     const minutes = Math.max(1 / 6, (end - since) / 60_000);
-    return { count: inWindow.length, volume, largest, perMinute: inWindow.length / minutes, tokens: new Set(inWindow.map((i) => i.token)).size };
+    return {
+      count: inWindow.length,
+      volume,
+      largest,
+      perMinute: inWindow.length / minutes,
+      tokens: new Set(inWindow.map((i) => i.token)).size,
+      accounts: new Set(inWindow.map((i) => i.from).filter(Boolean)).size,
+      contracts: new Set(inWindow.map((i) => i.to)).size,
+    };
   }, [shown, end, covered]);
   // what the figures cover: the whole window, or the minutes read so far while the feed has read less (a native
   // monitor opens on about three minutes of blocks)
@@ -187,16 +200,19 @@ export function QueryMonitor({ spec, base }: { spec: MonitorSpec; base: string }
           <YAxis yAxisId="n" allowDecimals={false} width={36} tick={{ fontSize: 10, fontFamily: "monospace", fill: "currentColor" }} stroke="currentColor" strokeOpacity={0.2} />
           {sym && <YAxis yAxisId="v" orientation="right" width={52} tickFormatter={compact} tick={{ fontSize: 10, fontFamily: "monospace", fill: "#0061E2" }} stroke="#0061E2" strokeOpacity={0.3} />}
           {/* filterNull off: a period before the first block read still says so on hover */}
-          <RechartsTooltip content={<BucketTip sym={sym} />} filterNull={false} cursor={{ fill: "rgba(161,161,170,0.14)" }} isAnimationActive={false} />
+          <RechartsTooltip content={<BucketTip sym={sym} noun={noun} />} filterNull={false} cursor={{ fill: "rgba(161,161,170,0.14)" }} isAnimationActive={false} />
           <Bar yAxisId="n" dataKey="n" fill="currentColor" fillOpacity={0.78} radius={[2, 2, 0, 0]} isAnimationActive={false} />
           {sym && <Line yAxisId="v" dataKey="v" stroke="#0061E2" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
         </ComposedChart>
       </ResponsiveContainer>
     ),
-    [buckets, sym],
+    [buckets, sym, noun],
   );
 
   const live = state === "live" && !paused;
+  // an events monitor whose events carry no amount (a swap's are its pool's) shows no Amount column
+  const amounts = !events || items.some((i) => i.amount !== null || i.symbol);
+  const cols = amounts ? "grid-cols-[3rem_minmax(0,1fr)_auto] sm:grid-cols-[3rem_6.5rem_minmax(0,1fr)_auto_6rem]" : "grid-cols-[3rem_minmax(0,1fr)] sm:grid-cols-[3rem_6.5rem_minmax(0,1fr)_6rem]";
   const unit = sym ?? "";
 
   return (
@@ -242,7 +258,9 @@ export function QueryMonitor({ spec, base }: { spec: MonitorSpec; base: string }
       {/* the window at a glance */}
       <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <dt className={LABEL}>Moves · {span}</dt>
+          <dt className={LABEL}>
+            {Noun} · {span}
+          </dt>
           <dd className="font-mono text-[22px] leading-none tabular-nums text-zinc-900 dark:text-zinc-50">{state === "opening" ? "…" : formatNumber(figures.count)}</dd>
         </div>
         <div className="flex min-w-0 flex-col gap-1.5">
@@ -270,6 +288,18 @@ export function QueryMonitor({ spec, base }: { spec: MonitorSpec; base: string }
               </dd>
             </div>
           </>
+        ) : events ? (
+          <>
+            {/* events in many tokens, or none (a swap's are its pool's): who and where, not a sum */}
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <dt className={LABEL}>Accounts</dt>
+              <dd className="font-mono text-[22px] leading-none tabular-nums text-zinc-900 dark:text-zinc-50">{state === "opening" ? "…" : formatNumber(figures.accounts)}</dd>
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <dt className={LABEL}>Contracts</dt>
+              <dd className="font-mono text-[22px] leading-none tabular-nums text-zinc-900 dark:text-zinc-50">{state === "opening" ? "…" : formatNumber(figures.contracts)}</dd>
+            </div>
+          </>
         ) : (
           <div className="flex min-w-0 flex-col gap-1.5">
             <dt className={LABEL}>Tokens</dt>
@@ -281,48 +311,61 @@ export function QueryMonitor({ spec, base }: { spec: MonitorSpec; base: string }
       {/* moves per 15 seconds, and what they carried */}
       <div className="flex flex-col gap-2">
         <span className={LABEL}>
-          Moves per 15 s{sym ? <span className="text-[#0061E2] dark:text-[#5b9bff]"> · {unit} moved</span> : null}
+          {Noun} per 15 s{sym ? <span className="text-[#0061E2] dark:text-[#5b9bff]"> · {unit} moved</span> : null}
         </span>
         <div className="h-48 text-zinc-900 sm:h-56 dark:text-zinc-100">{chart}</div>
       </div>
 
       {/* the newest moves */}
       <div className="flex flex-col">
-        <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] gap-x-3 border-b border-zinc-200 pb-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 sm:grid-cols-[3rem_6.5rem_minmax(0,1fr)_auto_6rem] dark:border-zinc-800 dark:text-zinc-500">
+        <div className={cn("grid gap-x-3 border-b border-zinc-200 pb-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500", cols)}>
           <span>Age</span>
           <span className="hidden sm:block">Block</span>
-          <span>From → To</span>
-          <span className="text-right">Amount</span>
+          <span>{events ? (several ? "Event · Account" : "Account") : "From → To"}</span>
+          {amounts && <span className="text-right">Amount</span>}
           <span className="hidden text-right sm:block">Tx</span>
         </div>
         {state === "opening" &&
           Array.from({ length: 6 }, (_, i) => <span key={i} className="my-2 h-4 animate-pulse rounded-sm bg-zinc-100 dark:bg-zinc-900" />)}
         {state !== "opening" && shown.length === 0 && (
-          <p className="py-6 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">No moves in the blocks read yet. New blocks come in every few seconds.</p>
+          <p className="py-6 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">No {noun[1]} in the blocks read yet. New blocks come in every few seconds.</p>
         )}
         {shown.slice(0, LIST).map((i) => (
           <div
             key={keyOf(i)}
-            className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-zinc-100 py-2 font-mono text-[12px] tabular-nums last:border-b-0 sm:grid-cols-[3rem_6.5rem_minmax(0,1fr)_auto_6rem] dark:border-zinc-900"
+            className={cn("grid items-center gap-x-3 border-b border-zinc-100 py-2 font-mono text-[12px] tabular-nums last:border-b-0 dark:border-zinc-900", cols)}
           >
             <span className="text-zinc-400 dark:text-zinc-500">{ago(i.at, now)}</span>
             <Link href={`${base}/block/${i.block}`} className="hidden truncate text-zinc-500 hover:text-[#0061E2] sm:block dark:text-zinc-400">
               {formatNumber(i.block)}
             </Link>
-            <span className="flex min-w-0 items-center gap-1.5 truncate">
-              <Link href={`${base}/address/${i.from}`} className="truncate text-[#0061E2] hover:underline dark:text-[#5b9bff]">
-                {short(i.from)}
-              </Link>
-              <span className="text-zinc-300 dark:text-zinc-600">→</span>
-              <Link href={`${base}/address/${i.to}`} className="truncate text-[#0061E2] hover:underline dark:text-[#5b9bff]">
-                {short(i.to)}
-              </Link>
-            </span>
+            {events ? (
+              // what happened, when the monitor reads several kinds, and whom it is about (else the contract)
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
+                {several && i.event && <span className="truncate text-zinc-500 dark:text-zinc-400">{i.event}</span>}
+                <Link href={`${base}/address/${i.from || i.to}`} className="shrink-0 text-[#0061E2] hover:underline dark:text-[#5b9bff]">
+                  {short(i.from || i.to)}
+                </Link>
+              </span>
+            ) : (
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
+                <Link href={`${base}/address/${i.from}`} className="truncate text-[#0061E2] hover:underline dark:text-[#5b9bff]">
+                  {short(i.from)}
+                </Link>
+                <span className="text-zinc-300 dark:text-zinc-600">→</span>
+                <Link href={`${base}/address/${i.to}`} className="truncate text-[#0061E2] hover:underline dark:text-[#5b9bff]">
+                  {short(i.to)}
+                </Link>
+              </span>
+            )}
             {/* a move of nothing is real, and often spam that plants a lookalike address: it stays, quiet */}
-            <span className={cn("text-right", i.amount === 0 ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-900 dark:text-zinc-50")}>
-              {i.amount === null ? "?" : amountText(i.amount)}{" "}
-              <span className="text-zinc-400 dark:text-zinc-500">{i.symbol ?? (i.token ? short(i.token) : unit)}</span>
-            </span>
+            {amounts && (
+              <span className={cn("text-right", i.amount === 0 ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-900 dark:text-zinc-50")}>
+                {/* "?" is a token whose decimals the list lacks; an event with no amount of its own (a swap) shows none */}
+                {i.amount === null ? (events && !i.token ? "" : "?") : amountText(i.amount)}{" "}
+                <span className="text-zinc-400 dark:text-zinc-500">{i.symbol ?? (i.token ? short(i.token) : unit)}</span>
+              </span>
+            )}
             <Link href={`${base}/tx/${i.tx}`} className="hidden truncate text-right text-zinc-500 hover:text-[#0061E2] sm:block dark:text-zinc-400">
               {i.tx.slice(0, 8)}…
             </Link>
