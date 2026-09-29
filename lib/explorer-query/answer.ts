@@ -18,7 +18,7 @@ import { versionLines } from "./sources";
 import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
-import { scopeError, sqlWindow, windowSpan, withWindow } from "./scope";
+import { asOfWords, scopeError, snapshotSql, sqlWindow, windowSpan, withWindow } from "./scope";
 import { contradictions, withoutContradictions } from "./claims";
 import { absurdFigure } from "./magnitude";
 import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
@@ -147,12 +147,14 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
     const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
+    // a snapshot's figures stand at its time, read after the rows and their totals, beside no other query
+    const span = said.span ?? (isFuji(a.chainId) ? null : await snapshotSpan(run.sql));
     return {
       anchor: run.anchor,
       sources: run.sources,
       title: said.title,
       note: said.note,
-      span: said.span,
+      span,
       sql,
       chart: recipe.chart,
       drill: recipe.drill,
@@ -165,6 +167,19 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
       key: key ?? undefined,
       model: { steps: 0, ms: Date.now() - t0, tries: 0, writer: recipe.writer, cached: true, timings: [] },
     };
+  } catch {
+    return null;
+  }
+}
+
+/** the time a snapshot answer's figures stand at, read by the snapshot's own subquery run alone; null for an answer
+    that reads no snapshot, and when the read fails */
+async function snapshotSpan(sql: string): Promise<string | null> {
+  const pick = snapshotSql(sql);
+  if (!pick) return null;
+  try {
+    const t = msOf((await runQuery(pick)).rows[0]?.at);
+    return t > 0 ? asOfWords(t, Date.now()) : null;
   } catch {
     return null;
   }
@@ -488,7 +503,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
           const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now, Date.now());
-          final = { title: said.title, note: said.note, span: fuji ? null : windowSpan(read, rows.rows, chart.x, now, Date.now()), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
+          final = { title: said.title, note: said.note, span: fuji ? null : (windowSpan(read, rows.rows, chart.x, now, Date.now()) ?? (await snapshotSpan(ran.sql))), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };

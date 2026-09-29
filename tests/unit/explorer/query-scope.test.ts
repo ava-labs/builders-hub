@@ -22,7 +22,7 @@ import { generateText } from 'ai';
 import { answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
 import { guardSql } from '@/lib/explorer-query/guard';
 import { collapseMacros, expandMacros } from '@/lib/explorer-query/macros';
-import { rowsWindow, scopeError, scoped, sqlWindow, staleLine, windowSpan, windowWords, withWindow, type Window } from '@/lib/explorer-query/scope';
+import { asOfWords, rowsWindow, scopeError, scoped, snapshotSql, sqlWindow, staleLine, windowSpan, windowWords, withWindow, type Window } from '@/lib/explorer-query/scope';
 
 // Monday September 28, 2026, an hour into the week
 const NOW = Date.parse('2026-09-28T01:00:00Z');
@@ -30,6 +30,8 @@ const at = (s: string) => Date.parse(`${s}Z`);
 const LOGS = 'FROM raw_logs WHERE chain_id = 43114';
 const WEEK_OF_21 = `${LOGS} AND block_time >= toDateTime('2026-09-21 00:00:00') AND block_time < toDateTime('2026-09-28 00:00:00')`;
 const win = (sql: string) => sqlWindow(sql, NOW) as Window;
+// the L1 validator sets at their newest snapshot: one time a subquery picks, found in the last day
+const SNAPSHOT_SQL = 'SELECT subnet_id, count() AS validators FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time = (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time >= now() - INTERVAL 1 DAY) GROUP BY subnet_id';
 
 describe('the window a query reads', () => {
   it('is the DEX window, not the pools read since the first day or the price read from the hour before', () => {
@@ -222,13 +224,26 @@ describe('a title of periods and the figures over the whole answer name its wind
     expect(windowSpan(days(1), [], undefined, NOW)).toBe('since September 27');
     expect(windowSpan(`SELECT 1 ${LOGS} AND block_time >= toStartOfHour(now()) - INTERVAL 1 HOUR`, [], undefined, NOW + 341 * 60_000)).toBe('since September 28, 05:00 UTC');
     // an answer that reads one snapshot has no window over its figures, whatever window finds the snapshot
-    const snapshot = 'SELECT subnet_id, count() AS validators FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time = (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time >= now() - INTERVAL 1 DAY) GROUP BY subnet_id';
-    expect(windowSpan(snapshot, [], undefined, NOW)).toBeNull();
+    expect(windowSpan(SNAPSHOT_SQL, [], undefined, NOW)).toBeNull();
     // a query that reads no window gives its figures no window line
     expect(windowSpan("SELECT count() AS n FROM raw_txs WHERE chain_id = 43114 AND hash >= unhex('12') AND hash < unhex('13')", [], undefined, NOW)).toBeNull();
     // a stale index's figure names its days in the reader's dates, as its title does
     const anchor = Date.parse('2026-03-25T23:36:22Z');
     expect(windowSpan('SELECT count() AS txs FROM raw_txs WHERE chain_id = 68414 AND block_time >= toStartOfDay(now())', [], undefined, anchor, Date.parse('2026-09-29T06:00:00Z'))).toBe('on March 25');
+  });
+});
+
+describe("a snapshot answer's figures stand at the snapshot's time", () => {
+  it('reads the time by the subquery that picks it, run alone', () => {
+    expect(snapshotSql(SNAPSHOT_SQL)).toBe('SELECT (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time >= now() - INTERVAL 1 DAY) AS at');
+    expect(snapshotSql(`SELECT 1 ${LOGS} AND block_time >= now() - INTERVAL 1 DAY`)).toBeNull();
+    // a bracket in a string is not the subquery's
+    expect(snapshotSql("SELECT 1 FROM t WHERE snapshot_time = (SELECT max(snapshot_time) FROM t WHERE k = ')(') AND n > 0")).toBe("SELECT (SELECT max(snapshot_time) FROM t WHERE k = ')(') AS at");
+  });
+
+  it("names the time as of the reader's day, else with its day", () => {
+    expect(asOfWords(Date.parse('2026-09-28T00:45:00Z'), NOW)).toBe('as of 00:45 UTC');
+    expect(asOfWords(Date.parse('2026-09-27T23:50:00Z'), NOW)).toBe('as of September 27, 23:50 UTC');
   });
 });
 

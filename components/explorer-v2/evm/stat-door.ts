@@ -1,19 +1,26 @@
-/* A figure that is one row's extreme (the largest single fee) opens that
-   row's transaction when the row names one: the figure's own stem column
-   (max_fee_avax -> max_fee_tx), else tx_hash, on the explorer's tx page.
-   A figure the totals gave comes from a row a LIMIT cut, a row the page
-   does not hold, so it opens nothing. */
+/* A figure that is one row's extreme (the largest single fee, the peak
+   5 minutes, the gas leader) is that row. It opens the row's transaction
+   when the row names one: the figure's own stem column (max_fee_avax ->
+   max_fee_tx), else tx_hash, on the explorer's tx page. Else the card
+   names the row: the peak's bucket, the leader's name. A figure the
+   totals gave comes from a row a LIMIT cut, a row the page does not
+   hold, so it opens and names nothing. */
 
 import { truncate } from "@/components/explorer-v2/format";
+import type { Names } from "@/lib/explorer-query/types";
 import type { Stat } from "@/lib/explorer-query/visual";
 
 type Row = Record<string, unknown>;
 
 const isHash = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
+const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
+const msOf = (v: string) => Date.parse(v.length <= 10 ? `${v}T00:00:00Z` : `${v.replace(" ", "T")}Z`);
+const DAY = 86_400_000;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** the transaction a max or min figure opens, and its hash as the card writes it; null when its row names none */
-export function statDoor(s: Pick<Stat, "agg" | "column">, rows: Row[], value: unknown, base: string | undefined): { href: string; hash: string; short: string } | null {
-  if (!base || (s.agg !== "max" && s.agg !== "min") || typeof value !== "number") return null;
+/** the row a max or min figure is, when the page holds it; null for any other figure, and for one the totals gave */
+export function extremeOf(s: Pick<Stat, "agg" | "column">, rows: Row[], value: unknown): Row | null {
+  if ((s.agg !== "max" && s.agg !== "min") || typeof value !== "number") return null;
   let at: Row | null = null;
   for (const r of rows) {
     const v = r[s.column];
@@ -22,8 +29,41 @@ export function statDoor(s: Pick<Stat, "agg" | "column">, rows: Row[], value: un
     if (best === undefined || (s.agg === "max" ? v > best : v < best)) at = r;
   }
   // the figure is the totals' when no row here holds it
-  if (!at || at[s.column] !== value) return null;
-  const row = at;
+  return at && at[s.column] === value ? at : null;
+}
+
+/** the transaction a max or min figure opens, and its hash as the card writes it; null when its row names none */
+export function statDoor(s: Pick<Stat, "agg" | "column">, rows: Row[], value: unknown, base: string | undefined): { href: string; hash: string; short: string } | null {
+  if (!base) return null;
+  const row = extremeOf(s, rows, value);
+  if (!row) return null;
   const hash = [`${s.column.replace(/_[^_]+$/, "")}_tx`, `${s.column}_tx`, "tx_hash"].map((k) => row[k]).find(isHash);
   return hash ? { href: `${base}/tx/${hash}`, hash, short: truncate(hash, 6) } : null;
+}
+
+/** the row a figure is, as its card names it by its x: a bucket in the words of the series' step (at 15:35 UTC
+    inside one day, Sep 28, 23:55 UTC across days, on Sep 21, week of Sep 21, Sep 2026), else the row's name, else its
+    address; nothing for a number */
+export function rowWords(v: unknown, x: string, all: Row[], names: Names): string | undefined {
+  if (isTime(v)) {
+    const times = [...new Set(all.map((r) => r[x]).filter(isTime))].map(msOf).sort((p, q) => p - q);
+    let step = Infinity;
+    for (let i = 1; i < times.length; i++) step = Math.min(step, times[i] - times[i - 1]);
+    const d = new Date(msOf(v));
+    const day = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+    const hm = d.toISOString().slice(11, 16);
+    // a lone row keeps the grain it is written in: a time of day, or a day
+    if (step === Infinity ? v.length > 10 && hm !== "00:00" : step < DAY) {
+      const oneDay = Math.floor(times[0] / DAY) === Math.floor(times[times.length - 1] / DAY);
+      return oneDay ? `at ${hm} UTC` : `${day}, ${hm} UTC`;
+    }
+    if (step >= 28 * DAY) return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    return step >= 7 * DAY ? `week of ${day}` : `on ${day}`;
+  }
+  if (typeof v !== "string" || !v) return undefined;
+  const name = names[x]?.[v.toLowerCase()];
+  // a name runs to the card's edge
+  if (name) return name;
+  // an address, a hash or a long id reads by its ends
+  return v.length > 26 ? truncate(v, 6) : v;
 }

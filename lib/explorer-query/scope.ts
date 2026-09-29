@@ -416,6 +416,31 @@ function readWindow(sql: string, rows: readonly Record<string, unknown>[], x: st
 /** a time column held to the one time a subquery picks: the answer reads one snapshot, whatever window finds it */
 const ONE_TIME = /\b(?:\w+\.)?(?:block_time|block_timestamp|snapshot_time|observed_at)\s*=\s*\(\s*SELECT\b/i;
 
+/** the subquery a snapshot answer picks its one time with, as a query of its own that returns that time as at; null
+    for any other SQL */
+export function snapshotSql(sql: string): string | null {
+  const m = ONE_TIME.exec(sql);
+  if (!m) return null;
+  const open = m.index + m[0].lastIndexOf("(");
+  let depth = 0;
+  for (let i = open; i < sql.length; i++) {
+    // a string's brackets are not the subquery's
+    if (sql[i] === "'") {
+      i = sql.indexOf("'", i + 1);
+      if (i < 0) return null;
+    } else if (sql[i] === "(") depth++;
+    else if (sql[i] === ")" && --depth === 0) return `SELECT ${sql.slice(open, i + 1)} AS at`;
+  }
+  return null;
+}
+
+/** the time a snapshot answer's figures stand at, in a figure's words: as of 15:45 UTC on the reader's day, else
+    with its day */
+export function asOfWords(t: number, clock: number): string {
+  const hm = new Date(t).toISOString().slice(11, 16);
+  return dayOf(t) === dayOf(clock) ? `as of ${hm} UTC` : `as of ${dayWords(t, clock)}, ${hm} UTC`;
+}
+
 /** the window a figure over the whole answer covers, in a figure's words ("last 6 hours", "today", "week of
     September 21"), or null for a query that reads no window: a total says what it adds up */
 export function windowSpan(sql: string, rows: readonly Record<string, unknown>[], x: string | undefined, now: number, clock = now): string | null {

@@ -13,7 +13,7 @@ import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPi
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 import { rowCount } from "./query-client";
-import { statDoor } from "./stat-door";
+import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
 
 /* Draws what the designer specified: a strip of headline figures, one
@@ -325,7 +325,7 @@ function Spark({ s, rows, all }: { s: Stat; rows: Row[]; all: Row[] }) {
 /** the figures that add up, average or count the whole answer, which a window line names */
 const OVER_WINDOW = new Set(["sum", "avg", "count", "distinct"]);
 
-function StatFigure({ s, rows, all, names, sym, active, totals, base, span }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string; span?: string | null }) {
+function StatFigure({ s, rows, all, names, sym, active, totals, base, span, x, onHoverKey, onOpen }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string; span?: string | null; x?: string; onHoverKey?: (k: unknown) => void; onOpen?: (row: Row) => void }) {
   const reduced = useReduced();
   // with no selection the figure counts the whole answer, past any LIMIT; a selection counts its own rows
   const total = totalValue(totals, s);
@@ -338,16 +338,41 @@ function StatFigure({ s, rows, all, names, sym, active, totals, base, span }: { 
   const sub = active ? compare(s, v, total ?? statValue(all, s), text) : (s.sub ?? (span && OVER_WINDOW.has(s.agg) ? span : undefined));
   // a row's extreme opens that row's transaction; a figure the totals gave names no row the page holds
   const door = statDoor(s, rows, v, base);
+  // else a max or a min names its row (the peak's bucket, the leader), lights the row's mark on the chart, and opens
+  // the row as its mark does
+  const at = x && x !== s.column ? extremeOf(s, rows, v) : null;
+  const key = at && x ? at[x] : undefined;
+  const which = at && x && !door ? rowWords(key, x, all, names) : undefined;
+  const light = key !== undefined && onHoverKey ? { onMouseEnter: () => onHoverKey(key), onMouseLeave: () => onHoverKey(undefined) } : undefined;
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 px-4 py-4 sm:gap-2 sm:px-5 sm:py-5 md:px-6">
+    <div className="flex min-w-0 flex-col gap-1.5 px-4 py-4 sm:gap-2 sm:px-5 sm:py-5 md:px-6" {...light}>
       <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{s.label}</span>
       {door ? (
         <Link href={door.href} title={`Open transaction ${door.hash}`} className="group flex min-w-0 flex-col gap-1.5 sm:gap-2">
           <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 transition-colors group-hover:text-[#0061E2] sm:text-[26px] dark:text-zinc-50 dark:group-hover:text-[#5b9bff]">{shown}</span>
           <span className="truncate font-mono text-[11px] text-zinc-400 underline-offset-2 group-hover:underline dark:text-zinc-500">{door.short}</span>
         </Link>
+      ) : which && at && onOpen ? (
+        <button
+          type="button"
+          onClick={() => onOpen(at)}
+          onFocus={light?.onMouseEnter}
+          onBlur={light?.onMouseLeave}
+          title={`Open ${s.label.toLowerCase()}, ${which}`}
+          className="group flex min-w-0 flex-col gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50 sm:gap-2"
+        >
+          <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 transition-colors group-hover:text-[#0061E2] sm:text-[26px] dark:text-zinc-50 dark:group-hover:text-[#5b9bff]">{shown}</span>
+          <span className="truncate font-mono text-[11px] text-zinc-400 underline-offset-2 group-hover:underline dark:text-zinc-500">{which}</span>
+        </button>
       ) : (
-        <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{shown}</span>
+        <>
+          <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{shown}</span>
+          {which && (
+            <span title={which} className="truncate font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+              {which}
+            </span>
+          )}
+        </>
       )}
       <AnimatePresence mode="wait" initial={false}>
         {sub && (
@@ -372,14 +397,14 @@ function StatFigure({ s, rows, all, names, sym, active, totals, base, span }: { 
 export const CARD =
   "rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_-18px_rgba(24,24,27,0.18)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_14px_32px_-18px_rgba(24,24,27,0.28)] dark:bg-zinc-950 dark:ring-zinc-800/80 dark:shadow-none";
 
-function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals, base, span }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null; base?: string; span?: string | null }) {
+function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals, base, span, x, onHoverKey, onOpen }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null; base?: string; span?: string | null; x?: string; onHoverKey?: (k: unknown) => void; onOpen?: (row: Row) => void }) {
   if (stats.length === 0) return null;
   if (cards) {
     return (
       <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stack ? "" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
         {stats.map((s) => (
           <div key={s.label} className={cn(CARD, "min-w-0")}>
-            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} />
+            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
           </div>
         ))}
       </div>
@@ -395,7 +420,7 @@ function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false
       )}
     >
       {stats.map((s) => (
-        <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} />
+        <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
       ))}
     </div>
   );
@@ -1102,9 +1127,11 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
     [visual, panelIndex, tables],
   );
   const single = panelIndex !== undefined || charts.length === 1;
+  // the column a chart names each row by: a figure that is one row finds that row's mark by it
+  const rowX = charts.find(({ p }) => isChart(p))?.p.x;
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
-      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} />}
+      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} x={rowX} onHoverKey={onHoverKey} onOpen={canDrill ? onPick : undefined} />}
       {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>
