@@ -8,6 +8,7 @@ import { formatNumber } from "@/components/explorer-v2/format";
 import type { DrillAnswer } from "@/lib/explorer-query/types";
 import type { Selection } from "@/lib/explorer-query/selection";
 import { RecordPlot, ResultTable, type Row, isTxList } from "./QueryRows";
+import { drillCut } from "./drill-plot";
 import { TxCards } from "./QueryInspector";
 
 /* A drill is a zoom, not a new section below the fold. The chart's own
@@ -24,6 +25,8 @@ export interface OpenDrill {
   error: string | null;
   /** the selection on the level above, handed back on the way up */
   prev: Selection;
+  /** the bucket of the opened mark, in unix seconds, when it is a time: its records stand across all of it */
+  span?: [number, number] | null;
 }
 
 /** the trail: "All <answer> › <picked>"; every crumb but the last goes back */
@@ -104,7 +107,7 @@ export function DrillView({
     <div className="flex flex-col gap-2">
       {tx && (
         <div className="-mx-5 md:-mx-6 [&>div]:border-b-0">
-          <RecordPlot rows={result.rows} names={names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={onHoverTx} />
+          <RecordPlot rows={result.rows} names={names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={onHoverTx} span={drill.span} cut={drillCut(drill.answer.sql, result.rowCount)} />
         </div>
       )}
       <div className="-mx-3">

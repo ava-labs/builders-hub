@@ -14,6 +14,7 @@ import { CARD, QueryVisual, fmt, nameFor } from "@/components/explorer-v2/evm/Qu
 import { NoteText, PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
 import { QueryInspector, RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
 import { Crumbs, DrillView, ZoomStage, type OpenDrill } from "@/components/explorer-v2/evm/QueryZoom";
+import { bucketOf } from "@/components/explorer-v2/evm/drill-plot";
 import { NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "@/components/explorer-v2/evm/query-client";
 import { askChainsOf, queryHref, routeFor, scopeOf, sentOf, towerOfRow, towersOf, type AskChain, type AskThread } from "@/components/explorer-v2/network/ask-route";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
@@ -354,7 +355,7 @@ export function AskWindow({
       return;
     }
     const title = fillTitle(answer.drill.title, row, answer.names);
-    setDrill({ title, row, index, answer: null, error: null, prev: [] });
+    setDrill({ title, row, index, answer: null, error: null, prev: [], span: bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []) });
     try {
       const out = await postQuery<DrillAnswer>({ chainId: on.chainId, drill: { sql: answer.drill.sql, row } });
       setDrill((d) => (d && d.index === index ? { ...d, answer: out } : d));

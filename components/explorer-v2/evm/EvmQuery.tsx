@@ -23,6 +23,7 @@ import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
+import { bucketOf } from "./drill-plot";
 import { QueryLoader } from "./QueryLoader";
 import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
 import { QueryMonitor } from "./QueryMonitor";
@@ -482,7 +483,7 @@ function QueryPage({
         return;
       }
       const title = fillTitle(answer.drill.title, row, answer.names);
-      setDrill({ title, row, index, answer: null, error: null, prev: sel });
+      setDrill({ title, row, index, answer: null, error: null, prev: sel, span: bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []) });
       setSel([]);
       try {
         const out = await post<DrillAnswer>({ drill: { sql: answer.drill.sql, row } });
