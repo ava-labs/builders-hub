@@ -77,7 +77,7 @@ export type QueryEvent =
   | { type: "answer"; answer: QueryAnswer }
   | { type: "error"; error: string; status: number };
 
-const HARD = /\b(compar\w*|vs\.?|versus|previous|prior|before|than|overlay|against|ratio|correlat\w*|relative|join|both|growth|change[sd]?|week over|day over|trend|why|each)\b/i;
+const HARD = /\b(compar\w*|vs\.?|versus|previous|prior|before|than|overlay|against|ratio|correlat\w*|relative|join|both|growth|change[sd]?|(?:day|week|month|year) over (?:day|week|month|year)|trend|why|each)\b/i;
 
 /** a plain question about one thing goes to the fast writer */
 export function pickWriter(prompt: string, history: Turn[]): Writer {
