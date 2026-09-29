@@ -9,7 +9,7 @@ import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { Board, ChartBoard, EmptyRow, HEAD, LoadMore, ROW, RowSkeleton, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { useExplorerTimeRange } from "@/components/explorer-v2/time-range";
-import { short } from "@/components/explorer-v2/format";
+import { short } from "@/lib/explorer-query/values";
 import type { FlowsResponse, Move, ProtocolFlow } from "@/lib/defi/flows";
 import { DEFI_SCOPE, DEFI_STYLE, groupTone, signedUsd, usd } from "./palette";
 import { actionOf, flowGroup, flowLabel } from "./flow-labels";

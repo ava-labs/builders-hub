@@ -1,7 +1,8 @@
 import "server-only";
 import { chainRpc } from "./head";
 import { tokenList } from "./enrich";
-import { TRANSFER_TOPIC, addressesOf, mayBeEvents, mayBeMonitor, minAmountOf, monitorWords, parseMonitor, short, tokenOf, type MonitorItem, type MonitorRead, type MonitorSpec, type MonitorToken, type TokenMeta } from "./monitor";
+import { TRANSFER_TOPIC, addressesOf, mayBeEvents, mayBeMonitor, minAmountOf, monitorWords, parseMonitor, tokenOf, type MonitorItem, type MonitorRead, type MonitorSpec, type MonitorToken, type TokenMeta } from "./monitor";
+import { short } from "./values";
 import { MONITOR_CHAIN_ID, MONITOR_EVENTS, decodeMonitorLog, eventsFor, fitsMonitorLog, type MonitorEventDef } from "./monitor-events";
 
 /* A monitor's read of its chain (monitor.ts says what a monitor is): the chain's own RPC, block by block. A first

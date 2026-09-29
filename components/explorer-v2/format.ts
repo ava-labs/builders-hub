@@ -80,11 +80,6 @@ export function truncate(v: string | undefined, len = 10): string {
   return `${v.slice(0, len)}…${v.slice(-4)}`;
 }
 
-/** "0x1234…abcd": an address by its first 6 and last 4 characters, cut at any length (truncate keeps a short one whole) */
-export function short(a: string): string {
-  return `${a.slice(0, 6)}…${a.slice(-4)}`;
-}
-
 export function formatBytes(n: number | undefined): string {
   if (n === undefined) return "—";
   if (n < 1024) return `${n} B`;
