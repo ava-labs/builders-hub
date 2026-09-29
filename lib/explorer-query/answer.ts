@@ -3,7 +3,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
-import { oneProtocol, protocolScope, unitName } from "./checks";
+import { protocolScope, unitName } from "./checks";
 import { familyQuestion } from "./families";
 import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
@@ -270,7 +270,6 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let datedOnce = false;
     let windowOnce = false;
     let scopeOnce = false;
-    let coverOnce = false;
     let unitOnce = false;
     let noteOnce = false;
     let tested = 0;
@@ -376,12 +375,6 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         if (unscoped) {
           scopeOnce = true;
           return fail(unscoped, 0);
-        }
-        // an answer for one of the protocols a question names says so in its note: ask once
-        const partial = coverOnce ? null : oneProtocol(sql, note, questions, a.chainId);
-        if (partial) {
-          coverOnce = true;
-          return fail(partial, 0);
         }
         // a value column holds the unit its name says: ask once
         const misnamed = unitOnce ? null : unitName(sql, a.chainId);

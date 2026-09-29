@@ -6,10 +6,10 @@ import { createHash } from 'node:crypto';
 import { recipeKey } from '@/lib/explorer-query/cache';
 import { enrichNames, fillDrill } from '@/lib/explorer-query/enrich';
 import { guardSql, shadowedAlias } from '@/lib/explorer-query/guard';
-import { AAVE_ASSETS, AAVE_SLUG, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS, lendingQuestion, marketsWith, namesIn, pricedNote, zeroUsd } from '@/lib/explorer-query/lending';
+import { AAVE_ASSETS, AAVE_SLUG, debtsWith, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS, lendingQuestion, marketsWith, namesIn, pricedNote, zeroUsd } from '@/lib/explorer-query/lending';
 import { collapseMacros, expandMacros } from '@/lib/explorer-query/macros';
 import { dexQuestion, promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
-import { namedIn, oneProtocol, protocolScope, unitName } from '@/lib/explorer-query/checks';
+import { namedIn, protocolScope, unitName } from '@/lib/explorer-query/checks';
 import { SQL_BUDGET, withSources } from '@/lib/explorer-query/sources';
 
 /** the query service's screen (stats-api query.go, forbiddenRe): one of these words, then a space or "(" */
@@ -118,9 +118,17 @@ describe('the lending shorthand', () => {
     expect(aave.ok && !aave.sql.includes('qi_mint_t') && aave.sql.includes('supply_t')).toBe(true);
   });
 
-  it('takes one protocol for debts and markets, and refuses a slug it has no protocol for', () => {
-    expect(refused('$DEBTS() SELECT 1 FROM debts')).toMatch(/^\$DEBTS covers one protocol at a time: \$DEBTS\('/);
-    expect(refused('$MARKETS() SELECT 1 FROM markets')).toMatch(/^\$MARKETS covers one protocol at a time/);
+  it('reads both protocols for debts and markets with no slug, and refuses a slug it has no protocol for', () => {
+    for (const [call, table] of [['$DEBTS()', 'debts'], ['$MARKETS()', 'markets']]) {
+      const x = expandMacros(`${call} SELECT protocol, count() AS n FROM ${table} GROUP BY protocol`, 43114);
+      const sql = x.ok ? x.sql : '';
+      expect(sql, call).toContain(`'${AAVE_SLUG}' AS protocol`);
+      expect(sql, call).toContain('accrue_t');
+      expect(sql, call).toContain('UNION ALL');
+    }
+    // one protocol's WITH is the same text as before both could share a query
+    expect(debtsWith(AAVE_SLUG)).not.toContain('qi_core');
+    expect(debtsWith(BENQI)).not.toContain('aave_pool');
     expect(refused(`$LEND(${today}, 'pharaoh') SELECT 1 FROM actions`)).toMatch(/^'pharaoh' is not a protocol's slug; the slugs are /);
     expect(refused(`$DEX(${today}, '${BENQI}') SELECT 1 FROM legs`)).toMatch(/^'benqi' is not a protocol's slug/);
     expect(refused(`$PRICES(${today}, '${BENQI}') SELECT 1 FROM lpx`)).toMatch(/^\$PRICES takes no slug: /);
@@ -163,13 +171,15 @@ describe('the lending shorthand', () => {
     expect(LENDING_MARKETS.filter((m) => m.market.endsWith('00'))).toEqual([]);
   });
 
-  it("reads Benqi's reserves from its events, and both protocols' markets fit in one query", async () => {
+  it("reads Benqi's reserves from its events, and both protocols' markets and debts fit in one query", async () => {
     expect(marketsWith(AAVE_SLUG)).toContain('greatest(supplied_usd - borrowed_usd, 0) AS tvl_usd');
     const benqi = marketsWith(BENQI);
     for (const t of ['reserves_added_t', 'reserves_reduced_t', 'reserve_factor_t', 'accrue_t']) expect(benqi).toContain(t);
-    const both = guardSql(`${marketsWith()} SELECT protocol, supplied_usd FROM markets`, 43114);
-    expect(both.ok ? '' : both.error).toBe('');
-    if (both.ok) expect(Buffer.byteLength((await withSources(both.sql, 43114)).sql)).toBeLessThanOrEqual(SQL_BUDGET);
+    for (const sql of ['$MARKETS() SELECT protocol, round(sum(supplied_usd), 2) AS supplied_usd FROM markets GROUP BY protocol', '$DEBTS() SELECT protocol, count() AS debts, round(sum(usd), 2) AS debt_usd FROM debts GROUP BY protocol']) {
+      const both = guardSql(sql, 43114);
+      expect(both.ok ? '' : both.error, sql).toBe('');
+      if (both.ok) expect(Buffer.byteLength((await withSources(both.sql, 43114)).sql), sql).toBeLessThanOrEqual(SQL_BUDGET);
+    }
   });
 });
 
@@ -346,7 +356,10 @@ describe('a question that names a protocol', () => {
     // a shorthand with no slug reads both protocols a question compares, and not one it names alone
     expect(scope(`$LEND(${today}) SELECT protocol, t, usd FROM actions WHERE action = 'supply' ORDER BY usd DESC LIMIT 20`, 'What were the largest deposits into Aave and Benqi today?')).toBeNull();
     expect(scope(`$DEX(${today}) SELECT protocol, round(sum(usd)) AS v FROM legs GROUP BY protocol`, 'Uniswap or Pharaoh: which had more volume today?')).toBeNull();
-    expect(scope(`$MARKETS('${AAVE_SLUG}') SELECT protocol, asset, utilization_pct FROM markets`, 'What is the utilization of each lending market on Aave and Benqi?')).toBeNull();
+    // one protocol's markets for a question about both is sent back to the same shorthand with no slug
+    expect(scope(`$MARKETS('${AAVE_SLUG}') SELECT protocol, asset, utilization_pct FROM markets`, 'What is the utilization of each lending market on Aave and Benqi?')).toMatch(
+      /^the question names Benqi, .* The question names Aave and Benqi: open the query with \$MARKETS\(\) and no slug, which reads all of them/,
+    );
     expect(scope(`$LEND(${today}, '${BENQI}') SELECT t, usd FROM actions WHERE action = 'supply' ORDER BY usd DESC LIMIT 20`, 'What were the largest deposits into Aave and Benqi today?')).toMatch(
       /^the question names Aave, .* The question names Aave and Benqi: open the query with \$LEND\(start\) and no slug, which reads all of them/,
     );
@@ -366,49 +379,24 @@ describe('a question that names a protocol', () => {
   });
 });
 
-describe('an answer for one of two protocols', () => {
-  const q = ['What is the utilization of each lending market on Aave and Benqi?'];
-  const sql = `$MARKETS('${AAVE_SLUG}') SELECT protocol, asset, utilization_pct FROM markets`;
-
-  it('says in its note which protocol it covers, and offers the other next', () => {
-    expect(oneProtocol(sql, 'Utilization of each market on Aave and Benqi.', q, 43114)).toBe(
-      `the question names Aave and Benqi, and $MARKETS covers one protocol per query, so this answer covers Aave only. Add both of these sentences to the note, as they are: "This answer covers Aave only." and "Ask for Benqi's markets next." Then call render_chart again with the same SQL.`,
-    );
-    expect(oneProtocol(sql, "Aave's markets only; ask for Benqi's markets next.", q, 43114)).toBeNull();
-    for (const note of ["This answer covers Aave only. Ask for Benqi's markets next.", "Only the Aave reserves are shown; ask for Benqi's markets next.", 'Aave v3 only. Benqi is next.'])
-      expect(oneProtocol(sql, note, q, 43114), note).toBeNull();
-    // a replay of L07 answered the send-back with the offer alone, and an only of another sense says nothing of the protocol
-    for (const note of [
-      "Aave v3 has 18 reserves. Supplied and borrowed are in USD at current prices. TVL (total value locked) is supplied less borrowed. Tokens with no price show no values. Ask for Benqi's markets next.",
-      "Only priced tokens show values. Ask for Benqi's markets next.",
-      "Aave's 18 reserves, with only priced tokens valued. Ask for Benqi's markets next.",
-    ])
-      expect(oneProtocol(sql, note, q, 43114), note).toMatch(/^the question names Aave and Benqi, and \$MARKETS covers one protocol per query/);
-    expect(oneProtocol(sql, 'Utilization of each Aave market.', ['What is the utilization of each Aave market?'], 43114)).toBeNull();
-    expect(oneProtocol(`$LEND(${today}) SELECT count() AS n FROM actions`, 'x', q, 43114)).toBeNull();
-    expect(oneProtocol(sql, 'x', q, 43113)).toBeNull();
-  });
-});
-
 describe('one shorthand typed for two protocols', () => {
   const refused = (sql: string) => {
     const g = guardSql(sql, 43114);
     return g.ok ? '' : g.error;
   };
-  const q = ['How much is supplied and borrowed on Aave and Benqi, and what is their TVL?'];
 
-  it('is told to answer one protocol and name the other next, with the two sentences to copy', () => {
+  it('is told that the shorthand with no slug reads both', () => {
     // a replay of L07 spent 4 of its 8 steps on one query for both: WITH aave AS ($MARKETS(…) …), a second $MARKETS in a
     // WITH of its own, and then figures typed in by hand
-    const say = `$MARKETS covers one protocol per query, and a query takes one shorthand, so $MARKETS('${AAVE_SLUG}') and $MARKETS('${BENQI}') cannot share one: both at once are too long to send. Answer Aave alone, with $MARKETS('${AAVE_SLUG}') at the query's start and no other shorthand, and add both of these sentences to the note, as they are: "This answer covers Aave only." and "Ask for Benqi's markets next."`;
+    const say = `a query takes one shorthand, once, at its start, and $MARKETS with no slug reads every protocol: open the query once with $MARKETS() and keep protocol as a column, or filter protocol IN ('${AAVE_SLUG}', '${BENQI}')`;
     for (const sql of [
       `WITH aave AS ($MARKETS('${AAVE_SLUG}') SELECT sum(supplied_usd) AS supplied_usd FROM markets), benqi AS ($MARKETS('${BENQI}') SELECT sum(supplied_usd) AS supplied_usd FROM markets) SELECT * FROM aave UNION ALL SELECT * FROM benqi`,
       `$MARKETS('${AAVE_SLUG}'), b AS ($MARKETS('${BENQI}') SELECT sum(supplied_usd) AS supplied_usd FROM markets) SELECT sum(supplied_usd) AS supplied_usd FROM markets UNION ALL SELECT supplied_usd FROM b`,
     ])
       expect(refused(sql)).toBe(say);
-    expect(refused(`$DEBTS('${BENQI}'), a AS ($DEBTS('${AAVE_SLUG}') SELECT count() AS n FROM debts) SELECT count() AS n FROM debts`)).toMatch(/^\$DEBTS covers one protocol per query, .* "This answer covers Benqi only\." and "Ask for Aave's debts next\."$/);
-    // the note it asks for is the one the note check passes
-    expect(oneProtocol(`$MARKETS('${AAVE_SLUG}') SELECT sum(supplied_usd) AS supplied_usd FROM markets`, "Aave's supply now. This answer covers Aave only. Ask for Benqi's markets next.", q, 43114)).toBeNull();
+    expect(refused(`$DEBTS('${BENQI}'), a AS ($DEBTS('${AAVE_SLUG}') SELECT count() AS n FROM debts) SELECT count() AS n FROM debts`)).toBe(
+      `a query takes one shorthand, once, at its start, and $DEBTS with no slug reads every protocol: open the query once with $DEBTS() and keep protocol as a column, or filter protocol IN ('${BENQI}', '${AAVE_SLUG}')`,
+    );
     // a shorthand that takes no slug reads both, and any other second shorthand is refused as before
     expect(refused(`$LEND(${today}, '${AAVE_SLUG}'), b AS ($LEND(${today}, '${BENQI}') SELECT count() AS n FROM actions) SELECT count() AS n FROM actions`)).toBe(
       `a query takes one shorthand, once, at its start, and $LEND with no slug reads every protocol: open the query once with $LEND(start) and keep protocol as a column, or filter protocol IN ('${AAVE_SLUG}', '${BENQI}')`,
@@ -421,9 +409,9 @@ describe('one shorthand typed for two protocols', () => {
     // replays of L07 summed each market's figures by hand into a query that reads no table
     const typed = "the query reads no table, so its figures are typed in, and a figure copied from a test's rows is stale on every later run";
     expect(refused("SELECT 'Aave' AS protocol, 186289990.94 + 99968525.73 AS supplied_usd, 1200.5 AS tvl_usd UNION ALL SELECT 'Benqi' AS protocol, 101.5 + 2.25 AS supplied_usd, 3.5 AS tvl_usd")).toBe(
-      `${typed}. $MARKETS covers one protocol per query, so answer Aave alone, with $MARKETS('${AAVE_SLUG}') at the query's start, and add both of these sentences to the note, as they are: "This answer covers Aave only." and "Ask for Benqi's markets next."`,
+      `${typed}. $MARKETS() with no slug reads both protocols: open the query with it and keep protocol as a column`,
     );
-    expect(refused(`SELECT '${BENQI}' AS protocol, 12.5 AS debt_usd UNION ALL SELECT '${AAVE_SLUG}', 30.25`)).toMatch(/\$DEBTS covers one protocol per query, so answer Benqi alone, .* "This answer covers Benqi only\." and "Ask for Aave's debts next\."$/);
+    expect(refused(`SELECT '${BENQI}' AS protocol, 12.5 AS debt_usd UNION ALL SELECT '${AAVE_SLUG}', 30.25`)).toBe(`${typed}. $DEBTS() with no slug reads both protocols: open the query with it and keep protocol as a column`);
     expect(refused("SELECT 'Aave v3' AS protocol, 1200.5 AS deposits_usd UNION ALL SELECT 'Benqi', 300.25")).toBe(`${typed}. $LEND and $LIQUIDATIONS with no slug read both protocols: open the query with one of them and keep protocol as a column`);
     // one protocol or none, and any chain but the mainnet C-Chain, keep the plain refusal
     for (const [sql, chainId] of [["SELECT 'Aave' AS protocol, 1200.5 AS supplied_usd", 43114], ['SELECT 1 AS n', 43114], ["SELECT 'Aave' AS a, 'Benqi' AS b, 1.5 AS supplied_usd", 43113]] as const) {

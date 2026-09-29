@@ -12,7 +12,7 @@ vi.mock('@/lib/explorer-query/clickhouse', () => ({
 vi.mock('@/lib/explorer-query/cache', () => ({ getRecipe: vi.fn(async () => null), putRecipe: vi.fn(async () => {}), recipeKey: vi.fn(() => 'key') }));
 vi.mock('@/lib/explorer-query/prompt', () => ({ dexQuestion: vi.fn(() => false), pchainPrompt: vi.fn(() => 'system'), systemPrompt: vi.fn(() => 'system'), userTurn: vi.fn((_c: number, p: string) => p) }));
 vi.mock('@/lib/explorer-query/guard', () => ({ MAX_ROWS: 5000, guardSql: vi.fn((sql: string) => ({ ok: true, sql })), literalWindow: vi.fn(() => null), negativeFigure: vi.fn(() => null) }));
-vi.mock('@/lib/explorer-query/checks', () => ({ protocolScope: vi.fn(() => null), oneProtocol: vi.fn(() => null), unitName: vi.fn(() => null) }));
+vi.mock('@/lib/explorer-query/checks', () => ({ protocolScope: vi.fn(() => null), unitName: vi.fn(() => null) }));
 vi.mock('@/lib/explorer-query/enrich', () => ({ fillDrill: vi.fn((t: string, row: Record<string, unknown>) => ({ ok: true, sql: t.replace('{{token}}', `'${String(row.token)}'`) })), nameRows: vi.fn(async () => ({})) }));
 vi.mock('@/lib/explorer-query/cut', () => ({ cutOf: vi.fn(() => null), newestSql: vi.fn(() => null), totalsOf: vi.fn(async () => null) }));
 vi.mock('@/lib/explorer-query/sources', () => ({ versionLines: vi.fn(async () => []) }));
