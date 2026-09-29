@@ -8,6 +8,7 @@ import { CREATED, FIRST_DAY, QUOTES, U, pxCte, topic } from "./macros";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS, dexFamilies, type DexFamily } from "./protocols";
 import { AAVE_ASSETS, AAVE_SLUG, LENDING_CHAIN_ID, LENDING_MARKETS, LENDING_PROTOCOLS } from "./lending";
 import { FAMILY_CHAIN_ID, OPENTRADE_POOLS, SILOS, VAULTS } from "./families";
+import { sqlWindow, windowWords } from "./scope";
 import { knownLines, refLine, refSchema } from "./sources";
 import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
 
@@ -50,14 +51,29 @@ function seriesTurn(prompt: string): string {
   return units.length === 1 && !TIME_WORD.test(prompt.replace(BUCKET, " ")) ? ` The question names no window: ${SERIES_TURN[units[0]]}.` : "";
 }
 
+/** the window the chart before a follow-up read, for the follow-up's turn: a follow-up that changed the period
+    ("per hour instead") took the system prompt's default window for that period, not the chart's (the follow-up
+    audit's T01 went from 6 hours to 24, and T02's start moved 7 hours) */
+function keptTurn(before: string, now: Date): string {
+  const w = sqlWindow(before, now.getTime());
+  if (!w || w === "unknown") return "";
+  const at = (t: number) => new Date(t).toISOString().slice(0, 16).replace("T", " ");
+  const span = w.open ? `from ${at(w.start)} UTC to now` : `from ${at(w.start)} to ${at(w.end)} UTC`;
+  // the window's own words when they are a phrase a query is written from (in the last 6 hours, this week)
+  const words = windowWords(w, now.getTime());
+  return ` This question follows the chart before it, which read ${/^(?:since|from)\b/.test(words) ? span : `${words} (${span})`}: keep that window unless this question names another.`;
+}
+
 /** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
     the system prompt, so the prompt's version and cache stay the same from day to day. On an EVM chain a series
-    question on its own (a follow-up keeps its chart's window) is told its default window there too. Fuji's turn
-    stays as it was */
-export function userTurn(chainId: number, prompt: string, now = new Date(), alone = true): string {
+    question on its own is told its default window there too, and a follow-up the window of the chart before it
+    (before: that chart's SQL). Fuji's turn stays as it was */
+export function userTurn(chainId: number, prompt: string, now = new Date(), alone = true, before?: string): string {
   if (isFuji(chainId)) return prompt;
-  const series = alone && targetOf(chainId).kind !== "pchain" ? seriesTurn(prompt) : "";
-  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}\n\n${prompt}`;
+  const evm = targetOf(chainId).kind !== "pchain";
+  const series = alone && evm ? seriesTurn(prompt) : "";
+  const kept = !alone && evm && before ? keptTurn(before, now) : "";
+  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}\n\n${prompt}`;
 }
 
 /** how an answer hands back its chart; the same for every target */

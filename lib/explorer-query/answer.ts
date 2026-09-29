@@ -229,8 +229,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     // the shorthand in place of the WITH it wrote, so the SELECT after it stays in view
     messages.push({ role: "assistant", content: `Chart "${String(t.title).slice(0, 120)}" from:\n${collapseMacros(String(t.sql), a.chainId).slice(0, 3000)}` });
   }
-  // a follow-up keeps the window of the chart it refines, so only a question on its own is told a series default
-  const question = userTurn(a.chainId, a.prompt, new Date(), !messages.length);
+  // a follow-up keeps the window of the chart it refines: a question on its own is told a series default, a follow-up
+  // the window of the chart before it
+  const before = [...a.history].reverse().find((t) => t?.prompt && t?.sql)?.sql;
+  const question = userTurn(a.chainId, a.prompt, new Date(), !messages.length, before ? String(before) : undefined);
   messages.push({ role: "user", content: question });
 
   const timings: StepTiming[] = [];
