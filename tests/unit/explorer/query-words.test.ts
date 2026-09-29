@@ -5,7 +5,7 @@ import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
 import type { QueryEvent } from '@/lib/explorer-query/answer';
 import { MAX_ROWS } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { codeWords, figures, plainLabel, plainWords, readerSpec, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
+import { codeWords, figures, plainLabel, plainWords, readerSpec, rowWords, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
 
 const totals = (rows: number): Totals => ({ rows, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} });
 const result = (rows: Record<string, unknown>[], truncated = false) => ({ columns: [], rows, rowCount: rows.length, elapsedMs: 0, rowsRead: 0, bytesRead: 0, truncated, ranAt: '' });
@@ -176,6 +176,22 @@ describe('reader words', () => {
     expect(withFullHex('It went to 0x278d858f....', [a])).toBe(`It went to ${a}.`);
     expect(withFullHex('It went to 0x9999…, twice.', [a])).toBeNull();
     expect(readerSpec({ stats: [], panels: [], callouts: ['0x278d858f… used 10.2B gas.'] }, [], [a]).callouts).toEqual([`${a} used 10.2B gas.`]);
+  });
+
+  it('keeps a snake_case name the rows hold, and still flags a column', () => {
+    const cols = ['contract', 'method', 'gas_used'];
+    const a = `0x30f7${'1'.repeat(36)}`;
+    // a name the rows hold as a value, and one the server gave an address (R06's contract)
+    const shown = rowWords([{ contract: a, method: 'exchange_underlying', gas_used: 10 }, { contract: null, method: 'swap', gas_used: 9 }], { contract: { [a]: 'POPA_SUBMISSIONS_TIERS' } });
+    expect([...shown]).toEqual(['exchange_underlying', 'POPA_SUBMISSIONS_TIERS']);
+    expect(codeWords('POPA_SUBMISSIONS_TIERS used 10.2B gas.', cols, shown)).toEqual([]);
+    expect(codeWords('POPA_SUBMISSIONS_TIERS has the most gas_used.', cols, shown)).toEqual(['gas_used']);
+    expect(codeWords('POPA_SUBMISSIONS_TIERS used 10.2B gas.', cols)).toEqual(['POPA_SUBMISSIONS_TIERS']);
+    // a value that is a column's name too is still a column
+    expect(codeWords('gas_used rose.', ['metric', 'gas_used'], rowWords([{ metric: 'gas_used' }]))).toEqual(['gas_used']);
+    const v: VisualSpec = { stats: [], panels: [], callouts: ['POPA_SUBMISSIONS_TIERS used 10.2B gas.', 'Its gas_used is 10.2B.'] };
+    expect(readerSpec(v, cols, [], shown).callouts).toEqual(['POPA_SUBMISSIONS_TIERS used 10.2B gas.']);
+    expect(plainLabel('Gas of POPA_SUBMISSIONS_TIERS, seen_7d', shown)).toBe('Gas of POPA_SUBMISSIONS_TIERS, seen 7d');
   });
 
   it('counts a callout as the page draws it, each full address and hash short', () => {

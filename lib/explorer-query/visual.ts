@@ -160,10 +160,24 @@ export function sqlNames(sql: string): string[] {
   return [...new Set(code.match(DIGITED) ?? [])];
 }
 
-/** the words a reader text must not hold: the SQL's snake_case names, its own names and comparisons, and settled */
-export function codeWords(text: string, names: readonly string[] = []): string[] {
+/** the snake_case words the reader sees with the rows: in their values and in the names the server gave them (a
+    contract called POPA_SUBMISSIONS_TIERS, a method remove_liquidity_one_coin). They are names, not the query's parts */
+export function rowWords(rows: readonly Record<string, unknown>[], names: Names = {}): Set<string> {
+  const out = new Set<string>();
+  const add = (v: unknown) => {
+    if (typeof v === "string") for (const w of v.match(SNAKE) ?? []) out.add(w);
+  };
+  for (const r of rows) Object.values(r).forEach(add);
+  for (const m of Object.values(names)) Object.values(m).forEach(add);
+  return out;
+}
+
+/** the words a reader text must not hold: the SQL's snake_case names, its own names and comparisons, and settled. A
+    snake_case word the reader sees with the rows (shown) stays, unless it names a column too */
+export function codeWords(text: string, names: readonly string[] = [], shown: ReadonlySet<string> = new Set()): string[] {
   const own = new Set(names);
-  return [...new Set([...(text.match(SNAKE) ?? []), ...(text.match(DIGITED) ?? []).filter((w) => own.has(w)), ...(text.match(COMPARE) ?? []), ...(text.match(SETTLED) ?? [])])];
+  const snake = (text.match(SNAKE) ?? []).filter((w) => own.has(w) || !shown.has(w));
+  return [...new Set([...snake, ...(text.match(DIGITED) ?? []).filter((w) => own.has(w)), ...(text.match(COMPARE) ?? []), ...(text.match(SETTLED) ?? [])])];
 }
 
 /** reader text in the page's words: a bucket reads as a period, and a sentence with a word the page never shows is left out */
@@ -178,8 +192,9 @@ export function withoutCode(text: string, names: readonly string[] = []): string
     .join(" ");
 }
 
-/** a label in the reader's words: seen_7d becomes seen 7d, settled becomes final, and a bucket a period */
-export const plainLabel = (s: string) => plainWords(s.replace(SNAKE, (w) => w.replace(/_/g, " ")).replace(/\b([Ss])ettled\b/g, (_, c: string) => (c === "S" ? "Final" : "final")));
+/** a label in the reader's words: seen_7d becomes seen 7d, settled becomes final, and a bucket a period. A name the
+    reader sees (shown) stays as written */
+export const plainLabel = (s: string, shown: ReadonlySet<string> = new Set()) => plainWords(s.replace(SNAKE, (w) => (shown.has(w) ? w : w.replace(/_/g, " "))).replace(/\b([Ss])ettled\b/g, (_, c: string) => (c === "S" ? "Final" : "final")));
 
 /* An address in a reading is one the rows hold, written in full: the page
    shortens it. One a model shortened (0x1234…abcd, or its head alone:
@@ -222,14 +237,16 @@ function labelsOf(v: VisualSpec): string[] {
 }
 
 /** a visual in the reader's words: a snake_case name left in a label reads as words, and a callout that names a column,
-    or an address the rows do not hold, is left out */
-export function readerSpec(v: VisualSpec, names: readonly string[], held?: readonly string[]): VisualSpec {
-  const worded = <T extends { label: string }>(o: T): T => ({ ...o, label: plainLabel(o.label) });
+    or an address the rows do not hold, is left out. A name the rows hold (shown) stays as written */
+export function readerSpec(v: VisualSpec, names: readonly string[], held?: readonly string[], shown: ReadonlySet<string> = new Set()): VisualSpec {
+  const kept = new Set([...shown].filter((w) => !names.includes(w)));
+  const label = (s: string) => plainLabel(s, kept);
+  const worded = <T extends { label: string }>(o: T): T => ({ ...o, label: label(o.label) });
   return {
     ...v,
-    stats: v.stats.map((s) => ({ ...worded(s), ...(s.sub ? { sub: plainLabel(s.sub) } : {}) })),
-    panels: v.panels.map((p) => ({ ...p, title: plainLabel(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
-    callouts: v.callouts.map((c) => plainDecimals(plainWords(c))).filter((c) => codeWords(c, names).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
+    stats: v.stats.map((s) => ({ ...worded(s), ...(s.sub ? { sub: label(s.sub) } : {}) })),
+    panels: v.panels.map((p) => ({ ...p, title: label(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
+    callouts: v.callouts.map((c) => plainDecimals(plainWords(c))).filter((c) => codeWords(c, names, shown).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
   };
 }
 
@@ -679,8 +696,9 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
       // a callout that names a column or an address the rows do not hold, or that runs past CALLOUT_SHOWN as shown, is left out
       const names = input.columns.map((c) => c.name);
       const held = heldHex(input);
+      const shown = rowWords(input.rows, input.names);
       const shares = sharesOf(input);
-      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).map(plainDecimals).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).map((c) => withShares(c, shares)).slice(0, 3);
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).map(plainDecimals).filter((c) => codeWords(c, names, shown).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).map((c) => withShares(c, shares)).slice(0, 3);
       return { ok: true };
     },
   });
@@ -735,6 +753,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
   const sample = sampleOf(seen).rows;
   const shares = sharesOf(seen);
   const cols = new Set(input.columns.map((c) => c.name));
+  const shown = rowWords(input.rows, input.names);
 
   let visual: VisualSpec | null = null;
   let relabeled = false;
@@ -777,13 +796,13 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     const long = spec.callouts.map((c, i) => ({ i, n: shownLength(c) })).filter((c) => c.n > CALLOUT_SHOWN);
     if (long.length) return { error: `a callout holds ${CALLOUT_SHOWN} characters as the page shows it, with each address and hash counted as 11: ${long.map((c) => `callout ${c.i + 1} has ${c.n}`).join(", ")}. Shorten it and call design again.` };
     // the reader never sees the columns: labels and callouts that name one are written again once, then read as words
-    const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols]);
+    const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols], shown);
     if (named.length && !relabeled) {
       relabeled = true;
       return { error: `the labels or callouts have ${named.join(", ")}, words the page never shows: the reader never sees the columns, and a transaction is final, never settled. Use plain words ("Seen in 7 days", not seen_7d; final, not settled) and call design again.` };
     }
     // a share a callout misses by less than its last digit reads the one Figures gives
-    const read = readerSpec(spec, [...cols], heldHex(input));
+    const read = readerSpec(spec, [...cols], heldHex(input), shown);
     visual = { ...read, callouts: read.callouts.map((c) => withShares(c, shares)) };
     return { ok: true };
   };

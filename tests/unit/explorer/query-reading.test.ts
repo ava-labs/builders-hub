@@ -172,6 +172,28 @@ describe('designVisual', () => {
     expect(visualSpecSchema.safeParse({ ...spec, panels: [{ ...panel, target: 'to_address' }] }).success).toBe(true);
   });
 
+  it('takes a snake_case name the rows hold, and turns back a column name, as R06 had POPA_SUBMISSIONS_TIERS', async () => {
+    const named = {
+      ...input,
+      question: 'Top contracts by gas charged today',
+      columns: [{ name: 'contract', type: 'String' }, { name: 'gas_used', type: 'UInt64' }],
+      rows: [{ contract: `0x30f7${'1'.repeat(36)}`, gas_used: 10 }],
+      names: { contract: { [`0x30f7${'1'.repeat(36)}`]: 'POPA_SUBMISSIONS_TIERS' } },
+    };
+    const series = [{ ...spec.panels[0].series[0], column: 'gas_used', label: 'Gas charged', format: 'gas' }];
+    const panels = [{ ...spec.panels[0], title: 'Gas by contract', kind: 'hbar', x: 'contract', series }];
+    const results: unknown[] = [];
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      results.push(await opts.tools.design.execute({ ...spec, panels, callouts: ['POPA_SUBMISSIONS_TIERS has the most gas_used.'] }));
+      results.push(await opts.tools.design.execute({ ...spec, panels, stats: [], callouts: ['POPA_SUBMISSIONS_TIERS used 10 gas, the most of any contract.'] }));
+      return {};
+    }) as unknown as typeof generateText);
+    const out = await designVisual(named);
+    expect(results[0]).toMatchObject({ error: expect.stringContaining('have gas_used, words the page never shows') });
+    expect(results[1]).toEqual({ ok: true });
+    expect(out.visual.callouts).toEqual(['POPA_SUBMISSIONS_TIERS used 10 gas, the most of any contract.']);
+  });
+
   it('refuses a ranking whose names repeat in the rows, as a sender does in rows of pairs', async () => {
     const a = (c: string) => `0x${c.repeat(40)}`;
     const pairs = {
