@@ -10,6 +10,7 @@ import { formatNumber, truncate, ageShort } from "@/components/explorer-v2/forma
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
+import { useEnsName } from "@/components/explorer-v2/ens";
 import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
 import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
@@ -407,7 +408,9 @@ export function Party({
   full?: boolean;
 }) {
   const fixture = knownAddress(addr);
-  const label = name ?? fixture?.label;
+  // a verified or known name beats ENS; ENS beats hex
+  const ens = useEnsName(addr, !(token && chainId) && !name && !fixture);
+  const label = name ?? fixture?.label ?? ens;
   const inner =
     token && chainId ? (
       <TokenMark address={addr} chainId={chainId} token={token} size={14} />

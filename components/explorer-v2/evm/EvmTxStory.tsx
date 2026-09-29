@@ -8,6 +8,7 @@ import { truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { useVerifiedContracts } from "@/lib/sourcify-client";
 import { knownAddress } from "@/lib/evm-explorer";
+import { useEnsName } from "@/components/explorer-v2/ens";
 import { formatTokenAmount, useTokenPrices, usdOfToken, type TokenMap } from "@/lib/token-list";
 import { usdOfWei } from "./hooks";
 import { NativeMark, TokenLogo, TokenMark } from "./TokenMark";
@@ -26,7 +27,9 @@ const INK = "text-zinc-900 dark:text-zinc-50";
 function Name({ addr, base, chainId, tokens, names }: { addr: string; base: string; chainId: string; tokens: TokenMap; names: Map<string, { name: string | null }> }) {
   const a = addr.toLowerCase();
   const tok = tokens.get(a);
-  const label = names.get(a)?.name ?? knownAddress(a)?.label;
+  const named = names.get(a)?.name ?? knownAddress(a)?.label;
+  const ens = useEnsName(addr, !tok && !named);
+  const label = named ?? ens;
   return (
     <Link href={`${base}/address/${addr}`} className={cn("inline-flex items-center gap-1.5 align-baseline hover:text-[#E6212F]", INK)} title={addr}>
       {tok ? <TokenMark address={addr} chainId={chainId} token={tok} size={18} /> : label ? <span className="font-medium">{label}</span> : <span className="font-medium">{truncate(addr, 12)}</span>}

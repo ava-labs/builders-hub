@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
@@ -18,30 +18,12 @@ import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, use
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
 import { readRpc } from "@/lib/explorer-rpc";
+import { useEnsName } from "@/components/explorer-v2/ens";
 
 /* An address, read as a portfolio: what it holds (native balance, tokens,
    the dollar total) in a strip, who it is in a sheet, what it has done in
    tabs. Same grammar as the block and transaction pages. When the address
    is itself a token contract the page becomes the token's. */
-
-/* The address's primary ENS name, verified server-side to resolve back to
-   this address; null until known and when none is set. */
-function useEnsName(addr: string): string | null {
-  const [name, setName] = useState<{ addr: string; name: string | null } | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/explorer/ens?address=${addr}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((body: { name?: string | null } | null) => {
-        if (!cancelled) setName({ addr, name: body?.name ?? null });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [addr]);
-  return name?.addr === addr ? name.name : null;
-}
 
 type Tab = "holdings" | "txs" | "transfers" | "contract";
 const LABELS: Record<Tab, string> = { holdings: "Holdings", txs: "Transactions", transfers: "Token Transfers", contract: "Contract" };

@@ -8,14 +8,15 @@ import { normalize } from "viem/ens";
    endpoints). viem goes through the Universal Resolver, which follows
    offchain (CCIP-read) names and checks that a primary name resolves back
    to the same address. An EVM address is the same on every chain, so the
-   ETH address record is the one read. */
+   ETH address record is the one read. Each transport sends JSON-RPC batch
+   arrays, so a page's worth of reverse lookups costs one HTTP request. */
 
 const PUBLIC_RPCS = ["https://1rpc.io/eth", "https://eth.llamarpc.com", "https://ethereum-rpc.publicnode.com"];
 
 const client = createPublicClient({
   chain: mainnet,
   transport: fallback(
-    [process.env.ETHEREUM_RPC_URL, ...PUBLIC_RPCS].filter((u): u is string => !!u).map((u) => http(u, { timeout: 8_000 })),
+    [process.env.ETHEREUM_RPC_URL, ...PUBLIC_RPCS].filter((u): u is string => !!u).map((u) => http(u, { timeout: 8_000, batch: true })),
   ),
 });
 
@@ -52,4 +53,12 @@ export async function resolveEnsName(name: string): Promise<Address | null> {
 export async function lookupEnsName(address: string): Promise<string | null> {
   if (!isAddress(address)) return null;
   return cached(`a:${address.toLowerCase()}`, async () => (await client.getEnsName({ address: getAddress(address) })) ?? null);
+}
+
+/** Many addresses at once, for the explorer's tables. A lookup that fails
+ *  reads as no name, so one bad address does not blank the whole page. */
+export async function lookupEnsNames(addresses: string[]): Promise<Record<string, string | null>> {
+  const unique = [...new Set(addresses.filter((a) => isAddress(a)).map((a) => a.toLowerCase()))];
+  const names = await Promise.all(unique.map((a) => lookupEnsName(a).catch(() => null)));
+  return Object.fromEntries(unique.map((a, i) => [a, names[i]]));
 }

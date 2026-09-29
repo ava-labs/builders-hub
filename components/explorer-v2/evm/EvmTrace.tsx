@@ -26,6 +26,7 @@ import { useVerifiedContracts, decodeEventWithAbi, type SourcifyContract } from 
 import { decodeEventLog as registryDecodeEvent, decodeFunctionInput as registryDecodeInput } from "@/abi/event-signatures.generated";
 import { formatTokenAmount, usdOfToken, useSignatures, useTokenList, useTokenPrices, type SignatureHit, type TokenMap } from "@/lib/token-list";
 import { knownAddress } from "@/lib/evm-explorer";
+import { useEnsName } from "@/components/explorer-v2/ens";
 import {
   balanceChanges,
   contractsIn,
@@ -97,6 +98,9 @@ function V({ v, className }: { v: Val; className?: string }) {
     : v.kind === "string" ? C.str
     : v.kind === "name" ? "font-medium text-zinc-900 dark:text-zinc-50"
     : "text-zinc-600 dark:text-zinc-300";
+  // an unnamed address argument shows its ENS name, the address on hover
+  const ens = useEnsName(v.text, v.kind === "address");
+  if (ens) return <V v={{ ...v, kind: "name", text: ens, title: v.text }} className={className} />;
   const inner = <span className={cn(v.kind === "address" || v.kind === "number" ? "whitespace-nowrap" : "break-all", "tabular-nums", cls, className)} title={v.title}>{v.text}</span>;
   return v.href ? <Link href={v.href} className="hover:underline underline-offset-4" onClick={(e) => e.stopPropagation()}>{inner}</Link> : inner;
 }
@@ -151,10 +155,11 @@ function nameOf(addr: string | undefined, n: Names): string | null {
 
 /** a party in the trace: token mark, verified name, fixture, or a stub */
 function Who({ addr, n, className }: { addr: string | undefined; n: Names; className?: string }) {
+  const tok = addr ? n.tokens.get(addr.toLowerCase()) : undefined;
+  const named = nameOf(addr, n);
+  const ens = useEnsName(addr, !tok && !named);
   if (!addr) return <span className={cn("text-zinc-400 dark:text-zinc-500", className)}>∅</span>;
-  const a = addr.toLowerCase();
-  const tok = n.tokens.get(a);
-  const label = nameOf(addr, n);
+  const label = named ?? ens;
   return (
     <Link href={`${n.base}/address/${addr}`} className={cn("inline-flex min-w-0 items-center gap-1.5 hover:text-[#E6212F]", className)} title={addr} onClick={(e) => e.stopPropagation()}>
       {tok ? (
