@@ -92,6 +92,26 @@ describe('the flow and finite-value rules', () => {
   });
 });
 
+describe('the NFT and new-contract rules', () => {
+  const prompt = (chainId: number, dex = false) => systemPrompt({ chainId, chainName: 'a chain', symbol: 'AVAX', schema: '', coverage: null, dex });
+
+  it('read both NFT standards and every creation call on each EVM chain but Fuji, whose prompt stays as it was', () => {
+    // the night audit's G13 ranked ERC-721 collections alone, and its G18 counted the transactions that deploy a contract
+    for (const p of [prompt(43114), prompt(43114, true), prompt(432204)]) {
+      expect(p.split("TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62')")).toHaveLength(2);
+      expect(p).toContain("TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb')");
+      expect(p).toContain("Count them with startsWith(call_type, 'CREAT') AND tx_success");
+    }
+    expect(prompt(43113)).not.toContain('TransferSingle');
+    expect(prompt(43113)).not.toContain("'CREAT'");
+  });
+
+  it('teaches a creation filter the guard passes', () => {
+    const sql = "SELECT count() AS new_contracts FROM raw_traces WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 24 HOUR AND startsWith(call_type, 'CREAT') AND tx_success";
+    expect(guardSql(sql, 43114).ok).toBe(true);
+  });
+});
+
 describe('an address read from a log topic', () => {
   const padded = (tail: string) => `0x${'0'.repeat(24)}${tail}`;
 

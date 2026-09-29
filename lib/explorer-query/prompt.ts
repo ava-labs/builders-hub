@@ -303,6 +303,14 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
       : "An answer whose query counts active addresses (this uniqExactArray over raw_txs) says in its note that they are the senders and recipients of transactions, and that the explorer's own charts count more roles, so their figure is higher. An answer about other addresses (borrowers, depositors, holders, senders of a token) never says it.";
   // the query service cannot send an inf or a nan; Fuji's prompt stays as it was
   const finite = c && opts.chainId !== DEX_CHAIN_ID ? "" : " Divide by nullIf(x, 0), and wrap a ratio or a quantile in ifNotFinite(x, NULL): an inf or a nan in the rows fails the whole answer.";
+  // NFTs of both standards, and contracts created inside a transaction too: the writer read ERC-721 alone (ERC-1155
+  // held 8 of the true top 15 collections) and counted deploying transactions (457 of 2,088 new contracts). Fuji's
+  // prompt stays as it was
+  const created = isFuji(opts.chainId)
+    ? ""
+    : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.
+- New contracts: every contract is created by a CREATE or CREATE2 call in raw_traces, whether a transaction deploys it directly or a factory or an account-abstraction bundler creates it inside one (often most of them); the trace's \`to\` is the new contract. Count them with startsWith(call_type, 'CREAT') AND tx_success, and write the prefix 'CREAT': the server refuses the word CREATE even inside a string. raw_txs.contract_address holds only the direct deployments, so a question about new, created or deployed contracts reads raw_traces.
+`;
   const sym = opts.symbol.toLowerCase();
   return `You turn a question about ${opts.chainName} (${c ? "" : "an Avalanche L1, "}EVM chain id ${opts.chainId}, native token ${opts.symbol}) into one ClickHouse SELECT and a chart spec. You are precise, terse, and you never invent data.
 
@@ -326,7 +334,7 @@ ${
 ${known}`
     : `This chain's token contracts are not listed here: find them in raw_logs (group by address), and never assume a C-Chain token address. Token decimals are not in the tables; unless the question names them, count transfers rather than sum amounts.`
 }
-- Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
+${created}- Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
 - Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). ${activeNote}
 - ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
 ${dex ? dexRules() : ""}${lending ? lendingRules() : ""}
