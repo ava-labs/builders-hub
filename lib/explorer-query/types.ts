@@ -90,6 +90,8 @@ export interface StepTiming {
 export interface QueryAnswer {
   title: string;
   note: string;
+  /** the window the answer reads, as a figure over all of it says it ("last 6 hours"), or null for none */
+  span?: string | null;
   sql: string;
   chart: ChartSpec;
   drill: Drill | null;

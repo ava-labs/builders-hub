@@ -547,6 +547,7 @@ export function AskWindow({
                     names={names}
                     sym={sym}
                     totals={answer.totals}
+                    span={answer.span}
                     base={base}
                     canDrill={opens}
                     // a mark that is one thing on the chain opens that thing's own page, and a chain its tower

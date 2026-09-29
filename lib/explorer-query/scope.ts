@@ -62,7 +62,7 @@ const LIT_VALUE = /'(\d{4}-\d{2}-\d{2}[^']*)'/;
 const STEP = /^\s*([-+])\s*(?:INTERVAL\s+(\d+)\s+([A-Za-z]+?)S?\b|(\d+)\b)/i;
 
 /** a time the SQL writes, at `now`, and whether it is now less a span; NaN for anything else */
-function timeOf(expr: string, now: number): { t: number; rolling: boolean } {
+function timeOf(expr: string, now: number): { t: number; rolling: boolean; grain?: number } {
   const e = expr.trim();
   let t = NaN;
   let dated = false;
@@ -100,8 +100,17 @@ function timeOf(expr: string, now: number): { t: number; rolling: boolean } {
     rest = rest.slice(s[0].length);
   }
   if (rest.trim()) return { t: NaN, rolling: false };
+  // a start rounded to a bucket reads as the span back from now: toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR is the
+  // last 6 hours, and toStartOfDay(now()) - INTERVAL 30 DAY the last 30 days. The bucket moves the start by up to its
+  // own length, so a span of fewer than 4 buckets keeps its start's words: the slack a title's "last 30 days" gets
+  const fn = /^(\w+)\(\s*(?:now\(|\))/i.exec(base)?.[1].toLowerCase();
+  const grain = fn ? BUCKET_MS[fn] : undefined;
+  if (grain && back && now - (now % grain) - t >= 4 * grain) return { t, rolling: true, grain };
   return { t, rolling: /^now/i.test(base) && back };
 }
+
+/** the length of each bucket, up to a day, that a rolling start may be rounded to */
+const BUCKET_MS: Record<string, number> = { tostartofminute: MINUTE, tostartoffiveminutes: 5 * MINUTE, tostartoffifteenminutes: 15 * MINUTE, tostartofhour: HOUR, tostartofday: DAY, todate: DAY, today: DAY };
 
 /** a date-only upper bound written with <= or BETWEEN takes in its whole day */
 const wholeDay = (expr: string) => /^(?:'\d{4}-\d{2}-\d{2}'|toDate\(\s*'\d{4}-\d{2}-\d{2}'\s*\))$/i.test(expr.trim());
@@ -141,7 +150,7 @@ function unshort(code: string): string {
 export function sqlWindow(sql: string, now: number): Window | "unknown" | null {
   const code = unshort(sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""));
   for (const m of code.matchAll(TIME_COLUMN)) if (!TIME_AT.test(code.slice((m.index ?? 0) + m[0].length)) && !/^BETWEEN\b/i.test(code.slice((m.index ?? 0) + m[0].length))) return "unknown";
-  const lows: { t: number; rolling: boolean }[] = [];
+  const lows: { t: number; rolling: boolean; grain?: number }[] = [];
   const highs: number[] = [];
   const high = (expr: string, inclusive: boolean) => {
     if (nearNow(expr)) return;
@@ -163,7 +172,9 @@ export function sqlWindow(sql: string, now: number): Window | "unknown" | null {
   if (starts.length > 1 || ends.length > 1) return "unknown";
   const start = starts[0] * 1000;
   const rolling = lo.some((v) => v.rolling);
-  if (!ends.length) return start < now ? { start, end: now, open: true, rolling } : null;
+  // a start rounded to a bucket is that far from a round span back from now, at most
+  const grain = lo.find((v) => v.grain)?.grain;
+  if (!ends.length) return start < now ? { start, end: now, open: true, rolling, ...(grain ? { grain } : {}) } : null;
   const end = ends[0] * 1000;
   return end > start ? { start, end, open: false, rolling } : null;
 }
@@ -305,11 +316,14 @@ export function windowWords(w: Window, now: number): string {
   const near = (p: number, q: number) => Math.abs(p - q) <= Math.max(MINUTE, w.grain ?? 0);
   if (w.open) {
     if (w.rolling) {
+      // a start rounded to a bucket counts back from the current bucket's start, and comes out even: toStartOfHour(now())
+      // - INTERVAL 24 HOUR is the last 24 hours at any minute of the hour, and 90 days are not 13 weeks
+      const edge = w.grain ? now - (now % w.grain) : now;
       // one week reads as 7 days, and one day as 24 hours
       for (const [unit, ms] of [["week", WEEK], ["day", DAY], ["hour", HOUR], ["minute", MINUTE]] as const) {
-        const n = Math.round((now - w.start) / ms);
+        const n = Math.round((edge - w.start) / ms);
         if (n === 1 && unit !== "hour" && unit !== "minute") continue;
-        if (n >= 1 && near(w.start, now - n * ms)) return n === 1 ? `in the last ${unit}` : `in the last ${n} ${unit}s`;
+        if (n >= 1 && Math.abs(w.start - (edge - n * ms)) <= MINUTE) return n === 1 ? `in the last ${unit}` : `in the last ${n} ${unit}s`;
       }
     }
     if (near(w.start, dayOf(now))) return "today";
@@ -355,6 +369,13 @@ export function scoped(text: { title: string; note: string }, w: Window, now: nu
       title = `${before}${words}${title.slice(c.to)}`;
     }
   }
+  // a title of periods that names no window gets it after its periods: beside "Fees burned per 5 minutes" a total
+  // of 803 AVAX read as one period's, where it was 6 hours'. "Daily transactions" takes it at its end
+  const per = PERIODS.exec(title);
+  if (per && claimsOf(title, "title", now).length === 0) {
+    const at = /^per\b/i.test(per[0]) ? per.index + per[0].length : title.length;
+    title = `${title.slice(0, at)} ${words}${title.slice(at)}`;
+  }
   title = title.replace(/\s{2,}/g, " ").replace(/\s+([,.;:])/g, "$1").trim();
   // a title opens with a capital, but a name with capitals of its own keeps its case: sAVAX, not SAVAX
   if (!/^[a-z]+[A-Z]/.test(title)) title = title.charAt(0).toUpperCase() + title.slice(1);
@@ -377,6 +398,32 @@ export function staleLine(anchor: number, clock: number): string {
   return `The index ends at ${iso(anchor)} UTC, ${days} ${days === 1 ? "day" : "days"} ago, so the query reads up to then.`;
 }
 
+/** a title's periods: per 5 minutes, per day, daily */
+const PERIODS = /\bper (?:\d+[- ])?(?:second|minute|hour|day|week|month|year|block)s?\b|\b(?:hourly|daily|weekly|monthly)\b/i;
+
+/** the window an answer reads: the SQL's own, else the span of its rows. An index more than STALE_MS behind closes
+    it at the index's end, named in the reader's dates (at) */
+function readWindow(sql: string, rows: readonly Record<string, unknown>[], x: string | undefined, now: number, clock: number): { w: Window | null; stale: boolean; at: number } {
+  const win = sqlWindow(sql, now);
+  const w = win === "unknown" ? null : (win ?? rowsWindow(rows, x, now));
+  const stale = clock - now >= STALE_MS;
+  if (!w || !stale) return { w, stale, at: now };
+  // a window that runs to now ends where the index ends, a calendar one at the end of that day
+  const end = !w.open ? w.end : !w.rolling && w.start % DAY === 0 ? dayOf(now) + DAY : now;
+  return { w: { ...w, open: false, rolling: false, end }, stale, at: clock };
+}
+
+/** a time column held to the one time a subquery picks: the answer reads one snapshot, whatever window finds it */
+const ONE_TIME = /\b(?:\w+\.)?(?:block_time|block_timestamp|snapshot_time|observed_at)\s*=\s*\(\s*SELECT\b/i;
+
+/** the window a figure over the whole answer covers, in a figure's words ("last 6 hours", "today", "week of
+    September 21"), or null for a query that reads no window: a total says what it adds up */
+export function windowSpan(sql: string, rows: readonly Record<string, unknown>[], x: string | undefined, now: number, clock = now): string | null {
+  if (ONE_TIME.test(sql)) return null;
+  const { w, at } = readWindow(sql, rows, x, now, clock);
+  return w ? windowWords(w, at).replace(/^in the /, "") : null;
+}
+
 /** a title and a note that name the window the query reads. now is the query's own now (the index's last block when
     it runs behind); clock is the reader's. An index more than STALE_MS behind has its window closed at its end and
     named in the reader's dates, loses the sentences that say the window is still running, and says where it ends
@@ -384,16 +431,9 @@ export function staleLine(anchor: number, clock: number): string {
     closes at the end of the index's last day, so it reads as days: on March 25, not to March 25, 23:36 UTC */
 export function withWindow(said: { title: string; note: string }, sql: string, rows: readonly Record<string, unknown>[], x: string | undefined, now: number, clock = now): { title: string; note: string } {
   const text = STALE_SAID.test(said.note) ? { ...said, note: said.note.replace(STALE_SAID, "") } : said;
-  const win = sqlWindow(sql, now);
-  const w = win === "unknown" ? null : (win ?? rowsWindow(rows, x, now));
-  const stale = clock - now >= STALE_MS;
-  if (!stale) return w ? scoped(text, w, now) : text;
-  let out = text;
-  if (w) {
-    // a window that runs to now ends where the index ends, a calendar one at the end of that day
-    const end = !w.open ? w.end : !w.rolling && w.start % DAY === 0 ? dayOf(now) + DAY : now;
-    out = scoped(text, { ...w, open: false, rolling: false, end }, clock);
-  }
+  const { w, stale, at } = readWindow(sql, rows, x, now, clock);
+  if (!stale) return w ? scoped(text, w, at) : text;
+  const out = w ? scoped(text, w, at) : text;
   const note = sentences(out.note).filter((s) => s && !RUNNING.test(s)).join(" ");
   return { title: out.title, note: [staleLine(now, clock), note].filter(Boolean).join(" ") };
 }

@@ -59,9 +59,10 @@ function keptTurn(before: string, now: Date): string {
   if (!w || w === "unknown") return "";
   const at = (t: number) => new Date(t).toISOString().slice(0, 16).replace("T", " ");
   const span = w.open ? `from ${at(w.start)} UTC to now` : `from ${at(w.start)} to ${at(w.end)} UTC`;
-  // the window's own words when they are a phrase a query is written from (in the last 6 hours, this week)
+  // the window's own words when they are a phrase a query is written from (in the last 6 hours, this week). A start
+  // rounded to a bucket is given as its start alone: its words ("the last 30 days") would let the writer move it
   const words = windowWords(w, now.getTime());
-  return ` This question follows the chart before it, which read ${/^(?:since|from)\b/.test(words) ? span : `${words} (${span})`}: keep that window unless this question names another.`;
+  return ` This question follows the chart before it, which read ${w.grain || /^(?:since|from)\b/.test(words) ? span : `${words} (${span})`}: keep that window unless this question names another.`;
 }
 
 /* a question about one token's transfers is told in its turn to count the token's mints and burns: the system

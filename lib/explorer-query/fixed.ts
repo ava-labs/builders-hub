@@ -51,7 +51,7 @@ const CCHAIN: Fixed[] = [
   },
   {
     q: "Gas reserved per block against the limit",
-    title: "Gas reserved per block versus the limit",
+    title: "Gas reserved per block in the last 30 minutes, versus the limit",
     note: "Each point is one block in the last 30 minutes, showing the gas reserved (the sum of its transactions gas limits) against the block gas limit.",
     sql: "SELECT block_number, block_time AS t, gas_used AS gas_reserved, gas_limit FROM raw_blocks WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 30 MINUTE ORDER BY block_number\nLIMIT 2000",
     chart: { kind: "line", x: "t", series: [{ column: "gas_reserved", label: "Gas reserved", unit: "gas" }, { column: "gas_limit", label: "Gas limit", unit: "gas" }] },
@@ -69,7 +69,7 @@ const CCHAIN: Fixed[] = [
   },
   {
     q: "Top contracts by gas charged",
-    title: "Top contracts by gas charged",
+    title: "Top contracts by gas charged in the last 30 days",
     note: "Gas charged is summed from transaction receipts. The top 15 contracts over the last 30 days; the explorer names contracts from their verified code.",
     sql: "SELECT lower(concat('0x', hex(`to`))) AS contract, sum(gas_used) AS gas_charged, count() AS txs, uniqExact(`from`) AS senders, round(100 * sum(gas_used) / sum(sum(gas_used)) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_txs WHERE chain_id = 43114 AND block_time >= toStartOfDay(now()) - INTERVAL 30 DAY AND `to` IS NOT NULL GROUP BY `to` ORDER BY gas_charged DESC LIMIT 15",
     chart: { kind: "bar", x: "contract", series: [{ column: "gas_charged", label: "Gas charged", unit: "gas" }] },
