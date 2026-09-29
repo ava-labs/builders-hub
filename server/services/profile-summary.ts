@@ -100,9 +100,15 @@ export interface ProfileBadgeSummary {
   requirements: Requirement[];
 }
 
-// Courses removed from the Academy (FDE-154). Their badges stay in the DB so
-// the people who earned them keep them.
-const RETIRED_COURSE_IDS = new Set(["nft-deployment"]);
+// Courses removed from the Academy (FDE-154 NFT Deployment, FDE-153 the Entrepreneur
+// Academy). Their badges stay in the DB so the people who earned them keep them.
+const RETIRED_COURSE_IDS = new Set([
+  "nft-deployment",
+  "foundations-web3-venture",
+  "go-to-market",
+  "web3-community-architect",
+  "fundraising-finance",
+]);
 
 /** A badge every requirement of which is a removed course: nobody can earn it any more. */
 function isRetiredBadge(requirements: Requirement[]): boolean {

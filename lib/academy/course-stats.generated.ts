@@ -6,7 +6,7 @@
  */
 import type { CourseStats } from './course-outline';
 
-export type CourseStatsTrack = "avalanche-l1" | "blockchain" | "entrepreneur" | "team1";
+export type CourseStatsTrack = "avalanche-l1" | "blockchain" | "team1";
 
 export const COURSE_STATS: Record<CourseStatsTrack, Record<string, CourseStats>> = {
   "avalanche-l1": {
@@ -25,12 +25,6 @@ export const COURSE_STATS: Record<CourseStatsTrack, Record<string, CourseStats>>
     "/academy/blockchain/encrypted-erc": { modules: 5, lessons: 12 },
     "/academy/blockchain/solidity-foundry": { modules: 6, lessons: 30 },
     "/academy/blockchain/x402-payment-infrastructure": { modules: 4, lessons: 20 },
-  },
-  "entrepreneur": {
-    "/academy/entrepreneur/foundations-web3-venture": { modules: 4, lessons: 34 },
-    "/academy/entrepreneur/fundraising-finance": { modules: 3, lessons: 26 },
-    "/academy/entrepreneur/go-to-market": { modules: 3, lessons: 30 },
-    "/academy/entrepreneur/web3-community-architect": { modules: 2, lessons: 23 },
   },
   "team1": {
     "/academy/team1/team1-advanced-technical-member": { modules: 0, lessons: 4 },

@@ -36,3 +36,15 @@ describe("triggerCertificateWebhook after the NFT Deployment removal (FDE-154)",
     expect(posted()).toEqual(["https://hooks.example/encrypted-erc", "https://hooks.example/blockchain-graduation"]);
   });
 });
+
+describe("triggerCertificateWebhook after the Entrepreneur Academy removal (FDE-153)", () => {
+  it.each(["foundations-web3-venture", "go-to-market", "web3-community-architect", "fundraising-finance"])(
+    "sends nothing for %s, even with the Entrepreneur webhook env vars still set",
+    async (courseId) => {
+      vi.stubEnv("ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK", "https://hooks.example/entrepreneur-academy");
+      vi.stubEnv("CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK", "https://hooks.example/codebase-certificate");
+      await triggerCertificateWebhook("u1", "ada@example.com", "Ada Lovelace", courseId);
+      expect(posted()).toEqual([]);
+    },
+  );
+});

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   BookOpen,
-  GraduationCap,
   Users,
   Mail,
   Calendar,
@@ -173,18 +172,12 @@ export default function Page() {
               Free learning programs to feed your curiosity and advance your career.
             </p>
           </div>
-          <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
             <ProgramCard
               title="Avalanche Academy"
               description="Master blockchain development with hands-on courses designed specifically for the Avalanche ecosystem. From fundamentals to advanced L1 development, gain the skills to build the next generation of blockchain applications and get certified for free."
               icon={<BookOpen className="w-6 h-6 text-foreground" />}
               href="/academy"
-            />
-            <ProgramCard
-              title="Entrepreneur Academy"
-              description="Learn how to build, launch, and scale your blockchain startup with guidance from industry experts and get certified for free."
-              icon={<GraduationCap className="w-6 h-6 text-foreground" />}
-              href="/academy/entrepreneur"
             />
             <ProgramCard
               title="Faculty Development Program"

@@ -89,3 +89,48 @@ describe("getUserBadgesForProfile: badges of removed courses (FDE-154)", () => {
     expect(await shownIds()).toEqual([GRADUATE.id]);
   });
 });
+
+// The Entrepreneur Academy badges as the seed names them (prisma/seeds/entrepreneurBadges.ts:5-10). The
+// Graduate's stored requirements are not in the repo; modelled here as the four courses.
+const FOUNDATIONS = badge("3entrepreneurAcademy-1foundations-web3-venture", ["foundations-web3-venture"]);
+const ENTREPRENEUR_GRADUATE = badge("3entrepreneurAcademy-5academy-full-completion", [
+  "foundations-web3-venture",
+  "fundraising-finance",
+  "go-to-market",
+  "web3-community-architect",
+]);
+
+/** User u1's pending row for a badge they only started: evidence for the first `done` requirements. */
+const started = (row: BadgeRow, done: number) => ({
+  user_id: "u1",
+  badge_id: row.id,
+  awarded_at: new Date("2026-01-01T00:00:00Z"),
+  awarded_by: "system",
+  status: BadgeAwardStatus.pending,
+  requirements_version: 1,
+  evidence: row.requirements.slice(0, done),
+  badge: row,
+});
+
+describe("getUserBadgesForProfile: badges of the removed Entrepreneur Academy (FDE-153)", () => {
+  it("hides the Entrepreneur course badges and the Entrepreneur Graduate from a user who never earned them", async () => {
+    given([FOUNDATIONS, ENTREPRENEUR_GRADUATE, X402], []);
+    expect(await shownIds()).toEqual([X402.id]);
+  });
+
+  it("keeps an earned Entrepreneur badge, unlocked, for its holder", async () => {
+    given([FOUNDATIONS, X402], [FOUNDATIONS]);
+    const summaries = await getUserBadgesForProfile("u1");
+    expect(summaries.map((summary) => [summary.badgeId, summary.isUnlocked])).toEqual([
+      [X402.id, false],
+      [FOUNDATIONS.id, true],
+    ]);
+  });
+
+  it("hides a retired badge the user only started, and keeps a started live one, locked", async () => {
+    badgeFindMany.mockResolvedValue([ENTREPRENEUR_GRADUATE, GRADUATE]);
+    userBadgeFindMany.mockResolvedValue([started(ENTREPRENEUR_GRADUATE, 2), started(GRADUATE, 2)]);
+    const summaries = await getUserBadgesForProfile("u1");
+    expect(summaries.map((summary) => [summary.badgeId, summary.isUnlocked])).toEqual([[GRADUATE.id, false]]);
+  });
+});

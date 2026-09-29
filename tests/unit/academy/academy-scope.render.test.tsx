@@ -41,7 +41,6 @@ describe('Academy scope roots', () => {
         defaultTree: tree,
         avalancheTree: tree,
         blockchainTree: tree,
-        entrepreneurTree: tree,
         team1Tree: tree,
         children: createElement('p', null, 'COURSE_PAGE'),
       }),

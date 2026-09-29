@@ -1,7 +1,6 @@
 import type { CourseNode } from '@/components/academy/learning-tree';
 import { avalancheLearningPaths } from '@/components/academy/learning-path-configs/avalanche.config';
 import { blockchainLearningPaths } from '@/components/academy/learning-path-configs/blockchain.config';
-import { entrepreneurLearningPaths } from '@/components/academy/learning-path-configs/entrepreneur.config';
 import { team1LearningPaths } from '@/components/academy/learning-path-configs/team1.config';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 import type { AcademyPathType } from './academy-types';
@@ -15,11 +14,10 @@ export interface AcademyTrack {
     courses: readonly CourseNode[];
 }
 
-/** The four tracks, in the order of the track rail the tabs replace. */
+/** The three tracks, in the order of the track rail the tabs replace. */
 export const ACADEMY_TRACKS: readonly AcademyTrack[] = [
     { id: 'avalanche', segment: 'avalanche-l1', label: 'Avalanche L1', href: '/academy/avalanche-l1', courses: avalancheLearningPaths },
     { id: 'blockchain', segment: 'blockchain', label: 'Blockchain', href: '/academy/blockchain', courses: blockchainLearningPaths },
-    { id: 'entrepreneur', segment: 'entrepreneur', label: 'Entrepreneur', href: '/academy/entrepreneur', courses: entrepreneurLearningPaths },
     { id: 'team1', segment: 'team1', label: 'Team1', href: '/academy/team1', courses: team1LearningPaths },
 ];
 
@@ -44,7 +42,6 @@ export function visibleAcademyTracks(
 
 /** A course's landing url, resolved as the learning tree always has. */
 export function courseUrl(pathType: AcademyPathType, slug: string): string {
-    if (pathType === 'entrepreneur') return `/academy/entrepreneur/${slug.replace(/^entrepreneur\//, '')}`;
     return `/academy/${slug}`;
 }
 

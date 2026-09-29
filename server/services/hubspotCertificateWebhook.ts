@@ -3,12 +3,6 @@ import { getCourseNameMapping } from '@/content/courses';
 // Each course has its own HubSpot webhook trigger for its specific email notification.
 // All webhook URLs are configured via environment variables.
 const courseWebhookTriggers: Record<string, () => string | undefined> = {
-  // ============ ENTREPRENEUR ACADEMY ============
-  'foundations-web3-venture': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-  'go-to-market': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-  'web3-community-architect': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-  'fundraising-finance': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
-
   // ============ AVALANCHE L1 ACADEMY ============
   'avalanche-fundamentals': () => process.env.HUBSPOT_WEBHOOK_AVALANCHE_FUNDAMENTALS,
   'permissioned-l1s': () => process.env.HUBSPOT_WEBHOOK_PERMISSIONED_L1S,

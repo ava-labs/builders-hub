@@ -27,7 +27,7 @@ describe('layoutCertificate', () => {
   });
 
   it('fits every course and certificate name in content/courses.tsx', () => {
-    const names = [...COURSES.official, ...COURSES.avalancheEntrepreneur].map((c) => c.name).concat(Object.values(getCourseConfig()).map((c) => c.name));
+    const names = COURSES.official.map((c) => c.name).concat(Object.values(getCourseConfig()).map((c) => c.name));
     expect(names.length).toBeGreaterThan(0);
     names.forEach((name) => expect(fits(name), name).toBe(true));
     expect(layoutCertificate('Access Restriction Fundamentals').lines).toEqual(['ACCESS', 'RESTRICTION', 'FUNDAMENTALS']);

@@ -829,12 +829,12 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur',
-        destination: '/academy/entrepreneur',
+        destination: '/academy',
         permanent: true,
       },
       {
         source: '/codebase-entrepreneur/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -844,7 +844,7 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur-academy/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -1983,7 +1983,7 @@ const config = {
       },
       {
         source: "/academy/codebase-entrepreneur-academy/09-fundraising/:path*",
-        destination: "/academy/entrepreneur/fundraising-finance/09-fundraising/:path*",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -2328,18 +2328,6 @@ const config = {
           {
             type: 'query',
             key: 'path',
-            value: 'entrepreneur',
-          },
-        ],
-        destination: "/academy/entrepreneur",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
             value: 'team1',
           },
         ],
@@ -2350,6 +2338,13 @@ const config = {
       // matches the bare course url.
       {
         source: "/academy/blockchain/nft-deployment/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-153): the Entrepreneur Academy was removed; `:path*` also
+      // matches the bare track url.
+      {
+        source: "/academy/entrepreneur/:path*",
         destination: "/academy",
         permanent: true,
       },

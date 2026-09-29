@@ -29,18 +29,18 @@ const classesOf = (markup: string) => (markup.match(/^<[^>]*?\bclass="([^"]*)"/)
 const FOCUS_RING = ["focus-visible:outline-2", "focus-visible:outline-offset-2", "focus-visible:outline-ac-ink"];
 
 describe("AcademyTrackTabs", () => {
-  it("shows the three public tracks with their course counts and no Team1 tab without access", () => {
+  it("shows the two public tracks with their course counts and no Team1 tab without access", () => {
     const html = render("avalanche");
     expect(tab(html, "Avalanche L1")).toContain('href="/academy/avalanche-l1"');
     expect(tab(html, "Avalanche L1")).toContain(count("avalanche"));
     expect(tab(html, "Blockchain")).toContain(count("blockchain"));
-    expect(tab(html, "Entrepreneur")).toContain(count("entrepreneur"));
+    expect(html).not.toContain(">Entrepreneur<");
     expect(html).not.toContain(">Team1<");
   });
 
   it("hides the Team1 tab from a signed-in user without Team1 access", () => {
     expect(render("avalanche", [])).not.toContain(">Team1<");
-    expect(render("entrepreneur", ["hackathon-judge"])).not.toContain(">Team1<");
+    expect(render("blockchain", ["hackathon-judge"])).not.toContain(">Team1<");
   });
 
   it("adds the Team1 tab with its count for a Team1 member", () => {
@@ -71,7 +71,7 @@ describe("AcademyTrackTabs", () => {
 
   it("draws the 2 px ink focus ring on every tab, inside the tab below 768 px where the row clips", () => {
     const html = render("team1");
-    ["Avalanche L1", "Blockchain", "Entrepreneur", "Team1"].forEach((label) =>
+    ["Avalanche L1", "Blockchain", "Team1"].forEach((label) =>
       expect(classesOf(tab(html, label))).toEqual(
         expect.arrayContaining([...FOCUS_RING, "max-md:focus-visible:-outline-offset-3"]),
       ),

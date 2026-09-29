@@ -24,7 +24,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   const defaultTree = academy.pageTree;
   const avalancheTree = getAcademyTree('/academy/avalanche-l1');
   const blockchainTree = getAcademyTree('/academy/blockchain');
-  const entrepreneurTree = getAcademyTree('/academy/entrepreneur');
   const team1Tree = getAcademyTree('/academy/team1');
 
   return (
@@ -34,7 +33,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           defaultTree={defaultTree}
           avalancheTree={avalancheTree}
           blockchainTree={blockchainTree}
-          entrepreneurTree={entrepreneurTree}
           team1Tree={team1Tree}
         >
           {children}

@@ -9,7 +9,6 @@ import { coursesInOrder, courseUrl, getAcademyTrack } from "@/components/academy
 import type { AcademyLandingPageConfig, AcademyPathType } from "@/components/academy/shared/academy-types";
 import { avalancheDeveloperAcademyLandingPageConfig } from "@/app/(home)/academy/avalanche-l1/config";
 import { blockchainAcademyLandingPageConfig } from "@/app/(home)/academy/blockchain/config";
-import { entrepreneurAcademyLandingPageConfig } from "@/app/(home)/academy/entrepreneur/config";
 import { team1AcademyLandingPageConfig } from "@/app/(home)/academy/team1/config";
 
 // No stats: the cards render without counts; learning-tree.render.test.tsx covers the counts.
@@ -27,7 +26,6 @@ const FOCUS_RING = ["focus-visible:outline-2", "focus-visible:outline-offset-2",
 const TRACKS: Array<[AcademyPathType, AcademyLandingPageConfig, string, string]> = [
   ["avalanche", avalancheDeveloperAcademyLandingPageConfig, "Avalanche L1 Learning Tree", "Deploy L1s, bridge tokens, run and customize your own infrastructure"],
   ["blockchain", blockchainAcademyLandingPageConfig, "Blockchain Learning Tree", "Master Solidity and deploy smart contracts"],
-  ["entrepreneur", entrepreneurAcademyLandingPageConfig, "Entrepreneur Learning Tree", "Build your foundation, scale your Web3 venture"],
   ["team1", team1AcademyLandingPageConfig, "Team1 Learning Tree", "From fundamentals to advanced technical leadership and event organizing"],
 ];
 

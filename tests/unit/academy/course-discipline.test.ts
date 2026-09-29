@@ -9,7 +9,6 @@ describe('courseDiscipline', () => {
     expect(courseDiscipline('avalanche-l1', 'avalanche-fundamentals')).toEqual({ label: 'Fundamentals', Icon: BookOpen, hue: 'blue' });
     expect(courseDiscipline('avalanche-l1', 'l1-native-tokenomics')).toEqual({ label: 'L1 Tokenomics', Icon: Coins, hue: 'gold' });
     expect(courseDiscipline('blockchain', 'encrypted-erc')).toEqual({ label: 'Privacy', Icon: Shield, hue: 'teal' });
-    expect(courseDiscipline('entrepreneur', 'fundraising-finance')).toEqual({ label: 'Finance', Icon: Coins, hue: 'gold' });
     expect(courseDiscipline('team1', 'team1-soft-skills')).toEqual({ label: 'Soft Skills', Icon: Lightbulb, hue: 'green' });
   });
 

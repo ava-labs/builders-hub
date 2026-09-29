@@ -22,10 +22,10 @@ describe("landing card stats", () => {
     });
   });
 
-  it("resolves every card on the four landings (23)", () => {
+  it("resolves every card on the three landings (19)", () => {
     const cards = ACADEMY_TRACKS.flatMap((track) => track.courses.map((node) => ({ track, node })));
     const resolved = cards.filter(({ track, node }) => (statsByTrack.get(track.id) ?? {})[courseUrl(track.id, node.slug)]);
-    expect(cards).toHaveLength(23);
+    expect(cards).toHaveLength(19);
     expect(resolved).toHaveLength(cards.length);
   });
 });
@@ -33,7 +33,7 @@ describe("landing card stats", () => {
 describe("the generated stats module", () => {
   const generated: Record<string, Record<string, CourseStats>> = COURSE_STATS;
 
-  it("holds the four landing tracks", () => {
+  it("holds the three landing tracks", () => {
     expect(Object.keys(generated)).toEqual(ACADEMY_TRACKS.map((track) => track.segment));
   });
 
@@ -45,7 +45,6 @@ describe("the generated stats module", () => {
 const PAGES: Array<[string, string]> = [
   ["avalanche-l1", "app/(home)/academy/avalanche-l1/page.tsx"],
   ["blockchain", "app/(home)/academy/blockchain/page.tsx"],
-  ["entrepreneur", "app/(home)/academy/entrepreneur/page.tsx"],
   ["team1", "app/(home)/academy/team1/page.tsx"],
 ];
 

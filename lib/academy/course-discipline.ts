@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { avalancheCategoryStyles, avalancheLearningPaths } from '@/components/academy/learning-path-configs/avalanche.config';
 import { blockchainCategoryStyles, blockchainLearningPaths } from '@/components/academy/learning-path-configs/blockchain.config';
-import { entrepreneurCategoryStyles, entrepreneurLearningPaths } from '@/components/academy/learning-path-configs/entrepreneur.config';
 import { team1CategoryStyles, team1LearningPaths } from '@/components/academy/learning-path-configs/team1.config';
 import { disciplineHue, type DisciplineHue } from '@/lib/academy/discipline';
 
@@ -19,7 +18,6 @@ interface TrackConfig { nodes: { slug: string; category: string }[]; styles: Rec
 const TRACKS: Record<string, TrackConfig> = {
   'avalanche-l1': { nodes: avalancheLearningPaths, styles: avalancheCategoryStyles },
   blockchain: { nodes: blockchainLearningPaths, styles: blockchainCategoryStyles },
-  entrepreneur: { nodes: entrepreneurLearningPaths, styles: entrepreneurCategoryStyles },
   team1: { nodes: team1LearningPaths, styles: team1CategoryStyles },
 };
 

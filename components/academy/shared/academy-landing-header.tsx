@@ -8,7 +8,6 @@ import type { AcademyPathType } from './academy-types';
 const TRACK_HEADINGS: Record<AcademyPathType, { title: string; line: string }> = {
     avalanche: { title: 'Avalanche L1 Learning Tree', line: 'Deploy L1s, bridge tokens, run and customize your own infrastructure' },
     blockchain: { title: 'Blockchain Learning Tree', line: 'Master Solidity and deploy smart contracts' },
-    entrepreneur: { title: 'Entrepreneur Learning Tree', line: 'Build your foundation, scale your Web3 venture' },
     team1: { title: 'Team1 Learning Tree', line: 'From fundamentals to advanced technical leadership and event organizing' },
 };
 
