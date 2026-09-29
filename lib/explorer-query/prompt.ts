@@ -7,6 +7,7 @@ import { MAX_ROWS } from "./guard";
 import { CREATED, FIRST_DAY, QUOTES, U, pxCte, topic } from "./macros";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS, dexFamilies, type DexFamily } from "./protocols";
 import { AAVE_ASSETS, AAVE_SLUG, LENDING_CHAIN_ID, LENDING_MARKETS, LENDING_PROTOCOLS } from "./lending";
+import { FAMILY_CHAIN_ID, OPENTRADE_POOLS, SILOS, VAULTS } from "./families";
 import { knownLines, refLine, refSchema } from "./sources";
 import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
 
@@ -283,7 +284,51 @@ $PRICES(${week}) SELECT d, round(px['avax'], 4) AS avax_usd, round(px['btc'], 2)
     .join("");
 }
 
-export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean; lending?: boolean }): string {
+/* ------------------------------------------------------------------ */
+/* Vaults, staking and bridges (families.ts), mainnet only, in the prompt
+   of a question about them (familyQuestion): ERC-4626 vaults, OpenTrade's
+   pools, sAVAX and CCTP. Each reads its contracts' own events by the
+   names our server defines; USD values come from $PRICES. */
+
+function familyRules(): string {
+  const vaults = VAULTS.map((v) => `${v.protocol} ${v.name.split(" ")[0]} ${v.vault} (${v.symbol}, ${v.decimals} decimals${v.price === "usd" ? ", 1 USD" : `, priced as ${v.price === "avax" ? "AVAX" : "BTC"}`})`).join(", ");
+  const silos = SILOS.map((s) => s.address.toLowerCase()).join(" and ");
+  const word = (k: number) => `word ${k}`;
+  return `
+## Vaults, staking and bridges
+From our contract registry, on this chain. Write each name below (a contract, a list or a topic) as it is (savax_token, cctp_burn_v1_t): our server defines it in front of the query, so a WITH of your own never defines one and no hex stands in for one. An address or a topic from memory is often wrong (another chain's, or a digit off), and a wrong one reads no rows. Word k of data is substring(data, 1 + 32 * k, 32), read with reverse() and reinterpretAsUInt256; an address is the last 20 bytes of its word or topic.
+- ERC-4626 vaults: vaults lists them, ${vaults}. vault_decimals (the asset's), vault_share_decimals and vault_prices (the asset's price kind for $PRICES) run in the same order: vault_decimals[indexOf(vaults, address)]. Deposit vault_deposit_t (sender topic1, owner topic2; assets ${word(0)}, shares ${word(1)}): the owner gets the shares. Withdraw vault_withdraw_t (sender topic1, receiver topic2, owner topic3; assets ${word(0)}, shares ${word(1)}): the owner's shares burn. A vault's share price on a day is assets over shares of all its Deposit and Withdraw events that day, each over its decimals, so a day with withdrawals alone has a price too. Hypha's stAVAX was GoGoPool's ggAVAX. Avant pays a withdrawal to its cooldown silo (the receiver is ${silos}), and the user gets the assets a day later. Hypha pays a withdrawal in native AVAX, so no token Transfer reaches the receiver, but its Withdraw event counts it as every vault's does.
+- OpenTrade: ot_pools are its ${OPENTRADE_POOLS.length} pools. Each holds a dollar stablecoin (USDC, or USDt in one), but ot_eur_pools hold EURC or EUROP (euros); every asset has 6 decimals. OpenTrade emits no ERC-4626 events. A deposit is PoolDeposit ot_deposit_t (lender topic1; assets ${word(0)}, shares ${word(1)}). A redemption is RedeemRequested ot_request_t, then RedeemAccepted ot_accept_t (lender topic1; assets ${word(0)}, shares ${word(1)}), then RedeemRepay ot_repay_t (lender topic1; shares ${word(0)}, assets ${word(1)}, fees ${word(2)}), which pays. ExchangeRateSet is ot_rate_t, or ot_rate_old_t on the older pools (read both: topic0 IN (ot_rate_t, ot_rate_old_t)). In both, ${word(0)} is the assets per share with 18 decimals, and ${word(2)} is what a Linear pool adds to it each day (18 decimals). A pool's rate is the one it last set, and its own exchangeRate() moves on from it each day after, so a reading of a pool's rate or size names the day of that set, and the note says the rates are the ones the pools posted: a Linear pool's exchangeRate() is higher by ${word(2)} for each day since. A pool's size is its shares times its last rate, never its token balance: the assets leave the pool at once.
+- sAVAX (Benqi liquid staking) is savax_token. A stake is Submitted submitted_t (user topic1; AVAX ${word(0)}, shares ${word(1)}), paid in native AVAX. An unstake is UnlockRequested savax_unlock_t (user topic1; shares ${word(0)}), then Redeem savax_redeem_t (user topic1; its request time ${word(0)}, shares ${word(1)}, AVAX ${word(2)}), which burns the shares with no Transfer. AccrueRewards savax_rewards_t: the stakers' rewards ${word(0)} and the protocol's ${word(1)}, in AVAX. The AVAX per sAVAX is ${word(0)} over ${word(1)} of a Submitted. The sAVAX supply is the shares of every Submitted less the shares of every Redeem, both read from the first day: a mint's Transfer from the zero address carries its Submitted's shares, but sAVAX's Transfers are too many to read over its whole history (four 45 s timeouts in a replay). Every amount has 18 decimals. Filter every sAVAX log on address = savax_token: its Deposit has the topic0 of the WAVAX Deposit.
+- Circle CCTP moves USDC (6 decimals) between chains. Out of Avalanche: DepositForBurn, cctp_burn_v1_t on cctp_messenger_v1 (nonce topic1, token topic2, depositor topic3; amount ${word(0)}, recipient ${word(1)}, destination domain ${word(2)}) or cctp_burn_v2_t on cctp_messenger_v2 (token topic1, depositor topic2, the finality it asks for topic3; amount ${word(0)}, recipient ${word(1)}, destination domain ${word(2)}, fee cap ${word(5)}). Into Avalanche: MintAndWithdraw, cctp_mint_v1_t or cctp_mint_v2_t on the messengers (recipient topic1, token topic2; amount ${word(0)}; on V2 the fee ${word(1)}, minted beside the amount). A mint's source domain is ${word(0)} of the MessageReceived (cctp_received_v1_t on cctp_transmitter_v1, cctp_received_v2_t on cctp_transmitter_v2) that follows it in the same transaction. cctp_domains[toUInt32(domain)] is a domain's chain (Avalanche is 1). Speed is known for a V2 transfer into Avalanche only: fast when the finality threshold executed of its MessageReceived, toUInt32(reinterpretAsUInt256(reverse(topic3))) of cctp_received_v2_t, is 1000 or less, standard above. Pair each mint with the MessageReceived after it in its transaction, as the worked example does. A transfer out of Avalanche is always standard: the finality its DepositForBurn asks for is a request, never the speed. A split by speed covers transfers into Avalanche, and the note says so.
+- A figure now (a pool's last rate or size, the sAVAX supply, what a vault or a lender holds) reads the contract's events from ${FIRST_DAY}, the first day of the C-Chain: its topics are rare on these addresses, so the read is fast, and it is the one exception to the 90-day window. Never cut such a figure to 90 days.
+- USD values: $PRICES(start) or $PRICES(start, end) is lpx, one row per day: d and px, the USD price by kind (px['avax'] for AVAX and the AVAX of sAVAX, px['btc'], px['eurc'] for euros, px['usd'] = 1). Take px as nullIf(x.px[kind], 0), so a day with no price stays NULL. Name each value column by its unit. A token amount keeps its significant digits: never round() it; only a value in dollars rounds, to cents.
+`;
+}
+
+function familyExamples(): string {
+  const hex = (c: string) => `lower(concat('0x', hex(${c})))`;
+  const w = (k: number, d = "data") => `toFloat64(reinterpretAsUInt256(reverse(substring(${d}, ${1 + 32 * k}, 32))))`;
+  const c = FAMILY_CHAIN_ID;
+  return [
+    `AVAX staked into sAVAX and redeemed per day this week, in AVAX and USD, with the AVAX per sAVAX; drill into one day's stakes and redemptions:
+$PRICES(toMonday(now())), s AS (SELECT toDate(block_time) AS day, topic0 AS e, ${w(0)} AS w0, ${w(1)} AS w1, ${w(2)} AS w2 FROM raw_logs WHERE chain_id = ${c} AND block_time >= toMonday(now()) AND address = savax_token AND topic0 IN (submitted_t, savax_redeem_t)) SELECT s.day AS day, sumIf(w0, e = submitted_t) / 1e18 AS staked_avax, sumIf(w2, e = savax_redeem_t) / 1e18 AS redeemed_avax, round(sumIf(w0, e = submitted_t) / 1e18 * nullIf(any(x.px['avax']), 0), 2) AS staked_usd, round(sumIf(w2, e = savax_redeem_t) / 1e18 * nullIf(any(x.px['avax']), 0), 2) AS redeemed_usd, round(sumIf(w0, e = submitted_t) / nullIf(sumIf(w1, e = submitted_t), 0), 5) AS avax_per_savax, countIf(e = submitted_t) AS stakes, countIf(e = savax_redeem_t) AS redemptions FROM s LEFT JOIN lpx AS x ON s.day = x.d GROUP BY day ORDER BY day
+drill: SELECT l.block_time AS t, if(l.topic0 = submitted_t, 'stake', 'redemption') AS action, ${hex("substring(l.topic1, 13, 20)")} AS account, if(l.topic0 = submitted_t, ${w(0, "l.data")}, ${w(2, "l.data")}) / 1e18 AS avax, concat('0x', hex(l.transaction_hash)) AS tx_hash FROM raw_logs AS l WHERE l.chain_id = ${c} AND l.block_time >= toMonday(now()) AND toDate(l.block_time) = {{day}} AND l.address = savax_token AND l.topic0 IN (submitted_t, savax_redeem_t) ORDER BY avax DESC LIMIT 50`,
+    `USDC out of Avalanche through CCTP today, per destination chain and version; the rows are chains, so no drill:
+SELECT cctp_domains[toUInt32(reinterpretAsUInt256(reverse(substring(data, 65, 32))))] AS destination, if(topic0 = cctp_burn_v2_t, 'V2', 'V1') AS version, count() AS transfers, sum(${w(0)}) / 1e6 AS usdc FROM raw_logs WHERE chain_id = ${c} AND block_time >= toStartOfDay(now()) AND address IN (cctp_messenger_v1, cctp_messenger_v2) AND topic0 IN (cctp_burn_v1_t, cctp_burn_v2_t) GROUP BY destination, version ORDER BY usdc DESC`,
+    `USDC into Avalanche through CCTP today, per source chain and speed, each mint paired with the MessageReceived after it; the rows are chains, so no drill:
+WITH m AS (SELECT transaction_hash AS tx, log_index AS i, ${w(0)} / 1e6 AS amount FROM raw_logs WHERE chain_id = ${c} AND block_time >= toStartOfDay(now()) AND address IN (cctp_messenger_v1, cctp_messenger_v2) AND topic0 IN (cctp_mint_v1_t, cctp_mint_v2_t)), r AS (SELECT transaction_hash AS tx, log_index AS i, toUInt32(reinterpretAsUInt256(reverse(substring(data, 1, 32)))) AS source, if(topic0 = cctp_received_v2_t, toUInt32(reinterpretAsUInt256(reverse(topic3))), 0) AS threshold FROM raw_logs WHERE chain_id = ${c} AND block_time >= toStartOfDay(now()) AND address IN (cctp_transmitter_v1, cctp_transmitter_v2) AND topic0 IN (cctp_received_v1_t, cctp_received_v2_t)) SELECT cctp_domains[r.source] AS source_chain, multiIf(r.threshold = 0, 'V1', r.threshold <= 1000, 'V2 fast', 'V2 standard') AS speed, count() AS transfers, sum(m.amount) AS usdc FROM m ASOF JOIN r ON m.tx = r.tx AND m.i < r.i GROUP BY source_chain, speed ORDER BY usdc DESC`,
+    `Each vault's deposits and withdrawals this week, in the asset's units and in USD; drill into one vault's events:
+$PRICES(toMonday(now())), v AS (SELECT toDate(block_time) AS day, address AS vault, topic0 AS e, ${w(0)} / pow(10, vault_decimals[indexOf(vaults, address)]) AS assets, vault_prices[indexOf(vaults, address)] AS kind FROM raw_logs WHERE chain_id = ${c} AND block_time >= toMonday(now()) AND has(vaults, address) AND topic0 IN (vault_deposit_t, vault_withdraw_t)) SELECT ${hex("v.vault")} AS vault_address, countIf(e = vault_deposit_t) AS deposits, sumIf(assets, e = vault_deposit_t) AS deposited, round(sumIf(assets * nullIf(x.px[kind], 0), e = vault_deposit_t), 2) AS deposited_usd, countIf(e = vault_withdraw_t) AS withdrawals, sumIf(assets, e = vault_withdraw_t) AS withdrawn, round(sumIf(assets * nullIf(x.px[kind], 0), e = vault_withdraw_t), 2) AS withdrawn_usd FROM v LEFT JOIN lpx AS x ON v.day = x.d GROUP BY v.vault ORDER BY deposited_usd DESC
+drill: SELECT l.block_time AS t, if(l.topic0 = vault_deposit_t, 'deposit', 'withdrawal') AS action, ${hex("substring(if(l.topic0 = vault_deposit_t, l.topic2, l.topic3), 13, 20)")} AS owner, ${w(0, "l.data")} / pow(10, vault_decimals[indexOf(vaults, l.address)]) AS assets, concat('0x', hex(l.transaction_hash)) AS tx_hash FROM raw_logs AS l WHERE l.chain_id = ${c} AND l.block_time >= toMonday(now()) AND l.address = {{vault_address:bytes}} AND l.topic0 IN (vault_deposit_t, vault_withdraw_t) ORDER BY l.block_time DESC LIMIT 50`,
+    `OpenTrade deposits and redemptions per pool this month, in USD; the rows are pools, so no drill:
+$PRICES(toStartOfMonth(now())), o AS (SELECT toDate(block_time) AS day, address AS pool, topic0 AS e, toFloat64(reinterpretAsUInt256(reverse(substring(data, if(topic0 = ot_repay_t, 33, 1), 32)))) / 1e6 AS assets FROM raw_logs WHERE chain_id = ${c} AND block_time >= toStartOfMonth(now()) AND has(ot_pools, address) AND topic0 IN (ot_deposit_t, ot_repay_t)) SELECT ${hex("o.pool")} AS pool_address, countIf(e = ot_deposit_t) AS deposits, round(sumIf(assets * if(has(ot_eur_pools, o.pool), nullIf(x.px['eurc'], 0), 1), e = ot_deposit_t), 2) AS deposited_usd, countIf(e = ot_repay_t) AS redemptions, round(sumIf(assets * if(has(ot_eur_pools, o.pool), nullIf(x.px['eurc'], 0), 1), e = ot_repay_t), 2) AS redeemed_usd FROM o LEFT JOIN lpx AS x ON o.day = x.d GROUP BY o.pool ORDER BY deposited_usd DESC`,
+  ]
+    .map((b) => `${b}\n\n`)
+    .join("");
+}
+
+export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean; lending?: boolean; families?: boolean }): string {
   const known = Object.entries(KNOWN_ADDRESSES)
     .map(([a, n]) => `- ${n}: ${a}`)
     .join("\n");
@@ -293,6 +338,8 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   const dex = !!opts.dex && opts.chainId === DEX_CHAIN_ID && DEX_FACTORIES.length > 0;
   // the lending tables and rules: a lending question's (lendingQuestion), on the mainnet C-Chain only
   const lending = !!opts.lending && opts.chainId === LENDING_CHAIN_ID && LENDING_MARKETS.length > 0;
+  // the vaults, staking and bridge rules: a question about them (familyQuestion), on the mainnet C-Chain only
+  const families = !!opts.families && opts.chainId === FAMILY_CHAIN_ID && VAULTS.length > 0;
   // the rows the flow panel draws, on the mainnet C-Chain, where the contract registry names senders and receivers
   const flows =
     opts.chainId === DEX_CHAIN_ID
@@ -339,7 +386,7 @@ ${known}`
 ${created}- Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
 - Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). ${activeNote}
 - ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
-${dex ? dexRules() : ""}${lending ? lendingRules() : ""}
+${dex ? dexRules() : ""}${lending ? lendingRules() : ""}${families ? familyRules() : ""}
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
 - At most ${MAX_ROWS} rows come back, and a longer series is cut. Pick the bucket from the window: toStartOfMinute or toStartOfFiveMinutes for windows up to 6 hours, toStartOfHour up to 7 days, toDate beyond, toMonday for weeks. A question that names a bucket but no window reads 6 hours of 5-minute buckets, 24 hours of hourly ones, 30 days of daily ones. Windows over raw_logs and raw_traces: 90 days at most. raw_txs: 365 days at most.
@@ -406,7 +453,7 @@ SELECT block_time AS t, block_number, concat('0x', hex(transaction_hash)) AS tx_
 
 `
     : ""
-}${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
+}${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}${families ? familyExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
 SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, uniqExact(tx_from) AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL ${c ? "1 DAY" : "7 DAY"} AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15
 
 Active addresses per day, each address once:
@@ -574,14 +621,14 @@ const versions = new Map<string, string>();
     recipe keys (cache.ts), so a fixed question is written again instead of
     served its old SQL. Per chain: the C-Chain, an L1 and the P-Chain are
     told different things. */
-export function promptVersion(chainId: number, dex = false, lending = false): string {
-  const key = `${chainId}:${dex ? "dex" : ""}:${lending ? "lending" : ""}`;
+export function promptVersion(chainId: number, dex = false, lending = false, families = false): string {
+  const key = `${chainId}:${dex ? "dex" : ""}:${lending ? "lending" : ""}:${families ? "families" : ""}`;
   let v = versions.get(key);
   if (!v) {
     const text =
       targetOf(chainId).kind === "pchain"
         ? pchainPrompt({ chainId, network: "", schema: "", coverage: null, lines: null })
-        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex, lending });
+        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex, lending, families });
     v = createHash("sha256").update(`${text}\n${refSchema(chainId).join("\n")}`).digest("hex").slice(0, 12);
     versions.set(key, v);
   }

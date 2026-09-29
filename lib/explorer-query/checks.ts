@@ -7,6 +7,7 @@
    digits. */
 
 import registryData from "@/data/contract-registry.json";
+import { FAMILY_LISTS, FAMILY_NAMES } from "./families";
 import { AAVE_SLUG, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS } from "./lending";
 import { DEX_CHAIN_ID, DEX_PROTOCOLS, DEX_TOKENS } from "./protocols";
 import { isFuji } from "./target";
@@ -35,8 +36,11 @@ const KNOWN = new Set([...LISTED.map((e) => hexOf(e.address)), ...[...DEX_TOKENS
 const NOT_NAMED = /^(avalanche|infrastructure|unknown dex aggregator)$|\bbot\b|^mev\b/i;
 /** protocols named with a common word, taken only as the name is written: "Curve", not "the curve" */
 const WORDS = new Set(["curve", "relay", "rain", "socket", "arena", "balancer", "spark", "gamma", "steer", "tundra", "agora", "beefy"]);
-/** the contracts our server names for a query (aave_pool), and the table that holds a protocol's contracts */
-const SERVER_NAMES = Object.entries(LENDING_NAMES).flatMap(([name, value]) => (/^unhex\('[0-9a-f]{40}'\)$/.test(value) ? [[name, value.slice(7, 47)] as const] : []));
+/** the contracts our server names for a query (aave_pool, or a list such as vaults), and the table that holds a protocol's contracts */
+const SERVER_NAMES: readonly (readonly [string, readonly string[]])[] = [
+  ...Object.entries({ ...LENDING_NAMES, ...FAMILY_NAMES }).flatMap(([name, value]) => (/^unhex\('[0-9a-f]{40}'\)$/.test(value) ? [[name, [value.slice(7, 47)]] as const] : [])),
+  ...Object.entries(FAMILY_LISTS),
+];
 const TABLES: Record<string, string> = Object.fromEntries(Object.keys(LENDING_PROTOCOLS).filter((slug) => slug !== AAVE_SLUG).map((slug) => [slug, "lending_markets"]));
 const ROLE_ORDER = ["pool", "factory", "market", "router", "configurator"];
 const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -109,7 +113,7 @@ export function protocolScope(sql: string, questions: readonly string[], chainId
     const family = familyOf(protocol);
     if (hexes.some((h) => addresses.has(h))) return true;
     if (slug && (text.includes(`'${slug}'`) || (TABLES[slug] && new RegExp(`\\b${TABLES[slug]}\\b`).test(text)))) return true;
-    if (SERVER_NAMES.some(([name, hex]) => hexes.includes(hex) && new RegExp(`\\b${name}\\b`).test(text))) return true;
+    if (SERVER_NAMES.some(([name, list]) => list.some((hex) => hexes.includes(hex)) && new RegExp(`\\b${name}\\b`).test(text))) return true;
     if (family && whole(family)) return true;
     // a DEX's pools are not listed, only its factories: an address the registry and the token lists do not know may be one
     return !!slug && Object.hasOwn(DEX_PROTOCOLS, slug) && [...addresses].some((h) => !KNOWN.has(h));

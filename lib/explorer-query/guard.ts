@@ -5,7 +5,8 @@
    first (macros.ts), so the gate reads the whole text. A reference
    table's rows are spliced in after this gate (sources.ts). */
 
-import { strayHex, typedLending } from "./lending";
+import { FAMILY_EVENTS, familyHex } from "./families";
+import { LENDING_EVENTS, strayHex, typedLending } from "./lending";
 import { expandMacros } from "./macros";
 import { DEX_TOPICS } from "./protocols";
 import { isFuji, targetOf } from "./target";
@@ -186,7 +187,7 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   let sql = String(raw ?? "").trim().replace(/;+\s*$/, "").trim();
   if (!sql) return { ok: false, error: "empty query" };
   // a literal typed wrong reads no rows: the writer's own text, before the shorthand is written out
-  const typed = isFuji(chainId) ? null : (badHex(sql) ?? strayHex(sql, chainId));
+  const typed = isFuji(chainId) ? null : (badHex(sql) ?? strayHex(sql, chainId, FAMILY_EVENTS) ?? familyHex(sql, chainId, LENDING_EVENTS));
   if (typed) return { ok: false, error: typed };
   // the shorthand is written out before any check, and the length counts the whole text
   const x = expandMacros(sql, chainId);

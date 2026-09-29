@@ -238,7 +238,9 @@ describe('a hex literal typed wrong', () => {
     expect(refused(`SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = aave_pool AND topic0 IN (supply_t, ${stray})`)).toMatch(/ is no event of /);
     expect(refused(q("unhex('794a61358d6845594f94dc1db02a252b5b4d56e7')", 'flash_loan_t'))).toBe("unhex('794a6135…4d56e7') is not Aave's Pool, whose address our server names aave_pool: write aave_pool, as it is");
     expect(refused(`$PRICES(toMonday(now())) SELECT count() AS loans FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = unhex('794a61ebc6b034efe7fcbffe3dc06fa48aeda4e1') AND topic0 = flash_loan_t`)).toMatch(/^unhex\('794a61eb…eda4e1'\) is not Aave's Pool, whose address our server names aave_pool/);
-    expect(refused(`$PRICES(toMonday(now())) SELECT count() AS loans FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND topic0 = ${stray}`)).toMatch(/ is no event of /);
+    // $PRICES alone is the families' shorthand too, so its query is a lending one by the names it reads
+    expect(refused(`$PRICES(toMonday(now())) SELECT count() AS loans FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = aave_pool AND topic0 = ${stray}`)).toMatch(/ is no event of Aave's or Benqi's contracts/);
+    expect(refused(`$PRICES(toMonday(now())) SELECT count() AS loans FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND topic0 = ${stray}`)).toBe('');
     // a replay of L09 read Ethereum's Pool: the Pool's events come from this chain's Pool alone, a market's from the markets
     expect(refused(q("unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9')", 'flash_loan_t'))).toBe("unhex('7d2768de…ddc7a9') is not Aave's Pool on this chain, which writes these events: an address from memory is often another chain's, and reads no rows. Write aave_pool, as it is");
     expect(refused(q("unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9')", 'qi_borrow_t'))).toMatch(/^unhex\('7d2768de…ddc7a9'\) is no Benqi market on this chain, where the markets write these events: read them from lending_markets, /);

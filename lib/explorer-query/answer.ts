@@ -4,6 +4,7 @@ import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { oneProtocol, protocolScope, unitName } from "./checks";
+import { familyQuestion } from "./families";
 import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
 import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
@@ -212,7 +213,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const system =
     targetOf(a.chainId).kind === "pchain"
       ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine, lines: await versionLines(a.chainId) })
-      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history) });
+      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history), families: familyQuestion(a.chainId, a.prompt, a.history) });
 
   // earlier turns, so "make it weekly" refines the last chart
   const messages: ModelMessage[] = [];

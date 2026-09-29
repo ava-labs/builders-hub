@@ -201,9 +201,10 @@ export const LENDING_NAMES: Record<string, string> = {
   price_pools: `[${[...Object.values(LENDING_PRICE_POOLS), SAVAX].map(hexOf).join(", ")}]`,
 };
 
-/** the lending names a query reads and does not define itself (the DEX WITH names v2_swap), as WITH items: `unhex('…') AS supply_t` */
-export function namesIn(query: string): string[] {
-  return Object.entries(LENDING_NAMES)
+/** the server's names a query reads and does not define itself (the DEX WITH names v2_swap), as WITH items: `unhex('…') AS supply_t`.
+    `names` is the lending names, or those and the families' (sources.ts) */
+export function namesIn(query: string, names: Record<string, string> = LENDING_NAMES): string[] {
+  return Object.entries(names)
     .filter(([name]) => new RegExp(`\\b${name}\\b`).test(query) && !new RegExp(`\\bAS\\s+${name}\\b`, "i").test(query))
     .map(([name, value]) => `${value} AS ${name}`);
 }
@@ -244,11 +245,11 @@ const OTHER_TOPICS = [
   "f9ffabca9c8276e99321725bcb43fb076a6c66a54b7f21c4e8146d8519b417dc",
   "ca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a9",
 ];
-const LENDING_EVENTS = new Set<string>([...Object.values(LENDING_TOPICS), ...OTHER_TOPICS]);
-/** a query that reads Aave's or Benqi's contracts: by a lending shorthand, our names for them, their events or their
-    tables, or by their addresses */
+export const LENDING_EVENTS: ReadonlySet<string> = new Set([...Object.values(LENDING_TOPICS), ...OTHER_TOPICS]);
+/** a query that reads Aave's or Benqi's contracts: by a lending shorthand ($PRICES is the families' too), our names for
+    them, their events or their tables, or by their addresses */
 const READS_LENDING = new RegExp(
-  `\\$(LEND|LIQUIDATIONS|DEBTS|MARKETS|PRICES)\\b|\\b(aave_pool|aave_configurator|lending_markets|lending_tokens|(supply|withdraw|borrow|repay|liquidation|flash_loan|reserve_data|reserve_init|scaled_mint|scaled_burn|qi_[a-z]+|accrue|reserves_added|reserves_reduced|reserve_factor)_t)\\b|${[AAVE_POOL, AAVE_CONFIGURATOR, ...LENDING_MARKETS.map((m) => m.market)].map(bare).join("|")}`,
+  `\\$(LEND|LIQUIDATIONS|DEBTS|MARKETS)\\b|\\b(aave_pool|aave_configurator|lending_markets|lending_tokens|(supply|withdraw|borrow|repay|liquidation|flash_loan|reserve_data|reserve_init|scaled_mint|scaled_burn|qi_[a-z]+|accrue|reserves_added|reserves_reduced|reserve_factor)_t)\\b|${[AAVE_POOL, AAVE_CONFIGURATOR, ...LENDING_MARKETS.map((m) => m.market)].map(bare).join("|")}`,
   "i",
 );
 /* A priced asset's USD figure NULL in a row where the amount beside it is 0 (net_borrow_usd beside a net_borrow of 0)
@@ -310,8 +311,8 @@ const MARKET_EVENTS = ["qiMint", "qiRedeem", "qiBorrow", "qiRepay", "qiLiquidate
 const nameOf = (event: string) => Object.entries(LENDING_NAMES).find(([, v]) => v === hexOf(LENDING_TOPICS[event as keyof typeof LENDING_TOPICS]))?.[0] ?? event;
 const writes = (sql: string, events: readonly string[]) =>
   new RegExp(`\\b(${events.map(nameOf).join("|")})\\b`).test(sql) || literalsOf(sql, "topic0", 64).some((t) => events.some((e) => LENDING_TOPICS[e as keyof typeof LENDING_TOPICS] === t));
-/** the lending names the DEX WITH defines as well */
-const SHARED_NAMES = new Set(["v2_swap", "v3_swap", "submitted_t", "price_pools"]);
+/** the lending names a DEX example defines as well */
+const SHARED_NAMES = new Set(["v2_swap", "v3_swap"]);
 /** the contracts our server names, for an address written with its first digits right and the others wrong (a replay of
     L09 wrote 0x794a61eb… for Aave's Pool, 0x794a6135…) */
 const NAMED_CONTRACTS = [
@@ -364,13 +365,13 @@ function selectsOf(sql: string): string[] {
 
 /** why a query on the lending contracts reads no rows by a literal of its own, or null: an address that starts as one
     our server names and is not it, the Pool's or a market's events read in a SELECT at other addresses only (a replay
-    of L09 read Ethereum's Aave Pool), or a topic that is none of their events. Each SELECT is held on its own, so one
-    that reads a price pool or sAVAX by its address passes beside one that reads the Pool. Mainnet C-Chain only, as the
-    names are */
-export function strayHex(sql: string, chainId: number): string | null {
+    of L09 read Ethereum's Aave Pool), or a topic that is none of their events (nor one of `also`, the family events a
+    query may read beside them). Each SELECT is held on its own, so one that reads a price pool or sAVAX by its address
+    passes beside one that reads the Pool. Mainnet C-Chain only, as the names are */
+export function strayHex(sql: string, chainId: number, also: ReadonlySet<string> = new Set()): string | null {
   if (chainId !== LENDING_CHAIN_ID) return null;
-  // a name of ours that the query defines itself takes the query's value, and namesIn leaves it out; the swap and stake
-  // topics and the price pools are the DEX WITH's names too, which a DEX query may write out
+  // a name of ours that the query defines itself takes the query's value, and namesIn leaves it out; the swap topics
+  // are the DEX chapter's names too, which a DEX example writes out
   const ours = Object.keys(LENDING_NAMES).filter((n) => !SHARED_NAMES.has(n)).join("|");
   const own = new RegExp(`\\bAS\\s+(${ours})\\b|\\b(${ours})\\s+AS\\s*\\(`, "i").exec(sql)?.slice(1).find(Boolean);
   if (own) return `${own} is a name our server defines in front of the query; a WITH of your own may not define it. Write ${own} as it is, and leave its value to the server`;
@@ -396,7 +397,7 @@ export function strayHex(sql: string, chainId: number): string | null {
   const topic = selects
     .filter((s) => READS_LENDING.test(s))
     .flatMap((s) => literalsOf(s, "topic0", 64))
-    .find((t) => !LENDING_EVENTS.has(t));
+    .find((t) => !LENDING_EVENTS.has(t) && !also.has(t));
   return topic
     ? `unhex('${shown(topic)}') is no event of Aave's or Benqi's contracts: a topic written from memory is often wrong, and this one reads no rows. Write the name our server defines for the event, as it is: supply_t, withdraw_t, borrow_t, repay_t, liquidation_t, flash_loan_t or reserve_data_t on aave_pool; qi_mint_t, qi_redeem_t, qi_borrow_t, qi_repay_t, qi_liquidate_t or accrue_t on a Benqi market`
     : null;
