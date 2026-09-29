@@ -119,9 +119,11 @@ interface BasicProfileSetupProps {
   userId: string;
   onCompleteProfile?: () => void;
   onSkip?: () => void;
+  // Lets the parent block dialog dismissal while a save is in flight.
+  onSavingChange?: (saving: boolean) => void;
 }
 
-export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicProfileSetupProps) {
+export function BasicProfileSetup({ userId, onCompleteProfile, onSkip, onSavingChange }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
   // Save stays disabled until the profile prefill settles; every field is
   // optional, so saving the blank defaults early would overwrite stored data.
@@ -218,6 +220,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicPr
 
   const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
+    onSavingChange?.(true);
     try {
       // Only send fields that differ from what was loaded, so an optional
       // partial save never overwrites values the user did not touch.
@@ -261,6 +264,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicPr
       console.error('Error saving basic profile:', error);
     } finally {
       setIsSaving(false);
+      onSavingChange?.(false);
     }
   };
 

@@ -22,6 +22,7 @@ export function LoginModalWrapper() {
   const pathname = usePathname();
   const [showTerms, setShowTerms] = useState(false);
   const [showBasicProfile, setShowBasicProfile] = useState(false);
+  const [isBasicProfileSaving, setIsBasicProfileSaving] = useState(false);
   // Store user ID separately so we can show modal even before useSession updates
   const [termsUserId, setTermsUserId] = useState<string | null>(null);
 
@@ -252,7 +253,9 @@ export function LoginModalWrapper() {
           <Dialog.Root
             open={true}
             onOpenChange={(open) => {
-              if (!open) void handleCompleteProfile();
+              // Ignore close button / Escape / outside click while a save is
+              // pending, so a failed request can't advance the user anyway.
+              if (!open && !isBasicProfileSaving) void handleCompleteProfile();
             }}
           >
             <Dialog.Portal>
@@ -269,6 +272,7 @@ export function LoginModalWrapper() {
                     userId={(termsUserId || session?.user?.id)!}
                     onCompleteProfile={handleCompleteProfile}
                     onSkip={handleCompleteProfile}
+                    onSavingChange={setIsBasicProfileSaving}
                   />
                 </div>
               </DialogContent>
