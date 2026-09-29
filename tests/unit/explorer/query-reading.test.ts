@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { READ_ONLY, designVisual, figures, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
+import { READ_ONLY, designVisual, distinctColumns, figures, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
 
 // a model call that hands the reading tool these callouts, as the model would
 type Call = { tools: { reading: { execute: (input: { callouts: string[] }) => Promise<unknown> } } };
@@ -12,6 +12,36 @@ const says = (callouts: string[]) =>
     await opts.tools.reading.execute({ callouts });
     return {};
   }) as unknown as typeof generateText;
+
+// the L1 audit's L14: this week's daily active addresses beside last week's, weekday by weekday (Dexalot)
+const L14_SQL = "SELECT weekday, nullIf(sumIf(addrs, cur = 1), 0) AS current_active_addresses, sumIf(addrs, cur = 0) AS previous_active_addresses, nullIf(sumIf(txs, cur = 1), 0) AS current_txs, sumIf(txs, cur = 0) AS previous_txs FROM (SELECT toDayOfWeek(block_time) AS weekday, block_time >= toMonday(now()) AS cur, uniqExactArray([`from`, `to`]) AS addrs, count() AS txs FROM raw_txs WHERE chain_id = 432204 AND block_time >= toMonday(now()) - INTERVAL 7 DAY GROUP BY weekday, cur) GROUP BY weekday ORDER BY weekday";
+const L14_COLUMNS = [{ name: 'weekday', type: 'UInt8' }, { name: 'current_active_addresses', type: 'Nullable(UInt64)' }, { name: 'previous_active_addresses', type: 'UInt64' }, { name: 'current_txs', type: 'Nullable(UInt64)' }, { name: 'previous_txs', type: 'UInt64' }];
+const L14_ROWS = [
+  [1, 83, 90, 318002, 366784],
+  [2, 66, 82, 88610, 265276],
+  [3, null, 79, null, 189620],
+  [4, null, 84, null, 208301],
+  [5, null, 83, null, 206175],
+  [6, null, 79, null, 131829],
+  [7, null, 90, null, 164672],
+].map(([weekday, ca, pa, ct, pt]) => ({ weekday, current_active_addresses: ca, previous_active_addresses: pa, current_txs: ct, previous_txs: pt }));
+
+describe('a distinct count in each row', () => {
+  it('is known by its name or by the uniq call that makes it', () => {
+    expect([...distinctColumns(L14_COLUMNS, L14_SQL)]).toEqual(['current_active_addresses', 'previous_active_addresses']);
+    const sql = "SELECT method_id, uniqExact(tx_from) AS c1, count(DISTINCT `to`) AS c2, uniqExactIf(topic2, topic2 != unhex(repeat('00', 32))) AS c3, uniqExact(transaction_hash) AS c4, round(100 * uniqExact(`from`) / count(), 2) AS c5, uniqExact(`from`) AS new_senders, count() AS txs FROM raw_txs GROUP BY method_id";
+    const columns = ['c1', 'c2', 'c3', 'c4', 'c5', 'new_senders', 'txs'].map((name) => ({ name, type: 'UInt64' }));
+    // a count of distinct transactions adds up, and so does a count of new senders
+    expect([...distinctColumns(columns, sql)]).toEqual(['c1', 'c2', 'c3']);
+  });
+
+  it('has no total in Figures, while a count beside it keeps its total', () => {
+    const f = figures({ columns: L14_COLUMNS, rows: L14_ROWS, names: {}, x: 'weekday', sql: L14_SQL }).join('\n');
+    expect(f).toContain('current_active_addresses (Nullable(UInt64)): no total: each row counts its own distinct ones');
+    expect(f).not.toMatch(/active_addresses \([^)]*\)+: total/);
+    expect(f).toMatch(/previous_txs \(UInt64\): total /);
+  });
+});
 
 describe('designVisual', () => {
   const input = {
@@ -55,6 +85,22 @@ describe('designVisual', () => {
       [false, false],
       [false, true],
     ]);
+  });
+
+  it('refuses a stat that sums a distinct count over the rows', async () => {
+    const l14 = { ...input, question: 'Same comparison for active addresses', columns: L14_COLUMNS, rows: L14_ROWS, sql: L14_SQL, chart: { kind: 'bar' as const, x: 'weekday', series: [{ column: 'current_active_addresses', label: 'This week' }] } };
+    const panel = { ...spec.panels[0], title: 'Active addresses', x: 'weekday', series: [{ ...spec.panels[0].series[0], column: 'current_active_addresses', label: 'This week', format: 'number' }] };
+    const stat = (agg: string) => ({ label: 'Active addresses', column: 'current_active_addresses', agg, format: 'number', sub: 'this week so far' });
+    const results: unknown[] = [];
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      results.push(await opts.tools.design.execute({ ...spec, panels: [panel], stats: [stat('sum')] }));
+      results.push(await opts.tools.design.execute({ ...spec, panels: [panel], stats: [stat('avg')] }));
+      return {};
+    }) as unknown as typeof generateText);
+    const out = await designVisual(l14);
+    expect(results[0]).toMatchObject({ error: expect.stringContaining('current_active_addresses counts distinct ones in each row') });
+    expect(results[1]).toEqual({ ok: true });
+    expect(out.visual.stats).toMatchObject([{ agg: 'avg' }]);
   });
 
   it('draws ins and outs either side of zero, and a net only with an outflow below it', async () => {

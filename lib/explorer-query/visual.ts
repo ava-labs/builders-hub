@@ -230,7 +230,7 @@ Rules of the sheet
 - Rankings (methods, contracts, senders) are horizontal bars (hbar) with the name on the axis, top 10 to 15, sorted by the figure that answers the question. A share or a reverted count that belongs to the same rows goes in a second half-width panel, not as a second series squeezed onto the same axis.
 - Time series are lines; counts per period are bars; parts of a whole over time are stacked areas or stacked bars. Never put a count and a percent on the same axis; use axis "right" or a second panel.
 - Gas reserved against a limit: a line with the limit as a reference line. Fees in AVAX use format avax. Gas figures use format gas (compact with the word gas). Percent columns use percent.
-- Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
+- Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). A column that counts distinct ones in each row (active addresses, senders, holders) has no total over the rows, since one address can be in several: its stat is avg or max, never sum. The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
 - Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting". Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.
 - Figures are computed over all rows, and past ${ALL_ROWS} rows the rows shown are a sample: take every peak, low, total, first and last value, and the row that holds it, from Figures, and put a peak's marker at the x Figures names. When Figures says the rows are cut, never call a sum over them the total.
 - ${READER_RULES}
@@ -271,6 +271,40 @@ type Seen = Pick<DesignInput, "columns" | "rows" | "names" | "totals" | "x" | "s
 
 const NUMERIC = /^(Nullable\()?(U?Int\d+|Float\d+|Decimal)/;
 const TIME = /^(Nullable\()?Date/;
+
+/* a column that counts distinct things in each row (active addresses, senders, holders) has no total over the rows:
+   a sum counts one address once for each row it is in (the L1 audit's L14 summed a week's daily active addresses,
+   149 against 85 distinct). A count of new ones, first seen in their row, adds up */
+const DISTINCT_NAME = /(?:^|_)(?:addresses|addrs|senders|recipients|receivers|callers|holders|wallets|users|accounts|traders|swappers|depositors|borrowers|signers|participants|(?:uniq|distinct|unique)\w*)(?:_|$)/i;
+const NEW_NAME = /(?:^|_)(?:new|first)(?:_|$)/i;
+const UNIQ_CALL = /\b(?:uniq\w*|countDistinct)\s*\(|\bcount\s*\(\s*DISTINCT\b/gi;
+const ID_ONLY = /\(\s*(?:DISTINCT\s+)?`?(?:transaction_hash|tx_hash|hash|block_number|block_hash)`?\s*\)$/i;
+
+/** the aliases a uniq call or a count(DISTINCT ...) makes in the SQL: the call's own parentheses, then AS */
+function uniqAliases(sql: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of sql.matchAll(UNIQ_CALL)) {
+    let i = sql.indexOf("(", m.index);
+    let depth = 0;
+    let quoted = false;
+    for (; i < sql.length; i++) {
+      const ch = sql[i];
+      if (ch === "'" && sql[i - 1] !== "\\") quoted = !quoted;
+      else if (!quoted && ch === "(") depth++;
+      else if (!quoted && ch === ")" && --depth === 0) break;
+    }
+    const as = /^\s+AS\s+`?([A-Za-z_]\w*)`?/i.exec(sql.slice(i + 1));
+    // a count of distinct transactions or blocks adds up: each is in one row of a time series
+    if (as && !ID_ONLY.test(sql.slice(m.index, i + 1))) out.add(as[1]);
+  }
+  return out;
+}
+
+/** the columns that count distinct things in each row, by their name or by the uniq call that makes them */
+export function distinctColumns(columns: readonly ColumnMeta[], sql?: string): Set<string> {
+  const made = sql ? uniqAliases(sql) : new Set<string>();
+  return new Set(columns.filter((c) => NUMERIC.test(c.type) && !NEW_NAME.test(c.name) && (made.has(c.name) || DISTINCT_NAME.test(c.name))).map((c) => c.name));
+}
 
 /** a value as a model reads it: a name where the server found one */
 function shown(input: Pick<DesignInput, "names">, column: string, v: unknown): unknown {
@@ -362,6 +396,7 @@ export function figures(input: Seen): string[] {
   const along = !!label && (TIME.test(label.type) || /^(block_number|block_height|height)$/i.test(label.name));
   const at = (r: Row) => (label ? `${label.name} ${String(shown(input, label.name, r[label.name]))}` : `row ${rows.indexOf(r) + 1}`);
   const cut = !!totals && totals.rows > rows.length;
+  const perRow = distinctColumns(columns, input.sql);
   const out: string[] = [];
   if (totals && cut) {
     out.push(
@@ -399,12 +434,14 @@ export function figures(input: Seen): string[] {
       }
       // the next highest rows too, for when the highest is a bucket still filling
       const next = nums.filter((t) => t !== hi).sort((p, q) => q.v - p.v).slice(0, 2);
+      // a distinct count in each row has no total over the rows, and no share of one
+      const noTotal = rows.length > 1 && perRow.has(c.name);
       // the shares of the total those rows hold, so a callout quotes a share rather than divides rounded figures
-      const shared = topShares(c, nums, label, cut).length > 0;
+      const shared = !noTotal && topShares(c, nums, label, cut).length > 0;
       // a whole-result extreme past the rows shown, named by its own row, so a reading never pins it on a row shown
       const hidden = (v: number, where: string | undefined) => ` (${plain(v)}${where !== undefined && all?.label ? ` at ${all.label} ${where},` : ""} in a row not shown)`;
       const parts = [
-        all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
+        noTotal ? "no total: each row counts its own distinct ones, and one in several rows is in each" : all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
         `avg ${plain(sum / nums.length)}`,
         `max ${plain(hi.v)} at ${at(hi.r)}${all && all.max[c.name] > hi.v ? hidden(all.max[c.name], all.maxAt?.[c.name]) : ""}${next.length ? `, then ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
         `min ${plain(lo.v)} at ${at(lo.r)}${all && all.min[c.name] < lo.v ? hidden(all.min[c.name], all.minAt?.[c.name]) : ""}`,
@@ -577,12 +614,16 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     steps += taken.length;
     for (const c of taken.flatMap((s) => s.content)) if (c.type === "tool-error") refused.push(String(c.error instanceof Error ? c.error.message : c.error).slice(0, 200));
   };
+  const perRow = distinctColumns(input.columns, input.sql);
   const check = (spec: VisualSpec): { error: string } | { ok: true } => {
     const bad = [
       ...spec.stats.filter((s) => !cols.has(s.column)).map((s) => `stat ${s.label} -> ${s.column}`),
       ...spec.panels.flatMap((p) => [...(p.x && !cols.has(p.x) ? [`panel x ${p.x}`] : []), ...(p.target && !cols.has(p.target) ? [`panel target ${p.target}`] : []), ...p.series.filter((s) => !cols.has(s.column)).map((s) => `series ${s.column}`), ...(p.sortBy && !cols.has(p.sortBy) ? [`sortBy ${p.sortBy}`] : [])]),
     ];
     if (bad.length) return { error: `these columns are not in the rows: ${bad.join("; ")}. Columns: ${[...cols].join(", ")}` };
+    // a sum over the rows counts a distinct thing once for each row it is in
+    const summed = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && perRow.has(s.column)) : [];
+    if (summed.length) return { error: `${summed.map((s) => s.column).join(", ")} counts distinct ones in each row, so a sum over the rows counts one that is in several rows once for each: use avg or max, or leave the stat out` };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
     // a flow runs from one column to another and draws one amount
     const flows = spec.panels.filter((p) => p.kind === "flow");
