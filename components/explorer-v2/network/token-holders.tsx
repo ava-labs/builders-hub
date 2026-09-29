@@ -305,7 +305,7 @@ export function HoldersSection({ circulating }: { circulating: number }) {
           height={180}
           fmt={(v) => `${fmtCompact(v)} AVAX`}
           ticks={cols.map((_, i) => i)}
-          tip={(c, i) => {
+          tip={(_c, i) => {
             const m = months[i];
             return (
               <>

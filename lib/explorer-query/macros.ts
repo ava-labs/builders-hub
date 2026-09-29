@@ -174,7 +174,7 @@ export function expandMacros(sql: string, chainId: number): Expanded {
     else if (blank[i] === "," && depth === 1) cuts.push(i);
   }
   if (close < 0) return { ok: false, error: `$${name}( is not closed: ${USAGE}` };
-  const args = [open, ...cuts].map((at, j) => sql.slice(at + 1, cuts[j] ?? close).trim()).filter((a, j, all) => a !== "" || all.length > 1);
+  const args = [open, ...cuts].map((at, j) => sql.slice(at + 1, cuts[j] ?? close).trim()).filter((a, _j, all) => a !== "" || all.length > 1);
   const slugs = macro.slugs();
   // a slug comes last, a quoted word; the start and the end come first
   const last = args[args.length - 1];

@@ -32,8 +32,6 @@ export function ChainValidatorsPageClient({ chainSlug }: { chainSlug: string }) 
       chainSlug={chain.chainSlug}
       themeColor={chain.themeColor}
       chainLogoURI={chain.chainLogoURI}
-      website={chain.website}
-      socials={chain.socials}
       rpcUrl={chain.rpcUrl}
       hideIdentity
     >
