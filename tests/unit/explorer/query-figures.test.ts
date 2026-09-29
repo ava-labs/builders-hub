@@ -92,6 +92,16 @@ describe('Figures on an average or a maximum in each row', () => {
   });
 });
 
+describe('Figures on a count of rows', () => {
+  it('says how many rows hold the highest and the lowest', () => {
+    // the regression audit's R12 said twelve contracts had one sender, where 13 of the 15 rows did
+    const rows = [5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9].map((senders, i) => ({ contract: `c${i}`, senders }));
+    const line = figures({ columns: [{ name: 'contract', type: 'String' }, { name: 'senders', type: 'UInt64' }], rows, names: {}, x: 'contract' }).find((l) => l.startsWith('senders'))!;
+    expect(line).toContain('min 1 at contract c1 (13 rows hold it)');
+    expect(line).toMatch(/max 9 at contract c14,/);
+  });
+});
+
 describe('an average over a series with a partial period', () => {
   it('is refused as a stat of a count, while a total passes', async () => {
     // the regression audit's R16: "1,694 a day" with today's 8.8 hours in it, where the 14 whole days average 1,745.8
