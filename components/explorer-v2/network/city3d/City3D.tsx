@@ -828,7 +828,8 @@ export default function City3D({ data: incoming, versions = null, target = "", s
         </p>
         {tipNode.newAt !== null && <TipRow label="Joined the P-Chain" value={`${ageShort(tipNode.newAt)} ago`} />}
         <TipRow label="Validators" value={tipNode.validators.toLocaleString("en-US")} />
-        {m && target && (
+        {/* the version rows come with the Versions lens: in the districts view the plate keeps to the chain */}
+        {painted && m && target && (
           <>
             <TipRow label={`On ${target}+`} value={pct === null ? (PRIVATE_IDS.has(tipNode.id) ? "private" : "n/a") : `${m.on} · ${pct}%`} />
             {m.near + m.stale > 0 && <TipRow label="Behind" value={String(m.near + m.stale)} />}
