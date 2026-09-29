@@ -92,6 +92,25 @@ const EMPTY_FORM_VALUES: BasicProfileFormValues = {
   is_enthusiast: false,
 };
 
+const SAVE_TIMEOUT_MS = 15_000;
+
+// Prefer the API's own message (e.g. the country lock), then a timeout hint,
+// then a generic fallback. Skip stays available either way.
+function getSaveErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status ?? 0;
+    const apiMessage = (error.response?.data as { error?: unknown } | undefined)?.error;
+    // 4xx messages are user-facing (country lock, validation); 5xx are not.
+    if (status >= 400 && status < 500 && typeof apiMessage === 'string' && apiMessage.trim()) {
+      return apiMessage;
+    }
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      return 'Saving is taking too long. Please try again, or skip for now.';
+    }
+  }
+  return "We couldn't save your profile. Please try again, or skip for now.";
+}
+
 // Form fields persisted inside the user_type JSON column.
 const USER_TYPE_FIELDS = [
   'is_student',
@@ -125,6 +144,7 @@ interface BasicProfileSetupProps {
 
 export function BasicProfileSetup({ userId, onCompleteProfile, onSkip, onSavingChange }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Save stays disabled until the profile prefill settles; every field is
   // optional, so saving the blank defaults early would overwrite stored data.
   const [isHydrating, setIsHydrating] = useState(Boolean(userId));
@@ -220,6 +240,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip, onSavingC
 
   const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
+    setSaveError(null);
     onSavingChange?.(true);
     try {
       // Only send fields that differ from what was loaded, so an optional
@@ -255,13 +276,21 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip, onSavingC
 
       // Nothing changed: skip the request (the API rejects an empty update).
       if (Object.keys(profileData).length > 0) {
-        await axios.put(`/api/profile/extended/${userId}`, profileData);
-        await update();
+        // Bounded so a hung request can't keep the dialog locked forever.
+        await axios.put(`/api/profile/extended/${userId}`, profileData, {
+          timeout: SAVE_TIMEOUT_MS,
+        });
+        // The data is saved; refresh the session in the background so a slow
+        // refresh doesn't hold the modal open.
+        void update().catch((error) => {
+          console.error('Error refreshing session after profile save:', error);
+        });
       }
 
       onCompleteProfile?.();
     } catch (error) {
       console.error('Error saving basic profile:', error);
+      setSaveError(getSaveErrorMessage(error));
     } finally {
       setIsSaving(false);
       onSavingChange?.(false);
@@ -725,6 +754,11 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip, onSavingC
 
             {/* Submit */}
             <div className="pt-4 sm:pt-5 space-y-2">
+              {saveError && (
+                <p role="alert" className="text-sm font-medium text-destructive">
+                  {saveError}
+                </p>
+              )}
               <LoadingButton
                 type="submit"
                 variant="red"
