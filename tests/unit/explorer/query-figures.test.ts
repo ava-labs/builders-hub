@@ -84,11 +84,14 @@ describe('Figures on an average or a maximum in each row', () => {
     vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
       results.push(await opts.tools.design.execute({ stats: [stat('sum')], panels: [panel], callouts: [] }));
       results.push(await opts.tools.design.execute({ stats: [stat('avg')], panels: [panel], callouts: [] }));
+      results.push(await opts.tools.design.execute({ stats: [stat('max')], panels: [panel], callouts: [] }));
       return {};
     }) as unknown as typeof generateText);
     await designVisual({ question: 'Compare it with the day before', title: 'Gas price today vs yesterday', note: '', symbol: 'AVAX', columns, rows, names: {}, chart: { kind: 'line', x: 'offset_hour', series: [{ column: 'current_avg_gwei', label: 'Today' }] } });
     expect(results[0]).toMatchObject({ error: expect.stringContaining('current_avg_gwei holds an average or an extreme in each row') });
-    expect(results[1]).toEqual({ ok: true });
+    // an average of the hours' averages is not the average over the transactions, which Figures gives
+    expect(results[1]).toMatchObject({ error: expect.stringContaining("avg over current_avg_gwei weighs each row's average alike (35), where the average over what the rows count is 37.5 (weighted by current_txs)") });
+    expect(results[2]).toEqual({ ok: true });
   });
 });
 
@@ -121,6 +124,32 @@ describe('an average over a series with a partial period', () => {
     await designVisual({ question: 'How many delegations were made per day over the last 14 days?', title: 'Delegations per day', note: '', symbol: 'AVAX', columns, rows, names: {}, sql, chart: { kind: 'bar', x: 't', series: [{ column: 'delegations', label: 'Delegations' }] } });
     expect(results[0]).toMatchObject({ error: expect.stringContaining('the last period of these rows is partial') });
     expect(results[1]).toEqual({ ok: true });
+  });
+});
+
+describe("an average of the rows' own averages", () => {
+  it('is refused where Figures weighs it, and passes where the rows weigh alike', async () => {
+    // the follow-up audit's T02: "average base fee 2.16 gwei" over its hours, where the blocks' own average is 1.78
+    type DesignCall = { tools: { design: { execute: (input: unknown) => Promise<unknown> } } };
+    const columns = [{ name: 'hour', type: 'DateTime' }, { name: 'avg_base_fee_gwei', type: 'Float64' }, { name: 'blocks', type: 'UInt64' }];
+    const at = (blocks: number[]) => [{ hour: '2026-09-27 00:00:00', avg_base_fee_gwei: 4, blocks: blocks[0] }, { hour: '2026-09-27 01:00:00', avg_base_fee_gwei: 1, blocks: blocks[1] }];
+    const panel = { title: 'Base fee', kind: 'line', x: 'hour', series: [{ column: 'avg_base_fee_gwei', label: 'Base fee', format: 'number', axis: 'left', mark: 'auto', transform: 'none', dashed: false }], markers: [], bands: [], stacked: false, sortDir: 'desc', referenceLines: [], width: 'full' };
+    const stat = (agg: string) => ({ label: 'Average base fee', column: 'avg_base_fee_gwei', agg, format: 'number', sub: 'gwei' });
+    const design = async (rows: Record<string, unknown>[], aggs: string[]) => {
+      const results: unknown[] = [];
+      vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+        for (const agg of aggs) results.push(await opts.tools.design.execute({ stats: [stat(agg)], panels: [panel], callouts: [] }));
+        return {};
+      }) as unknown as typeof generateText);
+      await designVisual({ question: 'What was the average base fee per hour?', title: 'Base fee per hour', note: '', symbol: 'AVAX', columns, rows, names: {}, chart: { kind: 'line', x: 'hour', series: [{ column: 'avg_base_fee_gwei', label: 'Base fee' }] } });
+      return results;
+    };
+    // mean of the rows 2.5; over the blocks (400 + 900) / 1,000 = 1.3
+    const [avg, max] = await design(at([100, 900]), ['avg', 'max']);
+    expect(avg).toMatchObject({ error: expect.stringContaining("avg over avg_base_fee_gwei weighs each row's average alike (2.5), where the average over what the rows count is 1.3 (weighted by blocks)") });
+    expect(max).toEqual({ ok: true });
+    // rows of one weight: both are 2.5
+    expect(await design(at([500, 500]), ['avg'])).toEqual([{ ok: true }]);
   });
 });
 

@@ -802,6 +802,15 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     for (const c of taken.flatMap((s) => s.content)) if (c.type === "tool-error") refused.push(String(c.error instanceof Error ? c.error.message : c.error).slice(0, 200));
   };
   const perRow = distinctColumns(input.columns, input.sql);
+  // each column of per-row averages that Figures weighs, with the mean of its rows and the weighted average
+  const weighable = new Map<string, { mean: number; weighted: number; by: string }>();
+  for (const c of input.rows.length > 1 ? input.columns : []) {
+    const w = MEAN_NAME.test(c.name) ? weightOf(input.columns, c) : null;
+    const v = w ? weighted(c, w, input.rows) : null;
+    const nums = input.rows.map((r) => numOf(c, r[c.name])).filter((n): n is number => n !== null);
+    const mean = nums.reduce((p, q) => p + q, 0) / nums.length;
+    if (w && v !== null && nums.length && Math.abs(mean - v) > Math.abs(v) * 0.005) weighable.set(c.name, { mean, weighted: v, by: w.name });
+  }
   const check = (spec: VisualSpec): { error: string } | { ok: true } => {
     const bad = [
       ...spec.stats.filter((s) => !cols.has(s.column)).map((s) => `stat ${s.label} -> ${s.column}`),
@@ -816,6 +825,16 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     const edge = edgeOf(seen);
     const thin = edge && (edge.first || edge.last) ? spec.stats.filter((s) => s.agg === "avg" && !MEAN_NAME.test(s.column) && !RATE.test(s.column)) : [];
     if (thin.length) return { error: `the ${edge!.last ? "last" : "first"} period of these rows is partial, so an average over them counts it as a whole one: ${thin.map((s) => s.column).join(", ")} needs max, a total or no stat` };
+    // the rows' own averages averaged weigh a thin row as much as a full one (the follow-up audit's T02: "average base
+    // fee 2.16 gwei" over its hours, where the blocks' own average is 1.78): Figures gives the weighted one
+    const unweighted = spec.stats.filter((s) => s.agg === "avg" && weighable.has(s.column));
+    if (unweighted.length) {
+      const why = unweighted.map((s) => {
+        const w = weighable.get(s.column)!;
+        return `avg over ${s.column} weighs each row's average alike (${plain(w.mean)}), where the average over what the rows count is ${plain(w.weighted)} (weighted by ${w.by})`;
+      });
+      return { error: `${why.join("; ")}: give that figure in a callout, and show max or min here, or leave the stat out` };
+    }
     const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
     if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
