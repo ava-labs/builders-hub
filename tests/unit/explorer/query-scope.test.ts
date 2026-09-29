@@ -22,7 +22,7 @@ import { generateText } from 'ai';
 import { answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
 import { guardSql } from '@/lib/explorer-query/guard';
 import { collapseMacros, expandMacros } from '@/lib/explorer-query/macros';
-import { rowsWindow, scopeError, scoped, sqlWindow, staleLine, windowWords, withWindow, type Window } from '@/lib/explorer-query/scope';
+import { rowsWindow, scopeError, scoped, sqlWindow, staleLine, windowSpan, windowWords, withWindow, type Window } from '@/lib/explorer-query/scope';
 
 // Monday September 28, 2026, an hour into the week
 const NOW = Date.parse('2026-09-28T01:00:00Z');
@@ -188,6 +188,49 @@ const ask = async (chainId: number) => {
   const answer = await answerQuestion({ chainId, chainName: 'Avalanche C-Chain', symbol: 'AVAX', prompt: 'Top pools by volume in the week of Monday September 21', history: [], baseUrl: 'http://localhost:3000', emit: (e) => events.push(e) });
   return { answer, events };
 };
+
+describe('a title of periods and the figures over the whole answer name its window', () => {
+  const SIX = 'SELECT 1 FROM raw_txs WHERE chain_id = 43114 AND block_time >= toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR';
+  const MONTH = `SELECT 1 ${LOGS} AND block_time >= now() - INTERVAL 30 DAY`;
+
+  it('puts the window after the periods of a title that names none', () => {
+    // a total of 803 AVAX beside "Fees burned per 5 minutes" read as one period's, where it was 6 hours'
+    expect(scoped({ title: 'Fees burned per 5 minutes', note: '' }, win(SIX), NOW).title).toBe('Fees burned per 5 minutes in the last 6 hours');
+    expect(scoped({ title: 'Transactions per 5 minutes, with reverts', note: '' }, win(SIX), NOW).title).toBe('Transactions per 5 minutes in the last 6 hours, with reverts');
+    expect(scoped({ title: 'Daily transactions', note: '' }, win(MONTH), NOW).title).toBe('Daily transactions in the last 30 days');
+    // a start rounded to the day counts whole days back from today
+    expect(scoped({ title: 'Delegations per day', note: '' }, win('SELECT 1 FROM p_txs WHERE chain_id = 1 AND block_time >= toDate(now()) - 30'), NOW).title).toBe('Delegations per day in the last 30 days');
+    // a title that names its window, or has no periods, keeps its words
+    expect(scoped({ title: 'Daily transactions in the last 30 days', note: '' }, win(MONTH), NOW).title).toBe('Daily transactions in the last 30 days');
+    expect(scoped({ title: 'Top contracts by gas charged', note: '' }, win(MONTH), NOW).title).toBe('Top contracts by gas charged');
+  });
+
+  it("gives a figure over the whole answer its window in a figure's words", () => {
+    expect(windowSpan(SIX, [], 't', NOW)).toBe('last 6 hours');
+    // two minutes into a 5-minute period the start is 6 hours and 2 minutes back: still the last 6 hours
+    expect(windowSpan(SIX, [], 't', NOW + 2 * 60_000)).toBe('last 6 hours');
+    expect(windowSpan('SELECT 1 FROM raw_txs WHERE chain_id = 43114 AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR', [], 't', NOW + 41 * 60_000)).toBe('last 24 hours');
+    expect(windowSpan(MONTH, [], undefined, NOW)).toBe('last 30 days');
+    expect(windowSpan(`SELECT 1 ${LOGS} AND block_time >= toStartOfDay(now())`, [], undefined, NOW)).toBe('today');
+    expect(windowSpan(`SELECT 1 ${WEEK_OF_21}`, [], undefined, NOW)).toBe('week of September 21');
+    // a start rounded to the day reads as a title's "last 30 days" does, at any hour of the day
+    const days = (n: number) => `SELECT 1 ${LOGS} AND block_time >= toStartOfDay(now()) - INTERVAL ${n} DAY`;
+    expect(windowSpan(days(30), [], undefined, NOW)).toBe('last 30 days');
+    expect(windowSpan(days(30), [], undefined, NOW + 22 * 3_600_000)).toBe('last 30 days');
+    expect(windowSpan(days(90), [], undefined, NOW)).toBe('last 90 days');
+    // a span of fewer than 4 buckets keeps its start: the bucket may add most of a day, or of an hour, to it
+    expect(windowSpan(days(1), [], undefined, NOW)).toBe('since September 27');
+    expect(windowSpan(`SELECT 1 ${LOGS} AND block_time >= toStartOfHour(now()) - INTERVAL 1 HOUR`, [], undefined, NOW + 341 * 60_000)).toBe('since September 28, 05:00 UTC');
+    // an answer that reads one snapshot has no window over its figures, whatever window finds the snapshot
+    const snapshot = 'SELECT subnet_id, count() AS validators FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time = (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time >= now() - INTERVAL 1 DAY) GROUP BY subnet_id';
+    expect(windowSpan(snapshot, [], undefined, NOW)).toBeNull();
+    // a query that reads no window gives its figures no window line
+    expect(windowSpan("SELECT count() AS n FROM raw_txs WHERE chain_id = 43114 AND hash >= unhex('12') AND hash < unhex('13')", [], undefined, NOW)).toBeNull();
+    // a stale index's figure names its days in the reader's dates, as its title does
+    const anchor = Date.parse('2026-03-25T23:36:22Z');
+    expect(windowSpan('SELECT count() AS txs FROM raw_txs WHERE chain_id = 68414 AND block_time >= toStartOfDay(now())', [], undefined, anchor, Date.parse('2026-09-29T06:00:00Z'))).toBe('on March 25');
+  });
+});
 
 describe('the writer names the window its query reads', () => {
   beforeEach(() => {

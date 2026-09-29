@@ -18,7 +18,7 @@ import { versionLines } from "./sources";
 import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
-import { scopeError, sqlWindow, withWindow } from "./scope";
+import { scopeError, sqlWindow, windowSpan, withWindow } from "./scope";
 import { contradictions, withoutContradictions } from "./claims";
 import { absurdFigure } from "./magnitude";
 import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
@@ -152,6 +152,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
       sources: run.sources,
       title: said.title,
       note: said.note,
+      span: said.span,
       sql,
       chart: recipe.chart,
       drill: recipe.drill,
@@ -172,9 +173,12 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
 /** a kept recipe's title and note as the page shows them: the note loses any sentence that names the SQL's parts,
     and both name the window the query reads, in the reader's dates when the index runs behind. The second phase
     writes its reading from these words too, so the reading never says today for a day the index ended on */
-export function keptWords(recipe: Pick<Recipe, "title" | "note" | "chart">, sql: string, rows: readonly Record<string, unknown>[], anchor: string | null | undefined, chainId: number): { title: string; note: string } {
+export function keptWords(recipe: Pick<Recipe, "title" | "note" | "chart">, sql: string, rows: readonly Record<string, unknown>[], anchor: string | null | undefined, chainId: number): { title: string; note: string; span: string | null } {
   const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
-  return isFuji(chainId) ? words : withWindow(words, collapseMacros(sql, chainId), rows, recipe.chart.x, anchor ? msOf(anchor) : Date.now(), Date.now());
+  if (isFuji(chainId)) return { ...words, span: null };
+  const read = collapseMacros(sql, chainId);
+  const now = anchor ? msOf(anchor) : Date.now();
+  return { ...withWindow(words, read, rows, recipe.chart.x, now, Date.now()), span: windowSpan(read, rows, recipe.chart.x, now, Date.now()) };
 }
 
 /** the answer, without its layout when none is kept: the page asks for that next */
@@ -484,7 +488,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
           const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now, Date.now());
-          final = { title: said.title, note: said.note, sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
+          final = { title: said.title, note: said.note, span: fuji ? null : windowSpan(read, rows.rows, chart.x, now, Date.now()), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };

@@ -322,7 +322,10 @@ function Spark({ s, rows, all }: { s: Stat; rows: Row[]; all: Row[] }) {
   );
 }
 
-function StatFigure({ s, rows, all, names, sym, active, totals, base }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string }) {
+/** the figures that add up, average or count the whole answer, which a window line names */
+const OVER_WINDOW = new Set(["sum", "avg", "count", "distinct"]);
+
+function StatFigure({ s, rows, all, names, sym, active, totals, base, span }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string; span?: string | null }) {
   const reduced = useReduced();
   // with no selection the figure counts the whole answer, past any LIMIT; a selection counts its own rows
   const total = totalValue(totals, s);
@@ -331,7 +334,8 @@ function StatFigure({ s, rows, all, names, sym, active, totals, base }: { s: Sta
   const t = useTween(num);
   const text = (x: number | string) => (typeof x === "number" ? fmt(x, s.format, sym) : (nameFor(names, s.column, x) ?? String(x)));
   const shown = num !== null ? fmt(t !== null && Number.isInteger(num) ? Math.round(t) : (t ?? num), s.format, sym) : v === null ? "…" : text(v);
-  const sub = active ? compare(s, v, total ?? statValue(all, s), text) : s.sub;
+  // a figure over the whole answer says the window it covers, so a total beside a title of periods reads as the window's
+  const sub = active ? compare(s, v, total ?? statValue(all, s), text) : (s.sub ?? (span && OVER_WINDOW.has(s.agg) ? span : undefined));
   // a row's extreme opens that row's transaction; a figure the totals gave names no row the page holds
   const door = statDoor(s, rows, v, base);
   return (
@@ -368,14 +372,14 @@ function StatFigure({ s, rows, all, names, sym, active, totals, base }: { s: Sta
 export const CARD =
   "rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_-18px_rgba(24,24,27,0.18)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_14px_32px_-18px_rgba(24,24,27,0.28)] dark:bg-zinc-950 dark:ring-zinc-800/80 dark:shadow-none";
 
-function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals, base }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null; base?: string }) {
+function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals, base, span }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null; base?: string; span?: string | null }) {
   if (stats.length === 0) return null;
   if (cards) {
     return (
       <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stack ? "" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
         {stats.map((s) => (
           <div key={s.label} className={cn(CARD, "min-w-0")}>
-            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} />
+            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} />
           </div>
         ))}
       </div>
@@ -391,7 +395,7 @@ function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false
       )}
     >
       {stats.map((s) => (
-        <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} />
+        <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} />
       ))}
     </div>
   );
@@ -1075,11 +1079,13 @@ export type QueryVisualProps = {
   totals?: Totals | null;
   /** the chain's explorer path: a figure that is one row's extreme opens that row's transaction */
   base?: string;
+  /** the window the answer reads ("last 6 hours"), for the figures over all of it */
+  span?: string | null;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, base }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, base, span }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
@@ -1098,7 +1104,7 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   const single = panelIndex !== undefined || charts.length === 1;
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
-      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} />}
+      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} />}
       {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>

@@ -871,6 +871,7 @@ function QueryPage({
                     names={names}
                     sym={sym}
                     totals={answer.totals}
+                    span={answer.span}
                     base={base}
                     canDrill={canDrill || recordRows}
                     // a mark that is one thing on the chain (a transaction, a
