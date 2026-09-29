@@ -460,6 +460,40 @@ function runOf(rows: { r: Row }[], column: string): 1 | -1 | 0 {
   return dir;
 }
 
+/** the expression a query gives a name (AS name), back to the comma, bracket or SELECT before it; null when none */
+export function exprOf(sql: string, name: string): string | null {
+  const m = new RegExp(String.raw`\bAS\s+\`?${name.replace(/[^\w]/g, "")}\`?(?!\w)`, "i").exec(sql);
+  if (!m) return null;
+  let depth = 0;
+  for (let i = m.index - 1; i >= 0; i--) {
+    const ch = sql[i];
+    if (ch === ")") depth++;
+    else if (ch === "(") {
+      if (depth === 0) return sql.slice(i + 1, m.index).trim();
+      depth--;
+    } else if (depth === 0 && (ch === "," || /\bSELECT\s$/i.test(sql.slice(Math.max(0, i - 7), i + 1)))) return sql.slice(i + 1, m.index).trim();
+  }
+  return sql.slice(0, m.index).trim();
+}
+
+/* A share a query takes over its whole result (x / sum(x) OVER ()) is of what the rows it keeps count, after its
+   filters and before its LIMIT: the regression audit's R06 called 8.06% of the gas of the 2,034 contracts it kept
+   "8.06% of all gas charged" (of all gas it is 7.92%). Each such column, with the size of the result when a
+   count() OVER () column gives it */
+const OVER_ALL = /\bover\s*\(\s*\)/i;
+function wholeShares(input: Seen): Map<string, number | null> {
+  const out = new Map<string, number | null>();
+  if (!input.sql || input.rows.length === 0) return out;
+  const exprs = new Map(input.columns.map((c) => [c.name, exprOf(input.sql!, c.name)] as const));
+  const size = input.columns.find((c) => /^count\(\s*\)\s*over\s*\(\s*\)$/i.test(exprs.get(c.name) ?? ""));
+  const n = size ? numOf(size, input.rows[0][size.name]) : null;
+  for (const c of input.columns) {
+    const e = exprs.get(c.name);
+    if (e && NUMERIC.test(c.type) && OVER_ALL.test(e) && e.includes("/")) out.set(c.name, n);
+  }
+  return out;
+}
+
 /* The figures a reading quotes, computed over every row, since past
    ALL_ROWS a model sees only a sample of them: each number column's total,
    average and extremes with the row that holds each (and the next two
@@ -476,6 +510,7 @@ export function figures(input: Seen): string[] {
   const at = (r: Row) => (label ? `${label.name} ${String(shown(input, label.name, r[label.name]))}` : `row ${rows.indexOf(r) + 1}`);
   const cut = !!totals && totals.rows > rows.length;
   const perRow = distinctColumns(columns, input.sql);
+  const whole = wholeShares(input);
   const out: string[] = [];
   if (totals && cut) {
     out.push(
@@ -528,7 +563,9 @@ export function figures(input: Seen): string[] {
       const shared = !noTotal && !extreme && topShares(c, nums, label, cut).length > 0;
       // a whole-result extreme past the rows shown, named by its own row, so a reading never pins it on a row shown
       const hidden = (v: number, where: string | undefined) => ` (${plain(v)}${where !== undefined && all?.label ? ` at ${all.label} ${where},` : ""} in a row not shown)`;
+      const size = whole.get(c.name);
       const parts = [
+        ...(whole.has(c.name) ? [`each row's share of the sum over ${size ? `all ${plain(size)}` : "all the"} rows the query keeps (after its filters, before its LIMIT), not of the chain's whole: name that base by what those rows are`] : []),
         noTotal ? "no total: each row counts its own distinct ones, and one in several rows is in each" : mean ? "no total: each row holds an average, and a sum of averages means nothing" : extreme ? "no total: each row holds its own highest or lowest value, and a sum of them means nothing" : all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
         mean
           ? `mean of the row values ${plain(sum / nums.length)}, which is not the average over what the rows count${weighed !== null ? `; weighted by ${weight!.name}, that average is ${plain(weighed)}` : ""}`

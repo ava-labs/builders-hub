@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { designVisual, figures, sampleOf } from '@/lib/explorer-query/visual';
+import { designVisual, exprOf, figures, sampleOf } from '@/lib/explorer-query/visual';
 
 // the follow-up audit's T15 (Gunzilla, today against the day before, by hour of the UTC day): today has reached hour 7
 const TODAY = [19281, 21066, 14059, 8912, 7319, 16842, 15013, 8614];
@@ -131,6 +131,35 @@ describe('the rows a reading sees of a long answer', () => {
     const s = sampleOf({ columns: [{ name: 't', type: 'String' }, { name: 'fee', type: 'Float64' }], rows, names: {}, x: 't' });
     expect(s.rows.map((r) => r.t)).toEqual(expect.arrayContaining(['h069', 'h070', 'h071']));
     expect(s.head).toContain('the rows either side of each highest');
+  });
+});
+
+// the regression audit's R06: the top contracts by gas, each one's share of the gas of the 2,034 contracts the query keeps
+const R06_SQL = "SELECT lower(concat('0x', hex(`to`))) AS address, sum(gas_used) AS gas_charged, count() AS txs, round(100 * sum(gas_used) / sum(sum(gas_used)) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 DAY AND `to` IS NOT NULL GROUP BY `to` HAVING countIf(length(input) >= 4) > 0 ORDER BY gas_charged DESC LIMIT 15";
+const R06_COLUMNS = [{ name: 'address', type: 'String' }, { name: 'gas_charged', type: 'UInt64' }, { name: 'txs', type: 'UInt64' }, { name: 'share_pct', type: 'Float64' }, { name: 'of_total', type: 'UInt64' }];
+const R06_ROWS = [
+  [`0x278d858f${'0'.repeat(32)}`, 10172508642, 34107, 8.06],
+  [`0x30f7d00a${'0'.repeat(32)}`, 6333278266, 1178, 5.02],
+  [`0x23e23958${'0'.repeat(32)}`, 6115500000, 842, 4.85],
+].map(([address, gas_charged, txs, share_pct]) => ({ address, gas_charged, txs, share_pct, of_total: 2034 }));
+
+describe('a share the query takes over its whole result', () => {
+  it('finds the expression a query names', () => {
+    expect(exprOf(R06_SQL, 'share_pct')).toBe('round(100 * sum(gas_used) / sum(sum(gas_used)) OVER (), 2)');
+    expect(exprOf(R06_SQL, 'of_total')).toBe('count() OVER ()');
+    expect(exprOf(R06_SQL, 'address')).toBe("lower(concat('0x', hex(`to`)))");
+    expect(exprOf(R06_SQL, 'senders')).toBeNull();
+  });
+
+  it('is named as a share of the rows the query keeps, never of the chain\'s whole', () => {
+    const f = figures({ columns: R06_COLUMNS, rows: R06_ROWS, names: {}, x: 'address', sql: R06_SQL });
+    expect(f.find((l) => l.startsWith('share_pct'))).toContain("each row's share of the sum over all 2034 rows the query keeps (after its filters, before its LIMIT), not of the chain's whole");
+    // a count is no share, and a share within each period, or of a figure the query reads apart, gets no such line
+    expect(f.filter((l) => l.includes('rows the query keeps'))).toHaveLength(1);
+    const within = R06_SQL.replace('OVER (), 2)', 'OVER (PARTITION BY toDate(now())), 2)');
+    expect(figures({ columns: R06_COLUMNS, rows: R06_ROWS, names: {}, x: 'address', sql: within }).some((l) => l.includes('rows the query keeps'))).toBe(false);
+    const apart = R06_SQL.replace('sum(sum(gas_used)) OVER ()', '(SELECT sum(gas_used) FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 DAY)');
+    expect(figures({ columns: R06_COLUMNS, rows: R06_ROWS, names: {}, x: 'address', sql: apart }).some((l) => l.includes('rows the query keeps'))).toBe(false);
   });
 });
 
