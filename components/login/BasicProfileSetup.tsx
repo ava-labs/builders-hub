@@ -38,13 +38,13 @@ import {
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
 
-// Form schema. Social fields are optional; only name + country + at least
-// one role are required to complete the basic setup. When a social field is
-// filled in, the value must match its platform pattern.
+// Form schema. Every field is optional so the basic setup can be skipped or
+// saved partially. When a social field is filled in, the value must match its
+// platform pattern.
 const basicProfileSchema = z
   .object({
-    name: z.string().min(1, 'Full name is required'),
-    country: z.string().min(1, 'Country is required'),
+    name: z.string().optional().default(''),
+    country: z.string().optional().default(''),
     linkedin_account: z
       .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter valid LinkedIn URL'), z.literal('')])
       .optional()
@@ -70,19 +70,7 @@ const basicProfileSchema = z
     employee_role: z.string().optional(),
     is_developer: z.boolean().default(false),
     is_enthusiast: z.boolean().default(false),
-  })
-  .refine(
-    (data) =>
-      data.is_student ||
-      data.is_founder ||
-      data.is_employee ||
-      data.is_developer ||
-      data.is_enthusiast,
-    {
-      message: 'Select at least one role',
-      path: ['is_enthusiast'],
-    }
-  );
+  });
 
 type BasicProfileFormValues = z.infer<typeof basicProfileSchema>;
 
@@ -99,9 +87,10 @@ function normalizeFullName(input: string): string {
 interface BasicProfileSetupProps {
   userId: string;
   onCompleteProfile?: () => void;
+  onSkip?: () => void;
 }
 
-export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSetupProps) {
+export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [githubConnected, setGithubConnected] = useState(false);
   const [xConnected, setXConnected] = useState(false);
@@ -217,10 +206,13 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         telegram_account,
       } = data;
 
-      // Construct user_type object with all role fields
+      // Construct user_type object with all role fields. Blank name/country
+      // are left out: the API rejects an empty name, and omitting them keeps
+      // whatever the user already has on file.
+      const trimmedName = name.trim();
       const profileData = {
-        name,
-        country,
+        ...(trimmedName && { name: trimmedName }),
+        ...(country && { country }),
         linkedin_account,
         telegram_account,
         user_type: {
@@ -298,7 +290,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm sm:text-base">Full Name *</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Full Name</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter your full name"
@@ -320,7 +312,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                   name="country"
                   render={({ field }) => (
                     <FormItem className="w-full">
-                      <FormLabel className="text-sm sm:text-base">Country *</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Country</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base w-full min-w-0">
@@ -468,12 +460,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
 
             {/* Roles */}
             <div className="space-y-3 sm:space-y-4">
-              <FormLabel className="text-sm sm:text-base">Select all roles that apply. *</FormLabel>
-              {form.formState.errors.is_enthusiast?.message && (
-                <p className="text-sm font-medium text-destructive">
-                  {String(form.formState.errors.is_enthusiast.message)}
-                </p>
-              )}
+              <FormLabel className="text-sm sm:text-base">Select all roles that apply.</FormLabel>
 
               {/* Student */}
               <div className="space-y-2">
@@ -711,7 +698,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
             </div>
 
             {/* Submit */}
-            <div className="pt-4 sm:pt-5">
+            <div className="pt-4 sm:pt-5 space-y-2">
               <LoadingButton
                 type="submit"
                 variant="red"
@@ -721,6 +708,17 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
               >
                 Save
               </LoadingButton>
+              {onSkip && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-sm sm:text-base"
+                  onClick={onSkip}
+                  disabled={isSaving}
+                >
+                  Skip for now
+                </Button>
+              )}
             </div>
           </form>
         </Form>
