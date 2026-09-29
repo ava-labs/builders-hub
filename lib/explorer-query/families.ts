@@ -7,6 +7,7 @@
    Mainnet C-Chain only. */
 
 import registryData from "@/data/contract-registry.json";
+import { mentioned } from "./names";
 import { packed, strings } from "./protocols";
 
 interface RegistryEntry {
@@ -170,11 +171,15 @@ export const FAMILY_NAMES: Record<string, string> = {
 const FAMILY_WORDS =
   /\b(avant|sav(usd|btc)|av(usd|btc)|spark|spusdc|hypha|st-?avax|gg-?avax|gogopool|opentrade|open trade|savax|liquid[- ]staking|stak(e|ed|ing) avax|unstak\w*|cctp|circle (bridge|cctp)|bridged usdc|usdc (bridge|bridged)|cross[- ]chain usdc|erc[- ]?4626|vaults?)\b/i;
 
-/** a question about the vaults, sAVAX or CCTP, whose prompt carries their chapter: it names one of them, or an earlier
-    turn read their contracts. Every other question's prompt is the one it was */
+/** the family names long enough for a slip to read as them (names.ts) */
+const SLIPPED = ["OpenTrade", "GoGoPool"];
+
+/** a question about the vaults, sAVAX or CCTP, whose prompt carries their chapter: it names one of them (OpenTrade or
+    GoGoPool one slip off), or an earlier turn read their contracts. Every other question's prompt is the one it was */
 export function familyQuestion(chainId: number, prompt: string, history: { prompt?: string; sql?: string }[] = []): boolean {
   if (chainId !== FAMILY_CHAIN_ID || VAULTS.length + OPENTRADE_POOLS.length === 0 || !SAVAX) return false;
-  return FAMILY_WORDS.test(prompt) || history.some((t) => FAMILY_WORDS.test(t.prompt ?? "") || /\b(vaults|ot_pools|savax_token|cctp_\w+)\b/.test(t.sql ?? ""));
+  const about = (q: string) => FAMILY_WORDS.test(q) || mentioned(q, SLIPPED).length > 0;
+  return about(prompt) || history.some((t) => about(t.prompt ?? "") || /\b(vaults|ot_pools|savax_token|cctp_\w+)\b/.test(t.sql ?? ""));
 }
 
 /* A query on these contracts writes our server's names for them
