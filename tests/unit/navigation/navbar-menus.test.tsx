@@ -38,7 +38,7 @@ describe('Developers menu (desktop)', () => {
       ['Documentation', '/docs/primary-network'],
       ['Academy', '/academy'],
     ]);
-    expect(items.map(bannerSrc)).toEqual(['/nav/docs.webp', '/nav/academy.webp']);
+    expect(items.map(bannerSrc)).toEqual(['/nav/documentation.webp', '/nav/academy-fundamentals.webp']);
   });
 });
 
@@ -47,8 +47,8 @@ describe('Developers section (phone)', () => {
     const developers = phoneSection('Developers');
     expect(developers.href).toBe('/docs/primary-network');
     expect(developers.items.map((item) => [item.text, item.href, item.image])).toEqual([
-      ['Documentation', '/docs/primary-network', '/nav/docs.webp'],
-      ['Academy', '/academy', '/nav/academy.webp'],
+      ['Documentation', '/docs/primary-network', '/nav/documentation.webp'],
+      ['Academy', '/academy', '/nav/academy-fundamentals.webp'],
     ]);
   });
 
@@ -56,9 +56,9 @@ describe('Developers section (phone)', () => {
     const html = renderToStaticMarkup(createElement(NavSectionBlock, { section: phoneSection('Developers') }));
     const cards = anchors(html).filter((anchor) => anchor.includes('<img'));
     expect(cards.map(hrefOf)).toEqual(['/docs/primary-network', '/academy']);
-    expect(cards[0]).toContain('docs.webp');
+    expect(cards[0]).toContain('documentation.webp');
     expect(cards[0]).toContain('>Documentation<');
-    expect(cards[1]).toContain('academy.webp');
+    expect(cards[1]).toContain('academy-fundamentals.webp');
     expect(cards[1]).toContain('>Academy<');
   });
 

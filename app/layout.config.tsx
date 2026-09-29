@@ -235,7 +235,7 @@ export const developersMenu: LinkItemType = {
         className: 'nav-featured nav-duo',
         banner: (
           <Image
-            src="/nav/docs.webp"
+            src="/nav/documentation.webp"
             alt=""
             width={1536}
             height={864}
@@ -252,7 +252,7 @@ export const developersMenu: LinkItemType = {
         className: 'nav-featured nav-duo',
         banner: (
           <Image
-            src="/nav/academy.webp"
+            src="/nav/academy-fundamentals.webp"
             alt=""
             width={1536}
             height={864}
