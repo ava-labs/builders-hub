@@ -269,8 +269,8 @@ function assetOf(row: Record<string, unknown>): { label: string; priced: boolean
 }
 
 /** why a lending answer's USD figures misread as unpriced, or null: a priced asset's USD column NULL where its amount
-    is 0, or a note that says an asset has no price over rows of priced assets, each with its USD figures and no unpriced
-    event. Mainnet C-Chain only */
+    is 0 (a note that says an asset has no price over rows that all have theirs is pricedNote's, with no second call).
+    Mainnet C-Chain only */
 export function zeroUsd(sql: string, note: string, result: { columns: readonly { name: string }[]; rows: readonly Record<string, unknown>[] }, chainId: number): string | null {
   if (chainId !== LENDING_CHAIN_ID || !READS_LENDING.test(sql)) return null;
   const names = new Set(result.columns.map((c) => c.name));
@@ -285,10 +285,23 @@ export function zeroUsd(sql: string, note: string, result: { columns: readonly {
     const held = says ? ` The note says an asset has no USD price, but ${label} is priced: say it only of an asset whose usd is NULL where its amount is not 0.` : "";
     return `${name} is NULL in ${empty.length} ${empty.length === 1 ? "row" : "rows"} where ${amount} is 0, such as ${label}: a sum of usd over no rows, not a missing price. Write it so it is 0 where no event counts, as in if(countIf(action IN ('borrow', 'repay')) = 0, 0, sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay'))).${held} Then call render_chart again.`;
   }
-  const unpriced = result.columns.some((c) => /unpriced/i.test(c.name) && result.rows.some((r) => Number(r[c.name]) > 0));
-  if (says && usd.length && !unpriced && result.rows.every((r) => assetOf(r).priced === true && usd.every((n) => r[n] !== null)))
-    return "The note says an asset has no USD price, but every row has its USD figures and no event is unpriced: leave that out, and call render_chart again with the same SQL.";
   return null;
+}
+
+/** a lending note without its sentences that say an asset has no USD price, when every row is a priced asset with its
+    USD figures and no event is unpriced; else null. The writer was sent back for such a sentence in 5 of 37 answers
+    and each time only left it out, a second call of 2 to 4 s: the server leaves it out instead. A sentence that says
+    more beside the price words goes with them. Mainnet C-Chain only */
+export function pricedNote(sql: string, note: string, result: { columns: readonly { name: string }[]; rows: readonly Record<string, unknown>[] }, chainId: number): string | null {
+  if (chainId !== LENDING_CHAIN_ID || !READS_LENDING.test(sql) || !NO_PRICE.test(note)) return null;
+  const usd = result.columns.map((c) => c.name).filter((n) => /(^|_)usd$/i.test(n));
+  const unpriced = result.columns.some((c) => /unpriced/i.test(c.name) && result.rows.some((r) => Number(r[c.name]) > 0));
+  if (!usd.length || unpriced || !result.rows.every((r) => assetOf(r).priced === true && usd.every((n) => r[n] !== null))) return null;
+  return note
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => !NO_PRICE.test(s))
+    .join(" ")
+    .trim();
 }
 
 /** the events only Aave's Pool writes here, and those only Benqi's markets write, by our names and by topic */

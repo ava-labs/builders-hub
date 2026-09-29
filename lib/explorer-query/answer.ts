@@ -4,7 +4,7 @@ import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { oneProtocol, protocolScope, unitName } from "./checks";
-import { lendingQuestion, zeroUsd } from "./lending";
+import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
 import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
@@ -426,6 +426,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             zeroOnce = true;
             return fail(zero, Date.now() - q0);
           }
+          // a note that says an asset has no USD price, over rows that all have theirs, loses those sentences here: the
+          // writer's own fix each time it was sent back for one, with no second call
+          note = pricedNote(g.sql, note, result, a.chainId) ?? note;
           // a time series the row cap cut from its latest end runs again for its newest rows, and is kept that way
           let kept = g.sql;
           let ran = run;
