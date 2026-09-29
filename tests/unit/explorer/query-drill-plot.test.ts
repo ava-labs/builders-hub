@@ -22,13 +22,15 @@ describe('bucketOf', () => {
 });
 
 describe('drillCut', () => {
-  it('names the records a LIMIT cut', () => {
+  it('names the records a LIMIT cut, and tells a run of time from the top of a figure', () => {
     const sql = (order: string, n = 50) => `SELECT tx_hash, fee_avax FROM raw_txs WHERE chain_id = 43114 AND toDate(block_time) = '2026-09-24' ORDER BY ${order}\nLIMIT ${n}`;
-    expect(drillCut(sql('fee_avax DESC'), 50)).toBe('the 50 largest fees');
-    expect(drillCut(sql('fee_gun ASC'), 50)).toBe('the 50 smallest fees');
-    expect(drillCut(sql('gas_charged DESC'), 50)).toBe('the 50 largest by gas charged');
-    expect(drillCut(sql('block_time DESC'), 50)).toBe('the 50 latest');
-    expect(drillCut(sql('t'), 50)).toBe('the 50 earliest');
+    expect(drillCut(sql('fee_avax DESC'), 50)).toEqual({ words: 'the 50 largest fees', col: 'fee_avax', byTime: false });
+    expect(drillCut(sql('fee_gun ASC'), 50)).toEqual({ words: 'the 50 smallest fees', col: 'fee_gun', byTime: false });
+    expect(drillCut(sql('gas_charged DESC'), 50)).toEqual({ words: 'the 50 largest by gas charged', col: 'gas_charged', byTime: false });
+    expect(drillCut(sql('amount_usdc DESC'), 50)).toEqual({ words: 'the 50 largest amounts', col: 'amount_usdc', byTime: false });
+    // the 50 latest of a busy 5 minutes are its last seconds: they plot across those seconds, not the bucket
+    expect(drillCut(sql('block_time DESC'), 50)).toEqual({ words: 'the 50 latest', col: 'block_time', byTime: true });
+    expect(drillCut(sql('t'), 50)).toEqual({ words: 'the 50 earliest', col: 't', byTime: true });
   });
 
   it('names nothing for records that are all there are', () => {
