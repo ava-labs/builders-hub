@@ -15,6 +15,7 @@ import {
   Check,
   ExternalLink,
   Bot,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -22,6 +23,7 @@ import posthog from "posthog-js";
 import { EcosystemMarquee } from "@/components/console/ecosystem-marquee";
 import { AlphaSequence } from "@/components/console/alpha-sequence";
 import { boardContainer, boardItem } from "@/components/console/motion";
+import { MCP_SETUP_PROMPT } from "@/components/console/mcp-setup-prompt";
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -182,21 +184,22 @@ function CrossChainCard() {
 }
 
 const INSTALL_CMD = "curl -sSfL https://build.avax.network/install/platform-cli | sh";
-const MCP_INSTALL_CMD = "claude mcp add avalanche-mcp --transport http https://build.avax.network/api/mcp";
 
 function trackMcpInstallCopied() {
-  posthog.capture("console_mcp_install_copied", { location: "console_home", client: "claude_code" });
+  posthog.capture("console_mcp_install_copied", { location: "console_home", format: "markdown_prompt" });
 }
 
 function CopyCommandBlock({
   command,
   display = command,
   ariaLabel,
+  variant = "command",
   onCopy,
 }: {
   command: string;
   display?: string;
   ariaLabel: string;
+  variant?: "command" | "prompt";
   onCopy?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -212,10 +215,21 @@ function CopyCommandBlock({
       aria-label={ariaLabel}
       className="group w-full rounded-lg bg-zinc-100 dark:bg-zinc-950 px-3.5 py-2.5 flex items-center gap-2.5 overflow-x-auto cursor-pointer transition-colors hover:bg-zinc-200/70 dark:hover:bg-black"
     >
-      <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
-      <code className="text-xs font-mono whitespace-nowrap text-zinc-700 dark:text-zinc-200 text-left">
-        {display}
-      </code>
+      {variant === "prompt" ? (
+        <>
+          <FileText className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 shrink-0" />
+          <span className="text-xs font-medium whitespace-nowrap text-zinc-700 dark:text-zinc-200 text-left">
+            {display}
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
+          <code className="text-xs font-mono whitespace-nowrap text-zinc-700 dark:text-zinc-200 text-left">
+            {display}
+          </code>
+        </>
+      )}
       <span className="ml-auto flex items-center gap-1 p-1 rounded text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors shrink-0">
         {copied && <span className="text-[11px] font-medium text-emerald-500">Copied</span>}
         {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -573,19 +587,21 @@ function ConsoleDashboard() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">Add Avalanche MCP to your agent</h3>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                    Give Claude Code access to Avalanche docs, RPCs, and network data
+                    Paste into any AI agent to install the Avalanche MCP.
                   </p>
                 </div>
                 <Link
                   href="/docs/tooling/ai-llm/mcp-server"
                   className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
-                  Other clients <ChevronRight className="h-3 w-3" />
+                  Docs <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
               <CopyCommandBlock
-                command={MCP_INSTALL_CMD}
-                ariaLabel="Copy Avalanche MCP install command"
+                command={MCP_SETUP_PROMPT}
+                display="Copy setup prompt"
+                ariaLabel="Copy Avalanche MCP setup prompt"
+                variant="prompt"
                 onCopy={trackMcpInstallCopied}
               />
             </div>
