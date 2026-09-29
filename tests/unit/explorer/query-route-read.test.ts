@@ -5,8 +5,10 @@ const runQuery = vi.hoisted(() => vi.fn());
 const designVisual = vi.hoisted(() => vi.fn());
 const writeReading = vi.hoisted(() => vi.fn());
 const recipes = vi.hoisted(() => new Map<string, unknown>());
+// the words the page shows for a kept recipe: the route lays out and reads from these, not the recipe's own
+const keptWords = vi.hoisted(() => vi.fn((r: { title: string; note: string }) => ({ title: `${r.title} as shown`, note: r.note })));
 
-vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion, drillSql: vi.fn() }));
+vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion, drillSql: vi.fn(), keptWords }));
 vi.mock('@/lib/explorer-query/visual', () => ({ designVisual, writeReading }));
 vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery, anchored: vi.fn(async (sql: string) => ({ sql, anchor: null, sources: [] })), indexState: vi.fn(async () => null) }));
 vi.mock('@/lib/explorer-query/enrich', () => ({ nameRows: vi.fn(async () => ({})) }));
@@ -39,7 +41,17 @@ describe('the layout of an answer', () => {
     const res = await post({ chainId: 43114, key });
     expect(res.status).toBe(200);
     expect(runQuery).not.toHaveBeenCalled();
-    expect(designVisual).toHaveBeenCalledWith(expect.objectContaining({ rows, names: { from_address: {} }, question: 'Where did USDC go?' }));
+    expect(designVisual).toHaveBeenCalledWith(expect.objectContaining({ rows, names: { from_address: {} }, question: 'Where did USDC go?', title: 't as shown' }));
+  });
+
+  it("writes a kept layout's reading from the words the page shows", async () => {
+    const kept = 'd'.repeat(32);
+    recipes.set(kept, { ...recipe, visual: { stats: [], panels: [], callouts: [] } });
+    runQuery.mockResolvedValue(result);
+    writeReading.mockResolvedValue(['One callout.']);
+    const res = await post({ chainId: 43114, key: kept, reading: true });
+    expect(res.status).toBe(200);
+    expect(writeReading).toHaveBeenCalledWith(expect.objectContaining({ title: 't as shown', note: 'n' }));
   });
 
   it('forgets the read after a minute and reads the kept SQL again', async () => {

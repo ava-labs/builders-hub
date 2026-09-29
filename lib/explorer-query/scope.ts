@@ -3,7 +3,7 @@
    window the query does not read. The window comes from the query's own bounds, or else from the rows' time
    range, never from the question's words. */
 
-import { msOf } from "./edges";
+import { msOf, STALE_MS } from "./edges";
 
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
@@ -364,9 +364,36 @@ export function scoped(text: { title: string; note: string }, w: Window, now: nu
   return { title, note };
 }
 
-/** a title and a note that name the window the query reads, or else the one its rows cover */
-export function withWindow(text: { title: string; note: string }, sql: string, rows: readonly Record<string, unknown>[], x: string | undefined, now: number): { title: string; note: string } {
+/** a note sentence that says its window is still running, which a stale index's window is not */
+const RUNNING = /\b(?:not over|not yet over|still (?:grows?|growing|in progress|running|open)|so far|partial|in progress)\b/i;
+
+/** the stale line a kept note holds from an earlier answer: withWindow writes it again from the index's end now */
+const STALE_SAID = /^The index ends at \d{4}-\d\d-\d\d \d\d:\d\d UTC, \d+ days? ago, so the query reads up to then\.\s*/;
+
+/** the sentence a stale index's answer opens its note with: where the index ends, and that the query reads up to it */
+export function staleLine(anchor: number, clock: number): string {
+  if (!Number.isFinite(anchor) || clock - anchor < STALE_MS) return "";
+  const days = Math.floor((clock - anchor) / DAY);
+  return `The index ends at ${iso(anchor)} UTC, ${days} ${days === 1 ? "day" : "days"} ago, so the query reads up to then.`;
+}
+
+/** a title and a note that name the window the query reads. now is the query's own now (the index's last block when
+    it runs behind); clock is the reader's. An index more than STALE_MS behind has its window closed at its end and
+    named in the reader's dates, loses the sentences that say the window is still running, and says where it ends
+    (the L1 audit's X01 read "transactions today" as the day in March where its index ended). A calendar window
+    closes at the end of the index's last day, so it reads as days: on March 25, not to March 25, 23:36 UTC */
+export function withWindow(said: { title: string; note: string }, sql: string, rows: readonly Record<string, unknown>[], x: string | undefined, now: number, clock = now): { title: string; note: string } {
+  const text = STALE_SAID.test(said.note) ? { ...said, note: said.note.replace(STALE_SAID, "") } : said;
   const win = sqlWindow(sql, now);
   const w = win === "unknown" ? null : (win ?? rowsWindow(rows, x, now));
-  return w ? scoped(text, w, now) : text;
+  const stale = clock - now >= STALE_MS;
+  if (!stale) return w ? scoped(text, w, now) : text;
+  let out = text;
+  if (w) {
+    // a window that runs to now ends where the index ends, a calendar one at the end of that day
+    const end = !w.open ? w.end : !w.rolling && w.start % DAY === 0 ? dayOf(now) + DAY : now;
+    out = scoped(text, { ...w, open: false, rolling: false, end }, clock);
+  }
+  const note = sentences(out.note).filter((s) => s && !RUNNING.test(s)).join(" ");
+  return { title: out.title, note: [staleLine(now, clock), note].filter(Boolean).join(" ") };
 }

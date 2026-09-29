@@ -9,7 +9,7 @@ import { designVisual, writeReading } from "@/lib/explorer-query/visual";
 import type { ChartSpec, Names, QueryAnswer, Totals } from "@/lib/explorer-query/types";
 import { monitorNote } from "@/lib/explorer-query/monitor";
 import { monitorFor } from "@/lib/explorer-query/monitor-feed";
-import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
+import { answerQuestion, drillSql, keptWords, type QueryEvent } from "@/lib/explorer-query/answer";
 import { totalsOf } from "@/lib/explorer-query/cut";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { runKept } from "@/lib/explorer-query/run-cache";
@@ -122,7 +122,9 @@ export async function POST(req: Request) {
       const t0 = Date.now();
       try {
         const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
-        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor });
+        // the reading is written from the words the page shows, not the ones the recipe kept
+        const said = keptWords(recipe, recipe.sql, result.rows, anchor, chainId);
+        const callouts = await writeReading({ question: recipe.question, title: said.title, note: said.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
         return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
@@ -131,7 +133,8 @@ export async function POST(req: Request) {
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
     try {
       const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
-      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor });
+      const said = keptWords(recipe, recipe.sql, result.rows, anchor, chainId);
+      const out = await designVisual({ question: recipe.question, title: said.title, note: said.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor });
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       // the design's own time, its model steps and each visual its tool turned back: a slow layout shows whether it retried
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, steps: out.steps, refused: out.refused?.length ? out.refused : undefined, error: out.fromDesigner ? undefined : out.error });

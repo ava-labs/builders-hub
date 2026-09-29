@@ -9,7 +9,8 @@ import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { ColumnMeta } from "./clickhouse";
 import type { ChartSpec, Names, Totals } from "./types";
-import { edgesOf, windowOf } from "./edges";
+import { edgesOf, msOf, windowOf } from "./edges";
+import { staleLine } from "./scope";
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const DESIGN_MODEL = "claude-opus-5-5";
@@ -373,7 +374,7 @@ export function figures(input: Seen): string[] {
   if (input.sql && label && TIME.test(label.type)) {
     const win = windowOf(input.sql, input.anchor);
     const edge = win && edgesOf(rows.map((r) => r[label.name]), win);
-    if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? "still filling" : "complete"}.`);
+    if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? (staleOf(input.anchor) ? "cut where the index ends" : "still filling") : "complete"}.`);
   }
   for (const c of columns) {
     const nums: { r: Row; v: number }[] = [];
@@ -475,6 +476,14 @@ export function sampleOf(input: Seen): { head: string; rows: Row[] } {
   return { head: `${at.length} of the ${rows.length} rows, in order: the first and last five, each column's highest and lowest, and an even spread between:`, rows: at.map((i) => named(rows[i])) };
 }
 
+/** where a stale index ends, for a model that reads its rows: the question's today is not the rows' (empty for an
+    index that is current) */
+const staleOf = (anchor?: string | null) => (anchor ? staleLine(msOf(anchor), Date.now()) : "");
+const staleBrief = (anchor?: string | null) => {
+  const line = staleOf(anchor);
+  return line ? [`${line} Name each day by its date, never as today, this week or so far.`] : [];
+};
+
 /** what a model reads about the rows: the figures over all of them, then a sample */
 function rowsBrief(input: Seen): string[] {
   const s = sampleOf(input);
@@ -527,6 +536,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
           content: [
             `Question: ${input.question}`,
             `Title: ${input.title}`,
+            ...staleBrief(input.anchor),
             `Native token: ${input.symbol}. Rows: ${input.rows.length}${input.totals && input.totals.rows > input.rows.length ? ` of ${input.totals.rows}` : ""}.`,
             ...rowsBrief(input),
             READ_ONLY,
@@ -621,6 +631,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
             `Question: ${input.question}`,
             `Title from the query stage: ${input.title}`,
             `Note from the query stage: ${input.note}`,
+            ...staleBrief(input.anchor),
             `Native token: ${input.symbol}. Rows: ${input.rows.length}${input.totals && input.totals.rows > input.rows.length ? ` of ${input.totals.rows}` : ""}.`,
             ...rowsBrief(seen),
             `Call the design tool exactly once with the visual. If it returns an error, call it again with the fix. Do not answer in prose.`,

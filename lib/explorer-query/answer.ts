@@ -146,9 +146,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
-    // a kept note loses any sentence that names the SQL's parts, and a kept title and note name the window the query reads
-    const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
-    const said = isFuji(a.chainId) ? words : withWindow(words, collapseMacros(sql, a.chainId), result.rows, recipe.chart.x, run.anchor ? msOf(run.anchor) : Date.now());
+    const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
     return {
       anchor: run.anchor,
       sources: run.sources,
@@ -169,6 +167,14 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
   } catch {
     return null;
   }
+}
+
+/** a kept recipe's title and note as the page shows them: the note loses any sentence that names the SQL's parts,
+    and both name the window the query reads, in the reader's dates when the index runs behind. The second phase
+    writes its reading from these words too, so the reading never says today for a day the index ended on */
+export function keptWords(recipe: Pick<Recipe, "title" | "note" | "chart">, sql: string, rows: readonly Record<string, unknown>[], anchor: string | null | undefined, chainId: number): { title: string; note: string } {
+  const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
+  return isFuji(chainId) ? words : withWindow(words, collapseMacros(sql, chainId), rows, recipe.chart.x, anchor ? msOf(anchor) : Date.now(), Date.now());
 }
 
 /** the answer, without its layout when none is kept: the page asks for that next */
@@ -474,7 +480,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           }
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
-          const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now);
+          const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now, Date.now());
           final = { title: said.title, note: said.note, sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);

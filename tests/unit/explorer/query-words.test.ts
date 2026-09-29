@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ROW_CAP, noteParts, progress, readerError, reads, rowsLabel, withEdges } from '@/components/explorer-v2/evm/query-client';
 import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
@@ -68,10 +68,21 @@ describe('withEdges', () => {
   const rows = [20, 21, 22, 23, 24, 25, 26, 27].map((d) => ({ day: day(d), txs: 100 }));
   const visual: VisualSpec = { stats: [], callouts: [], panels: [{ title: 'Daily', kind: 'bar', x: 'day', series: [{ column: 'txs', label: 'Txs', format: 'number', axis: 'left', mark: 'auto', transform: 'none', dashed: false }], markers: [], bands: [], stacked: false, sortDir: 'desc', referenceLines: [], width: 'full' }] };
   const answer = { sql: 'SELECT toDate(block_time) AS day, count() AS txs FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 7 DAY GROUP BY day ORDER BY day', anchor: '2026-09-27 03:20:23.000', result: result(rows) };
+  // read twenty minutes after the index's last block
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-27T03:40:00Z'));
+  });
+  afterEach(() => vi.useRealTimers());
 
   it('labels the first bucket the window cuts through, and the last one still filling', () => {
     const out = withEdges(visual, answer)!;
     expect(out.panels[0].markers).toEqual([{ x: day(20), label: 'partial' }, { x: day(27), label: 'so far' }]);
+  });
+
+  it("labels a stale index's last bucket where the index ends", () => {
+    vi.setSystemTime(new Date('2026-11-26T03:40:00Z'));
+    expect(withEdges(visual, answer)!.panels[0].markers).toEqual([{ x: day(20), label: 'partial' }, { x: day(27), label: 'index ends' }]);
   });
 
   it('leaves a window with no now() alone', () => {
@@ -226,12 +237,22 @@ describe('figures', () => {
     expect(figures({ columns, rows: shuffled, names: {}, x: 't' }).join('\n')).not.toContain('between neighbouring rows');
   });
 
-  it('says which edge buckets the window cuts', () => {
+  it('says which edge buckets the window cuts, and that a stale index cuts the last one', () => {
     const columns = [{ name: 't', type: 'Date' }, { name: 'txs', type: 'UInt64' }];
     const rows = [20, 21, 22, 23, 24, 25, 26, 27].map((d) => ({ t: `2026-09-${d}`, txs: d === 20 ? 964435 : 500000 }));
     const sql = 'SELECT toDate(block_time) AS t, count() AS txs FROM raw_txs WHERE block_time >= toStartOfDay(now()) - INTERVAL 7 DAY GROUP BY t ORDER BY t';
-    const f = figures({ columns, rows, names: {}, x: 't', sql, anchor: '2026-09-27 06:10:00' });
-    expect(f).toContain('Edges: the first period, t 2026-09-20, is complete; the last, t 2026-09-27, is still filling.');
+    const input = { columns, rows, names: {}, x: 't', sql, anchor: '2026-09-27 06:10:00' };
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      // read ten minutes after the index's last block
+      vi.setSystemTime(new Date('2026-09-27T06:20:00Z'));
+      expect(figures(input)).toContain('Edges: the first period, t 2026-09-20, is complete; the last, t 2026-09-27, is still filling.');
+      // read two months later: the last day fills no more
+      vi.setSystemTime(new Date('2026-11-26T06:10:00Z'));
+      expect(figures(input)).toContain('Edges: the first period, t 2026-09-20, is complete; the last, t 2026-09-27, is cut where the index ends.');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('names the row that holds a whole-result extreme the rows do not show', () => {

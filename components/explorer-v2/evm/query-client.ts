@@ -8,7 +8,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
-import { edgesOf, windowOf } from "@/lib/explorer-query/edges";
+import { edgesOf, msOf, STALE_MS, windowOf } from "@/lib/explorer-query/edges";
 
 /** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
 export class QueryError extends Error {
@@ -129,6 +129,8 @@ export function withEdges(visual: VisualSpec | null, a: Pick<QueryAnswer, "sql" 
   const rows = a?.result?.rows;
   const win = a ? windowOf(a.sql, a.anchor) : null;
   if (!visual || !rows || !win) return visual;
+  // the last bucket of an index that ended long ago fills no more: the index ends there
+  const last = a?.anchor && Date.now() - msOf(a.anchor) >= STALE_MS ? "index ends" : "so far";
   let changed = false;
   const panels = visual.panels.map((p) => {
     if (!p.x || !["bar", "line", "area"].includes(p.kind)) return p;
@@ -136,7 +138,7 @@ export function withEdges(visual: VisualSpec | null, a: Pick<QueryAnswer, "sql" 
     const e = edgesOf(xs, win);
     if (!e || (!e.first && !e.last)) return p;
     changed = true;
-    return { ...p, markers: [...p.markers, ...(e.first ? [{ x: String(xs[e.lo]), label: "partial" }] : []), ...(e.last ? [{ x: String(xs[e.hi]), label: "so far" }] : [])] };
+    return { ...p, markers: [...p.markers, ...(e.first ? [{ x: String(xs[e.lo]), label: "partial" }] : []), ...(e.last ? [{ x: String(xs[e.hi]), label: last }] : [])] };
   });
   return changed ? { ...visual, panels } : visual;
 }

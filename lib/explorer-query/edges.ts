@@ -6,6 +6,10 @@
 /** a UTC time as the rows write it (2026-09-27 00:30:00, or a day), in ms */
 export const msOf = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? Date.parse(v.length > 10 ? `${v.replace(" ", "T")}Z` : `${v}T00:00:00Z`) : NaN);
 
+/** how far the index may run behind the reader's clock before its window is named in the reader's dates: past a
+    day, the "today" of an index that ended long ago is not the reader's today, and its last bucket fills no more */
+export const STALE_MS = 86_400_000;
+
 const SPAN_MS: Record<string, number> = { MINUTE: 60_000, HOUR: 3_600_000, DAY: 86_400_000, WEEK: 604_800_000, MONTH: 2_592_000_000 };
 /** the bucket a window's start is rounded down to: toStartOfDay(now()) starts at a midnight */
 const FLOOR_MS: Record<string, number> = { tostartofminute: 60_000, tostartoffiveminutes: 300_000, tostartoffifteenminutes: 900_000, tostartofhour: 3_600_000, tostartofday: 86_400_000, todate: 86_400_000, today: 86_400_000 };
