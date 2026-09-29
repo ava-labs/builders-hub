@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -38,13 +38,13 @@ import {
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
 
-// Form schema. Social fields are optional; only name + country + at least
-// one role are required to complete the basic setup. When a social field is
-// filled in, the value must match its platform pattern.
+// Form schema. Every field is optional so the basic setup can be skipped or
+// saved partially. When a social field is filled in, the value must match its
+// platform pattern.
 const basicProfileSchema = z
   .object({
-    name: z.string().min(1, 'Full name is required'),
-    country: z.string().min(1, 'Country is required'),
+    name: z.string().optional().default(''),
+    country: z.string().optional().default(''),
     linkedin_account: z
       .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter valid LinkedIn URL'), z.literal('')])
       .optional()
@@ -70,21 +70,59 @@ const basicProfileSchema = z
     employee_role: z.string().optional(),
     is_developer: z.boolean().default(false),
     is_enthusiast: z.boolean().default(false),
-  })
-  .refine(
-    (data) =>
-      data.is_student ||
-      data.is_founder ||
-      data.is_employee ||
-      data.is_developer ||
-      data.is_enthusiast,
-    {
-      message: 'Select at least one role',
-      path: ['is_enthusiast'],
-    }
-  );
+  });
 
 type BasicProfileFormValues = z.infer<typeof basicProfileSchema>;
+
+const EMPTY_FORM_VALUES: BasicProfileFormValues = {
+  name: '',
+  country: '',
+  linkedin_account: '',
+  github_account: '',
+  x_account: '',
+  telegram_account: '',
+  is_student: false,
+  student_institution: '',
+  is_founder: false,
+  founder_company_name: '',
+  is_employee: false,
+  employee_company_name: '',
+  employee_role: '',
+  is_developer: false,
+  is_enthusiast: false,
+};
+
+const SAVE_TIMEOUT_MS = 15_000;
+
+// Prefer the API's own message (e.g. the country lock), then a timeout hint,
+// then a generic fallback. Skip stays available either way.
+function getSaveErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status ?? 0;
+    const apiMessage = (error.response?.data as { error?: unknown } | undefined)?.error;
+    // 4xx messages are user-facing (country lock, validation); 5xx are not.
+    if (status >= 400 && status < 500 && typeof apiMessage === 'string' && apiMessage.trim()) {
+      return apiMessage;
+    }
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      return 'Saving is taking too long. Please try again, or skip for now.';
+    }
+  }
+  return "We couldn't save your profile. Please try again, or skip for now.";
+}
+
+// Form fields persisted inside the user_type JSON column.
+const USER_TYPE_FIELDS = [
+  'is_student',
+  'student_institution',
+  'is_founder',
+  'founder_company_name',
+  'is_employee',
+  'employee_company_name',
+  'employee_role',
+  'is_developer',
+  'is_enthusiast',
+] as const satisfies readonly (keyof BasicProfileFormValues)[];
 
 // Normalize names: keep only letters (incl. accented), spaces, hyphens, and
 // apostrophes; lowercase everything then capitalize the first letter of each
@@ -99,35 +137,32 @@ function normalizeFullName(input: string): string {
 interface BasicProfileSetupProps {
   userId: string;
   onCompleteProfile?: () => void;
+  onSkip?: () => void;
+  // Lets the parent block dialog dismissal while a save is in flight.
+  onSavingChange?: (saving: boolean) => void;
 }
 
-export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSetupProps) {
+export function BasicProfileSetup({ userId, onCompleteProfile, onSkip, onSavingChange }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Save stays disabled until the profile prefill settles; every field is
+  // optional, so saving the blank defaults early would overwrite stored data.
+  const [isHydrating, setIsHydrating] = useState(Boolean(userId));
   const [githubConnected, setGithubConnected] = useState(false);
   const [xConnected, setXConnected] = useState(false);
   const pathname = usePathname();
   const { update } = useSession();
 
+  // Values the form was hydrated with, so a save only sends what the user
+  // actually changed. The raw user_type is kept too, so keys this form does
+  // not render survive a role update.
+  const loadedValues = useRef<BasicProfileFormValues>(EMPTY_FORM_VALUES);
+  const loadedUserType = useRef<Record<string, unknown>>({});
+
   const form = useForm<BasicProfileFormValues>({
     resolver: zodResolver(basicProfileSchema),
     mode: 'onSubmit',
-    defaultValues: {
-      name: '',
-      country: '',
-      linkedin_account: '',
-      github_account: '',
-      x_account: '',
-      telegram_account: '',
-      is_student: false,
-      student_institution: '',
-      is_founder: false,
-      founder_company_name: '',
-      is_employee: false,
-      employee_company_name: '',
-      employee_role: '',
-      is_developer: false,
-      is_enthusiast: false,
-    },
+    defaultValues: EMPTY_FORM_VALUES,
   });
 
   const watchedValues = form.watch();
@@ -146,7 +181,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         const profile = await res.json();
         if (cancelled || !profile) return;
         const userType = profile.user_type ?? {};
-        form.reset({
+        const values: BasicProfileFormValues = {
           name: profile.name ?? '',
           country: profile.country ?? '',
           linkedin_account: profile.linkedin_account ?? '',
@@ -162,11 +197,17 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
           employee_role: userType.employee_role ?? '',
           is_developer: Boolean(userType.is_developer),
           is_enthusiast: Boolean(userType.is_enthusiast),
-        });
+        };
+        loadedValues.current = values;
+        loadedUserType.current = userType;
+        form.reset(values);
         setGithubConnected(Boolean(profile.githubConnected));
         setXConnected(Boolean(profile.x_account));
       } catch {
-        // silent: blank defaults are fine if the fetch fails
+        // silent: blank defaults are fine if the fetch fails. Only changed
+        // fields are sent, so untouched ones cannot blank stored data.
+      } finally {
+        if (!cancelled) setIsHydrating(false);
       }
     })();
     return () => {
@@ -199,54 +240,60 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
 
   const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
+    setSaveError(null);
+    onSavingChange?.(true);
     try {
-      // Format data to match the API expected format
-      const {
-        is_student,
-        student_institution,
-        is_founder,
-        founder_company_name,
-        is_employee,
-        employee_company_name,
-        employee_role,
-        is_developer,
-        is_enthusiast,
-        name,
-        country,
-        linkedin_account,
-        telegram_account,
-      } = data;
+      // Only send fields that differ from what was loaded, so an optional
+      // partial save never overwrites values the user did not touch.
+      const loaded = loadedValues.current;
+      const changed = (key: keyof BasicProfileFormValues) => data[key] !== loaded[key];
+      const profileData: Record<string, unknown> = {};
 
-      // Construct user_type object with all role fields
-      const profileData = {
-        name,
-        country,
-        linkedin_account,
-        telegram_account,
-        user_type: {
-          is_student,
-          is_founder,
-          is_employee,
-          is_developer,
-          is_enthusiast,
-          ...(student_institution && { student_institution }),
-          ...(founder_company_name && { founder_company_name }),
-          ...(employee_company_name && { employee_company_name }),
-          ...(employee_role && { employee_role }),
-        }
-      };
+      // Blank name/country are left out: the API rejects an empty name, and
+      // omitting them keeps whatever the user already has on file.
+      const trimmedName = (data.name ?? '').trim();
+      if (changed('name') && trimmedName) profileData.name = trimmedName;
+      if (changed('country') && data.country) profileData.country = data.country;
+      if (changed('linkedin_account')) profileData.linkedin_account = data.linkedin_account;
+      if (changed('telegram_account')) profileData.telegram_account = data.telegram_account;
 
-      // Save to API using extended profile endpoint
-      await axios.put(`/api/profile/extended/${userId}`, profileData);
+      // user_type is stored as one JSON value, so any role change sends the
+      // whole object, layered over the loaded one to keep unrendered keys.
+      if (USER_TYPE_FIELDS.some(changed)) {
+        profileData.user_type = {
+          ...loadedUserType.current,
+          is_student: data.is_student,
+          is_founder: data.is_founder,
+          is_employee: data.is_employee,
+          is_developer: data.is_developer,
+          is_enthusiast: data.is_enthusiast,
+          student_institution: data.student_institution || undefined,
+          founder_company_name: data.founder_company_name || undefined,
+          employee_company_name: data.employee_company_name || undefined,
+          employee_role: data.employee_role || undefined,
+        };
+      }
 
-      // Update session
-      await update();
+      // Nothing changed: skip the request (the API rejects an empty update).
+      if (Object.keys(profileData).length > 0) {
+        // Bounded so a hung request can't keep the dialog locked forever.
+        await axios.put(`/api/profile/extended/${userId}`, profileData, {
+          timeout: SAVE_TIMEOUT_MS,
+        });
+        // The data is saved; refresh the session in the background so a slow
+        // refresh doesn't hold the modal open.
+        void update().catch((error) => {
+          console.error('Error refreshing session after profile save:', error);
+        });
+      }
 
       onCompleteProfile?.();
     } catch (error) {
       console.error('Error saving basic profile:', error);
+      setSaveError(getSaveErrorMessage(error));
     } finally {
       setIsSaving(false);
+      onSavingChange?.(false);
     }
   };
 
@@ -298,7 +345,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm sm:text-base">Full Name *</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Full Name</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter your full name"
@@ -320,7 +367,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                   name="country"
                   render={({ field }) => (
                     <FormItem className="w-full">
-                      <FormLabel className="text-sm sm:text-base">Country *</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Country</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base w-full min-w-0">
@@ -468,12 +515,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
 
             {/* Roles */}
             <div className="space-y-3 sm:space-y-4">
-              <FormLabel className="text-sm sm:text-base">Select all roles that apply. *</FormLabel>
-              {form.formState.errors.is_enthusiast?.message && (
-                <p className="text-sm font-medium text-destructive">
-                  {String(form.formState.errors.is_enthusiast.message)}
-                </p>
-              )}
+              <FormLabel className="text-sm sm:text-base">Select all roles that apply.</FormLabel>
 
               {/* Student */}
               <div className="space-y-2">
@@ -711,16 +753,32 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
             </div>
 
             {/* Submit */}
-            <div className="pt-4 sm:pt-5">
+            <div className="pt-4 sm:pt-5 space-y-2">
+              {saveError && (
+                <p role="alert" className="text-sm font-medium text-destructive">
+                  {saveError}
+                </p>
+              )}
               <LoadingButton
                 type="submit"
                 variant="red"
                 className="w-full text-sm sm:text-base"
-                isLoading={isSaving}
-                loadingText="Saving..."
+                isLoading={isSaving || isHydrating}
+                loadingText={isHydrating ? 'Loading...' : 'Saving...'}
               >
                 Save
               </LoadingButton>
+              {onSkip && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-sm sm:text-base"
+                  onClick={onSkip}
+                  disabled={isSaving}
+                >
+                  Skip for now
+                </Button>
+              )}
             </div>
           </form>
         </Form>
