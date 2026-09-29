@@ -137,6 +137,11 @@ async function contractInfos(chainId: number, addrs: string[]): Promise<Map<stri
   return out;
 }
 
+/* the zero address in a column of tokens is the chain's own coin: Benqi keys its AVAX market by it, and the address
+   book's "Null Address" read as a market (the audit's V09: "AVAX (Null Address) accounts for $955k") */
+const TOKEN_COLUMN = /(?:^|_)(?:token|asset|underlying|reserve|currency|coin)s?(?:_|$)/i;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: Row[], baseUrl: string): Promise<Names> {
   const names: Names = {};
   if (rows.length === 0) return names;
@@ -275,6 +280,11 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
       if (label) out[v.toLowerCase()] = label;
     }
     if (Object.keys(out).length) names[col] = out;
+  }
+  if (chainId === DEX_CHAIN_ID) {
+    for (const c of columns) {
+      if (TOKEN_COLUMN.test(c.name) && rows.some((r) => typeof r[c.name] === "string" && String(r[c.name]).toLowerCase() === ZERO_ADDRESS)) (names[c.name] ??= {})[ZERO_ADDRESS] = "AVAX";
+    }
   }
   return names;
 }

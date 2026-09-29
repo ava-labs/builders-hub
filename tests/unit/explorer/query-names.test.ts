@@ -78,3 +78,16 @@ describe('selector names', () => {
     expect(asked).toEqual([]);
   });
 });
+
+describe('the zero address in a column of tokens', () => {
+  it('is AVAX on the C-Chain, and keeps its name in any other column or chain', async () => {
+    // the audit's V09: Benqi keys its AVAX market by the zero address, and the market read "Null Address"
+    const zero = addr('0');
+    const cols = [{ name: 'token', type: 'String' }, { name: 'from_address', type: 'String' }, { name: 'borrows', type: 'UInt64' }];
+    const rows = [{ token: zero, from_address: zero, borrows: 28 }];
+    const names = await enrichNames(43114, cols, rows, 'http://localhost:3000');
+    expect(names.token?.[zero]).toBe('AVAX');
+    expect(names.from_address?.[zero]).toBe('Null Address');
+    expect((await enrichNames(43419, cols, rows, 'http://localhost:3000')).token?.[zero]).toBe('Null Address');
+  });
+});
