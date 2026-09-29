@@ -82,7 +82,8 @@ async function getJson<T>(url: string, timeoutMs: number): Promise<T | null> {
 const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
   Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
 
-async function tokenList(chainId: number, baseUrl: string): Promise<Map<string, TokenInfo>> {
+/** the chain's token list by lowercase address, held an hour; a monitor reads its symbols and decimals too */
+export async function tokenList(chainId: number, baseUrl: string): Promise<Map<string, TokenInfo>> {
   const hit = tokenCache.get(chainId);
   if (hit && Date.now() - hit.at < 3_600_000) return hit.tokens;
   const body = await getJson<{ tokens?: Record<string, TokenInfo> }>(`${baseUrl}/api/token-list/${chainId}`, 15_000);

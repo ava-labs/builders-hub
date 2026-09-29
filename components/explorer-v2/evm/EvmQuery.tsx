@@ -25,6 +25,7 @@ import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { QueryLoader } from "./QueryLoader";
 import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
+import { QueryMonitor } from "./QueryMonitor";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
@@ -612,7 +613,8 @@ function QueryPage({
 
   const submit = () => {
     const extra = answer && about && sel.length ? `${FILTER_MARK}${selForModel()}.)` : "";
-    void ask(prompt + extra, !!answer);
+    // a live monitor ran no SQL for the writer to refine: what is typed under it is a new question
+    void ask(prompt + extra, !!answer && !answer.monitor);
   };
 
   const askAboutSelection = () => {
@@ -683,13 +685,15 @@ function QueryPage({
         autoFocus={!answer}
         disabled={busy}
         placeholder={
-          answer
-            ? c.kind === "pchain"
-              ? "Refine this answer: only L1s, per week, add delegators"
-              : "Refine this answer: only reverted, per hour, add fees"
-            : c.kind === "pchain"
-              ? "Ask the P-Chain about validators, staking, delegations, L1s or supply"
-              : `Ask ${c.chainName} about its transactions, gas, contracts or tokens`
+          answer?.monitor
+            ? "Monitor something else, or ask a new question"
+            : answer
+              ? c.kind === "pchain"
+                ? "Refine this answer: only L1s, per week, add delegators"
+                : "Refine this answer: only reverted, per hour, add fees"
+              : c.kind === "pchain"
+                ? "Ask the P-Chain about validators, staking, delegations, L1s or supply"
+                : `Ask ${c.chainName} about its transactions, gas, contracts or tokens`
         }
         className="max-h-40 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 disabled:opacity-60 dark:text-zinc-50 dark:placeholder:text-zinc-600"
       />
@@ -798,7 +802,7 @@ function QueryPage({
               )}
               <div className="flex items-start justify-between gap-4">
                 <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
-                {c.chainSlug && !laying && <PinToBoard chain={c.chainSlug} network={network} answer={answer} thread={history.map((t) => t.prompt)} className="mt-1 shrink-0" />}
+                {c.chainSlug && !laying && !answer.monitor && <PinToBoard chain={c.chainSlug} network={network} answer={answer} thread={history.map((t) => t.prompt)} className="mt-1 shrink-0" />}
               </div>
               {!laying && reading && (
                 <span aria-busy="true" aria-label="Writing the reading" className="flex max-w-3xl flex-col gap-1.5 pt-1">
@@ -848,7 +852,10 @@ function QueryPage({
               </div>
 
               <ZoomStage level={drill ? `drill-${drill.index}` : laying ? "laying" : "answer"}>
-                {drill ? (
+                {answer.monitor ? (
+                  // a live feed of the chain's own moves, read from its RPC as each block is made
+                  <QueryMonitor spec={answer.monitor} base={base} />
+                ) : drill ? (
                   <div className={cn(CARD, "px-4 py-4 sm:px-5 sm:py-5")}>
                     <DrillView drill={drill} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
                   </div>
@@ -928,147 +935,150 @@ function QueryPage({
             </div>
 
             {/* where the figures came from, folded away until asked */}
-            <div className="flex flex-col">
-              <button
-                type="button"
-                onClick={() => setHow((v) => !v)}
-                aria-expanded={how}
-                aria-controls="query-how"
-                className="flex items-center gap-1.5 self-start rounded-full py-1 pr-2 text-[13px] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-              >
-                <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none", how && "rotate-90")} />
-                How this was answered
-              </button>
-              <AnimatePresence initial={false}>
-                {how && (
-                  <motion.div
-                    id="query-how"
-                    key="how"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: still ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="flex flex-col gap-5 pb-2 pl-5 pt-4">
-                      {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>}
-                      <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
-                        <Fact label="Source" sub={answer.sources?.length ? `Indexed ClickHouse tables, read-only, with ${answer.sources.map((s) => s.label).join(" and ")} from our API` : "Indexed ClickHouse tables, read-only"}>
-                          {tables.length ? tables.join(", ") : "none"}
-                        </Fact>
-                        {cov && (
-                          <Fact
-                            label="Data window"
-                            sub={
-                              <>
-                                <Link href={`${base}/block/${cov.lo}`} className="hover:text-[#E6212F]">
-                                  #{formatNumber(cov.lo)}
-                                </Link>
-                                {" to "}
-                                <Link href={`${base}/block/${cov.hi}`} className="hover:text-[#E6212F]">
-                                  #{formatNumber(cov.hi)}
-                                </Link>
-                                {` · ${formatNumber(cov.blocks)} blocks`}
-                                {answer.anchor && (
-                                  <span className="mt-1 block text-amber-700 dark:text-amber-400">
-                                    The index ends {duration(Math.max(0, Math.floor(Date.now() / 1000) - toUnix(answer.anchor)))} before now, so &ldquo;now&rdquo; is its last block, {answer.anchor.slice(11, 16)} UTC.
-                                  </span>
-                                )}
-                              </>
-                            }
-                          >
-                            {duration(covSecs)}
+            {/* a monitor ran no SQL: its card says where its moves come from */}
+            {!answer.monitor && (
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => setHow((v) => !v)}
+                  aria-expanded={how}
+                  aria-controls="query-how"
+                  className="flex items-center gap-1.5 self-start rounded-full py-1 pr-2 text-[13px] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none", how && "rotate-90")} />
+                  How this was answered
+                </button>
+                <AnimatePresence initial={false}>
+                  {how && (
+                    <motion.div
+                      id="query-how"
+                      key="how"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: still ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-5 pb-2 pl-5 pt-4">
+                        {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>}
+                        <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
+                          <Fact label="Source" sub={answer.sources?.length ? `Indexed ClickHouse tables, read-only, with ${answer.sources.map((s) => s.label).join(" and ")} from our API` : "Indexed ClickHouse tables, read-only"}>
+                            {tables.length ? tables.join(", ") : "none"}
                           </Fact>
-                        )}
-                        {answer.result && (
-                          <Fact label="Result" sub={`${answer.result.rowsRead > 0 ? `${formatNumber(answer.result.rowsRead)} rows scanned in` : "Ran in"} ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
-                            {cutLine(answer) ?? rowCount(answer.result.rowCount)}
-                          </Fact>
-                        )}
-                      </dl>
+                          {cov && (
+                            <Fact
+                              label="Data window"
+                              sub={
+                                <>
+                                  <Link href={`${base}/block/${cov.lo}`} className="hover:text-[#E6212F]">
+                                    #{formatNumber(cov.lo)}
+                                  </Link>
+                                  {" to "}
+                                  <Link href={`${base}/block/${cov.hi}`} className="hover:text-[#E6212F]">
+                                    #{formatNumber(cov.hi)}
+                                  </Link>
+                                  {` · ${formatNumber(cov.blocks)} blocks`}
+                                  {answer.anchor && (
+                                    <span className="mt-1 block text-amber-700 dark:text-amber-400">
+                                      The index ends {duration(Math.max(0, Math.floor(Date.now() / 1000) - toUnix(answer.anchor)))} before now, so &ldquo;now&rdquo; is its last block, {answer.anchor.slice(11, 16)} UTC.
+                                    </span>
+                                  )}
+                                </>
+                              }
+                            >
+                              {duration(covSecs)}
+                            </Fact>
+                          )}
+                          {answer.result && (
+                            <Fact label="Result" sub={`${answer.result.rowsRead > 0 ? `${formatNumber(answer.result.rowsRead)} rows scanned in` : "Ran in"} ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
+                              {cutLine(answer) ?? rowCount(answer.result.rowCount)}
+                            </Fact>
+                          )}
+                        </dl>
 
-                      <div className={cn("flex flex-col gap-2", !answer.result && "hidden")}>
-                        <span className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px]">
-                          <button type="button" onClick={() => setSqlOpen((v) => !v)} className="text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-50">
-                            {sqlOpen ? "Hide SQL" : "Edit SQL"}
-                          </button>
-                          <button type="button" onClick={() => copy("sql", answer.sql)} className={quiet}>
-                            {copied === "sql" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} SQL
-                          </button>
-                          {answer.result && answer.result.rowCount > 0 && (
-                            <button type="button" onClick={() => downloadCsv({ title: answer.title, columns: answer.result!.columns, rows: answer.result!.rows, names })} className={quiet}>
-                              <Download className="h-3 w-3" /> All rows as CSV
+                        <div className={cn("flex flex-col gap-2", !answer.result && "hidden")}>
+                          <span className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px]">
+                            <button type="button" onClick={() => setSqlOpen((v) => !v)} className="text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-50">
+                              {sqlOpen ? "Hide SQL" : "Edit SQL"}
                             </button>
-                          )}
-                          {history.length > 0 && (
-                            <button type="button" onClick={() => copy("link", window.location.href)} className={quiet}>
-                              {copied === "link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Link
+                            <button type="button" onClick={() => copy("sql", answer.sql)} className={quiet}>
+                              {copied === "sql" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} SQL
                             </button>
-                          )}
-                          {drill?.answer && (
-                            <button type="button" onClick={() => copy("drill", drill.answer!.sql)} className={quiet}>
-                              {copied === "drill" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Records SQL
-                            </button>
-                          )}
-                          {drill?.answer && (
-                            <button type="button" onClick={() => askAbout(`Explain these transactions: ${drill.title}.`)} className={quiet}>
-                              Ask the assistant
-                            </button>
-                          )}
-                        </span>
-                        <span className="font-mono text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                          {answer.model?.cached
-                            ? `Kept answer; rows fresh in ${Math.round((answer.model.ms ?? 0) / 100) / 10} s.`
-                            : `SQL written in ${Math.round((answer.model?.ms ?? 0) / 1000)} s${answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.`}
-                          {designing ? " Laying out the chart." : answer.model?.designMs ? ` Chart laid out in ${Math.round(answer.model.designMs / 1000)} s.` : ""}
-                        </span>
-                        {!!answer.model?.timings?.length && (
-                          <ol className="flex flex-col gap-1 font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                            {answer.model.timings.map((t) => (
-                              <li key={t.n} className="flex items-baseline gap-2" title={t.detail}>
-                                <span className={cn("w-1.5 shrink-0", t.ok ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]")}>{t.ok ? "✓" : "×"}</span>
-                                <span className="w-10 shrink-0">{t.kind === "test" ? "test" : "final"}</span>
-                                <span className="shrink-0">model {(t.modelMs / 1000).toFixed(1)} s</span>
-                                <span className="shrink-0">sql {(t.sqlMs / 1000).toFixed(2)} s</span>
-                                {!t.ok && <span className="min-w-0 truncate text-[#E6212F]">{t.detail}</span>}
-                              </li>
-                            ))}
-                          </ol>
-                        )}
-                      </div>
-
-                      {sqlOpen && (
-                        <div className="flex flex-col gap-3">
-                          <textarea
-                            value={sqlDraft}
-                            onChange={(e) => setSqlDraft(e.target.value)}
-                            spellCheck={false}
-                            rows={Math.min(18, Math.max(5, sqlDraft.split("\n").length + 1))}
-                            className="w-full resize-y rounded-xl bg-zinc-50 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-900 outline-none ring-1 ring-zinc-200/70 focus:ring-zinc-400 dark:bg-zinc-900/50 dark:text-zinc-100 dark:ring-zinc-800"
-                          />
-                          <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
-                            <span className="text-zinc-400 dark:text-zinc-500">
-                              {c.kind === "pchain"
-                                ? `One SELECT over the P-Chain tables (decoded_p_txs, the UTXO and snapshot tables), with chain_id = ${c.chainId}. At most 2,000 rows.`
-                                : `One SELECT over raw_blocks, raw_txs, raw_logs or raw_traces, with chain_id = ${c.chainId}. At most 2,000 rows.`}
-                            </span>
-                            <button type="button" onClick={() => void runSql()} disabled={busy || sqlDraft.trim() === answer.sql.trim()} className="rounded-full bg-zinc-900 px-3.5 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">
-                              Run
-                            </button>
-                          </div>
-                          {answer.drill && (
-                            <details className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                              <summary className="cursor-pointer select-none">How a group opens into its transactions</summary>
-                              <pre className="mt-2 overflow-x-auto rounded-xl bg-zinc-50 px-3 py-2 leading-relaxed dark:bg-zinc-900/50">{answer.drill.sql}</pre>
-                            </details>
+                            {answer.result && answer.result.rowCount > 0 && (
+                              <button type="button" onClick={() => downloadCsv({ title: answer.title, columns: answer.result!.columns, rows: answer.result!.rows, names })} className={quiet}>
+                                <Download className="h-3 w-3" /> All rows as CSV
+                              </button>
+                            )}
+                            {history.length > 0 && (
+                              <button type="button" onClick={() => copy("link", window.location.href)} className={quiet}>
+                                {copied === "link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Link
+                              </button>
+                            )}
+                            {drill?.answer && (
+                              <button type="button" onClick={() => copy("drill", drill.answer!.sql)} className={quiet}>
+                                {copied === "drill" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Records SQL
+                              </button>
+                            )}
+                            {drill?.answer && (
+                              <button type="button" onClick={() => askAbout(`Explain these transactions: ${drill.title}.`)} className={quiet}>
+                                Ask the assistant
+                              </button>
+                            )}
+                          </span>
+                          <span className="font-mono text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                            {answer.model?.cached
+                              ? `Kept answer; rows fresh in ${Math.round((answer.model.ms ?? 0) / 100) / 10} s.`
+                              : `SQL written in ${Math.round((answer.model?.ms ?? 0) / 1000)} s${answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.`}
+                            {designing ? " Laying out the chart." : answer.model?.designMs ? ` Chart laid out in ${Math.round(answer.model.designMs / 1000)} s.` : ""}
+                          </span>
+                          {!!answer.model?.timings?.length && (
+                            <ol className="flex flex-col gap-1 font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                              {answer.model.timings.map((t) => (
+                                <li key={t.n} className="flex items-baseline gap-2" title={t.detail}>
+                                  <span className={cn("w-1.5 shrink-0", t.ok ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]")}>{t.ok ? "✓" : "×"}</span>
+                                  <span className="w-10 shrink-0">{t.kind === "test" ? "test" : "final"}</span>
+                                  <span className="shrink-0">model {(t.modelMs / 1000).toFixed(1)} s</span>
+                                  <span className="shrink-0">sql {(t.sqlMs / 1000).toFixed(2)} s</span>
+                                  {!t.ok && <span className="min-w-0 truncate text-[#E6212F]">{t.detail}</span>}
+                                </li>
+                              ))}
+                            </ol>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+
+                        {sqlOpen && (
+                          <div className="flex flex-col gap-3">
+                            <textarea
+                              value={sqlDraft}
+                              onChange={(e) => setSqlDraft(e.target.value)}
+                              spellCheck={false}
+                              rows={Math.min(18, Math.max(5, sqlDraft.split("\n").length + 1))}
+                              className="w-full resize-y rounded-xl bg-zinc-50 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-900 outline-none ring-1 ring-zinc-200/70 focus:ring-zinc-400 dark:bg-zinc-900/50 dark:text-zinc-100 dark:ring-zinc-800"
+                            />
+                            <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
+                              <span className="text-zinc-400 dark:text-zinc-500">
+                                {c.kind === "pchain"
+                                  ? `One SELECT over the P-Chain tables (decoded_p_txs, the UTXO and snapshot tables), with chain_id = ${c.chainId}. At most 2,000 rows.`
+                                  : `One SELECT over raw_blocks, raw_txs, raw_logs or raw_traces, with chain_id = ${c.chainId}. At most 2,000 rows.`}
+                              </span>
+                              <button type="button" onClick={() => void runSql()} disabled={busy || sqlDraft.trim() === answer.sql.trim()} className="rounded-full bg-zinc-900 px-3.5 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">
+                                Run
+                              </button>
+                            </div>
+                            {answer.drill && (
+                              <details className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                                <summary className="cursor-pointer select-none">How a group opens into its transactions</summary>
+                                <pre className="mt-2 overflow-x-auto rounded-xl bg-zinc-50 px-3 py-2 leading-relaxed dark:bg-zinc-900/50">{answer.drill.sql}</pre>
+                              </details>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
             {answer.result && <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>}
           </section>
         )}

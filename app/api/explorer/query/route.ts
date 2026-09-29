@@ -6,7 +6,9 @@ import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual, writeReading } from "@/lib/explorer-query/visual";
-import type { ChartSpec, Names, Totals } from "@/lib/explorer-query/types";
+import type { ChartSpec, Names, QueryAnswer, Totals } from "@/lib/explorer-query/types";
+import { monitorNote } from "@/lib/explorer-query/monitor";
+import { monitorFor } from "@/lib/explorer-query/monitor-feed";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
 import { totalsOf } from "@/lib/explorer-query/cut";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
@@ -160,6 +162,14 @@ export async function POST(req: Request) {
   if (!/\p{L}/u.test(prompt)) {
     const example = targetOf(chainId).kind === "pchain" ? "AVAX staked per day" : "transactions per hour today";
     return NextResponse.json({ error: `Ask a question in words, for example "${example}".` }, { status: 400 });
+  }
+
+  // "monitor USDT transfers": a live feed of the chain's own moves, read from its RPC block by block. No model and
+  // no SQL, so no question is counted and the index's coverage does not matter
+  const monitor = await monitorFor(prompt, chainId, symbol, baseUrl);
+  if (monitor) {
+    const answer: QueryAnswer = { title: monitor.title, note: monitorNote(monitor, chain.chainName), sql: "", chart: { kind: "none", series: [] }, drill: null, result: null, names: {}, visual: null, coverage: null, monitor };
+    return new Response(`${JSON.stringify({ type: "answer", answer })}\n`, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } });
   }
 
   // a chain with no indexed rows has nothing to read; no model is asked
