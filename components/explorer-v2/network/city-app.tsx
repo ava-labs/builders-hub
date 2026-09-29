@@ -1344,11 +1344,12 @@ export function CityApp({
             else submit();
           }
         }}
-        placeholder={wide ? "Search chains, addresses, transactions and blocks" : "Chain, address, tx or block"}
-        aria-label="Search chains, addresses, transactions and blocks"
+        placeholder={wide ? "Search or ask a question about Avalanche" : "Search or ask a question"}
+        aria-label="Search or ask a question about Avalanche"
         spellCheck={false}
         className={cn(
-          "w-full border text-zinc-900 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 dark:text-zinc-50",
+          // a faint blue at the right end: the box also takes questions
+          "w-full border bg-linear-to-r from-transparent from-40% to-[#0061E2]/[0.06] text-zinc-900 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 dark:to-[#5f9dff]/[0.1] dark:text-zinc-50",
           wide
             ? "h-11 rounded-2xl border-zinc-200/90 bg-white/[0.94] pl-11 pr-10 text-[14px] shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl focus:border-zinc-300 dark:border-zinc-800/90 dark:bg-zinc-950/[0.9] dark:focus:border-zinc-700"
             : "h-10 rounded-xl border-zinc-200 bg-white pl-9 pr-9 text-[13.5px] focus:border-zinc-400 focus:shadow-[0_0_0_4px_rgba(24,24,27,0.05)] dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-600",
