@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
-import { menuSections, singleItems } from './nav-config';
+import { menuSections, singleItems, type NavItem, type NavSection } from './nav-config';
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
@@ -121,29 +122,7 @@ export function NavbarDropdown() {
               </div>
               {/* Menu sections */}
               {visibleMenuSections.map((section) => (
-                <div key={section.title} className="flex flex-col px-4 py-3">
-                  <Link
-                    href={section.href}
-                    className="mb-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
-                  >
-                    {section.title}
-                  </Link>
-                  {section.items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="inline-flex items-center gap-2 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
-                      {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-                    >
-                      {item.text}
-                      {item.badge ? (
-                        <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
-                          {item.badge}
-                        </span>
-                      ) : null}
-                    </Link>
-                  ))}
-                </div>
+                <NavSectionBlock key={section.title} section={section} />
               ))}
 
               {/* Single items */}
@@ -160,6 +139,61 @@ export function NavbarDropdown() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * One section of the sheet: its title link, then a two-up row of picture
+ * cards for items that carry an image, then text rows for the rest.
+ */
+export function NavSectionBlock({ section }: { section: NavSection }) {
+  const cards = section.items.filter((item): item is NavItem & { image: string } => Boolean(item.image));
+  const rows = section.items.filter((item) => !item.image);
+  return (
+    <div className="flex flex-col px-4 py-3">
+      <Link
+        href={section.href}
+        className="mb-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
+      >
+        {section.title}
+      </Link>
+      {cards.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2.5 py-1">
+          {cards.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col gap-1.5 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
+            >
+              <Image
+                src={item.image}
+                alt=""
+                width={1536}
+                height={864}
+                sizes="208px"
+                className="aspect-video w-full object-cover border border-zinc-200 dark:border-zinc-800"
+              />
+              <span>{item.text}</span>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+      {rows.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className="inline-flex items-center gap-2 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
+          {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+        >
+          {item.text}
+          {item.badge ? (
+            <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
+              {item.badge}
+            </span>
+          ) : null}
+        </Link>
+      ))}
     </div>
   );
 }

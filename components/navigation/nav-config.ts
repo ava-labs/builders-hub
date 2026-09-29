@@ -15,6 +15,8 @@ export interface NavItem {
   /** Small "New" style pill next to the label (drop after launch month). */
   badge?: string;
   external?: boolean;
+  /** Picture under public/: the item renders as a picture card instead of a text row. */
+  image?: string;
 }
 
 export interface NavSection {
@@ -39,18 +41,12 @@ export const menuSections: NavSection[] = [
       { text: 'Compliance', href: '/solutions/compliance' },
     ],
   },
-    {
-    title: 'Documentation',
+  {
+    title: 'Developers',
     href: '/docs/primary-network',
     items: [
-      { text: 'Academy', href: '/academy' },
-      { text: 'Primary Network', href: '/docs/primary-network' },
-      { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
-      { text: 'Nodes & Validators', href: '/docs/nodes' },
-      { text: 'Data APIs', href: '/docs/api-reference/data-api' },
-      { text: 'ACPs', href: '/docs/acps' },
-      { text: 'Developer Tools', href: '/docs/tooling' },
-      { text: 'Integrations', href: '/integrations' },
+      { text: 'Docs', href: '/docs/primary-network', image: '/nav/docs.webp' },
+      { text: 'Academy', href: '/academy', image: '/nav/academy.webp' },
     ],
   },
   {
@@ -84,6 +80,8 @@ export const menuSections: NavSection[] = [
       { text: 'Campus Connect', href: '/university' },
       { text: 'Grants & Funding', href: '/grants' },
       { text: 'Security Audits', href: '/audits', badge: 'New' },
+      { text: 'Blog & Guides', href: '/guides' },
+      { text: 'Integrations', href: '/integrations' },
     ],
   },
 ];

@@ -2043,6 +2043,14 @@ html.embed-mode #nd-toc {
   height: auto;
   margin-bottom: 8px;
 }
+/* two featured cards side by side (marker: .nav-duo, the Developers menu):
+   two equal columns at the 2x2 panel width. Placed after the .nav-featured
+   popover rule so it wins at equal specificity. */
+#nd-nav > :last-child [class*="lg:grid-cols-3"]:has(.nav-duo) {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  max-width: 44rem;
+  margin-left: max(1.5rem, calc(52% - 22rem));
+}
 
 /* v2 display voice: brand-aligned heavy caps, matching avalanche.com's
    headline grammar. Every statement on the story/solutions pages uses
