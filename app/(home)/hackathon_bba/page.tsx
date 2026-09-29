@@ -207,7 +207,7 @@ export default function HackathonPage() {
       ],
       resources: [
         { name: 'Avalanche SDK', url: 'https://github.com/ava-labs/avalanchejs' },
-        { name: 'Developer Tools', url: 'https://build.avax.network/docs/tools' }
+        { name: 'Developer Tools', url: 'https://build.avax.network/docs/tooling' }
         ]
     },
     {

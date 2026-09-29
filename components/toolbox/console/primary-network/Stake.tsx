@@ -236,7 +236,7 @@ const metadata: ConsoleToolMetadata = {
         validator
       </Link>{' '}
       to Avalanche's{' '}
-      <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain" className="text-primary hover:underline">
         Primary Network
       </Link>
       . Issues an{' '}
