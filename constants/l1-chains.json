@@ -4369,7 +4369,6 @@
     "blockchainId": "0x038ba350439a9159c445473e1e20c3c4287509b8f1d72fce02149f0ccda0f22f",
     "subnetId": "2ojsPRsDNZMAKss3fJzSSxeaXt8zDvwzYikEbKYuFQVcaMKyCX",
     "slug": "watr",
-    "rpcUrl": "http://debug-watr-us-east-1-testnet.subnet-watr-testnet.svc.cluster.local:9650/ext/bc/2ZZiR6T2sJjebQguABb53rRpzme8zfK4R9zt5vMM8MX1oUm3g/rpc",
     "networkToken": {
       "name": "WATR",
       "symbol": "WATR",
