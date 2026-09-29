@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, Copy, Download, Link2, Search, SlidersHorizontal, X } from "lucide-react";
+import { Check, Copy, Download, Link2, SlidersHorizontal } from "lucide-react";
 import {
   Area,
-  Bar,
-  BarChart,
-  Cell,
   ComposedChart,
   Line,
   ReferenceLine,
@@ -56,7 +53,8 @@ import {
   type StatusRow,
 } from "@/lib/validator-triage";
 import { BEHIND_SWATCH, UpgradeReadiness, releaseShares } from "./UpgradeReadiness";
-import { ActiveChips, FacetRail, PresetRow, type Pending } from "./TriageFilters";
+import { ActiveChips, FacetRail, NA, PresetRow, RosterSearch, STATUS_INK, ToolButton, daysLeftTone, type Pending } from "./TriageFilters";
+import { BucketBars, QUIET_BAR } from "./BucketBars";
 import { ChartEmpty, TipPlate } from "./bits";
 import {
   NANO,
@@ -84,7 +82,6 @@ import {
    off the page clock: this is a roster plus all-time context, not a
    windowed trend, so each card states its own basis (· 14d, · all-time). */
 
-const QUIET_BAR = "#A2AFB2";
 const SEATS_COLOR = "#0061E2";
 const ETNA_DAY = "2024-12-16";
 const PAGE = 50;
@@ -96,83 +93,10 @@ function uptimeTone(pct: number, need: number): string {
   return "text-[#E6212F]";
 }
 
-function daysLeftTone(days: number): string {
-  if (days < 7) return "font-medium text-[#E6212F]";
-  if (days < 30) return "text-amber-600 dark:text-amber-400";
-  return "text-zinc-700 dark:text-zinc-300";
-}
-
 function missRateTone(pct: number): string {
   if (pct === 0) return "text-zinc-700 dark:text-zinc-300";
   if (pct < 5) return "text-amber-600 dark:text-amber-400";
   return "text-[#E6212F]";
-}
-
-const STATUS_INK = {
-  current: "text-zinc-700 dark:text-zinc-300",
-  behind: "text-[#E6212F]",
-  unknown: "text-zinc-400 dark:text-zinc-500",
-} as const;
-
-const NA = <span className="text-zinc-300 dark:text-zinc-700">n/a</span>;
-
-/* simple bucket bars shared by the two health charts */
-function BucketBars({
-  data,
-  tint,
-  picked,
-  onPick,
-}: {
-  data: { id: string; label: string; count: number }[];
-  /** per-bucket bar color; defaults to the quiet steel */
-  tint?: (bucket: { id: string }) => string;
-  /** the bucket the roster is cut to */
-  picked?: string;
-  onPick?: (id: string) => void;
-}) {
-  return (
-    <div className="h-40">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barCategoryGap="18%">
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" }} />
-          <YAxis hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
-            cursor={{ fill: "rgba(161,161,170,0.08)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as { id: string; label: string; count: number };
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{d.label}</p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.count.toLocaleString()} validator{d.count === 1 ? "" : "s"}
-                  </p>
-                  {onPick && d.count > 0 && <p className="text-[10px] text-zinc-400">{picked === d.id ? "Click to show all" : "Click to list them"}</p>}
-                </TipPlate>
-              );
-            }}
-          />
-          <Bar
-            dataKey="count"
-            minPointSize={1}
-            isAnimationActive={false}
-            radius={[2, 2, 0, 0]}
-            className={onPick ? "cursor-pointer" : undefined}
-            onClick={(d: { payload?: { id: string; count: number } }) => d.payload && d.payload.count > 0 && onPick?.(d.payload.id)}
-          >
-            {data.map((bucket) => (
-              <Cell
-                key={bucket.id}
-                fill={tint ? tint(bucket) : QUIET_BAR}
-                fillOpacity={picked && picked !== bucket.id ? 0.25 : 1}
-                style={{ transition: "fill-opacity 250ms cubic-bezier(0.32,0.72,0,1)" }}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
 }
 
 interface CountPoint {
@@ -218,34 +142,6 @@ function CountChart({ data }: { data: CountPoint[] }) {
         </ComposedChart>
       </ResponsiveContainer>
     </div>
-  );
-}
-
-/** a toolbar action in the ledger voice */
-function ToolButton({
-  icon: Icon,
-  onClick,
-  disabled,
-  title,
-  children,
-}: {
-  icon: typeof Copy;
-  onClick: () => void;
-  disabled?: boolean;
-  title?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="inline-flex shrink-0 items-center gap-1.5 border border-zinc-200 bg-white/80 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600 transition-colors enabled:hover:border-zinc-900 enabled:hover:text-zinc-900 disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:enabled:hover:border-zinc-100 dark:enabled:hover:text-zinc-100"
-    >
-      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-      {children}
-    </button>
   );
 }
 
@@ -604,7 +500,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
             ) : undefined
           }
         />
-        <PresetRow counts={presetCounts} selection={selection} onPreset={onPreset} pending={pending} />
+        <PresetRow presets={PRESETS} counts={presetCounts} selection={selection} onPreset={onPreset} pending={pending} />
 
         <div className="grid items-start gap-6 xl:grid-cols-[14rem_minmax(0,1fr)] xl:gap-8">
           {/* the rail: every part of the filter, each option with the count it would leave */}
@@ -614,44 +510,14 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
 
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex w-full items-center gap-3 rounded-full border border-zinc-200 bg-white px-4 py-2 transition-colors focus-within:border-zinc-900 sm:w-[26rem] dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
-                <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                <input
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setShown(PAGE);
-                  }}
-                  onPaste={(e) => {
-                    // a one-line input drops line breaks, which would glue a pasted list together
-                    const text = e.clipboardData.getData("text");
-                    if (!/[\r\n]/.test(text)) return;
-                    e.preventDefault();
-                    const el = e.currentTarget;
-                    const start = el.selectionStart ?? el.value.length;
-                    const end = el.selectionEnd ?? el.value.length;
-                    setQuery(`${el.value.slice(0, start)}${text.replace(/\s+/g, " ").trim()}${el.value.slice(end)}`);
-                    setShown(PAGE);
-                  }}
-                  placeholder="NodeID, version, IP, or a list of NodeIDs"
-                  aria-label="Search validators"
-                  spellCheck={false}
-                  className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuery("");
-                      setShown(PAGE);
-                    }}
-                    aria-label="Clear search"
-                    className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+              <RosterSearch
+                value={query}
+                onChange={(v) => {
+                  setQuery(v);
+                  setShown(PAGE);
+                }}
+                placeholder="NodeID, version, IP, or a list of NodeIDs"
+              />
               <button
                 type="button"
                 onClick={() => setPanelOpen((o) => !o)}
