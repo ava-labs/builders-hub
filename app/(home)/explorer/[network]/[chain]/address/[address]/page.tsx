@@ -1,4 +1,7 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { ENS_NAME, resolveEnsName } from "@/lib/ens";
+import { buildAddressUrl } from "@/utils/eip3091";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AddressDetailPageClient } from "./page.client";
@@ -46,6 +49,13 @@ export default async function AddressPage({ params, searchParams }: AddressPageP
   const resolvedParams = await params;
   const { chain: chainSlug, address } = resolvedParams;
   const { tab, verified } = await searchParams;
+
+  // /address/vitalik.eth opens the address the name resolves to
+  const decoded = decodeURIComponent(address);
+  if (ENS_NAME.test(decoded)) {
+    const resolved = await resolveEnsName(decoded).catch(() => null);
+    if (resolved) redirect(buildAddressUrl(`/explorer/${resolvedParams.network}/${chainSlug}`, resolved));
+  }
   
   // Get sourcifySupport from chain data
   const chain = l1ChainsData.find((c) => c.slug === chainSlug) as (L1Chain & { sourcifySupport?: boolean }) | undefined;

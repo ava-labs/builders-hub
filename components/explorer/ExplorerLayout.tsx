@@ -16,7 +16,9 @@ import {
   ChainHitRow,
   EntityHitRow,
   matchChains,
+  isEnsName,
   looksLikeIdentifier,
+  resolveEnsCached,
   useSearchEntity,
   type ChainHit,
 } from "@/components/explorer-v2/chain-search";
@@ -235,6 +237,14 @@ export function ExplorerLayout({
     setIsSearching(true);
 
     try {
+      // an ENS name opens the address it resolves to, on this chain
+      if (isEnsName(query)) {
+        const address = await resolveEnsCached(query);
+        if (address) router.push(buildAddressUrl(`/explorer/${network}/${chainSlug}`, address));
+        else setSearchError("No address is set for that ENS name");
+        return;
+      }
+
       // Check if it's a block number (numeric string)
       if (/^\d+$/.test(query)) {
         const blockNum = parseInt(query);

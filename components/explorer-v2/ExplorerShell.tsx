@@ -21,7 +21,9 @@ import {
   ChainHitRow,
   EntityHitRow,
   matchChains,
+  isEnsName,
   looksLikeIdentifier,
+  resolveEnsCached,
   lookupTxAcrossChainsCached,
   useSearchEntity,
   type ChainHit,
@@ -167,6 +169,14 @@ export function SearchBox({
     // plain-Enter classification even while chain rows are on offer
     if (hits.length > 0 && (sel >= 0 || !looksLikeIdentifier(query))) {
       goToChain(hits[Math.max(0, sel)].chain);
+      return;
+    }
+
+    // an ENS name opens the address it resolves to, as its dropdown row does
+    if (isEnsName(query)) {
+      const address = await resolveEnsCached(query);
+      if (address) goToHref(buildAddressUrl(`/explorer/${network}/c-chain`, address));
+      else setNotFound(true);
       return;
     }
 

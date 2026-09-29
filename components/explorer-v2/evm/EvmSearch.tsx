@@ -11,7 +11,10 @@ import type { L1Chain } from "@/types/stats";
 import { cn } from "@/lib/utils";
 import {
   matchChains,
+  isEnsName,
   looksLikeIdentifier,
+  resolveEnsCached,
+  useEnsEntity,
   ChainHitRow,
   EntityHitRow,
   type ChainMatch,
@@ -85,7 +88,8 @@ export function EvmSearchBox({
   }, [open]);
 
   const trimmed = q.trim();
-  const entity = trimmed ? evmEntity(trimmed, base, chainName) : null;
+  const ensEntity = useEnsEntity(trimmed, base, chainName);
+  const entity = trimmed ? (evmEntity(trimmed, base, chainName) ?? ensEntity) : null;
   const chains: ChainMatch[] = trimmed.length >= 2 ? matchChains(trimmed, null) : [];
   const identifier = !!classifyEvmLocally(trimmed) || looksLikeIdentifier(trimmed);
   const question = askable && !entity && looksLikeQuestion(trimmed, { identifier, chainHit: chains.length > 0 });
@@ -102,6 +106,11 @@ export function EvmSearchBox({
 
   const submit = () => {
     if (entity?.href) return go(entity.href);
+    // Enter before the dropdown row resolved: wait for the same lookup
+    if (isEnsName(trimmed)) {
+      void resolveEnsCached(trimmed).then((address) => address && go(buildAddressUrl(base, address)));
+      return;
+    }
     if (question) return go(askHref);
     // a bare identifier with no local match shouldn't jump to a name hit
     if (!looksLikeIdentifier(trimmed) && chains[0]?.chain.hasExplorer) return go(chains[0].chain.href);

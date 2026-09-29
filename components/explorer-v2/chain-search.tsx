@@ -152,7 +152,10 @@ export function matchChains(query: string, live: Map<string, number> | null): Ch
 export const looksLikeIdentifier = (q: string) =>
   /^\d+$/.test(q) || /^0x[a-fA-F0-9]+$/.test(q) || /^NodeID-/.test(q) ||
   /^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q) ||
-  /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q);
+  /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q) || isEnsName(q);
+
+/** an ENS name (vitalik.eth, pay.vitalik.eth): resolves to an EVM address */
+export const isEnsName = (q: string) => /^[^\s./]+(\.[^\s./]+)*\.eth$/i.test(q);
 
 function ChainLogo({ uri, name }: { uri?: string; name: string }) {
   const [broken, setBroken] = useState(false);
@@ -241,6 +244,63 @@ function icmLookupCached(hash: string): Promise<IcmMessage | null> {
   return p;
 }
 
+const ensCache = new Map<string, Promise<string | null>>();
+/** name.eth -> address through /api/explorer/ens, one lookup per name per
+ *  session, shared by the dropdown row and the Enter key. A failed lookup
+ *  is dropped from the cache so the next keystroke can retry it. */
+export function resolveEnsCached(name: string): Promise<string | null> {
+  const key = name.trim().toLowerCase();
+  let p = ensCache.get(key);
+  if (!p) {
+    p = fetch(`/api/explorer/ens?name=${encodeURIComponent(key)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`ens ${res.status}`))))
+      .then((body: { address?: string | null }) => body.address ?? null)
+      .catch(() => {
+        ensCache.delete(key);
+        return null;
+      });
+    ensCache.set(key, p);
+  }
+  return p;
+}
+
+/** The entity row for an ENS name: searching, then the address it
+ *  resolves to on this search bar's address page, or not found. */
+export function useEnsEntity(query: string, addressBase: string, chainName: string): EntityHit | null {
+  const q = query.trim();
+  const ens = isEnsName(q);
+  const [resolved, setResolved] = useState<{ q: string; address: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!ens) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const address = await resolveEnsCached(q);
+      if (!cancelled) setResolved({ q, address });
+    }, ENTITY_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [q, ens]);
+
+  if (!ens) return null;
+  if (!resolved || resolved.q !== q) {
+    return { icon: "address", label: "ENS name", id: q, href: null, detail: "Resolving on Ethereum…", status: "searching" };
+  }
+  if (!resolved.address) {
+    return { icon: "address", label: "ENS name", id: q, href: null, detail: "No address set", status: "notfound" };
+  }
+  return {
+    icon: "address",
+    label: `ENS · ${q}`,
+    id: resolved.address,
+    href: buildAddressUrl(addressBase, resolved.address),
+    detail: chainName,
+    status: "ready",
+  };
+}
+
 /** Where this search bar's Enter key sends each shape — the entity row
  *  must point at the same place. */
 export interface EntityTargets {
@@ -263,6 +323,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   // bech32 addresses share most of the CB58 alphabet — they resolve
   // instantly below and must not trigger a P-Chain search here
   const isCb58 = /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q) && !/^(P-)?(avax|fuji|custom)1/i.test(q);
+  const ensHit = useEnsEntity(q, targets.evmAddressBase, targets.evmAddressChainName);
 
   useEffect(() => {
     if (!isTxHash && !isCb58) return;
@@ -321,6 +382,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   }, [q, isTxHash, isCb58, targets.network]);
 
   if (!q) return null;
+  if (ensHit) return ensHit;
 
   // instant shapes — no network round-trip, mirrors Enter exactly
   if (/^\d+$/.test(q)) {

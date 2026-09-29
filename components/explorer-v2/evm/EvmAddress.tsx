@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
@@ -23,6 +23,25 @@ import { readRpc } from "@/lib/explorer-rpc";
    the dollar total) in a strip, who it is in a sheet, what it has done in
    tabs. Same grammar as the block and transaction pages. When the address
    is itself a token contract the page becomes the token's. */
+
+/* The address's primary ENS name, verified server-side to resolve back to
+   this address; null until known and when none is set. */
+function useEnsName(addr: string): string | null {
+  const [name, setName] = useState<{ addr: string; name: string | null } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/explorer/ens?address=${addr}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { name?: string | null } | null) => {
+        if (!cancelled) setName({ addr, name: body?.name ?? null });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [addr]);
+  return name?.addr === addr ? name.name : null;
+}
 
 type Tab = "holdings" | "txs" | "transfers" | "contract";
 const LABELS: Record<Tab, string> = { holdings: "Holdings", txs: "Transactions", transfers: "Token Transfers", contract: "Contract" };
@@ -65,6 +84,7 @@ export function EvmAddress({
   const hasCode = useIsContract(readRpc(c.chainId, c.rpcUrl), addr);
   const isContract = verified !== null || hasCode === true;
   const fixture = knownAddress(addr);
+  const ensName = useEnsName(addr);
 
   // is it a token? the list says so outright; the page shows the token then
   const tokens = useTokenList(c.chainId);
@@ -140,6 +160,10 @@ export function EvmAddress({
                         {verified?.name ?? fixture?.label}
                       </span>
                     )}
+                    {/* ENS names are case-sensitive in display, so no uppercase */}
+                    {!verified?.name && !fixture && ensName && (
+                      <span className="font-mono text-[13px] font-bold tracking-[0.04em] text-zinc-700 dark:text-zinc-300">{ensName}</span>
+                    )}
                     <SubjectHeadline value={addr} copyLabel="Copy address" />
                   </span>
                   {s.lastSeen ? (
@@ -188,6 +212,18 @@ export function EvmAddress({
                       {who}
                       {fixture && <span className="ml-3 font-normal text-zinc-500 dark:text-zinc-400">{fixture.note}</span>}
                     </SpecLine>
+                    {ensName && (
+                      <SpecLine label="ENS">
+                        <a
+                          href={`https://app.ens.domains/${ensName}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-[13px] text-zinc-900 underline-offset-4 hover:text-[#E6212F] hover:underline dark:text-zinc-50"
+                        >
+                          {ensName}
+                        </a>
+                      </SpecLine>
+                    )}
                     {verified && (
                       <SpecLine label="Source">
                         <button onClick={() => setTab("contract")} className="font-mono text-[13px] text-zinc-900 underline-offset-4 hover:text-[#E6212F] hover:underline dark:text-zinc-50">
