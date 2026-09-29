@@ -64,6 +64,13 @@ function keptTurn(before: string, now: Date): string {
   return ` This question follows the chart before it, which read ${/^(?:since|from)\b/.test(words) ? span : `${words} (${span})`}: keep that window unless this question names another.`;
 }
 
+/* a question about one token's transfers is told in its turn to count the token's mints and burns: the system
+   prompt's rule held in 2 of 4 replays (the regression audit's R13 left out mints that were 91.8% of the transfers) */
+const TOKEN_TRANSFERS = /\btransfer(?:s|red)?\b/i;
+const ONE_TOKEN = /\b0x[0-9a-fA-F]{40}\b|\b(?:token|nft|collection)\b/i;
+const mintsTurn = (prompt: string) =>
+  TOKEN_TRANSFERS.test(prompt) && ONE_TOKEN.test(prompt) ? " A question about a token's transfers counts its mints (transfers from the zero address) and burns (to it) in columns of their own." : "";
+
 /** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
     the system prompt, so the prompt's version and cache stay the same from day to day. On an EVM chain a series
     question on its own is told its default window there too, and a follow-up the window of the chart before it
@@ -73,7 +80,8 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const evm = targetOf(chainId).kind !== "pchain";
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
-  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}\n\n${prompt}`;
+  const mints = evm ? mintsTurn(prompt) : "";
+  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}\n\n${prompt}`;
 }
 
 /** how an answer hands back its chart; the same for every target */

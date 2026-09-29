@@ -75,6 +75,11 @@ describe('the calendar rule', () => {
     expect(userTurn(43114, 'Per hour instead', at, false, 'SELECT count() FROM raw_txs WHERE chain_id = 43114').split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
     expect(userTurn(1, 'Per week instead', at, false, week).split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
     expect(userTurn(43113, 'Per hour instead', at, false, six)).toBe('Per hour instead');
+    // a question about one token's transfers is told to count its mints and burns (the regression audit's R13)
+    const token = 'How many transfers did the token 0x9ed98e159be43a8d42b64053831fcae5e4d7d271 have in the last 24 hours?';
+    expect(userTurn(43419, token, at).split('\n\n')[0]).toBe("Today is 2026-09-28 (UTC). A question about a token's transfers counts its mints (transfers from the zero address) and burns (to it) in columns of their own.");
+    expect(userTurn(43114, 'How many transactions were there today?', at).split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
+    expect(userTurn(43113, token, at)).toBe(token);
     expect(turn('Validators added per week', 1)).toBe('Today is 2026-09-28 (UTC).');
     for (const chainId of [43113, 5]) expect(userTurn(chainId, 'New pools per week per DEX', at)).toBe('New pools per week per DEX');
   });
