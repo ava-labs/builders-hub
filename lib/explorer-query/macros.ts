@@ -67,8 +67,9 @@ const FEES = `fees AS (SELECT substring(address, 1, 20) AS pool, block_number, r
 /** the WAVAX price per hour from the hour before `start`: the median over the hour's swaps in the price pool */
 export const pxCte = (start: string, swap = "v3_swap") =>
   `px AS (SELECT toStartOfHour(block_time) AS hour, quantileExact(0.5)(-${I(1)} / nullIf(${I(0)}, 0) * 1e12) AS price FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start} - INTERVAL 1 HOUR AND topic0 = ${swap} AND address = ${topic(DEX_PRICE_POOL.slice(2))} GROUP BY hour)`;
-/** the stablecoins with their decimals, and WAVAX with native AVAX, as arrays */
-export const QUOTES = `q AS (SELECT groupArrayIf(token, quote = 'usd') AS S, groupArrayIf(decimals, quote = 'usd') AS SD, groupArrayIf(token, quote = 'avax') AS A FROM dex_tokens WHERE chain_id = ${DEX_CHAIN_ID})`;
+/** the stablecoins with their decimals, and WAVAX with native AVAX, as arrays; named so no writer's own WITH takes the
+    name (a CTE of its own called q failed D20's test) */
+export const QUOTES = `dex_quotes AS (SELECT groupArrayIf(token, quote = 'usd') AS S, groupArrayIf(decimals, quote = 'usd') AS SD, groupArrayIf(token, quote = 'avax') AS A FROM dex_tokens WHERE chain_id = ${DEX_CHAIN_ID})`;
 /** a swap's value in USD: its stablecoin leg, else its WAVAX leg at the hour's price, else NULL */
 const USD =
   "multiIf(has(S, p.t0), s.r0 / pow(10, SD[indexOf(S, p.t0)]), has(S, p.t1), s.r1 / pow(10, SD[indexOf(S, p.t1)]), has(A, p.t0) AND x.price > 0, s.r0 / 1e18 * x.price, has(A, p.t1) AND x.price > 0, s.r1 / 1e18 * x.price, NULL)";
@@ -78,7 +79,7 @@ const USD =
 const FEE_RATE = `multiIf(s.fr IS NOT NULL, s.fr, c.block_number > 0, c.fee / 1e6, p.k > 0, p.k / 1e6, p.protocol IN (${V2_FEE_PROTOCOLS.map((x) => `'${x}'`).join(", ")}), 0.003, NULL) AS fee_rate, usd * fee_rate AS fee_usd`;
 const FEE_IN = "if(s.tin, p.t1, p.t0) AS token_in, if(s.tin, s.r1, s.r0) * fee_rate AS fee_in";
 const legsCte = (fees: FeeRead) =>
-  `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.block_number AS block_number, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, p.t0 AS t0, p.t1 AS t1, p.k AS k, s.r0 AS r0, s.r1 AS r1, ${USD} AS usd${fees ? `, ${FEE_RATE}` : ""}${fees > 1 ? `, ${FEE_IN}` : ""} FROM swap_logs AS s INNER JOIN pools AS p ON s.pool = p.pool${fees ? " ASOF LEFT JOIN fees AS c ON s.pool = c.pool AND s.block_number >= c.block_number" : ""} CROSS JOIN q LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
+  `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.block_number AS block_number, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, p.t0 AS t0, p.t1 AS t1, p.k AS k, s.r0 AS r0, s.r1 AS r1, ${USD} AS usd${fees ? `, ${FEE_RATE}` : ""}${fees > 1 ? `, ${FEE_IN}` : ""} FROM swap_logs AS s INNER JOIN pools AS p ON s.pool = p.pool${fees ? " ASOF LEFT JOIN fees AS c ON s.pool = c.pool AND s.block_number >= c.block_number" : ""} CROSS JOIN dex_quotes LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
 
 /** the DEX WITH for what a query reads of the fees, with its three slots: the window's start, its end or nothing, and a
     protocol filter or nothing */

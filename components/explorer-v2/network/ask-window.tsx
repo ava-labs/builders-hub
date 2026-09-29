@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { QueryLoader } from "@/components/explorer-v2/evm/QueryLoader";
+import { QueryMonitor } from "@/components/explorer-v2/evm/QueryMonitor";
 import { CARD, QueryVisual, fmt, nameFor } from "@/components/explorer-v2/evm/QueryVisual";
 import { NoteText, PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
 import { QueryInspector, RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
@@ -281,7 +282,8 @@ export function AskWindow({
   const submit = () => {
     const text = prompt.trim();
     if (!text || phase !== "idle") return;
-    const first = !answer;
+    // a live monitor ran no SQL for the writer to refine: what is typed under it is a new question
+    const first = !answer || !!answer.monitor;
     void ask(onRef.current, text, first ? [] : history, first ? scopeOf(askedRef.current, chains) : null).then((h) => {
       if (!h) return;
       setPrompt("");
@@ -526,7 +528,10 @@ export function AskWindow({
               </div>
 
               <ZoomStage level={drill ? `drill-${drill.index}` : laying ? "laying" : "answer"}>
-                {drill ? (
+                {answer.monitor ? (
+                  // a live feed of the chain's own moves, read from its RPC as each block is made
+                  <QueryMonitor spec={answer.monitor} base={base} />
+                ) : drill ? (
                   <div className={cn(CARD, "overflow-hidden px-5 py-5")}>
                     <DrillView drill={drill} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
                   </div>
@@ -647,8 +652,8 @@ export function AskWindow({
             }}
             rows={1}
             disabled={busy}
-            aria-label={answer ? "Refine this answer" : `Ask ${on.label}`}
-            placeholder={answer ? (on.kind === "pchain" ? "Refine this answer: only L1s, per week" : "Refine this answer: only reverted, per hour") : `Ask ${on.label} a question`}
+            aria-label={answer?.monitor ? `Ask ${on.label}` : answer ? "Refine this answer" : `Ask ${on.label}`}
+            placeholder={answer?.monitor ? "Monitor something else, or ask a new question" : answer ? (on.kind === "pchain" ? "Refine this answer: only L1s, per week" : "Refine this answer: only reverted, per hour") : `Ask ${on.label} a question`}
             className="max-h-32 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1 font-mono text-[12.5px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 disabled:opacity-60 dark:text-zinc-50 dark:placeholder:text-zinc-600"
           />
           <button

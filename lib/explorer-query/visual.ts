@@ -9,7 +9,8 @@ import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { ColumnMeta } from "./clickhouse";
 import type { ChartSpec, Names, Totals } from "./types";
-import { edgesOf, windowOf } from "./edges";
+import { edgesOf, msOf, windowOf } from "./edges";
+import { staleLine } from "./scope";
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const DESIGN_MODEL = "claude-opus-5-5";
@@ -127,7 +128,7 @@ const ALL_ROWS = 100;
 /* how a reading speaks, for the designer's callouts and the reader's sentences alike: in the reader's
    words, in the right units, with the right verbs */
 const READER_RULES =
-  "Write for a reader, not the database: no column names and no SQL words (rows displayed, first rows, sample, LIMIT, topic0, to_address), no 'hourly snapshot', and L1, never subnet. Units: an L1 validator's weight is a weight, never AVAX; gas_used summed over transactions is gas charged, not gas reserved; a total per day is not the size of one delegation. Verbs: an address pays or uses gas, it does not charge it; a validator sets a delegation fee. Figures says under Edges whether the first and last periods are complete: never call a partial or filling one a dip or a jump, and when one holds the highest value, name the highest complete period too; a period Edges calls complete is complete. With no Edges line, the first and last periods can be partial: never call them a dip or a jump. Call a span of time a period, an hour or a day, never a bucket. A whole-result figure that Figures puts in a row not shown belongs to that row: never pin it on a row shown. Say every, only, never, all or none about the rows only when all the rows are shown or Figures says it, and take largest, highest and lowest from Figures. A step is the change between neighbouring rows: quote the largest rise or fall from Figures, and call a change across several rows a change over that span, never a step. A share names its base, the thing the rows count: 7.8% of method calls, never of all transactions unless the rows count every transaction. Take a share of the total from Figures when it gives one, never from rounded figures, and round a percent to its last shown digit by the usual rule: 45.54% is 45.5%. Chain transfers (A to B, then B to C) only when the amounts match and the times follow in order; else name each transfer on its own. The note carries the caveats: a callout adds none, and never words the note's caveat another way. Counts are not amounts: say how much AVAX or value moved only from a column that holds amounts, never from a count of transactions. Write each address and hash in a callout in full, as the rows give it, and never shorten one: the page shortens it.";
+  "Write for a reader, not the database: no column names and no SQL words (rows displayed, first rows, sample, LIMIT, topic0, to_address), no 'hourly snapshot', and L1, never subnet. Units: an L1 validator's weight is a weight, never AVAX; gas_used summed over transactions is gas charged, not gas reserved; a total per day is not the size of one delegation. Verbs: an address pays or uses gas, it does not charge it; a validator sets a delegation fee. Figures says under Edges whether the first and last periods are complete: never call a partial or filling one a dip or a jump, and when one holds the highest value, name the highest complete period too; a period Edges calls complete is complete. With no Edges line, the first and last periods can be partial: never call them a dip or a jump. Call a span of time a period, an hour or a day, never a bucket. A whole-result figure that Figures puts in a row not shown belongs to that row: never pin it on a row shown. Say every, only, never, all or none about the rows only when all the rows are shown or Figures says it, and take largest, highest and lowest from Figures. A step is the change between neighbouring rows: quote the largest rise or fall from Figures, and call a change across several rows a change over that span, never a step. A share names its base, the thing the rows count: 7.8% of method calls, never of all transactions unless the rows count every transaction. Take a share of the total from Figures when it gives one, never from rounded figures, and round a percent to its last shown digit by the usual rule: 45.54% is 45.5%. Chain transfers (A to B, then B to C) only when the amounts match and the times follow in order; else name each transfer on its own. The note carries the caveats: a callout adds none, and never words the note's caveat another way. Counts are not amounts: say how much AVAX or value moved only from a column that holds amounts, never from a count of transactions. Write each address and hash in a callout in full, as the rows give it, and never shorten one: the page shortens it. Say how many rows hold a figure only when Figures gives that count; never count rows yourself.";
 
 /* The reader never sees the SQL, so no reader text names its parts: a
    snake_case name (seen_7d, to_address, p_validator_versions), one of the
@@ -145,16 +146,38 @@ const SETTLED = /\bsettl(?:e|es|ed|ing)\b/gi;
 /** reader text with each bucket read as a period, the page's word for a span of time */
 export const plainWords = (s: string) => s.replace(/\b([Bb])ucket(s?)\b/g, (_, b: string, n: string) => `${b === "B" ? "P" : "p"}eriod${n}`);
 
+/** a decimal as people read it: two places from 1 up, else three significant digits (3.24656 is 3.25, 0.0486849 is
+    0.0487). Figures gives six digits, and the reader copied them into its sentences ("26.9643 gwei") */
+export const plainDecimals = (s: string) =>
+  s.replace(/(?<![\w.])\d+\.\d{4,}(?![\w.])/g, (m) => {
+    const n = Number(m);
+    return n >= 1 ? n.toFixed(2) : String(Number(n.toPrecision(3)));
+  });
+
 /** a query's own names that hold a digit (topic0), outside its quoted strings and comments */
 export function sqlNames(sql: string): string[] {
   const code = sql.replace(/'(?:[^'\\]|\\.)*'/g, "''").replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
   return [...new Set(code.match(DIGITED) ?? [])];
 }
 
-/** the words a reader text must not hold: the SQL's snake_case names, its own names and comparisons, and settled */
-export function codeWords(text: string, names: readonly string[] = []): string[] {
+/** the snake_case words the reader sees with the rows: in their values and in the names the server gave them (a
+    contract called POPA_SUBMISSIONS_TIERS, a method remove_liquidity_one_coin). They are names, not the query's parts */
+export function rowWords(rows: readonly Record<string, unknown>[], names: Names = {}): Set<string> {
+  const out = new Set<string>();
+  const add = (v: unknown) => {
+    if (typeof v === "string") for (const w of v.match(SNAKE) ?? []) out.add(w);
+  };
+  for (const r of rows) Object.values(r).forEach(add);
+  for (const m of Object.values(names)) Object.values(m).forEach(add);
+  return out;
+}
+
+/** the words a reader text must not hold: the SQL's snake_case names, its own names and comparisons, and settled. A
+    snake_case word the reader sees with the rows (shown) stays, unless it names a column too */
+export function codeWords(text: string, names: readonly string[] = [], shown: ReadonlySet<string> = new Set()): string[] {
   const own = new Set(names);
-  return [...new Set([...(text.match(SNAKE) ?? []), ...(text.match(DIGITED) ?? []).filter((w) => own.has(w)), ...(text.match(COMPARE) ?? []), ...(text.match(SETTLED) ?? [])])];
+  const snake = (text.match(SNAKE) ?? []).filter((w) => own.has(w) || !shown.has(w));
+  return [...new Set([...snake, ...(text.match(DIGITED) ?? []).filter((w) => own.has(w)), ...(text.match(COMPARE) ?? []), ...(text.match(SETTLED) ?? [])])];
 }
 
 /** reader text in the page's words: a bucket reads as a period, and a sentence with a word the page never shows is left out */
@@ -169,14 +192,16 @@ export function withoutCode(text: string, names: readonly string[] = []): string
     .join(" ");
 }
 
-/** a label in the reader's words: seen_7d becomes seen 7d, settled becomes final, and a bucket a period */
-export const plainLabel = (s: string) => plainWords(s.replace(SNAKE, (w) => w.replace(/_/g, " ")).replace(/\b([Ss])ettled\b/g, (_, c: string) => (c === "S" ? "Final" : "final")));
+/** a label in the reader's words: seen_7d becomes seen 7d, settled becomes final, and a bucket a period. A name the
+    reader sees (shown) stays as written */
+export const plainLabel = (s: string, shown: ReadonlySet<string> = new Set()) => plainWords(s.replace(SNAKE, (w) => (shown.has(w) ? w : w.replace(/_/g, " "))).replace(/\b([Ss])ettled\b/g, (_, c: string) => (c === "S" ? "Final" : "final")));
 
 /* An address in a reading is one the rows hold, written in full: the page
-   shortens it. One a model shortened is written out again from the rows,
-   and a callout that names an address the rows do not hold is left out. */
+   shortens it. One a model shortened (0x1234…abcd, or its head alone:
+   0x278d858f…) is written out again from the rows, and a callout that
+   names an address the rows do not hold is left out. */
 const FULL_HEX = /\b0x(?:[0-9a-fA-F]{64}|[0-9a-fA-F]{40})\b/g;
-const SHORT_HEX = /\b0x([0-9a-fA-F]{2,10})(?:…|\.{2,3})([0-9a-fA-F]{2,10})\b/g;
+const SHORT_HEX = /\b0x([0-9a-fA-F]{2,10})(?:…|\.{2,3})(?:([0-9a-fA-F]{2,10})\b)?/g;
 
 /** the addresses and hashes a reading may name: the rows' own, and those of the rows the whole-result figures point to */
 function heldHex(input: Pick<DesignInput, "rows" | "totals">): string[] {
@@ -192,8 +217,8 @@ function heldHex(input: Pick<DesignInput, "rows" | "totals">): string[] {
 /** a callout with each address in full, from the rows; null when it names one the rows do not hold */
 export function withFullHex(c: string, held: readonly string[]): string | null {
   let lost = false;
-  const out = c.replace(SHORT_HEX, (m, head: string, tail: string) => {
-    const hit = held.filter((a) => a.startsWith(`0x${head.toLowerCase()}`) && a.endsWith(tail.toLowerCase()));
+  const out = c.replace(SHORT_HEX, (m, head: string, tail: string | undefined) => {
+    const hit = held.filter((a) => a.startsWith(`0x${head.toLowerCase()}`) && a.endsWith((tail ?? "").toLowerCase()));
     if (hit.length === 0) lost = true;
     return hit.length === 1 ? hit[0] : m;
   });
@@ -211,15 +236,29 @@ function labelsOf(v: VisualSpec): string[] {
   ];
 }
 
+/* the highest or lowest of the rows' own averages is an average, not a price paid: the final audit's X04 read "Peak
+   gas price 35.58 gwei", the highest hour's average, where the highest price paid was 19,999.92 gwei. A stat of one
+   whose label and sub never say so says average ("Peak average gas price") */
+const AVERAGE_NAME = /(?:^|_)(?:avg|average|mean)(?:_|$)/i;
+const SAYS_AVERAGE = /\b(?:avg|averages?|mean|median|typical)\b/i;
+const EXTREME_WORD = /^(?:peak|highest|lowest|top|max(?:imum)?|min(?:imum)?|busiest|cheapest)\b/i;
+export function averageLabel<S extends { label: string; sub?: string; agg: string; column: string }>(s: S): S {
+  if ((s.agg !== "max" && s.agg !== "min") || !AVERAGE_NAME.test(s.column) || SAYS_AVERAGE.test(`${s.label} ${s.sub ?? ""}`)) return s;
+  const m = EXTREME_WORD.exec(s.label);
+  return { ...s, label: m ? `${m[0]} average${s.label.slice(m[0].length)}` : `${s.label} (average)` };
+}
+
 /** a visual in the reader's words: a snake_case name left in a label reads as words, and a callout that names a column,
-    or an address the rows do not hold, is left out */
-export function readerSpec(v: VisualSpec, names: readonly string[], held?: readonly string[]): VisualSpec {
-  const worded = <T extends { label: string }>(o: T): T => ({ ...o, label: plainLabel(o.label) });
+    or an address the rows do not hold, is left out. A name the rows hold (shown) stays as written */
+export function readerSpec(v: VisualSpec, names: readonly string[], held?: readonly string[], shown: ReadonlySet<string> = new Set()): VisualSpec {
+  const kept = new Set([...shown].filter((w) => !names.includes(w)));
+  const label = (s: string) => plainLabel(s, kept);
+  const worded = <T extends { label: string }>(o: T): T => ({ ...o, label: label(o.label) });
   return {
     ...v,
-    stats: v.stats.map((s) => ({ ...worded(s), ...(s.sub ? { sub: plainLabel(s.sub) } : {}) })),
-    panels: v.panels.map((p) => ({ ...p, title: plainLabel(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
-    callouts: v.callouts.map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
+    stats: v.stats.map((s) => averageLabel({ ...worded(s), ...(s.sub ? { sub: label(s.sub) } : {}) })),
+    panels: v.panels.map((p) => ({ ...p, title: label(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
+    callouts: v.callouts.map((c) => plainDecimals(plainWords(c))).filter((c) => codeWords(c, names, shown).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
   };
 }
 
@@ -229,8 +268,8 @@ Rules of the sheet
 - Rankings (methods, contracts, senders) are horizontal bars (hbar) with the name on the axis, top 10 to 15, sorted by the figure that answers the question. A share or a reverted count that belongs to the same rows goes in a second half-width panel, not as a second series squeezed onto the same axis.
 - Time series are lines; counts per period are bars; parts of a whole over time are stacked areas or stacked bars. Never put a count and a percent on the same axis; use axis "right" or a second panel.
 - Gas reserved against a limit: a line with the limit as a reference line. Fees in AVAX use format avax. Gas figures use format gas (compact with the word gas). Percent columns use percent.
-- Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
-- Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting". Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.
+- Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). A column that counts distinct ones in each row (active addresses, senders, holders) has no total over the rows, since one address can be in several: its stat is avg or max, never sum. No avg stat over a series whose first or last period Edges calls partial or still filling, and none over a column of averages that Figures weighs: that weighted average goes in a callout. The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
+- Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting". Each callout is one full sentence that ends with a period, at most ${CALLOUT_SHOWN} characters as the page shows it (an address or hash counts as 11). Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.
 - Figures are computed over all rows, and past ${ALL_ROWS} rows the rows shown are a sample: take every peak, low, total, first and last value, and the row that holds it, from Figures, and put a peak's marker at the x Figures names. When Figures says the rows are cut, never call a sum over them the total.
 - ${READER_RULES}
 - Panel titles: two to four plain words, no "by" chains longer than one.
@@ -271,6 +310,93 @@ type Seen = Pick<DesignInput, "columns" | "rows" | "names" | "totals" | "x" | "s
 const NUMERIC = /^(Nullable\()?(U?Int\d+|Float\d+|Decimal)/;
 const TIME = /^(Nullable\()?Date/;
 
+/* a column that counts distinct things in each row (active addresses, senders, holders) has no total over the rows:
+   a sum counts one address once for each row it is in (the L1 audit's L14 summed a week's daily active addresses,
+   149 against 85 distinct). A count of new ones, first seen in their row, adds up */
+const DISTINCT_NAME = /(?:^|_)(?:addresses|addrs|senders|recipients|receivers|callers|holders|wallets|users|accounts|traders|swappers|depositors|borrowers|signers|participants|(?:uniq|distinct|unique)\w*)(?:_|$)/i;
+const NEW_NAME = /(?:^|_)(?:new|first)(?:_|$)/i;
+const UNIQ_CALL = /\b(?:uniq\w*|countDistinct)\s*\(|\bcount\s*\(\s*DISTINCT\b/gi;
+const ID_ONLY = /\(\s*(?:DISTINCT\s+)?`?(?:transaction_hash|tx_hash|hash|block_number|block_hash)`?\s*\)$/i;
+
+/** the aliases a uniq call or a count(DISTINCT ...) makes in the SQL: the call's own parentheses, then AS */
+function uniqAliases(sql: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of sql.matchAll(UNIQ_CALL)) {
+    let i = sql.indexOf("(", m.index);
+    let depth = 0;
+    let quoted = false;
+    for (; i < sql.length; i++) {
+      const ch = sql[i];
+      if (ch === "'" && sql[i - 1] !== "\\") quoted = !quoted;
+      else if (!quoted && ch === "(") depth++;
+      else if (!quoted && ch === ")" && --depth === 0) break;
+    }
+    const as = /^\s+AS\s+`?([A-Za-z_]\w*)`?/i.exec(sql.slice(i + 1));
+    // a count of distinct transactions or blocks adds up: each is in one row of a time series
+    if (as && !ID_ONLY.test(sql.slice(m.index, i + 1))) out.add(as[1]);
+  }
+  return out;
+}
+
+/** the columns that count distinct things in each row, by their name or by the uniq call that makes them */
+export function distinctColumns(columns: readonly ColumnMeta[], sql?: string): Set<string> {
+  const made = sql ? uniqAliases(sql) : new Set<string>();
+  return new Set(columns.filter((c) => NUMERIC.test(c.type) && !NEW_NAME.test(c.name) && (made.has(c.name) || DISTINCT_NAME.test(c.name))).map((c) => c.name));
+}
+
+/* an average in each row (avg_gwei, median_fee) has no total, and the mean of the rows' averages is not the average
+   over what they count: the follow-up audit's T10 read the mean of 8 hourly means as today's average gas price. A
+   count beside it (txs) weighs each row's average, which gives that average. A maximum in each row (max_fee) ranks
+   rows, not the items in them: T02 read the second-highest hourly maximum as the second-highest block */
+const MEAN_NAME = /(?:^|_)(?:avg|average|mean|median|p\d{2})(?:_|$)/i;
+const MAX_NAME = /(?:^|_)(?:max|maximum|peak|highest)(?:_|$)/i;
+const EXTREME_NAME = /(?:^|_)(?:max|maximum|peak|highest|min|minimum|lowest)(?:_|$)/i;
+const COUNT_NAME = /(?:^|_)(?:txs|transactions|transfers|count|blocks|calls|swaps)(?:_|$)/i;
+/** the period words of a period that runs to now */
+const CURRENT_PERIOD = /^(?:current|today|this|this_week|this_month|cur)$/;
+
+/* a period's column beside the same column of the period before: today_txs and yesterday_txs, current_x and
+   previous_x, txs_this_week and txs_last_week */
+const PERIODS: [string, string[]][] = [
+  ["this_week", ["last_week", "previous_week", "prior_week"]],
+  ["this_month", ["last_month", "previous_month", "prior_month"]],
+  ["current", ["previous", "prior", "last"]],
+  ["today", ["yesterday"]],
+  ["this", ["last", "previous", "prev"]],
+  ["cur", ["prev", "previous"]],
+];
+
+/** the period a column's name gives (current, previous, today), and the rest of the name */
+function periodOf(name: string): { word: string; rest: string } | null {
+  const n = name.toLowerCase();
+  for (const w of PERIODS.flatMap(([now, before]) => [now, ...before])) {
+    if (n.startsWith(`${w}_`)) return { word: w, rest: n.slice(w.length + 1) };
+    if (n.endsWith(`_${w}`)) return { word: w, rest: n.slice(0, -(w.length + 1)) };
+  }
+  return null;
+}
+
+/** each period's number column with the same column of the period before it */
+function pairsOf(columns: readonly ColumnMeta[]): [ColumnMeta, ColumnMeta][] {
+  const nums = columns.filter((c) => NUMERIC.test(c.type));
+  const out: [ColumnMeta, ColumnMeta][] = [];
+  for (const c of nums) {
+    const p = periodOf(c.name);
+    const before = p && PERIODS.find(([now]) => now === p.word)?.[1];
+    const match = before && nums.find((k) => k !== c && before.some((b) => { const q = periodOf(k.name); return q?.word === b && q.rest === p.rest; }));
+    if (match) out.push([c, match]);
+  }
+  return out;
+}
+
+/** the count that weighs an average's rows: the one count column of the same period (txs beside avg_gwei). None when
+    there are several (txs and blocks), since the wrong one gives a wrong average */
+function weightOf(columns: readonly ColumnMeta[], c: ColumnMeta): ColumnMeta | null {
+  const word = periodOf(c.name)?.word ?? null;
+  const counts = columns.filter((k) => k !== c && NUMERIC.test(k.type) && COUNT_NAME.test(k.name) && !MEAN_NAME.test(k.name) && (periodOf(k.name)?.word ?? null) === word);
+  return counts.length === 1 ? counts[0] : null;
+}
+
 /** a value as a model reads it: a name where the server found one */
 function shown(input: Pick<DesignInput, "names">, column: string, v: unknown): unknown {
   const name = typeof v === "string" ? input.names[column]?.[v.toLowerCase()] : undefined;
@@ -283,8 +409,15 @@ const plain = (n: number) => (Number.isInteger(n) ? String(n) : String(Number(n.
 /** totals that hold only the whole set's size, a ranking's own count (cut.ts), with no figures read beside it */
 const sizeOnly = (t: Totals) => !Object.keys(t.sum).length && !Object.keys(t.distinct).length;
 
-/** a share as a reading quotes it, one decimal by the usual rule: 0.45539 is 45.5% */
-const pct = (f: number) => `${(Math.round(f * 1000) / 10).toFixed(1)}%`;
+/** a share as a reading quotes it, one decimal by the usual rule: 0.45539 is 45.5%. A share that is
+    neither none nor all keeps the digits it needs never to read 0.0% or 100.0%: 0.00043 is 0.043%, so a
+    reading never calls a real share zero ("under 0.0%") or the whole */
+const pct = (f: number) => {
+  const p = f * 100;
+  const edge = p > 0 && p < 100 ? Math.min(p, 100 - p) : 100;
+  if (edge >= 0.05) return `${(Math.round(f * 1000) / 10).toFixed(1)}%`;
+  return `${p.toFixed(1 - Math.floor(Math.log10(edge))).replace(/\.?0+$/, "")}%`;
+};
 /** a figure whose sum means nothing: a rate, a price, an average, a share already */
 const RATE = /(?:^|_)(?:pct|percent|rate|ratio|share|price|avg|average|median|mean|apr|apy|bps|index|decimals|of_total)(?:_|$)/i;
 
@@ -339,6 +472,40 @@ function runOf(rows: { r: Row }[], column: string): 1 | -1 | 0 {
   return dir;
 }
 
+/** the expression a query gives a name (AS name), back to the comma, bracket or SELECT before it; null when none */
+export function exprOf(sql: string, name: string): string | null {
+  const m = new RegExp(String.raw`\bAS\s+\`?${name.replace(/[^\w]/g, "")}\`?(?!\w)`, "i").exec(sql);
+  if (!m) return null;
+  let depth = 0;
+  for (let i = m.index - 1; i >= 0; i--) {
+    const ch = sql[i];
+    if (ch === ")") depth++;
+    else if (ch === "(") {
+      if (depth === 0) return sql.slice(i + 1, m.index).trim();
+      depth--;
+    } else if (depth === 0 && (ch === "," || /\bSELECT\s$/i.test(sql.slice(Math.max(0, i - 7), i + 1)))) return sql.slice(i + 1, m.index).trim();
+  }
+  return sql.slice(0, m.index).trim();
+}
+
+/* A share a query takes over its whole result (x / sum(x) OVER ()) is of what the rows it keeps count, after its
+   filters and before its LIMIT: the regression audit's R06 called 8.06% of the gas of the 2,034 contracts it kept
+   "8.06% of all gas charged" (of all gas it is 7.92%). Each such column, with the size of the result when a
+   count() OVER () column gives it */
+const OVER_ALL = /\bover\s*\(\s*\)/i;
+function wholeShares(input: Seen): Map<string, number | null> {
+  const out = new Map<string, number | null>();
+  if (!input.sql || input.rows.length === 0) return out;
+  const exprs = new Map(input.columns.map((c) => [c.name, exprOf(input.sql!, c.name)] as const));
+  const size = input.columns.find((c) => /^count\(\s*\)\s*over\s*\(\s*\)$/i.test(exprs.get(c.name) ?? ""));
+  const n = size ? numOf(size, input.rows[0][size.name]) : null;
+  for (const c of input.columns) {
+    const e = exprs.get(c.name);
+    if (e && NUMERIC.test(c.type) && OVER_ALL.test(e) && e.includes("/")) out.set(c.name, n);
+  }
+  return out;
+}
+
 /* The figures a reading quotes, computed over every row, since past
    ALL_ROWS a model sees only a sample of them: each number column's total,
    average and extremes with the row that holds each (and the next two
@@ -354,6 +521,8 @@ export function figures(input: Seen): string[] {
   const along = !!label && (TIME.test(label.type) || /^(block_number|block_height|height)$/i.test(label.name));
   const at = (r: Row) => (label ? `${label.name} ${String(shown(input, label.name, r[label.name]))}` : `row ${rows.indexOf(r) + 1}`);
   const cut = !!totals && totals.rows > rows.length;
+  const perRow = distinctColumns(columns, input.sql);
+  const whole = wholeShares(input);
   const out: string[] = [];
   if (totals && cut) {
     out.push(
@@ -364,9 +533,8 @@ export function figures(input: Seen): string[] {
   }
   // which edge buckets the window cuts, from the same reading of the SQL as the chart's labels
   if (input.sql && label && TIME.test(label.type)) {
-    const win = windowOf(input.sql, input.anchor);
-    const edge = win && edgesOf(rows.map((r) => r[label.name]), win);
-    if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? "still filling" : "complete"}.`);
+    const edge = edgeOf(input);
+    if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? (staleOf(input.anchor) ? "cut where the index ends" : "still filling") : "complete"}.`);
   }
   for (const c of columns) {
     const nums: { r: Row; v: number }[] = [];
@@ -391,15 +559,31 @@ export function figures(input: Seen): string[] {
       }
       // the next highest rows too, for when the highest is a bucket still filling
       const next = nums.filter((t) => t !== hi).sort((p, q) => q.v - p.v).slice(0, 2);
+      // how many rows hold a figure, so a reading never counts rows itself (the regression audit's R12 said twelve
+      // contracts had one sender, where 13 of the 15 rows did)
+      const held = (v: number) => {
+        const n = nums.filter((t) => t.v === v).length;
+        return n > 1 ? ` (${n} rows hold it${cut ? " among those shown" : ""})` : "";
+      };
+      // a distinct count in each row has no total over the rows, and no share of one; nor has an average
+      const noTotal = rows.length > 1 && perRow.has(c.name);
+      const mean = rows.length > 1 && MEAN_NAME.test(c.name);
+      const extreme = rows.length > 1 && !mean && EXTREME_NAME.test(c.name);
+      const weight = mean ? weightOf(columns, c) : null;
+      const weighed = weight ? weighted(c, weight, rows) : null;
       // the shares of the total those rows hold, so a callout quotes a share rather than divides rounded figures
-      const shared = topShares(c, nums, label, cut).length > 0;
+      const shared = !noTotal && !extreme && topShares(c, nums, label, cut).length > 0;
       // a whole-result extreme past the rows shown, named by its own row, so a reading never pins it on a row shown
       const hidden = (v: number, where: string | undefined) => ` (${plain(v)}${where !== undefined && all?.label ? ` at ${all.label} ${where},` : ""} in a row not shown)`;
+      const size = whole.get(c.name);
       const parts = [
-        all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
-        `avg ${plain(sum / nums.length)}`,
-        `max ${plain(hi.v)} at ${at(hi.r)}${all && all.max[c.name] > hi.v ? hidden(all.max[c.name], all.maxAt?.[c.name]) : ""}${next.length ? `, then ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
-        `min ${plain(lo.v)} at ${at(lo.r)}${all && all.min[c.name] < lo.v ? hidden(all.min[c.name], all.minAt?.[c.name]) : ""}`,
+        ...(whole.has(c.name) ? [`each row's share of the sum over ${size ? `all ${plain(size)}` : "all the"} rows the query keeps (after its filters, before its LIMIT), not of the chain's whole: name that base by what those rows are`] : []),
+        noTotal ? "no total: each row counts its own distinct ones, and one in several rows is in each" : mean ? "no total: each row holds an average, and a sum of averages means nothing" : extreme ? "no total: each row holds its own highest or lowest value, and a sum of them means nothing" : all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
+        mean
+          ? `mean of the row values ${plain(sum / nums.length)}, which is not the average over what the rows count${weighed !== null ? `; weighted by ${weight!.name}, that average is ${plain(weighed)}` : ""}`
+          : `avg ${plain(sum / nums.length)}`,
+        `max ${plain(hi.v)} at ${at(hi.r)}${held(hi.v)}${all && all.max[c.name] > hi.v ? hidden(all.max[c.name], all.maxAt?.[c.name]) : ""}${next.length ? `, then${MAX_NAME.test(c.name) ? " the next rows' own maxima (each the highest within its row, not the next highest overall)," : ""} ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
+        `min ${plain(lo.v)} at ${at(lo.r)}${held(lo.v)}${all && all.min[c.name] < lo.v ? hidden(all.min[c.name], all.minAt?.[c.name]) : ""}`,
         `first ${plain(nums[0].v)}, last ${plain(nums[nums.length - 1].v)}`,
       ];
       if (shared && next.length === 2) {
@@ -430,7 +614,53 @@ export function figures(input: Seen): string[] {
     const range = times?.length ? `, from ${times[0]} to ${times[times.length - 1]}` : `, e.g. ${String(shown(input, c.name, vals[0])).slice(0, 60)}`;
     out.push(`${c.name} (${c.type}): ${count}${range}`);
   }
+  // a period beside the one before it, over the rows the current one has reached, so a reading compares like with
+  // like: the follow-up audit's T15 summed yesterday's first 8 hours as 112.7k, where they hold 105,744. A current
+  // period runs to now, so the last row it has reached is still filling and is left out: the regression audit's R01
+  // set today's 34 minutes of hour 8 against yesterday's whole hour (+17.1%, where the same time reads +21.5%)
+  const running = !!input.sql && /\b(?:now|today)\(\s*\)/i.test(input.sql);
+  const filling = staleOf(input.anchor) ? "cut where the index ends" : "still filling";
+  if (label && rows.length > 2 && runOf(rows.map((r) => ({ r })), label.name) === 1) {
+    for (const [now, before] of pairsOf(columns)) {
+      const last = rows.map((r) => numOf(now, r[now.name])).findLastIndex((v) => v !== null && v !== 0);
+      if (last < 0) continue;
+      const partial = running && CURRENT_PERIOD.test(periodOf(now.name)?.word ?? "");
+      const end = partial ? last - 1 : last;
+      if (!partial && (last < 1 || last === rows.length - 1)) continue;
+      if (end < 0) {
+        out.push(`Matched rows: ${now.name} has a value only at ${at(rows[last])}, which is ${filling}: never set it against ${before.name}'s whole period.`);
+        continue;
+      }
+      const span = rows.slice(0, end + 1);
+      const each = perRow.has(now.name) || MEAN_NAME.test(now.name);
+      const of = (c: ColumnMeta) => {
+        const v = span.map((r) => numOf(c, r[c.name])).filter((x): x is number => x !== null);
+        const w = each && MEAN_NAME.test(c.name) ? weightOf(columns, c) : null;
+        const by = w ? weighted(c, w, span) : null;
+        return v.length ? (by ?? (each ? v.reduce((a, b) => a + b, 0) / v.length : v.reduce((a, b) => a + b, 0))) : null;
+      };
+      const [x, y] = [of(now), of(before)];
+      if (x === null || y === null) continue;
+      const what = each ? (MEAN_NAME.test(now.name) && weightOf(columns, now) ? "average weighted by the counts beside them" : "mean of the row values") : "total";
+      const change = y ? `: ${now.name} is ${x >= y ? "+" : "-"}${pct(Math.abs(x - y) / Math.abs(y))} against ${before.name}` : "";
+      const left = partial ? ` ${at(rows[last])} is ${filling}, so it is left out: never set its part against ${before.name}'s whole period.` : "";
+      out.push(`Matched rows: ${now.name} has values up to ${at(rows[last])}, so it compares with ${before.name} over the ${span.length} ${partial ? "complete rows before it" : "rows up to there"}, ${what} ${plain(x)} against ${plain(y)}${change}.${left} Compare the two periods over these rows, never one period's part with the other's whole.`);
+    }
+  }
   return out;
+}
+
+/** an average over what the rows count: each row's average weighed by its count */
+function weighted(c: ColumnMeta, w: ColumnMeta, rows: readonly Row[]): number | null {
+  let top = 0;
+  let bottom = 0;
+  for (const r of rows) {
+    const [v, n] = [numOf(c, r[c.name]), numOf(w, r[w.name])];
+    if (v === null || n === null || n <= 0) continue;
+    top += v * n;
+    bottom += n;
+  }
+  return bottom > 0 ? top / bottom : null;
 }
 
 /** the rows a sample holds, past ALL_ROWS */
@@ -443,7 +673,9 @@ function numOf(c: ColumnMeta, v: unknown): number | null {
 }
 
 /** the rows a model sees: all of a short answer; else the first and last five, each number column's
-    highest and lowest row, and an even spread between them, in the rows' own order */
+    highest and lowest row, the rows either side of the highest (a reading says what came before and after a peak:
+    the follow-up audit's T02 named the hour after one from a row it never saw), and an even spread between them,
+    in the rows' own order */
 export function sampleOf(input: Seen): { head: string; rows: Row[] } {
   const { rows, columns } = input;
   const named = (r: Row) => Object.fromEntries(columns.map((c) => [c.name, shown(input, c.name, r[c.name])]));
@@ -462,10 +694,28 @@ export function sampleOf(input: Seen): { head: string; rows: Row[] } {
       if (v < lv) [lo, lv] = [i, v];
     });
     if (hi >= 0) pick.add(hi).add(lo);
+    for (const i of [hi - 1, hi + 1]) if (hi >= 0 && i >= 0 && i < rows.length) pick.add(i);
   }
   for (let k = 1; pick.size < SAMPLE && k < SAMPLE; k++) pick.add(Math.round((k * (rows.length - 1)) / SAMPLE));
   const at = [...pick].sort((x, y) => x - y);
-  return { head: `${at.length} of the ${rows.length} rows, in order: the first and last five, each column's highest and lowest, and an even spread between:`, rows: at.map((i) => named(rows[i])) };
+  return { head: `${at.length} of the ${rows.length} rows, in order: the first and last five, each column's highest and lowest, the rows either side of each highest, and an even spread between:`, rows: at.map((i) => named(rows[i])) };
+}
+
+/** where a stale index ends, for a model that reads its rows: the question's today is not the rows' (empty for an
+    index that is current) */
+const staleOf = (anchor?: string | null) => (anchor ? staleLine(msOf(anchor), Date.now()) : "");
+const staleBrief = (anchor?: string | null) => {
+  const line = staleOf(anchor);
+  return line ? [`${line} Name each day by its date, never as today, this week or so far.`] : [];
+};
+
+/** the edge periods a series' window cuts through: the first when it begins inside it, the last while it is still
+    filling (or cut where a stale index ends); null for rows that are not a series along time */
+function edgeOf(input: Seen): ReturnType<typeof edgesOf> {
+  const label = labelOf(input);
+  if (!input.sql || !label || !TIME.test(label.type)) return null;
+  const win = windowOf(input.sql, input.anchor);
+  return win && edgesOf(input.rows.map((r) => r[label.name]), win);
 }
 
 /** what a model reads about the rows: the figures over all of them, then a sample */
@@ -495,8 +745,9 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
       // a callout that names a column or an address the rows do not hold, or that runs past CALLOUT_SHOWN as shown, is left out
       const names = input.columns.map((c) => c.name);
       const held = heldHex(input);
+      const shown = rowWords(input.rows, input.names);
       const shares = sharesOf(input);
-      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).map((c) => withShares(c, shares)).slice(0, 3);
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).map(plainDecimals).filter((c) => codeWords(c, names, shown).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).map((c) => withShares(c, shares)).slice(0, 3);
       return { ok: true };
     },
   });
@@ -508,7 +759,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
         "You write the short reading under a chart on the Avalanche explorer.",
         "At most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas).",
         "No adjectives, no restating the title. Do not mention the data window. No em dashes. Never say settled or waiting.",
-        "Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%; never 3159411 or 1.395e+6. Write a day short, with the month its row gives: 2025-03-04 is Mar 4.",
+        `Each callout is one full sentence that ends with a period, at most ${CALLOUT_SHOWN} characters as the page shows it (an address or hash counts as 11). Write figures as people read them: 3.16M, 64.7k, 41.6%; never 3159411 or 1.395e+6. Write a day short, with the month its row gives: 2025-03-04 is Mar 4.`,
         `Figures are computed over all rows; past ${ALL_ROWS} rows the rows shown are a sample. Take every peak, low, total, first and last value, and the row that holds it, from Figures, never from the rows shown.`,
         "When Figures says the rows are cut, say they are the first (or the newest) of the total, and never call a sum over them the total.",
         READER_RULES,
@@ -520,6 +771,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
           content: [
             `Question: ${input.question}`,
             `Title: ${input.title}`,
+            ...staleBrief(input.anchor),
             `Native token: ${input.symbol}. Rows: ${input.rows.length}${input.totals && input.totals.rows > input.rows.length ? ` of ${input.totals.rows}` : ""}.`,
             ...rowsBrief(input),
             READ_ONLY,
@@ -550,6 +802,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
   const sample = sampleOf(seen).rows;
   const shares = sharesOf(seen);
   const cols = new Set(input.columns.map((c) => c.name));
+  const shown = rowWords(input.rows, input.names);
 
   let visual: VisualSpec | null = null;
   let relabeled = false;
@@ -560,12 +813,42 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     steps += taken.length;
     for (const c of taken.flatMap((s) => s.content)) if (c.type === "tool-error") refused.push(String(c.error instanceof Error ? c.error.message : c.error).slice(0, 200));
   };
+  const perRow = distinctColumns(input.columns, input.sql);
+  // each column of per-row averages that Figures weighs, with the mean of its rows and the weighted average
+  const weighable = new Map<string, { mean: number; weighted: number; by: string }>();
+  for (const c of input.rows.length > 1 ? input.columns : []) {
+    const w = MEAN_NAME.test(c.name) ? weightOf(input.columns, c) : null;
+    const v = w ? weighted(c, w, input.rows) : null;
+    const nums = input.rows.map((r) => numOf(c, r[c.name])).filter((n): n is number => n !== null);
+    const mean = nums.reduce((p, q) => p + q, 0) / nums.length;
+    if (w && v !== null && nums.length && Math.abs(mean - v) > Math.abs(v) * 0.005) weighable.set(c.name, { mean, weighted: v, by: w.name });
+  }
   const check = (spec: VisualSpec): { error: string } | { ok: true } => {
     const bad = [
       ...spec.stats.filter((s) => !cols.has(s.column)).map((s) => `stat ${s.label} -> ${s.column}`),
       ...spec.panels.flatMap((p) => [...(p.x && !cols.has(p.x) ? [`panel x ${p.x}`] : []), ...(p.target && !cols.has(p.target) ? [`panel target ${p.target}`] : []), ...p.series.filter((s) => !cols.has(s.column)).map((s) => `series ${s.column}`), ...(p.sortBy && !cols.has(p.sortBy) ? [`sortBy ${p.sortBy}`] : [])]),
     ];
     if (bad.length) return { error: `these columns are not in the rows: ${bad.join("; ")}. Columns: ${[...cols].join(", ")}` };
+    // a sum over the rows counts a distinct thing once for each row it is in
+    const summed = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && perRow.has(s.column)) : [];
+    if (summed.length) return { error: `${summed.map((s) => s.column).join(", ")} counts distinct ones in each row, so a sum over the rows counts one that is in several rows once for each: use avg or max, or leave the stat out` };
+    // an average of a count over a series whose first or last period is partial counts it as a whole one (the regression
+    // audit's R16: "1,694 a day" with today's 8.8 hours in it, where the 14 whole days average 1,745.8)
+    const edge = edgeOf(seen);
+    const thin = edge && (edge.first || edge.last) ? spec.stats.filter((s) => s.agg === "avg" && !MEAN_NAME.test(s.column) && !RATE.test(s.column)) : [];
+    if (thin.length) return { error: `the ${edge!.last ? "last" : "first"} period of these rows is partial, so an average over them counts it as a whole one: ${thin.map((s) => s.column).join(", ")} needs max, a total or no stat` };
+    // the rows' own averages averaged weigh a thin row as much as a full one (the follow-up audit's T02: "average base
+    // fee 2.16 gwei" over its hours, where the blocks' own average is 1.78): Figures gives the weighted one
+    const unweighted = spec.stats.filter((s) => s.agg === "avg" && weighable.has(s.column));
+    if (unweighted.length) {
+      const why = unweighted.map((s) => {
+        const w = weighable.get(s.column)!;
+        return `avg over ${s.column} weighs each row's average alike (${plain(w.mean)}), where the average over what the rows count is ${plain(w.weighted)} (weighted by ${w.by})`;
+      });
+      return { error: `${why.join("; ")}: give that figure in a callout, and show max or min here, or leave the stat out` };
+    }
+    const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
+    if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
     // a flow runs from one column to another and draws one amount
     const flows = spec.panels.filter((p) => p.kind === "flow");
@@ -581,13 +864,13 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     const long = spec.callouts.map((c, i) => ({ i, n: shownLength(c) })).filter((c) => c.n > CALLOUT_SHOWN);
     if (long.length) return { error: `a callout holds ${CALLOUT_SHOWN} characters as the page shows it, with each address and hash counted as 11: ${long.map((c) => `callout ${c.i + 1} has ${c.n}`).join(", ")}. Shorten it and call design again.` };
     // the reader never sees the columns: labels and callouts that name one are written again once, then read as words
-    const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols]);
+    const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols], shown);
     if (named.length && !relabeled) {
       relabeled = true;
       return { error: `the labels or callouts have ${named.join(", ")}, words the page never shows: the reader never sees the columns, and a transaction is final, never settled. Use plain words ("Seen in 7 days", not seen_7d; final, not settled) and call design again.` };
     }
     // a share a callout misses by less than its last digit reads the one Figures gives
-    const read = readerSpec(spec, [...cols], heldHex(input));
+    const read = readerSpec(spec, [...cols], heldHex(input), shown);
     visual = { ...read, callouts: read.callouts.map((c) => withShares(c, shares)) };
     return { ok: true };
   };
@@ -614,6 +897,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
             `Question: ${input.question}`,
             `Title from the query stage: ${input.title}`,
             `Note from the query stage: ${input.note}`,
+            ...staleBrief(input.anchor),
             `Native token: ${input.symbol}. Rows: ${input.rows.length}${input.totals && input.totals.rows > input.rows.length ? ` of ${input.totals.rows}` : ""}.`,
             ...rowsBrief(seen),
             `Call the design tool exactly once with the visual. If it returns an error, call it again with the fix. Do not answer in prose.`,

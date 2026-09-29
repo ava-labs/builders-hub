@@ -92,6 +92,80 @@ describe('the flow and finite-value rules', () => {
   });
 });
 
+describe('the DEX chapter', () => {
+  it('writes its swap drills with the Swap topic names $POOLS defines, not their hex', () => {
+    // qlatency, 2026-09-29: hex topic literals were 218 of a DEX answer's 969 output tokens (median), about 1 s of writing
+    const p = systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null, dex: true });
+    const drills = p.split('\n').filter((l) => l.startsWith('drill: ') && l.includes('v2_swap, v3_swap, lb_swap, v4_swap'));
+    expect(drills.length).toBeGreaterThanOrEqual(3);
+    for (const d of drills) {
+      expect(d).toMatch(/^drill: \$POOLS\(/);
+      expect(d).not.toContain("unhex('");
+    }
+  });
+});
+
+describe("the P-Chain audit's rules", () => {
+  const prompt = (chainId: number) => pchainPrompt({ chainId, network: chainId === 1 ? 'mainnet' : 'Fuji', schema: '', coverage: null, lines: null });
+
+  it('read rewards from their outputs, name registrations, and read the last N days whole, on mainnet only', () => {
+    const p = prompt(1);
+    expect(p).toContain('Its AVAX is reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8))) / 1e9');
+    expect(p).toContain('its title and note say registrations, never new validators');
+    expect(p).toContain('the last 7 days start at toDate(now()) - INTERVAL 7 DAY, never 6');
+    // the auto-renewed staking transactions (ACP-236), and a reward read from its outputs, not reward_paid
+    expect(p).toContain('RewardAutoRenewedValidatorTx (an auto-renewed validator');
+    expect(p).toContain('SetAutoRenewedValidatorConfigTx (an auto-renewed validator');
+    expect(p).toContain('staking_tx_id names it, its reward is in raw_p_reward_utxos');
+    const fuji = prompt(5);
+    for (const line of ['raw_p_reward_utxos: one row per reward output', 'Registrations: an AddPermissionlessValidatorTx', 'The last N days as a daily series', 'RewardAutoRenewedValidatorTx']) expect(fuji).not.toContain(line);
+    expect(fuji).toContain('staking_tx_id names it, reward_paid = 1 when it earned');
+  });
+});
+
+describe('the NFT and new-contract rules', () => {
+  const prompt = (chainId: number, dex = false) => systemPrompt({ chainId, chainName: 'a chain', symbol: 'AVAX', schema: '', coverage: null, dex });
+
+  it('read both NFT standards and every creation call on each EVM chain but Fuji, whose prompt stays as it was', () => {
+    // the night audit's G13 ranked ERC-721 collections alone, and its G18 counted the transactions that deploy a contract
+    for (const p of [prompt(43114), prompt(43114, true), prompt(432204)]) {
+      expect(p.split("TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62')")).toHaveLength(2);
+      expect(p).toContain("TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb')");
+      expect(p).toContain("Count them with startsWith(call_type, 'CREAT') AND tx_success");
+    }
+    expect(prompt(43113)).not.toContain('TransferSingle');
+    expect(prompt(43113)).not.toContain("'CREAT'");
+  });
+
+  it('leave the zero address out of a token\'s wallets, and keep a contract\'s plain transfers in its count', () => {
+    // the L1 audit's L16 counted mints as sends and called an ERC-721's transfers ERC-20; its L05 dropped plain transfers
+    for (const p of [prompt(43114), prompt(43419)]) {
+      expect(p).toContain("uniqExactIf(topic1, topic1 != unhex(repeat('00', 32)))");
+      expect(p).toContain('HAVING countIf(length(input) >= 4) > 0');
+    }
+    expect(prompt(43113)).not.toContain('Mints and burns');
+    expect(prompt(43113)).not.toContain('Contracts by transactions');
+  });
+
+  it("take a token's senders from its Transfers, not the transactions' signers, on each chain but Fuji", () => {
+    // the follow-up audit's T06 counted tx_from after the token example, 10 to 25% below the USDT senders
+    const example = (p: string) => p.split('\n').find((l) => l.startsWith("SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers"))!;
+    for (const p of [prompt(43114), prompt(43419)]) expect(example(p)).toContain("uniqExactIf(topic1, topic1 != unhex(repeat('00', 32))) AS senders");
+    expect(example(prompt(43113))).toContain('uniqExact(tx_from) AS senders');
+  });
+
+  it("count a sender's recipients, never its contracts, on each chain but Fuji", () => {
+    // the night audit's G11 counted a sender's partners as contracts, and its reading said an account called 778 of them
+    for (const p of [prompt(43114), prompt(43419)]) expect(p).toContain('a ranking of senders carries how many addresses each sent to (recipients, uniqExact over `to`), never contracts');
+    expect(prompt(43113)).not.toContain('a ranking of senders carries');
+  });
+
+  it('teaches a creation filter the guard passes', () => {
+    const sql = "SELECT count() AS new_contracts FROM raw_traces WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 24 HOUR AND startsWith(call_type, 'CREAT') AND tx_success";
+    expect(guardSql(sql, 43114).ok).toBe(true);
+  });
+});
+
 describe('an address read from a log topic', () => {
   const padded = (tail: string) => `0x${'0'.repeat(24)}${tail}`;
 

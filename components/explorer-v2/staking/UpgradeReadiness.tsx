@@ -43,21 +43,21 @@ export interface ReleaseShare {
 const GREEN = ["#16a34a", "#4ade80", "#86efac", "#bbf7d0"];
 const AMBER = ["#f59e0b", "#fbbf24", "#fcd34d"];
 const RED = ["#E6212F", "#f87171", "#fca5a5"];
-const UNKNOWN = "#a1a1aa";
+export const UNKNOWN = "#a1a1aa";
 /** behind is amber one line back and red further back: the swatch shows both */
 export const BEHIND_SWATCH = `linear-gradient(135deg, ${AMBER[0]} 50%, ${RED[0]} 50%)`;
 
 /* Newest release first, the unknown bucket last. At or past the target is
    green (newest deepest); the target's own minor line, or one line back,
    amber; anything older red. */
-export function releaseShares(rows: StatusRow[], target: string): ReleaseShare[] {
+export function releaseShares(rows: { version: string | null; stake?: number }[], target: string): ReleaseShare[] {
   const by = new Map<string, { nodes: number; stake: number }>();
   let stakeTotal = 0;
   for (const r of rows) {
     const k = r.version ?? NO_VERSION;
     const d = by.get(k) ?? { nodes: 0, stake: 0 };
-    by.set(k, { nodes: d.nodes + 1, stake: d.stake + r.stake });
-    stakeTotal += r.stake;
+    by.set(k, { nodes: d.nodes + 1, stake: d.stake + (r.stake ?? 0) });
+    stakeTotal += r.stake ?? 0;
   }
   const n = { g: 0, a: 0, r: 0 };
   const pick = (tones: string[], k: "g" | "a" | "r") => tones[Math.min(n[k]++, tones.length - 1)];
@@ -82,11 +82,11 @@ const TAG_WORD = { required: "required", latest: "latest", unreleased: "unreleas
 /** the key's columns at md and up: swatch, release, bar, nodes, share, stake, share, arrow */
 const KEY_COLS = "gap-x-4 md:grid-cols-[1rem_9rem_minmax(0,1fr)_5rem_5rem_6rem_5rem_1.5rem]";
 
-function versionLabel(v: string): string {
+export function versionLabel(v: string): string {
   return v === NO_VERSION ? "Unknown" : v;
 }
 
-function shortId(id: string): string {
+export function shortId(id: string): string {
   return `${id.slice(0, 11)}…${id.slice(-6)}`;
 }
 
@@ -94,6 +94,21 @@ function shortDate(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
+
+// the fleet's order inside a release, and a square's id and plate: stable, so a hover does not sort the fleet again
+const byStake = (a: StatusRow, b: StatusRow) => b.stake - a.stake;
+const nodeIdOf = (r: StatusRow) => r.nodeId;
+const stakeTip = (r: StatusRow) => (
+  <>
+    <p className="font-mono text-[11px] text-zinc-900 dark:text-zinc-100">{shortId(r.nodeId)}</p>
+    <p className="mt-0.5 font-mono text-[10.5px] tabular-nums text-zinc-500">
+      {r.version ?? "unknown version"} · {r.online === false ? "offline" : r.online ? "online" : "connection not reported"}
+    </p>
+    <p className="font-mono text-[10.5px] tabular-nums text-zinc-500">
+      {fmtCompact(r.stake)} AVAX{r.uptime !== null ? ` · ${r.uptime.toFixed(1)}% uptime` : ""}
+    </p>
+  </>
+);
 
 export function UpgradeReadiness({
   rows,
@@ -192,7 +207,8 @@ export function UpgradeReadiness({
               label="Behind target"
               title={`Validators that run a release older than ${target}`}
               swatch={<span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: BEHIND_SWATCH }} />}
-              part={reading.behind}
+              count={reading.behind.nodes}
+              detail={`${fmtCompact(reading.behind.stake)} AVAX`}
               active={cutIs("status", "behind")}
               onClick={() => onCut("status", ["behind"])}
             />
@@ -200,7 +216,8 @@ export function UpgradeReadiness({
               label="Unknown version"
               title="The crawler did not complete a handshake with these validators. They are offline, or they run a release that the network does not accept."
               swatch={<span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: UNKNOWN }} />}
-              part={reading.unknown}
+              count={reading.unknown.nodes}
+              detail={`${fmtCompact(reading.unknown.stake)} AVAX`}
               active={cutIs("status", "unknown")}
               onClick={() => onCut("status", ["unknown"])}
             />
@@ -208,7 +225,8 @@ export function UpgradeReadiness({
               label="Offline"
               title="Validators that the P-Chain API node is not connected to"
               swatch={<span className="h-2.5 w-2.5 rounded-[2px] ring-[1.5px] ring-inset ring-zinc-400 dark:ring-zinc-500" />}
-              part={reading.offline}
+              count={reading.offline.nodes}
+              detail={`${fmtCompact(reading.offline.stake)} AVAX`}
               active={cutIs("online", "no")}
               onClick={() => onCut("online", ["no"])}
             />
@@ -219,24 +237,77 @@ export function UpgradeReadiness({
         <div className="flex min-w-0 flex-col gap-6" onMouseLeave={() => setHover(null)}>
           <Solid label="Nodes" shares={shares} share={(s) => s.nodePct} lit={lit} onHover={setHover} onPick={(v) => onCut("version", [v])} />
           <Solid label="Stake" shares={shares} share={(s) => s.stakePct} lit={lit} onHover={setHover} onPick={(v) => onCut("version", [v])} />
-          <FleetGrid rows={rows} paintOf={paintOf} visible={visible} lit={lit} nodeHref={nodeHref} />
+          <FleetGrid rows={rows} paintOf={paintOf} visible={visible} lit={lit} idOf={nodeIdOf} hrefOf={(r) => nodeHref(r.nodeId)} order={byStake} tip={stakeTip} />
         </div>
       </div>
 
       {(required || latest) && <ReleaseLine required={required} latest={latest} />}
 
-      {/* the key, one row a release: also a way into the roster */}
-      <div className={cn(KEY_COLS, "hidden border-t border-zinc-200 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid dark:border-zinc-800 dark:text-zinc-500")}>
+      <ReleaseKey
+        shares={shares}
+        targets={targets}
+        picked={picked}
+        lit={lit}
+        onHover={setHover}
+        onPick={(v) => onCut("version", [v])}
+        cols={KEY_COLS}
+        head={["Nodes", "Share", "Stake", "Share"]}
+        cells={stakeCells}
+      />
+    </div>
+  );
+}
+
+/** the Primary Network key's columns after the nodes */
+const stakeCells = (s: ReleaseShare) => [
+  `${s.nodePct.toFixed(1)}%`,
+  <>
+    {fmtCompact(s.stake)} <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500">AVAX</span>
+  </>,
+  `${s.stakePct.toFixed(1)}%`,
+];
+
+/* The key, one row a release: also a way into the roster. Every roster
+   draws the swatch, the release, its bar and its count; `cells` are the
+   board's own columns after the count, shown at md and up. */
+export function ReleaseKey({
+  shares,
+  targets,
+  picked,
+  lit,
+  onHover,
+  onPick,
+  cols,
+  head,
+  cells,
+}: {
+  shares: ReleaseShare[];
+  targets: TargetOption[];
+  /** the release the roster is cut to */
+  picked: string | null;
+  lit: string | null;
+  onHover: (v: string | null) => void;
+  onPick: (v: string) => void;
+  /** the md grid: swatch, release, bar, count, the cells, arrow */
+  cols: string;
+  /** the heads of the count and the cells */
+  head: string[];
+  cells: (s: ReleaseShare) => React.ReactNode[];
+}) {
+  return (
+    <>
+      <div className={cn(cols, "hidden border-t border-zinc-200 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid dark:border-zinc-800 dark:text-zinc-500")}>
         <span />
         <span>Release</span>
         <span />
-        <span className="text-right">Nodes</span>
-        <span className="text-right">Share</span>
-        <span className="text-right">Stake</span>
-        <span className="text-right">Share</span>
+        {head.map((h, i) => (
+          <span key={i} className="text-right">
+            {h}
+          </span>
+        ))}
         <span />
       </div>
-      <ul className="border-t border-zinc-200 dark:border-zinc-800" onMouseLeave={() => setHover(null)}>
+      <ul className="border-t border-zinc-200 dark:border-zinc-800" onMouseLeave={() => onHover(null)}>
         {shares.map((s) => {
           const on = picked === s.version;
           const dim = lit !== null && lit !== s.version;
@@ -245,14 +316,14 @@ export function UpgradeReadiness({
             <li key={s.version} className="border-b border-zinc-100 last:border-b-0 dark:border-zinc-900">
               <button
                 type="button"
-                onMouseEnter={() => setHover(s.version)}
-                onFocus={() => setHover(s.version)}
-                onBlur={() => setHover(null)}
-                onClick={() => onCut("version", [s.version])}
+                onMouseEnter={() => onHover(s.version)}
+                onFocus={() => onHover(s.version)}
+                onBlur={() => onHover(null)}
+                onClick={() => onPick(s.version)}
                 aria-pressed={on}
                 className={cn(
                   "group grid w-full grid-cols-[1rem_minmax(0,7rem)_minmax(0,1fr)_auto] items-center gap-x-4 px-5 py-2.5 text-left transition-[background-color,opacity] duration-200 md:px-6",
-                  KEY_COLS,
+                  cols,
                   on ? "bg-[#0061E2]/[0.06] dark:bg-[#5b9bff]/10" : "hover:bg-zinc-50 dark:hover:bg-zinc-900",
                   dim && "opacity-45",
                 )}
@@ -269,23 +340,23 @@ export function UpgradeReadiness({
                   {s.nodes.toLocaleString("en-US")}
                   <span className="text-zinc-400 md:hidden dark:text-zinc-500"> · {s.nodePct.toFixed(1)}%</span>
                 </span>
-                <span className="hidden font-mono text-[12px] tabular-nums text-zinc-500 md:block md:text-right dark:text-zinc-400">{s.nodePct.toFixed(1)}%</span>
-                <span className="hidden font-mono text-[12px] tabular-nums text-zinc-500 md:block md:text-right dark:text-zinc-400">
-                  {fmtCompact(s.stake)} <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500">AVAX</span>
-                </span>
-                <span className="hidden font-mono text-[12px] tabular-nums text-zinc-500 md:block md:text-right dark:text-zinc-400">{s.stakePct.toFixed(1)}%</span>
+                {cells(s).map((c, i) => (
+                  <span key={i} className="hidden font-mono text-[12px] tabular-nums text-zinc-500 md:block md:text-right dark:text-zinc-400">
+                    {c}
+                  </span>
+                ))}
                 <ArrowRight className={cn("hidden h-3.5 w-3.5 justify-self-end transition-all md:block", on ? "rotate-90 text-[#0061E2]" : "text-zinc-300 group-hover:translate-x-0.5 group-hover:text-zinc-900 dark:text-zinc-700 dark:group-hover:text-zinc-100")} />
               </button>
             </li>
           );
         })}
       </ul>
-    </div>
+    </>
   );
 }
 
 /** the target release as a row of pills, each tagged required, latest or unreleased */
-function TargetPicker({
+export function TargetPicker({
   id,
   targets,
   target,
@@ -335,23 +406,26 @@ function TargetPicker({
   );
 }
 
-/** one way to fall short of the target, with its count and stake; a door into the roster */
-function ShortfallRow({
+/** one way to fall short of the target, with its count and what those validators hold; a door into the roster */
+export function ShortfallRow({
   label,
   title,
   swatch,
-  part,
+  count,
+  detail,
   active,
   onClick,
 }: {
   label: string;
   title: string;
   swatch: React.ReactNode;
-  part: { nodes: number; stake: number };
+  count: number;
+  /** e.g. their stake; shown while the count is not 0 */
+  detail: string;
   active: boolean;
   onClick: () => void;
 }) {
-  const none = part.nodes === 0;
+  const none = count === 0;
   return (
     <button
       type="button"
@@ -366,9 +440,9 @@ function ShortfallRow({
     >
       <span className="flex items-center">{swatch}</span>
       <span className={cn("truncate font-mono text-[11.5px]", none ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-700 dark:text-zinc-300")}>{label}</span>
-      <span className={cn("font-mono text-[13px] tabular-nums", none ? "text-zinc-300 dark:text-zinc-700" : "text-zinc-900 dark:text-zinc-50")}>{part.nodes.toLocaleString("en-US")}</span>
+      <span className={cn("font-mono text-[13px] tabular-nums", none ? "text-zinc-300 dark:text-zinc-700" : "text-zinc-900 dark:text-zinc-50")}>{count.toLocaleString("en-US")}</span>
       <span className="w-28 whitespace-nowrap text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-        {none ? "" : `${fmtCompact(part.stake)} AVAX`}
+        {none ? "" : detail}
         {!none && <ArrowRight className={cn("ml-1 inline h-3 w-3 transition-all", active ? "rotate-90 text-[#0061E2]" : "text-zinc-300 group-hover:translate-x-0.5 group-hover:text-zinc-900 dark:text-zinc-700 dark:group-hover:text-zinc-100")} />}
       </span>
     </button>
@@ -376,7 +450,7 @@ function ShortfallRow({
 }
 
 /** the required release and, when newer, the latest one, in the notes' own words */
-function ReleaseLine({ required, latest }: { required: AvalancheGoRelease | null; latest: AvalancheGoRelease | null }) {
+export function ReleaseLine({ required, latest }: { required: AvalancheGoRelease | null; latest: AvalancheGoRelease | null }) {
   const lines = [
     required ? { kind: "Required", r: required } : null,
     latest && latest.version !== required?.version ? { kind: "Latest", r: latest } : null,
@@ -400,7 +474,7 @@ function ReleaseLine({ required, latest }: { required: AvalancheGoRelease | null
 }
 
 /** one extruded bar, cut into releases */
-function Solid({
+export function Solid({
   label,
   shares,
   share,
@@ -475,25 +549,43 @@ function Solid({
   );
 }
 
-/* One square per validator, newest release first and the biggest stake
-   first inside a release. An offline validator is drawn hollow. The
-   roster's filter dims what it drops; a hovered release dims the rest. */
-function FleetGrid({
+/** what a fleet square reads of a validator */
+export interface FleetRow {
+  version: string | null;
+  /** null, or absent, when the feed reports no connection */
+  online?: boolean | null;
+}
+
+/* One square per validator, newest release first and, inside a release,
+   in the caller's order (the Primary Network's: the biggest stake first).
+   An offline validator is drawn hollow. The roster's filter dims what it
+   drops; a hovered release dims the rest. */
+export function FleetGrid<R extends FleetRow>({
   rows,
   paintOf,
   visible,
   lit,
-  nodeHref,
+  idOf,
+  hrefOf,
+  order,
+  tip: tipOf,
 }: {
-  rows: StatusRow[];
+  rows: R[];
   paintOf: Map<string, string>;
+  /** the ids (idOf) the roster is cut to; null when it is not cut */
   visible: Set<string> | null;
   lit: string | null;
-  nodeHref: (nodeId: string) => string;
+  /** a square's id: its NodeID, or its validation ID where one node holds more than one seat */
+  idOf: (r: R) => string;
+  hrefOf: (r: R) => string;
+  /** the order inside a release; keep it stable, since a new one sorts the fleet again */
+  order: (a: R, b: R) => number;
+  /** what a hovered square's plate says */
+  tip: (r: R) => React.ReactNode;
 }) {
   const reduced = useReduced();
   const gridRef = useRef<HTMLDivElement>(null);
-  const [tip, setTip] = useState<{ row: StatusRow; x: number; y: number; align: "left" | "center" | "right" } | null>(null);
+  const [tip, setTip] = useState<{ row: R; x: number; y: number; align: "left" | "center" | "right" } | null>(null);
   const [shown, setShown] = useState(false);
   const [settled, setSettled] = useState(false);
 
@@ -505,10 +597,12 @@ function FleetGrid({
           if (!b.version) return -1;
           return compareRelease(b.version, a.version);
         }
-        return b.stake - a.stake;
+        return order(a, b);
       }),
-    [rows],
+    [rows, order],
   );
+  // a feed that reports no connection draws no hollow squares, so the key leaves offline out
+  const connected = useMemo(() => rows.some((r) => typeof r.online === "boolean"), [rows]);
 
   // the squares fill in once, in reading order; after that a filter change is instant
   useEffect(() => {
@@ -524,7 +618,7 @@ function FleetGrid({
     { label: "on target", swatch: <span className="h-2 w-2 rounded-[1px] bg-[#16a34a]" /> },
     { label: "behind", swatch: <span className="h-2 w-2 rounded-[1px]" style={{ background: BEHIND_SWATCH }} /> },
     { label: "unknown", swatch: <span className="h-2 w-2 rounded-[1px]" style={{ background: UNKNOWN }} /> },
-    { label: "offline", swatch: <span className="h-2 w-2 rounded-[1px] ring-1 ring-inset ring-zinc-400 dark:ring-zinc-500" /> },
+    ...(connected ? [{ label: "offline", swatch: <span className="h-2 w-2 rounded-[1px] ring-1 ring-inset ring-zinc-400 dark:ring-zinc-500" /> }] : []),
   ];
 
   return (
@@ -546,13 +640,13 @@ function FleetGrid({
         <div aria-hidden className="grid gap-[3px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(0.625rem, 1fr))" }}>
           {ordered.map((r, i) => {
             const paint = paintOf.get(r.version ?? NO_VERSION) ?? UNKNOWN;
-            const dim = (lit !== null && lit !== (r.version ?? NO_VERSION)) || (visible !== null && !visible.has(r.nodeId));
+            const dim = (lit !== null && lit !== (r.version ?? NO_VERSION)) || (visible !== null && !visible.has(idOf(r)));
             const hollow = r.online === false;
             const on = reduced || shown;
             return (
               <Link
-                key={r.nodeId}
-                href={nodeHref(r.nodeId)}
+                key={idOf(r)}
+                href={hrefOf(r)}
                 prefetch={false}
                 tabIndex={-1}
                 onMouseEnter={(e) => {
@@ -583,15 +677,7 @@ function FleetGrid({
             )}
             style={{ left: tip.x, top: tip.y }}
           >
-            <TipPlate>
-              <p className="font-mono text-[11px] text-zinc-900 dark:text-zinc-100">{shortId(tip.row.nodeId)}</p>
-              <p className="mt-0.5 font-mono text-[10.5px] tabular-nums text-zinc-500">
-                {tip.row.version ?? "unknown version"} · {tip.row.online === false ? "offline" : tip.row.online ? "online" : "connection not reported"}
-              </p>
-              <p className="font-mono text-[10.5px] tabular-nums text-zinc-500">
-                {fmtCompact(tip.row.stake)} AVAX{tip.row.uptime !== null ? ` · ${tip.row.uptime.toFixed(1)}% uptime` : ""}
-              </p>
-            </TipPlate>
+            <TipPlate>{tipOf(tip.row)}</TipPlate>
           </div>
         )}
       </div>

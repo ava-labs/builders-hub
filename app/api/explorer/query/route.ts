@@ -6,8 +6,10 @@ import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual, writeReading } from "@/lib/explorer-query/visual";
-import type { ChartSpec, Names, Totals } from "@/lib/explorer-query/types";
-import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
+import type { ChartSpec, Names, QueryAnswer, Totals } from "@/lib/explorer-query/types";
+import { monitorNote } from "@/lib/explorer-query/monitor";
+import { monitorFor } from "@/lib/explorer-query/monitor-feed";
+import { answerQuestion, drillSql, keptWords, type QueryEvent } from "@/lib/explorer-query/answer";
 import { totalsOf } from "@/lib/explorer-query/cut";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { runKept } from "@/lib/explorer-query/run-cache";
@@ -120,7 +122,9 @@ export async function POST(req: Request) {
       const t0 = Date.now();
       try {
         const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
-        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor });
+        // the reading is written from the words the page shows, not the ones the recipe kept
+        const said = keptWords(recipe, recipe.sql, result.rows, anchor, chainId);
+        const callouts = await writeReading({ question: recipe.question, title: said.title, note: said.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
         return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
@@ -129,7 +133,8 @@ export async function POST(req: Request) {
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
     try {
       const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
-      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor });
+      const said = keptWords(recipe, recipe.sql, result.rows, anchor, chainId);
+      const out = await designVisual({ question: recipe.question, title: said.title, note: said.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor });
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       // the design's own time, its model steps and each visual its tool turned back: a slow layout shows whether it retried
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, steps: out.steps, refused: out.refused?.length ? out.refused : undefined, error: out.fromDesigner ? undefined : out.error });
@@ -160,6 +165,14 @@ export async function POST(req: Request) {
   if (!/\p{L}/u.test(prompt)) {
     const example = targetOf(chainId).kind === "pchain" ? "AVAX staked per day" : "transactions per hour today";
     return NextResponse.json({ error: `Ask a question in words, for example "${example}".` }, { status: 400 });
+  }
+
+  // "monitor USDT transfers": a live feed of the chain's own moves, read from its RPC block by block. No model and
+  // no SQL, so no question is counted and the index's coverage does not matter
+  const monitor = await monitorFor(prompt, chainId, symbol, baseUrl);
+  if (monitor) {
+    const answer: QueryAnswer = { title: monitor.title, note: monitorNote(monitor, chain.chainName), sql: "", chart: { kind: "none", series: [] }, drill: null, result: null, names: {}, visual: null, coverage: null, monitor };
+    return new Response(`${JSON.stringify({ type: "answer", answer })}\n`, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } });
   }
 
   // a chain with no indexed rows has nothing to read; no model is asked

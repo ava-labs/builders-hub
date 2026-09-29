@@ -1,3 +1,4 @@
+import type { MonitorSpec } from "./monitor";
 import { z } from "zod";
 import type { Coverage, QueryResult } from "./clickhouse";
 import type { VisualSpec } from "./visual";
@@ -110,6 +111,8 @@ export interface QueryAnswer {
   key?: string;
   /** the question belongs to the other chain's data; the page asks it there */
   route?: "p-chain" | "c-chain";
+  /** a live monitor: no SQL ran, and the page reads the chain's RPC for it (monitor.ts) */
+  monitor?: MonitorSpec;
   model?: {
     steps: number;
     ms: number;

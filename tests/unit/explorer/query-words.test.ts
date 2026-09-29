@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ROW_CAP, noteParts, progress, readerError, reads, rowsLabel, withEdges } from '@/components/explorer-v2/evm/query-client';
 import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
 import type { QueryEvent } from '@/lib/explorer-query/answer';
 import { MAX_ROWS } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { codeWords, figures, plainLabel, plainWords, readerSpec, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
+import { averageLabel, codeWords, figures, plainLabel, plainWords, readerSpec, rowWords, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
 
 const totals = (rows: number): Totals => ({ rows, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} });
 const result = (rows: Record<string, unknown>[], truncated = false) => ({ columns: [], rows, rowCount: rows.length, elapsedMs: 0, rowsRead: 0, bytesRead: 0, truncated, ranAt: '' });
@@ -68,10 +68,21 @@ describe('withEdges', () => {
   const rows = [20, 21, 22, 23, 24, 25, 26, 27].map((d) => ({ day: day(d), txs: 100 }));
   const visual: VisualSpec = { stats: [], callouts: [], panels: [{ title: 'Daily', kind: 'bar', x: 'day', series: [{ column: 'txs', label: 'Txs', format: 'number', axis: 'left', mark: 'auto', transform: 'none', dashed: false }], markers: [], bands: [], stacked: false, sortDir: 'desc', referenceLines: [], width: 'full' }] };
   const answer = { sql: 'SELECT toDate(block_time) AS day, count() AS txs FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 7 DAY GROUP BY day ORDER BY day', anchor: '2026-09-27 03:20:23.000', result: result(rows) };
+  // read twenty minutes after the index's last block
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-27T03:40:00Z'));
+  });
+  afterEach(() => vi.useRealTimers());
 
   it('labels the first bucket the window cuts through, and the last one still filling', () => {
     const out = withEdges(visual, answer)!;
     expect(out.panels[0].markers).toEqual([{ x: day(20), label: 'partial' }, { x: day(27), label: 'so far' }]);
+  });
+
+  it("labels a stale index's last bucket where the index ends", () => {
+    vi.setSystemTime(new Date('2026-11-26T03:40:00Z'));
+    expect(withEdges(visual, answer)!.panels[0].markers).toEqual([{ x: day(20), label: 'partial' }, { x: day(27), label: 'index ends' }]);
   });
 
   it('leaves a window with no now() alone', () => {
@@ -83,6 +94,16 @@ describe('withEdges', () => {
     expect(out.panels[0].markers).toEqual([{ x: day(27), label: 'so far' }]);
   });
 
+  it("joins a bar's own mark instead of a second label on it", () => {
+    // the audit's V11: the designer marked today "Today, partial", and the edge's "so far" stood over it
+    const own = (markers: { x: string; label: string }[]): VisualSpec => ({ ...visual, panels: [{ ...visual.panels[0], markers }] });
+    const sql = answer.sql.replace('now() - INTERVAL 7 DAY', 'toStartOfDay(now()) - INTERVAL 7 DAY');
+    expect(withEdges(own([{ x: day(27), label: 'Today, partial' }]), { ...answer, sql })!.panels[0].markers).toEqual([{ x: day(27), label: 'Today, partial' }]);
+    expect(withEdges(own([{ x: day(27), label: 'Day not over' }]), { ...answer, sql })!.panels[0].markers).toEqual([{ x: day(27), label: 'Day not over' }]);
+    expect(withEdges(own([{ x: day(27), label: 'Peak 519k' }]), { ...answer, sql })!.panels[0].markers).toEqual([{ x: day(27), label: 'Peak 519k, so far' }]);
+    expect(withEdges(own([{ x: day(21), label: 'Low' }]), answer)!.panels[0].markers).toEqual([{ x: day(21), label: 'Low' }, { x: day(20), label: 'partial' }, { x: day(27), label: 'so far' }]);
+  });
+
   it('reads the window a query ends now: on a bucket edge, inside one, or none', () => {
     const now = Date.parse('2026-09-27T06:10:00Z');
     const days = [20, 21, 22, 23, 24, 25, 26, 27].map(day);
@@ -90,6 +111,31 @@ describe('withEdges', () => {
     expect(edgesOf(days, windowOf('WHERE block_time >= now() - INTERVAL 7 DAY', null, now)!)).toEqual({ lo: 0, hi: 7, first: true, last: true });
     expect(windowOf('WHERE toDate(block_time) >= today() - 7', null, now)!.start).toBe(Date.parse('2026-09-20T00:00:00Z'));
     expect(windowOf('WHERE block_time >= now() - 7', null, now)).toBeNull();
+  });
+
+  it('reads a calendar window that runs to now: this month, this week, today', () => {
+    // a Tuesday: the audit's V11 read GUNZ this month, and V13 Dexalot this week
+    const now = Date.parse('2026-09-29T09:55:15Z');
+    expect(windowOf('WHERE block_time >= toStartOfMonth(now())', null, now)).toEqual({ start: Date.parse('2026-09-01T00:00:00Z'), end: now });
+    expect(windowOf('WHERE block_time >= toMonday(now())', null, now)!.start).toBe(Date.parse('2026-09-28T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfWeek(now(), 1)', null, now)!.start).toBe(Date.parse('2026-09-28T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfWeek(now())', null, now)!.start).toBe(Date.parse('2026-09-27T00:00:00Z'));
+    expect(windowOf('WHERE toDate(block_time) >= today()', null, now)!.start).toBe(Date.parse('2026-09-29T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfDay(now())', null, now)!.start).toBe(Date.parse('2026-09-29T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfHour(now())', null, now)!.start).toBe(Date.parse('2026-09-29T09:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfQuarter(now())', null, now)!.start).toBe(Date.parse('2026-07-01T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfYear(now())', null, now)!.start).toBe(Date.parse('2026-01-01T00:00:00Z'));
+    // the month's first day is whole, and its last still fills
+    const days = Array.from({ length: 29 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`);
+    expect(edgesOf(days, windowOf('WHERE block_time >= toStartOfMonth(now())', null, now)!)).toEqual({ lo: 0, hi: 28, first: false, last: true });
+    // two rows are enough: this week on a Tuesday is a whole Monday and a Tuesday still filling (the audit's V13)
+    expect(edgesOf(['2026-09-28', '2026-09-29'], windowOf('WHERE block_time >= toMonday(now())', null, now)!)).toEqual({ lo: 0, hi: 1, first: false, last: true });
+    expect(edgesOf(['2026-09-29'], windowOf('WHERE block_time >= toMonday(now())', null, now)!)).toBeNull();
+    // a window of an index that ended on an earlier day ends there
+    expect(windowOf('WHERE block_time >= toMonday(now())', '2026-09-24 12:00:00', now)).toEqual({ start: Date.parse('2026-09-21T00:00:00Z'), end: Date.parse('2026-09-24T12:00:00Z') });
+    // a subtraction from a calendar start is not read as one, and a calendar start that bounds nothing is no window
+    expect(windowOf('WHERE block_time >= toStartOfMonth(now()) - INTERVAL 11 MONTH', null, now)).toBeNull();
+    expect(windowOf('SELECT toStartOfMonth(now()) AS m, count() FROM raw_txs WITH FILL TO toDate(now()) + 1', null, now)).toBeNull();
   });
 });
 
@@ -159,6 +205,45 @@ describe('reader words', () => {
     expect(withFullHex(`It went to 0x${'f'.repeat(40)}.`, [a])).toBeNull();
   });
 
+  it('writes out an address shortened to its head alone, as the regression audit\'s R06 named one', () => {
+    const a = `0x278d858f${'2'.repeat(28)}9c1e`;
+    expect(withFullHex('MEV Bot (SafeProxy arb) (0x278d858f…) used 10.2B gas.', [a])).toBe(`MEV Bot (SafeProxy arb) (${a}) used 10.2B gas.`);
+    expect(withFullHex('It went to 0x278d858f....', [a])).toBe(`It went to ${a}.`);
+    expect(withFullHex('It went to 0x9999…, twice.', [a])).toBeNull();
+    expect(readerSpec({ stats: [], panels: [], callouts: ['0x278d858f… used 10.2B gas.'] }, [], [a]).callouts).toEqual([`${a} used 10.2B gas.`]);
+  });
+
+  it('keeps a snake_case name the rows hold, and still flags a column', () => {
+    const cols = ['contract', 'method', 'gas_used'];
+    const a = `0x30f7${'1'.repeat(36)}`;
+    // a name the rows hold as a value, and one the server gave an address (R06's contract)
+    const shown = rowWords([{ contract: a, method: 'exchange_underlying', gas_used: 10 }, { contract: null, method: 'swap', gas_used: 9 }], { contract: { [a]: 'POPA_SUBMISSIONS_TIERS' } });
+    expect([...shown]).toEqual(['exchange_underlying', 'POPA_SUBMISSIONS_TIERS']);
+    expect(codeWords('POPA_SUBMISSIONS_TIERS used 10.2B gas.', cols, shown)).toEqual([]);
+    expect(codeWords('POPA_SUBMISSIONS_TIERS has the most gas_used.', cols, shown)).toEqual(['gas_used']);
+    expect(codeWords('POPA_SUBMISSIONS_TIERS used 10.2B gas.', cols)).toEqual(['POPA_SUBMISSIONS_TIERS']);
+    // a value that is a column's name too is still a column
+    expect(codeWords('gas_used rose.', ['metric', 'gas_used'], rowWords([{ metric: 'gas_used' }]))).toEqual(['gas_used']);
+    const v: VisualSpec = { stats: [], panels: [], callouts: ['POPA_SUBMISSIONS_TIERS used 10.2B gas.', 'Its gas_used is 10.2B.'] };
+    expect(readerSpec(v, cols, [], shown).callouts).toEqual(['POPA_SUBMISSIONS_TIERS used 10.2B gas.']);
+    expect(plainLabel('Gas of POPA_SUBMISSIONS_TIERS, seen_7d', shown)).toBe('Gas of POPA_SUBMISSIONS_TIERS, seen 7d');
+  });
+
+  it("says average in a stat of the rows' highest or lowest average", () => {
+    // the final audit's X04: "Peak gas price 35.58 gwei" was the highest hour's average; the highest price paid was 19,999.92
+    const stat = (label: string, agg: string, column: string, sub?: string) => ({ label, agg, column, format: 'number' as const, ...(sub ? { sub } : {}) });
+    expect(averageLabel(stat('Peak gas price', 'max', 'avg_gas_price_gwei', 'gwei, 01:00')).label).toBe('Peak average gas price');
+    expect(averageLabel(stat('Lowest base fee', 'min', 'avg_base_fee_navax')).label).toBe('Lowest average base fee');
+    expect(averageLabel(stat('Gas price', 'max', 'mean_gwei')).label).toBe('Gas price (average)');
+    // a label or sub that says so, another aggregate, a median or a plain column stay as written
+    expect(averageLabel(stat('Peak hourly average', 'max', 'avg_gas_price_gwei')).label).toBe('Peak hourly average');
+    expect(averageLabel(stat('Peak gas price', 'max', 'avg_gas_price_gwei', 'hourly average')).label).toBe('Peak gas price');
+    expect(averageLabel(stat('Gas price', 'avg', 'avg_gas_price_gwei')).label).toBe('Gas price');
+    expect(averageLabel(stat('Peak gas price', 'max', 'median_gwei')).label).toBe('Peak gas price');
+    expect(averageLabel(stat('Peak gas price', 'max', 'max_gas_price_gwei')).label).toBe('Peak gas price');
+    expect(readerSpec({ stats: [stat('Peak base fee', 'max', 'avg_base_fee_navax')], panels: [], callouts: [] } as VisualSpec, ['avg_base_fee_navax']).stats[0].label).toBe('Peak average base fee');
+  });
+
   it('counts a callout as the page draws it, each full address and hash short', () => {
     expect(shownLength(`Sent by 0x${'a'.repeat(40)} in 0x${'b'.repeat(64)}.`)).toBe('Sent by 0xaaaa…aaaa in 0xbbbb…bbbb.'.length);
   });
@@ -226,12 +311,22 @@ describe('figures', () => {
     expect(figures({ columns, rows: shuffled, names: {}, x: 't' }).join('\n')).not.toContain('between neighbouring rows');
   });
 
-  it('says which edge buckets the window cuts', () => {
+  it('says which edge buckets the window cuts, and that a stale index cuts the last one', () => {
     const columns = [{ name: 't', type: 'Date' }, { name: 'txs', type: 'UInt64' }];
     const rows = [20, 21, 22, 23, 24, 25, 26, 27].map((d) => ({ t: `2026-09-${d}`, txs: d === 20 ? 964435 : 500000 }));
     const sql = 'SELECT toDate(block_time) AS t, count() AS txs FROM raw_txs WHERE block_time >= toStartOfDay(now()) - INTERVAL 7 DAY GROUP BY t ORDER BY t';
-    const f = figures({ columns, rows, names: {}, x: 't', sql, anchor: '2026-09-27 06:10:00' });
-    expect(f).toContain('Edges: the first period, t 2026-09-20, is complete; the last, t 2026-09-27, is still filling.');
+    const input = { columns, rows, names: {}, x: 't', sql, anchor: '2026-09-27 06:10:00' };
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      // read ten minutes after the index's last block
+      vi.setSystemTime(new Date('2026-09-27T06:20:00Z'));
+      expect(figures(input)).toContain('Edges: the first period, t 2026-09-20, is complete; the last, t 2026-09-27, is still filling.');
+      // read two months later: the last day fills no more
+      vi.setSystemTime(new Date('2026-11-26T06:10:00Z'));
+      expect(figures(input)).toContain('Edges: the first period, t 2026-09-20, is complete; the last, t 2026-09-27, is cut where the index ends.');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('names the row that holds a whole-result extreme the rows do not show', () => {

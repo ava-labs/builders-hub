@@ -7,7 +7,8 @@ import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { fetchAllSubnets } from "@/lib/pchain-subnets";
 import type { SubnetStats } from "@/types/validator-stats";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, readsPositions, tokensFor, tokensSql } from "./protocols";
-import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
+import { FAMILY_NAMES } from "./families";
+import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
 
@@ -396,12 +397,15 @@ const tokens: Source = {
    markets first, since without one a market loses its asset, and without
    a token only its decimals. */
 
+/** the names our server defines in front of a query that reads them: the lending protocols' and the families' */
+const SERVER_NAMES: Record<string, string> = { ...LENDING_NAMES, ...FAMILY_NAMES };
+
 /** the WITH around the two tables, in bytes */
 const LENDING_WRAP = 64;
 
 function lendingRoom(query: string) {
   // the names the server defines for the query share the budget too
-  const free = SQL_BUDGET - Buffer.byteLength(query) - LENDING_WRAP - Buffer.byteLength(namesIn(query).join(", "));
+  const free = SQL_BUDGET - Buffer.byteLength(query) - LENDING_WRAP - Buffer.byteLength(namesIn(query, SERVER_NAMES).join(", "));
   const markets = reads(query, "lending_markets") ? marketsFor(query, free) : null;
   return { markets, tokens: lendingTokensFor(query, free - Buffer.byteLength(markets?.sql ?? "")) };
 }
@@ -490,8 +494,8 @@ export function refsIn(sql: string, chainId: number): string[] {
 export async function withSources(sql: string, chainId: number): Promise<{ sql: string; sources: SourceNote[] }> {
   const used = refsIn(sql, chainId);
   const dedup = targetOf(chainId).final.filter((t) => reads(sql, t));
-  // the lending names the query reads (lending.ts), on the C-Chain the registry describes
-  const names = chainId === LENDING_CHAIN_ID ? namesIn(sql) : [];
+  // the lending and family names the query reads (lending.ts, families.ts), on the C-Chain the registry describes
+  const names = chainId === LENDING_CHAIN_ID ? namesIn(sql, SERVER_NAMES) : [];
   if (used.length === 0 && dedup.length === 0 && names.length === 0) return { sql, sources: [] };
   const built = await Promise.all(used.map((r) => SOURCES[r].build(chainId, sql)));
   // the inner name is the table itself: a WITH does not see its own names
@@ -501,7 +505,7 @@ export async function withSources(sql: string, chainId: number): Promise<{ sql: 
   const bytes = Buffer.byteLength(out);
   if (bytes > SQL_BUDGET) {
     const own = Buffer.byteLength(sql);
-    const what = [...used, ...(names.length ? ["the lending names"] : [])].join(" and ");
+    const what = [...used, ...(names.length ? ["the names our server defines"] : [])].join(" and ");
     throw new Error(`the query is too long to send with ${what}: the table takes ${bytes - own} of the ${SQL_BUDGET} bytes the query service accepts, so the query may use ${SQL_BUDGET - (bytes - own)} and it uses ${own}. Write a shorter query.`);
   }
   return { sql: out, sources: built.map((b) => b.note) };

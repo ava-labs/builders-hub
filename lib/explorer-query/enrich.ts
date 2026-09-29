@@ -82,7 +82,8 @@ async function getJson<T>(url: string, timeoutMs: number): Promise<T | null> {
 const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
   Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
 
-async function tokenList(chainId: number, baseUrl: string): Promise<Map<string, TokenInfo>> {
+/** the chain's token list by lowercase address, held an hour; a monitor reads its symbols and decimals too */
+export async function tokenList(chainId: number, baseUrl: string): Promise<Map<string, TokenInfo>> {
   const hit = tokenCache.get(chainId);
   if (hit && Date.now() - hit.at < 3_600_000) return hit.tokens;
   const body = await getJson<{ tokens?: Record<string, TokenInfo> }>(`${baseUrl}/api/token-list/${chainId}`, 15_000);
@@ -135,6 +136,11 @@ async function contractInfos(chainId: number, addrs: string[]): Promise<Map<stri
   });
   return out;
 }
+
+/* the zero address in a column of tokens is the chain's own coin: Benqi keys its AVAX market by it, and the address
+   book's "Null Address" read as a market (the audit's V09: "AVAX (Null Address) accounts for $955k") */
+const TOKEN_COLUMN = /(?:^|_)(?:token|asset|underlying|reserve|currency|coin)s?(?:_|$)/i;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: Row[], baseUrl: string): Promise<Names> {
   const names: Names = {};
@@ -274,6 +280,11 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
       if (label) out[v.toLowerCase()] = label;
     }
     if (Object.keys(out).length) names[col] = out;
+  }
+  if (chainId === DEX_CHAIN_ID) {
+    for (const c of columns) {
+      if (TOKEN_COLUMN.test(c.name) && rows.some((r) => typeof r[c.name] === "string" && String(r[c.name]).toLowerCase() === ZERO_ADDRESS)) (names[c.name] ??= {})[ZERO_ADDRESS] = "AVAX";
+    }
   }
   return names;
 }

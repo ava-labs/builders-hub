@@ -8,7 +8,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
-import { edgesOf, windowOf } from "@/lib/explorer-query/edges";
+import { edgesOf, msOf, STALE_MS, windowOf } from "@/lib/explorer-query/edges";
 
 /** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
 export class QueryError extends Error {
@@ -124,11 +124,23 @@ export function readerError(message: string): string {
   return "The database stopped before the answer was complete. Try again in a minute.";
 }
 
+/* a bar the designer marked already takes the edge's word into its own label: two labels on one bar overlap. A
+   label that says so already (the audit's V11 "Today, partial", V13 "Day not over") takes nothing, and any other
+   ("Peak 519k") takes the word, so a peak on a period still filling never reads as whole */
+const SAID_PARTIAL = /\b(?:partial|so far|not over|filling|in progress|incomplete|index ends)\b/i;
+function marked<M extends { x: string | number; label: string }>(markers: M[], x: string, label: string): (M | { x: string; label: string })[] {
+  const i = markers.findIndex((m) => String(m.x) === x);
+  if (i < 0) return [...markers, { x, label }];
+  return SAID_PARTIAL.test(markers[i].label) ? markers : markers.map((m, j) => (j === i ? { ...m, label: `${m.label}, ${label}` } : m));
+}
+
 /** a time series' edge buckets that the window cuts through, labeled, so a short first bar never reads as a dip */
 export function withEdges(visual: VisualSpec | null, a: Pick<QueryAnswer, "sql" | "anchor" | "result"> | null): VisualSpec | null {
   const rows = a?.result?.rows;
   const win = a ? windowOf(a.sql, a.anchor) : null;
   if (!visual || !rows || !win) return visual;
+  // the last bucket of an index that ended long ago fills no more: the index ends there
+  const last = a?.anchor && Date.now() - msOf(a.anchor) >= STALE_MS ? "index ends" : "so far";
   let changed = false;
   const panels = visual.panels.map((p) => {
     if (!p.x || !["bar", "line", "area"].includes(p.kind)) return p;
@@ -136,7 +148,8 @@ export function withEdges(visual: VisualSpec | null, a: Pick<QueryAnswer, "sql" 
     const e = edgesOf(xs, win);
     if (!e || (!e.first && !e.last)) return p;
     changed = true;
-    return { ...p, markers: [...p.markers, ...(e.first ? [{ x: String(xs[e.lo]), label: "partial" }] : []), ...(e.last ? [{ x: String(xs[e.hi]), label: "so far" }] : [])] };
+    const first = e.first ? marked(p.markers, String(xs[e.lo]), "partial") : p.markers;
+    return { ...p, markers: e.last ? marked(first, String(xs[e.hi]), last) : first };
   });
   return changed ? { ...visual, panels } : visual;
 }

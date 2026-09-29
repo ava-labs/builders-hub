@@ -4,7 +4,8 @@ import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { oneProtocol, protocolScope, unitName } from "./checks";
-import { lendingQuestion, zeroUsd } from "./lending";
+import { familyQuestion } from "./families";
+import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
 import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
@@ -76,7 +77,7 @@ export type QueryEvent =
   | { type: "answer"; answer: QueryAnswer }
   | { type: "error"; error: string; status: number };
 
-const HARD = /\b(compar\w*|vs\.?|versus|previous|prior|before|than|overlay|against|ratio|correlat\w*|relative|join|both|growth|change[sd]?|week over|day over|trend|why|each)\b/i;
+const HARD = /\b(compar\w*|vs\.?|versus|previous|prior|before|than|overlay|against|ratio|correlat\w*|relative|join|both|growth|change[sd]?|(?:day|week|month|year) over (?:day|week|month|year)|trend|why|each)\b/i;
 
 /** a plain question about one thing goes to the fast writer */
 export function pickWriter(prompt: string, history: Turn[]): Writer {
@@ -145,9 +146,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
-    // a kept note loses any sentence that names the SQL's parts, and a kept title and note name the window the query reads
-    const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
-    const said = isFuji(a.chainId) ? words : withWindow(words, collapseMacros(sql, a.chainId), result.rows, recipe.chart.x, run.anchor ? msOf(run.anchor) : Date.now());
+    const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
     return {
       anchor: run.anchor,
       sources: run.sources,
@@ -168,6 +167,14 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
   } catch {
     return null;
   }
+}
+
+/** a kept recipe's title and note as the page shows them: the note loses any sentence that names the SQL's parts,
+    and both name the window the query reads, in the reader's dates when the index runs behind. The second phase
+    writes its reading from these words too, so the reading never says today for a day the index ended on */
+export function keptWords(recipe: Pick<Recipe, "title" | "note" | "chart">, sql: string, rows: readonly Record<string, unknown>[], anchor: string | null | undefined, chainId: number): { title: string; note: string } {
+  const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
+  return isFuji(chainId) ? words : withWindow(words, collapseMacros(sql, chainId), rows, recipe.chart.x, anchor ? msOf(anchor) : Date.now(), Date.now());
 }
 
 /** the answer, without its layout when none is kept: the page asks for that next */
@@ -212,7 +219,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const system =
     targetOf(a.chainId).kind === "pchain"
       ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine, lines: await versionLines(a.chainId) })
-      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history) });
+      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history), families: familyQuestion(a.chainId, a.prompt, a.history) });
 
   // earlier turns, so "make it weekly" refines the last chart
   const messages: ModelMessage[] = [];
@@ -222,8 +229,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     // the shorthand in place of the WITH it wrote, so the SELECT after it stays in view
     messages.push({ role: "assistant", content: `Chart "${String(t.title).slice(0, 120)}" from:\n${collapseMacros(String(t.sql), a.chainId).slice(0, 3000)}` });
   }
-  // a follow-up keeps the window of the chart it refines, so only a question on its own is told a series default
-  const question = userTurn(a.chainId, a.prompt, new Date(), !messages.length);
+  // a follow-up keeps the window of the chart it refines: a question on its own is told a series default, a follow-up
+  // the window of the chart before it
+  const before = [...a.history].reverse().find((t) => t?.prompt && t?.sql)?.sql;
+  const question = userTurn(a.chainId, a.prompt, new Date(), !messages.length, before ? String(before) : undefined);
   messages.push({ role: "user", content: question });
 
   const timings: StepTiming[] = [];
@@ -426,6 +435,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             zeroOnce = true;
             return fail(zero, Date.now() - q0);
           }
+          // a note that says an asset has no USD price, over rows that all have theirs, loses those sentences here: the
+          // writer's own fix each time it was sent back for one, with no second call
+          note = pricedNote(g.sql, note, result, a.chainId) ?? note;
           // a time series the row cap cut from its latest end runs again for its newest rows, and is kept that way
           let kept = g.sql;
           let ran = run;
@@ -470,7 +482,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           }
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
-          const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now);
+          const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now, Date.now());
           final = { title: said.title, note: said.note, sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);

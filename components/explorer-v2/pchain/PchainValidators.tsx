@@ -6,6 +6,8 @@ import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { PrimaryStakingContent } from "@/components/explorer-v2/staking/PrimaryStaking";
 import { PrimaryValidatorsContent } from "@/components/explorer-v2/staking/PrimaryValidators";
+import { L1ValidatorSetContent } from "@/components/explorer-v2/staking/L1ValidatorSet";
+import { ValidatorSetSwitch } from "@/components/explorer-v2/evm/views";
 import { Board, CellLabel, SectionHeader, TypeFilterRail, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import {
@@ -75,16 +77,41 @@ function NetworkHealth({ network }: { network: string }) {
 }
 
 export function PchainValidators({ chain, network }: { chain: string; network: string }) {
+  const base = `/explorer/${network}/${chain}`;
   return (
     <ExplorerShell chain={chain} network={network}>
-      {/* the Primary Network's set secures P, C, and X alike — mainnet gets
-          the list-first roster the C-Chain tab also mounts; Fuji keeps the
-          plain set list (the roster's p2p feeds are mainnet-only) */}
-      {network === "mainnet" ? (
-        <PrimaryValidatorsContent stakingHref={`/explorer/${network}/${chain}/staking`} />
+      {/* the Primary Network's set secures P, C, and X alike: each gets the
+          list-first roster the C-Chain tab also mounts, on either network.
+          The P-Chain adds a switch to every L1's set, since the P-Chain
+          records those seats; the X-Chain has none to show */}
+      {chain === "p-chain" ? (
+        <div className="flex flex-col gap-6">
+          <SectionHeader label="Validator Sets" action={<ValidatorSetSwitch base={base} view="primary" />} />
+          <PrimaryValidatorsContent stakingHref={`${base}/staking`} network={network} />
+        </div>
       ) : (
-        <ValidatorsContent network={network} base={`/explorer/${network}/${chain}`} />
+        <PrimaryValidatorsContent stakingHref={`${base}/staking`} network={network} />
       )}
+    </ExplorerShell>
+  );
+}
+
+/* The tab's other set: every L1's validators, on either network. */
+export function PchainL1Validators({ chain, network }: { chain: string; network: string }) {
+  const base = `/explorer/${network}/${chain}`;
+  return (
+    <ExplorerShell chain={chain} network={network}>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <SectionHeader label="Validator Sets" action={<ValidatorSetSwitch base={base} view="l1s" />} />
+          {/* the two sets share the P-Chain's record, not the work */}
+          <p className="font-mono text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            L1 validators validate only their own L1. <span className="text-zinc-900 dark:text-zinc-100">They do not validate the Primary Network.</span> They need
+            no AVAX stake: each pays a continuous fee from its prepaid balance.
+          </p>
+        </div>
+        <L1ValidatorSetContent network={network} />
+      </div>
     </ExplorerShell>
   );
 }

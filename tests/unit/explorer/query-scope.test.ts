@@ -22,7 +22,7 @@ import { generateText } from 'ai';
 import { answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
 import { guardSql } from '@/lib/explorer-query/guard';
 import { collapseMacros, expandMacros } from '@/lib/explorer-query/macros';
-import { rowsWindow, scopeError, scoped, sqlWindow, windowWords, type Window } from '@/lib/explorer-query/scope';
+import { rowsWindow, scopeError, scoped, sqlWindow, staleLine, windowWords, withWindow, type Window } from '@/lib/explorer-query/scope';
 
 // Monday September 28, 2026, an hour into the week
 const NOW = Date.parse('2026-09-28T01:00:00Z');
@@ -129,6 +129,36 @@ describe('a title and a note name the window the query reads', () => {
     expect(scopeError('Swaps per day', 'The busiest day was 2026-08-03.', win(`SELECT 1 ${LOGS} AND block_time >= toMonday(now()) - INTERVAL 11 WEEK`), NOW)).toBeNull();
     // a title's own date names its day
     expect(scopeError('Swaps, September 21', '', w, NOW)).toContain('the title says "September 21"');
+  });
+
+  it('opens with a capital, but keeps a name that has capitals of its own', () => {
+    // family replays titled "SAVAX staked and redeemed per day" and "SavUSD share price per day this month"
+    const w = win(`SELECT 1 ${LOGS} AND block_time >= toStartOfMonth(now())`);
+    expect(scoped({ title: 'savUSD share price per day this month', note: '' }, w, NOW).title).toMatch(/^savUSD share price per day/);
+    expect(scoped({ title: 'sAVAX staked and redeemed per day', note: '' }, w, NOW).title).toMatch(/^sAVAX staked/);
+    expect(scoped({ title: 'swaps per day', note: '' }, w, NOW).title).toMatch(/^Swaps per day/);
+  });
+
+  it("names a stale index's window in the reader's dates, and says where the index ends", () => {
+    // the L1 audit's X01: an index that ended on 2026-03-25 read "transactions today" as that day, and its note said the day was not over
+    const anchor = Date.parse('2026-03-25T23:36:22Z');
+    const clock = Date.parse('2026-09-29T06:00:00Z');
+    const sql = 'SELECT count() AS txs FROM raw_txs WHERE chain_id = 68414 AND block_time >= toStartOfDay(now())';
+    const said = withWindow({ title: 'Transactions today', note: 'Counts every transaction. The day is not over, so the figure still grows.' }, sql, [], undefined, anchor, clock);
+    expect(said.title).toBe('Transactions on March 25');
+    expect(said.note).toBe('The index ends at 2026-03-25 23:36 UTC, 187 days ago, so the query reads up to then. Counts every transaction.');
+    // a kept note with an earlier answer's stale line gets one line, from the index's end now
+    const later = withWindow(said, sql, [], undefined, anchor, clock + 86_400_000);
+    expect(later).toEqual({ title: 'Transactions on March 25', note: 'The index ends at 2026-03-25 23:36 UTC, 188 days ago, so the query reads up to then. Counts every transaction.' });
+    // and once the index is current, the stale line goes
+    expect(withWindow({ title: 'Transactions today', note: said.note }, sql, [], undefined, clock - 300_000, clock).note).toBe('Counts every transaction.');
+    // a rolling window keeps its hours
+    const day = withWindow({ title: 'Transactions in the last 24 hours', note: '' }, 'SELECT count() FROM raw_txs WHERE block_time >= now() - INTERVAL 24 HOUR', [], undefined, anchor, clock);
+    expect(day.title).toBe('Transactions from March 24, 23:36 UTC to March 25, 23:36 UTC');
+    // an index a few minutes behind keeps the reader's words and the note as it was
+    const soon = Date.parse('2026-09-29T05:50:00Z');
+    expect(withWindow({ title: 'Transactions today', note: 'The day is not over.' }, sql, [], undefined, soon, clock)).toEqual({ title: 'Transactions today', note: 'The day is not over.' });
+    expect(staleLine(soon, clock)).toBe('');
   });
 
   it('moves a possessive scope to the end, and keeps one preposition', () => {

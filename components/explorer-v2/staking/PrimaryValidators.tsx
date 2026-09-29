@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, Copy, Download, Link2, Search, SlidersHorizontal, X } from "lucide-react";
+import { Check, Copy, Download, Link2, SlidersHorizontal } from "lucide-react";
 import {
   Area,
-  Bar,
-  BarChart,
-  Cell,
   ComposedChart,
   Line,
   ReferenceLine,
@@ -56,7 +53,8 @@ import {
   type StatusRow,
 } from "@/lib/validator-triage";
 import { BEHIND_SWATCH, UpgradeReadiness, releaseShares } from "./UpgradeReadiness";
-import { ActiveChips, FacetRail, PresetRow, type Pending } from "./TriageFilters";
+import { ActiveChips, FacetRail, NA, PresetRow, RosterSearch, STATUS_INK, ToolButton, daysLeftTone, type Pending } from "./TriageFilters";
+import { BucketBars, QUIET_BAR } from "./BucketBars";
 import { ChartEmpty, TipPlate } from "./bits";
 import {
   NANO,
@@ -84,11 +82,13 @@ import {
    off the page clock: this is a roster plus all-time context, not a
    windowed trend, so each card states its own basis (· 14d, · all-time). */
 
-const QUIET_BAR = "#A2AFB2";
 const SEATS_COLOR = "#0061E2";
 const ETNA_DAY = "2024-12-16";
 const PAGE = 50;
 const GRID = "md:grid-cols-[2.5rem_minmax(0,1fr)_6.5rem_7rem_5rem_3.5rem_5rem_5rem_5rem]";
+// a network no crawler watches has no miss rate: its roster drops that column, facet and preset
+const ROSTER_GRID = "md:grid-cols-[2.5rem_minmax(0,1fr)_6.5rem_7rem_5rem_3.5rem_5rem_5rem]";
+const ROSTER_PRESETS = PRESETS.filter((p) => !p.selection.miss);
 
 function uptimeTone(pct: number, need: number): string {
   if (pct >= 99) return "text-zinc-700 dark:text-zinc-300";
@@ -96,83 +96,10 @@ function uptimeTone(pct: number, need: number): string {
   return "text-[#E6212F]";
 }
 
-function daysLeftTone(days: number): string {
-  if (days < 7) return "font-medium text-[#E6212F]";
-  if (days < 30) return "text-amber-600 dark:text-amber-400";
-  return "text-zinc-700 dark:text-zinc-300";
-}
-
 function missRateTone(pct: number): string {
   if (pct === 0) return "text-zinc-700 dark:text-zinc-300";
   if (pct < 5) return "text-amber-600 dark:text-amber-400";
   return "text-[#E6212F]";
-}
-
-const STATUS_INK = {
-  current: "text-zinc-700 dark:text-zinc-300",
-  behind: "text-[#E6212F]",
-  unknown: "text-zinc-400 dark:text-zinc-500",
-} as const;
-
-const NA = <span className="text-zinc-300 dark:text-zinc-700">n/a</span>;
-
-/* simple bucket bars shared by the two health charts */
-function BucketBars({
-  data,
-  tint,
-  picked,
-  onPick,
-}: {
-  data: { id: string; label: string; count: number }[];
-  /** per-bucket bar color; defaults to the quiet steel */
-  tint?: (bucket: { id: string }) => string;
-  /** the bucket the roster is cut to */
-  picked?: string;
-  onPick?: (id: string) => void;
-}) {
-  return (
-    <div className="h-40">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barCategoryGap="18%">
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" }} />
-          <YAxis hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
-            cursor={{ fill: "rgba(161,161,170,0.08)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as { id: string; label: string; count: number };
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{d.label}</p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.count.toLocaleString()} validator{d.count === 1 ? "" : "s"}
-                  </p>
-                  {onPick && d.count > 0 && <p className="text-[10px] text-zinc-400">{picked === d.id ? "Click to show all" : "Click to list them"}</p>}
-                </TipPlate>
-              );
-            }}
-          />
-          <Bar
-            dataKey="count"
-            minPointSize={1}
-            isAnimationActive={false}
-            radius={[2, 2, 0, 0]}
-            className={onPick ? "cursor-pointer" : undefined}
-            onClick={(d: { payload?: { id: string; count: number } }) => d.payload && d.payload.count > 0 && onPick?.(d.payload.id)}
-          >
-            {data.map((bucket) => (
-              <Cell
-                key={bucket.id}
-                fill={tint ? tint(bucket) : QUIET_BAR}
-                fillOpacity={picked && picked !== bucket.id ? 0.25 : 1}
-                style={{ transition: "fill-opacity 250ms cubic-bezier(0.32,0.72,0,1)" }}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
 }
 
 interface CountPoint {
@@ -221,34 +148,6 @@ function CountChart({ data }: { data: CountPoint[] }) {
   );
 }
 
-/** a toolbar action in the ledger voice */
-function ToolButton({
-  icon: Icon,
-  onClick,
-  disabled,
-  title,
-  children,
-}: {
-  icon: typeof Copy;
-  onClick: () => void;
-  disabled?: boolean;
-  title?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="inline-flex shrink-0 items-center gap-1.5 border border-zinc-200 bg-white/80 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600 transition-colors enabled:hover:border-zinc-900 enabled:hover:text-zinc-900 disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:enabled:hover:border-zinc-100 dark:enabled:hover:text-zinc-100"
-    >
-      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-      {children}
-    </button>
-  );
-}
-
 function OnlineDot({ online }: { online: boolean | null }) {
   if (online === null) return <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-700" title="Connection not reported" />;
   return online ? (
@@ -258,7 +157,7 @@ function OnlineDot({ online }: { online: boolean | null }) {
   );
 }
 
-export function PrimaryValidatorsContent(props: { stakingHref: string; switched?: boolean }) {
+export function PrimaryValidatorsContent(props: { stakingHref: string; switched?: boolean; network?: string }) {
   return (
     // the roster's filter rides in the URL, so the view renders under a Suspense boundary
     <Suspense
@@ -268,34 +167,38 @@ export function PrimaryValidatorsContent(props: { stakingHref: string; switched?
         </Board>
       }
     >
-      <PrimaryValidatorsView {...props} />
+      {/* a network switch starts the view afresh: its feeds and filter differ */}
+      <PrimaryValidatorsView key={props.network ?? "mainnet"} {...props} />
     </Suspense>
   );
 }
 
-function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref: string; switched?: boolean }) {
+function PrimaryValidatorsView({ stakingHref, switched = false, network = "mainnet" }: { stakingHref: string; switched?: boolean; network?: string }) {
+  // the p2p crawler and the metrics feed watch mainnet alone: elsewhere the
+  // roster stands alone, with its own uptime, end time and stake
+  const rosterOnly = network !== "mainnet";
   const params = useSearchParams();
   const [initial] = useState(() => readState(new URLSearchParams(params.toString())));
   const [targetPick, setTargetPick] = useState<string | null>(initial.target);
   const [query, setQuery] = useState(initial.q);
-  const [selection, setSelection] = useState<Selection>(initial.selection);
+  const [selection, setSelection] = useState<Selection>(rosterOnly ? { ...initial.selection, miss: undefined } : initial.selection);
   const [sort, setSort] = useState<Sort>(initial.sort);
   const [shown, setShown] = useState(PAGE);
   const [panelOpen, setPanelOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const rosterRef = useRef<HTMLElement>(null);
 
-  const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
-  const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
-  const { data: p2p, failed: p2pFailed } = useP2pValidators();
-  const { data: totalSeats } = useTotalSeats();
+  const { data: metrics, failed: metricsFailed } = usePrimaryMetrics(network);
+  const { data: sdkValidators, failed: sdkFailed } = useSdkValidators(network);
+  const { data: p2p, failed: p2pFailed } = useP2pValidators(network);
+  const { data: totalSeats } = useTotalSeats(network);
   const { data: releases } = useAvalancheGoReleases();
 
   /* ---------------------------------------------------------------- */
   /* the set, measured against the target                             */
   /* ---------------------------------------------------------------- */
 
-  const base = useMemo(() => (sdkValidators ? buildRows(sdkValidators, p2p) : null), [sdkValidators, p2p]);
+  const base = useMemo(() => (sdkValidators ? buildRows(sdkValidators, p2p, { rosterOnly }) : null), [sdkValidators, p2p, rosterOnly]);
   const required = useMemo(() => requiredRelease(releases), [releases]);
   const latest = releases?.[0] ?? null;
   const target = targetPick ?? (base ? defaultTarget(base, releases) : null);
@@ -308,7 +211,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
   /* the roster's filter                                              */
   /* ---------------------------------------------------------------- */
 
-  const facets = useMemo(() => facetsFor(rows ?? []), [rows]);
+  const facets = useMemo(() => facetsFor(rows ?? []).filter((f) => !rosterOnly || f.key !== "miss"), [rows, rosterOnly]);
   const q = useMemo(() => parseQuery(query), [query]);
   const filtering = isFiltering(selection, q);
   const filtered = useMemo(() => (rows ? sortRows(applyFilter(rows, facets, selection, q), sort) : []), [rows, facets, selection, q, sort]);
@@ -316,16 +219,17 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
   const visible = useMemo(() => (filtering ? new Set(filtered.map((r) => r.nodeId)) : null), [filtering, filtered]);
   const missing = useMemo(() => (rows ? missingIds(rows, q) : []), [rows, q]);
   // a preset counts inside the search, so a pasted list reads its own triage
+  const presets = rosterOnly ? ROSTER_PRESETS : PRESETS;
   const presetCounts = useMemo(
-    () => Object.fromEntries(PRESETS.map((p) => [p.id, rows ? applyFilter(rows, facets, p.selection, q).length : 0])),
-    [rows, facets, q],
+    () => Object.fromEntries(presets.map((p) => [p.id, rows ? applyFilter(rows, facets, p.selection, q).length : 0])),
+    [presets, rows, facets, q],
   );
   const activeFacets = Object.values(selection).filter((v) => v?.length).length;
   const canLink = linkable(query);
 
-  /* uptime, miss rate and time left come from the crawler alone: until it
-     answers, those counts read as waiting, not as zero */
-  const pending: Pending | null = p2p
+  /* on mainnet, uptime, miss rate and time left come from the crawler
+     alone: until it answers, those counts read as waiting, not as zero */
+  const pending: Pending | null = p2p || rosterOnly
     ? null
     : p2pFailed
       ? { keys: CRAWLER_FACETS, label: "n/a", title: "The crawler feed is unavailable, so uptime, miss rate and time left cannot filter" }
@@ -403,7 +307,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
     const href = URL.createObjectURL(new Blob([toCsv(filtered, target)], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = href;
-    a.download = `avalanche-validators-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `avalanche-${network === "mainnet" ? "" : `${network}-`}validators-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(href), 0);
   };
@@ -435,7 +339,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
   /* ---------------------------------------------------------------- */
 
   // validations that start after Helicon need 90% uptime to earn rewards; earlier ones 80%
-  const need = useMemo(() => uptimeRequirementAt(Date.now()), []);
+  const need = useMemo(() => uptimeRequirementAt(Date.now(), network === "fuji" ? "fuji" : "mainnet"), [network]);
   const underIds = need > 80 ? ["80", "lt80"] : ["lt80"];
   const uptime = useMemo(() => {
     const all = (rows ?? []).map((r) => r.uptime).filter((u): u is number => u !== null).sort((a, b) => a - b);
@@ -449,12 +353,12 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
     return { within30: days.filter((d) => d < 30).length, within7: days.filter((d) => d < 7).length };
   }, [rows]);
 
-  // the health charts draw the crawler's buckets over the whole set, whatever the cut
+  // the health charts draw their buckets over the whole set, whatever the cut
   const [missBuckets, daysBuckets] = useMemo(() => {
-    const crawled = (rows ?? []).filter((r) => r.missRate !== null);
-    const bucket = (options: FacetOption[]) =>
-      crawled.length ? options.map((o) => ({ id: o.id, label: o.label, count: crawled.filter(o.test).length })) : [];
-    return [bucket(MISS_OPTIONS), bucket(ENDS_OPTIONS)];
+    const all = rows ?? [];
+    const bucket = (options: FacetOption[], pool: StatusRow[]) =>
+      pool.length ? options.map((o) => ({ id: o.id, label: o.label, count: pool.filter(o.test).length })) : [];
+    return [bucket(MISS_OPTIONS, all.filter((r) => r.missRate !== null)), bucket(ENDS_OPTIONS, all.filter((r) => r.daysLeft !== null))];
   }, [rows]);
   const single = (key: FacetKey) => (selection[key]?.length === 1 ? selection[key]?.[0] : undefined);
 
@@ -488,7 +392,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
 
   const ownStake = num(metrics?.validator_weight?.current_value);
   const delegatedStake = num(metrics?.delegator_weight?.current_value);
-  const totalWeight = ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
+  const metricsWeight = ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
 
   /* the slabs' strips: the last 60 days of each figure */
   const countSpark = useMemo(() => toSeries(metrics?.validator_count).slice(-60).map((p) => p.value), [metrics]);
@@ -502,8 +406,11 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
       .map((p) => (p.value + (del.get(p.day) ?? 0)) / NANO);
   }, [metrics]);
 
-  const nodeHref = (nodeId: string) => `/explorer/mainnet/p-chain/node/${encodeURIComponent(nodeId)}`;
+  const nodeHref = (nodeId: string) => `/explorer/${network}/p-chain/node/${encodeURIComponent(nodeId)}`;
+  const grid = rosterOnly ? ROSTER_GRID : GRID;
   const total = useMemo(() => summarize(rows ?? []), [rows]);
+  // off mainnet no metrics feed answers: the roster's own sum stands in
+  const totalWeight = rosterOnly ? (rows ? total.stake : null) : metricsWeight;
   const sum = useMemo(() => summarize(filtered), [filtered]);
 
   return (
@@ -541,7 +448,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
             unit="AVAX"
             sub="own stake + delegations"
             spark={weightSpark}
-            href={switched ? undefined : stakingHref}
+            href={switched || rosterOnly ? undefined : stakingHref}
             title="Staking economics"
           />
           <StatSlab
@@ -604,7 +511,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
             ) : undefined
           }
         />
-        <PresetRow counts={presetCounts} selection={selection} onPreset={onPreset} pending={pending} />
+        <PresetRow presets={presets} counts={presetCounts} selection={selection} onPreset={onPreset} pending={pending} />
 
         <div className="grid items-start gap-6 xl:grid-cols-[14rem_minmax(0,1fr)] xl:gap-8">
           {/* the rail: every part of the filter, each option with the count it would leave */}
@@ -614,44 +521,14 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
 
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex w-full items-center gap-3 rounded-full border border-zinc-200 bg-white px-4 py-2 transition-colors focus-within:border-zinc-900 sm:w-[26rem] dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
-                <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                <input
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setShown(PAGE);
-                  }}
-                  onPaste={(e) => {
-                    // a one-line input drops line breaks, which would glue a pasted list together
-                    const text = e.clipboardData.getData("text");
-                    if (!/[\r\n]/.test(text)) return;
-                    e.preventDefault();
-                    const el = e.currentTarget;
-                    const start = el.selectionStart ?? el.value.length;
-                    const end = el.selectionEnd ?? el.value.length;
-                    setQuery(`${el.value.slice(0, start)}${text.replace(/\s+/g, " ").trim()}${el.value.slice(end)}`);
-                    setShown(PAGE);
-                  }}
-                  placeholder="NodeID, version, IP, or a list of NodeIDs"
-                  aria-label="Search validators"
-                  spellCheck={false}
-                  className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuery("");
-                      setShown(PAGE);
-                    }}
-                    aria-label="Clear search"
-                    className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+              <RosterSearch
+                value={query}
+                onChange={(v) => {
+                  setQuery(v);
+                  setShown(PAGE);
+                }}
+                placeholder="NodeID, version, IP, or a list of NodeIDs"
+              />
               <button
                 type="button"
                 onClick={() => setPanelOpen((o) => !o)}
@@ -741,7 +618,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
               {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
               <div className="overflow-x-auto">
                 <div className="md:min-w-[60rem]">
-                  <div className={cn(HEAD, GRID, "border-b border-zinc-200 dark:border-zinc-800")}>
+                  <div className={cn(HEAD, grid, "border-b border-zinc-200 dark:border-zinc-800")}>
                     <span>#</span>
                     <span>Node</span>
                     <span><SortHeader label="Version" k="version" /></span>
@@ -750,7 +627,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
                     <span className="text-right"><SortHeader label="Fee" k="fee" /></span>
                     <span className="text-right"><SortHeader label="Uptime" k="uptime" /></span>
                     <span className="whitespace-nowrap text-right"><SortHeader label="Days Left" k="daysLeft" /></span>
-                    <span className="whitespace-nowrap text-right"><SortHeader label="Miss · 14d" k="missRate" /></span>
+                    {!rosterOnly && <span className="whitespace-nowrap text-right"><SortHeader label="Miss · 14d" k="missRate" /></span>}
                   </div>
                   {!rows && !sdkFailed && <RowSkeleton n={12} />}
                   {rows &&
@@ -759,7 +636,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
                         key={r.nodeId}
                         href={nodeHref(r.nodeId)}
                         title={r.ip ? `${r.nodeId} · ${r.ip}` : r.nodeId}
-                        className={cn(ROW, "grid-cols-4 gap-x-3 md:gap-x-4", GRID, "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}
+                        className={cn(ROW, "grid-cols-4 gap-x-3 md:gap-x-4", grid, "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}
                       >
                         <span className="hidden font-mono text-[12px] tabular-nums text-zinc-400 md:block dark:text-zinc-500">{i + 1}</span>
                         <span className="col-span-4 flex min-w-0 items-center gap-2 md:col-span-1">
@@ -800,12 +677,14 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
                           <CellLabel>Days left</CellLabel>
                           <span className={cn("font-mono text-[12px] tabular-nums", r.daysLeft !== null && daysLeftTone(r.daysLeft))}>{r.daysLeft ?? NA}</span>
                         </span>
-                        <span className="md:text-right">
-                          <CellLabel>Miss · 14d</CellLabel>
-                          <span className={cn("font-mono text-[12px] tabular-nums", r.missRate !== null && missRateTone(r.missRate))}>
-                            {r.missRate !== null ? `${r.missRate.toFixed(1)}%` : NA}
+                        {!rosterOnly && (
+                          <span className="md:text-right">
+                            <CellLabel>Miss · 14d</CellLabel>
+                            <span className={cn("font-mono text-[12px] tabular-nums", r.missRate !== null && missRateTone(r.missRate))}>
+                              {r.missRate !== null ? `${r.missRate.toFixed(1)}%` : NA}
+                            </span>
                           </span>
-                        </span>
+                        )}
                       </Link>
                     ))}
                   {rows && filtered.length === 0 && (
@@ -848,20 +727,22 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
         </div>
       </section>
 
-      {/* how the fleet is behaving */}
-      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label="Block Miss Rate · 14d">
-          {missBuckets.length ? (
-            <BucketBars
-              data={missBuckets}
-              picked={single("miss")}
-              onPick={(id) => onCut("miss", [id])}
-              tint={(b) => (b.id === "0" || b.id === "0-1" ? QUIET_BAR : "#E6212F")}
-            />
-          ) : (
-            <ChartEmpty failed={false} />
-          )}
-        </ChartBoard>
+      {/* how the fleet is behaving; off mainnet no crawler reads the miss rate */}
+      <div className={cn("grid grid-cols-1 items-start gap-x-8 gap-y-10", !rosterOnly && "lg:grid-cols-2")}>
+        {!rosterOnly && (
+          <ChartBoard label="Block Miss Rate · 14d">
+            {missBuckets.length ? (
+              <BucketBars
+                data={missBuckets}
+                picked={single("miss")}
+                onPick={(id) => onCut("miss", [id])}
+                tint={(b) => (b.id === "0" || b.id === "0-1" ? QUIET_BAR : "#E6212F")}
+              />
+            ) : (
+              <ChartEmpty failed={false} />
+            )}
+          </ChartBoard>
+        )}
 
         <ChartBoard label="Time Remaining · current set">
           {daysBuckets.length ? (
@@ -898,28 +779,30 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
         </ChartBoard>
       )}
 
-      {/* how the set got to this size */}
-      <div className="flex flex-col gap-4">
-        <ChartBoard
-          label="Validator Count · All Time"
-          action={
-            <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-4 bg-zinc-900/15 dark:bg-zinc-100/15" /> primary network
+      {/* how the set got to this size: the metrics feed keeps mainnet's history alone */}
+      {!rosterOnly && (
+        <div className="flex flex-col gap-4">
+          <ChartBoard
+            label="Validator Count · All Time"
+            action={
+              <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-4 bg-zinc-900/15 dark:bg-zinc-100/15" /> primary network
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-4 bg-[#0061E2]" /> seats incl. L1s
+                </span>
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-[#0061E2]" /> seats incl. L1s
-              </span>
-            </span>
-          }
-        >
-          {countSeries.length ? <CountChart data={countSeries} /> : <ChartEmpty failed={metricsFailed} />}
-        </ChartBoard>
-        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network. The blue line counts every validator seat across the
-          ecosystem since then.
-        </p>
-      </div>
+            }
+          >
+            {countSeries.length ? <CountChart data={countSeries} /> : <ChartEmpty failed={metricsFailed} />}
+          </ChartBoard>
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network. The blue line counts every validator seat across the
+            ecosystem since then.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

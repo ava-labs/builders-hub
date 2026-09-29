@@ -64,6 +64,22 @@ describe('the calendar rule', () => {
     }
     // a follow-up and the P-Chain too, and Fuji's turn is the question
     expect(turn('make it weekly', 43114, false)).toBe('Today is 2026-09-28 (UTC).');
+    // a follow-up is told the window of the chart before it: the follow-up audit's T01 went from 6 hours to 24
+    const six = 'SELECT toStartOfFiveMinutes(block_time) AS t, count() AS txs FROM raw_txs WHERE chain_id = 43114 AND block_time >= toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR GROUP BY t ORDER BY t';
+    expect(userTurn(43114, 'Show it per hour instead', at, false, six).split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC). This question follows the chart before it, which read from 2026-09-28 10:00 UTC to now: keep that window unless this question names another.');
+    const day = 'SELECT toStartOfHour(block_time) AS t, count() AS txs FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 24 HOUR GROUP BY t ORDER BY t';
+    expect(userTurn(43114, 'Only the reverted ones', at, false, day).split('\n\n')[0]).toMatch(/which read in the last 24 hours \(from 2026-09-27 16:00 UTC to now\): keep that window/);
+    const week = 'SELECT toDate(block_time) AS t, avg(base_fee_per_gas) AS fee FROM raw_blocks WHERE chain_id = 43114 AND block_time >= toStartOfDay(now()) - INTERVAL 7 DAY GROUP BY t ORDER BY t';
+    expect(userTurn(43114, 'Show it per hour instead', at, false, week).split('\n\n')[0]).toMatch(/which read from 2026-09-21 00:00 UTC to now: keep that window/);
+    // a chart with no window, the P-Chain and Fuji: no such line
+    expect(userTurn(43114, 'Per hour instead', at, false, 'SELECT count() FROM raw_txs WHERE chain_id = 43114').split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
+    expect(userTurn(1, 'Per week instead', at, false, week).split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
+    expect(userTurn(43113, 'Per hour instead', at, false, six)).toBe('Per hour instead');
+    // a question about one token's transfers is told to count its mints and burns (the regression audit's R13)
+    const token = 'How many transfers did the token 0x9ed98e159be43a8d42b64053831fcae5e4d7d271 have in the last 24 hours?';
+    expect(userTurn(43419, token, at).split('\n\n')[0]).toBe("Today is 2026-09-28 (UTC). A question about a token's transfers counts its mints (transfers from the zero address) and burns (to it) in columns of their own.");
+    expect(userTurn(43114, 'How many transactions were there today?', at).split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
+    expect(userTurn(43113, token, at)).toBe(token);
     expect(turn('Validators added per week', 1)).toBe('Today is 2026-09-28 (UTC).');
     for (const chainId of [43113, 5]) expect(userTurn(chainId, 'New pools per week per DEX', at)).toBe('New pools per week per DEX');
   });

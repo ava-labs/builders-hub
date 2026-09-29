@@ -5,6 +5,7 @@
 
 import { withQuerySlot } from "@/lib/clickhouse/client";
 import { MAX_ROWS } from "./guard";
+import { headTime } from "./head";
 import { refSchema, withSources } from "./sources";
 import { targetOf } from "./target";
 import type { SourceNote } from "./types";
@@ -326,10 +327,22 @@ const COVERAGE_TTL_MS = 10 * 60_000;
 /** a chain with no rows is asked again after an hour, not every ten minutes */
 const EMPTY_TTL_MS = 60 * 60_000;
 
+/** a read still running: a second caller waits for it, never runs the same query beside it. The route gives up on
+    its read after 4 s and the answer asks again, so a cold read (20 s on a large L1) held both query slots */
+const coverageReads = new Map<number, Promise<Coverage | null>>();
+
 /** the window of this chain the database holds; null when it holds no rows. Throws when the database cannot be read. */
-async function readCoverage(chainId: number): Promise<Coverage | null> {
+function readCoverage(chainId: number): Promise<Coverage | null> {
   const hit = coverageCache.get(chainId);
-  if (hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS)) return hit.value;
+  if (hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS)) return Promise.resolve(hit.value);
+  const running = coverageReads.get(chainId);
+  if (running) return running;
+  const read = queryCoverage(chainId).finally(() => coverageReads.delete(chainId));
+  coverageReads.set(chainId, read);
+  return read;
+}
+
+async function queryCoverage(chainId: number): Promise<Coverage | null> {
   const r = await runQuery(
     targetOf(chainId).kind === "pchain"
       ? `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_height) AS lo, max(block_height) AS hi, count() AS blocks FROM raw_p_blocks WHERE chain_id = ${chainId}`
@@ -390,5 +403,8 @@ async function anchorNow(sql: string, chainId: number): Promise<{ sql: string; a
   const c = await coverage(chainId);
   if (!c) return { sql, anchor: null };
   if (!Number.isFinite(c.untilUnix) || Date.now() / 1000 - c.untilUnix < LAG_S) return { sql, anchor: null };
+  // a quiet chain is not a late index: when the index holds the chain's newest block, now() stays now
+  const head = await headTime(chainId);
+  if (head !== null && head <= (c.untilUnix + 60) * 1000) return { sql, anchor: null };
   return { sql: sql.replace(/\bnow\(\s*\)/gi, `toDateTime(${Math.floor(c.untilUnix)})`), anchor: c.until };
 }

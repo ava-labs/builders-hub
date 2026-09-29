@@ -18,7 +18,7 @@ vi.mock('@/lib/explorer-query/sources', () => ({ versionLines: vi.fn(async () =>
 vi.mock('@/lib/explorer-query/examples', () => ({ PCHAIN_EXAMPLES: [], examplesFor: vi.fn(() => []) }));
 
 import { generateText } from 'ai';
-import { FUJI_WRITERS, PROSE_BACK, TESTS, TOOLS_ONLY, WRITERS, answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
+import { FUJI_WRITERS, PROSE_BACK, TESTS, TOOLS_ONLY, WRITERS, answerQuestion, pickWriter, type QueryEvent } from '@/lib/explorer-query/answer';
 import { userTurn } from '@/lib/explorer-query/prompt';
 
 const ROWS = { columns: [{ name: 't', type: 'DateTime' }, { name: 'swaps', type: 'UInt64' }], rows: [{ t: '2026-09-27 00:00:00', swaps: 2 }], rowCount: 1, elapsedMs: 1, rowsRead: 1, truncated: false };
@@ -212,5 +212,14 @@ describe('the writer tests a set number of times, then answers', () => {
     expect(runs[0].tools.slice(-2)).toEqual([['render_chart'], ['render_chart']]);
     expect(runs[0].results.every((r) => !('testsLeft' in (r as object)))).toBe(true);
     expect(error).toMatchObject({ status: 422, error: expect.stringContaining('kept failing on the database') });
+  });
+});
+
+describe('the writer a question gets', () => {
+  it('sends a comparison to the full writer, and a plain series over a span to the fast one', () => {
+    // the night audit's G07 went to the full writer: "per day over the last 30 days" read as day over day
+    expect(pickWriter('What was the average gas price per day over the last 30 days?', [])).toBe('fast');
+    expect(pickWriter('Transactions per week over the last 3 months', [])).toBe('fast');
+    for (const q of ['Transactions day over day this week', 'USDC volume week over week', 'Fees month over month this year', 'Gas used this week vs last week']) expect(pickWriter(q, [])).toBe('full');
   });
 });
