@@ -6,7 +6,7 @@ import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { oneProtocol, protocolScope, unitName } from "./checks";
 import { lendingQuestion, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
-import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
+import { runQuery, schemaCard, coverage, coverageText, anchored, isScanLimit, type QueryResult } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
 import { dexQuestion, pchainPrompt, systemPrompt, userTurn } from "./prompt";
@@ -228,6 +228,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
 
   const timings: StepTiming[] = [];
   const errors: string[] = [];
+  /* a query past the scan caps ends the question: a narrower window the writer picks
+     in its place would answer another question, and the reader would not know */
+  let overScan: Error | null = null;
   // the SQL the final answer keeps, as written: its cut and its totals are read from it
   let keptSql: string | null = null;
   let tries = 0;
@@ -304,6 +307,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           return { columns: r.columns, rows: r.rows, rowCount: r.rowCount, elapsedMs: r.elapsedMs, rowsRead: r.rowsRead, ...left };
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
+          if (isScanLimit(e)) overScan = e;
           dbFailed += 1;
           errors.push(msg);
           step("test", Date.now() - q0, false, msg);
@@ -476,6 +480,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };
         } catch (e) {
+          if (isScanLimit(e)) overScan = e;
           dbFailed += 1;
           return fail(e instanceof Error ? e.message : String(e), Date.now() - q0);
         }
@@ -495,7 +500,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       // every step calls a tool, so a reply in prose never ends the run with no answer; a model that refuses a
       // forced call runs on auto, and its prose goes back once (below)
       toolChoice: free ? "auto" : "required",
-      stopWhen: [stepCountIs(budget), () => final !== null],
+      stopWhen: [stepCountIs(budget), () => final !== null, () => overScan !== null],
       prepareStep: ({ stepNumber, messages: sent }) => {
         // mark the newest turn too, so the next step reads the whole
         // conversation so far from the cache
@@ -532,7 +537,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   let final: QueryAnswer | null = null;
   try {
     final = await loop(writer);
-    if (!final && writer === "fast") {
+    if (!final && !overScan && writer === "fast") {
       writer = "full";
       a.emit({ type: "stage", stage: "escalated", writer: writers.full.label });
       final = await loop("full");
@@ -546,6 +551,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   if (!final) {
     // the database's own words stay in the log; the reader gets what to do next
     if (errors.length) console.warn("[explorer-query] no answer:", errors.slice(-3).join(" | ").slice(0, 900));
+    // set inside the tools, so TypeScript reads it as still null here
+    const over = overScan as Error | null;
+    if (over) {
+      a.emit({ type: "error", error: over.message, status: 422 });
+      return null;
+    }
     // on mainnet a writer with no answer ran out of steps, and says so unless every query it sent failed on the database
     a.emit({ type: "error", error: noAnswer(a, timings.length, !fuji && (ranFine > 0 || dbFailed === 0)), status: 422 });
     return null;

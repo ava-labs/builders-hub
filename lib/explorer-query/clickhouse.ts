@@ -29,6 +29,36 @@ export interface QueryResult {
 
 const QUERY_TIMEOUT_S = 45;
 
+/* The most one query may scan. ClickHouse checks the rows before it reads
+   a byte (the marks its indexes select, which EXPLAIN ESTIMATE reports),
+   so a full scan of the history fails at once instead of after 45 s. On
+   mainnet the C-Chain's raw_txs holds about 1.6 billion rows over its
+   whole history; 365 days of it select about 0.9 billion, 90 days of
+   raw_logs about 0.65 billion, 30 days of raw_traces about 1 billion. The
+   suggested questions read under 10 million. */
+export const SCAN_ROWS_MAX = 1_200_000_000;
+/** uncompressed bytes; about 80 bytes of columns for each row the rows cap allows */
+export const SCAN_BYTES_MAX = 100_000_000_000;
+
+/** what a reader is told when a query would scan more than the caps allow */
+export class ScanLimitError extends Error {
+  constructor(readonly rows: number | null) {
+    super(
+      `This question scans too much of the chain${rows ? `: about ${billions(rows)} rows, and one question may read ${billions(SCAN_ROWS_MAX)}` : ""}. Narrow the time range or add a filter.`,
+    );
+    this.name = "ScanLimitError";
+  }
+}
+
+const billions = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : `${Math.round(n / 1e6)} million`);
+
+/** the errors ClickHouse throws when a read passes a cap: TOO_MANY_ROWS (158), TOO_MANY_BYTES (307), TOO_MANY_ROWS_OR_BYTES (396) */
+const OVER_SCAN = /Limit for (rows|\(uncompressed\) bytes)(?: or bytes)? to read exceeded|TOO_MANY_ROWS|TOO_MANY_BYTES/i;
+
+export function isScanLimit(e: unknown): e is ScanLimitError {
+  return e instanceof ScanLimitError;
+}
+
 function endpoint(): string {
   const url = process.env.QUERY_CLICKHOUSE_URL || process.env.CLICKHOUSE_URL;
   if (!url) throw new Error("CLICKHOUSE_URL is not set");
@@ -53,7 +83,11 @@ const SETTINGS: Record<string, string> = {
   output_format_json_quote_denormals: "1",
   max_bytes_before_external_group_by: "3000000000",
   max_memory_usage: "9000000000",
-  max_rows_to_read: "20000000000",
+  // a read past these throws before it starts (see SCAN_ROWS_MAX); readonly stays
+  // the account's own (2, CONST on statsapi_query), which a request may not change
+  max_rows_to_read: String(SCAN_ROWS_MAX),
+  max_bytes_to_read: String(SCAN_BYTES_MAX),
+  read_overflow_mode: "throw",
   // a SELECT that aliases hex(method_id) AS method_id must still filter on
   // the column in WHERE, not on its own alias
   prefer_column_name_to_alias: "1",
@@ -146,6 +180,7 @@ async function postStats(sql: string): Promise<RawJson> {
     // the reason is in message ("clickhouse: … code: 47, message: …"); error is only the status text
     const why = body.message ?? body.error ?? `stats-api ${res.status}`;
     const inner = why.match(/message:\s*(.+?)(?:\s*\(version [^)]*\))?$/s)?.[1] ?? why;
+    if (OVER_SCAN.test(why)) throw new ScanLimitError(null);
     throw new Error(inner.replace(/^clickhouse:\s*/, "").slice(0, 500));
   }
   // an empty answer can carry null in place of its lists
@@ -163,8 +198,32 @@ async function postStats(sql: string): Promise<RawJson> {
   return { meta, data, rows: body.rowCount ?? data.length, statistics: { elapsed: body.elapsedMs / 1000, rows_read: 0, bytes_read: 0 } };
 }
 
-async function post(sql: string): Promise<RawJson> {
-  if (!process.env.QUERY_CLICKHOUSE_URL && process.env.STATS_QUERY_KEY) return postStats(sql);
+/** the tables whose reads can reach the caps */
+const WIDE = /\b(raw_txs|raw_logs|raw_traces)\b/;
+
+/* stats-api's /v2/query sets only max_execution_time and max_result_rows,
+   and turns SETTINGS away, so the rows cap is checked here first: the rows
+   EXPLAIN ESTIMATE reports are the ones ClickHouse holds max_rows_to_read
+   against. An estimate that fails does not stop the query. */
+async function scanCheck(sql: string): Promise<void> {
+  if (!WIDE.test(sql)) return;
+  let rows: number;
+  try {
+    const est = await postStats(`EXPLAIN ESTIMATE ${sql}`);
+    rows = est.data.reduce((n, r) => n + (Number(r.rows) || 0), 0);
+  } catch {
+    return;
+  }
+  if (process.env.NODE_ENV === "development") console.info(`[explorer-query] scan estimate ${rows} rows`);
+  if (rows > SCAN_ROWS_MAX) throw new ScanLimitError(rows);
+}
+
+/** check: estimate the scan first; a query that re-reads rows already read skips it */
+async function post(sql: string, check = true): Promise<RawJson> {
+  if (!process.env.QUERY_CLICKHOUSE_URL && process.env.STATS_QUERY_KEY) {
+    if (check) await scanCheck(sql);
+    return postStats(sql);
+  }
   const base = endpoint();
   const qs = new URLSearchParams(SETTINGS);
   // the box rejects a fifth concurrent query outright; share the site's gate
@@ -180,6 +239,7 @@ async function post(sql: string): Promise<RawJson> {
   if (!res.ok) {
     // ClickHouse puts the readable reason on one line after the code
     const line = text.split("\n").find((l) => /DB::Exception/.test(l)) ?? text;
+    if (OVER_SCAN.test(text)) throw new ScanLimitError(null);
     throw new Error(line.replace(/^Code:\s*\d+\.\s*/, "").slice(0, 500));
   }
   return JSON.parse(text) as RawJson;
@@ -254,7 +314,7 @@ export async function runQuery(sql: string): Promise<QueryResult> {
         return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : s ? `${s.sql(q)} AS ${q}` : q;
       })
       .join(", ");
-    const again = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+    const again = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`, false);
     // each keeps its type, and its values read as the endpoint writes them: a big integer as a number, a Bool as
     // true or false, a decimal, UUID or IP as text
     for (const { column, back } of stale) {
