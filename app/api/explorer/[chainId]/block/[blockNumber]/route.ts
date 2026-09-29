@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from '@/constants/l1-chains.json';
 import { assertPublicRpcTarget } from '@/lib/rpcUrlValidator';
+import { sumFeesWei } from '@/lib/evm-burn';
 
 interface RpcTransaction {
   hash: string;
@@ -216,13 +217,9 @@ export async function GET(
       const receipts = await Promise.all(receiptPromises);
       
       // Sum up all transaction fees: gasUsed * effectiveGasPrice
-      for (const receipt of receipts) {
-        if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
-          const gasUsed = BigInt(receipt.gasUsed);
-          const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
-          totalGasFeeWei += gasUsed * effectiveGasPrice;
-        }
-      }
+      totalGasFeeWei = sumFeesWei(
+        receipts.filter((r): r is RpcTransactionReceipt => !!r && !!r.gasUsed && !!r.effectiveGasPrice),
+      );
       
       // Convert from wei to native token (divide by 1e18)
       gasFee = (Number(totalGasFeeWei) / 1e18).toFixed(6);
