@@ -306,6 +306,57 @@ export function distinctColumns(columns: readonly ColumnMeta[], sql?: string): S
   return new Set(columns.filter((c) => NUMERIC.test(c.type) && !NEW_NAME.test(c.name) && (made.has(c.name) || DISTINCT_NAME.test(c.name))).map((c) => c.name));
 }
 
+/* an average in each row (avg_gwei, median_fee) has no total, and the mean of the rows' averages is not the average
+   over what they count: the follow-up audit's T10 read the mean of 8 hourly means as today's average gas price. A
+   count beside it (txs) weighs each row's average, which gives that average. A maximum in each row (max_fee) ranks
+   rows, not the items in them: T02 read the second-highest hourly maximum as the second-highest block */
+const MEAN_NAME = /(?:^|_)(?:avg|average|mean|median|p\d{2})(?:_|$)/i;
+const MAX_NAME = /(?:^|_)(?:max|maximum|peak|highest)(?:_|$)/i;
+const EXTREME_NAME = /(?:^|_)(?:max|maximum|peak|highest|min|minimum|lowest)(?:_|$)/i;
+const COUNT_NAME = /(?:^|_)(?:txs|transactions|transfers|count|blocks|calls|swaps)(?:_|$)/i;
+
+/* a period's column beside the same column of the period before: today_txs and yesterday_txs, current_x and
+   previous_x, txs_this_week and txs_last_week */
+const PERIODS: [string, string[]][] = [
+  ["this_week", ["last_week", "previous_week", "prior_week"]],
+  ["this_month", ["last_month", "previous_month", "prior_month"]],
+  ["current", ["previous", "prior", "last"]],
+  ["today", ["yesterday"]],
+  ["this", ["last", "previous", "prev"]],
+  ["cur", ["prev", "previous"]],
+];
+
+/** the period a column's name gives (current, previous, today), and the rest of the name */
+function periodOf(name: string): { word: string; rest: string } | null {
+  const n = name.toLowerCase();
+  for (const w of PERIODS.flatMap(([now, before]) => [now, ...before])) {
+    if (n.startsWith(`${w}_`)) return { word: w, rest: n.slice(w.length + 1) };
+    if (n.endsWith(`_${w}`)) return { word: w, rest: n.slice(0, -(w.length + 1)) };
+  }
+  return null;
+}
+
+/** each period's number column with the same column of the period before it */
+function pairsOf(columns: readonly ColumnMeta[]): [ColumnMeta, ColumnMeta][] {
+  const nums = columns.filter((c) => NUMERIC.test(c.type));
+  const out: [ColumnMeta, ColumnMeta][] = [];
+  for (const c of nums) {
+    const p = periodOf(c.name);
+    const before = p && PERIODS.find(([now]) => now === p.word)?.[1];
+    const match = before && nums.find((k) => k !== c && before.some((b) => { const q = periodOf(k.name); return q?.word === b && q.rest === p.rest; }));
+    if (match) out.push([c, match]);
+  }
+  return out;
+}
+
+/** the count that weighs an average's rows: the one count column of the same period (txs beside avg_gwei). None when
+    there are several (txs and blocks), since the wrong one gives a wrong average */
+function weightOf(columns: readonly ColumnMeta[], c: ColumnMeta): ColumnMeta | null {
+  const word = periodOf(c.name)?.word ?? null;
+  const counts = columns.filter((k) => k !== c && NUMERIC.test(k.type) && COUNT_NAME.test(k.name) && !MEAN_NAME.test(k.name) && (periodOf(k.name)?.word ?? null) === word);
+  return counts.length === 1 ? counts[0] : null;
+}
+
 /** a value as a model reads it: a name where the server found one */
 function shown(input: Pick<DesignInput, "names">, column: string, v: unknown): unknown {
   const name = typeof v === "string" ? input.names[column]?.[v.toLowerCase()] : undefined;
@@ -434,16 +485,22 @@ export function figures(input: Seen): string[] {
       }
       // the next highest rows too, for when the highest is a bucket still filling
       const next = nums.filter((t) => t !== hi).sort((p, q) => q.v - p.v).slice(0, 2);
-      // a distinct count in each row has no total over the rows, and no share of one
+      // a distinct count in each row has no total over the rows, and no share of one; nor has an average
       const noTotal = rows.length > 1 && perRow.has(c.name);
+      const mean = rows.length > 1 && MEAN_NAME.test(c.name);
+      const extreme = rows.length > 1 && !mean && EXTREME_NAME.test(c.name);
+      const weight = mean ? weightOf(columns, c) : null;
+      const weighed = weight ? weighted(c, weight, rows) : null;
       // the shares of the total those rows hold, so a callout quotes a share rather than divides rounded figures
-      const shared = !noTotal && topShares(c, nums, label, cut).length > 0;
+      const shared = !noTotal && !extreme && topShares(c, nums, label, cut).length > 0;
       // a whole-result extreme past the rows shown, named by its own row, so a reading never pins it on a row shown
       const hidden = (v: number, where: string | undefined) => ` (${plain(v)}${where !== undefined && all?.label ? ` at ${all.label} ${where},` : ""} in a row not shown)`;
       const parts = [
-        noTotal ? "no total: each row counts its own distinct ones, and one in several rows is in each" : all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
-        `avg ${plain(sum / nums.length)}`,
-        `max ${plain(hi.v)} at ${at(hi.r)}${all && all.max[c.name] > hi.v ? hidden(all.max[c.name], all.maxAt?.[c.name]) : ""}${next.length ? `, then ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
+        noTotal ? "no total: each row counts its own distinct ones, and one in several rows is in each" : mean ? "no total: each row holds an average, and a sum of averages means nothing" : extreme ? "no total: each row holds its own highest or lowest value, and a sum of them means nothing" : all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
+        mean
+          ? `mean of the row values ${plain(sum / nums.length)}, which is not the average over what the rows count${weighed !== null ? `; weighted by ${weight!.name}, that average is ${plain(weighed)}` : ""}`
+          : `avg ${plain(sum / nums.length)}`,
+        `max ${plain(hi.v)} at ${at(hi.r)}${all && all.max[c.name] > hi.v ? hidden(all.max[c.name], all.maxAt?.[c.name]) : ""}${next.length ? `, then${MAX_NAME.test(c.name) ? " the next rows' own maxima (each the highest within its row, not the next highest overall)," : ""} ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
         `min ${plain(lo.v)} at ${at(lo.r)}${all && all.min[c.name] < lo.v ? hidden(all.min[c.name], all.minAt?.[c.name]) : ""}`,
         `first ${plain(nums[0].v)}, last ${plain(nums[nums.length - 1].v)}`,
       ];
@@ -475,7 +532,41 @@ export function figures(input: Seen): string[] {
     const range = times?.length ? `, from ${times[0]} to ${times[times.length - 1]}` : `, e.g. ${String(shown(input, c.name, vals[0])).slice(0, 60)}`;
     out.push(`${c.name} (${c.type}): ${count}${range}`);
   }
+  // a period beside the one before it, over the rows the current one has reached, so a reading compares like with
+  // like: the follow-up audit's T15 summed yesterday's first 8 hours as 112.7k, where they hold 105,744
+  if (label && rows.length > 2 && runOf(rows.map((r) => ({ r })), label.name) === 1) {
+    for (const [now, before] of pairsOf(columns)) {
+      const last = rows.map((r) => numOf(now, r[now.name])).findLastIndex((v) => v !== null && v !== 0);
+      if (last < 1 || last === rows.length - 1) continue;
+      const span = rows.slice(0, last + 1);
+      const each = perRow.has(now.name) || MEAN_NAME.test(now.name);
+      const of = (c: ColumnMeta) => {
+        const v = span.map((r) => numOf(c, r[c.name])).filter((x): x is number => x !== null);
+        const w = each && MEAN_NAME.test(c.name) ? weightOf(columns, c) : null;
+        const by = w ? weighted(c, w, span) : null;
+        return v.length ? (by ?? (each ? v.reduce((a, b) => a + b, 0) / v.length : v.reduce((a, b) => a + b, 0))) : null;
+      };
+      const [x, y] = [of(now), of(before)];
+      if (x === null || y === null) continue;
+      const what = each ? (MEAN_NAME.test(now.name) && weightOf(columns, now) ? "average weighted by the counts beside them" : "mean of the row values") : "total";
+      const change = y ? `: ${now.name} is ${x >= y ? "+" : "-"}${pct(Math.abs(x - y) / Math.abs(y))} against ${before.name}` : "";
+      out.push(`Matched rows: ${now.name} has values up to ${at(rows[last])}, so it compares with ${before.name} over the ${span.length} rows up to there, ${what} ${plain(x)} against ${plain(y)}${change}. Compare the two periods over these rows, never one period's part with the other's whole.`);
+    }
+  }
   return out;
+}
+
+/** an average over what the rows count: each row's average weighed by its count */
+function weighted(c: ColumnMeta, w: ColumnMeta, rows: readonly Row[]): number | null {
+  let top = 0;
+  let bottom = 0;
+  for (const r of rows) {
+    const [v, n] = [numOf(c, r[c.name]), numOf(w, r[w.name])];
+    if (v === null || n === null || n <= 0) continue;
+    top += v * n;
+    bottom += n;
+  }
+  return bottom > 0 ? top / bottom : null;
 }
 
 /** the rows a sample holds, past ALL_ROWS */
@@ -624,6 +715,8 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     // a sum over the rows counts a distinct thing once for each row it is in
     const summed = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && perRow.has(s.column)) : [];
     if (summed.length) return { error: `${summed.map((s) => s.column).join(", ")} counts distinct ones in each row, so a sum over the rows counts one that is in several rows once for each: use avg or max, or leave the stat out` };
+    const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
+    if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
     // a flow runs from one column to another and draws one amount
     const flows = spec.panels.filter((p) => p.kind === "flow");
