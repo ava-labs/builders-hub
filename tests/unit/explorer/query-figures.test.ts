@@ -124,6 +124,35 @@ describe('an average over a series with a partial period', () => {
   });
 });
 
+describe('a calendar window that runs to now', () => {
+  it('has an Edges line, and an average of a count over it is refused', async () => {
+    // the audit's V11: GUNZ transactions per day this month, with today's 9.9 hours averaged as a day (390,901, where the
+    // 28 whole days average 400,475)
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-29T09:55:15Z'));
+    try {
+      type DesignCall = { tools: { design: { execute: (input: unknown) => Promise<unknown> } } };
+      const rows = Array.from({ length: 29 }, (_, i) => ({ t: `2026-09-${String(i + 1).padStart(2, '0')}`, txs: i === 28 ? 122833 : 400475 }));
+      const columns = [{ name: 't', type: 'Date' }, { name: 'txs', type: 'UInt64' }];
+      const sql = 'SELECT toDate(block_time) AS t, count() AS txs FROM raw_txs WHERE chain_id = 43419 AND block_time >= toStartOfMonth(now()) GROUP BY t ORDER BY t WITH FILL TO toDate(now()) + 1 STEP 1';
+      expect(figures({ columns, rows, names: {}, x: 't', sql })).toContain('Edges: the first period, t 2026-09-01, is complete; the last, t 2026-09-29, is still filling.');
+      const panel = { title: 'Transactions', kind: 'bar', x: 't', series: [{ column: 'txs', label: 'Transactions', format: 'number', axis: 'left', mark: 'auto', transform: 'none', dashed: false }], markers: [], bands: [], stacked: false, sortDir: 'desc', referenceLines: [], width: 'full' };
+      const stat = (agg: string) => ({ label: 'Daily average', column: 'txs', agg, format: 'number', sub: 'per day' });
+      const results: unknown[] = [];
+      vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+        results.push(await opts.tools.design.execute({ stats: [stat('avg')], panels: [panel], callouts: [] }));
+        results.push(await opts.tools.design.execute({ stats: [stat('max')], panels: [panel], callouts: [] }));
+        return {};
+      }) as unknown as typeof generateText);
+      await designVisual({ question: 'How many transactions did GUNZ have each day this month?', title: 'GUNZ transactions per day', note: '', symbol: 'GUN', columns, rows, names: {}, sql, chart: { kind: 'bar', x: 't', series: [{ column: 'txs', label: 'Transactions' }] } });
+      expect(results[0]).toMatchObject({ error: expect.stringContaining('the last period of these rows is partial') });
+      expect(results[1]).toEqual({ ok: true });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('the rows a reading sees of a long answer', () => {
   it('hold the rows either side of each highest', () => {
     // the follow-up audit's T02: 169 hourly rows, and a reading named the hour after the peak from a row it never saw

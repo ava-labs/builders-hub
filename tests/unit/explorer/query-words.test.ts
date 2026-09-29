@@ -102,6 +102,28 @@ describe('withEdges', () => {
     expect(windowOf('WHERE toDate(block_time) >= today() - 7', null, now)!.start).toBe(Date.parse('2026-09-20T00:00:00Z'));
     expect(windowOf('WHERE block_time >= now() - 7', null, now)).toBeNull();
   });
+
+  it('reads a calendar window that runs to now: this month, this week, today', () => {
+    // a Tuesday: the audit's V11 read GUNZ this month, and V13 Dexalot this week
+    const now = Date.parse('2026-09-29T09:55:15Z');
+    expect(windowOf('WHERE block_time >= toStartOfMonth(now())', null, now)).toEqual({ start: Date.parse('2026-09-01T00:00:00Z'), end: now });
+    expect(windowOf('WHERE block_time >= toMonday(now())', null, now)!.start).toBe(Date.parse('2026-09-28T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfWeek(now(), 1)', null, now)!.start).toBe(Date.parse('2026-09-28T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfWeek(now())', null, now)!.start).toBe(Date.parse('2026-09-27T00:00:00Z'));
+    expect(windowOf('WHERE toDate(block_time) >= today()', null, now)!.start).toBe(Date.parse('2026-09-29T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfDay(now())', null, now)!.start).toBe(Date.parse('2026-09-29T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfHour(now())', null, now)!.start).toBe(Date.parse('2026-09-29T09:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfQuarter(now())', null, now)!.start).toBe(Date.parse('2026-07-01T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= toStartOfYear(now())', null, now)!.start).toBe(Date.parse('2026-01-01T00:00:00Z'));
+    // the month's first day is whole, and its last still fills
+    const days = Array.from({ length: 29 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`);
+    expect(edgesOf(days, windowOf('WHERE block_time >= toStartOfMonth(now())', null, now)!)).toEqual({ lo: 0, hi: 28, first: false, last: true });
+    // a window of an index that ended on an earlier day ends there
+    expect(windowOf('WHERE block_time >= toMonday(now())', '2026-09-24 12:00:00', now)).toEqual({ start: Date.parse('2026-09-21T00:00:00Z'), end: Date.parse('2026-09-24T12:00:00Z') });
+    // a subtraction from a calendar start is not read as one, and a calendar start that bounds nothing is no window
+    expect(windowOf('WHERE block_time >= toStartOfMonth(now()) - INTERVAL 11 MONTH', null, now)).toBeNull();
+    expect(windowOf('SELECT toStartOfMonth(now()) AS m, count() FROM raw_txs WITH FILL TO toDate(now()) + 1', null, now)).toBeNull();
+  });
 });
 
 describe('sampleOf', () => {
