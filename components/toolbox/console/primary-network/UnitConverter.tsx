@@ -15,7 +15,7 @@ const metadata: ConsoleToolMetadata = {
   description: (
     <>
       Convert between{' '}
-      <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/c-chain" className="text-primary hover:underline">
         C-Chain
       </Link>{' '}
       wei (10<sup>-18</sup>),{' '}
