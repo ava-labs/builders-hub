@@ -522,6 +522,19 @@ export function LiveDot({ className, size = "h-1.5 w-1.5" }: { className?: strin
   );
 }
 
+/** a LIVE label whose ping takes the chain's accent, where LiveDot keeps to green */
+export function LiveTag() {
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--chain-accent,#E6212F)] opacity-60" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]" />
+      </span>
+      Live
+    </span>
+  );
+}
+
 /** A row that opens a page on click and Enter without being an anchor,
  *  so the hash, the parties and the token inside it can be real links.
  *  Nested anchors are invalid HTML; this keeps one link per identifier. */
