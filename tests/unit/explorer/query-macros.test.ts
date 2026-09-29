@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { guardSql, literalWindow, negativeFigure } from '@/lib/explorer-query/guard';
+import { guardSql, literalWindow, negativeFigure, QUERY_CHARS } from '@/lib/explorer-query/guard';
 import { collapseMacros, DEX_WITH, expandMacros } from '@/lib/explorer-query/macros';
 import { pchainPrompt, systemPrompt, userTurn } from '@/lib/explorer-query/prompt';
 import { DEX_FACTORIES, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS } from '@/lib/explorer-query/protocols';
@@ -105,10 +105,10 @@ describe('the DEX shorthand', () => {
   it('runs through the guard as the whole WITH, and a query too long says what its own part may take', () => {
     const g = guardSql(`$DEX(${today})${OWN}`, 43114);
     expect(g.ok && g.sql.startsWith(DEX_WITH.slice(0, 40)) && g.tables.includes('raw_logs')).toBe(true);
-    const long = guardSql(`$DEX(${today})${OWN} HAVING volume_usd > ${'1 + '.repeat(800)}1`, 43114);
+    const long = guardSql(`$DEX(${today})${OWN} HAVING volume_usd > ${'1 + '.repeat(2200)}1`, 43114);
     const size = DEX_WITH.replaceAll('$START', today).replace('$END', '').replace('$PROTOCOL', '').length;
-    expect(long.ok ? '' : long.error).toMatch(new RegExp(`^query too long: \\d+ characters with \\$DEX written out, 6000 at most\\. Its WITH takes ${size}, so what follows it may take ${6000 - size}$`));
-    expect((guardSql(`SELECT 1 FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND ${'1 + '.repeat(1600)}1 = 1`, 43114) as { error: string }).error).toBe('query too long (6000 chars max)');
+    expect(long.ok ? '' : long.error).toMatch(new RegExp(`^query too long: \\d+ characters with \\$DEX written out, ${QUERY_CHARS} at most\\. Its WITH takes ${size}, so what follows it may take ${QUERY_CHARS - size}$`));
+    expect((guardSql(`SELECT 1 FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND ${'1 + '.repeat(3200)}1 = 1`, 43114) as { error: string }).error).toBe(`query too long (${QUERY_CHARS} chars max)`);
   });
 });
 

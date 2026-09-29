@@ -19,7 +19,7 @@ import type { SourceNote } from "./types";
    (clickhouse.ts) defines it in front of the query as a named subquery
    over the source's rows, so the guard, recipes, drills and boards keep
    the SQL as the model wrote it, and every run reads the source as it is
-   now. The query service takes 8 KiB of SQL and no external data, so a
+   now. The query service takes 16 KiB of SQL and no external data, so a
    table stays small: aggregated rows, each id once. A table only ever
    gains columns: a board's SQL may read any column it has.
 
@@ -29,7 +29,7 @@ import type { SourceNote } from "./types";
    not rows. The data fix belongs to the box. */
 
 /** the most SQL the query service takes, in bytes */
-export const SQL_BUDGET = 8192;
+export const SQL_BUDGET = 16384;
 /** what a table's rows may take of it; the rest is the query's own */
 const ROWS_BUDGET = SQL_BUDGET - 2048;
 

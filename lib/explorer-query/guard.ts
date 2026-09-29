@@ -15,6 +15,9 @@ export type AllowedTable = string;
 
 /** the most rows one answer may carry back to the browser */
 export const MAX_ROWS = 2000;
+/** the most a query may take with its shorthand written out: the query service takes 16 KiB (SQL_BUDGET in
+    sources.ts), and the reference tables and names a query reads take up to about 4 KB of it */
+export const QUERY_CHARS = 12000;
 
 const KEYWORDS = /\b(INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|TRUNCATE|ATTACH|DETACH|OPTIMIZE|SYSTEM|KILL|GRANT|REVOKE|RENAME|EXCHANGE|USE|OUTFILE|SET|SETTINGS|FORMAT)\b/i;
 /** table functions that read outside the database or spawn work */
@@ -196,9 +199,9 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   // what the writer typed after $DEX reads the Swap logs from legs, never from raw_logs a second time
   const again = x.macro?.name === "DEX" ? legsAgain(sql.slice(x.macro.size)) : null;
   if (again) return { ok: false, error: again };
-  if (sql.length > 6000) {
+  if (sql.length > QUERY_CHARS) {
     const m = x.macro;
-    return { ok: false, error: m ? `query too long: ${sql.length} characters with $${m.name} written out, 6000 at most. Its WITH takes ${m.size}, so what follows it may take ${6000 - m.size}` : "query too long (6000 chars max)" };
+    return { ok: false, error: m ? `query too long: ${sql.length} characters with $${m.name} written out, ${QUERY_CHARS} at most. Its WITH takes ${m.size}, so what follows it may take ${QUERY_CHARS - m.size}` : `query too long (${QUERY_CHARS} chars max)` };
   }
   if (sql.includes(";")) return { ok: false, error: "one statement only; no semicolons" };
   if (/--|\/\*|\*\//.test(sql)) return { ok: false, error: "no comments in the query" };

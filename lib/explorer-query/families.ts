@@ -116,7 +116,7 @@ export const FAMILY_TOPICS = {
 } as const;
 
 const hexOf = (h: string) => `unhex('${h.replace(/^0x/, "")}')`;
-/** addresses packed as base64, 28 characters each, for a list too long for hex (the query service takes 8 KiB) */
+/** addresses packed as base64, 28 characters each, for a list too long for hex (the query service takes 16 KiB) */
 const packedList = (xs: readonly string[]) => `arrayMap(x -> base64Decode(x), ${strings(xs.map(packed))})`;
 const EUR = OPENTRADE_POOLS.filter((p) => ASSETS[p.asset].price === "eurc").map((p) => p.pool);
 

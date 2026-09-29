@@ -49,7 +49,7 @@ function poolsCte(): string {
 
 /** the Swap topics, named once in the WITH */
 const SWAPS_NAMED = `${topic(T.v2Swap)} AS v2_swap, ${topic(T.v3Swap)} AS v3_swap, ${topic(T.lbSwap)} AS lb_swap, ${topic(T.v4Swap)} AS v4_swap`;
-/* What a query reads of a swap's fee sets what the DEX WITH reads for it, since the query service takes 8 KiB of SQL:
+/* What a query reads of a swap's fee sets what the DEX WITH reads for it, so its SQL stays short:
    0 nothing, 1 its rate and its value in dollars (fee_rate, fee_usd), 2 its amount in the token in too (fee_in,
    token_in). For 1 a Swap log gives the fee rate it carries (fr): an lb swap's totalFees over its amountsIn (both on
    the side of the token in, so the ratio of the two words is that of the two amounts), and a univ4 swap's fee, its

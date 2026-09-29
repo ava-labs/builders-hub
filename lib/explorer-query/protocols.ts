@@ -141,7 +141,7 @@ export const DEX_LISTED_AT = Date.UTC(2026, 8, 27);
 
 const QUOTES: readonly Quote[] = ["", "usd", "avax"];
 export const bare = (address: string) => address.slice(2).toLowerCase();
-/** an address in 28 characters, not 40: the query service takes 8 KiB of SQL */
+/** an address in 28 characters, not 40: the query service takes 16 KiB of SQL */
 export const packed = (address: string) => Buffer.from(bare(address), "hex").toString("base64");
 export const strings = (xs: readonly string[]) => `[${xs.map((x) => `'${x}'`).join(",")}]`;
 const bytes = (s: string) => Buffer.byteLength(s);

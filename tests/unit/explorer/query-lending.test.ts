@@ -163,13 +163,13 @@ describe('the lending shorthand', () => {
     expect(LENDING_MARKETS.filter((m) => m.market.endsWith('00'))).toEqual([]);
   });
 
-  it("reads Benqi's reserves from its events, and both protocols' markets are too large for one query", async () => {
+  it("reads Benqi's reserves from its events, and both protocols' markets fit in one query", async () => {
     expect(marketsWith(AAVE_SLUG)).toContain('greatest(supplied_usd - borrowed_usd, 0) AS tvl_usd');
     const benqi = marketsWith(BENQI);
     for (const t of ['reserves_added_t', 'reserves_reduced_t', 'reserve_factor_t', 'accrue_t']) expect(benqi).toContain(t);
     const both = guardSql(`${marketsWith()} SELECT protocol, supplied_usd FROM markets`, 43114);
-    if (both.ok) await expect(withSources(both.sql, 43114)).rejects.toThrow(/too long to send/);
-    else expect(both.error).toMatch(/^query too long/);
+    expect(both.ok ? '' : both.error).toBe('');
+    if (both.ok) expect(Buffer.byteLength((await withSources(both.sql, 43114)).sql)).toBeLessThanOrEqual(SQL_BUDGET);
   });
 });
 
