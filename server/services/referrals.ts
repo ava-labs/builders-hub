@@ -65,9 +65,6 @@ export function resolveReferralDestination(
   targetId: string | null | undefined,
   storedDestinationUrl: string,
 ): string {
-  if (targetType === "bh_signup") {
-    return "/signup";
-  }
   if (targetType === "hackathon_registration" && targetId) {
     return `/events/${targetId}`;
   }

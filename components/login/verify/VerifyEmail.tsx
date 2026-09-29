@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { signIn, useSession, getSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
@@ -38,12 +38,21 @@ export function VerifyEmail({
   const [expired, setExpired] = useState(false);
   const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   const { data: session, update } = useSession();
+  const newUserLogin = useRef(false);
   const { closeLoginModal } = useLoginModalState();
 
   const formMethods = useForm<z.infer<typeof verifySchema>>({
     resolver: zodResolver(verifySchema),
     defaultValues: { code: "" },
   });
+
+  useEffect(() => {
+    // Latch this login's identity even if Terms creates the user while an
+    // overlapping NextAuth session refresh makes update() return undefined.
+    if (session?.user?.is_new_user || session?.user?.id?.startsWith("pending_")) {
+      newUserLogin.current = true;
+    }
+  }, [session?.user]);
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -128,11 +137,11 @@ export function VerifyEmail({
         const freshSession = await getSession();
         const sessionUser = freshSession?.user;
 
-
-        // Store redirect URL - we'll handle it after session updates
-        if (result?.url) {
-          setPendingRedirectUrl(result.url);
+        if (newUserLogin.current) {
+          setMessage("Code accepted. Loading the next step...");
+          return;
         }
+
 
         // If user is new, trigger the new user login event to notify LoginModalWrapper
         if (sessionUser?.is_new_user || sessionUser?.id?.startsWith("pending_")) {
@@ -153,6 +162,7 @@ export function VerifyEmail({
             isNewUser: true,
           });
         } else {
+          if (result?.url) setPendingRedirectUrl(result.url);
           // Not a new user, their login flow is complete after OTP
           // Trigger login complete event to notify all components
           triggerLoginComplete();

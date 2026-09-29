@@ -8,6 +8,7 @@ import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
 import { menuSections, singleItems, type NavItem, type NavSection } from './nav-config';
 import { useSession } from 'next-auth/react';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -19,6 +20,11 @@ import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { openLoginModal } = useLoginModalTrigger();
+  const handleLogin = () => {
+    setIsOpen(false);
+    openLoginModal();
+  };
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
@@ -105,16 +111,16 @@ export function NavbarDropdown() {
                   </Link>
                 ) : (
                   <div className="flex items-center gap-3 text-sm">
-                    <Link href="/login" onClick={() => setIsOpen(false)}>
+                    <button type="button" onClick={handleLogin}>
                       Log in
-                    </Link>
-                    <Link
-                      href="/signup"
+                    </button>
+                    <button
+                      type="button"
                       className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                      onClick={() => setIsOpen(false)}
+                      onClick={handleLogin}
                     >
                       Sign up
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>
@@ -195,4 +201,3 @@ export function NavSectionBlock({ section }: { section: NavSection }) {
     </div>
   );
 }
-

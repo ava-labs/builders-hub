@@ -4,6 +4,7 @@ import { NextMiddlewareResult } from "next/dist/server/web/types";
 import { NextRequest, NextResponse } from "next/server";
 import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
 import { PROTECTED_PATHS } from "@/lib/auth/protected-paths";
+import { getAuthCallbackUrl } from "@/lib/auth/callback-url";
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
@@ -96,7 +97,7 @@ export async function proxy(req: NextRequest) {
 
   if (isAuthenticated) {
     if (isAuthPage)
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL(getAuthCallbackUrl(req.nextUrl.searchParams.get("callbackUrl") ?? "/", req.nextUrl.searchParams), req.url));
 
     if (isShowCase && !custom_attributes.includes('showcase'))
       return NextResponse.redirect(new URL("/events", req.url))

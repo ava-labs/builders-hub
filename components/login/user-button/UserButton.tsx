@@ -18,6 +18,7 @@ import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar'
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
 import { canAccessBuilderInsights } from '@/lib/auth/permissions';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 const AVATAR_PX = 30;
 
@@ -52,6 +53,7 @@ export function UserButton() {
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const router = useRouter();
+  const { openLoginModal } = useLoginModalTrigger();
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
@@ -147,16 +149,16 @@ export function UserButton() {
     return <UserRound className={ICON_CLASS} strokeWidth={1.25} />;
   };
 
-  // Give new visitors a direct, shareable path to account creation.
+  // In-app authentication preserves the current page and its state.
   if (!isAuthenticated) {
     return (
       <div className="flex items-center gap-3 text-sm">
-        <Link href="/login" className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white">
+        <button type="button" onClick={() => openLoginModal()} className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white">
           Log in
-        </Link>
-        <Link href="/signup" className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+        </button>
+        <button type="button" onClick={() => openLoginModal()} className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
           Sign up
-        </Link>
+        </button>
       </div>
     );
   }

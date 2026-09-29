@@ -6,7 +6,8 @@ describe('Builder Hub signup referrals', () => {
     expect(getDefaultReferralDestination('bh_signup')).toBe('/signup');
   });
 
-  it('sends existing links with a stored home destination to signup', () => {
-    expect(resolveReferralDestination('bh_signup', null, '/')).toBe('/signup');
+  it('preserves existing modal links and campaign parameters', () => {
+    expect(resolveReferralDestination('bh_signup', null, '/')).toBe('/');
+    expect(resolveReferralDestination('bh_signup', null, '/signup?utm_source=team1')).toBe('/signup?utm_source=team1');
   });
 });
