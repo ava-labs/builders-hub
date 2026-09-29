@@ -9,14 +9,10 @@
 import { truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { Stat } from "@/lib/explorer-query/visual";
+import { msOf } from "@/lib/explorer-query/edges";
+import { DAY, MONTHS_SHORT, isHash, isTime } from "@/lib/explorer-query/values";
 
 type Row = Record<string, unknown>;
-
-const isHash = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
-const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
-const msOf = (v: string) => Date.parse(v.length <= 10 ? `${v}T00:00:00Z` : `${v.replace(" ", "T")}Z`);
-const DAY = 86_400_000;
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** the row a max or min figure is, when the page holds it; null for any other figure, and for one the totals gave */
 export function extremeOf(s: Pick<Stat, "agg" | "column">, rows: Row[], value: unknown): Row | null {
@@ -50,14 +46,14 @@ export function rowWords(v: unknown, x: string, all: Row[], names: Names): strin
     let step = Infinity;
     for (let i = 1; i < times.length; i++) step = Math.min(step, times[i] - times[i - 1]);
     const d = new Date(msOf(v));
-    const day = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+    const day = `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}`;
     const hm = d.toISOString().slice(11, 16);
     // a lone row keeps the grain it is written in: a time of day, or a day
     if (step === Infinity ? v.length > 10 && hm !== "00:00" : step < DAY) {
       const oneDay = Math.floor(times[0] / DAY) === Math.floor(times[times.length - 1] / DAY);
       return oneDay ? `at ${hm} UTC` : `${day}, ${hm} UTC`;
     }
-    if (step >= 28 * DAY) return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    if (step >= 28 * DAY) return `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
     return step >= 7 * DAY ? `week of ${day}` : `on ${day}`;
   }
   if (typeof v !== "string" || !v) return undefined;

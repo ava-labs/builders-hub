@@ -20,6 +20,19 @@ export function formatNumber(n: number | undefined): string {
   return n === undefined || n === null ? "—" : n.toLocaleString("en-US");
 }
 
+const COMPACT = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+const COMPACT_2 = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
+
+/** "622.2M", "48K": a figure in its thousands, millions or billions, to one place */
+export function compact(v: number): string {
+  return COMPACT.format(v);
+}
+
+/** "1.69B", "48.25K": the same to two places */
+export function compact2(v: number): string {
+  return COMPACT_2.format(v);
+}
+
 /** nAVAX + a USD/AVAX rate → "$1,234.56". Returns undefined when there is no
  *  rate to apply, so callers can omit the line entirely rather than render a
  *  confident "$0.00" for a price we simply do not have. */
@@ -65,6 +78,11 @@ export function truncate(v: string | undefined, len = 10): string {
   if (!v) return "";
   if (v.length <= len + 6) return v;
   return `${v.slice(0, len)}…${v.slice(-4)}`;
+}
+
+/** "0x1234…abcd": an address by its first 6 and last 4 characters, cut at any length (truncate keeps a short one whole) */
+export function short(a: string): string {
+  return `${a.slice(0, 6)}…${a.slice(-4)}`;
 }
 
 export function formatBytes(n: number | undefined): string {

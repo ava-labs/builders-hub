@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import { Bar, ComposedChart, Line, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
-import { formatNumber } from "@/components/explorer-v2/format";
+import { compact, formatNumber, short } from "@/components/explorer-v2/format";
 import type { MonitorItem, MonitorRead, MonitorSpec } from "@/lib/explorer-query/monitor";
 import { CARD } from "./QueryVisual";
 
@@ -21,8 +21,6 @@ const LIST = 40;
 const LABEL = "font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400";
 
 const keyOf = (i: MonitorItem) => `${i.tx}:${i.index}`;
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const compact = (v: number) => new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 /** "14:05:30", UTC, as every time on the explorer */
 const clock = (ms: number) => new Date(ms).toISOString().slice(11, 19);
 
@@ -34,7 +32,7 @@ function amountText(v: number): string {
   return v > 0 ? "<0.0001" : "0";
 }
 
-/** "4s", "3m": how long ago a move was made */
+/** "4s", "3m": how long ago a move was made, in rounded seconds, then minutes, never hours (ageShort in format.ts floors and goes on to hours) */
 function ago(ms: number, now: number): string {
   const s = Math.max(0, Math.round((now - ms) / 1000));
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m`;

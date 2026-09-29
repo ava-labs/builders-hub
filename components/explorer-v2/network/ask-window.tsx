@@ -11,7 +11,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { QueryLoader } from "@/components/explorer-v2/evm/QueryLoader";
 import { QueryMonitor } from "@/components/explorer-v2/evm/QueryMonitor";
 import { CARD, QueryVisual, fmt, nameFor } from "@/components/explorer-v2/evm/QueryVisual";
-import { NoteText, PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
+import { NoteText, PanelRows, fillTitle, formatOf, header, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
 import { QueryInspector, RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
 import { Crumbs, DrillView, ZoomStage, type OpenDrill } from "@/components/explorer-v2/evm/QueryZoom";
 import { bucketOf } from "@/components/explorer-v2/evm/drill-plot";
@@ -22,6 +22,7 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { DrillAnswer, QueryAnswer, Turn } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
+import { isAddress } from "@/lib/explorer-query/values";
 import type { Node } from "@/components/explorer-v2/network/icm-map";
 
 /* A question asked in the city, answered in a window over it. The city's

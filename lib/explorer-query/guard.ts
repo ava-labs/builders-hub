@@ -10,6 +10,7 @@ import { LENDING_EVENTS, strayHex, typedLending } from "./lending";
 import { expandMacros } from "./macros";
 import { DEX_TOPICS } from "./protocols";
 import { isFuji, targetOf } from "./target";
+import { DAY } from "./values";
 
 export type AllowedTable = string;
 
@@ -315,7 +316,6 @@ export function negativeFigure(result: { columns: readonly { name: string }[]; r
 
 /** a question that names a date, a month or a year, whose days the query may write out */
 const NAMED_DATE = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|20\d{2}|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i;
-const DAY = 86_400_000;
 
 /** why a query that writes out a date of the last five weeks must use now(), when its question (and the turns before it) name no date; or null */
 export function literalWindow(sql: string, question: string, chainId: number, now = new Date()): string | null {

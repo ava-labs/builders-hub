@@ -139,6 +139,7 @@ export interface Point {
   value: number;
 }
 
+/** a day as the route writes it, 2026-09-21: a pattern, not the DAY span in values.ts */
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** one metric's days from the route's answer, oldest first; an ICM count is its messages */

@@ -11,6 +11,7 @@ import { FAMILY_NAMES } from "./families";
 import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
+import { DAY, WEEK } from "./values";
 
 /* What the server puts in front of a question's SQL. Two kinds of table:
 
@@ -121,7 +122,6 @@ const UNKNOWN = "Unknown";
 const CB58 = /^[1-9A-HJ-NP-Za-km-z]{30,60}$/;
 const NODE = /^NodeID-[1-9A-HJ-NP-Za-km-z]{20,60}$/;
 const LINE = /^\d{1,3}\.\d{1,3}$/;
-const DAY_MS = 86_400_000;
 
 /** newest line first; Unknown after every line */
 function byLine(a: string, b: string): number {
@@ -187,8 +187,8 @@ async function readVersions(network: Network): Promise<VersionSet> {
     lines.set(line, {
       n: had.n + 1,
       w: had.w + s.weight,
-      day: had.day + Number(known && age < DAY_MS),
-      week: had.week + Number(known && age < 7 * DAY_MS),
+      day: had.day + Number(known && age < DAY),
+      week: had.week + Number(known && age < WEEK),
       crawler: had.crawler + Number(known && !mine),
     });
   }

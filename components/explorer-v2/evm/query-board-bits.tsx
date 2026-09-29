@@ -92,6 +92,7 @@ export function useNow(ms = 30_000): number {
   return now;
 }
 
+/** "just now", "3m ago", then the date from 30 days: a board's refresh time, rounded (timeAgo in format.ts floors and never gives a date) */
 export function ago(at: number, now: number): string {
   const s = Math.max(0, Math.round((now - at) / 1000));
   if (s < 45) return "just now";

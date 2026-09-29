@@ -58,6 +58,7 @@ const LOOSE = /(?:\b(?:about|around|roughly|nearly|almost|approximately|over|abo
 const RANKED = /^\s*(?:largest|biggest|top|most|highest|lowest|smallest|busiest|leading|main|first|last)\b/i;
 /** a span of time or a date part the figure is a number of */
 const SPAN = /^\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|blocks?|bps|basis|times|x)\b/i;
+/** a month's name just before a figure, which makes the figure a day (Sep 21): a pattern, not the MONTHS in values.ts */
 const MONTHS = /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+$/i;
 const SCALE: Record<string, number> = { k: 1e3, m: 1e6, b: 1e9, thousand: 1e3, million: 1e6, billion: 1e9 };
 /** words a count's noun may stand behind: 48,336 total borrowers, 1,234 unique traders */

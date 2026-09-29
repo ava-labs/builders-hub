@@ -9,6 +9,7 @@
    cycle: its depth search never ends. */
 
 import type { Names } from "@/lib/explorer-query/types";
+import { isAddress } from "@/lib/explorer-query/values";
 
 type Row = Record<string, unknown>;
 
@@ -66,9 +67,8 @@ export type Flow = {
   skipped: number;
 };
 
-const HEX = /^0x[0-9a-fA-F]{40}$/;
 /** a row's value as a node key: addresses in lower case, so one address is one node */
-const keyOf = (v: unknown): string | null => (v === null || v === undefined || v === "" ? null : HEX.test(String(v)) ? String(v).toLowerCase() : String(v));
+const keyOf = (v: unknown): string | null => (v === null || v === undefined || v === "" ? null : isAddress(String(v)) ? String(v).toLowerCase() : String(v));
 const amountOf = (v: unknown): number | null => {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
   return Number.isFinite(n) ? n : null;

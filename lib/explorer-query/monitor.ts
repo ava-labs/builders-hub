@@ -148,7 +148,8 @@ function amountText(n: number): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 6 });
 }
 
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+/** "0x1234…abcd": an address by its ends, as a title writes it (the page's copy is short in format.ts, which lib code does not import) */
+export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 /** the card's name for what it reads: "USDT transfers over 10,000 to 0x1234…abcd" */
 export function monitorTitle(spec: Omit<MonitorSpec, "title">): string {

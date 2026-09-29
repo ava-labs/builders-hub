@@ -28,12 +28,9 @@ import { getContractInfo, type ContractInfo as RegistryContract } from "@/lib/co
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { ColumnMeta } from "./clickhouse";
 import type { Names } from "./types";
+import { isAddress, isHash, isSelector } from "./values";
 
 type Row = Record<string, unknown>;
-
-const SELECTOR = /^0x[0-9a-fA-F]{8}$/;
-const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-const TOPIC = /^0x[0-9a-fA-F]{64}$/;
 
 interface TokenInfo {
   symbol: string;
@@ -96,9 +93,9 @@ export async function tokenList(chainId: number, baseUrl: string): Promise<Map<s
 function kindOf(values: unknown[]): "selector" | "address" | "topic" | null {
   const strs = values.filter((v): v is string => typeof v === "string");
   if (strs.length === 0) return null;
-  if (strs.every((s) => SELECTOR.test(s))) return "selector";
-  if (strs.every((s) => ADDRESS.test(s))) return "address";
-  if (strs.every((s) => TOPIC.test(s))) return "topic";
+  if (strs.every((s) => isSelector(s))) return "selector";
+  if (strs.every((s) => isAddress(s))) return "address";
+  if (strs.every((s) => isHash(s))) return "topic";
   return null;
 }
 

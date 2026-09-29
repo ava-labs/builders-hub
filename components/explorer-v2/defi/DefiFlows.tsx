@@ -9,6 +9,7 @@ import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { Board, ChartBoard, EmptyRow, HEAD, LoadMore, ROW, RowSkeleton, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { short } from "@/components/explorer-v2/format";
 import type { FlowsResponse, Move, ProtocolFlow } from "@/lib/defi/flows";
 import { DEFI_SCOPE, DEFI_STYLE, groupTone, signedUsd, usd } from "./palette";
 import { actionOf, flowGroup, flowLabel } from "./flow-labels";
@@ -44,6 +45,7 @@ function useFlows(hours: number) {
   return { data, stale: !!data && data.hours !== hours, failed };
 }
 
+/** "5m ago", "3h ago": a move's age from its time text, in whole minutes from 1m (timeAgo in format.ts takes unix seconds and shows seconds) */
 function ago(time: string, now: number): string {
   const t = Date.parse(`${time.replace(" ", "T").replace(/\.\d+$/, "")}Z`);
   if (!Number.isFinite(t)) return time;
@@ -52,8 +54,6 @@ function ago(time: string, now: number): string {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
-
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 export function DefiFlows() {
   const range = useExplorerTimeRange();

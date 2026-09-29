@@ -12,6 +12,7 @@ import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
+import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { noteParts } from "./query-client";
 
@@ -58,11 +59,6 @@ export function formatOf(col: string, visual: VisualSpec | null): Format {
   if (/gas/.test(col)) return "gas";
   return "number";
 }
-
-export const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
-export const isHash = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
-export const isSelector = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v);
-export const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
 
 /** a column that holds transaction hashes, by its name: hash, tx_hash, transaction_hash, and any *_tx or *_tx_hash.
     Elsewhere a 32-byte value is not known to be a transaction (a v4 pool id, a topic, a message id) and stays text */
@@ -117,11 +113,6 @@ export function duration(secs: number): string {
   if (secs < 5400) return `${Math.round(secs / 60)} min`;
   if (secs < 172800) return `${(secs / 3600).toFixed(1)} h`;
   return `${Math.round(secs / 86400)} days`;
-}
-
-export function ago(unix: number): string {
-  const s = Math.max(0, Math.floor(Date.now() / 1000) - unix);
-  return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
 }
 
 /* ------------------------------------------------------------------ */
