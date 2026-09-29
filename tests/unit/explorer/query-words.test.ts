@@ -170,6 +170,14 @@ describe('reader words', () => {
     expect(withFullHex(`It went to 0x${'f'.repeat(40)}.`, [a])).toBeNull();
   });
 
+  it('writes out an address shortened to its head alone, as the regression audit\'s R06 named one', () => {
+    const a = `0x278d858f${'2'.repeat(28)}9c1e`;
+    expect(withFullHex('MEV Bot (SafeProxy arb) (0x278d858f…) used 10.2B gas.', [a])).toBe(`MEV Bot (SafeProxy arb) (${a}) used 10.2B gas.`);
+    expect(withFullHex('It went to 0x278d858f....', [a])).toBe(`It went to ${a}.`);
+    expect(withFullHex('It went to 0x9999…, twice.', [a])).toBeNull();
+    expect(readerSpec({ stats: [], panels: [], callouts: ['0x278d858f… used 10.2B gas.'] }, [], [a]).callouts).toEqual([`${a} used 10.2B gas.`]);
+  });
+
   it('counts a callout as the page draws it, each full address and hash short', () => {
     expect(shownLength(`Sent by 0x${'a'.repeat(40)} in 0x${'b'.repeat(64)}.`)).toBe('Sent by 0xaaaa…aaaa in 0xbbbb…bbbb.'.length);
   });

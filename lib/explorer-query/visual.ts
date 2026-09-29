@@ -182,10 +182,11 @@ export function withoutCode(text: string, names: readonly string[] = []): string
 export const plainLabel = (s: string) => plainWords(s.replace(SNAKE, (w) => w.replace(/_/g, " ")).replace(/\b([Ss])ettled\b/g, (_, c: string) => (c === "S" ? "Final" : "final")));
 
 /* An address in a reading is one the rows hold, written in full: the page
-   shortens it. One a model shortened is written out again from the rows,
-   and a callout that names an address the rows do not hold is left out. */
+   shortens it. One a model shortened (0x1234…abcd, or its head alone:
+   0x278d858f…) is written out again from the rows, and a callout that
+   names an address the rows do not hold is left out. */
 const FULL_HEX = /\b0x(?:[0-9a-fA-F]{64}|[0-9a-fA-F]{40})\b/g;
-const SHORT_HEX = /\b0x([0-9a-fA-F]{2,10})(?:…|\.{2,3})([0-9a-fA-F]{2,10})\b/g;
+const SHORT_HEX = /\b0x([0-9a-fA-F]{2,10})(?:…|\.{2,3})(?:([0-9a-fA-F]{2,10})\b)?/g;
 
 /** the addresses and hashes a reading may name: the rows' own, and those of the rows the whole-result figures point to */
 function heldHex(input: Pick<DesignInput, "rows" | "totals">): string[] {
@@ -201,8 +202,8 @@ function heldHex(input: Pick<DesignInput, "rows" | "totals">): string[] {
 /** a callout with each address in full, from the rows; null when it names one the rows do not hold */
 export function withFullHex(c: string, held: readonly string[]): string | null {
   let lost = false;
-  const out = c.replace(SHORT_HEX, (m, head: string, tail: string) => {
-    const hit = held.filter((a) => a.startsWith(`0x${head.toLowerCase()}`) && a.endsWith(tail.toLowerCase()));
+  const out = c.replace(SHORT_HEX, (m, head: string, tail: string | undefined) => {
+    const hit = held.filter((a) => a.startsWith(`0x${head.toLowerCase()}`) && a.endsWith((tail ?? "").toLowerCase()));
     if (hit.length === 0) lost = true;
     return hit.length === 1 ? hit[0] : m;
   });
