@@ -223,6 +223,12 @@ describe('a share of the total', () => {
     expect(figures({ ...hours, columns: [hours.columns[0], { name: 'value_usd_rate', type: 'Float64' }], rows: hours.rows.map((r) => ({ hour: r.hour, value_usd_rate: r.value_usd })) }).join('\n')).not.toContain('share of the total');
   });
 
+  it('never reads a share that is neither none nor all as 0.0% or 100.0%', () => {
+    const tail = { ...hours, rows: [999_880, 70, 50].map((v, i) => ({ hour: `2026-09-27 ${String(9 + i).padStart(2, '0')}:00:00`, value_usd: v })) };
+    const line = figures(tail).find((f) => f.startsWith('value_usd'));
+    expect(line).toContain('share of the total: the highest 99.988%, then 0.007% and 0.005%; the highest two together 999950 (99.995%), the highest three 1000000 (100.0%)');
+  });
+
   it('a callout misses by less than its last digit reads the one Figures gives', () => {
     const shares = sharesOf(hours);
     expect(withShares('Hours 10:00 and 11:00 on Sep 27 together brought $458k, 45.6% of the total value.', shares)).toBe('Hours 10:00 and 11:00 on Sep 27 together brought $458k, 45.5% of the total value.');

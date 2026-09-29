@@ -1284,6 +1284,14 @@ function PanelBlock(props: PanelProps) {
 const PIE_TONES = ["currentColor", "#0061E2", "#0d9488", "#d97706", "#7c3aed", "#db2777", "#65a30d"];
 const PIE_MAX = 7;
 
+/** a slice's share in its legend: whole percents, one decimal under 10% and over 99%, and never 0% or 100%
+    for a slice that is neither none nor all */
+function sliceShare(share: number): string {
+  if (share > 0 && share < 0.0005) return "<0.1%";
+  if (share < 1 && share >= 0.9995) return ">99.9%";
+  return `${(share * 100).toFixed(share < 0.1 || share > 0.99 ? 1 : 0)}%`;
+}
+
 /** parts of a whole: the leaders as slices, the rest as one grey slice */
 function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverKey, selection, live, onSelection, compact }: PanelProps) {
   const reduced = useReduced();
@@ -1420,7 +1428,7 @@ function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverK
                   <span className="block h-full rounded-full text-zinc-900 transition-[width] duration-500 ease-out dark:text-zinc-100" style={{ width: `${Math.min(100, Math.max(1.5, lead * 100))}%`, background: sl.tone, opacity: sl.row ? 0.85 : 0.6 }} />
                 </span>
                 <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(sl.value, s.format, sym)}</span>
-                <span className="w-11 text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{total ? `${(share * 100).toFixed(share < 0.1 ? 1 : 0)}%` : ""}</span>
+                <span className="w-11 text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{total ? sliceShare(share) : ""}</span>
               </button>
               {selecting && canDrill && sl.row && (
                 <button

@@ -283,8 +283,15 @@ const plain = (n: number) => (Number.isInteger(n) ? String(n) : String(Number(n.
 /** totals that hold only the whole set's size, a ranking's own count (cut.ts), with no figures read beside it */
 const sizeOnly = (t: Totals) => !Object.keys(t.sum).length && !Object.keys(t.distinct).length;
 
-/** a share as a reading quotes it, one decimal by the usual rule: 0.45539 is 45.5% */
-const pct = (f: number) => `${(Math.round(f * 1000) / 10).toFixed(1)}%`;
+/** a share as a reading quotes it, one decimal by the usual rule: 0.45539 is 45.5%. A share that is
+    neither none nor all keeps the digits it needs never to read 0.0% or 100.0%: 0.00043 is 0.043%, so a
+    reading never calls a real share zero ("under 0.0%") or the whole */
+const pct = (f: number) => {
+  const p = f * 100;
+  const edge = p > 0 && p < 100 ? Math.min(p, 100 - p) : 100;
+  if (edge >= 0.05) return `${(Math.round(f * 1000) / 10).toFixed(1)}%`;
+  return `${p.toFixed(1 - Math.floor(Math.log10(edge))).replace(/\.?0+$/, "")}%`;
+};
 /** a figure whose sum means nothing: a rate, a price, an average, a share already */
 const RATE = /(?:^|_)(?:pct|percent|rate|ratio|share|price|avg|average|median|mean|apr|apy|bps|index|decimals|of_total)(?:_|$)/i;
 
