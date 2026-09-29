@@ -14,6 +14,7 @@ import { NotFound, RailRow } from "./EvmTx";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcBlock } from "./useRpcBlock";
+import { useBlockBurns } from "./useBlockBurns";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type BlockDetail } from "@/lib/evm-explorer";
@@ -118,17 +119,24 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // the C-Chain burns every fee; sovereign L1s choose their own destination
   const burnsFees = String(c.chainId) === "43114" || String(c.chainId) === "43113";
 
-  // what the block cost, in the token and in dollars. Receipts give the
-  // exact sum (RPC path); the indexer path only knows gas × base fee,
-  // which on the C-Chain is the burn floor, so it is marked as such. Since
-  // Helicon the header's gasUsed is gas reserved, so use charged gas.
+  // what the block cost, in the token and in dollars. On the C-Chain the
+  // burn route's receipt sum, the same number the blocks list shows, and
+  // "…" until it arrives. Elsewhere, or if that route fails, the receipts
+  // on hand (RPC path); the indexer path only knows gas × base fee, the
+  // burn floor, so it is marked as such. Since Helicon the header's
+  // gasUsed is gas reserved, so use charged gas.
   const { price } = usePrice(c.chainId);
   const usd = price?.price ?? null;
-  const exactFees = b && b.transactions.length > 0 && b.transactions.every((t) => t.feeWei);
+  const burnOf = useBlockBurns(burnsFees ? c.chainId : undefined, b ? [b.number] : []);
+  const routeBurn = b ? burnOf(b.number) : undefined;
+  const burnPending = routeBurn === "loading";
+  const exactFees = typeof routeBurn === "bigint" || (b && b.transactions.length > 0 && b.transactions.every((t) => t.feeWei));
   const feesWei = b
-    ? exactFees
-      ? b.transactions.reduce((acc, t) => acc + BigInt(t.feeWei!), 0n)
-      : BigInt(chargedGas) * BigInt(b.baseFeePerGas || "0")
+    ? typeof routeBurn === "bigint"
+      ? routeBurn
+      : exactFees
+        ? b.transactions.reduce((acc, t) => acc + BigInt(t.feeWei!), 0n)
+        : BigInt(chargedGas) * BigInt(b.baseFeePerGas || "0")
     : 0n;
 
   return (
@@ -262,7 +270,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                   label={burnsFees ? "Fees Burned" : "Fees Paid"}
                   href={`${base}/gas`}
                   sub={
-                    feesWei > 0n ? (
+                    !burnPending && feesWei > 0n ? (
                       <>
                         {usdOfWei(feesWei, usd) ?? ""}
                         {!exactFees && b.transactions.length > 0 && (
@@ -272,7 +280,13 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     ) : undefined
                   }
                 >
-                  <span className={feeInk}>{formatEther(feesWei.toString(), { decimals: feesWei >= 10n ** 18n ? 3 : 5 })}</span> <span className={UNIT}>{sym}</span>
+                  {burnPending ? (
+                    "…"
+                  ) : (
+                    <>
+                      <span className={feeInk}>{formatEther(feesWei.toString(), { decimals: feesWei >= 10n ** 18n ? 3 : 5 })}</span> <span className={UNIT}>{sym}</span>
+                    </>
+                  )}
                 </RailRow>
                 <RailRow label="Base Fee" href={`${base}/gas/base-fee`}>
                   {b.baseFeePerGas && b.baseFeePerGas !== "0" ? formatNano(b.baseFeePerGas, sym) : "—"}
