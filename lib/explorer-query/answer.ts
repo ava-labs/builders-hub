@@ -3,7 +3,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
-import { oneProtocol, protocolScope, unitName } from "./checks";
+import { protocolScope, unitName } from "./checks";
 import { familyQuestion } from "./families";
 import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
@@ -178,6 +178,9 @@ export function keptWords(recipe: Pick<Recipe, "title" | "note" | "chart">, sql:
 }
 
 /** the answer, without its layout when none is kept: the page asks for that next */
+/** a refusal of a read's size (ScanLimitError in clickhouse.ts), by its name, so a test that stubs that module keeps it */
+const scanRefusal = (e: unknown): e is Error => e instanceof Error && e.name === "ScanLimitError";
+
 export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const key = recipeKey(a.chainId, a.prompt, a.history);
   const t0 = Date.now();
@@ -237,6 +240,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
 
   const timings: StepTiming[] = [];
   const errors: string[] = [];
+  /* a read ClickHouse stopped as too large or too slow goes back to the writer like any database error, and the
+     writer answers over the longest window that fits, which its note names; a question that never gets an answer
+     ends with what to narrow */
+  let overScan: Error | null = null;
   // the SQL the final answer keeps, as written: its cut and its totals are read from it
   let keptSql: string | null = null;
   let tries = 0;
@@ -270,7 +277,6 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let datedOnce = false;
     let windowOnce = false;
     let scopeOnce = false;
-    let coverOnce = false;
     let unitOnce = false;
     let noteOnce = false;
     let tested = 0;
@@ -313,6 +319,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           return { columns: r.columns, rows: r.rows, rowCount: r.rowCount, elapsedMs: r.elapsedMs, rowsRead: r.rowsRead, ...left };
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
+          if (scanRefusal(e)) overScan = e;
           dbFailed += 1;
           errors.push(msg);
           step("test", Date.now() - q0, false, msg);
@@ -376,12 +383,6 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         if (unscoped) {
           scopeOnce = true;
           return fail(unscoped, 0);
-        }
-        // an answer for one of the protocols a question names says so in its note: ask once
-        const partial = coverOnce ? null : oneProtocol(sql, note, questions, a.chainId);
-        if (partial) {
-          coverOnce = true;
-          return fail(partial, 0);
         }
         // a value column holds the unit its name says: ask once
         const misnamed = unitOnce ? null : unitName(sql, a.chainId);
@@ -488,6 +489,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };
         } catch (e) {
+          if (scanRefusal(e)) overScan = e;
           dbFailed += 1;
           return fail(e instanceof Error ? e.message : String(e), Date.now() - q0);
         }
@@ -558,6 +560,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   if (!final) {
     // the database's own words stay in the log; the reader gets what to do next
     if (errors.length) console.warn("[explorer-query] no answer:", errors.slice(-3).join(" | ").slice(0, 900));
+    // set inside the tools, so TypeScript reads it as still null here
+    const over = overScan as Error | null;
+    if (over) {
+      a.emit({ type: "error", error: over.message, status: 422 });
+      return null;
+    }
     // on mainnet a writer with no answer ran out of steps, and says so unless every query it sent failed on the database
     a.emit({ type: "error", error: noAnswer(a, timings.length, !fuji && (ranFine > 0 || dbFailed === 0)), status: 422 });
     return null;

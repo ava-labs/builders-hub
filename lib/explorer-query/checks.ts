@@ -86,27 +86,27 @@ export function namedIn(questions: readonly string[]): string[][] {
   return [];
 }
 
-/** the shorthands that read every protocol of a family when they take no slug, with the family's slugs */
+/** the shorthands that read every protocol of a family when they take no slug, each as a query opens with it, with
+    the family's slugs */
 const FAMILIES = [
-  { shorthands: ["$lend(", "$liquidations("], single: ["$debts(", "$markets("], slugs: () => Object.keys(LENDING_PROTOCOLS), open: "$LEND(start)" },
-  { shorthands: ["$dex(", "$pools("], single: [], slugs: () => Object.keys(DEX_PROTOCOLS), open: "$DEX(start)" },
+  { shorthands: { "$lend(": "$LEND(start)", "$liquidations(": "$LIQUIDATIONS(start)", "$debts(": "$DEBTS()", "$markets(": "$MARKETS()" }, slugs: () => Object.keys(LENDING_PROTOCOLS) },
+  { shorthands: { "$dex(": "$DEX(start)", "$pools(": "$POOLS()" }, slugs: () => Object.keys(DEX_PROTOCOLS) },
 ];
 
 /** why a query does not read the protocol its question names, or null. `sql` is the query as the writer typed it (a
     shorthand not written out); `questions` is the question, then the turns before it, newest first. A shorthand with no
-    slug reads every protocol of its family, so it counts for a question that names two of them, and for one it does not.
-    $DEBTS and $MARKETS take one protocol at a time, so for a question about two they count for both */
+    slug reads every protocol of its family, so it counts for a question that names two of them, and for one it does not */
 export function protocolScope(sql: string, questions: readonly string[], chainId: number): string | null {
   if (chainId !== DEX_CHAIN_ID) return null;
   const text = sql.toLowerCase();
   const addresses = new Set([...text.matchAll(/(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])/g)].map((m) => m[0]));
   const groups = namedIn(questions);
   const familyOf = (protocol: string) => FAMILIES.find((f) => f.slugs().includes(SLUGS[protocol] ?? ""));
-  // a family the question names two protocols of, read by one of its shorthands with none of its slugs; or by one that
-  // covers a single protocol (debts, markets), whose answer says which protocol it covers
+  // a family the question names two protocols of, read by one of its shorthands with none of its slugs
   const whole = (f: (typeof FAMILIES)[number]) =>
     groups.filter((g) => g.some((p) => familyOf(p) === f)).length >= 2 &&
-    ((f.shorthands.some((x) => text.includes(x)) && !f.slugs().some((slug) => text.includes(`'${slug}'`))) || f.single.some((x) => text.includes(x)));
+    Object.keys(f.shorthands).some((x) => text.includes(x)) &&
+    !f.slugs().some((slug) => text.includes(`'${slug}'`));
   const readsProtocol = (protocol: string) => {
     const hexes = LISTED.filter((e) => e.protocol === protocol).map((e) => hexOf(e.address));
     const slug = SLUGS[protocol];
@@ -132,33 +132,13 @@ export function protocolScope(sql: string, questions: readonly string[], chainId
     .join(", ");
   const how =
     family && named.length >= 2
-      ? `The question names ${named.join(" and ")}: open the query with ${family.open} and no slug, which reads all of them, and keep protocol as a column (or filter protocol IN (${named.map((p) => `'${SLUGS[p]}'`).join(", ")})).`
+      ? `The question names ${named.join(" and ")}: open the query with ${Object.entries(family.shorthands).find(([x]) => text.includes(x))?.[1] ?? Object.values(family.shorthands)[0]} and no slug, which reads all of them, and keep protocol as a column (or filter protocol IN (${named.map((p) => `'${SLUGS[p]}'`).join(", ")})).`
       : slug && Object.hasOwn(DEX_PROTOCOLS, slug)
         ? `Open it with $DEX(start, '${slug}'), which reads ${protocol}'s pools from its factories in our registry: ${listed}.`
         : slug && Object.hasOwn(LENDING_PROTOCOLS, slug)
           ? `Open it with $LEND(start, '${slug}') for its supplies, withdrawals, borrows and repayments, or with $LIQUIDATIONS, $DEBTS or $MARKETS and '${slug}'. Its contracts in our registry: ${listed}.`
           : `Read its contracts in our registry: ${listed}.`;
   return `the question names ${protocol}, and the query reads none of ${protocol}'s contracts, so its rows are not ${protocol}'s. ${how} Then call render_chart again.`;
-}
-
-/** what the note of a query that answers one of the lending protocols its question names must say, or null: $DEBTS and
-    $MARKETS take one protocol per query, so the answer says it covers that one only and offers the other as the next
-    question. The send-back gives both sentences to copy: it goes once, and a replay of L07 took the offer alone */
-export function oneProtocol(sql: string, note: string, questions: readonly string[], chainId: number): string | null {
-  if (chainId !== DEX_CHAIN_ID) return null;
-  const m = /\$(debts|markets)\s*\(\s*'([a-z0-9-]+)'\s*\)/.exec(sql.toLowerCase());
-  if (!m) return null;
-  const name = (slug: string) => LENDING_PROTOCOLS[slug] ?? slug;
-  const others = [...new Set(namedIn(questions).flatMap((g) => g.map((p) => SLUGS[p]).filter((slug) => slug && slug !== m[2] && Object.hasOwn(LENDING_PROTOCOLS, slug)).slice(0, 1)))];
-  if (others.length === 0) return null;
-  const covered = name(m[2]);
-  // "only" beside the protocol it covers ("covers Aave only", "Aave's markets only", "only the Aave reserves"); an only
-  // of another sense ("only priced tokens show values") says nothing of the protocol
-  const word = covered.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const only = new RegExp(`\\b${word}(?:['’]s)?(?:\\s+[\\w-]+){0,3}\\s+only\\b|\\bonly\\s+(?:[\\w-]+\\s+){0,2}${word}\\b`, "i").test(note);
-  if (only && others.every((slug) => note.toLowerCase().includes(name(slug).toLowerCase()))) return null;
-  const next = `Ask for ${others.map((slug) => `${name(slug)}'s`).join(" and ")} ${m[1]} next.`;
-  return `the question names ${[covered, ...others.map(name)].join(" and ")}, and $${m[1].toUpperCase()} covers one protocol per query, so this answer covers ${covered} only. Add both of these sentences to the note, as they are: "This answer covers ${covered} only." and "${next}" Then call render_chart again with the same SQL.`;
 }
 
 /** the columns of a query's outer SELECT, each as its expression and its name */

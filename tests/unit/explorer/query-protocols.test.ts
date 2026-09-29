@@ -4,7 +4,7 @@ vi.mock('@/lib/sourcify', () => ({ getVerifiedContractResolvingProxies: vi.fn(as
 
 import registry from '@/data/contract-registry.json';
 import { enrichNames, fillDrill } from '@/lib/explorer-query/enrich';
-import { guardSql, shadowedAlias } from '@/lib/explorer-query/guard';
+import { guardSql, QUERY_CHARS, shadowedAlias } from '@/lib/explorer-query/guard';
 import { DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOKENS, DEX_TOPICS, dexContractName, dexFamilies, factoriesFor, factoriesSql, readsPositions, tokensFor, tokensSql, type DexFactory, type DexToken } from '@/lib/explorer-query/protocols';
 import { createHash } from 'node:crypto';
 import { recipeKey } from '@/lib/explorer-query/cache';
@@ -338,7 +338,7 @@ describe('DEX rules and worked examples', () => {
       const g = guardSql(sql, 43114);
       expect(g.ok ? '' : g.error).toBe('');
       if (!g.ok) continue;
-      expect(g.sql.length).toBeLessThanOrEqual(6000);
+      expect(g.sql.length).toBeLessThanOrEqual(QUERY_CHARS);
       const out = await withSources(g.sql, 43114);
       expect(Buffer.byteLength(out.sql)).toBeLessThanOrEqual(SQL_BUDGET);
       // with a registry of the real one's size, the query still leaves the tables their budget; a query that reads a

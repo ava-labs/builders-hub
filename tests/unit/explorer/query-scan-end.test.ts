@@ -29,6 +29,7 @@ const FINAL = { title: 'Liquidations this week', note: 'No liquidations on Aave 
 // a writer that hands render_chart the same answer on every step
 type Call = { tools: { render_chart: { execute: (input: unknown, o: unknown) => Promise<unknown> } }; stopWhen: ((o: { steps: unknown[] }) => boolean | PromiseLike<boolean>)[]; onStepFinish: (s: unknown) => void };
 const results: unknown[] = [];
+const events: { type: string; error?: string; status?: number }[] = [];
 const writes = (final: object) =>
   (async (opts: Call) => {
     const steps: unknown[] = [];
@@ -37,36 +38,45 @@ const writes = (final: object) =>
       steps.push({});
       opts.onStepFinish({});
     } while (!(await Promise.all(opts.stopWhen.map((s) => s({ steps })))).some(Boolean));
-    return { totalUsage: { inputTokens: 0, inputTokenDetails: { cacheReadTokens: 0 } } };
+    // every step called render_chart, as a writer on a forced tool does
+    return { steps: steps.map(() => ({ toolCalls: [{}] })), response: { messages: [] }, totalUsage: { inputTokens: 0, inputTokenDetails: { cacheReadTokens: 0 } } };
   }) as unknown as typeof generateText;
-const ask = (chainId: number) => answerQuestion({ chainId, chainName: 'Avalanche C-Chain', symbol: 'AVAX', prompt: 'Liquidations this week: who was liquidated and for how much?', history: [], baseUrl: 'http://localhost:3000', emit: () => {} });
+const ask = (chainId: number) => answerQuestion({ chainId, chainName: 'Avalanche C-Chain', symbol: 'AVAX', prompt: 'Liquidations this week: who was liquidated and for how much?', history: [], baseUrl: 'http://localhost:3000', emit: (e) => events.push(e) });
 
-describe('an answer that is no rows', () => {
+// what ClickHouse's refusal becomes in clickhouse.ts: a ScanLimitError
+const refusal = () => Object.assign(new Error('This question scans too much of the chain: about 1.6 billion rows, and one question may read 1.2 billion. Narrow the time range or add a filter.'), { name: 'ScanLimitError' });
+
+describe('a read ClickHouse stops as too large', () => {
   beforeEach(() => {
     vi.mocked(generateText).mockReset();
-    runQuery.mockReset().mockResolvedValue(EMPTY);
+    runQuery.mockReset();
     results.length = 0;
+    events.length = 0;
   });
 
-  it('ships its own query and chart once the writer keeps them: an empty result has no columns to check the chart on', async () => {
+  it('goes back to the writer, which answers over a window that fits', async () => {
+    runQuery.mockRejectedValueOnce(refusal()).mockResolvedValue({ ...EMPTY, columns: [{ name: 'borrower_address', type: 'String' }, { name: 'total_debt_usd', type: 'Float64' }] });
     vi.mocked(generateText).mockImplementation(writes(FINAL));
     const answer = await ask(43114);
-    expect(results).toEqual([{ error: expect.stringMatching(/^the query returned no rows\./) }, { ok: true, rows: 0 }]);
+    expect(results[0]).toEqual({ error: expect.stringMatching(/^This question scans too much of the chain/) });
     expect(answer?.sql).toBe(FINAL.sql);
-    expect(answer?.chart.x).toBe('borrower_address');
-    expect(answer?.result?.rowCount).toBe(0);
+    expect(events.some((e) => e.type === 'error')).toBe(false);
   });
 
-  it('still checks a chart against the columns of a result that has them', async () => {
-    runQuery.mockResolvedValue({ ...EMPTY, columns: [{ name: 'borrower_address', type: 'String' }, { name: 'debt_usd', type: 'Float64' }] });
+  it('ends a question that never gets an answer with what to narrow', async () => {
+    runQuery.mockRejectedValue(refusal());
+    vi.mocked(generateText).mockImplementation(writes(FINAL));
+    expect(await ask(43114)).toBeNull();
+    expect(results.length).toBeGreaterThan(1);
+    expect(events.filter((e) => e.type === 'error')).toEqual([{ type: 'error', error: refusal().message, status: 422 }]);
+  });
+
+  it('keeps every other database error as it was', async () => {
+    runQuery.mockRejectedValue(new Error('Timeout exceeded: elapsed 45.0 seconds'));
     vi.mocked(generateText).mockImplementation(writes(FINAL));
     await ask(43114);
-    expect(results[1]).toEqual({ error: 'chart refers to columns the query does not return: total_debt_usd' });
-  });
-
-  it('keeps Fuji\'s check as it was', async () => {
-    vi.mocked(generateText).mockImplementation(writes(FINAL));
-    await ask(43113);
-    expect(results[1]).toEqual({ error: 'chart refers to columns the query does not return: borrower_address, total_debt_usd' });
+    const error = events.find((e) => e.type === 'error');
+    expect(error?.status).toBe(422);
+    expect(error?.error).not.toMatch(/scans too much/);
   });
 });

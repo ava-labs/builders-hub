@@ -403,13 +403,9 @@ export function strayHex(sql: string, chainId: number, also: ReadonlySet<string>
     : null;
 }
 
-/** the two sentences a note copies when its answer covers one of two lending protocols */
-export const coverNote = (covered: string, others: readonly string[], kind: string) =>
-  `add both of these sentences to the note, as they are: "This answer covers ${covered} only." and "Ask for ${others.map((o) => `${o}'s`).join(" and ")} ${kind} next."`;
-
 /** why a query that reads no table and names two lending protocols is refused, or null: its figures are typed in from
-    a test's rows (replays of L07 summed each market's figures by hand to answer Aave and Benqi at once). Market and
-    debt figures take one protocol per query; the other shorthands read both with no slug. Mainnet C-Chain only */
+    a test's rows (replays of L07 summed each market's figures by hand to answer Aave and Benqi at once). Every
+    shorthand reads both protocols with no slug. Mainnet C-Chain only */
 export function typedLending(sql: string, chainId: number): string | null {
   if (chainId !== LENDING_CHAIN_ID) return null;
   const text = [...sql.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1].toLowerCase()).join("\n");
@@ -422,9 +418,7 @@ export function typedLending(sql: string, chainId: number): string | null {
   // a column's words, so debt_usd and tvl_usd count
   const kind = /(?<![a-z])(borrowers?|debts?)(?![a-z])/i.test(sql) ? "debts" : /(?<![a-z])(supplied|tvl|utilization|apy)(?![a-z])/i.test(sql) ? "markets" : null;
   if (!kind) return `${typed}. $LEND and $LIQUIDATIONS with no slug read both protocols: open the query with one of them and keep protocol as a column`;
-  const [covered, ...others] = named;
-  const shorthand = `$${kind.toUpperCase()}`;
-  return `${typed}. ${shorthand} covers one protocol per query, so answer ${covered.name} alone, with ${shorthand}('${covered.slug}') at the query's start, and ${coverNote(covered.name, others.map((o) => o.name), kind)}`;
+  return `${typed}. $${kind.toUpperCase()}() with no slug reads both protocols: open the query with it and keep protocol as a column`;
 }
 
 const KINDS: readonly PriceKind[] = ["", "usd", "avax", "btc", "eth", "savax", "link", "eurc", "qi"];
@@ -597,22 +591,22 @@ const RESERVES = `res AS (SELECT substring(topic1, 13, 20) AS asset, ${fixed("su
 /** a scaled balance's change in one aToken or debt token Mint or Burn: (value - balanceIncrease) / index, or -(value + balanceIncrease) / index */
 const SCALED = "if(topic0 = scaled_mint_t, X[1] - X[2], -(X[1] + X[2])) / X[3]";
 
-/** each borrower's debt now, per asset, on one protocol: a scaled balance times the newest index (Aave), or the newest accountBorrows grown by the borrow index since (Benqi) */
-export function debtsWith(slug: string): string {
-  if (sideOf(slug) === "aave") {
-    const sd = `sd AS (SELECT tok, user, sum(ds) AS s FROM (SELECT address AS tok, if(topic0 = scaled_mint_t, substring(topic2, 13, 20), substring(topic1, 13, 20)) AS user, ${WORDS(3)}, ${SCALED} AS ds FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2022-03-01' AND address IN (SELECT vdebt FROM res) AND topic0 IN (scaled_mint_t, scaled_burn_t)) GROUP BY tok, user HAVING s > 0)`;
-    const ix = `ix AS (SELECT substring(topic1, 13, 20) AS asset, argMax(${W(129)}, (block_number, log_index)) AS vi FROM raw_logs WHERE chain_id = ${C} AND block_time >= now() - INTERVAL 180 DAY AND address = aave_pool AND topic0 = reserve_data_t GROUP BY asset)`;
-    return (
-      `WITH ${pricesCte(NOW_PRICES, "toDate(now())")}, ${RESERVES}, ${sd}, ${ix}, debts AS (SELECT '${AAVE_SLUG}' AS protocol, sd.user AS borrower, res.asset AS asset, sd.s * ix.vi / pow(10, k.decimals) AS amount, ${usd("amount", "k.price")} AS usd ` +
-      `FROM sd INNER JOIN res ON sd.tok = res.vdebt INNER JOIN ix ON res.asset = ix.asset LEFT JOIN ${TOK} AS k ON res.asset = k.token ${NOW})`
-    );
-  }
+/** each borrower's debt now, per asset: a scaled balance times the newest index (Aave), or the newest accountBorrows
+    grown by the borrow index since (Benqi); both protocols with no slug */
+export function debtsWith(slug?: string): string {
+  const side = sideOf(slug);
+  const sd = `sd AS (SELECT tok, user, sum(ds) AS s FROM (SELECT address AS tok, if(topic0 = scaled_mint_t, substring(topic2, 13, 20), substring(topic1, 13, 20)) AS user, ${WORDS(3)}, ${SCALED} AS ds FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2022-03-01' AND address IN (SELECT vdebt FROM res) AND topic0 IN (scaled_mint_t, scaled_burn_t)) GROUP BY tok, user HAVING s > 0)`;
+  const ix = `ix AS (SELECT substring(topic1, 13, 20) AS asset, argMax(${W(129)}, (block_number, log_index)) AS vi FROM raw_logs WHERE chain_id = ${C} AND block_time >= now() - INTERVAL 180 DAY AND address = aave_pool AND topic0 = reserve_data_t GROUP BY asset)`;
+  const aave =
+    `SELECT '${AAVE_SLUG}' AS protocol, sd.user AS borrower, res.asset AS asset, sd.s * ix.vi / pow(10, k.decimals) AS amount, ${usd("amount", "k.price")} AS usd ` +
+    `FROM sd INNER JOIN res ON sd.tok = res.vdebt INNER JOIN ix ON res.asset = ix.asset LEFT JOIN ${TOK} AS k ON res.asset = k.token ${NOW}`;
   const acts = `acts AS (SELECT address AS mk, if(topic0 = qi_borrow_t, substring(data, 13, 20), substring(data, 45, 20)) AS who, argMax(if(topic0 = qi_borrow_t, ${W(65)}, ${W(97)}), (block_number, log_index)) AS ab, max(block_number) AS bn FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2021-08-01' AND address IN (SELECT market FROM ${CORE}) AND topic0 IN (qi_borrow_t, qi_repay_t) GROUP BY mk, who HAVING ab > 0)`;
   const acc = `acc AS (SELECT address AS mk, block_number AS bn, ${W(65)} AS bi FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2021-08-01' AND address IN (SELECT market FROM ${CORE}) AND topic0 = accrue_t)`;
-  return (
-    `WITH ${pricesCte(NOW_PRICES, "toDate(now())")}, ${CORE_CTE}, ${acts}, ${acc}, debts AS (SELECT m.protocol AS protocol, a.who AS borrower, m.asset AS asset, a.ab * cur.bnow / nullIf(z.bi, 0) / pow(10, m.decimals) AS amount, ${usd("amount", "m.price")} AS usd ` +
-    `FROM acts AS a ASOF LEFT JOIN acc AS z ON a.mk = z.mk AND a.bn >= z.bn INNER JOIN (SELECT mk, argMax(bi, bn) AS bnow FROM acc GROUP BY mk) AS cur ON a.mk = cur.mk INNER JOIN ${CORE} AS m ON a.mk = m.market ${NOW})`
-  );
+  const benqi =
+    `SELECT m.protocol AS protocol, a.who AS borrower, m.asset AS asset, a.ab * cur.bnow / nullIf(z.bi, 0) / pow(10, m.decimals) AS amount, ${usd("amount", "m.price")} AS usd ` +
+    `FROM acts AS a ASOF LEFT JOIN acc AS z ON a.mk = z.mk AND a.bn >= z.bn INNER JOIN (SELECT mk, argMax(bi, bn) AS bnow FROM acc GROUP BY mk) AS cur ON a.mk = cur.mk INNER JOIN ${CORE} AS m ON a.mk = m.market ${NOW}`;
+  const parts = [pricesCte(NOW_PRICES, "toDate(now())"), ...(side === "benqi" ? [] : [RESERVES, sd, ix]), ...(side === "aave" ? [] : [CORE_CTE, acts, acc])];
+  return `WITH ${parts.join(", ")}, debts AS (${join(side, aave, benqi)})`;
 }
 
 /** each market now: supplied and borrowed in units and USD, utilization, TVL, and Aave's rates. Benqi supplied is

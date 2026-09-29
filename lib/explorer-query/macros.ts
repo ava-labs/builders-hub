@@ -10,7 +10,7 @@
    the whole WITH. The prompt prints none of it, so the writer has no WITH
    to copy. Mainnet C-Chain only. */
 
-import { coverNote, debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
+import { debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
 import { DEX_CHAIN_ID, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS, type DexFamily } from "./protocols";
 
 const T = DEX_TOPICS;
@@ -49,7 +49,7 @@ function poolsCte(): string {
 
 /** the Swap topics, named once in the WITH */
 const SWAPS_NAMED = `${topic(T.v2Swap)} AS v2_swap, ${topic(T.v3Swap)} AS v3_swap, ${topic(T.lbSwap)} AS lb_swap, ${topic(T.v4Swap)} AS v4_swap`;
-/* What a query reads of a swap's fee sets what the DEX WITH reads for it, since the query service takes 8 KiB of SQL:
+/* What a query reads of a swap's fee sets what the DEX WITH reads for it, so its SQL stays short:
    0 nothing, 1 its rate and its value in dollars (fee_rate, fee_usd), 2 its amount in the token in too (fee_in,
    token_in). For 1 a Swap log gives the fee rate it carries (fr): an lb swap's totalFees over its amountsIn (both on
    the side of the token in, so the ratio of the two words is that of the two amounts), and a univ4 swap's fee, its
@@ -96,8 +96,8 @@ const DEX_POOLS = `WITH ${SWAPS_NAMED}, ${poolsCte()}`;
 interface Macro {
   window: boolean;
   slugs: () => readonly string[];
-  /** "required": the WITH covers one protocol at a time, so it always takes a slug */
-  slug: "none" | "optional" | "required";
+  /** "optional": with no slug, its WITH reads every protocol */
+  slug: "none" | "optional";
   /** `rest` is the query after the shorthand, for a WITH that depends on what it reads */
   text: (start: string, end: string | undefined, slug: string | undefined, rest: string) => string;
 }
@@ -111,13 +111,12 @@ const MACROS: Record<string, Macro> = {
   LEND: { window: true, slugs: lendSlugs, slug: "optional", text: lendWith },
   LIQUIDATIONS: { window: true, slugs: lendSlugs, slug: "optional", text: liquidationsWith },
   PRICES: { window: true, slugs: () => [], slug: "none", text: (start, end) => pricesWith(start, end) },
-  // one protocol's debts or markets take most of the 8 KiB the query service accepts, so one at a time
-  DEBTS: { window: false, slugs: lendSlugs, slug: "required", text: (_s, _e, slug) => debtsWith(slug!) },
-  MARKETS: { window: false, slugs: lendSlugs, slug: "required", text: (_s, _e, slug) => marketsWith(slug) },
+  DEBTS: { window: false, slugs: lendSlugs, slug: "optional", text: (_s, _e, slug) => debtsWith(slug) },
+  MARKETS: { window: false, slugs: lendSlugs, slug: "optional", text: (_s, _e, slug) => marketsWith(slug) },
 };
 
 const USAGE =
-  "open the query with one shorthand: $DEX, $LEND or $LIQUIDATIONS with the window's start, then its end if it has one, then a slug for one protocol, as in $DEX(start, end, 'slug'); $PRICES(start) or $PRICES(start, end); $POOLS() or $POOLS('slug'); $DEBTS('slug') or $MARKETS('slug'). Then SELECT, or , name AS (…)";
+  "open the query with one shorthand: $DEX, $LEND or $LIQUIDATIONS with the window's start, then its end if it has one, then a slug for one protocol, as in $DEX(start, end, 'slug'); $PRICES(start) or $PRICES(start, end); $POOLS() or $POOLS('slug'); $DEBTS() or $DEBTS('slug'); $MARKETS() or $MARKETS('slug'). Then SELECT, or , name AS (…)";
 const quoted = (xs: readonly string[]) => xs.map((s) => `'${s}'`).join(", ");
 /** a quoted word, as a slug is; a quoted date is a DateTime */
 const WORD = /^'([a-z][\w-]*)'$/i;
@@ -140,19 +139,15 @@ function slugAt(sql: string, blank: string, at: number): string | undefined {
 }
 
 /** why a query has a second shorthand, or one after its start. One shorthand typed for two protocols is answered
-    plainly, since a writer asked about both tries to join them (a replay of L07 spent 4 of its 8 steps so): one that
-    covers a protocol at a time answers the first and names the other next, and one that takes no slug reads them all */
+    plainly, since a writer asked about both tries to join them (a replay of L07 spent 4 of its 8 steps so): with no
+    slug, it reads them all */
 function onceOnly(sql: string, blank: string, found: RegExpMatchArray[]): string {
   const names = [...new Set(found.map((m) => m[1]))];
   const slugs = [...new Set(found.map((m) => slugAt(sql, blank, (m.index ?? 0) + m[0].length)).filter((x): x is string => !!x))];
   const macro = names.length === 1 ? MACROS[names[0]] : undefined;
   if (!macro || slugs.length < 2) return `the shorthand stands for the query's WITH, once, at its start: ${USAGE}`;
   const [name] = names;
-  if (macro.slug !== "required")
-    return `a query takes one shorthand, once, at its start, and $${name} with no slug reads every protocol: open the query once with $${name}(${macro.window ? "start" : ""}) and keep protocol as a column, or filter protocol IN (${quoted(slugs)})`;
-  const title = (slug: string) => LENDING_PROTOCOLS[slug] ?? slug;
-  const [covered, ...others] = slugs;
-  return `$${name} covers one protocol per query, and a query takes one shorthand, so ${slugs.map((o) => `$${name}('${o}')`).join(" and ")} cannot share one: both at once are too long to send. Answer ${title(covered)} alone, with $${name}('${covered}') at the query's start and no other shorthand, and ${coverNote(title(covered), others.map(title), name.toLowerCase())}`;
+  return `a query takes one shorthand, once, at its start, and $${name} with no slug reads every protocol: open the query once with $${name}(${macro.window ? "start" : ""}) and keep protocol as a column, or filter protocol IN (${quoted(slugs)})`;
 }
 
 /** the query with the shorthand it opens with written out. Any other $NAME, a second one, or one after the start is
@@ -196,7 +191,6 @@ export function expandMacros(sql: string, chainId: number): Expanded {
   if (end !== undefined && WORD.test(end))
     return { ok: false, error: macro.slug === "none" ? `$${name} takes no slug: ${USAGE}` : `$${name} takes one slug, last: $${name}(toStartOfDay(now()) - INTERVAL 1 DAY, toStartOfDay(now()), '${some}')` };
   if (slugArg !== undefined && !slugs.includes(slug!)) return { ok: false, error: `${slugArg} is not a protocol's slug; the slugs are ${quoted(slugs)}` };
-  if (macro.slug === "required" && !slug) return { ok: false, error: `$${name} covers one protocol at a time: $${name}(${quoted(slugs).replace(/, /g, `) or $${name}(`)})` };
   // a WITH of the query's own goes on after the shorthand's
   const rest = sql.slice(close + 1).replace(/^\s*WITH\b/i, ",");
   if (!/\S/.test(rest)) return { ok: false, error: `$${name}(…) is only the WITH: ${USAGE}` };
@@ -221,7 +215,7 @@ const RESTS = [" SELECT 1", " SELECT fee_usd", " SELECT fee_in"];
 let patterns: { name: string; slug?: string; re: RegExp }[] | undefined;
 function patternsOf() {
   return (patterns ??= Object.entries(MACROS).flatMap(([name, macro]) => {
-    const slugs = macro.slug === "none" ? [undefined] : macro.slug === "required" ? [...macro.slugs()] : [undefined, ...macro.slugs()];
+    const slugs = macro.slug === "none" ? [undefined] : [undefined, ...macro.slugs()];
     return (macro.window ? [true, false] : [false]).flatMap((end) =>
       slugs.flatMap((slug) =>
         [...new Set(RESTS.map((rest) => macro.text(macro.window ? MARK.start : "", end ? MARK.end : undefined, slug, rest)))].map((text) => {

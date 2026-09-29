@@ -15,6 +15,21 @@ export type AllowedTable = string;
 
 /** the most rows one answer may carry back to the browser */
 export const MAX_ROWS = 2000;
+/** the most a query may take with its shorthand written out: the query service takes 16 KiB (SQL_BUDGET in
+    sources.ts), and the reference tables and names a query reads take up to about 4 KB of it */
+export const QUERY_CHARS = 12000;
+/** a hash prefix as the writer is told to write it: a range on the bytes, which a table sorted by the hash reads as a window */
+export const HASH_RANGE =
+  "hash >= unhex('12') AND hash < unhex('13') for 0x12; an odd number of digits pads both ends, so 0x123 is hash >= unhex('1230') AND hash < unhex('1240')";
+/* startsWith on a hash or a topic in a filter reads a sort key's index wrong: over 7 days of raw_txs,
+   startsWith(hash, unhex('12')) kept 3,781 of the 13,452 rows its range keeps */
+const STARTS_WITH_KEY = /\bstartsWith\s*\(\s*(?:\w+\.)?(?:hash|tx_hash|transaction_hash|topic[0-3])\s*,/i;
+/** the hash each wide table sorts by after chain_id: a range on it bounds a read as a window does */
+const KEYED_BY: Record<string, string> = { raw_txs: "hash", raw_traces: "tx_hash" };
+const keyRange = (sql: string, table: string) => {
+  const col = KEYED_BY[table];
+  return !!col && new RegExp(`\\b${col}\\s*>=?\\s*unhex\\s*\\(`, "i").test(sql) && new RegExp(`\\b${col}\\s*<=?\\s*unhex\\s*\\(`, "i").test(sql);
+};
 
 const KEYWORDS = /\b(INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|TRUNCATE|ATTACH|DETACH|OPTIMIZE|SYSTEM|KILL|GRANT|REVOKE|RENAME|EXCHANGE|USE|OUTFILE|SET|SETTINGS|FORMAT)\b/i;
 /** table functions that read outside the database or spawn work */
@@ -196,9 +211,9 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   // what the writer typed after $DEX reads the Swap logs from legs, never from raw_logs a second time
   const again = x.macro?.name === "DEX" ? legsAgain(sql.slice(x.macro.size)) : null;
   if (again) return { ok: false, error: again };
-  if (sql.length > 6000) {
+  if (sql.length > QUERY_CHARS) {
     const m = x.macro;
-    return { ok: false, error: m ? `query too long: ${sql.length} characters with $${m.name} written out, 6000 at most. Its WITH takes ${m.size}, so what follows it may take ${6000 - m.size}` : "query too long (6000 chars max)" };
+    return { ok: false, error: m ? `query too long: ${sql.length} characters with $${m.name} written out, ${QUERY_CHARS} at most. Its WITH takes ${m.size}, so what follows it may take ${QUERY_CHARS - m.size}` : `query too long (${QUERY_CHARS} chars max)` };
   }
   if (sql.includes(";")) return { ok: false, error: "one statement only; no semicolons" };
   if (/--|\/\*|\*\//.test(sql)) return { ok: false, error: "no comments in the query" };
@@ -206,6 +221,8 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   if (/\$(DEX|POOLS|START|PROTOCOL)\b/.test(sql)) return { ok: false, error: "write the DEX WITH out in full: $DEX, $POOLS, $START and $PROTOCOL stand for its text" };
   // hashes, addresses and topics are bytes already: unhex reads each of their bytes as a hex digit
   if (!isFuji(chainId) && /\bhex\s*\(\s*unhex\s*\(/i.test(sql)) return { ok: false, error: "hex(unhex(x)) garbles x: hashes, addresses and topics are bytes already, so write lower(concat('0x', hex(x)))" };
+  if (!isFuji(chainId) && STARTS_WITH_KEY.test(sql))
+    return { ok: false, error: `startsWith on a hash misses rows in a filter, since ClickHouse reads the table's index wrong for it: write a prefix as a range on the bytes, ${HASH_RANGE}` };
   if (!/^(SELECT|WITH)\b/i.test(sql)) return { ok: false, error: "the query must start with SELECT or WITH" };
   const kw = sql.match(KEYWORDS);
   if (kw) return { ok: false, error: `${kw[1].toUpperCase()} is not allowed; write a plain SELECT (the server sets FORMAT and settings)` };
@@ -247,15 +264,16 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const otherChain = sql.match(/\bchain_id\s*(=|==)\s*(\d+)/g)?.find((s) => !new RegExp(`\\b${chainId}\\b`).test(s));
   if (otherChain) return { ok: false, error: `only chain_id = ${chainId} is readable on this page` };
 
-  // the big tables hold years; a read with no window scans all of them
+  // the big tables hold years; a read with no window scans all of them. A range on the hash raw_txs or raw_traces sorts
+  // by reads only its share of the table, so it bounds the read too
   const wide = [...tables].filter((t) => target.wide.includes(t));
-  if (wide.length && !target.bound.test(sql)) {
+  if (wide.length && !target.bound.test(sql) && (isFuji(chainId) || !wide.every((t) => keyRange(sql, t)))) {
     return {
       ok: false,
       error:
         target.kind === "pchain"
           ? `bound ${wide.join(", ")} on its time or height (block_time, snapshot_time, created_time, block_height; for snapshots, the latest snapshot_time)`
-          : `bound ${wide.join(", ")} on block_time or block_number (for example block_time >= now() - INTERVAL 1 DAY)`,
+          : `bound ${wide.join(", ")} on block_time or block_number (for example block_time >= now() - INTERVAL 1 DAY)${!isFuji(chainId) && wide.includes("raw_txs") ? `, or raw_txs on a range of its hash (${HASH_RANGE})` : ""}`,
     };
   }
 

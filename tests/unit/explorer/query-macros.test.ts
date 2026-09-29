@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { guardSql, literalWindow, negativeFigure } from '@/lib/explorer-query/guard';
+import { guardSql, HASH_RANGE, literalWindow, negativeFigure, QUERY_CHARS } from '@/lib/explorer-query/guard';
 import { collapseMacros, DEX_WITH, expandMacros } from '@/lib/explorer-query/macros';
 import { pchainPrompt, systemPrompt, userTurn } from '@/lib/explorer-query/prompt';
 import { DEX_FACTORIES, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS } from '@/lib/explorer-query/protocols';
@@ -105,10 +105,10 @@ describe('the DEX shorthand', () => {
   it('runs through the guard as the whole WITH, and a query too long says what its own part may take', () => {
     const g = guardSql(`$DEX(${today})${OWN}`, 43114);
     expect(g.ok && g.sql.startsWith(DEX_WITH.slice(0, 40)) && g.tables.includes('raw_logs')).toBe(true);
-    const long = guardSql(`$DEX(${today})${OWN} HAVING volume_usd > ${'1 + '.repeat(800)}1`, 43114);
+    const long = guardSql(`$DEX(${today})${OWN} HAVING volume_usd > ${'1 + '.repeat(2200)}1`, 43114);
     const size = DEX_WITH.replaceAll('$START', today).replace('$END', '').replace('$PROTOCOL', '').length;
-    expect(long.ok ? '' : long.error).toMatch(new RegExp(`^query too long: \\d+ characters with \\$DEX written out, 6000 at most\\. Its WITH takes ${size}, so what follows it may take ${6000 - size}$`));
-    expect((guardSql(`SELECT 1 FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND ${'1 + '.repeat(1600)}1 = 1`, 43114) as { error: string }).error).toBe('query too long (6000 chars max)');
+    expect(long.ok ? '' : long.error).toMatch(new RegExp(`^query too long: \\d+ characters with \\$DEX written out, ${QUERY_CHARS} at most\\. Its WITH takes ${size}, so what follows it may take ${QUERY_CHARS - size}$`));
+    expect((guardSql(`SELECT 1 FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND ${'1 + '.repeat(3200)}1 = 1`, 43114) as { error: string }).error).toBe(`query too long (${QUERY_CHARS} chars max)`);
   });
 });
 
@@ -179,6 +179,30 @@ describe('the checks that stop a wrong answer', () => {
     }
     expect(guardSql(HASH.replace('43114', '43113'), 43113).ok).toBe(true);
     expect(guardSql("SELECT concat('0x', hex(transaction_hash)) AS tx_hash FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef')", 43114).ok).toBe(true);
+  });
+
+  it('refuse startsWith on a hash, and take a range on the hash raw_txs sorts by as its bound, on every chain but Fuji', () => {
+    const error = (sql: string, chainId = 43114) => {
+      const g = guardSql(sql, chainId);
+      return g.ok ? '' : g.error;
+    };
+    // over 7 days of raw_txs, startsWith(hash, unhex('12')) in a filter kept 3,781 of the 13,452 rows its range keeps
+    for (const col of ['hash', 't.hash', 'tx_hash', 'transaction_hash', 'topic0'])
+      expect(error(`SELECT count() AS n FROM raw_txs AS t WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 DAY AND startsWith(${col}, unhex('12'))`), col).toMatch(/^startsWith on a hash misses rows in a filter/);
+    const range = "SELECT count() AS n FROM raw_txs WHERE chain_id = 43114 AND hash >= unhex('12') AND hash < unhex('13')";
+    expect(error(range)).toBe('');
+    expect(error(range.replace(/\bhash\b/g, 'tx_hash').replace('raw_txs', 'raw_traces'))).toBe('');
+    expect(error(range.replace(/hash >= unhex\('12'\)/, "t.hash >= unhex('1230')").replace(/hash < unhex\('13'\)/, "t.hash < unhex('1240')").replace('raw_txs', 'raw_txs AS t'))).toBe('');
+    // raw_logs is not sorted by its transaction's hash, and one end of a range bounds nothing
+    expect(error(range.replace(/\bhash\b/g, 'transaction_hash').replace('raw_txs', 'raw_logs'))).toBe('bound raw_logs on block_time or block_number (for example block_time >= now() - INTERVAL 1 DAY)');
+    expect(error("SELECT count() AS n FROM raw_txs WHERE chain_id = 43114 AND hash >= unhex('12')")).toBe(
+      `bound raw_txs on block_time or block_number (for example block_time >= now() - INTERVAL 1 DAY), or raw_txs on a range of its hash (${HASH_RANGE})`,
+    );
+    // a join bounds every wide table it reads
+    expect(error("SELECT count() AS n FROM raw_txs AS t INNER JOIN raw_logs AS l ON l.transaction_hash = t.hash WHERE t.chain_id = 43114 AND l.chain_id = 43114 AND t.hash >= unhex('12') AND t.hash < unhex('13')")).toMatch(/^bound raw_txs, raw_logs on block_time or block_number/);
+    // Fuji keeps its rules
+    expect(error(range.replace('43114', '43113'), 43113)).toBe('bound raw_txs on block_time or block_number (for example block_time >= now() - INTERVAL 1 DAY)');
+    expect(error("SELECT count() AS n FROM raw_txs WHERE chain_id = 43113 AND block_time >= now() - INTERVAL 1 DAY AND startsWith(hash, unhex('12'))", 43113)).toBe('');
   });
 
   it('refuse a $DEX query that reads the Swap logs from raw_logs again or joins raw_logs to legs, and pass a read of another event', () => {
