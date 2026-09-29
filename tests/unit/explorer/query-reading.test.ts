@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { READ_ONLY, designVisual, distinctColumns, figures, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
+import { READ_ONLY, designVisual, distinctColumns, figures, plainDecimals, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
 
 // a model call that hands the reading tool these callouts, as the model would
 type Call = { tools: { reading: { execute: (input: { callouts: string[] }) => Promise<unknown> } } };
@@ -219,6 +219,14 @@ describe('writeReading', () => {
 
   beforeEach(() => {
     vi.mocked(generateText).mockReset();
+  });
+
+  it('writes decimals as people read them', async () => {
+    // the follow-up audit's readings copied Figures' six digits: "30.7451 gwei against 25.117 gwei"
+    vi.mocked(generateText).mockImplementationOnce(says(['The fee rose from 3.24656 gwei to 26.9643 gwei, then fell to 0.0486849 gwei.']));
+    expect(await writeReading(input)).toEqual(['The fee rose from 3.25 gwei to 26.96 gwei, then fell to 0.0487 gwei.']);
+    // two places or fewer, integers, versions and addresses stay as written
+    expect(plainDecimals('45.54% of 1,345,042 AVAX on v1.14.1234 at 0x1234.5678 and 0.043%')).toBe('45.54% of 1,345,042 AVAX on v1.14.1234 at 0x1234.5678 and 0.043%');
   });
 
   it('writes an empty reading once more', async () => {

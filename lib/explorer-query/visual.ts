@@ -146,6 +146,14 @@ const SETTLED = /\bsettl(?:e|es|ed|ing)\b/gi;
 /** reader text with each bucket read as a period, the page's word for a span of time */
 export const plainWords = (s: string) => s.replace(/\b([Bb])ucket(s?)\b/g, (_, b: string, n: string) => `${b === "B" ? "P" : "p"}eriod${n}`);
 
+/** a decimal as people read it: two places from 1 up, else three significant digits (3.24656 is 3.25, 0.0486849 is
+    0.0487). Figures gives six digits, and the reader copied them into its sentences ("26.9643 gwei") */
+export const plainDecimals = (s: string) =>
+  s.replace(/(?<![\w.])\d+\.\d{4,}(?![\w.])/g, (m) => {
+    const n = Number(m);
+    return n >= 1 ? n.toFixed(2) : String(Number(n.toPrecision(3)));
+  });
+
 /** a query's own names that hold a digit (topic0), outside its quoted strings and comments */
 export function sqlNames(sql: string): string[] {
   const code = sql.replace(/'(?:[^'\\]|\\.)*'/g, "''").replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -220,7 +228,7 @@ export function readerSpec(v: VisualSpec, names: readonly string[], held?: reado
     ...v,
     stats: v.stats.map((s) => ({ ...worded(s), ...(s.sub ? { sub: plainLabel(s.sub) } : {}) })),
     panels: v.panels.map((p) => ({ ...p, title: plainLabel(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
-    callouts: v.callouts.map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
+    callouts: v.callouts.map((c) => plainDecimals(plainWords(c))).filter((c) => codeWords(c, names).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
   };
 }
 
@@ -643,7 +651,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
       const names = input.columns.map((c) => c.name);
       const held = heldHex(input);
       const shares = sharesOf(input);
-      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).map((c) => withShares(c, shares)).slice(0, 3);
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).map(plainDecimals).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).map((c) => withShares(c, shares)).slice(0, 3);
       return { ok: true };
     },
   });
