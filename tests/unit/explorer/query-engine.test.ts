@@ -92,6 +92,19 @@ describe('the flow and finite-value rules', () => {
   });
 });
 
+describe('the DEX chapter', () => {
+  it('writes its swap drills with the Swap topic names $POOLS defines, not their hex', () => {
+    // qlatency, 2026-09-29: hex topic literals were 218 of a DEX answer's 969 output tokens (median), about 1 s of writing
+    const p = systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null, dex: true });
+    const drills = p.split('\n').filter((l) => l.startsWith('drill: ') && l.includes('v2_swap, v3_swap, lb_swap, v4_swap'));
+    expect(drills.length).toBeGreaterThanOrEqual(3);
+    for (const d of drills) {
+      expect(d).toMatch(/^drill: \$POOLS\(/);
+      expect(d).not.toContain("unhex('");
+    }
+  });
+});
+
 describe('the NFT and new-contract rules', () => {
   const prompt = (chainId: number, dex = false) => systemPrompt({ chainId, chainName: 'a chain', symbol: 'AVAX', schema: '', coverage: null, dex });
 

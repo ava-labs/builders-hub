@@ -86,7 +86,9 @@ const hexOf = (c: string) => `lower(concat('0x', hex(${c})))`;
 const SWAPS = "uniqExact(tx, pool) AS swaps, uniqExactIf(tx, pool, usd IS NOT NULL) AS priced_swaps, round(sum(usd), 2) AS volume_usd";
 /** a drill's record columns for a log */
 const LOG_RECORD = "l.block_time AS t, l.block_number AS block_number, concat('0x', hex(l.transaction_hash)) AS tx_hash, lower(concat('0x', hex(l.tx_from))) AS from_address, lower(concat('0x', hex(l.address))) AS contract";
-const SWAP_TOPICS = [T.v2Swap, T.v3Swap, T.lbSwap, T.v4Swap].map(topic).join(", ");
+/** the Swap topics by the names $POOLS and the DEX WITH define: a drill that wrote their hex spent about 1 s of the
+    writer's output on it (218 of a DEX answer's 969 output tokens, median) */
+const SWAP_NAMES = "v2_swap, v3_swap, lb_swap, v4_swap";
 /** the tokens of the one pool `pool` (bytes) that a family's creation log names */
 const tokWith = (family: DexFamily, pool: string) =>
   `tok AS (SELECT substring(topic1, 13, 20) AS t0, substring(topic2, 13, 20) AS t1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${FIRST_DAY} AND topic0 = ${topic(CREATED[family][0])} AND address IN (SELECT factory FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} AND family = '${family}') AND substring(data, ${family === "univ3" ? 45 : 13}, 20) = ${pool})`;
@@ -160,20 +162,20 @@ function dexExamples(): string {
     `The DEX WITH. A query about swaps or volume starts with it: it reads the pools of every family, the Swap logs of the window, the WAVAX price of each hour and the value of each swap (legs). Never write it out, or a shorter copy of it: open every such query with $DEX(start), $DEX(start, end), or either with a slug last ($DEX(start, 'slug'), $DEX(start, end, 'slug')), even one that needs no value. Our server writes it in place: its Swap logs start at start and stop before end, and a slug keeps one protocol's pools. $POOLS() or $POOLS('slug') is its first two parts alone: the Swap topic names and pools. start and end are DateTimes, such as toStartOfDay(now()) or toDateTime('2022-03-07 00:00:00'). A window with no end runs to now; a named day or week has an end: $DEX(toDateTime('2022-03-07 00:00:00'), toDateTime('2022-03-08 00:00:00'), 'trader-joe') is Monday March 7, 2022. legs has one row per Swap log (an lb swap that crosses n bins is n rows): pool, block_time, block_number, tx, trader, router, protocol, version, t0, t1, k, r0, r1 and usd, and no chain_id (the WITH reads this chain's logs); a query that reads fee_rate, fee_usd, fee_in or token_in gets them too, and the WITH then reads each pool's fee changes. Never join raw_logs back to legs: every figure of a swap is in its row. After the shorthand comes SELECT, or , name AS (…) for a WITH of your own. Besides legs, the WITH names pools (protocol, version, pool, t0, t1 and k), px (hour and price, the WAVAX price of each hour) and the Swap topics v2_swap, v3_swap, lb_swap and v4_swap.`,
     `Every DEX protocol by today's volume, with its share; drill into one protocol's swaps:
 $DEX(${today}) SELECT protocol, ${SWAPS}, round(100 * sum(usd) / nullIf(sum(sum(usd)) OVER (), 0), 2) AS share_pct, count() OVER () AS of_total FROM legs GROUP BY protocol ORDER BY volume_usd DESC
-drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_TOPICS}) AND if(l.topic0 = ${topic(T.v4Swap)}, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
+drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_NAMES}) AND if(l.topic0 = v4_swap, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
     `What the LPs of each DEX protocol earned in fees this week, with the swaps no fee is known for; drill into one protocol's swaps:
 $DEX(${week}) SELECT protocol, round(sum(fee_usd), 2) AS fees_usd, uniqExactIf(tx, pool, fee_usd IS NULL) AS swaps_not_counted, ${SWAPS} FROM legs GROUP BY protocol ORDER BY fees_usd DESC
-drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${week} AND l.topic0 IN (${SWAP_TOPICS}) AND if(l.topic0 = ${topic(T.v4Swap)}, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
+drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${week} AND l.topic0 IN (${SWAP_NAMES}) AND if(l.topic0 = v4_swap, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
   ];
   if (has("pharaoh")) {
     blocks.push(`One protocol's swaps and volume per day this week; drill into one day's swaps:
 $DEX(${week}, 'pharaoh') SELECT toDate(block_time) AS t, ${SWAPS} FROM legs GROUP BY t ORDER BY t
-drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${week} AND toDate(l.block_time) = {{t}} AND l.topic0 IN (${SWAP_TOPICS}) AND if(l.topic0 = ${topic(T.v4Swap)}, l.topic1, l.address) IN (SELECT pool FROM pools) ORDER BY l.block_time DESC LIMIT 50`);
+drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${week} AND toDate(l.block_time) = {{t}} AND l.topic0 IN (${SWAP_NAMES}) AND if(l.topic0 = v4_swap, l.topic1, l.address) IN (SELECT pool FROM pools) ORDER BY l.block_time DESC LIMIT 50`);
   }
   if (tj.length) {
     blocks.push(`One protocol's 15 busiest pools today, with version, tokens and fee or bin step; drill into one pool's swaps:
 $DEX(${today}, 'trader-joe') SELECT ${hexOf("pool")} AS pool_address, version, ${hexOf("t0")} AS token0, ${hexOf("t1")} AS token1, k AS fee_or_bin_step, ${SWAPS}, count() OVER () AS of_total FROM legs GROUP BY pool, version, t0, t1, k ORDER BY swaps DESC LIMIT 15
-drill: SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_TOPICS}) AND l.address = {{pool_address:bytes}} ORDER BY l.block_time DESC LIMIT 50`);
+drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_NAMES}) AND l.address = {{pool_address:bytes}} ORDER BY l.block_time DESC LIMIT 50`);
   }
   if (uni) {
     const P = topic(DEX_PRICE_POOL.slice(2));
