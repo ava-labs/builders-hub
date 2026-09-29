@@ -129,6 +129,12 @@ describe('the NFT and new-contract rules', () => {
     expect(prompt(43113)).not.toContain('Contracts by transactions');
   });
 
+  it("count a sender's recipients, never its contracts, on each chain but Fuji", () => {
+    // the night audit's G11 counted a sender's partners as contracts, and its reading said an account called 778 of them
+    for (const p of [prompt(43114), prompt(43419)]) expect(p).toContain('a ranking of senders carries how many addresses each sent to (recipients, uniqExact over `to`), never contracts');
+    expect(prompt(43113)).not.toContain('a ranking of senders carries');
+  });
+
   it('teaches a creation filter the guard passes', () => {
     const sql = "SELECT count() AS new_contracts FROM raw_traces WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 24 HOUR AND startsWith(call_type, 'CREAT') AND tx_success";
     expect(guardSql(sql, 43114).ok).toBe(true);

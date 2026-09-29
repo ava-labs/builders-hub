@@ -66,6 +66,8 @@ describe('the suggested questions', () => {
     }
     expect(fixedRecipe(DEXALOT, 'Busiest senders this week', 'ALOT')!.drill!.sql).toContain(' AS fee_alot,');
     expect(fixedRecipe(DEXALOT, 'Busiest senders this week')!.drill!.sql).toContain(' AS fee_native,');
+    // a sender's partners are the addresses it sent to, which are often wallets, never "contracts"
+    expect(fixedRecipe(GUNZILLA, 'Busiest senders this week')!.sql).toContain('uniqExact(`to`) AS recipients,');
   });
 
   it('leave a Fuji L1, an unknown chain and the C-Chain to their own questions', () => {

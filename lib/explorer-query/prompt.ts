@@ -357,6 +357,9 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   // and contracts by transactions: the L1 audit's L16 called an ERC-721's transfers ERC-20 and counted the zero address
   // as a sender, and its L05 dropped a contract's plain transfers with the selector rule's length(input) filter. Fuji's
   // prompt stays as it was
+  // a sender's partners are the addresses it sent to, often wallets: the night audit's G11 counted them as contracts
+  // and its reading said an account "called 778 distinct contracts" with plain AVAX sends. Fuji's prompt stays as it was
+  const partners = isFuji(opts.chainId) ? "" : " a ranking of senders carries how many addresses each sent to (recipients, uniqExact over `to`), never contracts, since a plain transfer goes to a wallet;";
   const created = isFuji(opts.chainId)
     ? ""
     : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.
@@ -403,7 +406,7 @@ ${calendar(opts.chainId)}
 - Cast UInt64 sums to Float64 when you divide.${finite}
 - When a SELECT names an expression after one of the table's own columns (lower(concat('0x', hex(address))) AS address), every other mention of that column must be table-qualified (raw_logs.address in WHERE and GROUP BY), or it reads the alias instead. Drills included.
 - Success and failure: raw_txs.success and raw_traces.tx_success are Bool; count failures with countIf(NOT success). In record rows return toUInt8(success) AS status. raw_logs keys its transaction as transaction_hash (raw_txs.hash), and carries tx_from and tx_to. raw_blocks has no transaction count: count raw_txs by block_number when you need it.
-- Go one layer deeper than the literal ask when one chart can hold it: a ranking carries its transactions (txs), its distinct senders (senders, or callers for methods) and share_pct (Float64, percent of the window's total); a ranking of methods also carries how many contracts each was called on (contracts, uniqExact over \`to\`) and names one (contract) only when it holds most of the method's calls, as in the worked example, so the server can name the method from that contract's verified code; a series of counts carries its reverted count; gas carries the fee in ${opts.symbol.toLowerCase()}. Keep it to what fits one chart.
+- Go one layer deeper than the literal ask when one chart can hold it: a ranking carries its transactions (txs), its distinct senders (senders, or callers for methods) and share_pct (Float64, percent of the window's total); a ranking of methods also carries how many contracts each was called on (contracts, uniqExact over \`to\`) and names one (contract) only when it holds most of the method's calls, as in the worked example, so the server can name the method from that contract's verified code;${partners} a series of counts carries its reverted count; gas carries the fee in ${opts.symbol.toLowerCase()}. Keep it to what fits one chart.
 
 ## Comparisons, overlays, sophistication
 Answer comparative questions with ONE query that puts the things being compared side by side as columns, so the page can overlay them:
