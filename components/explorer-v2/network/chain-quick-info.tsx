@@ -160,7 +160,8 @@ export function ValidatorList({
           </Link>
         );
       })}
-      {seats && allHref && (
+      {/* the door to the rest; a set the list shows whole has none */}
+      {seats && allHref && all.length > top.length && (
         <Link
           href={allHref}
           className="col-span-full flex items-center gap-1 px-3 py-2 font-mono text-[11.5px] text-[#0061E2] transition-colors hover:bg-zinc-50 dark:text-[#5f9dff] dark:hover:bg-zinc-900"

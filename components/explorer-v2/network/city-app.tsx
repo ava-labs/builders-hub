@@ -348,8 +348,8 @@ function ChainView({
   // the Primary Network has no creating tx, and its set is the whole network: its door is the P-Chain's validators page
   const primary = subnetId === PRIMARY_SUBNET_ID;
   const pBase = `/explorer/${net}/p-chain`;
-  const figure = (label: string, value: ReactNode, sub?: ReactNode) => (
-    <div className="flex min-w-0 flex-col gap-0.5 bg-white px-3 py-2.5 dark:bg-zinc-950">
+  const figure = (label: string, value: ReactNode, sub?: ReactNode, wide = false) => (
+    <div className={cn("flex min-w-0 flex-col gap-0.5 bg-white px-3 py-2.5 dark:bg-zinc-950", wide && "col-span-2")}>
       <dt className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{label}</dt>
       <dd className="truncate font-mono text-[15px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{value}</dd>
       {sub && <dd className="truncate font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{sub}</dd>}
@@ -427,8 +427,9 @@ function ChainView({
         <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800">
           {figure("Validators", row.validators.toLocaleString("en-US"), behind > 0 ? `${behind} behind ${target}` : undefined)}
           {figure(`On ${target}+`, row.pct === null ? "—" : <span className={pctInk(row.mix, row.pct)}>{row.pct}%</span>, row.mix && !isPrivateChain(c) ? `${row.mix.on} of ${mixTotal(row.mix)} nodes` : isPrivateChain(c) ? "private" : "not reported")}
-          {figure(`Tx · ${windowShort}`, row.tx === null ? "—" : fmtCompact(row.tx))}
-          {figure(`ICM · ${windowShort}`, row.out + row.in > 0 ? fmtCompact(row.out + row.in) : "0", row.out + row.in > 0 ? `${fmtCompact(row.out)} out · ${fmtCompact(row.in)} in` : undefined)}
+          {/* a chain with no ICM in the window shows no counts: its tx figure takes the row */}
+          {figure(`Tx · ${windowShort}`, row.tx === null ? "—" : fmtCompact(row.tx), undefined, row.out + row.in === 0)}
+          {row.out + row.in > 0 && figure(`ICM · ${windowShort}`, fmtCompact(row.out + row.in), `${fmtCompact(row.out)} out · ${fmtCompact(row.in)} in`)}
         </dl>
       )}
       {partner && (
