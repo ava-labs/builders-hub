@@ -28,7 +28,7 @@ import { getContractInfo, type ContractInfo as RegistryContract } from "@/lib/co
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { ColumnMeta } from "./clickhouse";
 import type { Names } from "./types";
-import { isAddress, isHash, isSelector } from "./values";
+import { HOUR, MINUTE, isAddress, isHash, isSelector } from "./values";
 
 type Row = Record<string, unknown>;
 
@@ -43,7 +43,7 @@ interface ContractInfo {
   fns: Map<string, string> | null;
 }
 
-const tokenCache = new Map<number, { at: number; tokens: Map<string, TokenInfo> }>();
+const tokenCache = new Map<number, { at: number; ttl: number; tokens: Map<string, TokenInfo> }>();
 const contractCache = new Map<string, { at: number; info: ContractInfo }>();
 const sigCache = new Map<string, string | null>();
 
@@ -79,13 +79,14 @@ async function getJson<T>(url: string, timeoutMs: number): Promise<T | null> {
 const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
   Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
 
-/** the chain's token list by lowercase address, held an hour; a monitor reads its symbols and decimals too */
+/** the chain's token list by lowercase address, held an hour and a failed read a minute (one bad read once left
+    every monitor and name without tokens for the hour); a monitor reads its symbols and decimals too */
 export async function tokenList(chainId: number, baseUrl: string): Promise<Map<string, TokenInfo>> {
   const hit = tokenCache.get(chainId);
-  if (hit && Date.now() - hit.at < 3_600_000) return hit.tokens;
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.tokens;
   const body = await getJson<{ tokens?: Record<string, TokenInfo> }>(`${baseUrl}/api/token-list/${chainId}`, 15_000);
   const tokens = new Map(Object.entries(body?.tokens ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
-  tokenCache.set(chainId, { at: Date.now(), tokens });
+  tokenCache.set(chainId, { at: Date.now(), ttl: body ? HOUR : MINUTE, tokens });
   return tokens;
 }
 
