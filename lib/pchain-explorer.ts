@@ -324,9 +324,22 @@ export interface FundedBy {
   funders: string[];
 }
 
+/** an address's AVAX by status, in nAVAX; atomic memory is not part of `balance` */
+export interface AddressBreakdown {
+  unlockedUnstaked: string;
+  unlockedStaked: string;
+  lockedStaked: string;
+  lockedStakeable: string;
+  lockedPlatform: string;
+  pendingStaked: string;
+  atomicMemoryUnlocked: string;
+  atomicMemoryLocked: string;
+}
+
 export interface Address {
   address: string;
   balance: { total: string; unlocked: string; locked: string; staked: string };
+  breakdown?: AddressBreakdown;
   utxoCount: number;
   fundedBy?: FundedBy;
   utxos: AddressUtxo[];

@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { ageOrDate, formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { useAvaxUsd, usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
-import { txTypeLabel, type Address, type AddressTxs } from "@/lib/pchain-explorer";
+import { txTypeLabel, type Address, type AddressBreakdown, type AddressTxs } from "@/lib/pchain-explorer";
 
 /* Address view: subject, then figures, then activity.
  *
@@ -28,17 +28,96 @@ import { txTypeLabel, type Address, type AddressTxs } from "@/lib/pchain-explore
  * directly under it, and the two long lists run full width below rather
  * than in a short rail that leaves a half-page gutter.
  *
- * Balance composition is deliberately conditional: most P-Chain addresses
- * are 100% unlocked, and for those the bar plus its three-row legend was
- * restating the hero figure three times. It only earns its space when
- * there is actually something locked or staked to split out.
+ * The UTXO overview states where every AVAX on the address sits, all eight
+ * rows even when zero, since "nothing is locked" is itself the answer.
  */
 
 const BALANCE_TONES = {
   unlocked: "bg-[#A2AFB2]",
   locked: "bg-zinc-300 dark:bg-zinc-600",
   staked: "bg-[#E6212F]",
+  atomic: "bg-zinc-500 dark:bg-zinc-400",
 } as const;
+
+type Tone = keyof typeof BALANCE_TONES;
+
+/* overview rows */
+const OVERVIEW_ROWS: { key: keyof AddressBreakdown; label: string; tone: Tone; hint: string }[] = [
+  { key: "lockedStaked", label: "Locked Staked", tone: "staked", hint: "staked, and time-locked past the stake's end" },
+  { key: "lockedStakeable", label: "Locked Stakeable", tone: "locked", hint: "time-locked, but may be staked" },
+  { key: "lockedPlatform", label: "Locked Platform", tone: "locked", hint: "time-locked, and may not be staked" },
+  { key: "atomicMemoryLocked", label: "Atomic Memory Locked", tone: "atomic", hint: "exported to the P-Chain, not yet imported, time-locked" },
+  { key: "atomicMemoryUnlocked", label: "Atomic Memory Unlocked", tone: "atomic", hint: "exported to the P-Chain, not yet imported" },
+  { key: "unlockedUnstaked", label: "Unlocked Unstaked", tone: "unlocked", hint: "free to spend" },
+  { key: "unlockedStaked", label: "Unlocked Staked", tone: "staked", hint: "staked, spendable when the stake ends" },
+  { key: "pendingStaked", label: "Pending Staked", tone: "staked", hint: "staked, staking period not begun" },
+];
+
+function UtxoOverview({ breakdown, avaxUsd }: { breakdown: AddressBreakdown; avaxUsd: number | null }) {
+  const rows = OVERVIEW_ROWS.map((r) => ({ ...r, raw: Number(breakdown[r.key]) }));
+  const total = rows.reduce((s, r) => s + r.raw, 0);
+  const atomic = Number(breakdown.atomicMemoryLocked) + Number(breakdown.atomicMemoryUnlocked);
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionHeader label="UTXO Overview" />
+      <Board divide={false} className="flex flex-col gap-4 px-5 py-5 md:px-6">
+        {total > 0 && (
+          <div className="flex h-2 w-full overflow-hidden" aria-hidden>
+            {rows
+              .filter((r) => r.raw > 0)
+              .map((r) => (
+                <span key={r.key} className={BALANCE_TONES[r.tone]} style={{ width: `${(r.raw / total) * 100}%` }} />
+              ))}
+          </div>
+        )}
+        <dl className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          {rows.map((r) => (
+            <div key={r.key} className={cn("flex items-baseline justify-between gap-6 py-2.5", r.raw === 0 && "opacity-50")}>
+              <dt className="flex min-w-0 flex-col gap-0.5">
+                <span className="flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+                  <span className={`h-2 w-2 shrink-0 ${BALANCE_TONES[r.tone]}`} aria-hidden />
+                  {r.label}
+                </span>
+                <span className="pl-4 text-[11px] text-zinc-400 dark:text-zinc-500">{r.hint}</span>
+              </dt>
+              <dd className="flex shrink-0 items-baseline gap-3 text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">
+                <span className="flex flex-col items-end">
+                  {formatAvax(r.raw)}
+                  {r.raw > 0 && formatUsd(r.raw, avaxUsd) && (
+                    <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                      {formatUsd(r.raw, avaxUsd)}
+                    </span>
+                  )}
+                </span>
+                <span className="w-12 text-right font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                  {total > 0 ? `${((r.raw / total) * 100).toFixed(1)}%` : "—"}
+                </span>
+              </dd>
+            </div>
+          ))}
+          <div className="flex items-baseline justify-between gap-6 pt-3.5">
+            <dt className="flex flex-col gap-0.5">
+              <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-50">
+                Total Balance
+              </span>
+              {atomic > 0 && (
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">incl. atomic memory</span>
+              )}
+            </dt>
+            <dd className="flex flex-col items-end text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {formatAvax(total)}
+              {formatUsd(total, avaxUsd) && (
+                <span className="font-mono text-[11px] font-normal tabular-nums text-zinc-400 dark:text-zinc-500">
+                  {formatUsd(total, avaxUsd)}
+                </span>
+              )}
+            </dd>
+          </div>
+        </dl>
+      </Board>
+    </section>
+  );
+}
 
 /* How many UTXO rows to mount before the reader asks for more. The API
    returns up to 1,000, and a 4,000-UTXO exchange address was mounting all
@@ -259,8 +338,9 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
           {/* ---------------- the summary table ---------------- */}
           <MetricTable rows={metricRows} />
 
-          {/* balance composition, only when there is a split to show */}
-          {isSplit && (
+          {/* where every AVAX sits; an older API without the breakdown gets the three-way split */}
+          {a.breakdown && <UtxoOverview breakdown={a.breakdown} avaxUsd={avaxUsd} />}
+          {!a.breakdown && isSplit && (
             <section className="flex flex-col gap-4">
               <SectionHeader label="Balance Composition" />
               <Board divide={false} className="flex flex-col gap-5 px-5 py-5 md:px-6">
