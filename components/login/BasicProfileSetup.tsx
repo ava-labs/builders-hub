@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -74,6 +74,37 @@ const basicProfileSchema = z
 
 type BasicProfileFormValues = z.infer<typeof basicProfileSchema>;
 
+const EMPTY_FORM_VALUES: BasicProfileFormValues = {
+  name: '',
+  country: '',
+  linkedin_account: '',
+  github_account: '',
+  x_account: '',
+  telegram_account: '',
+  is_student: false,
+  student_institution: '',
+  is_founder: false,
+  founder_company_name: '',
+  is_employee: false,
+  employee_company_name: '',
+  employee_role: '',
+  is_developer: false,
+  is_enthusiast: false,
+};
+
+// Form fields persisted inside the user_type JSON column.
+const USER_TYPE_FIELDS = [
+  'is_student',
+  'student_institution',
+  'is_founder',
+  'founder_company_name',
+  'is_employee',
+  'employee_company_name',
+  'employee_role',
+  'is_developer',
+  'is_enthusiast',
+] as const satisfies readonly (keyof BasicProfileFormValues)[];
+
 // Normalize names: keep only letters (incl. accented), spaces, hyphens, and
 // apostrophes; lowercase everything then capitalize the first letter of each
 // word (handling O'Connor, Mary-Jane). Strips digits, all-caps shouting, etc.
@@ -92,31 +123,24 @@ interface BasicProfileSetupProps {
 
 export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
+  // Save stays disabled until the profile prefill settles; every field is
+  // optional, so saving the blank defaults early would overwrite stored data.
+  const [isHydrating, setIsHydrating] = useState(Boolean(userId));
   const [githubConnected, setGithubConnected] = useState(false);
   const [xConnected, setXConnected] = useState(false);
   const pathname = usePathname();
   const { update } = useSession();
 
+  // Values the form was hydrated with, so a save only sends what the user
+  // actually changed. The raw user_type is kept too, so keys this form does
+  // not render survive a role update.
+  const loadedValues = useRef<BasicProfileFormValues>(EMPTY_FORM_VALUES);
+  const loadedUserType = useRef<Record<string, unknown>>({});
+
   const form = useForm<BasicProfileFormValues>({
     resolver: zodResolver(basicProfileSchema),
     mode: 'onSubmit',
-    defaultValues: {
-      name: '',
-      country: '',
-      linkedin_account: '',
-      github_account: '',
-      x_account: '',
-      telegram_account: '',
-      is_student: false,
-      student_institution: '',
-      is_founder: false,
-      founder_company_name: '',
-      is_employee: false,
-      employee_company_name: '',
-      employee_role: '',
-      is_developer: false,
-      is_enthusiast: false,
-    },
+    defaultValues: EMPTY_FORM_VALUES,
   });
 
   const watchedValues = form.watch();
@@ -135,7 +159,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicPr
         const profile = await res.json();
         if (cancelled || !profile) return;
         const userType = profile.user_type ?? {};
-        form.reset({
+        const values: BasicProfileFormValues = {
           name: profile.name ?? '',
           country: profile.country ?? '',
           linkedin_account: profile.linkedin_account ?? '',
@@ -151,11 +175,17 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicPr
           employee_role: userType.employee_role ?? '',
           is_developer: Boolean(userType.is_developer),
           is_enthusiast: Boolean(userType.is_enthusiast),
-        });
+        };
+        loadedValues.current = values;
+        loadedUserType.current = userType;
+        form.reset(values);
         setGithubConnected(Boolean(profile.githubConnected));
         setXConnected(Boolean(profile.x_account));
       } catch {
-        // silent: blank defaults are fine if the fetch fails
+        // silent: blank defaults are fine if the fetch fails. Only changed
+        // fields are sent, so untouched ones cannot blank stored data.
+      } finally {
+        if (!cancelled) setIsHydrating(false);
       }
     })();
     return () => {
@@ -189,50 +219,42 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicPr
   const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
     try {
-      // Format data to match the API expected format
-      const {
-        is_student,
-        student_institution,
-        is_founder,
-        founder_company_name,
-        is_employee,
-        employee_company_name,
-        employee_role,
-        is_developer,
-        is_enthusiast,
-        name,
-        country,
-        linkedin_account,
-        telegram_account,
-      } = data;
+      // Only send fields that differ from what was loaded, so an optional
+      // partial save never overwrites values the user did not touch.
+      const loaded = loadedValues.current;
+      const changed = (key: keyof BasicProfileFormValues) => data[key] !== loaded[key];
+      const profileData: Record<string, unknown> = {};
 
-      // Construct user_type object with all role fields. Blank name/country
-      // are left out: the API rejects an empty name, and omitting them keeps
-      // whatever the user already has on file.
-      const trimmedName = name.trim();
-      const profileData = {
-        ...(trimmedName && { name: trimmedName }),
-        ...(country && { country }),
-        linkedin_account,
-        telegram_account,
-        user_type: {
-          is_student,
-          is_founder,
-          is_employee,
-          is_developer,
-          is_enthusiast,
-          ...(student_institution && { student_institution }),
-          ...(founder_company_name && { founder_company_name }),
-          ...(employee_company_name && { employee_company_name }),
-          ...(employee_role && { employee_role }),
-        }
-      };
+      // Blank name/country are left out: the API rejects an empty name, and
+      // omitting them keeps whatever the user already has on file.
+      const trimmedName = (data.name ?? '').trim();
+      if (changed('name') && trimmedName) profileData.name = trimmedName;
+      if (changed('country') && data.country) profileData.country = data.country;
+      if (changed('linkedin_account')) profileData.linkedin_account = data.linkedin_account;
+      if (changed('telegram_account')) profileData.telegram_account = data.telegram_account;
 
-      // Save to API using extended profile endpoint
-      await axios.put(`/api/profile/extended/${userId}`, profileData);
+      // user_type is stored as one JSON value, so any role change sends the
+      // whole object, layered over the loaded one to keep unrendered keys.
+      if (USER_TYPE_FIELDS.some(changed)) {
+        profileData.user_type = {
+          ...loadedUserType.current,
+          is_student: data.is_student,
+          is_founder: data.is_founder,
+          is_employee: data.is_employee,
+          is_developer: data.is_developer,
+          is_enthusiast: data.is_enthusiast,
+          student_institution: data.student_institution || undefined,
+          founder_company_name: data.founder_company_name || undefined,
+          employee_company_name: data.employee_company_name || undefined,
+          employee_role: data.employee_role || undefined,
+        };
+      }
 
-      // Update session
-      await update();
+      // Nothing changed: skip the request (the API rejects an empty update).
+      if (Object.keys(profileData).length > 0) {
+        await axios.put(`/api/profile/extended/${userId}`, profileData);
+        await update();
+      }
 
       onCompleteProfile?.();
     } catch (error) {
@@ -703,8 +725,8 @@ export function BasicProfileSetup({ userId, onCompleteProfile, onSkip }: BasicPr
                 type="submit"
                 variant="red"
                 className="w-full text-sm sm:text-base"
-                isLoading={isSaving}
-                loadingText="Saving..."
+                isLoading={isSaving || isHydrating}
+                loadingText={isHydrating ? 'Loading...' : 'Saving...'}
               >
                 Save
               </LoadingButton>
