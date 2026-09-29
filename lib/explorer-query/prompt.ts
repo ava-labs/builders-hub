@@ -3,7 +3,7 @@
    chart the explorer can draw with doors into its records. */
 
 import { createHash } from "node:crypto";
-import { MAX_ROWS } from "./guard";
+import { HASH_RANGE, MAX_ROWS } from "./guard";
 import { CREATED, FIRST_DAY, QUOTES, U, pxCte, topic } from "./macros";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS, dexFamilies, type DexFamily } from "./protocols";
 import { AAVE_ASSETS, AAVE_SLUG, LENDING_CHAIN_ID, LENDING_MARKETS, LENDING_PROTOCOLS } from "./lending";
@@ -425,7 +425,7 @@ ${dex ? dexRules() : ""}${lending ? lendingRules() : ""}${families ? familyRules
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
 - At most ${MAX_ROWS} rows come back, and a longer series is cut. Pick the bucket from the window: toStartOfMinute or toStartOfFiveMinutes for windows up to 6 hours, toStartOfHour up to 7 days, toDate beyond, toMonday for weeks. A question that names a bucket but no window reads 6 hours of 5-minute buckets, 24 hours of hourly ones, 30 days of daily ones. Windows over raw_logs and raw_traces: 90 days at most. raw_txs: 365 days at most.
-- A series starts its window on a bucket boundary, block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR (or toStartOfFiveMinutes, toStartOfDay, toMonday), so its first bucket is whole; its last bucket is still in progress, and the note says so in words of time ("the current hour is not over"). A sparse series of counts fills its empty buckets: ORDER BY t WITH FILL STEP INTERVAL 1 HOUR (the bucket's own step). A fill's TO, when it has one, is the bucket after now, never later: a fill adds no bucket that has not begun. A level such as a balance or a supply fills only as Nullable, toNullable(...), so a missing bucket stays empty instead of dropping to zero.
+${isFuji(opts.chainId) ? "" : `- A hash prefix ("transactions whose hash starts with 0x12") is a range on the bytes: ${HASH_RANGE}. raw_txs is sorted by hash, so the range reads only its share of the table and needs no window: it covers the whole history. Never startsWith(hash, …) in a filter: it misses rows.\n`}- A series starts its window on a bucket boundary, block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR (or toStartOfFiveMinutes, toStartOfDay, toMonday), so its first bucket is whole; its last bucket is still in progress, and the note says so in words of time ("the current hour is not over"). A sparse series of counts fills its empty buckets: ORDER BY t WITH FILL STEP INTERVAL 1 HOUR (the bucket's own step). A fill's TO, when it has one, is the bucket after now, never later: a fill adds no bucket that has not begun. A level such as a balance or a supply fills only as Nullable, toNullable(...), so a missing bucket stays empty instead of dropping to zero.
 ${calendar(opts.chainId)}
 - Whole sets: a question about a set (every contract, each token, how many per chain) returns the whole set, with no LIMIT. A ranking (top, most, largest, busiest) keeps its first 15 rows unless the question names a number, and carries count() OVER () AS of_total, the size of the whole set, so the page can say of how many.
 - Order time series by time ascending. Name columns plainly: block_time bucket as \`t\`, counts as \`txs\`, gas as \`gas_charged\` or \`${c ? "gas_reserved" : "block_gas_used"}\`, fees as \`fees_${sym}\`.
