@@ -185,6 +185,16 @@ export function EvmHome({ network }: { network: string }) {
           <LiveReadout
             chainId={c.chainId}
             cells={[
+                // throughput leads, where the All Networks overview puts it, so a switch of network keeps it in place
+                {
+                  label: "Throughput",
+                  live: true,
+                  href: `${base}/txs`,
+                  value: recentTps != null ? recentTps.toFixed(1) : "—",
+                  unit: recentTps != null ? "TPS" : undefined,
+                  // each block's transactions per second of its gap
+                  values: paceTrace?.tps,
+                },
                 {
                   label: "Chain Height",
                   live: true,
@@ -225,15 +235,6 @@ export function EvmHome({ network }: { network: string }) {
                   unit: avgBlockTime != null ? "s" : undefined,
                   // each block's gap to the one before it, over the stream's window
                   values: paceTrace?.gaps,
-                },
-                {
-                  label: "Throughput",
-                  live: true,
-                  href: `${base}/txs`,
-                  value: recentTps != null ? recentTps.toFixed(1) : "—",
-                  unit: recentTps != null ? "TPS" : undefined,
-                  // each block's transactions per second of its gap
-                  values: paceTrace?.tps,
                 },
             ]}
           />
