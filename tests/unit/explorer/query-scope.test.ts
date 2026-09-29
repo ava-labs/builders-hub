@@ -131,6 +131,14 @@ describe('a title and a note name the window the query reads', () => {
     expect(scopeError('Swaps, September 21', '', w, NOW)).toContain('the title says "September 21"');
   });
 
+  it('opens with a capital, but keeps a name that has capitals of its own', () => {
+    // family replays titled "SAVAX staked and redeemed per day" and "SavUSD share price per day this month"
+    const w = win(`SELECT 1 ${LOGS} AND block_time >= toStartOfMonth(now())`);
+    expect(scoped({ title: 'savUSD share price per day this month', note: '' }, w, NOW).title).toMatch(/^savUSD share price per day/);
+    expect(scoped({ title: 'sAVAX staked and redeemed per day', note: '' }, w, NOW).title).toMatch(/^sAVAX staked/);
+    expect(scoped({ title: 'swaps per day', note: '' }, w, NOW).title).toMatch(/^Swaps per day/);
+  });
+
   it('moves a possessive scope to the end, and keeps one preposition', () => {
     const day = win(`SELECT 1 ${LOGS} AND block_time >= now() - INTERVAL 24 HOUR`);
     expect(scoped({ title: "Today's busiest contracts", note: '' }, day, NOW).title).toBe('Busiest contracts in the last 24 hours');

@@ -356,7 +356,8 @@ export function scoped(text: { title: string; note: string }, w: Window, now: nu
     }
   }
   title = title.replace(/\s{2,}/g, " ").replace(/\s+([,.;:])/g, "$1").trim();
-  title = title.charAt(0).toUpperCase() + title.slice(1);
+  // a title opens with a capital, but a name with capitals of its own keeps its case: sAVAX, not SAVAX
+  if (!/^[a-z]+[A-Z]/.test(title)) title = title.charAt(0).toUpperCase() + title.slice(1);
   const note = sentences(text.note)
     .filter((s) => COMPARES.test(s) || claimsOf(s, "note", now).every((c) => fits(c, w)))
     .join(" ");
