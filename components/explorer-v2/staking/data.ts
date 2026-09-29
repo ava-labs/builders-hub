@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { PrimaryNetworkMetrics, TimeSeriesMetric } from "@/types/stats";
 import type { AvalancheGoRelease } from "@/lib/avalanchego-releases";
+import type { L1Feed } from "@/lib/l1-validator-triage";
 import { getValidatorFeeState } from "@/lib/pchain-node";
 
 /* Shared feeds for the Primary Network's two instruments — Staking (the
@@ -88,6 +89,14 @@ export function useP2pValidators() {
   return useLoad<Map<string, P2pValidator>>("/api/validators", (raw) => {
     if (!Array.isArray(raw)) return null;
     return new Map((raw as P2pValidator[]).map((v) => [v.node_id, v]));
+  });
+}
+
+/* every L1's validators, and the fee price that turns a balance into days */
+export function useL1Validators(network = "mainnet") {
+  return useLoad<L1Feed>(`/api/l1-validators/${network}`, (raw) => {
+    const r = raw as Partial<L1Feed> | null;
+    return r && Array.isArray(r.validators) ? { validators: r.validators, price: typeof r.price === "number" ? r.price : null } : null;
   });
 }
 

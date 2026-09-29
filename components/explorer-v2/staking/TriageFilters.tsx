@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Check, Search, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { presetActive, type Facet, type FacetKey, type Preset, type Selection, type StatusRow } from "@/lib/validator-triage";
@@ -162,6 +162,7 @@ export function FacetRail<K extends string = FacetKey, R = StatusRow>({
   swatch,
   pending = null,
   layout = "rail",
+  fold,
 }: {
   facets: Facet<K, R>[];
   /** facet key to option id to the validators that option would leave */
@@ -174,12 +175,25 @@ export function FacetRail<K extends string = FacetKey, R = StatusRow>({
   pending?: Pending<K> | null;
   /** a column beside the roster, or a grid over it on narrow screens */
   layout?: "rail" | "grid";
+  /** facet key to the options a long facet shows until it is opened. Such a
+      facet sorts its options by count: the options that leave the most
+      validators under the rest of the filter come first */
+  fold?: Partial<Record<K, number>>;
 }) {
+  const [opened, setOpened] = useState<string[]>([]);
   return (
     <div className={cn(layout === "grid" ? "grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-4" : "flex flex-col gap-5")}>
       {facets.map((f) => {
         const picked = selection[f.key] ?? [];
         const waiting = !!pending?.keys.includes(f.key);
+        const countOf = (id: string) => counts?.[f.key]?.[id] ?? 0;
+        const limit = fold?.[f.key] ?? 0;
+        // the sort is stable: a tie keeps the facet's own order
+        const ordered = limit > 0 ? [...f.options].sort((a, b) => countOf(b.id) - countOf(a.id)) : f.options;
+        const folds = limit > 0 && ordered.length > limit + 1;
+        const open = opened.includes(f.key);
+        // a picked option stays in view while its facet is folded
+        const options = folds && !open ? ordered.filter((o, i) => i < limit || picked.includes(o.id)) : ordered;
         return (
           <div key={f.key} role="group" aria-label={f.label} title={waiting ? pending?.title : undefined} className="min-w-0">
             <div className="mb-1 flex min-h-5 items-center justify-between gap-2">
@@ -195,9 +209,9 @@ export function FacetRail<K extends string = FacetKey, R = StatusRow>({
               )}
             </div>
             <ul className="flex flex-col">
-              {f.options.map((o) => {
+              {options.map((o) => {
                 const on = picked.includes(o.id);
-                const n = counts?.[f.key]?.[o.id] ?? 0;
+                const n = countOf(o.id);
                 const empty = (waiting || n === 0) && !on;
                 const sw = swatch?.(f.key, o.id);
                 return (
@@ -237,6 +251,16 @@ export function FacetRail<K extends string = FacetKey, R = StatusRow>({
                 );
               })}
             </ul>
+            {folds && (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpened((keys) => (keys.includes(f.key) ? keys.filter((k) => k !== f.key) : [...keys, f.key]))}
+                className="mt-1 font-mono text-[10px] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                {open ? "Show fewer" : `Show all ${ordered.length}`}
+              </button>
+            )}
           </div>
         );
       })}
