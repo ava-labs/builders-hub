@@ -579,7 +579,9 @@ function numOf(c: ColumnMeta, v: unknown): number | null {
 }
 
 /** the rows a model sees: all of a short answer; else the first and last five, each number column's
-    highest and lowest row, and an even spread between them, in the rows' own order */
+    highest and lowest row, the rows either side of the highest (a reading says what came before and after a peak:
+    the follow-up audit's T02 named the hour after one from a row it never saw), and an even spread between them,
+    in the rows' own order */
 export function sampleOf(input: Seen): { head: string; rows: Row[] } {
   const { rows, columns } = input;
   const named = (r: Row) => Object.fromEntries(columns.map((c) => [c.name, shown(input, c.name, r[c.name])]));
@@ -598,10 +600,11 @@ export function sampleOf(input: Seen): { head: string; rows: Row[] } {
       if (v < lv) [lo, lv] = [i, v];
     });
     if (hi >= 0) pick.add(hi).add(lo);
+    for (const i of [hi - 1, hi + 1]) if (hi >= 0 && i >= 0 && i < rows.length) pick.add(i);
   }
   for (let k = 1; pick.size < SAMPLE && k < SAMPLE; k++) pick.add(Math.round((k * (rows.length - 1)) / SAMPLE));
   const at = [...pick].sort((x, y) => x - y);
-  return { head: `${at.length} of the ${rows.length} rows, in order: the first and last five, each column's highest and lowest, and an even spread between:`, rows: at.map((i) => named(rows[i])) };
+  return { head: `${at.length} of the ${rows.length} rows, in order: the first and last five, each column's highest and lowest, the rows either side of each highest, and an even spread between:`, rows: at.map((i) => named(rows[i])) };
 }
 
 /** where a stale index ends, for a model that reads its rows: the question's today is not the rows' (empty for an

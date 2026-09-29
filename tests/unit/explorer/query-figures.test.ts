@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { designVisual, figures } from '@/lib/explorer-query/visual';
+import { designVisual, figures, sampleOf } from '@/lib/explorer-query/visual';
 
 // the follow-up audit's T15 (Gunzilla, today against the day before, by hour of the UTC day): today has reached hour 7
 const TODAY = [19281, 21066, 14059, 8912, 7319, 16842, 15013, 8614];
@@ -78,6 +78,16 @@ describe('Figures on an average or a maximum in each row', () => {
     await designVisual({ question: 'Compare it with the day before', title: 'Gas price today vs yesterday', note: '', symbol: 'AVAX', columns, rows, names: {}, chart: { kind: 'line', x: 'offset_hour', series: [{ column: 'current_avg_gwei', label: 'Today' }] } });
     expect(results[0]).toMatchObject({ error: expect.stringContaining('current_avg_gwei holds an average or an extreme in each row') });
     expect(results[1]).toEqual({ ok: true });
+  });
+});
+
+describe('the rows a reading sees of a long answer', () => {
+  it('hold the rows either side of each highest', () => {
+    // the follow-up audit's T02: 169 hourly rows, and a reading named the hour after the peak from a row it never saw
+    const rows = Array.from({ length: 169 }, (_, i) => ({ t: `h${String(i).padStart(3, '0')}`, fee: i === 70 ? 158 : i === 150 ? 0.01 : 1 + (i % 3) }));
+    const s = sampleOf({ columns: [{ name: 't', type: 'String' }, { name: 'fee', type: 'Float64' }], rows, names: {}, x: 't' });
+    expect(s.rows.map((r) => r.t)).toEqual(expect.arrayContaining(['h069', 'h070', 'h071']));
+    expect(s.head).toContain('the rows either side of each highest');
   });
 });
 
