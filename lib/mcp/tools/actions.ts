@@ -18,7 +18,7 @@ import { CONSOLE_BASE } from './lib/constants';
 import { getString, errorResult, rejectBadEnum } from './lib/tool-helpers';
 
 const ICTT_DOCS = 'https://build.avax.network/docs/tooling/avalanche-sdk/interchain/ictt';
-const INTERCHAIN_KIT_DOCS = 'https://build.avax.network/docs/tooling/avalanche-sdk/interchain-kit';
+const INTERCHAIN_KIT_DOCS = 'https://build.avax.network/docs/tooling/interchain-kit';
 
 const NETWORKS = ['fuji', 'mainnet'] as const;
 type ActionNetwork = (typeof NETWORKS)[number];

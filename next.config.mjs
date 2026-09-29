@@ -150,6 +150,68 @@ const config = {
         destination: '/explorer/:network/:chain#chain',
         permanent: true,
       },
+      // ── Docs pages no sidebar listed: duplicates and stale copies ──
+      // Each goes to the listed page on the same topic.
+      {
+        source: '/docs/rpcs/subnet-evm/config',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/chain-configs/subnet-evm',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/configure/avalanche-l1-configs',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/cli-commands',
+        destination: '/docs/tooling/avalanche-cli/cli-commands',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        destination: '/docs/tooling/avalanche-cli/cli-commands',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        destination: '/docs/avalanche-l1s/precompiles/warp-messenger',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/c-chain/api',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/x-chain/api',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/x-chain/rpc',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/add-utility/testnet-faucet',
+        destination: '/docs/tooling/avalanche-deploy/add-ons#faucet',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/wagmi-avalanche-l1',
+        destination: '/docs/avalanche-l1s/upgrade/precompile-upgrades',
+        permanent: true,
+      },
+      {
+        source: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):
@@ -196,7 +258,7 @@ const config = {
       },
       {
         source: '/docs/avalanche-l1s/deploy-a-avalanche-l1',
-        destination: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        destination: '/docs/tooling/avalanche-cli/cli-commands',
         permanent: false,
       },
       {
@@ -261,7 +323,7 @@ const config = {
       },
       {
         source: '/docs/primary-network/validate',
-        destination: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
         permanent: false,
       },
       {
@@ -707,7 +769,7 @@ const config = {
       },
       {
         source: '/introduction',
-        destination: '/docs/api-reference/introduction',
+        destination: '/docs/api-reference/data-api',
         permanent: false,
       },
       {
@@ -853,7 +915,7 @@ const config = {
       },
       {
         source: '/docs/virtual-machines/default-precompiles/warpmessenger',
-        destination: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        destination: '/docs/avalanche-l1s/precompiles/warp-messenger',
         permanent: true,
       },
       {
@@ -986,7 +1048,7 @@ const config = {
       },
       {
         source: "/docs/nodes/configure/chain-configs/p-chain",
-        destination: "/docs/nodes/chain-configs/p-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/p-chain",
         permanent: true,
       },
       {
@@ -1001,7 +1063,7 @@ const config = {
       },
       {
         source: "/docs/nodes/configure/chain-configs/subnet-evm",
-        destination: "/docs/nodes/chain-configs/subnet-evm",
+        destination: "/docs/nodes/chain-configs/avalanche-l1s/subnet-evm",
         permanent: true,
       },
       {
@@ -2377,12 +2439,12 @@ const config = {
       },
       {
         source: '/docs/primary-network/validators',
-        destination: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
         permanent: true,
       },
       {
         source: '/docs/rpcs/other/admin-rpc',
-        destination: '/docs/rpcs/other/admin-api',
+        destination: '/docs/rpcs/other',
         permanent: true,
       },
       {

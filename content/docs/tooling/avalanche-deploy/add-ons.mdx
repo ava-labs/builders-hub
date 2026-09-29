@@ -125,6 +125,8 @@ make k8s-faucet CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999 FAUCET_KEY=0x...
 The faucet wallet must be funded on your L1 chain. Use a dedicated wallet — not your deployer key.
 </Callout>
 
+The add-on builds the [Avalanche Faucet](https://github.com/ava-labs/avalanche-faucet) app from source. Its README covers running the faucet on its own, including rate limits and CAPTCHA.
+
 ## The Graph Node
 
 Deploy The Graph for indexing blockchain data via GraphQL subgraphs:
