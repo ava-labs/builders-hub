@@ -100,6 +100,18 @@ export interface ProfileBadgeSummary {
   requirements: Requirement[];
 }
 
+// Courses removed from the Academy (FDE-154). Their badges stay in the DB so
+// the people who earned them keep them.
+const RETIRED_COURSE_IDS = new Set(["nft-deployment"]);
+
+/** A badge every requirement of which is a removed course: nobody can earn it any more. */
+function isRetiredBadge(requirements: Requirement[]): boolean {
+  return (
+    requirements.length > 0 &&
+    requirements.every((requirement) => RETIRED_COURSE_IDS.has(requirement.course_id ?? ""))
+  );
+}
+
 export async function getUserBadgesForProfile(
   userId: string,
 ): Promise<ProfileBadgeSummary[]> {
@@ -113,8 +125,10 @@ export async function getUserBadgesForProfile(
   // whatever signal we can extract (id prefix or category), and anything we
   // can't recognize ends up in the "Other Badges" section instead of being
   // hidden — so a misnamed seed never disappears from the UI again.
+  // The one exception: a retired badge shows only to the users who earned it.
   return badges
     .map((badge) => resolveProfileBadge(badge, userBadges))
+    .filter((summary) => summary.isUnlocked || !isRetiredBadge(summary.requirements))
     .sort((a, b) => {
       const groupDelta = groupOrder(a.group) - groupOrder(b.group);
       if (groupDelta !== 0) return groupDelta;

@@ -50,8 +50,8 @@ describe("academy tracks", () => {
       "permissioned-l1s", "l1-native-tokenomics", "permissionless-l1s", "native-token-bridge", "access-restriction",
     ]);
     expect(avalancheLearningPaths.map((node) => node.id)).toEqual(before);
-    // x402 Payments and Encrypted ERC both have mobileOrder 4 (blockchain.config.tsx:45, :55).
-    expect(coursesInOrder(blockchainLearningPaths).map((node) => node.id).slice(3)).toEqual([
+    // x402 Payments and Encrypted ERC both have mobileOrder 4 (blockchain.config.tsx:35, :45).
+    expect(coursesInOrder(blockchainLearningPaths).map((node) => node.id).slice(2)).toEqual([
       "x402-payment-infrastructure",
       "encrypted-erc",
     ]);

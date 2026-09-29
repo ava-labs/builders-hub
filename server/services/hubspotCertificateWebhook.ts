@@ -24,7 +24,6 @@ const courseWebhookTriggers: Record<string, () => string | undefined> = {
   // ============ BLOCKCHAIN ACADEMY ============
   'blockchain-fundamentals': () => process.env.HUBSPOT_WEBHOOK_BLOCKCHAIN_FUNDAMENTALS,
   'solidity-foundry': () => process.env.HUBSPOT_WEBHOOK_SOLIDITY_FOUNDRY,
-  'nft-deployment': () => process.env.HUBSPOT_WEBHOOK_NFT_DEPLOYMENT,
   'encrypted-erc': () => process.env.HUBSPOT_WEBHOOK_ENCRYPTED_ERC,
   'x402-payment-infrastructure': () => process.env.HUBSPOT_WEBHOOK_X402_PAYMENT_INFRASTRUCTURE,
 };
@@ -41,7 +40,6 @@ const academyCompletionWebhookEnvVars: Record<Academy, string> = {
 const courseToAcademy: Record<string, Academy> = {
   'blockchain-fundamentals': 'blockchain',
   'solidity-foundry': 'blockchain',
-  'nft-deployment': 'blockchain',
   'encrypted-erc': 'blockchain',
   'x402-payment-infrastructure': 'blockchain',
 
@@ -62,7 +60,6 @@ const academyRequiredCourses: Record<Academy, string[]> = {
   'blockchain': [
     'blockchain-fundamentals',
     'solidity-foundry',
-    'nft-deployment',
     'encrypted-erc',
     'x402-payment-infrastructure',
   ],

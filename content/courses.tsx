@@ -199,19 +199,6 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "NFT Deployment",
-        description: "Learn how to create, prepare, and deploy your own NFT collection on Avalanche",
-        slug: "nft-deployment",
-        icon: <SquareCode />,
-        duration: "1.5 hours",
-        status: "featured",
-        tools: ["Remix IDE", "Pinata"],
-        languages: ["Solidity"],
-        instructors: ["Andrea Vargas", "Ash", "Martin Eckardt"],
-        category: "Smart Contract Development",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
-    },
-    {
         name: "Encrypted ERC",
         description: "Learn the basics on what is an encrypted ERC token and how to use it",
         slug: "encrypted-erc",

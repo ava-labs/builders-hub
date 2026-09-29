@@ -23,7 +23,6 @@ export const COURSE_STATS: Record<CourseStatsTrack, Record<string, CourseStats>>
   "blockchain": {
     "/academy/blockchain/blockchain-fundamentals": { modules: 8, lessons: 24 },
     "/academy/blockchain/encrypted-erc": { modules: 5, lessons: 12 },
-    "/academy/blockchain/nft-deployment": { modules: 5, lessons: 5 },
     "/academy/blockchain/solidity-foundry": { modules: 6, lessons: 30 },
     "/academy/blockchain/x402-payment-infrastructure": { modules: 4, lessons: 20 },
   },

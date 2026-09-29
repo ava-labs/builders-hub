@@ -32,7 +32,7 @@ interface Walk { sections: Section[]; open: number }
 interface BuiltCourse { outline: CourseOutline; heads: { head: ModuleHead; number: string }[] }
 
 // Certificate pages are the course's get-certificate, certificate and certificate-<part> pages
-// (19 files under content/academy, each rendering <CertificatePage>).
+// (18 files under content/academy, each rendering <CertificatePage>).
 const CERTIFICATE_SLUG = /^(get-)?certificate(-[a-z0-9-]+)?$/;
 // Entrepreneur module folders carry the programme's module number: 01-legal-foundations, 01b-security-fundamentals.
 const FOLDER_NUMBER = /^(\d+)([a-z]?)-/;

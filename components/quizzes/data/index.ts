@@ -2,7 +2,6 @@ import type { FullQuizData, Course, QuizDataStructure } from './types';
 
 import blockchainFundamentals from './courses/blockchain-fundamentals.json';
 import encryptedErc from './courses/encrypted-erc.json';
-import nftDeployment from './courses/nft-deployment.json';
 import x402PaymentInfrastructure from './courses/x402-payment-infrastructure.json';
 import avalancheFundamentals from './courses/avalanche-fundamentals.json';
 import accessRestrictionFundamentals from './courses/access-restriction-fundamentals.json';
@@ -31,7 +30,6 @@ import solidityFoundry from './courses/solidity-foundry.json';
 const courseFiles: Record<string, { title: string; quizzes: Record<string, unknown> }> = {
   'blockchain-fundamentals': blockchainFundamentals,
   'encrypted-erc': encryptedErc,
-  'nft-deployment': nftDeployment,
   'x402-payment-infrastructure': x402PaymentInfrastructure,
   'avalanche-fundamentals': avalancheFundamentals,
   'access-restriction-fundamentals': accessRestrictionFundamentals,

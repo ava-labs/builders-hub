@@ -689,7 +689,7 @@ const config = {
       },
       {
         source: '/docs/dapps/deploy-nft-collection/prep-nft-files',
-        destination: '/academy/blockchain/nft-deployment/02-prepare-nft-files',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -1711,12 +1711,12 @@ const config = {
       },
       {
         source: "/docs/build/dapp/smart-contracts/nfts/deploy-collection",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
         source: "/docs/build/tutorials/smart-digital-assets/wallet-nft-studio",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -2344,6 +2344,13 @@ const config = {
           },
         ],
         destination: "/academy/team1",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-154): the NFT Deployment course was removed; `:path*` also
+      // matches the bare course url.
+      {
+        source: "/academy/blockchain/nft-deployment/:path*",
+        destination: "/academy",
         permanent: true,
       },
       // Hackathons → Events migration

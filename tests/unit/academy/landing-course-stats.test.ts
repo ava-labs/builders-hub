@@ -22,10 +22,10 @@ describe("landing card stats", () => {
     });
   });
 
-  it("resolves every card on the four landings (24)", () => {
+  it("resolves every card on the four landings (23)", () => {
     const cards = ACADEMY_TRACKS.flatMap((track) => track.courses.map((node) => ({ track, node })));
     const resolved = cards.filter(({ track, node }) => (statsByTrack.get(track.id) ?? {})[courseUrl(track.id, node.slug)]);
-    expect(cards).toHaveLength(24);
+    expect(cards).toHaveLength(23);
     expect(resolved).toHaveLength(cards.length);
   });
 });
