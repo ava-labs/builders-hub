@@ -88,6 +88,10 @@ export interface RosterFeedRow {
   delegatorCount: number;
   version?: string;
   connected?: boolean;
+  /** our node's reading of its uptime, percent */
+  uptime?: number;
+  /** unix seconds the validation ends */
+  endTime?: number;
 }
 
 /** the p2p crawler's row: health, and the version from its handshake */
@@ -110,8 +114,14 @@ function toNumber(v: string | number | undefined | null): number | null {
 }
 
 /* The roster says who validates; the crawler adds how each one behaves.
-   The crawler's version wins because it is read from a live handshake. */
-export function buildRows(roster: RosterFeedRow[], crawler: Map<string, CrawlerFeedRow> | null): TriageRow[] {
+   The crawler's version wins because it is read from a live handshake.
+   On a network no crawler watches (rosterOnly: Fuji), the roster's own
+   uptime and end time stand in, and the miss rate stays unknown. */
+export function buildRows(
+  roster: RosterFeedRow[],
+  crawler: Map<string, CrawlerFeedRow> | null,
+  { rosterOnly = false, now = Date.now() }: { rosterOnly?: boolean; now?: number } = {},
+): TriageRow[] {
   return roster.map((v) => {
     const c = crawler?.get(v.nodeId);
     const own = toNumber(v.amountStaked) ?? 0;
@@ -122,8 +132,8 @@ export function buildRows(roster: RosterFeedRow[], crawler: Map<string, CrawlerF
       stake: (c?.total_stake ?? own + delegated) / NANO,
       delegators: v.delegatorCount ?? 0,
       fee: toNumber(v.delegationFee),
-      uptime: c ? c.p50_uptime : null,
-      daysLeft: c ? c.days_left : null,
+      uptime: c ? c.p50_uptime : rosterOnly ? (v.uptime ?? null) : null,
+      daysLeft: c ? c.days_left : rosterOnly && v.endTime ? Math.max(0, Math.floor((v.endTime * 1000 - now) / 86_400_000)) : null,
       missRate: c ? c.miss_rate_14d : null,
       blocks14d: c ? c.block_count_14d : null,
       online: typeof v.connected === "boolean" ? v.connected : null,

@@ -75,7 +75,9 @@ const AMBER_BAR = "#d97706";
 // every L1 in the rail would bury the facets below it: the rail shows the 8 that leave the most validators
 const RAIL_FOLD: Partial<Record<L1FacetKey, number>> = { l1: 8 };
 
-const catalogBySubnet = new Map((l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [String(c.subnetId), c]));
+/** the catalog's L1s on one network, by subnet */
+const catalogOf = (network: string) =>
+  new Map((l1ChainsData as L1Chain[]).filter((c) => (c.isTestnet === true) === (network === "fuji") && c.subnetId).map((c) => [String(c.subnetId), c]));
 
 /** a balance in AVAX: two decimals while it is small */
 function fmtBalance(avax: number): string {
@@ -88,7 +90,7 @@ function seenTone(days: number): string {
   return days < 7 ? "text-zinc-700 dark:text-zinc-300" : "text-amber-600 dark:text-amber-400";
 }
 
-export function L1ValidatorSetContent() {
+export function L1ValidatorSetContent({ network = "mainnet" }: { network?: string }) {
   return (
     // the roster's filter rides in the URL, so the view renders under a Suspense boundary
     <Suspense
@@ -98,12 +100,13 @@ export function L1ValidatorSetContent() {
         </Board>
       }
     >
-      <L1ValidatorSetView />
+      {/* a network switch starts the view afresh: its feeds and filter differ */}
+      <L1ValidatorSetView key={network} network={network} />
     </Suspense>
   );
 }
 
-function L1ValidatorSetView() {
+function L1ValidatorSetView({ network }: { network: string }) {
   const params = useSearchParams();
   const [initial] = useState(() => readL1State(new URLSearchParams(params.toString())));
   const [targetPick, setTargetPick] = useState<string | null>(initial.target);
@@ -115,10 +118,10 @@ function L1ValidatorSetView() {
   const [copied, setCopied] = useState<string | null>(null);
   const rosterRef = useRef<HTMLElement>(null);
 
-  const { data: feed, failed } = useL1Validators();
+  const { data: feed, failed } = useL1Validators(network);
   const { data: releases } = useAvalancheGoReleases();
-  const { data: seats } = useEcosystemSeats();
-  const { subnets } = useValidatorStats();
+  const { data: seats } = useEcosystemSeats(network);
+  const { subnets } = useValidatorStats(network);
   const price = feed?.price ?? null;
 
   /* ---------------------------------------------------------------- */
@@ -127,14 +130,15 @@ function L1ValidatorSetView() {
 
   // an L1's name: the catalog's, else the stats feed's, else its subnet ID
   const infoOf = useMemo(() => {
+    const catalog = catalogOf(network);
     const stats = new Map((subnets ?? []).map((s) => [s.id, s]));
     return (subnetId: string): L1Info => {
-      const c = catalogBySubnet.get(subnetId);
+      const c = catalog.get(subnetId);
       if (c) return { name: c.chainName, logo: hasRealChainLogo(c.chainLogoURI) ? c.chainLogoURI : undefined, slug: c.slug, isPrivate: isPrivateChain(c) };
       const s = stats.get(subnetId);
       return { name: s?.name || `Subnet ${subnetId.slice(0, 8)}…`, logo: hasRealChainLogo(s?.chainLogoURI) ? s?.chainLogoURI : undefined };
     };
-  }, [subnets]);
+  }, [subnets, network]);
 
   const base = useMemo(() => (feed ? buildL1Rows(feed.validators, infoOf, price) : null), [feed, infoOf, price]);
   const required = useMemo(() => requiredRelease(releases), [releases]);
@@ -247,7 +251,7 @@ function L1ValidatorSetView() {
     const href = URL.createObjectURL(new Blob([toL1Csv(filtered, target)], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = href;
-    a.download = `avalanche-l1-validators-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `avalanche-${network === "mainnet" ? "" : `${network}-`}l1-validators-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(href), 0);
   };
@@ -302,7 +306,7 @@ function L1ValidatorSetView() {
   const single = (key: L1FacetKey) => (selection[key]?.length === 1 ? selection[key]?.[0] : undefined);
 
   // a node can hold seats on several L1s: the link names the one this row is
-  const rowHref = (r: L1StatusRow) => `/explorer/mainnet/p-chain/node/${encodeURIComponent(r.nodeId)}?subnet=${r.subnetId}`;
+  const rowHref = (r: L1StatusRow) => `/explorer/${network}/p-chain/node/${encodeURIComponent(r.nodeId)}?subnet=${r.subnetId}`;
 
   return (
     <div className="flex flex-col gap-10">
@@ -336,8 +340,9 @@ function L1ValidatorSetView() {
             format={fmtCompact}
             unit="AVAX"
             sub={burn !== null ? `burns ${burn.toFixed(1)} AVAX a day` : "pays the continuous fee"}
-            href="/explorer/mainnet/p-chain/l1s"
-            title="The L1 validator economy"
+            /* the L1 economy tab reads mainnet alone */
+            href={network === "mainnet" ? "/explorer/mainnet/p-chain/l1s" : undefined}
+            title={network === "mainnet" ? "The L1 validator economy" : undefined}
           />
           <StatSlab
             label="Runs Out · 30d"

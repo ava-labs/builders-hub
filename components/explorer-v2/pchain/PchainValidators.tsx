@@ -80,27 +80,23 @@ export function PchainValidators({ chain, network }: { chain: string; network: s
   const base = `/explorer/${network}/${chain}`;
   return (
     <ExplorerShell chain={chain} network={network}>
-      {/* the Primary Network's set secures P, C, and X alike: mainnet gets
-          the list-first roster the C-Chain tab also mounts. The P-Chain
-          adds a switch to every L1's set, since the P-Chain records those
-          seats; the X-Chain has none to show. Fuji keeps the plain set list
-          (the roster's p2p feeds are mainnet-only) */}
-      {network === "mainnet" && chain === "p-chain" ? (
+      {/* the Primary Network's set secures P, C, and X alike: each gets the
+          list-first roster the C-Chain tab also mounts, on either network.
+          The P-Chain adds a switch to every L1's set, since the P-Chain
+          records those seats; the X-Chain has none to show */}
+      {chain === "p-chain" ? (
         <div className="flex flex-col gap-6">
           <SectionHeader label="Validator Sets" action={<ValidatorSetSwitch base={base} view="primary" />} />
-          <PrimaryValidatorsContent stakingHref={`${base}/staking`} />
+          <PrimaryValidatorsContent stakingHref={`${base}/staking`} network={network} />
         </div>
-      ) : network === "mainnet" ? (
-        <PrimaryValidatorsContent stakingHref={`${base}/staking`} />
       ) : (
-        <ValidatorsContent network={network} base={base} />
+        <PrimaryValidatorsContent stakingHref={`${base}/staking`} network={network} />
       )}
     </ExplorerShell>
   );
 }
 
-/* The tab's other set: every L1's validators. Mainnet only; the route
-   sends Fuji to the Primary Network list. */
+/* The tab's other set: every L1's validators, on either network. */
 export function PchainL1Validators({ chain, network }: { chain: string; network: string }) {
   const base = `/explorer/${network}/${chain}`;
   return (
@@ -114,7 +110,7 @@ export function PchainL1Validators({ chain, network }: { chain: string; network:
             no AVAX stake: each pays a continuous fee from its prepaid balance.
           </p>
         </div>
-        <L1ValidatorSetContent />
+        <L1ValidatorSetContent network={network} />
       </div>
     </ExplorerShell>
   );

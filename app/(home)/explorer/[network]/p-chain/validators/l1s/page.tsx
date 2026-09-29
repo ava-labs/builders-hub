@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getExplorerChain } from "@/lib/pchain-explorer";
 import { PchainL1Validators } from "@/components/explorer-v2/pchain/PchainValidators";
 
@@ -17,7 +17,5 @@ export default async function L1ValidatorsPage({
   const { network } = await params;
   const c = getExplorerChain("p-chain");
   if (!c || !c.networks.includes(network)) notFound();
-  // the L1 list and its versions are read for mainnet only
-  if (network !== "mainnet") redirect(`/explorer/${network}/p-chain/validators`);
   return <PchainL1Validators chain={c.slug} network={network} />;
 }

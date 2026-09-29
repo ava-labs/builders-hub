@@ -86,6 +86,9 @@ const SEATS_COLOR = "#0061E2";
 const ETNA_DAY = "2024-12-16";
 const PAGE = 50;
 const GRID = "md:grid-cols-[2.5rem_minmax(0,1fr)_6.5rem_7rem_5rem_3.5rem_5rem_5rem_5rem]";
+// a network no crawler watches has no miss rate: its roster drops that column, facet and preset
+const ROSTER_GRID = "md:grid-cols-[2.5rem_minmax(0,1fr)_6.5rem_7rem_5rem_3.5rem_5rem_5rem]";
+const ROSTER_PRESETS = PRESETS.filter((p) => !p.selection.miss);
 
 function uptimeTone(pct: number, need: number): string {
   if (pct >= 99) return "text-zinc-700 dark:text-zinc-300";
@@ -154,7 +157,7 @@ function OnlineDot({ online }: { online: boolean | null }) {
   );
 }
 
-export function PrimaryValidatorsContent(props: { stakingHref: string; switched?: boolean }) {
+export function PrimaryValidatorsContent(props: { stakingHref: string; switched?: boolean; network?: string }) {
   return (
     // the roster's filter rides in the URL, so the view renders under a Suspense boundary
     <Suspense
@@ -164,34 +167,38 @@ export function PrimaryValidatorsContent(props: { stakingHref: string; switched?
         </Board>
       }
     >
-      <PrimaryValidatorsView {...props} />
+      {/* a network switch starts the view afresh: its feeds and filter differ */}
+      <PrimaryValidatorsView key={props.network ?? "mainnet"} {...props} />
     </Suspense>
   );
 }
 
-function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref: string; switched?: boolean }) {
+function PrimaryValidatorsView({ stakingHref, switched = false, network = "mainnet" }: { stakingHref: string; switched?: boolean; network?: string }) {
+  // the p2p crawler and the metrics feed watch mainnet alone: elsewhere the
+  // roster stands alone, with its own uptime, end time and stake
+  const rosterOnly = network !== "mainnet";
   const params = useSearchParams();
   const [initial] = useState(() => readState(new URLSearchParams(params.toString())));
   const [targetPick, setTargetPick] = useState<string | null>(initial.target);
   const [query, setQuery] = useState(initial.q);
-  const [selection, setSelection] = useState<Selection>(initial.selection);
+  const [selection, setSelection] = useState<Selection>(rosterOnly ? { ...initial.selection, miss: undefined } : initial.selection);
   const [sort, setSort] = useState<Sort>(initial.sort);
   const [shown, setShown] = useState(PAGE);
   const [panelOpen, setPanelOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const rosterRef = useRef<HTMLElement>(null);
 
-  const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
-  const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
-  const { data: p2p, failed: p2pFailed } = useP2pValidators();
-  const { data: totalSeats } = useTotalSeats();
+  const { data: metrics, failed: metricsFailed } = usePrimaryMetrics(network);
+  const { data: sdkValidators, failed: sdkFailed } = useSdkValidators(network);
+  const { data: p2p, failed: p2pFailed } = useP2pValidators(network);
+  const { data: totalSeats } = useTotalSeats(network);
   const { data: releases } = useAvalancheGoReleases();
 
   /* ---------------------------------------------------------------- */
   /* the set, measured against the target                             */
   /* ---------------------------------------------------------------- */
 
-  const base = useMemo(() => (sdkValidators ? buildRows(sdkValidators, p2p) : null), [sdkValidators, p2p]);
+  const base = useMemo(() => (sdkValidators ? buildRows(sdkValidators, p2p, { rosterOnly }) : null), [sdkValidators, p2p, rosterOnly]);
   const required = useMemo(() => requiredRelease(releases), [releases]);
   const latest = releases?.[0] ?? null;
   const target = targetPick ?? (base ? defaultTarget(base, releases) : null);
@@ -204,7 +211,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
   /* the roster's filter                                              */
   /* ---------------------------------------------------------------- */
 
-  const facets = useMemo(() => facetsFor(rows ?? []), [rows]);
+  const facets = useMemo(() => facetsFor(rows ?? []).filter((f) => !rosterOnly || f.key !== "miss"), [rows, rosterOnly]);
   const q = useMemo(() => parseQuery(query), [query]);
   const filtering = isFiltering(selection, q);
   const filtered = useMemo(() => (rows ? sortRows(applyFilter(rows, facets, selection, q), sort) : []), [rows, facets, selection, q, sort]);
@@ -212,16 +219,17 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
   const visible = useMemo(() => (filtering ? new Set(filtered.map((r) => r.nodeId)) : null), [filtering, filtered]);
   const missing = useMemo(() => (rows ? missingIds(rows, q) : []), [rows, q]);
   // a preset counts inside the search, so a pasted list reads its own triage
+  const presets = rosterOnly ? ROSTER_PRESETS : PRESETS;
   const presetCounts = useMemo(
-    () => Object.fromEntries(PRESETS.map((p) => [p.id, rows ? applyFilter(rows, facets, p.selection, q).length : 0])),
-    [rows, facets, q],
+    () => Object.fromEntries(presets.map((p) => [p.id, rows ? applyFilter(rows, facets, p.selection, q).length : 0])),
+    [presets, rows, facets, q],
   );
   const activeFacets = Object.values(selection).filter((v) => v?.length).length;
   const canLink = linkable(query);
 
-  /* uptime, miss rate and time left come from the crawler alone: until it
-     answers, those counts read as waiting, not as zero */
-  const pending: Pending | null = p2p
+  /* on mainnet, uptime, miss rate and time left come from the crawler
+     alone: until it answers, those counts read as waiting, not as zero */
+  const pending: Pending | null = p2p || rosterOnly
     ? null
     : p2pFailed
       ? { keys: CRAWLER_FACETS, label: "n/a", title: "The crawler feed is unavailable, so uptime, miss rate and time left cannot filter" }
@@ -299,7 +307,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
     const href = URL.createObjectURL(new Blob([toCsv(filtered, target)], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = href;
-    a.download = `avalanche-validators-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `avalanche-${network === "mainnet" ? "" : `${network}-`}validators-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(href), 0);
   };
@@ -331,7 +339,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
   /* ---------------------------------------------------------------- */
 
   // validations that start after Helicon need 90% uptime to earn rewards; earlier ones 80%
-  const need = useMemo(() => uptimeRequirementAt(Date.now()), []);
+  const need = useMemo(() => uptimeRequirementAt(Date.now(), network === "fuji" ? "fuji" : "mainnet"), [network]);
   const underIds = need > 80 ? ["80", "lt80"] : ["lt80"];
   const uptime = useMemo(() => {
     const all = (rows ?? []).map((r) => r.uptime).filter((u): u is number => u !== null).sort((a, b) => a - b);
@@ -345,12 +353,12 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
     return { within30: days.filter((d) => d < 30).length, within7: days.filter((d) => d < 7).length };
   }, [rows]);
 
-  // the health charts draw the crawler's buckets over the whole set, whatever the cut
+  // the health charts draw their buckets over the whole set, whatever the cut
   const [missBuckets, daysBuckets] = useMemo(() => {
-    const crawled = (rows ?? []).filter((r) => r.missRate !== null);
-    const bucket = (options: FacetOption[]) =>
-      crawled.length ? options.map((o) => ({ id: o.id, label: o.label, count: crawled.filter(o.test).length })) : [];
-    return [bucket(MISS_OPTIONS), bucket(ENDS_OPTIONS)];
+    const all = rows ?? [];
+    const bucket = (options: FacetOption[], pool: StatusRow[]) =>
+      pool.length ? options.map((o) => ({ id: o.id, label: o.label, count: pool.filter(o.test).length })) : [];
+    return [bucket(MISS_OPTIONS, all.filter((r) => r.missRate !== null)), bucket(ENDS_OPTIONS, all.filter((r) => r.daysLeft !== null))];
   }, [rows]);
   const single = (key: FacetKey) => (selection[key]?.length === 1 ? selection[key]?.[0] : undefined);
 
@@ -384,7 +392,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
 
   const ownStake = num(metrics?.validator_weight?.current_value);
   const delegatedStake = num(metrics?.delegator_weight?.current_value);
-  const totalWeight = ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
+  const metricsWeight = ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
 
   /* the slabs' strips: the last 60 days of each figure */
   const countSpark = useMemo(() => toSeries(metrics?.validator_count).slice(-60).map((p) => p.value), [metrics]);
@@ -398,8 +406,11 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
       .map((p) => (p.value + (del.get(p.day) ?? 0)) / NANO);
   }, [metrics]);
 
-  const nodeHref = (nodeId: string) => `/explorer/mainnet/p-chain/node/${encodeURIComponent(nodeId)}`;
+  const nodeHref = (nodeId: string) => `/explorer/${network}/p-chain/node/${encodeURIComponent(nodeId)}`;
+  const grid = rosterOnly ? ROSTER_GRID : GRID;
   const total = useMemo(() => summarize(rows ?? []), [rows]);
+  // off mainnet no metrics feed answers: the roster's own sum stands in
+  const totalWeight = rosterOnly ? (rows ? total.stake : null) : metricsWeight;
   const sum = useMemo(() => summarize(filtered), [filtered]);
 
   return (
@@ -437,7 +448,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
             unit="AVAX"
             sub="own stake + delegations"
             spark={weightSpark}
-            href={switched ? undefined : stakingHref}
+            href={switched || rosterOnly ? undefined : stakingHref}
             title="Staking economics"
           />
           <StatSlab
@@ -500,7 +511,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
             ) : undefined
           }
         />
-        <PresetRow presets={PRESETS} counts={presetCounts} selection={selection} onPreset={onPreset} pending={pending} />
+        <PresetRow presets={presets} counts={presetCounts} selection={selection} onPreset={onPreset} pending={pending} />
 
         <div className="grid items-start gap-6 xl:grid-cols-[14rem_minmax(0,1fr)] xl:gap-8">
           {/* the rail: every part of the filter, each option with the count it would leave */}
@@ -607,7 +618,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
               {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
               <div className="overflow-x-auto">
                 <div className="md:min-w-[60rem]">
-                  <div className={cn(HEAD, GRID, "border-b border-zinc-200 dark:border-zinc-800")}>
+                  <div className={cn(HEAD, grid, "border-b border-zinc-200 dark:border-zinc-800")}>
                     <span>#</span>
                     <span>Node</span>
                     <span><SortHeader label="Version" k="version" /></span>
@@ -616,7 +627,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
                     <span className="text-right"><SortHeader label="Fee" k="fee" /></span>
                     <span className="text-right"><SortHeader label="Uptime" k="uptime" /></span>
                     <span className="whitespace-nowrap text-right"><SortHeader label="Days Left" k="daysLeft" /></span>
-                    <span className="whitespace-nowrap text-right"><SortHeader label="Miss · 14d" k="missRate" /></span>
+                    {!rosterOnly && <span className="whitespace-nowrap text-right"><SortHeader label="Miss · 14d" k="missRate" /></span>}
                   </div>
                   {!rows && !sdkFailed && <RowSkeleton n={12} />}
                   {rows &&
@@ -625,7 +636,7 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
                         key={r.nodeId}
                         href={nodeHref(r.nodeId)}
                         title={r.ip ? `${r.nodeId} · ${r.ip}` : r.nodeId}
-                        className={cn(ROW, "grid-cols-4 gap-x-3 md:gap-x-4", GRID, "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}
+                        className={cn(ROW, "grid-cols-4 gap-x-3 md:gap-x-4", grid, "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}
                       >
                         <span className="hidden font-mono text-[12px] tabular-nums text-zinc-400 md:block dark:text-zinc-500">{i + 1}</span>
                         <span className="col-span-4 flex min-w-0 items-center gap-2 md:col-span-1">
@@ -666,12 +677,14 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
                           <CellLabel>Days left</CellLabel>
                           <span className={cn("font-mono text-[12px] tabular-nums", r.daysLeft !== null && daysLeftTone(r.daysLeft))}>{r.daysLeft ?? NA}</span>
                         </span>
-                        <span className="md:text-right">
-                          <CellLabel>Miss · 14d</CellLabel>
-                          <span className={cn("font-mono text-[12px] tabular-nums", r.missRate !== null && missRateTone(r.missRate))}>
-                            {r.missRate !== null ? `${r.missRate.toFixed(1)}%` : NA}
+                        {!rosterOnly && (
+                          <span className="md:text-right">
+                            <CellLabel>Miss · 14d</CellLabel>
+                            <span className={cn("font-mono text-[12px] tabular-nums", r.missRate !== null && missRateTone(r.missRate))}>
+                              {r.missRate !== null ? `${r.missRate.toFixed(1)}%` : NA}
+                            </span>
                           </span>
-                        </span>
+                        )}
                       </Link>
                     ))}
                   {rows && filtered.length === 0 && (
@@ -714,20 +727,22 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
         </div>
       </section>
 
-      {/* how the fleet is behaving */}
-      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label="Block Miss Rate · 14d">
-          {missBuckets.length ? (
-            <BucketBars
-              data={missBuckets}
-              picked={single("miss")}
-              onPick={(id) => onCut("miss", [id])}
-              tint={(b) => (b.id === "0" || b.id === "0-1" ? QUIET_BAR : "#E6212F")}
-            />
-          ) : (
-            <ChartEmpty failed={false} />
-          )}
-        </ChartBoard>
+      {/* how the fleet is behaving; off mainnet no crawler reads the miss rate */}
+      <div className={cn("grid grid-cols-1 items-start gap-x-8 gap-y-10", !rosterOnly && "lg:grid-cols-2")}>
+        {!rosterOnly && (
+          <ChartBoard label="Block Miss Rate · 14d">
+            {missBuckets.length ? (
+              <BucketBars
+                data={missBuckets}
+                picked={single("miss")}
+                onPick={(id) => onCut("miss", [id])}
+                tint={(b) => (b.id === "0" || b.id === "0-1" ? QUIET_BAR : "#E6212F")}
+              />
+            ) : (
+              <ChartEmpty failed={false} />
+            )}
+          </ChartBoard>
+        )}
 
         <ChartBoard label="Time Remaining · current set">
           {daysBuckets.length ? (
@@ -764,28 +779,30 @@ function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref:
         </ChartBoard>
       )}
 
-      {/* how the set got to this size */}
-      <div className="flex flex-col gap-4">
-        <ChartBoard
-          label="Validator Count · All Time"
-          action={
-            <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-4 bg-zinc-900/15 dark:bg-zinc-100/15" /> primary network
+      {/* how the set got to this size: the metrics feed keeps mainnet's history alone */}
+      {!rosterOnly && (
+        <div className="flex flex-col gap-4">
+          <ChartBoard
+            label="Validator Count · All Time"
+            action={
+              <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-4 bg-zinc-900/15 dark:bg-zinc-100/15" /> primary network
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-4 bg-[#0061E2]" /> seats incl. L1s
+                </span>
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-[#0061E2]" /> seats incl. L1s
-              </span>
-            </span>
-          }
-        >
-          {countSeries.length ? <CountChart data={countSeries} /> : <ChartEmpty failed={metricsFailed} />}
-        </ChartBoard>
-        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network. The blue line counts every validator seat across the
-          ecosystem since then.
-        </p>
-      </div>
+            }
+          >
+            {countSeries.length ? <CountChart data={countSeries} /> : <ChartEmpty failed={metricsFailed} />}
+          </ChartBoard>
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network. The blue line counts every validator seat across the
+            ecosystem since then.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

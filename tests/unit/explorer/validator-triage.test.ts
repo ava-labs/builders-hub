@@ -116,6 +116,14 @@ describe('buildRows', () => {
     expect(rows[0].version).toBeNull();
     expect(rows[0].ip).toBeNull();
   });
+
+  it('takes uptime and time left from the roster where no crawler watches the network', () => {
+    const now = Date.UTC(2026, 8, 28);
+    const own = roster(A, { uptime: 97.5, endTime: now / 1000 + 10.5 * 86_400 });
+    expect(buildRows([own], null, { rosterOnly: true, now })[0]).toMatchObject({ uptime: 97.5, daysLeft: 10, missRate: null, blocks14d: null });
+    // on a crawled network the roster's own readings stay out, even for a node the crawler lacks
+    expect(buildRows([own], new Map(), { now })[0]).toMatchObject({ uptime: null, daysLeft: null });
+  });
 });
 
 describe('target', () => {
