@@ -97,6 +97,14 @@ describe('the calendar rule', () => {
     expect(userTurn(43114, 'sAVAX stakes and unstakes per day this week', at)).toContain('An sAVAX unstake is two events: UnlockRequested savax_unlock_t');
     expect(userTurn(43114, 'sAVAX stakes per day this week', at)).not.toContain('An sAVAX unstake');
     expect(userTurn(43114, 'How many validators unstaked this week?', at)).not.toContain('An sAVAX unstake');
+    // a C-Chain question about NFTs leaves the DEX pools out: an LB pool's bin shares log TransferBatch (r11's G03)
+    const lb = 'opens with $POOLS() and leaves the DEX pools out, AND address NOT IN (SELECT pool FROM pools)';
+    expect(userTurn(43114, 'Which NFT collections had the most transfers today?', at)).toContain(lb);
+    expect(userTurn(43114, 'Top ERC-1155 contracts by transfers today', at)).not.toContain(lb);
+    expect(userTurn(43419, 'Which NFT collections had the most transfers today?', at)).not.toContain(lb);
+    const system = (chainId: number) => systemPrompt({ chainId, chainName: 'x', symbol: 'AVAX', schema: '', coverage: null });
+    expect(system(43114)).toContain(lb);
+    expect(system(43419)).not.toContain(lb);
     expect(userTurn(43114, 'Which pools had the most swaps today?', at)).toContain('A query by pool');
     expect(userTurn(43113, 'Top 10 pools by volume this week', at)).toBe('Top 10 pools by volume this week');
     // a P-Chain question about validators that started or were added counts nodes beside registrations (r7's P01)

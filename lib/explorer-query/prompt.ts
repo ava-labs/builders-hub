@@ -80,6 +80,12 @@ const SOME_TOKENS = /\btokens?\b|\berc-?20s?\b/i;
 const NFTS = /\bnfts?\b|\bcollections?\b|\berc-?(?:721|1155)s?\b|\b0x[0-9a-fA-F]{40}\b/i;
 const erc20Turn = (prompt: string) =>
   TOKEN_TRANSFERS.test(prompt) && SOME_TOKENS.test(prompt) && !NFTS.test(prompt) ? " A token transfer is an ERC-20 Transfer log, topic3 IS NULL: an NFT's Transfer (ERC-721) has the same topic0 and its token id in topic3." : "";
+/** an LB pool's bin shares are ERC-1155 logs, not NFTs: the NFT line and the NFT turn both say it */
+const LB_SHARES = "A Liquidity Book pool (Trader Joe LB, Pharaoh DLMM) logs TransferSingle and TransferBatch too, for its bin shares, which are no NFTs: a question about NFTs or collections opens with $POOLS() and leaves the DEX pools out, AND address NOT IN (SELECT pool FROM pools).";
+/* a C-Chain question about NFTs leaves the DEX pools out: an LB pool logs TransferSingle and TransferBatch for its bin
+   shares, and r11's G03 ranked two Liquidity Book pools among the day's 15 top collections */
+const nftTurn = (chainId: number, prompt: string) =>
+  chainId === DEX_CHAIN_ID && /\bnfts?\b|\bcollections?\b/i.test(prompt) ? ` ${LB_SHARES}` : "";
 
 /* a P-Chain question about validators that started, joined or were added counts nodes beside the registrations: r7's
    P01 gave 37 registrations where 36 nodes started and 3 were new. An L1's registration carries no node_id */
@@ -113,7 +119,7 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const evm = targetOf(chainId).kind !== "pchain";
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
-  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}${poolsTurn(chainId, prompt)}${feesTurn(chainId, prompt)}${unstakeTurn(prompt)}` : validatorsTurn(prompt);
+  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}${nftTurn(chainId, prompt)}${poolsTurn(chainId, prompt)}${feesTurn(chainId, prompt)}${unstakeTurn(prompt)}` : validatorsTurn(prompt);
   return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
@@ -427,7 +433,7 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   const tokenSenders = isFuji(opts.chainId) ? "uniqExact(tx_from)" : "uniqExactIf(topic1, topic1 != unhex(repeat('00', 32)))";
   const created = isFuji(opts.chainId)
     ? ""
-    : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.
+    : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.${opts.chainId === DEX_CHAIN_ID ? ` ${LB_SHARES}` : ""}
 - New contracts: every contract is created by a CREATE or CREATE2 call in raw_traces, whether a transaction deploys it directly or a factory or an account-abstraction bundler creates it inside one (often most of them); the trace's \`to\` is the new contract. Count them with startsWith(call_type, 'CREAT') AND tx_success, and write the prefix 'CREAT': the server refuses the word CREATE even inside a string. raw_txs.contract_address holds only the direct deployments, so a question about new, created or deployed contracts reads raw_traces.
 - Mints and burns: a Transfer from the zero address mints the token to its recipient, and one to the zero address burns it. A count of the wallets a token moved from (topic1) or to (topic2) leaves the zero address out, uniqExactIf(topic1, topic1 != unhex(repeat('00', 32))), and a count of one token's transfers counts its mints and burns beside them: countIf(topic1 = unhex(repeat('00', 32))) AS mints. A note calls a token's transfers ERC-20 or ERC-721 only when the query reads topic3; otherwise it says transfers.
 - Contracts by transactions: a ranking of contracts counts every transaction to each, plain transfers included, and tells a contract from a wallet with HAVING countIf(length(input) >= 4) > 0. A WHERE on length(input) is for method_id alone.
