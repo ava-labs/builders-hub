@@ -12,6 +12,7 @@ import type { Names, Totals } from "@/lib/explorer-query/types";
 import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPick, type Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
 import { MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
+import { wholeFigure } from "@/lib/explorer-query/stat-label";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 import { rowCount } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
@@ -196,28 +197,6 @@ function statValue(rows: Row[], s: Stat): number | string | null {
   }
 }
 
-/** a figure over the whole answer, when a LIMIT cut its rows and its totals were read */
-function totalValue(totals: Totals | null | undefined, s: Stat): number | null {
-  if (!totals) return null;
-  const c = s.column;
-  switch (s.agg) {
-    case "sum":
-      return totals.sum[c] ?? null;
-    case "avg":
-      return totals.count[c] ? totals.sum[c] / totals.count[c] : null;
-    case "max":
-      return totals.max[c] ?? null;
-    case "min":
-      return totals.min[c] ?? null;
-    case "count":
-      return totals.rows;
-    case "distinct":
-      return totals.distinct[c] ?? null;
-    default:
-      return null;
-  }
-}
-
 /** a percent's digits, before its %: whole from 10, one place below */
 const pct = (p: number) => (p >= 10 || p === 0 ? p.toFixed(0) : p.toFixed(1));
 
@@ -268,7 +247,7 @@ const OVER_WINDOW = new Set(["sum", "avg", "count", "distinct"]);
 function StatFigure({ s, rows, all, names, sym, active, totals, base, span, x, onHoverKey, onOpen }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string; span?: string | null; x?: string; onHoverKey?: (k: unknown) => void; onOpen?: (row: Row) => void }) {
   const reduced = useReduced();
   // with no selection the figure counts the whole answer, past any LIMIT; a selection counts its own rows
-  const total = totalValue(totals, s);
+  const total = wholeFigure(totals, s);
   const v = !active && total !== null ? total : statValue(rows, s);
   const num = typeof v === "number" ? v : null;
   const t = useTween(num);

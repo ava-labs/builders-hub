@@ -42,7 +42,7 @@ describe('the totals of a cut ranking', () => {
 
   it('are read as the size alone: no total over the whole set is promised beside the rows', () => {
     const f = figures({ columns: COLUMNS, rows: rows(15), names: {}, x: 'provider', totals: { rows: 721, ...SIZE } });
-    expect(f[0]).toBe("The rows are the first 15 of 721: the query's LIMIT cut the rest. A sum over these rows is not the total over all 721.");
+    expect(f[0]).toBe("The rows are the first 15 of 721: the query's LIMIT cut the rest. A sum over these rows is not the total over all 721; a count stat shows all 721.");
     expect(f.join('\n')).not.toContain('over all 721 rows');
   });
 });

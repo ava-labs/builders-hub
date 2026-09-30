@@ -12,6 +12,7 @@ import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
 import { basicVisual } from "./draft";
+import { averageLabel, wholeLabel } from "./stat-label";
 
 export const DESIGN_MODEL = "claude-opus-5-5";
 /** the designer runs at low effort: in 20 blind pairs its charts were rated as good as the default's (7 wins each, 6 ties), in about half the time */
@@ -207,18 +208,6 @@ function labelsOf(v: VisualSpec): string[] {
     ...v.stats.flatMap((s) => [s.label, s.sub ?? ""]),
     ...v.panels.flatMap((p) => [p.title, ...p.series.map((s) => s.label), ...p.markers.map((m) => m.label), ...p.bands.map((b) => b.label), ...p.referenceLines.map((r) => r.label)]),
   ];
-}
-
-/* the highest or lowest of the rows' own averages is an average, not a price paid: the final audit's X04 read "Peak
-   gas price 35.58 gwei", the highest hour's average, where the highest price paid was 19,999.92 gwei. A stat of one
-   whose label and sub never say so says average ("Peak average gas price") */
-const AVERAGE_NAME = /(?:^|_)(?:avg|average|mean)(?:_|$)/i;
-const SAYS_AVERAGE = /\b(?:avg|averages?|mean|median|typical)\b/i;
-const EXTREME_WORD = /^(?:peak|highest|lowest|top|max(?:imum)?|min(?:imum)?|busiest|cheapest)\b/i;
-export function averageLabel<S extends { label: string; sub?: string; agg: string; column: string }>(s: S): S {
-  if ((s.agg !== "max" && s.agg !== "min") || !AVERAGE_NAME.test(s.column) || SAYS_AVERAGE.test(`${s.label} ${s.sub ?? ""}`)) return s;
-  const m = EXTREME_WORD.exec(s.label);
-  return { ...s, label: m ? `${m[0]} average${s.label.slice(m[0].length)}` : `${s.label} (average)` };
 }
 
 /** a visual in the reader's words: a snake_case name left in a label reads as words, and a callout that names a column,
@@ -503,7 +492,7 @@ export function figures(input: Seen): string[] {
     out.push(
       totals.newest
         ? `The rows are the newest ${rows.length} of ${totals.rows}: the row cap cut the oldest.`
-        : `The rows are the first ${rows.length} of ${totals.rows}: the query's LIMIT cut the rest. ${sizeOnly(totals) ? `A sum over these rows is not the total over all ${totals.rows}.` : `A sum over these rows is not the total; the total over all ${totals.rows} is given beside it.`}`,
+        : `The rows are the first ${rows.length} of ${totals.rows}: the query's LIMIT cut the rest. ${sizeOnly(totals) ? `A sum over these rows is not the total over all ${totals.rows}; a count stat shows all ${totals.rows}.` : `A sum over these rows is not the total; the total over all ${totals.rows} is given beside it. A stat's sum, average, count or distinct shows the figure over all ${totals.rows}, so its label names the whole set, never these ${rows.length}.`}`,
     );
   }
   // which edge buckets the window cuts, from the same reading of the SQL as the chart's labels
@@ -824,6 +813,9 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     }
     const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
     if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
+    // a stat the page shows over the whole answer is named for it, not for the rows a LIMIT kept
+    const whole = wholeLabel(spec.stats, input.rows.length, input.totals);
+    if (whole) return { error: whole };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
     // a flow runs from one column to another and draws one amount
     const flows = spec.panels.filter((p) => p.kind === "flow");
