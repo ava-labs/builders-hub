@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { createClient } from "redis";
+import { redis } from "@/lib/redis";
 import { familyQuestion } from "./families";
 import { lendingQuestion } from "./lending";
 import { dexQuestion, promptVersion } from "./prompt";
@@ -33,31 +33,6 @@ const TTL_S = 7 * 24 * 3600;
 const PREFIX = "explorer-query:v2:";
 const LOCAL_MAX = 500;
 const local = new Map<string, Recipe>();
-
-let client: ReturnType<typeof createClient> | null = null;
-let connecting: Promise<ReturnType<typeof createClient> | null> | null = null;
-
-async function redis() {
-  if (client?.isOpen) return client;
-  if (connecting) return connecting;
-  const url = process.env.REDIS_URL;
-  if (!url) return null;
-  connecting = (async () => {
-    const c = createClient({ url, socket: { connectTimeout: 1500 } });
-    c.on("error", (e) => {
-      console.warn("[explorer-query] redis error", e instanceof Error ? e.message : e);
-      client = null;
-      connecting = null;
-    });
-    await c.connect();
-    client = c;
-    return c;
-  })().catch(() => {
-    connecting = null;
-    return null;
-  });
-  return connecting;
-}
 
 /** the same question on the same chain, however it was typed, against the same prompt: a DEX, lending or family
     question's names its variant, and a question that names a registry protocol with no chapter names that protocol,
