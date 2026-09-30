@@ -17,6 +17,13 @@ describe('labelError', () => {
     expect(labelError({ stats: [stat('Leader share', 'share_pct', 'percent')], panels: [] }, [{ share_pct: 12 }], null)).toBeNull();
   });
 
+  it('refuses a percent over a count (r11 G10: 390 registrations read "390.0%")', () => {
+    expect(labelError({ stats: [stat('Registrations', 'registrations', 'percent', 'sum')], panels: [] }, [{ registrations: 390 }], null)).toBe(
+      '"Registrations" shows registrations as a percent, and registrations is no rate or share: give it format number, or show a pct, rate or share column',
+    );
+    for (const c of ['fail_rate', 'revert_pct', 'share_of_volume', 'apr']) expect(labelError({ stats: [stat('Rate', c, 'percent')], panels: [] }, [{ [c]: 5 }], null)).toBeNull();
+  });
+
   it('refuses a stack of parts that add up to more than their whole (r7 D09)', () => {
     const panels = [bars([{ column: 'priced_swaps', transform: 'none' }, { column: 'swaps_not_counted', transform: 'none' }])];
     expect(labelError({ stats: [], panels }, D09, null)).toBe(

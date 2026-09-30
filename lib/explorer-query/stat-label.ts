@@ -72,6 +72,9 @@ function overlapped(panels: readonly Pick<Panel, "stacked" | "series">[], rows: 
   return null;
 }
 
+/** a column a percent can show: a word of its name says rate, share or percent (registrations holds no ratio) */
+export const PERCENT_COLUMN = /(?:^|_)(?:pct|percent|ratio|share|rate|apr|apy)(?:_|$)/i;
+
 /** why a stat's label or a stacked panel misstates its figure, or null: a whole answer's figure named for the rows
     shown, a share that is no percent (r7's L03 "AVAX share" showed $2.37M), or parts stacked that overlap */
 export function labelError(
@@ -83,5 +86,8 @@ export function labelError(
   if (whole) return whole;
   const share = spec.stats.find((s) => /\bshare\b/i.test(s.label) && s.format !== "percent");
   if (share) return `"${share.label}" shows ${share.column} as ${share.format}, and a share is a percent: name the stat for its figure and give the share in its sub, or show a percent column with format percent`;
+  // and a percent is a rate or a share: r11's G10 page showed 390 registrations as "390.0%"
+  const pct = spec.stats.find((s) => s.format === "percent" && !PERCENT_COLUMN.test(s.column));
+  if (pct) return `"${pct.label}" shows ${pct.column} as a percent, and ${pct.column} is no rate or share: give it format number, or show a pct, rate or share column`;
   return overlapped(spec.panels, rows);
 }

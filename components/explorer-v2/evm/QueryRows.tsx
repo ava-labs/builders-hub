@@ -12,6 +12,7 @@ import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
+import { PERCENT_COLUMN } from "@/lib/explorer-query/stat-label";
 import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { noteParts } from "./query-client";
@@ -56,7 +57,9 @@ export const header = (col: string) => HEADERS[col] ?? col.replace(/_/g, " ").re
 export function formatOf(col: string, visual: VisualSpec | null): Format {
   const fromVisual = visual?.panels.flatMap((p) => p.series).find((s) => s.column === col)?.format ?? visual?.stats.find((s) => s.column === col)?.format;
   if (fromVisual) return fromVisual;
-  if (/pct|share|percent|rate/.test(col)) return "percent";
+  // by the words of its name: generated holds no rate, shares no share, and a fee in usd is dollars
+  if (PERCENT_COLUMN.test(col)) return "percent";
+  if (/(?:^|_)usd(?:_|$)/.test(col)) return "usd";
   if (/avax|fee/.test(col)) return "avax";
   if (/gas/.test(col)) return "gas";
   return "number";
