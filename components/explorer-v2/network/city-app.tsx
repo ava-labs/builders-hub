@@ -2257,8 +2257,8 @@ export function CityApp({
       </aside>
 
       {/* the key, in the bottom left corner from xl; with the panel open it is the panel's foot, widening into the panel
-          over the panel's own slide (city-key.tsx) */}
-      {webgl && (
+          over the panel's own slide (city-key.tsx). An answer or a live pane at the right leaves the figures no room beside it */}
+      {webgl && (showPanel || (!ask && !paneOpen)) && (
         <div data-city-hud className="absolute bottom-4 left-4 z-30 hidden transition-[width] duration-300 ease-out xl:block" style={{ width: showPanel ? PANEL_W : KEY_W }}>
           {mapKey}
         </div>
@@ -2267,11 +2267,12 @@ export function CityApp({
       {/* the news, in the corner the site's chat button keeps on other pages; the chat button stands down here */}
       <NewsFeed className="absolute bottom-4 right-4 z-30" />
 
-      {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button,
-          and from xl the left edge of the key in the corner (its 320 px and 16 px each side). A panel and an answer both open
-          leave the city too narrow for them */}
-      <div className={cn("pointer-events-none absolute bottom-4 z-10 flex items-end justify-center [--key-clear:88px] xl:[--key-clear:352px]", showPanel && ask && "hidden")} style={{ left: showPanel ? inset.left : "var(--key-clear)", right: rightW ? rightW + 32 : 88 }}>
-        <div className="pointer-events-auto flex divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
+      {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button.
+          From xl the key stands in the bottom left corner: where the strip centred on the window would reach it (its 320 px
+          and 16 px each side), the strip moves right just far enough, half its width being the 50% of its own translate. A
+          panel and an answer both open leave the city too narrow for them */}
+      <div className={cn("pointer-events-none absolute bottom-4 z-10 flex items-end justify-center [--key-clear:0px] xl:[--key-clear:352px]", showPanel && ask && "hidden")} style={{ left: showPanel ? inset.left : 88, right: rightW ? rightW + 32 : 88 }}>
+        <div style={webgl && !showPanel && !ask && !paneOpen ? { transform: "translateX(max(0px, calc(var(--key-clear) - 50vw + 50%)))" } : undefined} className="pointer-events-auto flex divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
           {showPanel || ask ? stripNarrow : stripWide}
         </div>
       </div>
