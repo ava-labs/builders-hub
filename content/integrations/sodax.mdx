@@ -1,0 +1,73 @@
+---
+title: SODAX
+category: Crosschain Solutions
+available: ["C-Chain"]
+description: "Intent-based execution and liquidity system for trading, lending, and moving assets between Avalanche C-Chain and 20+ other networks, with a TypeScript SDK, REST API, React kit, and MCP server."
+logo: /images/sodax.svg
+developer: SODAX
+website: https://www.sodax.com/
+documentation: https://docs.sodax.com/
+---
+
+## Overview
+
+[SODAX](https://www.sodax.com) is an intent-based execution and liquidity system. A user states the outcome they want (for example, trade AVAX on Avalanche C-Chain for USDC on another network), and independent solvers quote and fill it. SODAX coordinates routing and settlement through a hub on Sonic, with Avalanche C-Chain connected as one of 20+ EVM and non-EVM networks, including Ethereum, Arbitrum, Base, BNB Smart Chain, Solana, Sui, Stellar, and Bitcoin.
+
+The protocol is non-custodial: it routes and settles, and solvers fill. Builders keep control over UX, pricing, and risk.
+
+## Features
+
+- **Cross-network trades**: Quote and execute intents between C-Chain assets and assets on other networks from one signed transaction, filled by solvers and tracked until settled.
+- **Cross-network money market**: Supply and borrow through one money market on the Sonic hub, using collateral from other networks. AVAX is supported as a money market asset.
+- **Asset transfers**: Move supported assets between Avalanche C-Chain and other networks through hub-and-spoke vaults.
+- **Four integration paths**: the open-source TypeScript SDK (`@sodax/sdk`), the REST API at `api.sodax.com` for any language, `@sodax/dapp-kit` React hooks and components, and the Builders MCP server for AI coding agents.
+- **Partner fees**: Integrators can attach a partner fee to the flows they route.
+
+## Getting Started
+
+1. **Install** the SDK and wallet provider:
+
+```bash
+npm install @sodax/sdk @sodax/wallet-sdk-core
+```
+
+2. **Initialize and request a quote** (a quote signs nothing and costs nothing):
+
+```typescript
+import { Sodax, ChainKeys } from '@sodax/sdk';
+
+const sodax = new Sodax(); // mainnet defaults
+const init = await sodax.initialize();
+if (!init.ok) console.warn('Using packaged config', init.error);
+
+const srcChainKey = ChainKeys.AVALANCHE_MAINNET;
+const dstChainKey = ChainKeys.ARBITRUM_MAINNET;
+
+const quote = await sodax.swaps.getQuote({
+  token_src: sodax.config.spokeChainConfig[srcChainKey].nativeToken, // AVAX on C-Chain
+  token_dst: sodax.config.spokeChainConfig[dstChainKey].nativeToken, // ETH on Arbitrum
+  token_src_blockchain_id: srcChainKey,
+  token_dst_blockchain_id: dstChainKey,
+  amount: 100_000_000_000_000_000n, // 0.1 AVAX
+  quote_type: 'exact_input',
+});
+
+if (quote.ok) console.log('Quoted output:', quote.value.quoted_amount);
+```
+
+SDK calls return a `Result` (`{ ok: true, value }` or `{ ok: false, error }`). To execute the intent and poll until it settles, follow the [quickstart](https://docs.sodax.com/quickstart).
+
+## Documentation
+
+- [SODAX documentation](https://docs.sodax.com/)
+- [Quickstart: your first cross-network trade](https://docs.sodax.com/quickstart)
+- [HTTP API reference](https://docs.sodax.com/developers/http-api)
+- [Builders MCP for AI coding agents](https://docs.sodax.com/builders-mcp)
+- [SDK source (MIT)](https://github.com/icon-project/sodax-sdks)
+
+## Use Cases
+
+1. **Wallets**: Let users trade C-Chain assets for assets on other networks without leaving the wallet.
+2. **DEXs and aggregators**: Extend routes beyond Avalanche to reach liquidity on other networks.
+3. **Lending products**: Offer borrowing against collateral held on other networks.
+4. **AI agents**: Give coding agents live quotes, supported assets, and docs through the Builders MCP.
