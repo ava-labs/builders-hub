@@ -83,16 +83,14 @@ function tokenize(sql: string): Token[] {
 
 const keyword = (t: Token | undefined, ...words: string[]) => !!t && t.word && !t.quoted && words.includes(t.v.toUpperCase());
 
-/** the aliases that name an expression over the column they are named after ("hex(l.topic0) AS topic0"); a column under its own name is not one */
-function selfAliases(toks: Token[]): { name: string; select: number }[] {
-  const found: { name: string; select: number }[] = [];
-  const selects = new Set(toks.map((t) => t.select));
-  for (const s of selects) {
+/** each SELECT's list, split at its own commas: the token indexes of each item, by SELECT */
+function selectLists(toks: Token[]): Map<number, number[][]> {
+  const lists = new Map<number, number[][]>();
+  for (const s of new Set(toks.map((t) => t.select))) {
     const at = toks.flatMap((t, i) => (t.select === s ? [i] : []));
     const start = at.find((i) => toks[i].depth === 0 && keyword(toks[i], "SELECT"));
     if (start === undefined) continue;
     const end = at.find((i) => i > start && toks[i].depth === 0 && keyword(toks[i], "FROM")) ?? toks.length;
-    // the select list's items, split at its own commas
     let item: number[] = [];
     const items: number[][] = [];
     for (let i = start + 1; i < end; i++) {
@@ -102,11 +100,27 @@ function selfAliases(toks: Token[]): { name: string; select: number }[] {
       } else item.push(i);
     }
     items.push(item);
+    lists.set(s, items);
+  }
+  return lists;
+}
+
+/** an alias's last two tokens of its own SELECT: AS and the name, when the item has them */
+function aliasOf(toks: Token[], it: number[], s: number): { as: number; name: Token } | null {
+  const own = it.filter((i) => toks[i].select === s && toks[i].depth === 0);
+  const [as, name] = own.slice(-2).map((i) => toks[i]);
+  return keyword(as, "AS") && name?.word ? { as: own[own.length - 2], name } : null;
+}
+
+/** the aliases that name an expression over the column they are named after ("hex(l.topic0) AS topic0"); a column under its own name is not one */
+function selfAliases(toks: Token[]): { name: string; select: number }[] {
+  const found: { name: string; select: number }[] = [];
+  for (const [s, items] of selectLists(toks)) {
     for (const it of items) {
-      const own = it.filter((i) => toks[i].select === s && toks[i].depth === 0);
-      const [as, name] = own.slice(-2).map((i) => toks[i]);
-      if (!keyword(as, "AS") || !name?.word) continue;
-      const expr = it.slice(0, it.indexOf(own[own.length - 2])).filter((i) => toks[i].select === s);
+      const alias = aliasOf(toks, it, s);
+      if (!alias) continue;
+      const { name } = alias;
+      const expr = it.slice(0, it.indexOf(alias.as)).filter((i) => toks[i].select === s);
       const plain = expr.every((i) => toks[i].word || toks[i].v === ".") && expr.filter((i) => toks[i].word).length <= 2;
       const over = expr.some((i) => toks[i].word && toks[i].v === name.v && toks[i + 1]?.v !== "(" && toks[i + 1]?.v !== ".");
       if (over && !plain) found.push({ name: name.v, select: s });
@@ -127,6 +141,28 @@ export function shadowedAlias(sql: string, anywhere = false): string | null {
       if (t.depth === 0 && keyword(t, "WHERE", "PREWHERE", "ON")) open = true;
       else if (t.depth === 0 && t.word && !t.quoted && CLAUSE_END.has(t.v.toUpperCase())) open = false;
       else if (open && t.word && t.v === name && toks[i - 1]?.v !== "." && toks[i + 1]?.v !== "(" && toks[i + 1]?.v !== ".") return name;
+    }
+  }
+  return null;
+}
+
+/** whether a name says it is about the rows a LIMIT keeps: top10_share is top, 10, share; top_level is a trace's depth */
+function namesTop(name: string): boolean {
+  const w = name.toLowerCase().split(/_+|(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])/);
+  return w.some((x, i) => (x === "top" && w[i + 1] !== "level") || x === "shown" || x === "listed");
+}
+
+/** why a column named for the rows a LIMIT keeps is a window over every group, or null: a window runs before the
+    LIMIT, so sum(x) OVER () adds up all the groups the query makes, not the top rows it returns */
+function windowedTop(sql: string): string | null {
+  const toks = tokenize(sql);
+  for (const [s, items] of selectLists(toks)) {
+    if (!toks.some((t, i) => t.select === s && t.depth === 0 && keyword(t, "LIMIT") && /^\d+$/.test(toks[i + 1]?.v ?? ""))) continue;
+    for (const it of items) {
+      const alias = aliasOf(toks, it, s);
+      if (!alias || !namesTop(alias.name.v)) continue;
+      if (it.some((i) => keyword(toks[i], "OVER") && toks[i + 1]?.v === "(" && toks[i + 2]?.v === ")"))
+        return `${alias.name.v} is a window over every group: OVER () runs before the LIMIT, so it adds up all the groups the query makes, not the rows the LIMIT keeps. The page adds up the rows it shows, so leave that total out, or write it in an outer SELECT over the limited rows`;
     }
   }
   return null;
@@ -260,6 +296,8 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   if (tables.size === 0) return { ok: false, error: typedLending(sql, chainId) ?? `the query reads no table; use ${readable.join(", ")}` };
   const shadow = shadowedAlias(sql);
   if (shadow) return { ok: false, error: `the alias ${shadow} hides the column ${shadow}, so its WHERE or ON reads the alias; give the alias another name` };
+  const top = isFuji(chainId) ? null : windowedTop(sql);
+  if (top) return { ok: false, error: top };
 
   // one chain: the sort keys start with chain_id, so this is also what
   // keeps a query from scanning every chain in the partition
