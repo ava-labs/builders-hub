@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { doorFor } from '@/components/explorer-v2/evm/QueryRows';
+import { doorFor, fillTitle } from '@/components/explorer-v2/evm/QueryRows';
 
 const base = '/explorer/avalanche-c-chain';
 const h = `0x${'ab'.repeat(32)}`;
@@ -17,5 +17,20 @@ describe('doorFor', () => {
     expect(doorFor('pool', a, base)).toBe(`${base}/address/${a}`);
     expect(doorFor('block_number', 123, base)).toBe(`${base}/block/123`);
     expect(doorFor('node_id', 'NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg', base)).toBe(`${base}/node/NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg`);
+  });
+});
+
+describe('fillTitle', () => {
+  it('writes a time to the minute in UTC, and a day as its date', () => {
+    expect(fillTitle('Largest fees in the hour from {{t}}', { t: '2026-09-29 15:00:00' }, {})).toBe('Largest fees in the hour from 2026-09-29 15:00 UTC');
+    expect(fillTitle('Transactions in the 5 minutes from {{t}}', { t: '2026-09-28 10:05:30' }, {})).toBe('Transactions in the 5 minutes from 2026-09-28 10:05:30 UTC');
+    expect(fillTitle('Largest fees on {{t}}', { t: '2026-09-24' }, {})).toBe('Largest fees on 2026-09-24');
+  });
+
+  it('names a value where the names know it, and cuts an address short', () => {
+    const a = `0x${'12'.repeat(20)}`;
+    expect(fillTitle('Calls to {{to_address:bytes}}', { to_address: a }, { to_address: { [a]: 'Pharaoh Router' } })).toBe('Calls to Pharaoh Router');
+    expect(fillTitle('Calls to {{to_address}}', { to_address: a }, {})).toBe('Calls to 0x1212…1212');
+    expect(fillTitle('Calls by {{missing}}', {}, {})).toBe('Calls by ?');
   });
 });

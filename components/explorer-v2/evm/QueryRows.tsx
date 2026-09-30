@@ -104,6 +104,8 @@ export function fillTitle(template: string, row: Row, names: Names): string {
   return template.replace(/\{\{\s*([A-Za-z_]\w*)\s*(?::(?:bytes|raw))?\s*\}\}/g, (_m, col: string) => {
     const v = row[col];
     if (v === undefined || v === null) return "?";
+    // a time with a clock reads to the minute, in UTC: "the hour from 2026-09-29 15:00 UTC", not "15:00:00"
+    if (isTime(v) && v.length > 10) return `${v.replace("T", " ").replace(/( \d{2}:\d{2}):00$/, "$1")} UTC`;
     return nameFor(names, col, v) ?? (isAddress(v) || isHash(v) ? truncate(v, 6) : String(v));
   });
 }
