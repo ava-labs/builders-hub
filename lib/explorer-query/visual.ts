@@ -12,7 +12,7 @@ import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
 import { basicVisual } from "./draft";
-import { averageLabel, wholeLabel } from "./stat-label";
+import { averageLabel, labelError } from "./stat-label";
 
 export const DESIGN_MODEL = "claude-opus-5-5";
 /** the designer runs at low effort: in 20 blind pairs its charts were rated as good as the default's (7 wins each, 6 ties), in about half the time */
@@ -816,9 +816,9 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     }
     const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
     if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
-    // a stat the page shows over the whole answer is named for it, not for the rows a LIMIT kept
-    const whole = wholeLabel(spec.stats, input.rows.length, input.totals);
-    if (whole) return { error: whole };
+    // a stat is named for its figure (the whole answer's, a share as a percent) and a stack adds up parts of a whole
+    const label = labelError(spec, input.rows, input.totals);
+    if (label) return { error: label };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
     // a flow runs from one column to another and draws one amount
     const flows = spec.panels.filter((p) => p.kind === "flow");

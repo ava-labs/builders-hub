@@ -18,7 +18,7 @@ import { fixedRecipe, fixedRoute } from "./fixed";
 import { versionLines } from "./sources";
 import { codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
 import { basicVisual } from "./draft";
-import { wholeLabel } from "./stat-label";
+import { labelError } from "./stat-label";
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
 import { asOfWords, scopeError, snapshotSql, sqlWindow, windowSpan, withWindow } from "./scope";
@@ -149,8 +149,8 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
-    // a kept layout whose stats name the rows a LIMIT kept, where the page shows the whole answer, is laid out again
-    const stale = !!key && !!recipe.visual && !!wholeLabel(recipe.visual.stats, result.rows.length, totals);
+    // a kept layout that misstates these rows (stats named for the rows a LIMIT kept, a share, a stack) is laid out again
+    const stale = !!key && !!recipe.visual && !!labelError(recipe.visual, result.rows, totals);
     if (stale && key) await putRecipe(key, { ...recipe, sql, visual: null });
     const visual = stale ? null : recipe.visual;
     const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
