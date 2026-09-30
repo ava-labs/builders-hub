@@ -55,12 +55,18 @@ export async function GET() {
       console.warn("Price API returned non-ok response");
     }
 
-    return NextResponse.json({
-      ...supplyData,
-      price: priceData.price,
-      priceChange24h: priceData.change24h,
-      marketCap: priceData.marketCap,
-    });
+    // the CDN keeps the answer a minute, and for ten minutes after serves it while it reads a new one: a visitor
+    // waits on this function only when no copy is at hand, as after a deploy. The browser keeps it a minute too, so
+    // the page's preloaded copy is fresh when its fetch reads it
+    return NextResponse.json(
+      {
+        ...supplyData,
+        price: priceData.price,
+        priceChange24h: priceData.change24h,
+        marketCap: priceData.marketCap,
+      },
+      { headers: { "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600" } }
+    );
   } catch (error) {
     console.error("Error fetching AVAX supply:", error);
     return NextResponse.json(
