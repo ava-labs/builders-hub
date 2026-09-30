@@ -363,7 +363,7 @@ const factories: Source = {
     const protocols = new Set(DEX_FACTORIES.map((f) => f.protocol)).size;
     const text =
       kept.length < n
-        ? `Protocols and their pool factories come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)} factories: the ones the query names, then the others in the registry's order, WOOFi's last.`
+        ? `Protocols and their pool factories come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)} factories: the ones the query names, then the others in the registry's order.`
         : `Protocols and their pool factories come from our contract registry: ${fmt(n)} factories of ${fmt(protocols)} protocols.`;
     return { sql, note: { table: "dex_factories", label: "the contract registry", at: DEX_LISTED_AT, total: n, known: kept.length, text } };
   },

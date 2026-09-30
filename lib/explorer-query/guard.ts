@@ -174,12 +174,12 @@ function badHex(sql: string): string | null {
    again, or joins raw_logs to legs, gets each swap back once for every
    log it matches: an lb swap that crosses n bins is n logs. */
 
-/** the Swap topics legs is made from, by the names the DEX WITH gives them or as literals */
-const LEGS_SWAPS = new RegExp(`\\b(v2_swap|v3_swap|lb_swap|v4_swap)\\b|unhex\\s*\\(\\s*'(${[DEX_TOPICS.v2Swap, DEX_TOPICS.v3Swap, DEX_TOPICS.lbSwap, DEX_TOPICS.v4Swap].join("|")})'\\s*\\)`, "i");
+/** the Swap topics legs is made from, WOOFi's WooSwap with them, by the names the DEX WITH gives them or as literals */
+const LEGS_SWAPS = new RegExp(`\\b(v2_swap|v3_swap|lb_swap|v4_swap|woo_swap)\\b|unhex\\s*\\(\\s*'(${[DEX_TOPICS.v2Swap, DEX_TOPICS.v3Swap, DEX_TOPICS.lbSwap, DEX_TOPICS.v4Swap, DEX_TOPICS.wooSwap].join("|")})'\\s*\\)`, "i");
 const LEGS_HAS = "legs has pool, block_time, block_number, tx (the log's transaction_hash), trader (its tx_from), router (its tx_to), protocol, version, t0, t1, k, r0, r1 and usd: read them FROM legs alone";
 
 /** why the query after the $DEX shorthand reads raw_logs where legs holds the rows, or null. A read of another event (a
-    Transfer, a Sync, or WOOFi's WooSwap, which legs lacks) passes, and so does a filter by its transactions or pools */
+    Transfer or a Sync) passes, and so does a filter by its transactions or pools */
 function legsAgain(own: string): string | null {
   const toks = tokenize(own);
   // the tables each SELECT reads by name; a subquery, an ARRAY JOIN and a WITH FILL FROM name none

@@ -23,7 +23,7 @@ export const I = (k: number, d = "data") => `toFloat64(reinterpretAsInt256(rever
 export const H = (at: number | string, d = "data") => `toFloat64(reinterpretAsUInt128(reverse(substring(${d}, ${at}, 16))))`;
 export const FIRST_DAY = "'2020-09-23'";
 
-/** the events that create each family's pools; woofi has no pools to find */
+/** the events that create each family's pools; woofi has no pools to find: each of its WooPP contracts is one */
 export const CREATED: Record<DexFamily, string[]> = {
   univ2: [T.v2Created],
   solidly: [T.solidlyCreated],
@@ -34,7 +34,8 @@ export const CREATED: Record<DexFamily, string[]> = {
   univ4: [T.v4Initialize],
   woofi: [],
 };
-/** the pools of the factories the WITH reads: protocol, version, pool, its tokens t0 and t1, and k, its fee or bin step */
+/** the pools of the factories the WITH reads: protocol, version, pool, its tokens t0 and t1, and k, its fee or bin step.
+    A WOOFi WooPP contract holds all its pairs as one pool, with no tokens of its own: each of its swaps names them */
 function poolsCte(): string {
   const created = [...new Set(Object.values(CREATED).flat())];
   // PoolCreated and Solidly's PairCreated put the pool in word 1, the others in word 0; a univ4 pool is its id
@@ -44,24 +45,31 @@ function poolsCte(): string {
   const k = "multiIf(f.family IN ('univ3', 'cl-ramses', 'lb'), reinterpretAsUInt32(reverse(substring(l.topic3, 29, 4))), f.family = 'univ4', reinterpretAsUInt32(reverse(substring(l.data, 29, 4))), 0)";
   // a factory is a String in dex_factories and a FixedString(20) in raw_logs.address: a join or an IN of the two casts the
   // address to a String, which drops its trailing zero bytes, so the factory is read as a FixedString(20) too
-  return `pools AS (SELECT f.protocol AS protocol, f.version AS version, ${pool} AS pool, substring(if(${later}, l.topic2, l.topic1), 13, 20) AS t0, substring(if(${later}, l.topic3, l.topic2), 13, 20) AS t1, ${k} AS k FROM raw_logs AS l INNER JOIN dex_factories AS f ON l.address = toFixedString(f.factory, 20) WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${FIRST_DAY} AND l.address IN (SELECT toFixedString(factory, 20) FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} $PROTOCOL) AND l.topic0 ${inList(created.map(topic))})`;
+  return `pools AS (SELECT f.protocol AS protocol, f.version AS version, ${pool} AS pool, substring(if(${later}, l.topic2, l.topic1), 13, 20) AS t0, substring(if(${later}, l.topic3, l.topic2), 13, 20) AS t1, ${k} AS k FROM raw_logs AS l INNER JOIN dex_factories AS f ON l.address = toFixedString(f.factory, 20) WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${FIRST_DAY} AND l.address IN (SELECT toFixedString(factory, 20) FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} $PROTOCOL) AND l.topic0 ${inList(created.map(topic))} UNION ALL SELECT protocol, version, factory AS pool, '' AS t0, '' AS t1, 0 AS k FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} AND family = 'woofi' $PROTOCOL)`;
 }
 
 /** the Swap topics, named once in the WITH */
-const SWAPS_NAMED = `${topic(T.v2Swap)} AS v2_swap, ${topic(T.v3Swap)} AS v3_swap, ${topic(T.lbSwap)} AS lb_swap, ${topic(T.v4Swap)} AS v4_swap`;
+const SWAPS_NAMED = `${topic(T.v2Swap)} AS v2_swap, ${topic(T.v3Swap)} AS v3_swap, ${topic(T.lbSwap)} AS lb_swap, ${topic(T.v4Swap)} AS v4_swap, ${topic(T.wooSwap)} AS woo_swap`;
 /* What a query reads of a swap's fee sets what the DEX WITH reads for it, so its SQL stays short:
    0 nothing, 1 its rate and its value in dollars (fee_rate, fee_usd), 2 its amount in the token in too (fee_in,
    token_in). For 1 a Swap log gives the fee rate it carries (fr): an lb swap's totalFees over its amountsIn (both on
    the side of the token in, so the ratio of the two words is that of the two amounts), and a univ4 swap's fee, its
-   last word, in millionths. For 2 it also gives the side of the token in (tin: token1): a univ2 swap's amount0In or an
-   lb swap's X in is 0, or the sign of amount0, which a univ3 pool counts into the pool and univ4 from the swapper. */
+   last word, in millionths, and a WooSwap's swapFee over its swapVol, both in its quote token (none when swapFee is 0,
+   as WooPPV2.2 logs it). For 2 it also gives the side of the token in (tin: token1): a univ2 swap's amount0In or an
+   lb swap's X in is 0, a WooSwap's from token sorts last, or the sign of amount0, which a univ3 pool counts into the
+   pool and univ4 from the swapper. */
+/** a WooSwap's from and to tokens, and whether the token it took in sorts first */
+const WOO_FROM = "substring(topic1, 13, 20)";
+const WOO_TO = "substring(topic2, 13, 20)";
+const WOO_UP = `${WOO_FROM} < ${WOO_TO}`;
 export type FeeRead = 0 | 1 | 2;
 export const feesRead = (sql: string): FeeRead => (/\b(fee_in|token_in)\b/.test(sql) ? 2 : /\b(fee_usd|fee_rate)\b/.test(sql) ? 1 : 0);
-const FR = `multiIf(topic0 = lb_swap, reinterpretAsUInt256(reverse(substring(data, 129, 32))) / reinterpretAsUInt256(reverse(substring(data, 33, 32))), topic0 = v4_swap, reinterpretAsUInt32(reverse(right(data, 4))) / 1e6, NULL) AS fr`;
-const TIN = `multiIf(topic0 = v2_swap, reinterpretAsUInt256(left(data, 32)) = 0, topic0 = lb_swap, reinterpretAsUInt128(substring(data, 49, 16)) = 0, topic0 = v4_swap, reinterpretAsInt8(data) >= 0, reinterpretAsInt8(data) < 0) AS tin`;
-/** the window's Swap logs by topic0: pool, time, block, transaction, trader, router, and what each moved of token0 (r0) and token1 (r1) */
+const FR = `multiIf(topic0 = lb_swap, reinterpretAsUInt256(reverse(substring(data, 129, 32))) / reinterpretAsUInt256(reverse(substring(data, 33, 32))), topic0 = v4_swap, reinterpretAsUInt32(reverse(right(data, 4))) / 1e6, topic0 = woo_swap, nullIf(${U(5)}, 0) / nullIf(${U(4)}, 0), NULL) AS fr`;
+const TIN = `multiIf(topic0 = v2_swap, reinterpretAsUInt256(left(data, 32)) = 0, topic0 = lb_swap, reinterpretAsUInt128(substring(data, 49, 16)) = 0, topic0 = v4_swap, reinterpretAsInt8(data) >= 0, topic0 = woo_swap, NOT (${WOO_UP}), reinterpretAsInt8(data) < 0) AS tin`;
+/** the window's Swap logs by topic0: pool, time, block, transaction, trader, router, and what each moved of token0 (r0) and token1 (r1).
+    A WooSwap's own tokens, in address order, are wt0 and wt1 (NULL for the others, whose pool names them) */
 const swapsCte = (start: string, end: string, fees: FeeRead = 0) =>
-  `swap_logs AS (SELECT if(topic0 = v4_swap, topic1, address) AS pool, block_time, block_number, transaction_hash AS tx, tx_from AS trader, tx_to AS router, multiIf(topic0 = v2_swap, ${U(0)} + ${U(2)}, topic0 = lb_swap, ${H(49)} + ${H(81)}, abs(${I(0)})) AS r0, multiIf(topic0 = v2_swap, ${U(1)} + ${U(3)}, topic0 = lb_swap, ${H(33)} + ${H(65)}, abs(${I(1)})) AS r1${fees ? `, ${FR}` : ""}${fees > 1 ? `, ${TIN}` : ""} FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start}${end} AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap))`;
+  `swap_logs AS (SELECT if(topic0 = v4_swap, topic1, address) AS pool, block_time, block_number, transaction_hash AS tx, tx_from AS trader, tx_to AS router, multiIf(topic0 = v2_swap, ${U(0)} + ${U(2)}, topic0 = lb_swap, ${H(49)} + ${H(81)}, topic0 = woo_swap, if(${WOO_UP}, ${U(0)}, ${U(1)}), abs(${I(0)})) AS r0, multiIf(topic0 = v2_swap, ${U(1)} + ${U(3)}, topic0 = lb_swap, ${H(33)} + ${H(65)}, topic0 = woo_swap, if(${WOO_UP}, ${U(1)}, ${U(0)}), abs(${I(1)})) AS r1, if(topic0 = woo_swap, least(${WOO_FROM}, ${WOO_TO}), NULL) AS wt0, if(topic0 = woo_swap, greatest(${WOO_FROM}, ${WOO_TO}), NULL) AS wt1${fees ? `, ${FR}` : ""}${fees > 1 ? `, ${TIN}` : ""} FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start}${end} AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap, woo_swap))`;
 /** every fee a pool set, by block: FeeAdjustment's new fee is its word 1 and Fee's its word 0, the last word of each */
 const FEES = `fees AS (SELECT substring(address, 1, 20) AS pool, block_number, reinterpretAsUInt32(reverse(right(data, 4))) AS fee FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${FIRST_DAY} AND topic0 IN (${topic(T.feeAdjustment)}, ${topic(T.algebraFee)}))`;
 /** the WAVAX price per hour from the hour before `start`: the median over the hour's swaps in the price pool */
@@ -71,15 +79,18 @@ export const pxCte = (start: string, swap = "v3_swap") =>
     name (a CTE of its own called q failed D20's test) */
 export const QUOTES = `dex_quotes AS (SELECT groupArrayIf(token, quote = 'usd') AS S, groupArrayIf(decimals, quote = 'usd') AS SD, groupArrayIf(token, quote = 'avax') AS A FROM dex_tokens WHERE chain_id = ${DEX_CHAIN_ID})`;
 /** a swap's value in USD: its stablecoin leg, else its WAVAX leg at the hour's price, else NULL */
-const USD =
-  "multiIf(has(S, p.t0), s.r0 / pow(10, SD[indexOf(S, p.t0)]), has(S, p.t1), s.r1 / pow(10, SD[indexOf(S, p.t1)]), has(A, p.t0) AND x.price > 0, s.r0 / 1e18 * x.price, has(A, p.t1) AND x.price > 0, s.r1 / 1e18 * x.price, NULL)";
+/** a swap's tokens: its pool's, or a WooSwap's own. legs reads the pool's as pt0 and pt1, so no expression of legs is
+    named after a column it reads (the worked examples' rule) */
+const T0 = "ifNull(s.wt0, p.pt0)";
+const T1 = "ifNull(s.wt1, p.pt1)";
+const USD = `multiIf(has(S, ${T0}), s.r0 / pow(10, SD[indexOf(S, ${T0})]), has(S, ${T1}), s.r1 / pow(10, SD[indexOf(S, ${T1})]), has(A, ${T0}) AND x.price > 0, s.r0 / 1e18 * x.price, has(A, ${T1}) AND x.price > 0, s.r1 / 1e18 * x.price, NULL)`;
 /* A swap's fee rate: the one its log carries, else the fee its pool last set before it, else its pool's fee tier
    (univ3, cl-ramses), else a univ2 pair's fixed 0.3%; NULL for a pool whose fee no log gives. Its fee in dollars and
    in the token in follow from it. */
 const FEE_RATE = `multiIf(s.fr IS NOT NULL, s.fr, c.block_number > 0, c.fee / 1e6, p.k > 0, p.k / 1e6, p.protocol IN (${V2_FEE_PROTOCOLS.map((x) => `'${x}'`).join(", ")}), 0.003, NULL) AS fee_rate, usd * fee_rate AS fee_usd`;
-const FEE_IN = "if(s.tin, p.t1, p.t0) AS token_in, if(s.tin, s.r1, s.r0) * fee_rate AS fee_in";
+const FEE_IN = `if(s.tin, ${T1}, ${T0}) AS token_in, if(s.tin, s.r1, s.r0) * fee_rate AS fee_in`;
 const legsCte = (fees: FeeRead) =>
-  `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.block_number AS block_number, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, p.t0 AS t0, p.t1 AS t1, p.k AS k, s.r0 AS r0, s.r1 AS r1, ${USD} AS usd${fees ? `, ${FEE_RATE}` : ""}${fees > 1 ? `, ${FEE_IN}` : ""} FROM swap_logs AS s INNER JOIN pools AS p ON s.pool = p.pool${fees ? " ASOF LEFT JOIN fees AS c ON s.pool = c.pool AND s.block_number >= c.block_number" : ""} CROSS JOIN dex_quotes LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
+  `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.block_number AS block_number, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, ${T0} AS t0, ${T1} AS t1, p.k AS k, s.r0 AS r0, s.r1 AS r1, ${USD} AS usd${fees ? `, ${FEE_RATE}` : ""}${fees > 1 ? `, ${FEE_IN}` : ""} FROM swap_logs AS s INNER JOIN (SELECT pool, protocol, version, t0 AS pt0, t1 AS pt1, k FROM pools) AS p ON s.pool = p.pool${fees ? " ASOF LEFT JOIN fees AS c ON s.pool = c.pool AND s.block_number >= c.block_number" : ""} CROSS JOIN dex_quotes LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
 
 /** the DEX WITH for what a query reads of the fees, with its three slots: the window's start, its end or nothing, and a
     protocol filter or nothing */
@@ -114,7 +125,7 @@ interface Macro {
 const dexSlugs = () => Object.keys(DEX_PROTOCOLS);
 const lendSlugs = () => Object.keys(LENDING_PROTOCOLS);
 const dex = (with_: string, start: string, end: string | undefined, slug: string | undefined) =>
-  with_.replaceAll("$START", () => start).replace("$END", () => (end ? ` AND block_time < ${end}` : "")).replace("$PROTOCOL", () => (slug ? `AND protocol = '${slug}'` : ""));
+  with_.replaceAll("$START", () => start).replace("$END", () => (end ? ` AND block_time < ${end}` : "")).replaceAll("$PROTOCOL", () => (slug ? `AND protocol = '${slug}'` : ""));
 const MACROS: Record<string, Macro> = {
   DEX: { window: true, slugs: dexSlugs, slug: "optional", text: (start, end, slug, rest) => dex(DEX_WITHS[feesRead(rest)], start, end, slug) },
   POOLS: { window: false, slugs: dexSlugs, slug: "optional", text: (_s, _e, slug) => dex(DEX_POOLS, "", undefined, slug) },
