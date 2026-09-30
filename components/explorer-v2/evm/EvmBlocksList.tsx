@@ -9,6 +9,7 @@ import { formatNumber, formatTime } from "@/components/explorer-v2/format";
 import { useEvmData, refreshMsForChain } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, HEAD, ROW, INK, MUTED } from "./LiveBoards";
+import { ExecutionLanes } from "./ExecutionLanes";
 import { LiveReadoutAt } from "./EvmOverviewStats";
 import { RANGE_DAYS } from "@/components/explorer-v2/time-range";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -35,7 +36,8 @@ export function EvmBlocksList({ network }: { network: string }) {
   const [older, setOlder] = useState(0);
 
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
-  const head = useHeadStream(liveRpc, { keep: 100, seed: LIVE_ROWS + 1, keepTxs: 0 });
+  // the receipts feed runs for the execution lanes: the blocks they ran in, one per transaction
+  const head = useHeadStream(liveRpc, { keep: 100, seed: LIVE_ROWS + 1, keepTxs: 240 });
   const live = head.heads.length > 0;
   const pace = cadence(head.heads, 60_000);
   const tip = head.tip;
@@ -173,6 +175,13 @@ export function EvmBlocksList({ network }: { network: string }) {
                 },
               ]}
             />
+          </section>
+        )}
+
+        {live && tip?.settledHeight != null && (
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Continuous Execution" />
+            <ExecutionLanes heads={head.heads} executedHeight={head.executedHeight} txs={head.streamTxs} live={head.live} base={base} />
           </section>
         )}
 

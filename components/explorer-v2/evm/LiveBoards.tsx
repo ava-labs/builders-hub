@@ -66,7 +66,7 @@ export function phaseOf(number: number, executedHeight: number | null, settledHe
   return "accepted";
 }
 
-const PHASE_TITLE: Record<Phase, string> = {
+export const PHASE_TITLE: Record<Phase, string> = {
   accepted: "final: accepted by consensus; executing",
   executed: "final: executed; a later block commits the state root",
   settled: "final: state root committed",
