@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import type { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
 import { warmReads } from "./warm-reads";
 
 /* A link the pointer rests on is likely the next page, so its route and
@@ -15,6 +16,9 @@ import { warmReads } from "./warm-reads";
 const REST_MS = 70;
 /* a link warmed this recently is not warmed again */
 const AGAIN_MS = 15_000;
+/* the whole route: the default ("auto") prefetch asks for a PPR shell, and
+   these routes have none, so it fetched nothing a click could use */
+const FULL = "full" as PrefetchKind;
 
 function explorerHref(target: EventTarget | null): string | null {
   const a = target instanceof Element ? target.closest("a[href]") : null;
@@ -31,7 +35,7 @@ export function LinkWarmer() {
       const now = Date.now();
       if (now - (warmed.get(href) ?? 0) < AGAIN_MS) return;
       warmed.set(href, now);
-      router.prefetch(href);
+      router.prefetch(href, { kind: FULL });
       warmReads(href);
     };
     const onOver = (e: PointerEvent) => {
