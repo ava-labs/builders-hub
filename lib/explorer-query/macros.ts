@@ -90,6 +90,16 @@ const DEX_WITHS = [DEX_WITH, dexWith(1), dexWith(2)] as const;
 /** its Swap topic names and pools alone */
 const DEX_POOLS = `WITH ${SWAPS_NAMED}, ${poolsCte()}`;
 
+/* The order a block ran its swaps in, for MEV (mev.ts): one row per block, pool and transaction of the window's Swap
+   logs, every family and every pool, with the transaction's place in its block, its signer, the contract it called
+   and the direction of its first swap in the pool, +1 when token0 went in. The pool is written out ('0x…'), each
+   branch hexed apart: a join on a Nullable key took 21 s against 2.4 s, and an address cast to a String first loses
+   its trailing zero bytes. A univ2 or solidly swap puts token0 in
+   when amount0In passes amount0Out, an lb swap when its amountsIn has an X; a univ3 swap's amount0 counts into the
+   pool, a univ4 swap's from the swapper */
+const DIR = `multiIf(topic0 = v2_swap, if(${U(0)} > ${U(2)}, 1, -1), topic0 = lb_swap, if(${H(49)} > 0, 1, -1), topic0 = v4_swap, if(${I(0)} < 0, 1, -1), if(${I(0)} > 0, 1, -1))`;
+const SWAP_ORDER = `WITH ${SWAPS_NAMED}, swap_order AS (SELECT block_number, any(block_time) AS block_time, tx_index, tx, any(signer) AS signer, any(bot) AS bot, pool, argMin(dir, log_index) AS dir, count() AS swaps FROM (SELECT block_number, block_time, transaction_index AS tx_index, transaction_hash AS tx, tx_from AS signer, assumeNotNull(tx_to) AS bot, lower(concat('0x', if(topic0 = v4_swap, hex(assumeNotNull(topic1)), hex(address)))) AS pool, log_index, ${DIR} AS dir FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= $START$END AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap)) GROUP BY block_number, tx_index, tx, pool)`;
+
 /* ------------------------------------------------------------------ */
 
 /** each shorthand: whether it takes the window's start (and then, optionally, its end), the slugs it takes, and the WITH it stands for */
@@ -113,10 +123,11 @@ const MACROS: Record<string, Macro> = {
   PRICES: { window: true, slugs: () => [], slug: "none", text: (start, end) => pricesWith(start, end) },
   DEBTS: { window: false, slugs: lendSlugs, slug: "optional", text: (_s, _e, slug) => debtsWith(slug) },
   MARKETS: { window: false, slugs: lendSlugs, slug: "optional", text: (_s, _e, slug) => marketsWith(slug) },
+  SWAPORDER: { window: true, slugs: () => [], slug: "none", text: (start, end) => SWAP_ORDER.replace("$START", () => start).replace("$END", () => (end ? ` AND block_time < ${end}` : "")) },
 };
 
 const USAGE =
-  "open the query with one shorthand: $DEX, $LEND or $LIQUIDATIONS with the window's start, then its end if it has one, then a slug for one protocol, as in $DEX(start, end, 'slug'); $PRICES(start) or $PRICES(start, end); $POOLS() or $POOLS('slug'); $DEBTS() or $DEBTS('slug'); $MARKETS() or $MARKETS('slug'). Then SELECT, or , name AS (…)";
+  "open the query with one shorthand: $DEX, $LEND or $LIQUIDATIONS with the window's start, then its end if it has one, then a slug for one protocol, as in $DEX(start, end, 'slug'); $PRICES(start) or $PRICES(start, end); $POOLS() or $POOLS('slug'); $DEBTS() or $DEBTS('slug'); $MARKETS() or $MARKETS('slug'); $SWAPORDER(start) or $SWAPORDER(start, end) for MEV. Then SELECT, or , name AS (…)";
 const quoted = (xs: readonly string[]) => xs.map((s) => `'${s}'`).join(", ");
 /** a quoted word, as a slug is; a quoted date is a DateTime */
 const WORD = /^'([a-z][\w-]*)'$/i;

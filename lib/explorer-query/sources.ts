@@ -8,6 +8,7 @@ import { fetchAllSubnets } from "@/lib/pchain-subnets";
 import type { SubnetStats } from "@/types/validator-stats";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, readsPositions, tokensFor, tokensSql } from "./protocols";
 import { FAMILY_NAMES } from "./families";
+import { MEV_NAMES } from "./mev";
 import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
@@ -397,8 +398,8 @@ const tokens: Source = {
    markets first, since without one a market loses its asset, and without
    a token only its decimals. */
 
-/** the names our server defines in front of a query that reads them: the lending protocols' and the families' */
-const SERVER_NAMES: Record<string, string> = { ...LENDING_NAMES, ...FAMILY_NAMES };
+/** the names our server defines in front of a query that reads them: the lending protocols', the families' and MEV's */
+const SERVER_NAMES: Record<string, string> = { ...LENDING_NAMES, ...FAMILY_NAMES, ...MEV_NAMES };
 
 /** the WITH around the two tables, in bytes */
 const LENDING_WRAP = 64;

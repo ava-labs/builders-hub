@@ -11,6 +11,7 @@ import { FAMILY_CHAIN_ID, OPENTRADE_POOLS, SILOS, VAULTS } from "./families";
 import { sqlWindow, windowWords } from "./scope";
 import { mentioned } from "./names";
 import { registryTurn } from "./registry-turn";
+import { mevExamples, mevRules, mevTurn } from "./mev";
 import { knownLines, refLine, refSchema } from "./sources";
 import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
 
@@ -84,7 +85,7 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
   const mints = evm ? mintsTurn(prompt) : "";
-  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}\n\n${prompt}`;
+  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
 /** how an answer hands back its chart; the same for every target */
@@ -355,7 +356,7 @@ $PRICES(toStartOfMonth(now())), o AS (SELECT toDate(block_time) AS day, address 
     .join("");
 }
 
-export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean; lending?: boolean; families?: boolean }): string {
+export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean; lending?: boolean; families?: boolean; mev?: boolean }): string {
   const known = Object.entries(KNOWN_ADDRESSES)
     .map(([a, n]) => `- ${n}: ${a}`)
     .join("\n");
@@ -367,6 +368,8 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   const lending = !!opts.lending && opts.chainId === LENDING_CHAIN_ID && LENDING_MARKETS.length > 0;
   // the vaults, staking and bridge rules: a question about them (familyQuestion), on the mainnet C-Chain only
   const families = !!opts.families && opts.chainId === FAMILY_CHAIN_ID && VAULTS.length > 0;
+  // the MEV rules: an MEV question's (mevQuestion), on the mainnet C-Chain only
+  const mev = !!opts.mev && opts.chainId === DEX_CHAIN_ID;
   // the rows the flow panel draws, on the mainnet C-Chain, where the contract registry names senders and receivers
   const flows =
     opts.chainId === DEX_CHAIN_ID
@@ -424,7 +427,7 @@ ${known}`
 ${created}- Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
 - Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). ${activeNote}
 - ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
-${dex ? dexRules() : ""}${lending ? lendingRules() : ""}${families ? familyRules() : ""}
+${dex ? dexRules() : ""}${lending ? lendingRules() : ""}${families ? familyRules() : ""}${mev ? mevRules() : ""}
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
 - At most ${MAX_ROWS} rows come back, and a longer series is cut. Pick the bucket from the window: toStartOfMinute or toStartOfFiveMinutes for windows up to 6 hours, toStartOfHour up to 7 days, toDate beyond, toMonday for weeks. A question that names a bucket but no window reads 6 hours of 5-minute buckets, 24 hours of hourly ones, 30 days of daily ones. ${isFuji(opts.chainId) ? "Windows over raw_logs and raw_traces: 90 days at most. raw_txs: 365 days at most." : "Windows over raw_logs: 90 days at most. raw_traces: 30 days at most. raw_txs: 365 days at most. These limit one query, not the data, which goes back years. So a question that needs more of the history is answered over the longest window these limits allow, and its note names that window as the most one question reads. Over the whole history only a total over raw_txs with no GROUP BY runs in time: count() and countIf over success, with min and max of block_time (under 10 s, bounded as block_number >= 0). A question about all time gets those over the whole history. A sum of fees or gas, a series or a distinct count over raw_txs keeps the 365 days, and its note says so."}
@@ -491,7 +494,7 @@ SELECT block_time AS t, block_number, concat('0x', hex(transaction_hash)) AS tx_
 
 `
     : ""
-}${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}${families ? familyExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
+}${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}${families ? familyExamples() : ""}${mev ? mevExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
 SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, ${tokenSenders} AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL ${c ? "1 DAY" : "7 DAY"} AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15
 
 Active addresses per day, each address once:
@@ -674,14 +677,14 @@ const versions = new Map<string, string>();
     recipe keys (cache.ts), so a fixed question is written again instead of
     served its old SQL. Per chain: the C-Chain, an L1 and the P-Chain are
     told different things. */
-export function promptVersion(chainId: number, dex = false, lending = false, families = false): string {
-  const key = `${chainId}:${dex ? "dex" : ""}:${lending ? "lending" : ""}:${families ? "families" : ""}`;
+export function promptVersion(chainId: number, dex = false, lending = false, families = false, mev = false): string {
+  const key = `${chainId}:${dex ? "dex" : ""}:${lending ? "lending" : ""}:${families ? "families" : ""}:${mev ? "mev" : ""}`;
   let v = versions.get(key);
   if (!v) {
     const text =
       targetOf(chainId).kind === "pchain"
         ? pchainPrompt({ chainId, network: "", schema: "", coverage: null, lines: null })
-        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex, lending, families });
+        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex, lending, families, mev });
     v = createHash("sha256").update(`${text}\n${refSchema(chainId).join("\n")}`).digest("hex").slice(0, 12);
     versions.set(key, v);
   }

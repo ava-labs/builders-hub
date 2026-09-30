@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { redis } from "@/lib/redis";
 import { familyQuestion } from "./families";
+import { mevQuestion } from "./mev";
 import { lendingQuestion } from "./lending";
 import { dexQuestion, promptVersion } from "./prompt";
 import { registryNames } from "./registry-turn";
@@ -40,7 +41,7 @@ const local = new Map<string, Recipe>();
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
-  const version = promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history), familyQuestion(chainId, prompt, history));
+  const version = promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history), familyQuestion(chainId, prompt, history), mevQuestion(chainId, prompt, history));
   const named = registryNames(chainId, prompt).join("\n");
   return createHash("sha256").update(`${chainId}\n${version}\n${norm}\n${past}${named && `\n${named}`}`).digest("hex").slice(0, 32);
 }
