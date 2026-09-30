@@ -18,6 +18,8 @@ vi.mock('@/lib/explorer-query/cache', () => ({ getRecipe: vi.fn(async (k: string
 vi.mock('@/lib/explorer-query/sources', () => ({ sourceNotes: vi.fn(async () => []) }));
 vi.mock('@/lib/auth/authSession', () => ({ getAuthSession: vi.fn(async () => null) }));
 vi.mock('@/lib/chat/rateLimit', () => ({ checkChatRateLimit: vi.fn(() => ({ allowed: true, limit: 10, resetTime: 0 })), formatResetTime: vi.fn(() => 'soon'), getClientIP: vi.fn(() => '192.0.2.1') }));
+// the route sends PostHog its events after the response, which a test outside Next never has
+vi.mock('next/server', async (importOriginal) => ({ ...(await importOriginal<typeof import('next/server')>()), after: vi.fn() }));
 
 import { POST } from '@/app/api/explorer/query/route';
 

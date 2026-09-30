@@ -4,7 +4,7 @@
    where a reference line belongs, and what a reader should notice.
    It speaks a small visual grammar the page knows how to draw. */
 
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { anthropic, type ModelCall } from "./meter";
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { ColumnMeta } from "./clickhouse";
@@ -12,7 +12,6 @@ import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
 
-const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const DESIGN_MODEL = "claude-opus-5-5";
 /** the designer runs at low effort: in 20 blind pairs its charts were rated as good as the default's (7 wins each, 6 ties), in about half the time */
 export const DESIGN_OPTIONS = { anthropic: { effort: "low" as const } };
@@ -303,6 +302,8 @@ export interface DesignInput {
   /** the SQL as written and the time it read as now: which edge buckets its window cuts */
   sql?: string;
   anchor?: string | null;
+  /** each model call reports here (meter.ts) */
+  spent?: (call: ModelCall) => void;
 }
 
 type Seen = Pick<DesignInput, "columns" | "rows" | "names" | "totals" | "x" | "sql" | "anchor">;
@@ -753,7 +754,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
   });
   try {
     await generateText({
-      model: anthropic(READER_MODEL),
+      model: anthropic(READER_MODEL, input.spent),
       providerOptions: READER_OPTIONS,
       system: [
         "You write the short reading under a chart on the Avalanche explorer.",
@@ -886,7 +887,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
 
   try {
     const r = await generateText({
-      model: anthropic(DESIGN_MODEL),
+      model: anthropic(DESIGN_MODEL, input.spent),
       providerOptions: DESIGN_OPTIONS,
       // the house style is the same for every answer; read it from the cache
       system: { role: "system", content: HOUSE_STYLE, providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } },
@@ -918,7 +919,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
   if (!visual) {
     try {
       const r = await generateText({
-        model: anthropic(DESIGN_MODEL),
+        model: anthropic(DESIGN_MODEL, input.spent),
         providerOptions: DESIGN_OPTIONS,
         system: HOUSE_STYLE,
         messages: [{ role: "user", content: `Question: ${input.question}\nColumns: ${[...cols].join(", ")}\nRows: ${input.rows.length}\nFirst rows:\n${sample.slice(0, 8).map((r) => JSON.stringify(r)).join("\n")}\nCall design once, using only these columns.` }],

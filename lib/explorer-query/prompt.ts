@@ -9,6 +9,8 @@ import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS,
 import { AAVE_ASSETS, AAVE_SLUG, LENDING_CHAIN_ID, LENDING_MARKETS, LENDING_PROTOCOLS } from "./lending";
 import { FAMILY_CHAIN_ID, OPENTRADE_POOLS, SILOS, VAULTS } from "./families";
 import { sqlWindow, windowWords } from "./scope";
+import { mentioned } from "./names";
+import { registryTurn } from "./registry-turn";
 import { knownLines, refLine, refSchema } from "./sources";
 import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
 
@@ -82,7 +84,7 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
   const mints = evm ? mintsTurn(prompt) : "";
-  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}\n\n${prompt}`;
+  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
 /** how an answer hands back its chart; the same for every target */
@@ -231,16 +233,16 @@ drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_i
   return blocks.map((b) => `${b}\n\n`).join("");
 }
 
-/** the registry's protocol names and slugs, and the words of a DEX question */
-const DEX_NAMES = [...new Set(Object.entries(DEX_PROTOCOLS).flatMap(([slug, name]) => [slug, slug.replace(/-/g, " "), name, name.replace(/\s+DEX$/i, "")]))];
+/** the registry's protocol names and slugs, LFJ (Trader Joe's name now), and the words of a DEX question */
+const DEX_NAMES = [...new Set([...Object.entries(DEX_PROTOCOLS).flatMap(([slug, name]) => [slug, slug.replace(/-/g, " "), name, name.replace(/\s+DEX$/i, "")]), "LFJ"])];
 const DEX_WORDS = new RegExp(`\\b(${[...DEX_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), "swap(s|ped|ping)?", "pools?", "liquidity", "lps?", "dex(s|es)?"].join("|")})\\b`, "i");
 
-/** a question about DEXs, whose prompt carries the DEX chapter: it names a protocol the registry lists or a DEX word
-    (volume only when it names no transfer, so "USDC transfers, count and volume" is not one), or an earlier turn read
-    the DEX tables. Every other question's prompt is the one it was */
+/** a question about DEXs, whose prompt carries the DEX chapter: it names a protocol the registry lists (one slip
+    off counts: names.ts) or a DEX word (volume only when it names no transfer, so "USDC transfers, count and volume"
+    is not one), or an earlier turn read the DEX tables. Every other question's prompt is the one it was */
 export function dexQuestion(chainId: number, prompt: string, history: { prompt?: string; sql?: string }[] = []): boolean {
   if (chainId !== DEX_CHAIN_ID || DEX_FACTORIES.length === 0) return false;
-  const about = (q: string) => DEX_WORDS.test(q) || (/\bvolumes?\b/i.test(q) && !/\btransfers?\b/i.test(q));
+  const about = (q: string) => DEX_WORDS.test(q) || mentioned(q, DEX_NAMES).length > 0 || (/\bvolumes?\b/i.test(q) && !/\btransfers?\b/i.test(q));
   return about(prompt) || history.some((t) => about(t.prompt ?? "") || /\bdex_(factories|tokens)\b/.test(t.sql ?? ""));
 }
 

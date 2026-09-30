@@ -1,5 +1,5 @@
 import "server-only";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { anthropic, type ModelCall } from "./meter";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
@@ -29,8 +29,6 @@ import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
    one thing, at medium effort for comparisons, follow-ups, and anything
    the first could not finish. Every step reports as it ends, so the
    page can show the work. */
-
-const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 /** the writers, each with its own output cap. The SDK sends a model's cap only for the models it knows, and gave
     claude-sonnet-5 4096 tokens, which a written-out query with its drill can pass: a cut call is lost. 16k is five
@@ -107,6 +105,8 @@ interface Ask {
   emit: (e: QueryEvent) => void;
   /** answer from the model even when a recipe is kept (the warm job) */
   fresh?: boolean;
+  /** each model call the writer makes reports here (meter.ts) */
+  spent?: (call: ModelCall) => void;
 }
 
 /** what a reader is told when no answer came: a question with no words, one the chain's records cannot
@@ -516,7 +516,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     });
 
     const call = (msgs: ModelMessage[], budget: number) => generateText({
-      model: anthropic(w.id),
+      model: anthropic(w.id, a.spent),
       // the writer's own cap on mainnet; Fuji keeps the SDK's
       ...(fuji ? {} : { maxOutputTokens: w.maxOutputTokens }),
       ...(w.effort ? { providerOptions: { anthropic: { effort: w.effort } } } : {}),
