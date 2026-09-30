@@ -14,9 +14,9 @@ import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { EntityHitRow, looksLikeIdentifier, useSearchEntity, type EntityTargets } from "@/components/explorer-v2/chain-search";
 import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
 import { classifyLocally } from "@/lib/pchain-explorer";
-import { ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
-import { DISTRICT_GLASS, GroundKey, Logo, TONE, Tower, mixTotal, pctInk, type CameraHandle, type CityData, type Inset, type Node, type VersionMix } from "@/components/explorer-v2/network/icm-map";
+import { DISTRICT_GLASS, GroundKey, Logo, Tower, mixTotal, pctInk, type CameraHandle, type CityData, type Inset, type Node, type VersionMix } from "@/components/explorer-v2/network/icm-map";
 import { DISTRICTS, LIST_ORDER, districtAbout, districtLabel, type District } from "@/components/explorer-v2/network/districts";
+import { CityKey, KEY_W, type Lens } from "@/components/explorer-v2/network/city-key";
 import { isPrivateChain, PRIVATE_NOTE } from "@/components/explorer-v2/network/private";
 import { NEW_DAYS } from "@/components/explorer-v2/network/newcomers";
 import { RANGE_DAYS, type ExplorerRange } from "@/components/explorer-v2/time-range";
@@ -75,8 +75,6 @@ type Net = "mainnet" | "testnet";
 /** what a chip, or a figure in the strip, cuts the list to */
 type Cut = "talking" | "indexed" | "behind" | "new" | null;
 type Sort = "district" | "validators" | "tx" | "icm" | "name";
-/** what the windows show: each district's glass, or the validators' client versions */
-type Lens = "districts" | "versions";
 /** what a building's height counts */
 export type Height = "validators" | "messages";
 /** AVAX in the market: its price, its day's change in percent, and its market cap, all in USD */
@@ -1849,137 +1847,6 @@ export function CityApp({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stripNarrow = useMemo(() => hud(false, true), [market, figures, target, windowShort, windowLabel]);
 
-  /* the key: what the heights, the windows, the lights and the streets
-     show, each picked where it is explained */
-  const prevMinor = (() => {
-    const m = /^(\d+)\.(\d+)/.exec(target);
-    return m ? `${m[1]}.${Number(m[2]) - 1}` : "Behind";
-  })();
-  const swatch = (paint: string, label: string) => (
-    <span key={label} className="flex items-center gap-1">
-      <span className="h-2.5 w-1.5 rounded-[1px]" style={{ background: paint }} />
-      {label}
-    </span>
-  );
-  /* a label and what it names: two cells of a key grid, the label centred on its row */
-  const keyRow = (label: string, body: ReactNode) => (
-    <>
-      <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{label}</span>
-      <div className="flex min-w-0 items-center gap-1.5">{body}</div>
-    </>
-  );
-  // both grids share the label column, so every label and every control stand on the same two edges
-  const keyGrid = "grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2";
-  const versionTargets = targets.filter((t) => /^\d/.test(t)).slice(0, 4);
-  const mapKeyOf = () => (
-    <div className="flex w-[20rem] flex-col gap-3.5 rounded-2xl border border-zinc-200/90 bg-white/[0.92] p-3.5 font-mono text-[10.5px] text-zinc-500 shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.88] dark:text-zinc-400">
-      {/* the switches, and under Windows the key to what its lens paints */}
-      <div className={keyGrid}>
-        {keyRow(
-          "Height",
-          <ViewSwitch
-            id="city-height"
-            fill
-            value={height}
-            onChange={onHeight}
-            options={[
-              { v: "validators", label: "Validators" },
-              { v: "messages", label: "ICM messages" },
-            ]}
-          />,
-        )}
-        {keyRow(
-          "Windows",
-          <ViewSwitch
-            id="city-lens"
-            fill
-            value={versionLens ? "versions" : "districts"}
-            onChange={(v: Lens) => {
-              setLens(v);
-              // the Behind cut is the Versions lens's: leaving the lens lets go of it
-              if (v === "districts" && cut === "behind") setCut(null);
-            }}
-            // the Versions option stands from the start, off until the validators' versions come in, so the row does not grow
-            options={[
-              { v: "districts" as Lens, label: "Districts" },
-              { v: "versions" as Lens, label: "Versions", disabled: !versions },
-            ]}
-          />,
-        )}
-        {/* one line of a fixed height in either lens, so a switch of lens moves nothing under it */}
-        <div className="col-start-2 -mt-0.5 flex h-4 items-center gap-2.5 whitespace-nowrap">
-          {painted ? (
-            <>
-              <span className="flex items-center gap-1">
-                <span className="h-2.5 w-1.5 rounded-[1px]" style={{ background: TONE.on.left }} />
-                {versionTargets.length > 1 ? (
-                  <span className="relative flex items-center">
-                    <select
-                      value={target}
-                      onChange={(e) => onTarget(e.target.value)}
-                      aria-label="The version the windows are measured against"
-                      title="The version the windows are measured against"
-                      className="cursor-pointer appearance-none bg-transparent pr-3.5 font-mono text-[10.5px] font-medium text-zinc-800 outline-none dark:text-zinc-100"
-                    >
-                      {versionTargets.map((t) => (
-                        <option key={t} value={t}>
-                          {t}+
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-0 h-3 w-3 text-zinc-400" />
-                  </span>
-                ) : (
-                  <span className="font-medium text-zinc-800 dark:text-zinc-100">{target}+</span>
-                )}
-              </span>
-              {swatch(TONE.near.left, prevMinor)}
-              {swatch(TONE.stale.left, "Older")}
-              {swatch(TONE.unknown.left, "Unknown")}
-            </>
-          ) : (
-            <span className="flex items-center gap-[3px]" title="Each district's own glass; downtown's is the Avalanche red">
-              {(["downtown", ...DISTRICTS.map((d) => d.key)] as const).map((k) => (
-                <span key={k} className="h-2.5 w-1.5 rounded-[1px]" style={{ background: DISTRICT_GLASS[k] }} />
-              ))}
-            </span>
-          )}
-        </div>
-      </div>
-      {/* what moves in the city by itself */}
-      <div className={keyGrid}>
-        {keyRow(
-          "Lights",
-          <>
-            {/* a pane of the city's cool glass, its storey flashing white as a tx lands */}
-            <span className="relative h-2.5 w-1.5 shrink-0 rounded-[1px] bg-[#6E7F92] dark:bg-[#3B484B]">
-              <span className="absolute inset-x-0 inset-y-[3px] animate-pulse bg-white" />
-            </span>
-            Flash with transactions, live
-          </>,
-        )}
-        {keyRow(
-          "Streets",
-          <>
-            {/* a pod in its lane, as the streets carry them: a steel capsule, its pale canopy, the light strip down each flank */}
-            <svg viewBox="0 0 26 11" className="h-[11px] w-[26px] shrink-0" aria-hidden>
-              <rect width="26" height="11" rx="1.5" className="fill-[#3B484B]/[0.12] dark:fill-white/[0.12]" />
-              <line x1="1.5" x2="24.5" y1="1.9" y2="1.9" strokeWidth="0.7" strokeDasharray="2.2 1.8" className="stroke-white dark:stroke-white/45" />
-              <rect x="6.5" y="3.8" width="13" height="5.6" rx="2.8" className="fill-[#A2AFB2] dark:fill-[#5F6B7A]" />
-              <rect x="9.4" y="5.1" width="6.2" height="3" rx="1.5" className="fill-[#EBF0FA]" />
-              <rect x="8.4" y="3.95" width="9.2" height="0.6" rx="0.3" className="fill-[#E6212F] dark:fill-[#FF394A]" />
-              <rect x="8.4" y="8.65" width="9.2" height="0.6" rx="0.3" className="fill-[#E6212F] dark:fill-[#FF394A]" />
-            </svg>
-            ICM traffic · {windowShort}
-          </>,
-        )}
-      </div>
-    </div>
-  );
-  /* built again only when what it shows changes: its switches' own renders measure their layout, a forced layout on every
-     render of the app */
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const mapKey = useMemo(mapKeyOf, [height, onHeight, versionLens, cut, versions, painted, targets, target, onTarget, windowShort]);
   /* the city's callbacks stay the same objects, and its room the same object while its numbers hold, so the city renders
      again only when what it draws changes */
   const pickNow = useRef<(id: string | null) => void>(() => {});
@@ -2176,6 +2043,34 @@ export function CityApp({
   const routeOpen = net === "mainnet" && route !== null;
   const showPanel = panelOpen || !webgl || !!selectedRow || pchainOpen || routeOpen || (!!focus && net === "mainnet");
   if (showPanel && !listed) setListed(true);
+  /* the key (city-key.tsx), built again only when what it shows changes: its switches' own renders measure their
+     layout, a forced layout on every render of the app. With the panel open it is the panel's foot, and the list keeps
+     its height clear */
+  const [keyH, setKeyH] = useState(0);
+  const mapKey = useMemo(
+    () => (
+      <CityKey
+        height={height}
+        onHeight={onHeight}
+        lens={versionLens ? "versions" : "districts"}
+        onLens={(v) => {
+          setLens(v);
+          // the Behind cut is the Versions lens's: leaving the lens lets go of it
+          if (v === "districts" && cut === "behind") setCut(null);
+        }}
+        versionsIn={!!versions}
+        painted={painted}
+        target={target}
+        targets={targets}
+        onTarget={onTarget}
+        windowShort={windowShort}
+        inPanel={showPanel}
+        onSize={setKeyH}
+      />
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [height, onHeight, versionLens, cut, versions, painted, targets, target, onTarget, windowShort, showPanel],
+  );
   // an open chain with a feed shows its newest blocks and transactions at the right
   const liveTarget = liveShut ? null : liveOf(selectedRow);
   // an answer asked in the city takes the right side while it is open; the live view waits under it
@@ -2183,7 +2078,7 @@ export function CityApp({
   const rightW = ask ? askW : paneOpen ? LIVE_W : 0;
   // the search's box: 34rem at most, centred on the window, its left edge held between the card's edge and what stands at the
   // right: the open pane, else the key (hidden while the panel is open)
-  const searchRight = rightW ? `${rightW + 32}px` : showPanel ? "32px" : "calc(var(--key) + 32px)";
+  const searchRight = rightW ? `${rightW + 32}px` : "32px";
   const searchW = `min(34rem, calc(100% - ${PANEL_W + 32}px - ${searchRight}))`;
   const searchBox = { left: `clamp(${PANEL_W + 32}px, calc(50% - ${searchW} / 2), calc(100% - ${searchRight} - ${searchW}))`, width: searchW };
   // the camera keeps the city under the search and its chips, and clear of the panels
@@ -2254,7 +2149,7 @@ export function CityApp({
         >
           <X className="h-4 w-4" />
         </button>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: webgl ? keyH : undefined }}>
           {routeOpen && route ? routeView(route) : selectedRow ? (shownRow && shown ? chainView(shownRow) : chainView(selectedRow, false, true)) : pchainOpen ? pchainView() : focus && net === "mainnet" ? districtView(focus) : listed || showPanel ? directory() : null}
         </div>
       </aside>
@@ -2292,8 +2187,8 @@ export function CityApp({
       </div>
 
       {/* the search, fixed over the city's top and centred on the window: it moves only as far as the section card at the
-          left, and the open pane or the key at the right (the key shows from xl, 20rem wide), would need; its chips under it */}
-      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center transition-[left,width] duration-300 ease-out [--key:0px] xl:[--key:20rem]" style={searchBox}>
+          left and the open pane at the right would need; its chips under it */}
+      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center transition-[left,width] duration-300 ease-out" style={searchBox}>
         <div data-city-chrome className="pointer-events-auto flex w-full max-w-[34rem] flex-col items-center gap-2">
           <div className="relative w-full">
             {searchField}
@@ -2361,15 +2256,21 @@ export function CityApp({
           })()}
       </aside>
 
-      {/* the key, in the corner the search leaves free; the panel's views, the live pane in that corner and a narrow window need the room */}
-      <div data-city-hud className={cn("absolute right-4 top-[calc(1rem+var(--under,0px))] z-20", showPanel || paneOpen || ask ? "hidden" : "hidden xl:block")}>{mapKey}</div>
+      {/* the key, in the bottom left corner from xl; with the panel open it is the panel's foot, widening into the panel
+          over the panel's own slide (city-key.tsx) */}
+      {webgl && (
+        <div data-city-hud className="absolute bottom-4 left-4 z-30 hidden transition-[width] duration-300 ease-out xl:block" style={{ width: showPanel ? PANEL_W : KEY_W }}>
+          {mapKey}
+        </div>
+      )}
 
       {/* the news, in the corner the site's chat button keeps on other pages; the chat button stands down here */}
       <NewsFeed className="absolute bottom-4 right-4 z-30" />
 
-      {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button.
-          A panel and an answer both open leave the city too narrow for them */}
-      <div className={cn("pointer-events-none absolute bottom-4 z-10 flex items-end justify-center", showPanel && ask && "hidden")} style={{ left: showPanel ? inset.left : 88, right: rightW ? rightW + 32 : 88 }}>
+      {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button,
+          and from xl the left edge of the key in the corner (its 320 px and 16 px each side). A panel and an answer both open
+          leave the city too narrow for them */}
+      <div className={cn("pointer-events-none absolute bottom-4 z-10 flex items-end justify-center [--key-clear:88px] xl:[--key-clear:352px]", showPanel && ask && "hidden")} style={{ left: showPanel ? inset.left : "var(--key-clear)", right: rightW ? rightW + 32 : 88 }}>
         <div className="pointer-events-auto flex divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
           {showPanel || ask ? stripNarrow : stripWide}
         </div>
