@@ -16,6 +16,9 @@ import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from ".
 import { rowCount } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
+import { fmt, fmtX, nameFor, spanOf, type Span } from "./query-format";
+
+export { fmt, fmtX, nameFor, spanOf } from "./query-format";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
@@ -38,66 +41,6 @@ const DIM = 0.22;
 const DOT_INK = { "--qv-on": 1, "--qv-off": 0.35 } as CSSProperties;
 
 type Row = Record<string, unknown>;
-type Span = "minutes" | "hours" | "days" | "other";
-
-export function spanOf(xs: unknown[]): Span {
-  const ts = xs.filter(isTime).map((s) => new Date(s.replace(" ", "T") + (s.length <= 10 ? "T00:00:00Z" : "Z")).getTime());
-  if (ts.length < 2) return "other";
-  const w = Math.max(...ts) - Math.min(...ts);
-  return w <= 3 * 3600e3 ? "minutes" : w <= 3 * 86400e3 ? "hours" : "days";
-}
-
-export function fmtX(v: unknown, span: Span): string {
-  if (isTime(v)) {
-    const s = v.replace("T", " ");
-    if (span === "days") return s.slice(5, 10);
-    if (span === "hours") return s.slice(5, 16);
-    return s.slice(11, 16);
-  }
-  return typeof v === "number" ? formatNumber(v) : String(v ?? "");
-}
-
-/** "1.20M", "12.3k", "9,999": compact to fixed places, and k only from 10,000 (compact in format.ts is Intl's: 1.2M, 12K) */
-function compactFixed(v: number): string {
-  const a = Math.abs(v);
-  if (a >= 1e12) return `${(v / 1e12).toFixed(2)}T`;
-  if (a >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
-  if (a >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
-  if (a >= 1e4) return `${(v / 1e3).toFixed(1)}k`;
-  return Number.isInteger(v) ? formatNumber(v) : v.toFixed(2);
-}
-
-/** a figure in the unit the designer named */
-export function fmt(v: unknown, format: Format, sym: string, axis = false): string {
-  if (typeof v !== "number" || !Number.isFinite(v)) return String(v ?? "");
-  switch (format) {
-    case "percent":
-      return `${v >= 10 || v === 0 ? v.toFixed(1) : v.toFixed(2)}%`;
-    case "avax":
-      return `${v >= 1000 ? compactFixed(v) : v >= 1 ? v.toFixed(3) : v >= 0.001 ? v.toFixed(5) : v.toPrecision(3)}${axis ? "" : ` ${sym}`}`;
-    case "gas":
-      return `${compactFixed(v)}${axis ? "" : " gas"}`;
-    case "seconds":
-      return `${v.toFixed(2)} s`;
-    case "usd":
-      return `$${v >= 1000 ? compactFixed(v) : v.toFixed(2)}`;
-    case "compact":
-      return compactFixed(v);
-    default:
-      return axis
-        ? compactFixed(v)
-        : Number.isInteger(v)
-          ? formatNumber(v)
-          : Math.abs(v) >= 1
-            ? v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            : v.toPrecision(3);
-  }
-}
-
-export function nameFor(names: Names, col: string | undefined, v: unknown): string | undefined {
-  return col && typeof v === "string" ? names[col]?.[v.toLowerCase()] : undefined;
-}
-
 const clip = (t: string, n = 26) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
 
 function xText(names: Names, x: string | undefined, v: unknown, span: Span): string {

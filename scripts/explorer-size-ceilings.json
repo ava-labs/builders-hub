@@ -1,6 +1,6 @@
 {
   "components/explorer-v2/network/city-app.tsx": 1976,
-  "components/explorer-v2/evm/QueryVisual.tsx": 1345,
+  "components/explorer-v2/evm/QueryVisual.tsx": 1295,
   "components/explorer-v2/network/city3d/HubTower.tsx": 1299,
   "components/explorer-v2/evm/QueryBoard.tsx": 1265,
   "components/explorer-v2/staking/PrimaryStaking.tsx": 1131,
