@@ -9,6 +9,17 @@
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 const POSTHOG_PERSONAL_API_KEY = process.env.POSTHOG_PERSONAL_API_KEY;
 
+/** Builder Hub's PostHog project — the only project these helpers query. */
+export const BUILDER_HUB_PROJECT_ID = process.env.POSTHOG_PROJECT_ID;
+
+/**
+ * Host allowlist every Builder Hub HogQL query must carry, so preview
+ * deployments and other hosts sharing the project never leak into the numbers.
+ * Add new production domains here, not in individual queries.
+ */
+export const HOGQL_HOST_FILTER =
+  "properties.$host IN ('build.avax.network', 'www.build.avax.network')";
+
 let hasLoggedMissingKey = false;
 
 export interface HogQLRunOptions {
