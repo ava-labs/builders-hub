@@ -313,6 +313,10 @@ export function distinctColumns(columns: readonly ColumnMeta[], sql?: string): S
    count beside it (txs) weighs each row's average, which gives that average. A maximum in each row (max_fee) ranks
    rows, not the items in them: T02 read the second-highest hourly maximum as the second-highest block */
 const MEAN_NAME = /(?:^|_)(?:avg|average|mean|median|p\d{2})(?:_|$)/i;
+/* a median or a percentile in each row has no weighted average either: no count beside it weighs the rows' medians
+   into the median of what they count (the r6 audit's C05b called the transaction-weighted mean of 8 hourly medians,
+   6.54, the day's median, which is 6.50) */
+const QUANTILE_NAME = /(?:^|_)(?:median|p\d{2})(?:_|$)/i;
 const MAX_NAME = /(?:^|_)(?:max|maximum|peak|highest)(?:_|$)/i;
 const EXTREME_NAME = /(?:^|_)(?:max|maximum|peak|highest|min|minimum|lowest)(?:_|$)/i;
 const COUNT_NAME = /(?:^|_)(?:txs|transactions|transfers|count|blocks|calls|swaps)(?:_|$)/i;
@@ -358,7 +362,7 @@ function pairsOf(columns: readonly ColumnMeta[]): [ColumnMeta, ColumnMeta][] {
 function weightOf(columns: readonly ColumnMeta[], c: ColumnMeta): ColumnMeta | null {
   const word = periodOf(c.name)?.word ?? null;
   const counts = columns.filter((k) => k !== c && NUMERIC.test(k.type) && COUNT_NAME.test(k.name) && !MEAN_NAME.test(k.name) && (periodOf(k.name)?.word ?? null) === word);
-  return counts.length === 1 ? counts[0] : null;
+  return counts.length === 1 && !QUANTILE_NAME.test(c.name) ? counts[0] : null;
 }
 
 /** a value as a model reads it: a name where the server found one */
@@ -544,7 +548,7 @@ export function figures(input: Seen): string[] {
         ...(whole.has(c.name) ? [`each row's share of the sum over ${size ? `all ${plain(size)}` : "all the"} rows the query keeps (after its filters, before its LIMIT), not of the chain's whole: name that base by what those rows are`] : []),
         noTotal ? "no total: each row counts its own distinct ones, and one in several rows is in each" : mean ? "no total: each row holds an average, and a sum of averages means nothing" : extreme ? "no total: each row holds its own highest or lowest value, and a sum of them means nothing" : all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
         mean
-          ? `mean of the row values ${plain(sum / nums.length)}, which is not the average over what the rows count${weighed !== null ? `; weighted by ${weight!.name}, that average is ${plain(weighed)}` : ""}`
+          ? `mean of the row values ${plain(sum / nums.length)}, which is not the ${QUANTILE_NAME.test(c.name) ? "median of what the rows count, and no weighting makes one" : "average over what the rows count"}${weighed !== null ? `; weighted by ${weight!.name}, that average is ${plain(weighed)}` : ""}`
           : `avg ${plain(sum / nums.length)}`,
         `max ${plain(hi.v)} at ${at(hi.r)}${held(hi.v)}${all && all.max[c.name] > hi.v ? hidden(all.max[c.name], all.maxAt?.[c.name]) : ""}${next.length ? `, then${MAX_NAME.test(c.name) ? " the next rows' own maxima (each the highest within its row, not the next highest overall)," : ""} ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
         `min ${plain(lo.v)} at ${at(lo.r)}${held(lo.v)}${all && all.min[c.name] < lo.v ? hidden(all.min[c.name], all.minAt?.[c.name]) : ""}`,
@@ -616,8 +620,7 @@ export function figures(input: Seen): string[] {
 
 /** an average over what the rows count: each row's average weighed by its count */
 function weighted(c: ColumnMeta, w: ColumnMeta, rows: readonly Row[]): number | null {
-  let top = 0;
-  let bottom = 0;
+  let [top, bottom] = [0, 0];
   for (const r of rows) {
     const [v, n] = [numOf(c, r[c.name]), numOf(w, r[w.name])];
     if (v === null || n === null || n <= 0) continue;

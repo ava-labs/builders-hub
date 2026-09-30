@@ -284,6 +284,31 @@ describe('reader words', () => {
 });
 
 describe('figures', () => {
+  it("offer no weighted average of the rows' medians, and say their mean is no median", () => {
+    // the r6 audit's C05b: 8 hourly medians of gas price beside each hour's transactions; the designer called their
+    // transaction-weighted mean (6.54) the day's median (6.50)
+    const f = figures({
+      columns: [
+        { name: 't', type: 'DateTime' },
+        { name: 'txs', type: 'UInt64' },
+        { name: 'avg_gwei', type: 'Float64' },
+        { name: 'median_gwei', type: 'Float64' },
+      ],
+      rows: [
+        { t: '2026-09-30 00:00:00', txs: 9000, avg_gwei: 31.1, median_gwei: 6.70 },
+        { t: '2026-09-30 01:00:00', txs: 8000, avg_gwei: 24.1, median_gwei: 6.50 },
+        { t: '2026-09-30 02:00:00', txs: 12000, avg_gwei: 25.4, median_gwei: 6.43 },
+      ],
+      names: {},
+      x: 't',
+    }).join('\n');
+    const median = f.split('\n').find((l) => l.startsWith('median_gwei')) ?? '';
+    expect(median).toContain('which is not the median of what the rows count, and no weighting makes one');
+    expect(median).not.toContain('weighted by');
+    // an average beside the same count is still weighed
+    expect(f.split('\n').find((l) => l.startsWith('avg_gwei'))).toContain('weighted by txs');
+  });
+
   it('gives a figure the same in every row once, never its sum', () => {
     const f = figures({
       columns: [
