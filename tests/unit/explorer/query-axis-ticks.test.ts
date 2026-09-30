@@ -14,6 +14,10 @@ describe('an axis tick', () => {
     expect([1.5, 2].map((v) => tick(v, 'seconds'))).toEqual(['1.5 s', '2 s']);
     expect([0, 12.5, 1.2e6].map((v) => tick(v, 'usd'))).toEqual(['$0', '$12.5', '$1.2M']);
     expect([1e4, 25_000, 1.5].map((v) => tick(v, 'number'))).toEqual(['10k', '25k', '1.5']);
+    // an outflow drawn below zero reads as its inflow does (r11's G09 ticks read -3.00e+3)
+    expect([-3000, -1.5, -20_000, -0.25].map((v) => tick(v, 'avax'))).toEqual(['-3,000', '-1.5', '-20k', '-0.25']);
+    expect([-12.5, -2.5].map((v) => tick(v, 'percent'))).toEqual(['-12.5%', '-2.5%']);
+    expect([-3000, -12.5].map((v) => tick(v, 'usd'))).toEqual(['-$3,000', '-$12.5']);
   });
 });
 

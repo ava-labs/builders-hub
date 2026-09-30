@@ -47,17 +47,19 @@ export function fmt(v: unknown, format: Format, sym: string, axis = false): stri
 
 /** a figure to its unit's fixed places */
 function fixed(v: number, format: Format, sym: string, axis: boolean): string {
+  // a figure's size picks its places, so an outflow below zero reads as its inflow does (-3,000, not -3.00e+3)
+  const a = Math.abs(v);
   switch (format) {
     case "percent":
-      return `${v >= 10 || v === 0 ? v.toFixed(1) : v.toFixed(2)}%`;
+      return `${a >= 10 || v === 0 ? v.toFixed(1) : v.toFixed(2)}%`;
     case "avax":
-      return `${v >= 1000 ? compactFixed(v) : v >= 1 ? v.toFixed(3) : v >= 0.001 ? v.toFixed(5) : v.toPrecision(3)}${axis ? "" : ` ${sym}`}`;
+      return `${a >= 1000 ? compactFixed(v) : a >= 1 ? v.toFixed(3) : a >= 0.001 ? v.toFixed(5) : v.toPrecision(3)}${axis ? "" : ` ${sym}`}`;
     case "gas":
       return `${compactFixed(v)}${axis ? "" : " gas"}`;
     case "seconds":
       return `${v.toFixed(2)} s`;
     case "usd":
-      return `$${v >= 1000 ? compactFixed(v) : v.toFixed(2)}`;
+      return `${v < 0 ? "-" : ""}$${a >= 1000 ? compactFixed(a) : a.toFixed(2)}`;
     case "compact":
       return compactFixed(v);
     default:
