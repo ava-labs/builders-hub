@@ -174,7 +174,7 @@ const GAS_GLOSSARY = `Gas vocabulary on this chain (ACP-194, Continuous Executio
 - Gas reserved: the sum of the gas limits of a block's transactions. It is what fills a block and what the block header reports as gasUsed.
 - Gas charged: what the sender pays for, max(gas used, half the gas limit). It is the receipt's gasUsed. Fee = gas charged x effective gas price.
 - Gas used: what execution consumed: intrinsic gas + opcode costs. Since Helicon the EVM credits no storage refund, so gas charged equals gas used unless the half-limit floor applied. Only the execution trace knows the split.
-- A transaction is FINAL the moment its block is accepted. The state root commits a few blocks later; that is bookkeeping, not finality. Say "state root pending" or "state root committed", never "settled" or "waiting".`;
+- A transaction is FINAL the moment its block is accepted. The state root commits a few blocks later; that is bookkeeping, not finality. Say "accepted" while its state root is not committed yet, then "state root committed", never "settled", "waiting" or "pending".`;
 
 /* ------------------------------------------------------------------ */
 /* the brief: cheap, on every request                                  */

@@ -252,7 +252,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     {life.ready ? (
                       <span className="flex items-center gap-2.5">
                         <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">executing</span>}
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">accepted</span>}
                       </span>
                     ) : (
                       "…"
