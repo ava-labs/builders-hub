@@ -577,7 +577,13 @@ function linePivot(lines: string[]): string {
     (sources.ts); left out, the lines last read; null, none */
 export function pchainPrompt(opts: { chainId: number; network: string; schema: string; coverage: string | null; lines?: string[] | null }): string {
   const id = opts.chainId;
-  const latest = (t: string) => `(SELECT max(snapshot_time) FROM ${t} WHERE chain_id = ${id} AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY)`;
+  // the newest snapshot that holds as many rows as the one before it, or is 15 minutes old: a snapshot still being
+  // written holds fewer rows. Mainnet only: 15 minutes alone read r12's H16 from a snapshot 24 minutes old, one
+  // validator short, where a 13-minute one was complete. Fuji's stays as it was
+  const latest = (t: string) =>
+    isFuji(id)
+      ? `(SELECT max(snapshot_time) FROM ${t} WHERE chain_id = ${id} AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY)`
+      : `(SELECT max(snap_t) FROM (SELECT snapshot_time AS snap_t, count() AS snap_rows, lagInFrame(count()) OVER (ORDER BY snapshot_time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS snap_before FROM ${t} WHERE chain_id = ${id} AND snapshot_time >= now() - INTERVAL 1 DAY GROUP BY snapshot_time) WHERE (snap_before > 0 AND snap_rows >= snap_before) OR snap_t <= now() - INTERVAL 15 MINUTE)`;
   const primary = "unhex(repeat('00', 32))";
   const live = opts.lines === undefined ? knownLines(id) : opts.lines;
   const lines = live?.length ? live : ["1.15", "1.14"];

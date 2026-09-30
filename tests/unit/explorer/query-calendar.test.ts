@@ -109,6 +109,10 @@ describe('the calendar rule', () => {
     expect(userTurn(43113, 'Top 10 pools by volume this week', at)).toBe('Top 10 pools by volume this week');
     // a P-Chain question about validators that started or were added counts nodes beside registrations (r7's P01)
     const nodes = ' A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window.';
+    // the current set reads the newest snapshot as full as the one before it (r12's H16 read one 24 minutes old); Fuji's stays
+    const pchain = (chainId: number) => pchainPrompt({ chainId, network: 'x', schema: '', coverage: null });
+    expect(pchain(1)).toContain('GROUP BY snapshot_time) WHERE (snap_before > 0 AND snap_rows >= snap_before) OR snap_t <= now() - INTERVAL 15 MINUTE)');
+    expect(pchain(5)).not.toContain('snap_rows');
     expect(turn('Validators added per week', 1)).toBe(`Today is 2026-09-28 (UTC).${nodes}`);
     expect(turn('How many validators started validating the Primary Network this week?', 1)).toBe(`Today is 2026-09-28 (UTC).${nodes}`);
     expect(turn('How many validators joined L1s this week?', 1)).toBe('Today is 2026-09-28 (UTC).');
