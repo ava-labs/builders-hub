@@ -90,6 +90,9 @@ describe('the calendar rule', () => {
     expect(userTurn(43114, 'Top 10 pools by volume this week', at)).toContain('A query by pool groups by pool, protocol, version and k, never by t0 and t1');
     expect(userTurn(43114, 'Which tokens had the most DEX volume today?', at)).not.toContain('A query by pool');
     expect(userTurn(43114, 'New pools per week per DEX', at)).not.toContain('A query by pool');
+    // a DEX question about fees says what swappers paid, never that LPs earned it all (r7's D09)
+    expect(userTurn(43114, 'Pharaoh fees per day this week', at)).toContain("A DEX's fees are what its swappers paid, sum(fee_usd)");
+    expect(userTurn(43114, 'What was the average gas fee today?', at)).not.toContain("A DEX's fees");
     expect(userTurn(43114, 'Which pools had the most swaps today?', at)).toContain('A query by pool');
     expect(userTurn(43113, 'Top 10 pools by volume this week', at)).toBe('Top 10 pools by volume this week');
     // a P-Chain question about validators that started or were added counts nodes beside registrations (r7's P01)
