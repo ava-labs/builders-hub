@@ -436,8 +436,6 @@ export function RecordPlot({
     return clock(v).slice(0, 5);
   };
   const yFmt: Format = yCol === "fee_avax" ? "avax" : yCol === "gas_charged" ? "gas" : "compact";
-  // the unit once, in the header; the ticks are bare figures (0 30 60 90 120, not 120.000)
-  const yTick = (v: number) => (yFmt === "avax" && Math.abs(v) < 1000 ? String(Number(v.toPrecision(3))) : fmt(v, yFmt, sym, true));
   const noun = rows.some((r) => "amount" in r) ? "transfers" : "transactions";
   const strip = within && cut && !cut.byTime && profile?.bins.length ? profile : null;
   const total = strip ? strip.bins.reduce((n, b) => n + b.n, 0) : 0;
@@ -479,7 +477,7 @@ export function RecordPlot({
           <ScatterChart margin={{ top: 6, right: RIGHT, left: 0, bottom: strip ? 6 : 0 }}>
             <CartesianGrid stroke="rgba(161,161,170,0.18)" />
             <XAxis type="number" dataKey="x" hide={!!strip} domain={within ?? ["dataMin", "dataMax"]} ticks={ticks} allowDecimals={false} tickFormatter={tickText} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
-            <YAxis type="number" dataKey="y" interval={0} tickFormatter={yTick} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={GUTTER} />
+            <YAxis type="number" dataKey="y" interval={0} tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={GUTTER} />
             <ZAxis range={[36, 36]} />
             {running && within && <ReferenceArea x1={running} x2={within[1]} fill="rgba(161,161,170,0.1)" stroke="none" ifOverflow="hidden" />}
             <RechartsTooltip

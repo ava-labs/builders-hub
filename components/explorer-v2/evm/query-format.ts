@@ -34,12 +34,19 @@ function compactFixed(v: number): string {
   if (a >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
   if (a >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
   if (a >= 1e4) return `${(v / 1e3).toFixed(1)}k`;
-  return Number.isInteger(v) ? formatNumber(v) : v.toFixed(2);
+  return Number.isInteger(v) ? formatNumber(v) : v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-/** a figure in the unit the designer named */
+/** a figure in the unit the designer named. An axis tick is bare: no unit where the chart names it (AVAX, gas), and
+    none of the zeros fixed places add, since the ticks beside it give its precision (0 30 60, 1.5, 360B, 12%, not
+    0.00 30.000 60.000, 1.50, 360.00B, 12.0%) */
 export function fmt(v: unknown, format: Format, sym: string, axis = false): string {
   if (typeof v !== "number" || !Number.isFinite(v)) return String(v ?? "");
+  return axis ? fixed(v, format, sym, true).replace(/\.(\d*?)0+(?=[kMBT%]?(?: s)?$)/, (_m, d: string) => (d ? `.${d}` : "")) : fixed(v, format, sym, false);
+}
+
+/** a figure to its unit's fixed places */
+function fixed(v: number, format: Format, sym: string, axis: boolean): string {
   switch (format) {
     case "percent":
       return `${v >= 10 || v === 0 ? v.toFixed(1) : v.toFixed(2)}%`;
