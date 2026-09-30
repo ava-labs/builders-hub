@@ -11,6 +11,7 @@ import type { ColumnMeta } from "./clickhouse";
 import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
+import { basicVisual } from "./draft";
 
 export const DESIGN_MODEL = "claude-opus-5-5";
 /** the designer runs at low effort: in 20 blind pairs its charts were rated as good as the default's (7 wins each, 6 ties), in about half the time */
@@ -93,33 +94,6 @@ export const visualSpecSchema = z.object({
 export type VisualSpec = z.infer<typeof visualSpecSchema>;
 
 type Row = Record<string, unknown>;
-
-/** the old one-chart spec, as a visual, for when the designer is unavailable */
-export function basicVisual(chart: ChartSpec, columns: ColumnMeta[]): VisualSpec {
-  if (chart.kind === "none" || chart.kind === "table" || !chart.x || chart.series.length === 0) {
-    return { stats: [], panels: [{ title: "Rows", kind: "table", series: [], markers: [], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }], callouts: [] };
-  }
-  const time = columns.find((c) => c.name === chart.x)?.type.startsWith("Date");
-  return {
-    stats: [],
-    panels: [
-      {
-        title: "",
-        kind: chart.kind === "bar" && !time ? "hbar" : chart.kind,
-        x: chart.x,
-        series: chart.series.map((s) => ({ column: s.column, label: s.label, format: /%/.test(s.unit ?? "") ? "percent" : /avax/i.test(s.unit ?? "") ? "avax" : /gas/i.test(s.unit ?? "") ? "gas" : "number", axis: "left", mark: "auto", transform: "none", dashed: false })),
-        markers: [],
-        bands: [],
-        stacked: !!chart.stacked,
-        sortDir: "desc",
-        referenceLines: [],
-        width: "full",
-      },
-    ],
-    callouts: [],
-  };
-}
-
 
 /** the most rows a model reads in full; past that it reads a sample */
 const ALL_ROWS = 100;
