@@ -13,6 +13,8 @@ import { knownAddress } from "@/lib/evm-explorer";
 import { useTokenList, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
 import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
+import { useTicker } from "@/components/explorer-v2/network/ticker";
+import { txNewer, type TxRow } from "./tx-window";
 
 /* The home page's two live boards, in the ledger's own grammar: one line
    per row, a header naming every column, ink for identity, one
@@ -150,7 +152,8 @@ export function PhaseTrack({
    attack, long decay. */
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-const ROWS = 10;
+/** the rows a board shows; its belt holds one more for the slide-out */
+export const ROWS = 10;
 /** a phone row is two or three lines, so the boards stop short there:
  *  "View all" is one tap away and the page is not a feed */
 const PHONE_ROWS = 6;
@@ -167,6 +170,16 @@ export function Belt({ children, rows = ROWS }: { children: React.ReactNode; row
       <div className="md:h-(--belt-h)">{children}</div>
     </div>
   );
+}
+
+const NONE: ReadonlySet<string> = new Set();
+
+/** the keys of a list's first paint: those rows stand still, and a row
+ *  that comes after them slides in */
+export function useOpening<T>(rows: readonly T[], key: (row: T) => string): ReadonlySet<string> {
+  const first = useRef<ReadonlySet<string> | null>(null);
+  if (first.current === null && rows.length > 0) first.current = new Set(rows.map(key));
+  return first.current ?? NONE;
 }
 
 export function MotionRow({
@@ -191,73 +204,6 @@ export function MotionRow({
       {children}
     </motion.div>
   );
-}
-
-/* A stream arrives in bursts (a 30-tx block lands as one poll) but should
-   read as a ticker. Newcomers wait in a queue and are released one at a
-   time; the cadence tightens as the backlog grows so the board never
-   falls far behind the chain. */
-export function useDrip<T extends { hash: string }>(
-  incoming: T[],
-  visibleMax: number,
-  enabled: boolean,
-  onEnqueue?: (items: T[]) => void,
-  /** hold the belt still (the pointer is over it); newcomers queue up and
-   *  catch up, skipping ahead if needed, once released */
-  paused = false,
-): T[] {
-  const [visible, setVisible] = useState<T[]>([]);
-  const queue = useRef<T[]>([]);
-  const pausedRef = useRef(paused);
-  pausedRef.current = paused;
-  const seen = useRef(new Set<string>());
-  const painted = useRef(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!enabled) return;
-    // incoming is newest-first; queue oldest-first so release order is
-    // chronological, and the very first batch paints whole
-    const fresh = incoming.filter((t) => !seen.current.has(t.hash));
-    if (!fresh.length) return;
-    for (const t of fresh) seen.current.add(t.hash);
-    if (seen.current.size > 2000) seen.current = new Set([...seen.current].slice(-1000));
-    onEnqueue?.(fresh);
-    if (!painted.current) {
-      painted.current = true;
-      setVisible(fresh.slice(0, visibleMax));
-      return;
-    }
-    queue.current.push(...fresh.slice().reverse());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incoming, enabled]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    const tick = () => {
-      if (cancelled) return;
-      const q = queue.current;
-      if (q.length && !pausedRef.current) {
-        // far behind: skip to the newest window rather than replaying
-        // history. The ticker stays calm and near-real-time; the tab
-        // behind "View all" has every transaction.
-        if (q.length > visibleMax * 3) q.splice(0, q.length - visibleMax * 2);
-        const next = q.shift()!;
-        setVisible((v) => [next, ...v].slice(0, visibleMax));
-      }
-      const backlog = queue.current.length;
-      const delay = backlog > 20 ? 160 : backlog > 6 ? 230 : 320;
-      timer.current = setTimeout(tick, delay);
-    };
-    timer.current = setTimeout(tick, 320);
-    return () => {
-      cancelled = true;
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [enabled, visibleMax]);
-
-  return enabled ? visible : incoming.slice(0, visibleMax);
 }
 
 /** the last value seen before `frozen` went true, until it goes false */
@@ -372,25 +318,6 @@ export function LatestBlocksBoard({
 /* ------------------------------------------------------------------ */
 /* Transactions: status · hash · method · from → to · fee               */
 
-/** one row, whichever feed it came from: the settlement stream carries
- *  its fee (receipt), the indexer fallback leaves it null and the board
- *  fetches receipts itself */
-export interface TxRow {
-  hash: string;
-  blockNumber: number;
-  from: string;
-  to: string; // "" for contract creation
-  value: string; // wei, decimal string
-  methodId: string;
-  success: boolean;
-  feeWei: number | null;
-  /** "100.00 USDT": a decoded ERC-20 transfer amount, when the feed had
-   *  calldata and the list knows the token */
-  tokenAmount?: string | null;
-  /** unix seconds, when the feed carries it (the list page shows age) */
-  timestamp?: number;
-}
-
 /** A party to the tx: the token list's mark when it is a token, else the
  *  verified name when Sourcify has one, a protocol fixture's label, else
  *  the truncated address */
@@ -456,21 +383,21 @@ export function LatestTxsBoard({
   symbol: string;
   base: string;
   loading: boolean;
-  /** rows arrive from the receipts stream; enter with motion */
+  /** the chain streams its receipts: the board is a ticker, and a row
+   *  that comes after the first paint slides in */
   streaming: boolean;
 }) {
   // the ticker: one row at a time, names warmed before a row is released;
   // it holds still while the pointer is over it so a row can be clicked
   const [hover, setHover] = useState(false);
-  const rows = useDrip(
-    txs,
-    ROWS + 1,
-    streaming,
-    (fresh) => {
-      void prewarmContractNames(chainId, fresh.map((t) => t.to));
-    },
-    hover,
-  );
+  const rows = useTicker(txs, ROWS + 1, {
+    key: (t) => t.hash,
+    newer: txNewer,
+    paused: hover,
+    onEnqueue: (fresh) => void prewarmContractNames(chainId, fresh.map((t) => t.to)),
+    enabled: streaming,
+  });
+  const opening = useOpening(rows, (t) => t.hash);
   const tokens = useTokenList(chainId);
   const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
   const method = useMethodNames(chainId, rows);
@@ -501,7 +428,7 @@ export function LatestTxsBoard({
           const m = method(t);
           const value = Number(t.value);
           return (
-            <MotionRow key={t.hash} animateIn={streaming} overflow={i >= PHONE_ROWS}>
+            <MotionRow key={t.hash} animateIn={streaming && !opening.has(t.hash)} overflow={i >= PHONE_ROWS}>
             <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
               {/* status: a red X only when it reverted, the row stays quiet otherwise.
                   Phones stack the row as hash and method, the parties across,

@@ -6,7 +6,8 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
-import { Belt, GasBar, Height, MotionRow, Party, fmtAmount, useDrip } from "@/components/explorer-v2/evm/LiveBoards";
+import { Belt, GasBar, Height, MotionRow, Party, fmtAmount } from "@/components/explorer-v2/evm/LiveBoards";
+import { useTicker } from "./ticker";
 import { methodLabel } from "@/components/explorer-v2/evm/bits";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
@@ -334,7 +335,7 @@ const chainBase = (c: LiveChain) => `/explorer/mainnet/${c.slug}`;
 function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading: boolean }) {
   // the belt holds still under the pointer so a row can be clicked
   const [hover, setHover] = useState(false);
-  const rows = useDrip(blocks, ROWS + 1, true, undefined, hover);
+  const rows = useTicker(blocks, ROWS + 1, { key: (b) => b.hash, newer: blockNewer, paused: hover });
   const cols = "md:grid-cols-[minmax(0,8rem)_6.5rem_2.5rem_minmax(0,1fr)_2.5rem]";
   return (
     <section className="flex flex-col gap-4">
@@ -394,7 +395,7 @@ function useMethodLabels(rows: LiveTx[]) {
 
 function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) {
   const [hover, setHover] = useState(false);
-  const rows = useDrip(txs, ROWS + 1, true, undefined, hover);
+  const rows = useTicker(txs, ROWS + 1, { key: (t) => t.hash, newer: txNewer, paused: hover });
   const method = useMethodLabels(rows);
   const cols =
     "md:grid-cols-[0.75rem_minmax(0,6.5rem)_6rem_minmax(0,6rem)_minmax(0,1fr)_minmax(0,6.5rem)_2.5rem]";
