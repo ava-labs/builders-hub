@@ -80,6 +80,12 @@ describe('the calendar rule', () => {
     expect(userTurn(43419, token, at).split('\n\n')[0]).toBe("Today is 2026-09-28 (UTC). A question about a token's transfers counts its mints (transfers from the zero address) and burns (to it) in columns of their own.");
     expect(userTurn(43114, 'How many transactions were there today?', at).split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
     expect(userTurn(43113, token, at)).toBe(token);
+    // a question about tokens' transfers that names no token and no NFT reads ERC-20 Transfers only (r7's E03)
+    const erc20 = " A token transfer is an ERC-20 Transfer log, topic3 IS NULL: an NFT's Transfer (ERC-721) has the same topic0 and its token id in topic3.";
+    expect(userTurn(43114, 'Which tokens had the most transfers today?', at).split('\n\n')[0]).toBe(`Today is 2026-09-28 (UTC).${erc20}`);
+    expect(userTurn(43114, 'Which NFT collections had the most transfers today?', at)).not.toContain('topic3 IS NULL');
+    expect(userTurn(43114, 'Top ERC-721 tokens by transfers this week', at)).not.toContain('topic3 IS NULL');
+    expect(userTurn(43114, token, at)).not.toContain('topic3 IS NULL');
     expect(turn('Validators added per week', 1)).toBe('Today is 2026-09-28 (UTC).');
     for (const chainId of [43113, 5]) expect(userTurn(chainId, 'New pools per week per DEX', at)).toBe('New pools per week per DEX');
   });

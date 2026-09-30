@@ -74,6 +74,12 @@ const TOKEN_TRANSFERS = /\btransfer(?:s|red)?\b/i;
 const ONE_TOKEN = /\b0x[0-9a-fA-F]{40}\b|\b(?:token|nft|collection)\b/i;
 const mintsTurn = (prompt: string) =>
   TOKEN_TRANSFERS.test(prompt) && ONE_TOKEN.test(prompt) ? " A question about a token's transfers counts its mints (transfers from the zero address) and burns (to it) in columns of their own." : "";
+/* a question about tokens' transfers that names no token and no NFT reads ERC-20 Transfers only: r7's E03 ranked 855
+   ERC-721 transfers among "tokens" and its note said three topics */
+const SOME_TOKENS = /\btokens?\b|\berc-?20s?\b/i;
+const NFTS = /\bnfts?\b|\bcollections?\b|\berc-?(?:721|1155)s?\b|\b0x[0-9a-fA-F]{40}\b/i;
+const erc20Turn = (prompt: string) =>
+  TOKEN_TRANSFERS.test(prompt) && SOME_TOKENS.test(prompt) && !NFTS.test(prompt) ? " A token transfer is an ERC-20 Transfer log, topic3 IS NULL: an NFT's Transfer (ERC-721) has the same topic0 and its token id in topic3." : "";
 
 /** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
     the system prompt, so the prompt's version and cache stay the same from day to day. On an EVM chain a series
@@ -84,7 +90,7 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const evm = targetOf(chainId).kind !== "pchain";
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
-  const mints = evm ? mintsTurn(prompt) : "";
+  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}` : "";
   return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
@@ -418,7 +424,7 @@ ${
 - Use these names in titles and notes, never "gas used" for the block figure. A sum of raw_txs.gas_used is gas charged, per block, per hour or per contract alike (name it gas_charged); gas reserved comes only from raw_blocks.gas_used.`
     : `- Gas: raw_blocks.gas_used is the block's gas used, against gas_limit. raw_txs.gas_used is the gas charged per receipt; fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. Whether an L1 burns its fees or pays them to a fee recipient depends on its configuration: say "fees paid", never "burned". A fee question also reads raw_blocks.miner over the same window, as the worked example "Fees per bucket" shows, and the note says where the fees went: to the burn address when not_burned is 0, that is when every block's miner is 0x0100000000000000000000000000000000000000, the one case where it may say "burned"; else to the one recipient, by its full address, when recipients is 1; else to how many recipients. That address or count is the one exception to the note rules against hex, addresses and counts.`
 }
-- ERC-20 Transfer logs: topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'); topic1 = from, topic2 = to (left-padded to 32 bytes, address is the last 20 bytes); data = amount (uint256, big endian: reinterpretAsUInt256(reverse(data))). A transfer's sender and recipient are lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address and the same over topic2 AS to_address. Never take them from tx_from, tx_to or raw_logs.address: those are the transaction's sender, the contract it called and the token contract. ${
+- ERC-20 Transfer logs: topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'); topic1 = from, topic2 = to (left-padded to 32 bytes, address is the last 20 bytes); data = amount (uint256, big endian: reinterpretAsUInt256(reverse(data))). A transfer's sender and recipient are lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address and the same over topic2 AS to_address. Never take them from tx_from, tx_to or raw_logs.address: those are the transaction's sender, the contract it called and the token contract. An ERC-20 transfer has no topic3 (topic3 IS NULL): an ERC-721 Transfer has the same topic0 and its token id in topic3, so a count of token transfers filters topic3 IS NULL, and a note that says ERC-20 or three topics holds only with that filter. ${
   c
     ? `Well-known token contracts:
 ${known}`
