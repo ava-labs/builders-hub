@@ -10,6 +10,7 @@ import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { toClientEvmSigner } from "@x402/evm";
 import { statsApi } from "@/lib/stats-api";
 import { runQuery } from "@/lib/explorer-query/clickhouse";
+import { redis } from "@/lib/redis";
 import { DEDICATED_METRICS_CHAINS } from "@/lib/dedicated-stats";
 
 type L1ChainEntry = {
@@ -24,7 +25,6 @@ type L1ChainEntry = {
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || "";
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
 const QUERY_TIMEOUT_MS = 10_000;
-const CONTRACT_FEES_QUERY_TIMEOUT_MS = 60_000;
 
 // x402 payer wallet — signs USDC transfer authorizations on Avalanche C-Chain
 const X402_PAYER_PRIVATE_KEY = process.env.X402_PAYER_PRIVATE_KEY || "";
@@ -329,24 +329,94 @@ function sqlCrossChainFlows(days?: number): string {
   `;
 }
 
-function sqlContractFees(days?: number): string {
-  const prewhereClauses = ["chain_id = 43114"];
-  if (days && Number.isFinite(days) && days > 0) {
-    prewhereClauses.push(`block_time >= now() - INTERVAL ${Math.ceil(days)} DAY`);
-  }
+/* Teleporter's fees on the C-Chain: the gas of each transaction sent to the TeleporterMessenger. The stats API
+   reads them in one query that scans every C-Chain transaction in the window, and past about a month it times out
+   (HTTP 500 after 30 s), which left the AVAX page's ICM fees empty. So the window is read here a calendar month at
+   a time through the Query engine's read path (about 7 s a month), two months at a time. A month that ended more
+   than a day ago no longer changes, and Redis keeps it 30 days; the current month is read again every 4 hours. A
+   month that fails fails the whole read, so no cache keeps a window with a hole in it. */
 
+/** the month of Teleporter's first C-Chain message (2024-03-06), where "all" starts */
+const TELEPORTER_SINCE = Date.UTC(2024, 2, 1);
+const DAY_MS = 86_400_000;
+const MONTH_KEY = "icm:contract-fees:month:v1:";
+const CLOSED_MONTH_TTL_S = 30 * 86_400;
+const OPEN_MONTH_TTL_S = 4 * 3_600;
+/** the months this instance has read or fetched, with when each goes stale, and the reads still running */
+const monthFees = new Map<string, { rows: ContractFee[]; until: number }>();
+const monthReads = new Map<string, Promise<ContractFee[]>>();
+
+interface FeeMonth {
+  key: string;
+  from: string;
+  to: string;
+  closed: boolean;
+}
+
+const isoDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+/** each calendar month (UTC) from the one that holds start to the current one */
+export function feeMonths(start: number, now: number): FeeMonth[] {
+  const out: FeeMonth[] = [];
+  const first = new Date(start);
+  let y = first.getUTCFullYear();
+  let m = first.getUTCMonth();
+  while (Date.UTC(y, m, 1) <= now) {
+    // Date.UTC carries month 12 into the next year's January
+    const end = Date.UTC(y, m + 1, 1);
+    out.push({ key: `${y}-${String(m + 1).padStart(2, "0")}`, from: isoDay(Date.UTC(y, m, 1)), to: isoDay(end), closed: end + DAY_MS < now });
+    [y, m] = m === 11 ? [y + 1, 0] : [y, m + 1];
+  }
+  return out;
+}
+
+function sqlContractFees(month: FeeMonth): string {
   return `
     SELECT
-      toDate(block_time) AS day,
+      toString(toDate(block_time)) AS day,
       toString(sum(toUInt256(gas_used) * toUInt256(gas_price))) AS fees_paid,
       count() AS tx_count
     FROM raw_txs
-    PREWHERE ${prewhereClauses.join(" AND ")}
-    WHERE \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
+    PREWHERE chain_id = 43114
+      AND block_time >= toDateTime('${month.from} 00:00:00')
+      AND block_time < toDateTime('${month.to} 00:00:00')
+      AND \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
     GROUP BY day
     ORDER BY day
-    FORMAT JSONEachRow
   `;
+}
+
+/** one month's fees: from this instance's memory, else Redis, else the index; a month already being read is
+    shared, so two requests never read it twice */
+function feesOfMonth(month: FeeMonth): Promise<ContractFee[]> {
+  const hit = monthFees.get(month.key);
+  if (hit && hit.until > Date.now()) return Promise.resolve(hit.rows);
+  const running = monthReads.get(month.key);
+  if (running) return running;
+  const read = readMonth(month).finally(() => monthReads.delete(month.key));
+  monthReads.set(month.key, read);
+  return read;
+}
+
+async function readMonth(month: FeeMonth): Promise<ContractFee[]> {
+  const ttl = month.closed ? CLOSED_MONTH_TTL_S : OPEN_MONTH_TTL_S;
+  const store = await redis();
+  const kept = store ? await store.get(MONTH_KEY + month.key).catch(() => null) : null;
+  if (kept) {
+    try {
+      const { rows, at } = JSON.parse(kept) as { rows: ContractFee[]; at: number };
+      monthFees.set(month.key, { rows, until: at + ttl * 1000 });
+      return rows;
+    } catch {
+      // a value this code cannot read: the month is read again, and the new value replaces it
+    }
+  }
+  const read = await runQuery(sqlContractFees(month));
+  const rows: ContractFee[] = read.rows.map((r) => ({ day: String(r.day), fees_paid: String(r.fees_paid), tx_count: Number(r.tx_count) }));
+  const at = Date.now();
+  monthFees.set(month.key, { rows, until: at + ttl * 1000 });
+  await store?.set(MONTH_KEY + month.key, JSON.stringify({ rows, at }), { EX: ttl }).catch(() => undefined);
+  return rows;
 }
 
 async function refreshCache(): Promise<ICMCacheData> {
@@ -435,18 +505,30 @@ async function getICMCacheData(): Promise<ICMCacheData> {
 }
 
 async function refreshContractFeesCache(days?: number): Promise<ContractFeesCacheData> {
-  const feesBody = await statsApi<{ fees?: { day: string; feesPaid: string; txCount: number }[] }>(
-    days && days > 0 ? `/icm-api/contract-fees?days=${Math.ceil(days)}` : "/icm-api/contract-fees",
-    CONTRACT_FEES_QUERY_TIMEOUT_MS,
-  );
-  const contractFees: ContractFee[] = (feesBody?.fees ?? []).map((f) => ({
-    day: f.day,
-    fees_paid: f.feesPaid,
-    tx_count: f.txCount,
-  }));
+  const now = Date.now();
+  const since = days && days > 0 ? Math.max(TELEPORTER_SINCE, now - Math.ceil(days) * DAY_MS) : TELEPORTER_SINCE;
+  const months = feeMonths(since, now);
+  // two months at a time: the box takes four queries from this user, and other readers share them. Once a month
+  // fails, no new month is started: a box that times out gets no more reads from this one
+  const read: ContractFee[][] = [];
+  let next = 0;
+  let failed = false;
+  const worker = async () => {
+    while (!failed && next < months.length) {
+      const i = next++;
+      try {
+        read[i] = await feesOfMonth(months[i]);
+      } catch (e) {
+        failed = true;
+        throw e;
+      }
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  const first = isoDay(since);
   return {
-    contractFees,
-    fetchedAt: Date.now(),
+    contractFees: read.flat().filter((f) => f.day >= first),
+    fetchedAt: now,
   };
 }
 
