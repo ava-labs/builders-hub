@@ -86,7 +86,12 @@ describe('the calendar rule', () => {
     expect(userTurn(43114, 'Which NFT collections had the most transfers today?', at)).not.toContain('topic3 IS NULL');
     expect(userTurn(43114, 'Top ERC-721 tokens by transfers this week', at)).not.toContain('topic3 IS NULL');
     expect(userTurn(43114, token, at)).not.toContain('topic3 IS NULL');
-    expect(turn('Validators added per week', 1)).toBe('Today is 2026-09-28 (UTC).');
+    // a P-Chain question about validators that started or were added counts nodes beside registrations (r7's P01)
+    const nodes = ' A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window.';
+    expect(turn('Validators added per week', 1)).toBe(`Today is 2026-09-28 (UTC).${nodes}`);
+    expect(turn('How many validators started validating the Primary Network this week?', 1)).toBe(`Today is 2026-09-28 (UTC).${nodes}`);
+    expect(turn('How many validators joined L1s this week?', 1)).toBe('Today is 2026-09-28 (UTC).');
+    expect(turn('Validator uptime by version', 1)).toBe('Today is 2026-09-28 (UTC).');
     for (const chainId of [43113, 5]) expect(userTurn(chainId, 'New pools per week per DEX', at)).toBe('New pools per week per DEX');
   });
 

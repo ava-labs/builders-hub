@@ -81,6 +81,13 @@ const NFTS = /\bnfts?\b|\bcollections?\b|\berc-?(?:721|1155)s?\b|\b0x[0-9a-fA-F]
 const erc20Turn = (prompt: string) =>
   TOKEN_TRANSFERS.test(prompt) && SOME_TOKENS.test(prompt) && !NFTS.test(prompt) ? " A token transfer is an ERC-20 Transfer log, topic3 IS NULL: an NFT's Transfer (ERC-721) has the same topic0 and its token id in topic3." : "";
 
+/* a P-Chain question about validators that started, joined or were added counts nodes beside the registrations: r7's
+   P01 gave 37 registrations where 36 nodes started and 3 were new. An L1's registration carries no node_id */
+const VALIDATORS = /\bvalidators?\b/i;
+const STARTED = /\b(?:start(?:ed|s|ing)?|began|begin|new|join(?:ed|s)?|add(?:ed|s)?|register(?:ed|s)?)\b/i;
+const validatorsTurn = (prompt: string) =>
+  VALIDATORS.test(prompt) && STARTED.test(prompt) && !/\b(?:l1s?|subnets?)\b/i.test(prompt) ? " A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window." : "";
+
 /** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
     the system prompt, so the prompt's version and cache stay the same from day to day. On an EVM chain a series
     question on its own is told its default window there too, and a follow-up the window of the chart before it
@@ -90,7 +97,7 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const evm = targetOf(chainId).kind !== "pchain";
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
-  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}` : "";
+  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}` : validatorsTurn(prompt);
   return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
@@ -559,7 +566,7 @@ export function pchainPrompt(opts: { chainId: number; network: string; schema: s
     ? ""
     : `
 - raw_p_reward_utxos: one row per reward output, paid to a validator or a delegator when its staking period ends (block_time is when). Its AVAX is reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8))) / 1e9, the 8-byte amount after the output's type id: sum it for the AVAX paid in staking rewards. It is never returned stake, and never decoded_p_txs.reward_paid, which is set on few reward transactions.
-- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators.`;
+- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators. A question about validators counts nodes, uniqExact(node_id), beside the registrations, and the new ones: the nodes with no registration before the window, node_id NOT IN (SELECT node_id FROM decoded_p_txs WHERE chain_id = ${id} AND tx_type IN ('AddPermissionlessValidatorTx', 'AddValidatorTx', 'AddAutoRenewedValidatorTx') AND block_time < the window's start).`;
   // the auto-renewed staking transactions (ACP-236), and the reward a RewardValidatorTx paid, which reward_paid does
   // not hold (P09 put RewardAutoRenewedValidatorTx under other)
   const renewed = isFuji(id)
