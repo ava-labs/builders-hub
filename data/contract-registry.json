@@ -734,6 +734,181 @@
       "type": "pool"
     },
     {
+      "address": "0xbb2a7485490eb3ec8c2f34cf798a2b2c1f17b30b",
+      "name": "Curve AVAX/USD Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x628350e16b665e0caa9bc8edbbbe0db31efb3bdc",
+      "name": "Curve WAVAX/USDC Pool (0x6283)",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xc2e5e6eddca0f09529bd26733bf9bedd4186f2ef",
+      "name": "Curve WAVAX/USDC Pool (0xc2e5)",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x0974d9d3bc463fa17497aafc3a87535553298fbe",
+      "name": "Curve USDC/USDT Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xb0d2eb3c2ca3c6916fab8dcbf9d9c165649231ae",
+      "name": "Curve MAI Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xbcda256079372c6fe5d1b813ab9def5c9d78ab8f",
+      "name": "Curve FRAX Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x6bf6fc7eaf84174bb7e1610efd865f0ebd2aa96d",
+      "name": "Curve NXUSD+av3CRV Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x30df229cefa463e991e29d42db0bae2e122b2ac7",
+      "name": "Curve MIM Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x90d5233b53436767fecacd1a783d3da8cc7395ed",
+      "name": "Curve USDS Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x597803b877deb663c1eb9eadfa125201bbf0e0e9",
+      "name": "Curve WAVAX/USDC Pool (0x5978)",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xd7bb79aee866672419999a0496d99c54741d67b5",
+      "name": "Curve axlUSDC/USDC Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xf72beacc6fd334e14a7ddac25c3ce1eb8a827e10",
+      "name": "Curve Defrost H2O Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x93004d8477f117ea359b71ec02f2706c8175c55c",
+      "name": "Curve USDC.e-UST Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x864490cf55dc2dee3f0ca4d06f5f80b2bb154a03",
+      "name": "Curve USDp/frxUSD Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x0bd1e9cc4837f6f97323f21b9db039ccb6951668",
+      "name": "Curve arUSD Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xb755b949c126c04e0348dd881a5cf55d424742b2",
+      "name": "Curve atricrypto Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x25955244e2a95babeed5ed5f3d73afa4b23f99c9",
+      "name": "Curve tAVAX/sAVAX Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x6a1c781b7b280e3c8bf04fdfb86c112c9ac70a89",
+      "name": "Curve sAVAX/WAVAX Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x16a7da911a4dd1d83f3ff066fe28f3c792c50d90",
+      "name": "Curve ren Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xe9dcf2d2a17ead11fab8b198578b20535370be6a",
+      "name": "Curve Stabilize Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0x7f2d1c7b8911901de7c9785d6e7a7a10d8deff66",
+      "name": "Curve Factor XUSD Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xd39016475200ab8957e9c772c949ef54bda69111",
+      "name": "Curve deBridge-USDC Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xd8001ce95a13168aa4f7d70b5298962b7cadf6dd",
+      "name": "Curve eUSDT Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xdc6ebb38be3fdba42ff65da6aafb9ede6443dfdb",
+      "name": "Curve Versus Token Metapool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
+      "address": "0xa70af99bff6b168327f9d1480e29173e757c7904",
+      "name": "Curve xpUSD/yUTY Pool",
+      "protocol": "Curve",
+      "category": "dex",
+      "type": "pool"
+    },
+    {
       "address": "0xba12222222228d8ba445958a75a0704d566bf2c8",
       "name": "Balancer Vault",
       "protocol": "Balancer",
