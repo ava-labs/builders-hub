@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
+import { CartesianGrid, Cell, ReferenceArea, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { cn } from "@/lib/utils";
 import { HEAD, ROW, idInk, fnInk } from "@/components/explorer-v2/ui";
@@ -12,10 +12,12 @@ import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
+import { PERCENT_COLUMN } from "@/lib/explorer-query/stat-label";
 import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { noteParts } from "./query-client";
-import type { DrillCut } from "./drill-plot";
+import type { DrillCut, DrillProfile } from "@/lib/explorer-query/drill-profile";
+import { DrillStrip, GUTTER, RIGHT } from "./QueryDrillStrip";
 
 /* The rows of a query answer, as the explorer reads them: the column
    words, the doors out of a cell and a row, the generic table, a table
@@ -55,7 +57,9 @@ export const header = (col: string) => HEADERS[col] ?? col.replace(/_/g, " ").re
 export function formatOf(col: string, visual: VisualSpec | null): Format {
   const fromVisual = visual?.panels.flatMap((p) => p.series).find((s) => s.column === col)?.format ?? visual?.stats.find((s) => s.column === col)?.format;
   if (fromVisual) return fromVisual;
-  if (/pct|share|percent|rate/.test(col)) return "percent";
+  // by the words of its name: generated holds no rate, shares no share, and a fee in usd is dollars
+  if (PERCENT_COLUMN.test(col)) return "percent";
+  if (/(?:^|_)usd(?:_|$)/.test(col)) return "usd";
   if (/avax|fee/.test(col)) return "avax";
   if (/gas/.test(col)) return "gas";
   return "number";
@@ -103,6 +107,8 @@ export function fillTitle(template: string, row: Row, names: Names): string {
   return template.replace(/\{\{\s*([A-Za-z_]\w*)\s*(?::(?:bytes|raw))?\s*\}\}/g, (_m, col: string) => {
     const v = row[col];
     if (v === undefined || v === null) return "?";
+    // a time with a clock reads to the minute, in UTC: "the hour from 2026-09-29 15:00 UTC", not "15:00:00"
+    if (isTime(v) && v.length > 10) return `${v.replace("T", " ").replace(/( \d{2}:\d{2}):00$/, "$1")} UTC`;
     return nameFor(names, col, v) ?? (isAddress(v) || isHash(v) ? truncate(v, 6) : String(v));
   });
 }
@@ -360,7 +366,10 @@ export function PanelRows({
 
 /* the records themselves, as a chart: one dot per transaction, placed
    by when it landed and what it cost, red where it reverted. Hover a dot
-   and its row lights; click it and the transaction opens. */
+   and its row lights; click it and the transaction opens. Records a LIMIT
+   cut from a bigger population stand over that population's strip, so a
+   burst of the day's largest fees reads as a burst, not as the rest of
+   the day missing. */
 export function RecordPlot({
   rows,
   names,
@@ -370,6 +379,8 @@ export function RecordPlot({
   onHoverTx,
   span,
   cut,
+  whole,
+  profile,
 }: {
   rows: Row[];
   names: Names;
@@ -381,8 +392,13 @@ export function RecordPlot({
   span?: [number, number] | null;
   /** the records' cut when a LIMIT ends them: "the 50 largest fees", "the 50 latest" */
   cut?: DrillCut | null;
+  /** the records are all the bucket holds: no LIMIT cut any */
+  whole?: boolean;
+  /** a ranked cut's whole population over the bucket, in bins */
+  profile?: DrillProfile | null;
 }) {
   const router = useRouter();
+  const [now] = useState(() => Date.now() / 1000);
   // plot the figure that actually varies: a run of calls all charged the
   // half-limit floor is a flat line in gas and still spreads in fee
   const spread = (k: string) => new Set(rows.map((r) => r[k]).filter((v) => typeof v === "number")).size;
@@ -393,34 +409,64 @@ export function RecordPlot({
   const yCol = ranked ?? own ?? (spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null);
   const timed = rows.every((r) => isTime(r.t));
   if (!yCol || rows.length < 2) return null;
-  const pts = rows.map((r, i) => ({
-    x: timed ? toUnix(String(r.t)) : i,
-    y: r[yCol] as number,
-    hash: String(r.tx_hash),
-    failed: r.status === 0 || r.status === "0",
-    method: nameFor(names, "method_id", r.method_id) ?? (r.method_id && r.method_id !== "0x" ? String(r.method_id).toLowerCase() : "transfer"),
-    from: nameFor(names, "from_address", r.from_address) ?? (isAddress(r.from_address) ? truncate(r.from_address, 5) : ""),
-    row: r,
-  }));
+  const pts = rows
+    .map((r, i) => ({
+      x: timed ? toUnix(String(r.t)) : i,
+      y: r[yCol] as number,
+      hash: String(r.tx_hash),
+      failed: r.status === 0 || r.status === "0",
+      method: nameFor(names, "method_id", r.method_id) ?? (r.method_id && r.method_id !== "0x" ? String(r.method_id).toLowerCase() : "transfer"),
+      from: nameFor(names, "from_address", r.from_address) ?? (isAddress(r.from_address) ? truncate(r.from_address, 5) : ""),
+      row: r,
+    }))
+    // reverted dots draw last, over the rest
+    .sort((p, q) => Number(p.failed) - Number(q.failed));
   const clock = (u: number) => new Date(u * 1000).toISOString().slice(11, 19);
   // records that all fall in the opened mark's bucket stand across all of it: the 50 largest fees of a day are the
   // burst they are, not a gap in the day. The 50 latest are no sample of the bucket but its last seconds: they plot
   // across the seconds they cover, not in a corner of the bucket
   const within = timed && span && !cut?.byTime && pts.every((p) => p.x >= span[0] && p.x <= span[1]) ? span : null;
-  const ticks = within ? [0, 1, 2, 3, 4].map((i) => within[0] + ((within[1] - within[0]) * i) / 4) : undefined;
+  const len = within ? within[1] - within[0] : 0;
+  // round ticks: 6 h across a day, 15 min across an hour, a minute across five minutes, a day across a week
+  const tickStep = [60, 300, 900, 3600, 21_600, 86_400, 7 * 86_400].find((t) => len / t <= 7) ?? len / 4;
+  const ticks = within ? Array.from({ length: Math.floor(len / tickStep) + 1 }, (_, i) => within[0] + i * tickStep) : undefined;
+  // a time as the bucket reads it: with its day past a day, to the minute from an hour, else to the second
+  const short = len > 86_400 ? (u: number) => new Date(u * 1000).toISOString().slice(5, 16).replace("T", " ") : len >= 3600 ? (u: number) => clock(u).slice(0, 5) : clock;
   const tickText = (v: number) => {
     if (!timed) return `#${v + 1}`;
     if (!within) return clock(v);
-    // a day ends at 24:00, not at the next day's 00:00; a bucket of an hour or more reads to the minute
-    if (v === within[1] && (within[1] - within[0]) % 86_400 === 0) return "24:00";
-    return within[1] - within[0] >= 3600 ? clock(v).slice(0, 5) : clock(v);
+    if (len > 86_400) return new Date(v * 1000).toISOString().slice(5, 10);
+    // a day ends at 24:00, not at the next day's 00:00
+    if (v === within[1] && len === 86_400) return "24:00";
+    return clock(v).slice(0, 5);
   };
   const yFmt: Format = yCol === "fee_avax" ? "avax" : yCol === "gas_charged" ? "gas" : "compact";
+  const noun = rows.some((r) => "amount" in r) ? "transfers" : "transactions";
+  const strip = within && cut && !cut.byTime && profile?.bins.length ? profile : null;
+  const total = strip ? strip.bins.reduce((n, b) => n + b.n, 0) : 0;
+  // a bucket still running ends at now: its rest is time to come, not a gap
+  const running = within && now < within[1] ? Math.max(now, within[0]) : null;
+  // the records of a ranked cut that bunch in under half the bucket (the part of it gone by) say where they landed
+  const xs = pts.map((p) => p.x);
+  const [first, last] = [Math.min(...xs), Math.max(...xs)];
+  const bunched = within && cut && !cut.byTime && last - first < ((running ?? within[1]) - within[0]) / 2;
+  const landed = short(first) === short(last) ? `at ${short(first)}` : `${short(first)} to ${short(last)}`;
+  const figure = (v: number) => (yFmt === "avax" && strip?.col === yCol ? `${fmt(v, "avax", sym)} in fees` : `${strip?.agg === "max" ? "largest" : "total"} ${header(strip?.col ?? yCol).toLowerCase()} ${fmt(v, formatOf(strip?.col ?? yCol, null), sym)}`);
   return (
     <div className="flex flex-col gap-2 border-b border-zinc-200 px-5 pb-3 pt-4 md:px-6 dark:border-zinc-800">
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
-        <span className="font-bold uppercase tracking-[0.18em]">{yCol === "fee_avax" ? "Fee" : yCol === "gas_charged" ? "Gas charged" : header(yCol)} per transaction</span>
-        {cut && <span>{cut.words}</span>}
+        <span className="font-bold uppercase tracking-[0.18em]">
+          {yCol === "fee_avax" ? "Fee" : yCol === "gas_charged" ? "Gas charged" : header(yCol)} per transaction{yFmt === "avax" ? ` (${sym})` : ""}
+        </span>
+        {cut ? (
+          <span>
+            {cut.words}
+            {total ? ` of ${formatNumber(total)} ${noun}` : ""}
+            {bunched ? `, all ${pts.length} landed ${landed} UTC` : ""}
+          </span>
+        ) : (
+          whole && <span>all {formatNumber(rows.length)} {noun}</span>
+        )}
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
           succeeded
@@ -430,13 +476,15 @@ export function RecordPlot({
           reverted
         </span>
       </div>
-      <div className="h-44 cursor-pointer text-zinc-900 dark:text-zinc-100">
+      <div className={cn("cursor-pointer text-zinc-900 dark:text-zinc-100", strip ? "h-36" : "h-44")}>
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+          {/* the hidden x axis leaves the 0 tick no room below the plot: give it some */}
+          <ScatterChart margin={{ top: 6, right: RIGHT, left: 0, bottom: strip ? 6 : 0 }}>
             <CartesianGrid stroke="rgba(161,161,170,0.18)" />
-            <XAxis type="number" dataKey="x" domain={within ?? ["dataMin", "dataMax"]} ticks={ticks} allowDecimals={false} tickFormatter={tickText} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
-            <YAxis type="number" dataKey="y" tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={56} />
+            <XAxis type="number" dataKey="x" hide={!!strip} domain={within ?? ["dataMin", "dataMax"]} ticks={ticks} allowDecimals={false} tickFormatter={tickText} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
+            <YAxis type="number" dataKey="y" interval={0} tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={GUTTER} />
             <ZAxis range={[36, 36]} />
+            {running && within && <ReferenceArea x1={running} x2={within[1]} fill="rgba(161,161,170,0.1)" stroke="none" ifOverflow="hidden" />}
             <RechartsTooltip
               cursor={{ stroke: "rgba(161,161,170,0.4)" }}
               content={({ active, payload }) => {
@@ -479,6 +527,7 @@ export function RecordPlot({
           </ScatterChart>
         </ResponsiveContainer>
       </div>
+      {strip && within && ticks && <DrillStrip profile={strip} total={total} within={within} ticks={ticks} tickText={tickText} clock={short} noun={noun} figure={figure} />}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { formatNumber } from "@/components/explorer-v2/format";
 import type { DrillAnswer } from "@/lib/explorer-query/types";
 import type { Selection } from "@/lib/explorer-query/selection";
 import { RecordPlot, ResultTable, type Row, isTxList } from "./QueryRows";
-import { drillCut } from "./drill-plot";
+import { drillCut, drillWhole } from "@/lib/explorer-query/drill-profile";
 import { TxCards } from "./QueryInspector";
 
 /* A drill is a zoom, not a new section below the fold. The chart's own
@@ -107,7 +107,18 @@ export function DrillView({
     <div className="flex flex-col gap-2">
       {tx && (
         <div className="-mx-5 md:-mx-6 [&>div]:border-b-0">
-          <RecordPlot rows={result.rows} names={names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={onHoverTx} span={drill.span} cut={drillCut(drill.answer.sql, result.rowCount)} />
+          <RecordPlot
+            rows={result.rows}
+            names={names}
+            base={base}
+            sym={sym}
+            hoverTx={hoverTx}
+            onHoverTx={onHoverTx}
+            span={drill.span}
+            cut={drillCut(drill.answer.sql, result.rowCount)}
+            whole={drillWhole(drill.answer.sql, result.rowCount)}
+            profile={drill.answer.profile}
+          />
         </div>
       )}
       <div className="-mx-3">

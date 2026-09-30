@@ -120,7 +120,7 @@ export function EvmTxsList({ network }: { network: string }) {
                     </span>
                     <span className="col-span-2 flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} full />
+                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} full column />
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to ? (
                         <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} href={`${base}/address/${t.to}`} full />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { preload } from "react-dom";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { Board, HashChip, SectionHeader, SpecLine, SpecSheet } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
@@ -21,6 +22,12 @@ import { HoldersSection } from "./token-holders";
 
 const AVAX_ASSET_ID = "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z";
 const WAVAX = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
+
+/* the page's feeds. The fee history asks for the one series it draws: the whole stats payload is 2.3 MB, and the
+   server takes 2.3 s to build it when no cache holds it; this series is 26 KB and takes a few ms */
+const SUPPLY_URL = "/api/avax-supply";
+const FEES_URL = "/api/chain-stats/43114?metrics=feesPaid&timeRange=1y";
+const ICM_URL = "/api/icm-contract-fees?timeRange=1y";
 
 interface AvaxSupplyData {
   totalSupply: string;
@@ -80,71 +87,53 @@ export function NetworkToken() {
   // one live feed for the page: the embers on the solid and the burn panel
   const live = useLiveBurns();
 
+  // the figures' feeds start with the page's HTML (the server render puts these hints in its head), not once its
+  // script has run; the fetches below get the preloaded responses
+  preload(SUPPLY_URL, { as: "fetch", crossOrigin: "anonymous" });
+  preload(FEES_URL, { as: "fetch", crossOrigin: "anonymous" });
+
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    const { signal } = controller;
+    setLoading(true);
+    setError(null);
+
+    const read = async <T,>(url: string, what: string): Promise<T> => {
+      const res = await fetch(url, { signal });
+      if (!res.ok) throw new Error(`Failed to fetch ${what}: HTTP ${res.status}`);
+      return (await res.json()) as T;
+    };
+    // each feed fills its part as it lands: the figures and the supply model never wait on the fee history
+    const supply = read<AvaxSupplyData>(SUPPLY_URL, "the AVAX supply").then(setData);
+    const fees = read<CChainFeesResponse>(FEES_URL, "the C-Chain fees").then((cChainData) => {
+      const raw = cChainData?.feesPaid?.data;
+      if (!Array.isArray(raw)) throw new Error("C-Chain fees response is missing expected shape");
+      setCChainFees(
+        raw
+          .map((item) => ({ date: item.date, timestamp: item.timestamp, value: typeof item.value === "string" ? parseFloat(item.value) : item.value }))
+          .reverse(),
+      );
+    });
+    // ICM data is non-critical: a failed read leaves its series out, and the page stands
+    const icm = read<ICMFeesResponse>(ICM_URL, "the ICM fees")
+      .then((icmData) => {
+        if (Array.isArray(icmData.data)) setICMFees(icmData.data.map((item) => ({ date: item.date, timestamp: item.timestamp, value: item.feesPaid / 1e18 })).reverse());
+      })
+      .catch((err: unknown) => {
+        if (!signal.aborted) console.warn("ICM contract fees fetch failed:", err instanceof Error ? err.message : err);
+      });
 
     try {
-      setLoading(true);
-      setError(null);
-
-      const [supplyRes, cChainRes, icmRes] = await Promise.all([
-        fetch("/api/avax-supply", { signal: controller.signal }),
-        fetch("/api/chain-stats/43114?timeRange=1y", { signal: controller.signal }),
-        fetch("/api/icm-contract-fees?timeRange=1y", { signal: controller.signal }),
-      ]);
-
-      if (!supplyRes.ok || !cChainRes.ok) {
-        throw new Error(
-          `Failed to fetch required data (supply: HTTP ${supplyRes.status}, c-chain: HTTP ${cChainRes.status})`
-        );
-      }
-
-      const supplyData = await supplyRes.json();
-      const cChainData: CChainFeesResponse = await cChainRes.json();
-
-      setData(supplyData);
-
-      const cChainFeesRaw = cChainData?.feesPaid?.data;
-      if (!Array.isArray(cChainFeesRaw)) {
-        throw new Error("C-Chain fees response is missing expected shape");
-      }
-      const cChainFeesData: FeeDataPoint[] = cChainFeesRaw
-        .map((item) => ({
-          date: item.date,
-          timestamp: item.timestamp,
-          value: typeof item.value === "string" ? parseFloat(item.value) : item.value,
-        }))
-        .reverse();
-
-      setCChainFees(cChainFeesData);
-
-      if (icmRes.ok) {
-        const icmData: ICMFeesResponse = await icmRes.json();
-        if (icmData.data && Array.isArray(icmData.data)) {
-          const icmFeesData: FeeDataPoint[] = icmData.data
-            .map((item) => ({
-              date: item.date,
-              timestamp: item.timestamp,
-              value: item.feesPaid / 1e18,
-            }))
-            .reverse();
-          setICMFees(icmFeesData);
-        }
-      } else {
-        // ICM data is non-critical: log and continue without breaking the page.
-        console.warn(`ICM contract fees fetch failed: HTTP ${icmRes.status}`);
-      }
+      await Promise.all([supply, fees, icm]);
     } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (signal.aborted) return;
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
+      if (!signal.aborted) setLoading(false);
     }
   }, []);
 

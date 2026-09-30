@@ -355,10 +355,10 @@ export function AskWindow({
       if (drill.index === index) setDrill(null);
       return;
     }
-    const title = fillTitle(answer.drill.title, row, answer.names);
-    setDrill({ title, row, index, answer: null, error: null, prev: [], span: bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []) });
+    const title = fillTitle(answer.drill.title, row, answer.names), span = bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []);
+    setDrill({ title, row, index, answer: null, error: null, prev: [], span });
     try {
-      const out = await postQuery<DrillAnswer>({ chainId: on.chainId, drill: { sql: answer.drill.sql, row } });
+      const out = await postQuery<DrillAnswer>({ chainId: on.chainId, drill: { sql: answer.drill.sql, row, span } });
       setDrill((d) => (d && d.index === index ? { ...d, answer: out } : d));
     } catch (e) {
       setDrill((d) => (d && d.index === index ? { ...d, error: e instanceof Error ? e.message : "The transactions did not load." } : d));
@@ -583,7 +583,7 @@ export function AskWindow({
                         <div key={col.name} className={cn(CARD, "flex min-w-0 flex-col gap-2 px-4 py-4")}>
                           <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{header(col.name)}</span>
                           <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
-                            {typeof v === "number" ? fmt(v, /pct|percent|ratio/i.test(col.name) && f === "number" ? "percent" : f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
+                            {typeof v === "number" ? fmt(v, f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
                           </span>
                         </div>
                       );

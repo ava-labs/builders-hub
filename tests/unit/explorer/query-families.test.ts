@@ -145,6 +145,10 @@ describe('a family query that types a literal', () => {
     expect(refused(q(`address = cctp_messenger_v2 AND topic0 = unhex('0c8c1cbdc5190613ebd485511d4e2812cfa45eecb79d845893331fedad5130a5')`))).toBe('');
     expect(refused(q(`has(ot_pools, address) AND topic0 IN (ot_rate_t, ot_rate_old_t)`))).toBe('');
     expect(refused(q(`address = savax_token AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef')`))).toBe('');
+    // the cancel and the overdue of an unlock, by our names
+    expect(refused(q('address = savax_token AND topic0 IN (savax_cancel_t, savax_overdue_t)'))).toBe('');
+    // an event the contract logs, written out: sAVAX's UnlockCancelled (the r6 audit's L02 truth)
+    expect(refused(q(`address = savax_token AND topic0 = unhex('7e4a9502fd577f76f1dc8c9c8f63196816f7c1bd73c6db99f888e8d7bb2f8998')`))).toBe('');
     expect(refused(q(`address IN (savax_token, aave_pool) AND topic0 IN (unhex('efefaba5e921573100900a3ad9cf29f222d995fb3b6045797eaea7521bd8d6f0'), unhex('bb0070894135d02edfa550b04d7e5e141aa8090b46e57597ad45bfedd6554498'))`))).toBe('');
     // any other chain keeps its behavior
     expect(refused(q(`address = cctp_messenger_v2 AND topic0 = ${stray}`).replace('43114', '43113'), 43113)).toBe('');

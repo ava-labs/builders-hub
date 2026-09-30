@@ -1,3 +1,4 @@
+import type { DrillProfile } from "./drill-profile";
 import type { MonitorSpec } from "./monitor";
 import { z } from "zod";
 import type { Coverage, QueryResult } from "./clickhouse";
@@ -141,4 +142,6 @@ export interface DrillAnswer {
   sources?: SourceNote[];
   result: QueryResult;
   names: Names;
+  /** a ranked drill's whole population over the opened bucket, in bins (drill-profile.ts) */
+  profile?: DrillProfile | null;
 }

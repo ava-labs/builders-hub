@@ -239,7 +239,8 @@ function MovesFeed({ moves, asOf, hours }: { moves: Move[] | null; asOf: number 
             <span className="tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
               {usd(mv.usd)} <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{mv.token}</span>
             </span>
-            <span className="col-span-2 flex min-w-0 items-center gap-1.5 md:col-span-1">
+            {/* sender and recipient each take half the cell, so every row's arrow and recipient line up */}
+            <span className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 md:col-span-1">
               <Party p={mv.from} />
               <ArrowRight className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
               <Party p={mv.to} />

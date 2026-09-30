@@ -368,7 +368,8 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     </span>
                     <span className="col-span-2 flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <span className="truncate">{truncate(t.from, 8)}</span>
+                      {/* the sender's column holds its 13 characters in every row, so the arrows and recipients line up */}
+                      <span className="w-[13ch] shrink-0 truncate">{truncate(t.from, 8)}</span>
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to && tokens.get(t.to.toLowerCase()) ? (
                         <TokenMark address={t.to} chainId={c.chainId} token={tokens.get(t.to.toLowerCase())!} size={14} />

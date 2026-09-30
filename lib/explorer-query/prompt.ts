@@ -11,6 +11,7 @@ import { FAMILY_CHAIN_ID, OPENTRADE_POOLS, SILOS, VAULTS } from "./families";
 import { sqlWindow, windowWords } from "./scope";
 import { mentioned } from "./names";
 import { registryTurn } from "./registry-turn";
+import { mevExamples, mevRules, mevTurn } from "./mev";
 import { knownLines, refLine, refSchema } from "./sources";
 import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
 
@@ -73,6 +74,41 @@ const TOKEN_TRANSFERS = /\btransfer(?:s|red)?\b/i;
 const ONE_TOKEN = /\b0x[0-9a-fA-F]{40}\b|\b(?:token|nft|collection)\b/i;
 const mintsTurn = (prompt: string) =>
   TOKEN_TRANSFERS.test(prompt) && ONE_TOKEN.test(prompt) ? " A question about a token's transfers counts its mints (transfers from the zero address) and burns (to it) in columns of their own." : "";
+/* a question about tokens' transfers that names no token and no NFT reads ERC-20 Transfers only: r7's E03 ranked 855
+   ERC-721 transfers among "tokens" and its note said three topics */
+const SOME_TOKENS = /\btokens?\b|\berc-?20s?\b/i;
+const NFTS = /\bnfts?\b|\bcollections?\b|\berc-?(?:721|1155)s?\b|\b0x[0-9a-fA-F]{40}\b/i;
+const erc20Turn = (prompt: string) =>
+  TOKEN_TRANSFERS.test(prompt) && SOME_TOKENS.test(prompt) && !NFTS.test(prompt) ? " A token transfer is an ERC-20 Transfer log, topic3 IS NULL: an NFT's Transfer (ERC-721) has the same topic0 and its token id in topic3." : "";
+/** an LB pool's bin shares are ERC-1155 logs, not NFTs: the NFT line and the NFT turn both say it */
+const LB_SHARES = "A Liquidity Book pool (Trader Joe LB, Pharaoh DLMM) logs TransferSingle and TransferBatch too, for its bin shares, which are no NFTs: a question about NFTs or collections opens with $POOLS() and leaves the DEX pools out, AND address NOT IN (SELECT pool FROM pools).";
+/* a C-Chain question about NFTs leaves the DEX pools out: an LB pool logs TransferSingle and TransferBatch for its bin
+   shares, and r11's G03 ranked two Liquidity Book pools among the day's 15 top collections */
+const nftTurn = (chainId: number, prompt: string) =>
+  chainId === DEX_CHAIN_ID && /\bnfts?\b|\bcollections?\b/i.test(prompt) ? ` ${LB_SHARES}` : "";
+
+/* a P-Chain question about validators that started, joined or were added counts nodes beside the registrations: r7's
+   P01 gave 37 registrations where 36 nodes started and 3 were new. An L1's registration carries no node_id */
+const VALIDATORS = /\bvalidators?\b/i;
+const STARTED = /\b(?:start(?:ed|s|ing)?|began|begin|new|join(?:ed|s)?|add(?:ed|s)?|register(?:ed|s)?)\b/i;
+const validatorsTurn = (prompt: string) =>
+  VALIDATORS.test(prompt) && STARTED.test(prompt) && !/\b(?:l1s?|subnets?)\b/i.test(prompt) ? " A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window." : "";
+
+/* a DEX question about pools groups by pool, never by a swap's tokens: a WOOFi pool trades many pairs, one per swap,
+   and r7's D08 split WOOFi's largest pool into its pairs, so the 9th pool by volume was missing from the top 10 */
+const POOLS = /\b(?:top(?:\s+\d+)?|busiest|largest|biggest|leading|which|what)\s+(?:\w+\s+)?pools?\b|\b(?:by|per|each|every)\s+pool\b|\bpools?\s+(?:by|with|ranked|sorted)\b/i;
+/* an sAVAX unstake is a request and, later, a redemption: r11's G09 counted the 14 redemptions and left out the 90
+   requests (40.4k sAVAX) of the same week */
+const unstakeTurn = (prompt: string) =>
+  /\bunstak(?:e|es|ed|ing)\b/i.test(prompt) && /\bsavax\b|\bbenqi\b|\bliquid stak/i.test(prompt)
+    ? " An sAVAX unstake is two events: UnlockRequested savax_unlock_t, the request in shares, and later Redeem savax_redeem_t, the AVAX paid out. Count the requests and the redemptions in columns of their own, never the redemptions alone."
+    : "";
+/* a DEX question about fees says what swappers paid: r7's D09 note said Pharaoh's LPs earned them all, where its DLMM
+   Swap logs send 33.4% of X-side and 5.0% of Y-side fees to the protocol */
+const feesTurn = (chainId: number, prompt: string) =>
+  /\bfees?\b/i.test(prompt) && dexQuestion(chainId, prompt) ? " A DEX's fees are what its swappers paid, sum(fee_usd); its LPs earn that less the protocol's share, which legs does not split, so a title or note never says the LPs earned them all." : "";
+const poolsTurn = (chainId: number, prompt: string) =>
+  POOLS.test(prompt) && dexQuestion(chainId, prompt) ? " A query by pool groups by pool, protocol, version and k, never by t0 and t1: a WOOFi pool trades many pairs, one per swap, so a pool's tokens are if(uniqExact(t0, t1) = 1, any(t0), NULL) and the same for t1." : "";
 
 /** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
     the system prompt, so the prompt's version and cache stay the same from day to day. On an EVM chain a series
@@ -83,8 +119,8 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const evm = targetOf(chainId).kind !== "pchain";
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
-  const mints = evm ? mintsTurn(prompt) : "";
-  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}\n\n${prompt}`;
+  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}${nftTurn(chainId, prompt)}${poolsTurn(chainId, prompt)}${feesTurn(chainId, prompt)}${unstakeTurn(prompt)}` : validatorsTurn(prompt);
+  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
 /** how an answer hands back its chart; the same for every target */
@@ -110,13 +146,15 @@ const LIQ = (at: number) => `toInt256(reinterpretAsUInt128(reverse(substring(dat
 /** an int24 tick in the last 4 bytes of a topic */
 const TICK = (c: string) => `reinterpretAsInt32(reverse(substring(${c}, 29, 4)))`;
 const hexOf = (c: string) => `lower(concat('0x', hex(${c})))`;
+/** a pool's token by pool: a WOOFi pool trades many pairs, one per swap, and has none */
+const ONE_PAIR = (t: string) => `if(uniqExact(t0, t1) = 1, any(${t}), NULL)`;
 
 const SWAPS = "uniqExact(tx, pool) AS swaps, uniqExactIf(tx, pool, usd IS NOT NULL) AS priced_swaps, round(sum(usd), 2) AS volume_usd";
 /** a drill's record columns for a log */
 const LOG_RECORD = "l.block_time AS t, l.block_number AS block_number, concat('0x', hex(l.transaction_hash)) AS tx_hash, lower(concat('0x', hex(l.tx_from))) AS from_address, lower(concat('0x', hex(l.address))) AS contract";
 /** the Swap topics by the names $POOLS and the DEX WITH define: a drill that wrote their hex spent about 1 s of the
     writer's output on it (218 of a DEX answer's 969 output tokens, median) */
-const SWAP_NAMES = "v2_swap, v3_swap, lb_swap, v4_swap";
+const SWAP_NAMES = "v2_swap, v3_swap, lb_swap, v4_swap, woo_swap";
 /** the tokens of the one pool `pool` (bytes) that a family's creation log names */
 const tokWith = (family: DexFamily, pool: string) =>
   `tok AS (SELECT substring(topic1, 13, 20) AS t0, substring(topic2, 13, 20) AS t1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${FIRST_DAY} AND topic0 = ${topic(CREATED[family][0])} AND address IN (SELECT factory FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} AND family = '${family}') AND substring(data, ${family === "univ3" ? 45 : 13}, 20) = ${pool})`;
@@ -150,7 +188,7 @@ function dexRules(): string {
     algebra: `algebra: CustomPool ${topic(T.algebraCustom)} names the tokens in topic2 and topic3 (topic1 is its deployer), Pool ${topic(T.algebraPool)} in topic1 and topic2; both put the pool in word 0. Its pools emit the univ3 Swap, Mint and Burn, and set their fee with Fee ${topic(T.algebraFee)}: word 0, in millionths. Its positions contracts write IncreaseLiquidity ${topic(T.algebraIncrease)}, tokenId in topic1, the liquidity added in the last 16 bytes of word 1 and the pool in word 4, and the univ3 DecreaseLiquidity.`,
     lb: `lb: LBPairCreated ${topic(T.lbCreated)} puts the pool in word 0 and the bin step in topic3; tokenX is token0 and tokenY token1. Swap ${topic(T.lbSwap)}: word 1 is amountsIn and word 2 amountsOut, each two uint128, X in the last 16 bytes and Y in the first 16. DepositedToBins ${topic(T.lbDeposit)} and WithdrawnFromBins ${topic(T.lbWithdraw)}: to is topic2, word 1 is the byte offset of the amounts array, and each bin's amounts word holds X in its last 16 bytes and Y in its first 16. Read the words as the worked example does, with extractAll over their hex: a lambda over range(n) that reads data copies the log once for each bin and runs out of memory.`,
     univ4: `univ4: every pool lives in one PoolManager (dex_factories.factory). Initialize ${topic(T.v4Initialize)} creates a pool: its id is topic1 (32 bytes), its tokens are topic2 and topic3 (native AVAX is the zero address), its fee is word 0 (8388608 marks a fee that changes). Swap ${topic(T.v4Swap)}: the pool id is topic1; amount0 and amount1 are words 0 and 1, signed from the swapper's side: take their absolute values. The PoolManager holds the tokens of every univ4 pool, so no token moves to a univ4 pool's own address.`,
-    woofi: `woofi: no pools to find. Each woofi factory row is one WooPP contract that holds all its pairs and writes WooSwap ${topic(T.wooSwap)}: fromToken topic1, toToken topic2, to topic3, and in data fromAmount substring(data, 1, 32), toAmount substring(data, 33, 32), from, rebateTo, swapVol substring(data, 129, 32) and swapFee substring(data, 161, 32). swapVol is WOOFi's own value of each swap in USDC (6 decimals), so WOOFi's volume is sum(${U(4)}) / 1e6 over every swap, and the note says it is WOOFi's swapVol. swapFee is its fee, never its volume. The DEX WITH leaves WooSwap out, so add it when a question names WOOFi.`,
+    woofi: `woofi: no pools to find. Each woofi factory row is one WooPP contract that holds all its pairs, and the DEX WITH reads each as one pool: legs has WOOFi's swaps with the rest, each with its own two tokens as t0 and t1 (in address order, r0 and r1 their amounts), valued as any other swap. WooSwap ${topic(T.wooSwap)} (woo_swap in the WITH): fromToken topic1, toToken topic2, to topic3, and in data fromAmount substring(data, 1, 32), toAmount substring(data, 33, 32), from, rebateTo, swapVol substring(data, 129, 32) and swapFee substring(data, 161, 32). swapVol is WOOFi's own value of each swap in USDC (6 decimals): a question about WOOFi's own figures may read sum(${U(4)}) / 1e6 over its swaps, and the note says it is WOOFi's swapVol. swapFee is its fee, never its volume; WooPPV2.2 logs it as 0, so legs gives WOOFi's swaps no fee. A WooPP pool trades many pairs, so a query by pool groups by pool, never by t0 and t1, which would split it into its pairs.`,
   };
   return `
 ## DEXs
@@ -158,7 +196,7 @@ Our server sends two small tables with a query that reads them:
 - ${refLine("dex_factories")}: the pool factories of each DEX protocol, from our contract registry. protocol is a slug: ${protocols}. family names the events its pools emit. positions lists the contracts that hold the factory's positions as NFTs; it is empty for the others.
 - ${refLine("dex_tokens")}: the tokens with the most DEX volume, with their decimals. quote is 'usd' for the four US dollar stablecoins (1 token = 1 USD), 'avax' for WAVAX and for native AVAX (the zero address in univ4 pools), else ''.
 - factory, positions and token are raw bytes, like raw_logs.address: compare them directly (l.address = f.factory), never as text.
-- Pools: the pools of a protocol are the pools its factories created, as the DEX WITH below reads them from the creation logs, from ${FIRST_DAY}, the first day of the C-Chain. k is the fee a univ3, cl-ramses or univ4 pool was created with (millionths) or the bin step of an lb pool, and 0 for the others. That read, and a read of one pool's own liquidity logs by its address, are the only exceptions to the 90-day window.
+- Pools: the pools of a protocol are the pools its factories created, as the DEX WITH below reads them from the creation logs (and each WOOFi WooPP contract), from ${FIRST_DAY}, the first day of the C-Chain. k is the fee a univ3, cl-ramses or univ4 pool was created with (millionths) or the bin step of an lb pool, and 0 for the others. That read, and a read of one pool's own liquidity logs by its address, are the only exceptions to the 90-day window.
 - Swaps: read the Swap logs of the window by topic0 only, then join the pools on the pool (the log's address, or topic1 for univ4). A swap is the part of one transaction in one pool: count swaps as uniqExact(tx, pool), never as logs, because an lb pool writes one Swap log for each bin it crosses. Volume adds every log.
 - The families (word k of data is substring(data, 1 + 32 * k, 32); amounts are uint256 unless said; an address is the last 20 bytes of its word or topic):
 ${dexFamilies()
@@ -171,7 +209,7 @@ ${dexFamilies()
 - Name a value column by its unit, and make it hold that unit: _usd for dollars, _avax for AVAX. A value made from usd or price is in dollars.
 - Tokens: a question about tokens (which tokens have the most volume or swaps) is answered per token, never per pair. Each swap counts once for each of its two tokens, and native AVAX (the zero address, a univ4 pool's t0) counts as WAVAX: FROM legs ARRAY JOIN [if(t0 = unhex('0000000000000000000000000000000000000000'), unhex('b31f66aa3c1e785363f0875a1b74e27b85fd66c7'), t0), t1] AS token.
 - A trader is the sender of the transaction (tx_from); a router is the contract it called (tx_to). The new pools of a period are the creation logs of the factories in that period.
-- Fees: the fees of a pool, a protocol or a DEX (what its LPs earned, what its swappers paid) are sum(fee_usd) over its legs, in dollars. They are swap fees, not gas: raw_txs has none of them. A query that reads fee_rate, fee_usd, fee_in or token_in gets them in legs. fee_rate is the fee a swap paid, as a share of its amount in: the rate its Swap log carries (lb, univ4), else the fee its pool last set before it (FeeAdjustment, Fee), else its pool's fee tier k (univ3, cl-ramses), else 0.3% for the pairs of ${fixedFeePairs()}. fee_usd is usd * fee_rate, the whole fee in dollars with any protocol's share in it; fee_in is the same fee in raw units of token_in, the token the swap paid in. fee_usd is NULL for a swap with no value, and for every swap of a pool whose fee no log gives: the pools of ${noFeePools()}, and an algebra pool that never wrote Fee. Read fees from these columns, never from k, usd or a rate of your own. Rows carry fees_usd and swaps_not_counted, uniqExactIf(tx, pool, fee_usd IS NULL), and the note says how many swaps were not counted: those with no value, and those in a pool whose fee no log gives.
+- Fees: the fees of a pool, a protocol or a DEX are what its swappers paid, sum(fee_usd) over its legs, in dollars. Its LPs earn that less the protocol's share, which legs does not split, so a title or note says the fees swappers paid, never that the LPs earned them all. They are swap fees, not gas: raw_txs has none of them. A query that reads fee_rate, fee_usd, fee_in or token_in gets them in legs. fee_rate is the fee a swap paid, as a share of its amount in: the rate its Swap log carries (lb, univ4), else the fee its pool last set before it (FeeAdjustment, Fee), else its pool's fee tier k (univ3, cl-ramses), else 0.3% for the pairs of ${fixedFeePairs()}. fee_usd is usd * fee_rate, the whole fee in dollars with any protocol's share in it; fee_in is the same fee in raw units of token_in, the token the swap paid in. fee_usd is NULL for a swap with no value, and for every swap of a pool whose fee no log gives: the pools of ${noFeePools()}, and an algebra pool that never wrote Fee. Read fees from these columns, never from k, usd or a rate of your own. Rows carry fees_usd and swaps_not_counted, uniqExactIf(tx, pool, fee_usd IS NULL), and the note says how many swaps were not counted: those with no value, and those in a pool whose fee no log gives.
 - Liquidity providers, one pool at a time, each as its worked example shows. First read the pool's own Mint and Burn logs (a rare topic by one address is fast), then only the blocks and transactions they name (block_number IN, since raw_logs sorts by topic0 and block_number): a read of a positions contract's or a pool token's logs over their whole history is too slow. univ3, cl-ramses and algebra: the positions contract's logs of those transactions, valued at the current tick. univ2 and solidly: the deposits less the withdrawals of each sender (a withdrawal can pay a router), as shares of the pool's reserves at its last Sync; the pool token's own Transfer logs are too many to read for an old pool. lb: the deposits less the withdrawals of each sender. Value only the stablecoin and WAVAX sides, at the latest WAVAX price, and the note says so.
 - In a DEX query, never name an expression after a column of a table it reads: with hex(topic0) AS topic0, every other topic0 in that SELECT reads the text, so WHERE topic0 = unhex(…) matches nothing. Name it for what it holds (pool_address, event_topic).
 - Say swaps, never trades: a trade routed through two pools is two swaps.
@@ -191,7 +229,7 @@ function dexExamples(): string {
     `Every DEX protocol by today's volume, with its share; drill into one protocol's swaps:
 $DEX(${today}) SELECT protocol, ${SWAPS}, round(100 * sum(usd) / nullIf(sum(sum(usd)) OVER (), 0), 2) AS share_pct, count() OVER () AS of_total FROM legs GROUP BY protocol ORDER BY volume_usd DESC
 drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_NAMES}) AND if(l.topic0 = v4_swap, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
-    `What the LPs of each DEX protocol earned in fees this week, with the swaps no fee is known for; drill into one protocol's swaps:
+    `The swap fees paid on each DEX protocol this week, with the swaps no fee is known for; drill into one protocol's swaps:
 $DEX(${week}) SELECT protocol, round(sum(fee_usd), 2) AS fees_usd, uniqExactIf(tx, pool, fee_usd IS NULL) AS swaps_not_counted, ${SWAPS} FROM legs GROUP BY protocol ORDER BY fees_usd DESC
 drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${week} AND l.topic0 IN (${SWAP_NAMES}) AND if(l.topic0 = v4_swap, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
   ];
@@ -202,7 +240,7 @@ drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_i
   }
   if (tj.length) {
     blocks.push(`One protocol's 15 busiest pools today, with version, tokens and fee or bin step; drill into one pool's swaps:
-$DEX(${today}, 'trader-joe') SELECT ${hexOf("pool")} AS pool_address, version, ${hexOf("t0")} AS token0, ${hexOf("t1")} AS token1, k AS fee_or_bin_step, ${SWAPS}, count() OVER () AS of_total FROM legs GROUP BY pool, version, t0, t1, k ORDER BY swaps DESC LIMIT 15
+$DEX(${today}, 'trader-joe') SELECT ${hexOf("pool")} AS pool_address, version, ${hexOf(ONE_PAIR("t0"))} AS token0, ${hexOf(ONE_PAIR("t1"))} AS token1, k AS fee_or_bin_step, ${SWAPS}, count() OVER () AS of_total FROM legs GROUP BY pool, version, k ORDER BY swaps DESC LIMIT 15
 drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_NAMES}) AND l.address = {{pool_address:bytes}} ORDER BY l.block_time DESC LIMIT 50`);
   }
   if (uni) {
@@ -326,7 +364,7 @@ function familyRules(): string {
 From our contract registry, on this chain. Write each name below (a contract, a list or a topic) as it is (savax_token, cctp_burn_v1_t): our server defines it in front of the query, so a WITH of your own never defines one and no hex stands in for one. An address or a topic from memory is often wrong (another chain's, or a digit off), and a wrong one reads no rows. Word k of data is substring(data, 1 + 32 * k, 32), read with reverse() and reinterpretAsUInt256; an address is the last 20 bytes of its word or topic.
 - ERC-4626 vaults: vaults lists them, ${vaults}. vault_decimals (the asset's), vault_share_decimals and vault_prices (the asset's price kind for $PRICES) run in the same order: vault_decimals[indexOf(vaults, address)]. Deposit vault_deposit_t (sender topic1, owner topic2; assets ${word(0)}, shares ${word(1)}): the owner gets the shares. Withdraw vault_withdraw_t (sender topic1, receiver topic2, owner topic3; assets ${word(0)}, shares ${word(1)}): the owner's shares burn. A vault's share price on a day is assets over shares of all its Deposit and Withdraw events that day, each over its decimals, so a day with withdrawals alone has a price too. Hypha's stAVAX was GoGoPool's ggAVAX. Avant pays a withdrawal to its cooldown silo (the receiver is ${silos}), and the user gets the assets a day later. Hypha pays a withdrawal in native AVAX, so no token Transfer reaches the receiver, but its Withdraw event counts it as every vault's does.
 - OpenTrade: ot_pools are its ${OPENTRADE_POOLS.length} pools. Each holds a dollar stablecoin (USDC, or USDt in one), but ot_eur_pools hold EURC or EUROP (euros); every asset has 6 decimals. OpenTrade emits no ERC-4626 events. A deposit is PoolDeposit ot_deposit_t (lender topic1; assets ${word(0)}, shares ${word(1)}). A redemption is RedeemRequested ot_request_t, then RedeemAccepted ot_accept_t (lender topic1; assets ${word(0)}, shares ${word(1)}), then RedeemRepay ot_repay_t (lender topic1; shares ${word(0)}, assets ${word(1)}, fees ${word(2)}), which pays. ExchangeRateSet is ot_rate_t, or ot_rate_old_t on the older pools (read both: topic0 IN (ot_rate_t, ot_rate_old_t)). In both, ${word(0)} is the assets per share with 18 decimals, and ${word(2)} is what a Linear pool adds to it each day (18 decimals). A pool's rate is the one it last set, and its own exchangeRate() moves on from it each day after, so a reading of a pool's rate or size names the day of that set, and the note says the rates are the ones the pools posted: a Linear pool's exchangeRate() is higher by ${word(2)} for each day since. A pool's size is its shares times its last rate, never its token balance: the assets leave the pool at once.
-- sAVAX (Benqi liquid staking) is savax_token. A stake is Submitted submitted_t (user topic1; AVAX ${word(0)}, shares ${word(1)}), paid in native AVAX. An unstake is UnlockRequested savax_unlock_t (user topic1; shares ${word(0)}), then Redeem savax_redeem_t (user topic1; its request time ${word(0)}, shares ${word(1)}, AVAX ${word(2)}), which burns the shares with no Transfer. AccrueRewards savax_rewards_t: the stakers' rewards ${word(0)} and the protocol's ${word(1)}, in AVAX. The AVAX per sAVAX is ${word(0)} over ${word(1)} of a Submitted. The sAVAX supply is the shares of every Submitted less the shares of every Redeem, both read from the first day: a mint's Transfer from the zero address carries its Submitted's shares, but sAVAX's Transfers are too many to read over its whole history (four 45 s timeouts in a replay). Every amount has 18 decimals. Filter every sAVAX log on address = savax_token: its Deposit has the topic0 of the WAVAX Deposit.
+- sAVAX (Benqi liquid staking) is savax_token. A stake is Submitted submitted_t (user topic1; AVAX ${word(0)}, shares ${word(1)}), paid in native AVAX. An unstake is UnlockRequested savax_unlock_t (user topic1; shares ${word(0)}), then Redeem savax_redeem_t (user topic1; its request time ${word(0)}, shares ${word(1)}, AVAX ${word(2)}), which burns the shares with no Transfer. A question about unstakes counts the requests and the redemptions in columns of their own, never the redemptions alone. A holder may cancel a request: UnlockCancelled savax_cancel_t (user topic1; its request time ${word(0)}, shares ${word(1)}). A request left past its redeem period gives its shares back: RedeemOverdueShares savax_overdue_t (user topic1; shares ${word(0)}). AccrueRewards savax_rewards_t: the stakers' rewards ${word(0)} and the protocol's ${word(1)}, in AVAX. The AVAX per sAVAX is ${word(0)} over ${word(1)} of a Submitted. The sAVAX supply is the shares of every Submitted less the shares of every Redeem, both read from the first day: a mint's Transfer from the zero address carries its Submitted's shares, but sAVAX's Transfers are too many to read over its whole history (four 45 s timeouts in a replay). Every amount has 18 decimals. Filter every sAVAX log on address = savax_token: its Deposit has the topic0 of the WAVAX Deposit.
 - Circle CCTP moves USDC (6 decimals) between chains. Out of Avalanche: DepositForBurn, cctp_burn_v1_t on cctp_messenger_v1 (nonce topic1, token topic2, depositor topic3; amount ${word(0)}, recipient ${word(1)}, destination domain ${word(2)}) or cctp_burn_v2_t on cctp_messenger_v2 (token topic1, depositor topic2, the finality it asks for topic3; amount ${word(0)}, recipient ${word(1)}, destination domain ${word(2)}, fee cap ${word(5)}). Into Avalanche: MintAndWithdraw, cctp_mint_v1_t or cctp_mint_v2_t on the messengers (recipient topic1, token topic2; amount ${word(0)}; on V2 the fee ${word(1)}, minted beside the amount). A mint's source domain is ${word(0)} of the MessageReceived (cctp_received_v1_t on cctp_transmitter_v1, cctp_received_v2_t on cctp_transmitter_v2) that follows it in the same transaction. cctp_domains[toUInt32(domain)] is a domain's chain (Avalanche is 1). Speed is known for a V2 transfer into Avalanche only: fast when the finality threshold executed of its MessageReceived, toUInt32(reinterpretAsUInt256(reverse(topic3))) of cctp_received_v2_t, is 1000 or less, standard above. Pair each mint with the MessageReceived after it in its transaction, as the worked example does. A transfer out of Avalanche is always standard: the finality its DepositForBurn asks for is a request, never the speed. A split by speed covers transfers into Avalanche, and the note says so.
 - A figure now (a pool's last rate or size, the sAVAX supply, what a vault or a lender holds) reads the contract's events from ${FIRST_DAY}, the first day of the C-Chain: its topics are rare on these addresses, so the read is fast, and it is the one exception to the 90-day window. Never cut such a figure to 90 days.
 - USD values: $PRICES(start) or $PRICES(start, end) is lpx, one row per day: d and px, the USD price by kind (px['avax'] for AVAX and the AVAX of sAVAX, px['btc'], px['eurc'] for euros, px['usd'] = 1). Take px as nullIf(x.px[kind], 0), so a day with no price stays NULL. Name each value column by its unit. A token amount keeps its significant digits: never round() it; only a value in dollars rounds, to cents.
@@ -355,7 +393,7 @@ $PRICES(toStartOfMonth(now())), o AS (SELECT toDate(block_time) AS day, address 
     .join("");
 }
 
-export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean; lending?: boolean; families?: boolean }): string {
+export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean; lending?: boolean; families?: boolean; mev?: boolean }): string {
   const known = Object.entries(KNOWN_ADDRESSES)
     .map(([a, n]) => `- ${n}: ${a}`)
     .join("\n");
@@ -367,6 +405,8 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   const lending = !!opts.lending && opts.chainId === LENDING_CHAIN_ID && LENDING_MARKETS.length > 0;
   // the vaults, staking and bridge rules: a question about them (familyQuestion), on the mainnet C-Chain only
   const families = !!opts.families && opts.chainId === FAMILY_CHAIN_ID && VAULTS.length > 0;
+  // the MEV rules: an MEV question's (mevQuestion), on the mainnet C-Chain only
+  const mev = !!opts.mev && opts.chainId === DEX_CHAIN_ID;
   // the rows the flow panel draws, on the mainnet C-Chain, where the contract registry names senders and receivers
   const flows =
     opts.chainId === DEX_CHAIN_ID
@@ -393,7 +433,7 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   const tokenSenders = isFuji(opts.chainId) ? "uniqExact(tx_from)" : "uniqExactIf(topic1, topic1 != unhex(repeat('00', 32)))";
   const created = isFuji(opts.chainId)
     ? ""
-    : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.
+    : `- NFT transfers: an ERC-721 Transfer is the ERC-20 topic0 with a fourth topic (topic3 IS NOT NULL, the token id). An ERC-1155 transfer is TransferSingle unhex('c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62') or TransferBatch unhex('4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb'), with topic1 = operator, topic2 = from, topic3 = to (a batch moves several token ids in one log). A collection is the log's address. NFTs are both standards: a question about NFTs or collections that names no standard reads all three events and counts each standard in a column of its own (erc721_transfers, erc1155_transfers), never ERC-721 alone.${opts.chainId === DEX_CHAIN_ID ? ` ${LB_SHARES}` : ""}
 - New contracts: every contract is created by a CREATE or CREATE2 call in raw_traces, whether a transaction deploys it directly or a factory or an account-abstraction bundler creates it inside one (often most of them); the trace's \`to\` is the new contract. Count them with startsWith(call_type, 'CREAT') AND tx_success, and write the prefix 'CREAT': the server refuses the word CREATE even inside a string. raw_txs.contract_address holds only the direct deployments, so a question about new, created or deployed contracts reads raw_traces.
 - Mints and burns: a Transfer from the zero address mints the token to its recipient, and one to the zero address burns it. A count of the wallets a token moved from (topic1) or to (topic2) leaves the zero address out, uniqExactIf(topic1, topic1 != unhex(repeat('00', 32))), and a count of one token's transfers counts its mints and burns beside them: countIf(topic1 = unhex(repeat('00', 32))) AS mints. A note calls a token's transfers ERC-20 or ERC-721 only when the query reads topic3; otherwise it says transfers.
 - Contracts by transactions: a ranking of contracts counts every transaction to each, plain transfers included, and tells a contract from a wallet with HAVING countIf(length(input) >= 4) > 0. A WHERE on length(input) is for method_id alone.
@@ -415,7 +455,7 @@ ${
 - Use these names in titles and notes, never "gas used" for the block figure. A sum of raw_txs.gas_used is gas charged, per block, per hour or per contract alike (name it gas_charged); gas reserved comes only from raw_blocks.gas_used.`
     : `- Gas: raw_blocks.gas_used is the block's gas used, against gas_limit. raw_txs.gas_used is the gas charged per receipt; fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. Whether an L1 burns its fees or pays them to a fee recipient depends on its configuration: say "fees paid", never "burned". A fee question also reads raw_blocks.miner over the same window, as the worked example "Fees per bucket" shows, and the note says where the fees went: to the burn address when not_burned is 0, that is when every block's miner is 0x0100000000000000000000000000000000000000, the one case where it may say "burned"; else to the one recipient, by its full address, when recipients is 1; else to how many recipients. That address or count is the one exception to the note rules against hex, addresses and counts.`
 }
-- ERC-20 Transfer logs: topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'); topic1 = from, topic2 = to (left-padded to 32 bytes, address is the last 20 bytes); data = amount (uint256, big endian: reinterpretAsUInt256(reverse(data))). A transfer's sender and recipient are lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address and the same over topic2 AS to_address. Never take them from tx_from, tx_to or raw_logs.address: those are the transaction's sender, the contract it called and the token contract. ${
+- ERC-20 Transfer logs: topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'); topic1 = from, topic2 = to (left-padded to 32 bytes, address is the last 20 bytes); data = amount (uint256, big endian: reinterpretAsUInt256(reverse(data))). A transfer's sender and recipient are lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address and the same over topic2 AS to_address. Never take them from tx_from, tx_to or raw_logs.address: those are the transaction's sender, the contract it called and the token contract. An ERC-20 transfer has no topic3 (topic3 IS NULL): an ERC-721 Transfer has the same topic0 and its token id in topic3, so a count of token transfers filters topic3 IS NULL, and a note that says ERC-20 or three topics holds only with that filter. ${
   c
     ? `Well-known token contracts:
 ${known}`
@@ -424,7 +464,7 @@ ${known}`
 ${created}- Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
 - Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). ${activeNote}
 - ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
-${dex ? dexRules() : ""}${lending ? lendingRules() : ""}${families ? familyRules() : ""}
+${dex ? dexRules() : ""}${lending ? lendingRules() : ""}${families ? familyRules() : ""}${mev ? mevRules() : ""}
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
 - At most ${MAX_ROWS} rows come back, and a longer series is cut. Pick the bucket from the window: toStartOfMinute or toStartOfFiveMinutes for windows up to 6 hours, toStartOfHour up to 7 days, toDate beyond, toMonday for weeks. A question that names a bucket but no window reads 6 hours of 5-minute buckets, 24 hours of hourly ones, 30 days of daily ones. ${isFuji(opts.chainId) ? "Windows over raw_logs and raw_traces: 90 days at most. raw_txs: 365 days at most." : "Windows over raw_logs: 90 days at most. raw_traces: 30 days at most. raw_txs: 365 days at most. These limit one query, not the data, which goes back years. So a question that needs more of the history is answered over the longest window these limits allow, and its note names that window as the most one question reads. Over the whole history only a total over raw_txs with no GROUP BY runs in time: count() and countIf over success, with min and max of block_time (under 10 s, bounded as block_number >= 0). A question about all time gets those over the whole history. A sum of fees or gas, a series or a distinct count over raw_txs keeps the 365 days, and its note says so."}
@@ -491,7 +531,7 @@ SELECT block_time AS t, block_number, concat('0x', hex(transaction_hash)) AS tx_
 
 `
     : ""
-}${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}${families ? familyExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
+}${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}${families ? familyExamples() : ""}${mev ? mevExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
 SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, ${tokenSenders} AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL ${c ? "1 DAY" : "7 DAY"} AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15
 
 Active addresses per day, each address once:
@@ -537,7 +577,13 @@ function linePivot(lines: string[]): string {
     (sources.ts); left out, the lines last read; null, none */
 export function pchainPrompt(opts: { chainId: number; network: string; schema: string; coverage: string | null; lines?: string[] | null }): string {
   const id = opts.chainId;
-  const latest = (t: string) => `(SELECT max(snapshot_time) FROM ${t} WHERE chain_id = ${id} AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY)`;
+  // the newest snapshot that holds as many rows as the one before it, or is 15 minutes old: a snapshot still being
+  // written holds fewer rows. Mainnet only: 15 minutes alone read r12's H16 from a snapshot 24 minutes old, one
+  // validator short, where a 13-minute one was complete. Fuji's stays as it was
+  const latest = (t: string) =>
+    isFuji(id)
+      ? `(SELECT max(snapshot_time) FROM ${t} WHERE chain_id = ${id} AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY)`
+      : `(SELECT max(snap_t) FROM (SELECT snapshot_time AS snap_t, count() AS snap_rows, lagInFrame(count()) OVER (ORDER BY snapshot_time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS snap_before FROM ${t} WHERE chain_id = ${id} AND snapshot_time >= now() - INTERVAL 1 DAY GROUP BY snapshot_time) WHERE (snap_before > 0 AND snap_rows >= snap_before) OR snap_t <= now() - INTERVAL 15 MINUTE)`;
   const primary = "unhex(repeat('00', 32))";
   const live = opts.lines === undefined ? knownLines(id) : opts.lines;
   const lines = live?.length ? live : ["1.15", "1.14"];
@@ -550,7 +596,7 @@ export function pchainPrompt(opts: { chainId: number; network: string; schema: s
     ? ""
     : `
 - raw_p_reward_utxos: one row per reward output, paid to a validator or a delegator when its staking period ends (block_time is when). Its AVAX is reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8))) / 1e9, the 8-byte amount after the output's type id: sum it for the AVAX paid in staking rewards. It is never returned stake, and never decoded_p_txs.reward_paid, which is set on few reward transactions.
-- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators.`;
+- Registrations: an AddPermissionlessValidatorTx, AddValidatorTx or AddAutoRenewedValidatorTx registers a validation period, and a node that renews registers again. A count of them is a count of registrations, renewals included: its title and note say registrations, never new validators. A question about validators counts nodes, uniqExact(node_id), beside the registrations, and the new ones: the nodes with no registration before the window, node_id NOT IN (SELECT node_id FROM decoded_p_txs WHERE chain_id = ${id} AND tx_type IN ('AddPermissionlessValidatorTx', 'AddValidatorTx', 'AddAutoRenewedValidatorTx') AND block_time < the window's start).`;
   // the auto-renewed staking transactions (ACP-236), and the reward a RewardValidatorTx paid, which reward_paid does
   // not hold (P09 put RewardAutoRenewedValidatorTx under other)
   const renewed = isFuji(id)
@@ -674,14 +720,14 @@ const versions = new Map<string, string>();
     recipe keys (cache.ts), so a fixed question is written again instead of
     served its old SQL. Per chain: the C-Chain, an L1 and the P-Chain are
     told different things. */
-export function promptVersion(chainId: number, dex = false, lending = false, families = false): string {
-  const key = `${chainId}:${dex ? "dex" : ""}:${lending ? "lending" : ""}:${families ? "families" : ""}`;
+export function promptVersion(chainId: number, dex = false, lending = false, families = false, mev = false): string {
+  const key = `${chainId}:${dex ? "dex" : ""}:${lending ? "lending" : ""}:${families ? "families" : ""}:${mev ? "mev" : ""}`;
   let v = versions.get(key);
   if (!v) {
     const text =
       targetOf(chainId).kind === "pchain"
         ? pchainPrompt({ chainId, network: "", schema: "", coverage: null, lines: null })
-        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex, lending, families });
+        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex, lending, families, mev });
     v = createHash("sha256").update(`${text}\n${refSchema(chainId).join("\n")}`).digest("hex").slice(0, 12);
     versions.set(key, v);
   }

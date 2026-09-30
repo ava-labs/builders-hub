@@ -13,6 +13,7 @@ import { answerQuestion, drillSql, keptWords, type QueryEvent } from "@/lib/expl
 import { totalsOf } from "@/lib/explorer-query/cut";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { runKept } from "@/lib/explorer-query/run-cache";
+import { profileSql, type DrillProfile } from "@/lib/explorer-query/drill-profile";
 import { sourceNotes } from "@/lib/explorer-query/sources";
 import { targetOf } from "@/lib/explorer-query/target";
 import { checkChatRateLimit, formatResetTime, getClientIP } from "@/lib/chat/rateLimit";
@@ -37,8 +38,8 @@ interface Body {
   prompt?: string;
   history?: Turn[];
   sql?: string;
-  /** open one row of an answer into its records */
-  drill?: { sql: string; row: Record<string, unknown> };
+  /** open one row of an answer into its records; span is the opened mark's bucket, in unix seconds */
+  drill?: { sql: string; row: Record<string, unknown>; span?: [number, number] };
   /** lay out a kept answer, by its key */
   key?: string;
   /** with key: write the kept layout's reading again from fresh rows */
@@ -75,6 +76,23 @@ async function readOf(key: string, sql: string, chainId: number, baseUrl: string
   return { result, names, totals, anchor: run.anchor };
 }
 
+/** a ranked drill's whole population over the opened bucket, in bins (drill-profile.ts); null when the drill ranks
+    nothing, or the read fails: the records still stand alone */
+async function binsOf(sql: string, span: unknown, chainId: number): Promise<DrillProfile | null> {
+  const s = Array.isArray(span) && span.length === 2 && span.every((v) => typeof v === "number" && Number.isFinite(v)) ? (span as [number, number]) : null;
+  // no drill opens a bucket longer than a year
+  const p = s && s[1] - s[0] <= 366 * 86_400 ? profileSql(sql, s) : null;
+  const g = p ? guardSql(p.sql, chainId) : null;
+  if (!p || !g?.ok) return null;
+  try {
+    const run = await runKept(g.sql, chainId);
+    return { col: p.col, agg: p.agg, step: p.step, bins: run.result.rows.map((r) => ({ t: Number(r.bin), n: Number(r.n), v: Number(r.v) })) };
+  } catch (e) {
+    console.warn("[explorer-query] drill bins failed:", e instanceof Error ? e.message.slice(0, 200) : e);
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Body;
   const chainId = Number(body.chainId);
@@ -105,10 +123,11 @@ export async function POST(req: Request) {
     const d = drillSql(body.drill.sql, body.drill.row, chainId);
     if (!d.ok) return NextResponse.json({ error: d.error }, { status: 400 });
     try {
-      const run = await runKept(d.sql, chainId);
+      // the bucket's bins read beside the records: two queries, the most one request holds on stats-api
+      const [run, profile] = await Promise.all([runKept(d.sql, chainId), binsOf(d.sql, body.drill.span, chainId)]);
       const result = run.result;
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
-      return NextResponse.json({ sql: d.sql, result, names, anchor: run.anchor, sources: run.sources });
+      return NextResponse.json({ sql: d.sql, result, names, anchor: run.anchor, sources: run.sources, profile });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "drill failed" }, { status: 400 });
     }

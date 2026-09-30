@@ -5,6 +5,7 @@ import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { protocolScope, unitName } from "./checks";
 import { familyQuestion } from "./families";
+import { mevQuestion } from "./mev";
 import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
 import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
@@ -15,7 +16,9 @@ import { isCChain, isFuji, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey, type Recipe } from "./cache";
 import { fixedRecipe, fixedRoute } from "./fixed";
 import { versionLines } from "./sources";
-import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
+import { codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
+import { basicVisual } from "./draft";
+import { labelError } from "./stat-label";
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
 import { asOfWords, scopeError, snapshotSql, sqlWindow, windowSpan, withWindow } from "./scope";
@@ -146,6 +149,10 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
+    // a kept layout that misstates these rows (stats named for the rows a LIMIT kept, a share, a stack) is laid out again
+    const stale = !!key && !!recipe.visual && !!labelError(recipe.visual, result.rows, totals, sql);
+    if (stale && key) await putRecipe(key, { ...recipe, sql, visual: null });
+    const visual = stale ? null : recipe.visual;
     const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
     // a snapshot's figures stand at its time, read after the rows and their totals, beside no other query
     const span = said.span ?? (isFuji(a.chainId) ? null : await snapshotSpan(run.sql));
@@ -161,8 +168,8 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
       result,
       totals,
       names,
-      visual: recipe.visual ?? basicVisual(recipe.chart, result.columns),
-      draftVisual: !recipe.visual,
+      visual: visual ?? basicVisual(recipe.chart, result.columns),
+      draftVisual: !visual,
       coverage: cover,
       key: key ?? undefined,
       model: { steps: 0, ms: Date.now() - t0, tries: 0, writer: recipe.writer, cached: true, timings: [] },
@@ -241,7 +248,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const system =
     targetOf(a.chainId).kind === "pchain"
       ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine, lines: await versionLines(a.chainId) })
-      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history), families: familyQuestion(a.chainId, a.prompt, a.history) });
+      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history), families: familyQuestion(a.chainId, a.prompt, a.history), mev: mevQuestion(a.chainId, a.prompt, a.history) });
 
   // earlier turns, so "make it weekly" refines the last chart
   const messages: ModelMessage[] = [];

@@ -68,7 +68,7 @@ export function phaseOf(number: number, executedHeight: number | null, settledHe
   return "accepted";
 }
 
-const PHASE_TITLE: Record<Phase, string> = {
+export const PHASE_TITLE: Record<Phase, string> = {
   accepted: "final: accepted by consensus; executing",
   executed: "final: executed; a later block commits the state root",
   settled: "final: state root committed",
@@ -331,6 +331,7 @@ export function Party({
   href,
   len = 6,
   full = false,
+  column = false,
 }: {
   addr: string;
   name: string | null | undefined;
@@ -342,6 +343,10 @@ export function Party({
   /** the whole address where the column has room (the list page); the
    *  row's own grid decides, so nothing is cut that did not have to be */
   full?: boolean;
+  /** the sender in a from → to cell: as wide as its short address in every
+   *  row, so each row's arrow and recipient start on the same line; a longer
+   *  name is cut */
+  column?: boolean;
 }) {
   const fixture = knownAddress(addr);
   const label = name ?? fixture?.label;
@@ -360,12 +365,15 @@ export function Party({
     ) : (
       <span className={cn("truncate", idInk)}>{truncate(addr, len)}</span>
     );
+  // a short address is len characters, the ellipsis and four; a whole one 42
+  const fixed = column ? (full ? "w-[15ch] shrink-0 min-[1400px]:w-[42ch]" : "shrink-0") : undefined;
+  const width = column && !full ? { width: `${len + 5}ch` } : undefined;
   return href ? (
-    <Link href={href} title={addr} className="flex min-w-0 items-center hover:text-[#E6212F] [&>*]:hover:text-[#E6212F]" onClick={(e) => e.stopPropagation()}>
+    <Link href={href} title={addr} className={cn("flex min-w-0 items-center hover:text-[#E6212F] [&>*]:hover:text-[#E6212F]", fixed)} style={width} onClick={(e) => e.stopPropagation()}>
       {inner}
     </Link>
   ) : (
-    <span className="flex min-w-0 items-center" title={addr}>
+    <span className={cn("flex min-w-0 items-center", fixed)} style={width} title={addr}>
       {inner}
     </span>
   );
@@ -446,7 +454,7 @@ export function LatestTxsBoard({
                 {m.label}
               </span>
               <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 max-md:col-span-2 dark:text-zinc-400">
-                <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} />
+                <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} column />
                 <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                 {t.to ? (
                   <Party

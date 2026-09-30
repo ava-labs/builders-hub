@@ -187,12 +187,11 @@ export function fitting<T>(all: readonly T[], named: (x: T) => boolean, build: (
   return { sql: build(all), kept: all };
 }
 
-/** the factories for one query in `room` bytes: those it names by protocol or address, then the registry's order with
-    woofi's last, since they create no pools for the DEX WITH to read; their positions only for a query that reads them */
+/** the factories for one query in `room` bytes: those it names by protocol or address, then the registry's order; their
+    positions only for a query that reads them */
 export function factoriesFor(query: string, room: number, all: readonly DexFactory[] = DEX_FACTORIES) {
   const q = query.toLowerCase();
-  const order = [...all.filter((f) => f.family !== "woofi"), ...all.filter((f) => f.family === "woofi")];
-  return fitting(order, (f) => q.includes(`'${f.protocol}'`) || q.includes(bare(f.factory)), (xs) => factoriesSql(DEX_CHAIN_ID, xs, readsPositions(query)), room);
+  return fitting(all, (f) => q.includes(`'${f.protocol}'`) || q.includes(bare(f.factory)), (xs) => factoriesSql(DEX_CHAIN_ID, xs, readsPositions(query)), room);
 }
 
 /** the tokens for one query in `room` bytes: the quote tokens and those it names, then the list's order */

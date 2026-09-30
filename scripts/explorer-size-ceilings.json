@@ -1,6 +1,6 @@
 {
   "components/explorer-v2/network/city-app.tsx": 1976,
-  "components/explorer-v2/evm/QueryVisual.tsx": 1345,
+  "components/explorer-v2/evm/QueryVisual.tsx": 1276,
   "components/explorer-v2/network/city3d/HubTower.tsx": 1299,
   "components/explorer-v2/evm/QueryBoard.tsx": 1265,
   "components/explorer-v2/staking/PrimaryStaking.tsx": 1131,
@@ -17,7 +17,7 @@
   "components/explorer-v2/network/icm-map.tsx": 725,
   "components/explorer-v2/staking/PrimaryValidators.tsx": 716,
   "lib/explorer-clickhouse.ts": 713,
-  "lib/explorer-query/visual.ts": 708,
+  "lib/explorer-query/visual.ts": 680,
   "components/explorer-v2/staking/L1Economy.tsx": 698,
   "components/explorer-v2/ui.tsx": 689,
   "components/explorer-v2/network/NetworkStablecoins.tsx": 678,

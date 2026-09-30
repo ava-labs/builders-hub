@@ -4,7 +4,9 @@
    max_fee_tx), else tx_hash, on the explorer's tx page. Else the card
    names the row: the peak's bucket, the leader's name. A figure the
    totals gave comes from a row a LIMIT cut, a row the page does not
-   hold, so it opens and names nothing. */
+   hold, so it opens and names nothing. Nor does a figure that is no
+   row's own: one every row holds (a count of all the groups beside each
+   of them) or a running total's, which peaks where it ends. */
 
 import { truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
@@ -14,17 +16,26 @@ import { DAY, MONTHS_SHORT, isHash, isTime } from "@/lib/explorer-query/values";
 
 type Row = Record<string, unknown>;
 
-/** the row a max or min figure is, when the page holds it; null for any other figure, and for one the totals gave */
+/** a running total's column, whose max or min is where it ends or starts */
+const RUNNING = /(?:^|_)(?:cum|cumulative|running)(?:_|$)/i;
+
+/** the row a max or min figure is, when the page holds it; null for any other figure, for one the totals gave, and
+    for one that is no row's own: r11's G02 named "Pools 1,910" after the leader and "Top 5 share" after the 5th pool */
 export function extremeOf(s: Pick<Stat, "agg" | "column">, rows: Row[], value: unknown): Row | null {
-  if ((s.agg !== "max" && s.agg !== "min") || typeof value !== "number") return null;
+  if ((s.agg !== "max" && s.agg !== "min") || typeof value !== "number" || RUNNING.test(s.column)) return null;
   let at: Row | null = null;
+  let held = 0;
+  let same = true;
   for (const r of rows) {
     const v = r[s.column];
     if (typeof v !== "number") continue;
     const best = at?.[s.column] as number | undefined;
+    held++;
+    if (best !== undefined && v !== best) same = false;
     if (best === undefined || (s.agg === "max" ? v > best : v < best)) at = r;
   }
-  // the figure is the totals' when no row here holds it
+  // the figure is the totals' when no row here holds it, and no row's own when every row holds it
+  if (held > 1 && same) return null;
   return at && at[s.column] === value ? at : null;
 }
 

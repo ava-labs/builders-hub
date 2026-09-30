@@ -1,0 +1,147 @@
+/* A headline stat's figure and the words that must match it. Over an answer whose rows a LIMIT cut, the page shows a
+   stat's figure over the whole answer, from the totals read past the limit, so its label names that whole, never the
+   rows shown: "Top 20 fees" over a ranking of the hour's 20 largest fees showed the fees of all 10,910 transactions of
+   the hour, 59.3 AVAX, where the 20 paid 6.4. And an extreme of the rows' own averages says average. */
+
+import type { Totals } from "./types";
+import type { Panel, Stat } from "./visual";
+
+/** a stat's figure over the whole answer, when a LIMIT cut its rows and its totals were read, or null */
+export function wholeFigure(totals: Totals | null | undefined, s: Pick<Stat, "agg" | "column">): number | null {
+  if (!totals) return null;
+  const c = s.column;
+  switch (s.agg) {
+    case "sum":
+      return totals.sum[c] ?? null;
+    case "avg":
+      return totals.count[c] ? totals.sum[c] / totals.count[c] : null;
+    case "max":
+      return totals.max[c] ?? null;
+    case "min":
+      return totals.min[c] ?? null;
+    case "count":
+      return totals.rows;
+    case "distinct":
+      return totals.distinct[c] ?? null;
+    default:
+      return null;
+  }
+}
+
+/** words that name the rows shown, not the whole answer */
+const SHOWN = /\b(?:top|first|these|shown|listed|largest|highest|biggest)\b/i;
+
+/** why stats that show the whole answer's figure are labelled for the rows shown, or null. A max or a min is left be:
+    a ranking's own peak is the whole answer's */
+export function wholeLabel(stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column">[], shown: number, totals: Totals | null | undefined): string | null {
+  if (!totals || totals.rows <= shown) return null;
+  const count = new RegExp(`\\b${shown}\\b`);
+  const bad = stats.filter((s) => {
+    const words = `${s.label} ${s.sub ?? ""}`;
+    return s.agg !== "max" && s.agg !== "min" && wholeFigure(totals, s) !== null && (SHOWN.test(words) || count.test(words));
+  });
+  if (!bad.length) return null;
+  const which = bad.map((s) => `"${s.label}"`).join(", ");
+  return `${which} ${bad.length > 1 ? "show their figures" : "shows its figure"} over all ${totals.rows} rows, not the ${shown} here: the LIMIT cut the rest, and a stat's sum, average, count or distinct reads them all. Name the whole set ("Fees burned", "Transactions"), or show max or min`;
+}
+
+/** words that name the rows a LIMIT kept; "highest" and "largest" name the extreme, not the rows */
+const SHOWN_ROWS = /\b(?:top|first|these|shown|listed)\b/i;
+
+/** the column a LIMIT kept its rows by, and which way: the last ORDER BY's first key, or null */
+function rankedBy(sql: string | null | undefined): { column: string; desc: boolean } | null {
+  const m = sql ? [...sql.matchAll(/\bORDER\s+BY\s+`?([A-Za-z_]\w*)`?(\s+DESC)?/gi)].pop() : undefined;
+  return m ? { column: m[1], desc: !!m[2] } : null;
+}
+
+/** why a max or a min over rows a LIMIT cut is labelled for the whole answer, or null. It is the whole answer's when
+    the totals carry it, when the LIMIT kept the rows by its column, or when its column holds one figure on every row
+    (a window over all of them). r11: "Peak gas 1.01M" over the 15 largest fees, where the week's peak was 18.79M */
+function peakLabel(stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column">[], rows: readonly Record<string, unknown>[], totals: Totals | null | undefined, sql: string | null | undefined): string | null {
+  if (!totals || totals.rows <= rows.length || rows.length === 0) return null;
+  const rank = rankedBy(sql);
+  if (!rank || !(rank.column in rows[0])) return null;
+  const count = new RegExp(`\\b${rows.length}\\b`);
+  const bad = stats.find(
+    (s) =>
+      (s.agg === "max" || s.agg === "min") &&
+      wholeFigure(totals, s) === null &&
+      !(rank.column === s.column && rank.desc === (s.agg === "max")) &&
+      new Set(rows.map((r) => r[s.column])).size > 1 &&
+      !SHOWN_ROWS.test(`${s.label} ${s.sub ?? ""}`) &&
+      !count.test(`${s.label} ${s.sub ?? ""}`),
+  );
+  return bad
+    ? `"${bad.label}" shows the ${bad.agg === "max" ? "largest" : "smallest"} ${bad.column} of the ${rows.length} rows shown, not of all ${totals.rows}: the LIMIT kept them by ${rank.column}. Name it for the rows shown ("${bad.label}, top ${rows.length}"), or leave it out`
+    : null;
+}
+
+/* the highest or lowest of the rows' own averages is an average, not a price paid: the final audit's X04 read "Peak
+   gas price 35.58 gwei", the highest hour's average, where the highest price paid was 19,999.92 gwei. A stat of one
+   whose label and sub never say so says average ("Peak average gas price") */
+const AVERAGE_NAME = /(?:^|_)(?:avg|average|mean)(?:_|$)/i;
+const SAYS_AVERAGE = /\b(?:avg|averages?|mean|median|typical)\b/i;
+const EXTREME_WORD = /^(?:peak|highest|lowest|top|max(?:imum)?|min(?:imum)?|busiest|cheapest)\b/i;
+export function averageLabel<S extends { label: string; sub?: string; agg: string; column: string }>(s: S): S {
+  if ((s.agg !== "max" && s.agg !== "min") || !AVERAGE_NAME.test(s.column) || SAYS_AVERAGE.test(`${s.label} ${s.sub ?? ""}`)) return s;
+  const m = EXTREME_WORD.exec(s.label);
+  return { ...s, label: m ? `${m[0]} average${s.label.slice(m[0].length)}` : `${s.label} (average)` };
+}
+
+/** why a stacked panel's series overlap, or null: in a row they add up to more than the whole they are parts of, the
+    row's column whose name each series' name holds (swaps in priced_swaps and swaps_not_counted). r7's D09 stacked
+    priced swaps on swaps with no fee and counted 274 swaps twice */
+function overlapped(panels: readonly Pick<Panel, "stacked" | "series">[], rows: readonly Record<string, unknown>[]): string | null {
+  for (const p of panels) {
+    const cols = p.series.map((s) => s.column);
+    if (!p.stacked || cols.length < 2 || p.series.some((s) => s.transform !== "none")) continue;
+    const whole = Object.keys(rows[0] ?? {}).find((c) => !cols.includes(c) && cols.every((s) => new RegExp(`(^|_)${c}(_|$)`).test(s)));
+    const i = whole ? rows.findIndex((r) => cols.reduce((a, c) => a + (Number(r[c]) || 0), 0) > Number(r[whole])) : -1;
+    if (whole && i >= 0)
+      return `${cols.join(" and ")} add up to more than ${whole} in row ${i + 1}, so they overlap and the stack counts some ${whole} twice: stack only parts that add up to ${whole}, or draw them side by side`;
+  }
+  return null;
+}
+
+/** a column a percent can show: a word of its name says rate, share or percent (registrations holds no ratio) */
+export const PERCENT_COLUMN = /(?:^|_)(?:pct|percent|ratio|share|rate|apr|apy)(?:_|$)/i;
+
+/** why a stat's label or a stacked panel misstates its figure, or null: a whole answer's figure named for the rows
+    shown, a share that is no percent (r7's L03 "AVAX share" showed $2.37M), or parts stacked that overlap */
+/* a count of every group worded for a narrower set: r7's D08 and r11's G02 said "Pools 1,897, with volume" where 1,385
+   of them had priced volume. The totals count the groups that hold each figure, and uncut rows show it themselves */
+const NARROWER = /\bpriced\b|\bwith (?:priced |usd )?(?:volume|value)\b/i;
+const VOLUME = /(?:^|_)(?:usd|volume|value)(?:_|$)/i;
+function narrowerCount(stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column">[], callouts: readonly string[], rows: readonly Record<string, unknown>[], totals: Totals | null | undefined): string | null {
+  // the rows' own count of every group, past a LIMIT no totals read (r11's G02c)
+  const own = Number(rows[0]?.of_total);
+  const cut = !totals && Number.isFinite(own) && own > rows.length;
+  const all = totals?.rows ?? (cut ? own : rows.length);
+  // a ranking's own count gives the set's size alone (cut.ts), so nothing says every group had the figure
+  const sized = cut || (!!totals && Object.keys(totals.count).length === 0);
+  const held = (k: string) => (totals ? (totals.count[k] ?? all) : rows.filter((r) => typeof r[k] === "number").length);
+  const c = Object.keys(rows[0] ?? {}).find((k) => VOLUME.test(k) && (sized || held(k) < all));
+  if (!c) return null;
+  const why = sized ? `and the query counted every group, whatever its ${c}` : `and ${held(c)} of them have a ${c}`;
+  const s = stats.find((x) => (x.column === "of_total" || x.agg === "count" || x.agg === "distinct") && NARROWER.test(`${x.label} ${x.sub ?? ""}`));
+  if (s) return `"${s.label}" counts all ${all} groups, but its words say priced or with volume, ${why}: word it for what every group had (a swap, a transfer)`;
+  // a callout that gives the same count in the same words: r12's H04 said "across the 353 tokens that have priced volume"
+  const says = callouts.find((t) => NARROWER.test(t) && (t.match(/\d[\d,]*/g) ?? []).some((m) => Number(m.replace(/,/g, "")) === all));
+  return says ? `a callout counts all ${all} groups, but its words say priced or with volume, ${why}: word it for what every group had (a swap, a transfer): "${says.slice(0, 80)}"` : null;
+}
+
+export function labelError(
+  spec: { stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column" | "format">[]; panels: readonly Pick<Panel, "stacked" | "series">[]; callouts?: readonly string[] },
+  rows: readonly Record<string, unknown>[],
+  totals: Totals | null | undefined,
+  sql?: string | null,
+): string | null {
+  const whole = wholeLabel(spec.stats, rows.length, totals) ?? peakLabel(spec.stats, rows, totals, sql);
+  if (whole) return whole;
+  const share = spec.stats.find((s) => /\bshare\b/i.test(s.label) && s.format !== "percent");
+  if (share) return `"${share.label}" shows ${share.column} as ${share.format}, and a share is a percent: name the stat for its figure and give the share in its sub, or show a percent column with format percent`;
+  // and a percent is a rate or a share: r11's G10 page showed 390 registrations as "390.0%"
+  const pct = spec.stats.find((s) => s.format === "percent" && !PERCENT_COLUMN.test(s.column));
+  if (pct) return `"${pct.label}" shows ${pct.column} as a percent, and ${pct.column} is no rate or share: give it format number, or show a pct, rate or share column`;
+  return narrowerCount(spec.stats, spec.callouts ?? [], rows, totals) ?? overlapped(spec.panels, rows);
+}
