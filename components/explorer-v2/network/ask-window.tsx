@@ -355,10 +355,10 @@ export function AskWindow({
       if (drill.index === index) setDrill(null);
       return;
     }
-    const title = fillTitle(answer.drill.title, row, answer.names);
-    setDrill({ title, row, index, answer: null, error: null, prev: [], span: bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []) });
+    const title = fillTitle(answer.drill.title, row, answer.names), span = bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []);
+    setDrill({ title, row, index, answer: null, error: null, prev: [], span });
     try {
-      const out = await postQuery<DrillAnswer>({ chainId: on.chainId, drill: { sql: answer.drill.sql, row } });
+      const out = await postQuery<DrillAnswer>({ chainId: on.chainId, drill: { sql: answer.drill.sql, row, span } });
       setDrill((d) => (d && d.index === index ? { ...d, answer: out } : d));
     } catch (e) {
       setDrill((d) => (d && d.index === index ? { ...d, error: e instanceof Error ? e.message : "The transactions did not load." } : d));

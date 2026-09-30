@@ -483,11 +483,11 @@ function QueryPage({
         }
         return;
       }
-      const title = fillTitle(answer.drill.title, row, answer.names);
-      setDrill({ title, row, index, answer: null, error: null, prev: sel, span: bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []) });
+      const title = fillTitle(answer.drill.title, row, answer.names), span = bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []);
+      setDrill({ title, row, index, answer: null, error: null, prev: sel, span });
       setSel([]);
       try {
-        const out = await post<DrillAnswer>({ drill: { sql: answer.drill.sql, row } });
+        const out = await post<DrillAnswer>({ drill: { sql: answer.drill.sql, row, span } });
         setDrill((d) => (d && d.index === index ? { ...d, answer: out } : d));
         setDigSelection({
           kind: "records",
