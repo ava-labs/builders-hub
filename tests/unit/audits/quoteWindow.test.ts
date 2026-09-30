@@ -35,7 +35,8 @@ const DAY = 24 * 60 * 60 * 1000;
 const AUDITOR = { id: "aud-1", firm_name: "Nordlicht Security", active: true };
 const INPUT = {
   price_usd: 34500,
-  duration_weeks: 4,
+  duration: 4,
+  duration_unit: "weeks" as const,
   earliest_start: new Date(Date.now() + 7 * DAY),
   message: "Fixed fee including a re-audit of fixes within 30 days.",
 };

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { emailSchema } from "@/lib/email";
 import {
   DEPLOYMENT_TARGETS,
+  QUOTE_DURATION_UNITS,
   SUBSIDY_DECISION_STATES,
   URGENCY_OPTIONS,
 } from "@/lib/audits/status";
@@ -10,7 +11,7 @@ import {
   AUDIT_LANGUAGES,
   AUDIT_PROJECT_TYPES,
   AUDIT_SERVICES,
-  MAX_QUOTE_WEEKS,
+  MAX_QUOTE_DURATION,
   SHORTLIST_LIMIT,
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
@@ -182,15 +183,22 @@ export const auditSubmitSchema = z.object({
 });
 export type AuditSubmitData = z.infer<typeof auditSubmitSchema>;
 
-export const auditQuoteSchema = z.strictObject({
-  price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
-  duration_weeks: z.number().int().min(1).max(MAX_QUOTE_WEEKS),
-  earliest_start: requiredDate("Pick the earliest start date"),
-  message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
-  // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
-  // a pasted "docs.google.com/..." still resolves.
-  deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
-});
+export const auditQuoteSchema = z
+  .strictObject({
+    price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
+    duration: z.number().int().min(1),
+    duration_unit: z.enum(QUOTE_DURATION_UNITS),
+    earliest_start: requiredDate("Pick the earliest start date"),
+    message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
+    // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
+    // a pasted "docs.google.com/..." still resolves.
+    deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
+  })
+  // One year at most, in the unit the firm picked.
+  .refine((quote) => quote.duration <= MAX_QUOTE_DURATION[quote.duration_unit], {
+    message: "A quote can run at most one year",
+    path: ["duration"],
+  });
 export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
 
 /**
