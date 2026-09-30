@@ -443,7 +443,7 @@ function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) 
                         {m.label}
                       </span>
                       <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 max-md:order-last max-md:col-span-2 dark:text-zinc-400">
-                        <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} />
+                        <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} column />
                         <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                         {t.to ? (
                           <Party addr={t.to} name={null} href={`${base}/address/${t.to}`} />
