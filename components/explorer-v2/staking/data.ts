@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { recall, remember } from "@/components/explorer-v2/page-data";
 import type { PrimaryNetworkMetrics, TimeSeriesMetric } from "@/types/stats";
 import type { AvalancheGoRelease } from "@/lib/avalanchego-releases";
 import type { L1Feed } from "@/lib/l1-validator-triage";
@@ -55,7 +56,11 @@ const onMainnet = (network: string, url: string) => (network === "mainnet" ? url
 
 /** a null url loads nothing: the feed does not cover the network */
 function useLoad<T>(url: string | null, pick: (raw: unknown) => T | null) {
-  const [data, setData] = useState<T | null>(null);
+  // a page seen before opens on the memory's payload while it is read again
+  const [data, setData] = useState<T | null>(() => {
+    const hit = url ? recall<unknown>(url, false) : null;
+    return hit ? pick(hit.data) : null;
+  });
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (!url) return;
@@ -64,6 +69,7 @@ function useLoad<T>(url: string | null, pick: (raw: unknown) => T | null) {
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((raw) => {
         if (cancelled) return;
+        remember(url, raw);
         const picked = pick(raw);
         if (picked === null) setFailed(true);
         else setData(picked);

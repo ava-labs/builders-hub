@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { LiveDot, SectionHeader } from "@/components/explorer-v2/ui";
+import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   fmtCompact,
@@ -44,36 +45,25 @@ const SPARK_MAX_POINTS = 60;
 type GasDay = { d: string; utilPct: number; gas: number };
 function useGasHistory(chainId: string, n: number) {
   const days = 2 * n <= 7 ? 7 : 2 * n <= 30 ? 30 : 2 * n <= 90 ? 90 : 365;
-  const [out, setOut] = useState<Record<"util" | "gas", { pair: WindowPair; series: number[] }> | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    setOut(null);
-    fetch(`/api/gas-history/${chainId}?days=${days}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { daily?: GasDay[] } | null) => {
-        const today = new Date().toISOString().slice(0, 10);
-        const d = data?.daily?.filter((p) => p.d < today);
-        if (cancelled || !d || !d.length) return;
-        const cur = d.slice(-n);
-        const prev = d.slice(-2 * n, -n);
-        const read = (pick: (p: GasDay) => number, mode: "sum" | "avg") => {
-          const take = (arr: GasDay[]) => {
-            const total = arr.reduce((s, p) => s + pick(p), 0);
-            return mode === "sum" ? total : total / arr.length;
-          };
-          return {
-            pair: { cur: take(cur), prev: prev.length === n ? take(prev) : null },
-            series: cur.map(pick),
-          };
-        };
-        setOut({ util: read((p) => p.utilPct, "avg"), gas: read((p) => p.gas, "sum") });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
+  const data = useRememberedJson<{ daily?: GasDay[] }>(`/api/gas-history/${chainId}?days=${days}`);
+  return useMemo((): Record<"util" | "gas", { pair: WindowPair; series: number[] }> | null => {
+    const today = new Date().toISOString().slice(0, 10);
+    const d = data?.daily?.filter((p) => p.d < today);
+    if (!d || !d.length) return null;
+    const cur = d.slice(-n);
+    const prev = d.slice(-2 * n, -n);
+    const read = (pick: (p: GasDay) => number, mode: "sum" | "avg") => {
+      const take = (arr: GasDay[]) => {
+        const total = arr.reduce((s, p) => s + pick(p), 0);
+        return mode === "sum" ? total : total / arr.length;
+      };
+      return {
+        pair: { cur: take(cur), prev: prev.length === n ? take(prev) : null },
+        series: cur.map(pick),
+      };
     };
-  }, [chainId, days, n]);
-  return out;
+    return { util: read((p) => p.utilPct, "avg"), gas: read((p) => p.gas, "sum") };
+  }, [data, n]);
 }
 
 /* the native token's day-by-day price and market cap for the live row's
@@ -83,24 +73,12 @@ function useMarketHistory(chainId: string, n: number, wanted: boolean) {
   // the upstream stops at a year, so the all-time clock traces the last
   // year; the day clock gets hourly points
   const days = !wanted ? null : n <= 1 ? "1" : n <= 7 ? "7" : n <= 30 ? "30" : n <= 90 ? "90" : "365";
-  const [hist, setHist] = useState<Record<MarketSeries, number[]> | null>(null);
-  useEffect(() => {
-    if (!days) return;
-    let cancelled = false;
-    setHist(null);
-    fetch(`/api/market-history/${chainId}?days=${days}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { prices?: number[]; marketCaps?: number[] } | null) => {
-        if (cancelled || !data?.prices?.length) return;
-        const cut = (arr: number[]) => (n <= 1 ? arr : arr.slice(-n));
-        setHist({ price: cut(data.prices), marketCap: cut(data.marketCaps ?? []) });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [chainId, days, n]);
-  return hist;
+  const data = useRememberedJson<{ prices?: number[]; marketCaps?: number[] }>(days ? `/api/market-history/${chainId}?days=${days}` : null);
+  return useMemo((): Record<MarketSeries, number[]> | null => {
+    if (!data?.prices?.length) return null;
+    const cut = (arr: number[]) => (n <= 1 ? arr : arr.slice(-n));
+    return { price: cut(data.prices), marketCap: cut(data.marketCaps ?? []) };
+  }, [data, n]);
 }
 
 /** the clock's window of a daily series, oldest first */

@@ -213,3 +213,35 @@ export function usePolledJson<T>(
 
   return { data, loading, error, retry };
 }
+
+/** One read of `url` through the memory, for a figure or a chart: the
+ *  memory's payload shows at once and the read replaces it. Unlike the
+ *  poll hook it never shows another URL's payload: a new URL starts from
+ *  its own memory, or from nothing. A failed read leaves what is shown. */
+export function useRememberedJson<T>(url: string | null): T | null {
+  const [read, setRead] = useState<{ url: string | null; data: T | null }>(() => ({
+    url,
+    data: url ? (recall<T>(url, false)?.data ?? null) : null,
+  }));
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    const hit = recall<T>(url, false);
+    setRead({ url, data: hit?.data ?? null });
+    if (hit && Date.now() - hit.at < FRESH_MS) return;
+    // a hover's read in flight stands in for this one
+    const pending = reading.get(url) ?? fetch(url).then((r) => (r.ok ? r.json() : null));
+    pending
+      .then((d) => {
+        if (d == null) return;
+        remember(url, d);
+        if (!cancelled) setRead({ url, data: d as T });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+  if (read.url === url) return read.data;
+  return url ? (recall<T>(url, false)?.data ?? null) : null;
+}
