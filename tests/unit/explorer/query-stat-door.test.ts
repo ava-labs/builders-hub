@@ -28,6 +28,23 @@ describe('statDoor', () => {
     expect(extremeOf({ agg: 'sum', column: 'max_fee_avax' }, rows, 0.84)).toBeNull();
   });
 
+  it("names no row for a figure that is no row's own (r11's G02)", () => {
+    // a count of every group, the same on each row: "Pools 1,910" named the leader
+    const pools = [
+      { pool: '0x8ac5', share_pct: 38.01, cumulative_share_pct: 38.01, of_total: 1910 },
+      { pool: '0xf014', share_pct: 22.47, cumulative_share_pct: 60.48, of_total: 1910 },
+      { pool: '0x5ca0', share_pct: 4.75, cumulative_share_pct: 83.3, of_total: 1910 },
+    ];
+    expect(extremeOf({ agg: 'max', column: 'of_total' }, pools, 1910)).toBeNull();
+    // a running total peaks where it ends: "Top 5 share" named the 5th pool
+    expect(extremeOf({ agg: 'max', column: 'cumulative_share_pct' }, pools, 83.3)).toBeNull();
+    expect(extremeOf({ agg: 'max', column: 'running_total' }, [{ running_total: 1 }, { running_total: 3 }], 3)).toBeNull();
+    // a row's own figure still names its row, and a lone row names itself
+    expect(extremeOf({ agg: 'max', column: 'share_pct' }, pools, 38.01)).toBe(pools[0]);
+    expect(extremeOf({ agg: 'max', column: 'of_total' }, pools.slice(0, 1), 1910)).toBe(pools[0]);
+    expect(extremeOf({ agg: 'max', column: 'accumulated_fees' }, [{ accumulated_fees: 1 }, { accumulated_fees: 3 }], 3)).toEqual({ accumulated_fees: 3 });
+  });
+
   it('opens nothing for a sum, a figure the totals gave, a row with no hash, or a page with no base', () => {
     expect(statDoor({ agg: 'sum', column: 'max_fee_avax' }, rows, 0.84, base)).toBeNull();
     expect(statDoor({ agg: 'max', column: 'max_fee_avax' }, rows, 0.91, base)).toBeNull();
