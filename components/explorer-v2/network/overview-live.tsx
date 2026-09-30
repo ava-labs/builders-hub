@@ -83,6 +83,8 @@ const TX_LAG_SWEEPS = 3;
 /* rows each chain may add per sweep, so the fastest chain cannot take
    the whole board: the opening frame gets a few more */
 const OPEN_PER_CHAIN = 3;
+/* the opening frame's longest wait for half the chains to answer */
+const OPEN_WAIT_MS = 1_500;
 const SWEEP_PER_CHAIN = 2;
 const KEEP = 40;
 const ROWS = 10;
@@ -244,28 +246,48 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       if (!first && document.visibilityState === "hidden") return;
       sweeping = true;
       sweepN += 1;
+      const perChain = first ? OPEN_PER_CHAIN : SWEEP_PER_CHAIN;
+      const publish = (freshBlocks: LiveBlock[], freshTxs: LiveTx[]) => {
+        if (cancelled) return;
+        if (freshBlocks.length > 0) {
+          const add = sample(freshBlocks, perChain, blockNewer);
+          setBlocks((prev) => [...add, ...prev].slice(0, KEEP));
+        }
+        if (freshTxs.length > 0) {
+          const add = sample(freshTxs, perChain, txNewer);
+          setTxs((prev) => [...add, ...prev].slice(0, KEEP));
+        }
+      };
+      // the opening frame waits for half the chains (or OPEN_WAIT_MS), not
+      // the slowest: it paints as one batch, and a chain that answers later
+      // joins on its own, placed by the ticker
+      const early: { b: LiveBlock[]; t: LiveTx[] }[] = [];
+      let opened = !first;
+      const open = () => {
+        if (opened) return;
+        opened = true;
+        publish(early.flatMap((r) => r.b), early.flatMap((r) => r.t));
+      };
+      const wait = first ? setTimeout(open, OPEN_WAIT_MS) : undefined;
       const results = await Promise.all(
         chains.map(async (chain) => {
           const b = await pollBlocks(chain, first);
           const t = await pollTxs(chain, first);
+          if (first && opened) publish(b, t);
+          else if (first) {
+            early.push({ b, t });
+            if (early.length * 2 >= chains.length) open();
+          }
           return { b, t };
         }),
       );
+      clearTimeout(wait);
       sweeping = false;
       if (cancelled) return;
       setSettled(true);
-      const freshBlocks = results.flatMap((r) => r.b);
-      const freshTxs = results.flatMap((r) => r.t);
       reportRates();
-      const perChain = first ? OPEN_PER_CHAIN : SWEEP_PER_CHAIN;
-      if (freshBlocks.length > 0) {
-        const add = sample(freshBlocks, perChain, blockNewer);
-        setBlocks((prev) => [...add, ...prev].slice(0, KEEP));
-      }
-      if (freshTxs.length > 0) {
-        const add = sample(freshTxs, perChain, txNewer);
-        setTxs((prev) => [...add, ...prev].slice(0, KEEP));
-      }
+      if (first) open();
+      else publish(results.flatMap((r) => r.b), results.flatMap((r) => r.t));
     }
 
     // back in view: catch up at once rather than wait out the interval
