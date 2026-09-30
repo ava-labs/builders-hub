@@ -93,6 +93,10 @@ describe('the calendar rule', () => {
     // a DEX question about fees says what swappers paid, never that LPs earned it all (r7's D09)
     expect(userTurn(43114, 'Pharaoh fees per day this week', at)).toContain("A DEX's fees are what its swappers paid, sum(fee_usd)");
     expect(userTurn(43114, 'What was the average gas fee today?', at)).not.toContain("A DEX's fees");
+    // an sAVAX unstake is a request and a redemption, counted apart (r11's G09 counted the redemptions alone)
+    expect(userTurn(43114, 'sAVAX stakes and unstakes per day this week', at)).toContain('An sAVAX unstake is two events: UnlockRequested savax_unlock_t');
+    expect(userTurn(43114, 'sAVAX stakes per day this week', at)).not.toContain('An sAVAX unstake');
+    expect(userTurn(43114, 'How many validators unstaked this week?', at)).not.toContain('An sAVAX unstake');
     expect(userTurn(43114, 'Which pools had the most swaps today?', at)).toContain('A query by pool');
     expect(userTurn(43113, 'Top 10 pools by volume this week', at)).toBe('Top 10 pools by volume this week');
     // a P-Chain question about validators that started or were added counts nodes beside registrations (r7's P01)
