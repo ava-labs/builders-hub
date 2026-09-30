@@ -9,6 +9,7 @@ import {
 import {
   academyCourse,
   academyCourseBySlug,
+  academyCourseOfPathname,
   academyCourseUrl,
   academyPart,
   courseFolder,
@@ -235,5 +236,26 @@ describe('facts', () => {
   it('finds the certificate page the spotlight names on the start course', () => {
     const url = academyCourseUrl(academyCourse(START_COURSE_ID));
     expect(outlines.find((outline) => outline.url === url)?.certificateUrl).toBeTruthy();
+  });
+});
+
+describe('academyCourseOfPathname', () => {
+  it.each([
+    ['/academy/avalanche-l1/avalanche-fundamentals', 'avalanche-fundamentals'],
+    ['/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1', 'avalanche-fundamentals'],
+    ['/academy/blockchain/solidity-foundry/03-smart-contracts/01-building-programs-on-blockchain', 'intro-to-solidity'],
+    ['/academy/avalanche-l1/erc20-bridge/certificate', 'erc20-bridge'],
+  ])('%s belongs to %s', (pathname, id) => {
+    expect(academyCourseOfPathname(pathname)?.id).toBe(id);
+  });
+
+  it.each([
+    '/academy',
+    '/academy/avalanche-l1',
+    '/academy/team1/team1-fundamentals',
+    '/academy/avalanche-l1/avalanche-fundamentals-extra',
+    '/docs/avalanche-l1/avalanche-fundamentals',
+  ])('%s belongs to none of the 13', (pathname) => {
+    expect(academyCourseOfPathname(pathname)).toBeNull();
   });
 });

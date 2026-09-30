@@ -22,6 +22,11 @@ body[data-layout="academy"] #docs-subnav {
   border-bottom: none !important;
 }
 
+/* Mirrors the docs bar's search-open rule (app/docs/styles.css:337); inert since 45ac98063, which stopped setting body.search-open - ACADEMY ONLY */
+body.search-open #academy-subnav {
+  display: none !important;
+}
+
 /* Remove any border-bottom from elements that might appear below navbar - ACADEMY ONLY */
 body[data-layout="academy"] nav[aria-label="Main"] ~ *,
 body[data-layout="academy"] header ~ * {
@@ -36,13 +41,13 @@ body[data-layout="academy"] header + div {
   border-bottom: 0 !important;
 }
 
-/* Academy sidebar positioning - use fumadocs defaults, no subnav spacing */
+/* Academy sidebar positioning - under the navbar and the part sub-nav */
 /* Only override what's necessary - let fumadocs handle the rest */
 body[data-layout="academy"] #nd-sidebar,
 body[data-layout="academy"] [data-sidebar="sidebar"] {
-  /* Account for banner + navbar height */
-  top: calc(var(--fd-banner-height, 0px) + 3.5rem) !important; /* Banner + navbar height */
-  height: calc(100vh - var(--fd-banner-height, 0px) - 3.5rem) !important; /* Full height minus banner and navbar */
+  /* Account for banner + navbar + the part sub-nav */
+  top: calc(var(--fd-banner-height, 0px) + 3.5rem + var(--ac-subnav-height)) !important;
+  height: calc(100vh - var(--fd-banner-height, 0px) - 3.5rem - var(--ac-subnav-height)) !important;
   padding-left: 0.5rem !important;
   padding-right: 2rem !important; /* Extra right padding to prevent content overlay on resize */
   /* Force sidebar to left edge with padding - override fumadocs dynamic width calculation */
@@ -228,8 +233,8 @@ body[data-layout="academy"] .nd-layout-notebook article {
 /* Fix: TOC popover gets cut off on mobile — allow full-height + scroll */
 @media (max-width: 1279px) {
   body[data-layout="academy"] #nd-tocnav [data-toc-popover] {
-    /* Fill the viewport below banner + navbar + the TOC trigger itself */
-    max-height: calc(100dvh - var(--fd-banner-height) - var(--fd-nav-height) - var(--fd-tocnav-height)) !important;
+    /* Fill the viewport below banner + navbar + the part sub-nav + the TOC trigger itself */
+    max-height: calc(100dvh - var(--fd-banner-height) - 3.5rem - var(--fd-tocnav-height) - var(--ac-subnav-height)) !important;
     overflow-y: auto !important; /* override default overflow-hidden on Collapsible */
     overscroll-behavior: contain; /* prevent body scroll while scrolling the list */
     -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
@@ -337,9 +342,9 @@ body[data-layout="academy"] #nd-sidebar-mobile button > img:first-child {
   }
 }
 
-/* Remove padding-top from layout when banner is visible on academy routes */
+/* The page starts under the part sub-nav on academy routes */
 body[data-layout="academy"] #nd-docs-layout {
-  padding-top: 0px !important;
+  padding-top: var(--ac-subnav-height) !important;
   background: hsl(var(--background)) !important;
 }
 

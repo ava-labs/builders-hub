@@ -11,6 +11,10 @@ import { AcademyLayoutClient } from './layout.client';
 import { DecorativeGrid } from '@/components/ui/decorative-grid';
 import { withModuleNumbers } from '@/components/academy/sidebar/module-numbers';
 import { RevealActiveSidebarItem } from '@/components/academy/sidebar/reveal-active-sidebar-item';
+import { useMediaQuery } from 'fumadocs-core/utils/use-media-query';
+import { AcademySubNav, partMenu } from '@/components/academy/course/academy-subnav';
+import { CourseSidebarHeading } from '@/components/academy/sidebar/course-sidebar-heading';
+import { academyCourseOfPathname } from '@/lib/academy/academy-programme';
 
 type Tree = DocsLayoutProps['tree'];
 
@@ -44,6 +48,10 @@ export function AcademyDocsLayoutWrapper({
         return defaultTree;
     }, [pathname, defaultTree, avalancheTree, blockchainTree, team1Tree]);
 
+    // Below 1024 px the Academy shows fumadocs' drawer (components/navigation/force-mobile-sidebar.tsx).
+    const inDrawer = useMediaQuery('(max-width: 1023px)') === true;
+    const part = academyCourseOfPathname(pathname)?.part ?? null;
+
     const academyOptions: DocsLayoutProps = useMemo(
         () => ({
             tree: withModuleNumbers(activeTree),
@@ -52,9 +60,25 @@ export function AcademyDocsLayoutWrapper({
             },
             sidebar: {
                 collapsible: false,
+                // The sub-nav picks the part, so the desktop sidebar has no course dropdown; the drawer lists the
+                // current part's courses, as the docs drawer lists a section's pages
+                // (app/docs/docs-layout-wrapper.tsx:111-112).
+                // Pages outside the 13 (the Team1 courses) keep fumadocs' default course dropdown and no heading.
+                tabs: part
+                    ? inDrawer
+                        ? partMenu(part).map((item) => ({
+                              title: item.title,
+                              // The popover renders outside the Academy root (portalled to body), so the line
+                              // carries its own Academy scope for the tokens, as the landing's hover card does.
+                              description: <span data-academy="docs" className="text-ac-ink-3">{item.line}</span>,
+                              url: item.url,
+                          }))
+                        : false
+                    : undefined,
+                banner: part ? <CourseSidebarHeading /> : undefined,
             },
         }),
-        [activeTree],
+        [activeTree, inDrawer, part],
     );
 
     return (
@@ -63,6 +87,7 @@ export function AcademyDocsLayoutWrapper({
             <ForceMobileSidebar />
             <AcademyLayoutClient />
             <DocsNavbarToggle />
+            <AcademySubNav />
             <RevealActiveSidebarItem />
             <DocsLayout {...academyOptions}>
                 {/*<span

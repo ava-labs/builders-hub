@@ -39,6 +39,16 @@ export function academyCourseUrl(course: AcademyCourse): string {
   return `/academy/${course.slug}`;
 }
 
+/** The course a course-page url belongs to (its url, or a page below it); null outside the 13 (Team1, removed ones). */
+export function academyCourseOfPathname(pathname: string): AcademyCourse | null {
+  return (
+    ACADEMY_COURSES.find((course) => {
+      const url = academyCourseUrl(course);
+      return pathname === url || pathname.startsWith(`${url}/`);
+    }) ?? null
+  );
+}
+
 /** The course folder, the key content/courses.tsx uses: "blockchain/solidity-foundry" gives "solidity-foundry". */
 export function courseFolder(course: AcademyCourse): string {
   return course.slug.slice(course.slug.lastIndexOf('/') + 1);
