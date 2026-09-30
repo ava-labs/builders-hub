@@ -256,6 +256,8 @@ export function LatestBlocksBoard({
   const [hover, setHover] = useState(false);
   const shown = useFreeze({ rows: incomingRows, tip, executedHeight }, hover);
   const rows = shown.rows;
+  // the rows it opens with stand still (a page opened from memory has them at once)
+  const opening = useOpening(rows, (b) => String(b.number));
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader
@@ -287,7 +289,7 @@ export function LatestBlocksBoard({
         {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
         <Belt>
           {rows.map((b, i) => (
-            <MotionRow key={b.number} animateIn overflow={i >= PHONE_ROWS}>
+            <MotionRow key={b.number} animateIn={!opening.has(String(b.number))} overflow={i >= PHONE_ROWS}>
               <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
                 <Height value={b.number} />
                 {/* phones drop the header row, so the count names its unit */}

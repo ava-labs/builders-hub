@@ -8,7 +8,7 @@ import { Board, CellLabel, SectionHeader, feeInk } from "@/components/explorer-v
 import { formatNumber, formatTime } from "@/components/explorer-v2/format";
 import { useEvmData, refreshMsForChain } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, HEAD, ROW, INK, MUTED } from "./LiveBoards";
+import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, useOpening, HEAD, ROW, INK, MUTED } from "./LiveBoards";
 import { LiveReadoutAt } from "./EvmOverviewStats";
 import { RANGE_DAYS } from "@/components/explorer-v2/time-range";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -100,6 +100,8 @@ export function EvmBlocksList({ network }: { network: string }) {
   const [hover, setHover] = useState(false);
   const frozen = useFreeze({ rows, tip, executedHeight: head.executedHeight }, hover);
   const shownRows = frozen.rows;
+  // the rows it opens with stand still (a page opened from memory has them at once)
+  const opening = useOpening(shownRows, (b) => String(b.number));
   const showRoot = tip?.settledHeight != null;
   // the C-Chain burns every fee, tips included, so the burn is the receipts'
   // sum, asked of the server once per change of the rows in view
@@ -211,7 +213,7 @@ export function EvmBlocksList({ network }: { network: string }) {
               ))}
             <Belt rows={live ? LIVE_ROWS : shownRows.length}>
               {shownRows.map((b, i) => (
-                <MotionRow key={b.number} animateIn={live} overflow={i >= LIVE_ROWS}>
+                <MotionRow key={b.number} animateIn={live && !opening.has(String(b.number))} overflow={i >= LIVE_ROWS}>
                   <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
                     <Height value={b.number} />
                     <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>
