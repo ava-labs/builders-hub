@@ -12,6 +12,36 @@ const D09 = [
 ];
 
 describe('labelError', () => {
+  it('refuses a count of every group worded for a narrower set (r11 G02: "Pools 1,915, with priced volume")', () => {
+    const pools = [{ pool_address: '0x8ac5', volume_usd: 169035040.12, of_total: 1915 }, { pool_address: '0xf014', volume_usd: 99569872, of_total: 1915 }];
+    const totals = { rows: 1915, newest: false, sum: {}, count: { volume_usd: 1385, of_total: 1915 }, min: {}, max: {}, distinct: {} };
+    const count = (sub: string, column = 'of_total', agg: 'max' | 'count' = 'max') => ({ stats: [{ label: 'Pools', column, agg, format: 'number' as const, sub }], panels: [] });
+    expect(labelError(count('with priced volume'), pools, totals)).toBe(
+      '"Pools" counts all 1915 groups, but its words say priced or with volume, and 1385 of them have a volume_usd: word it for what every group had (a swap, a transfer)',
+    );
+    // a ranking's own count gives the set's size alone, so no count backs the narrower words (the replay's G02d)
+    const sized = { ...totals, count: {} };
+    expect(labelError(count('with priced volume'), pools, sized)).toBe(
+      '"Pools" counts all 1915 groups, but its words say priced or with volume, and the query counted every group, whatever its volume_usd: word it for what every group had (a swap, a transfer)',
+    );
+    expect(labelError(count('with a swap this week'), pools, sized)).toBeNull();
+    // with no totals, the rows' own of_total past the rows shown says the same (the replay's G02c)
+    expect(labelError(count('with priced volume'), pools, null)).toMatch(/^"Pools" counts all 1915 groups, but its words say priced or with volume, and the query counted every group/);
+    expect(labelError(count('with volume this week', 'pool_address', 'count'), pools, totals)).toMatch(/^"Pools" counts all 1915 groups/);
+    // true words, or every group priced, pass
+    expect(labelError(count('with a swap this week'), pools, totals)).toBeNull();
+    expect(labelError(count('with priced volume'), pools, { ...totals, count: { volume_usd: 1915, of_total: 1915 } })).toBeNull();
+    // a callout that gives the same count in the same words (r12's H04), not one about another figure
+    const said = (callouts: string[]) => ({ stats: [], panels: [], callouts });
+    expect(labelError(said(['WAVAX leads across the 1,915 pools that have priced volume.']), pools, sized)).toMatch(/^a callout counts all 1915 groups, but its words say priced or with volume/);
+    expect(labelError(said(['The top 2 pools hold 60% of priced volume.']), pools, sized)).toBeNull();
+    expect(labelError(said(['1,915 pools had a swap this week.']), pools, sized)).toBeNull();
+    // uncut rows show it themselves
+    const uncut = [...pools, { pool_address: '0x5ca0', volume_usd: null }].map((r) => ({ ...r, of_total: 3 }));
+    expect(labelError(count('priced pools', 'pool_address', 'count'), uncut, null)).toMatch(/^"Pools" counts all 3 groups, but its words say priced or with volume, and 2 of them have a volume_usd/);
+    expect(labelError(count('priced pools', 'pool_address', 'count'), pools.map((r) => ({ ...r, of_total: 2 })), null)).toBeNull();
+  });
+
   it('refuses a share that is no percent (r7 L03: "AVAX share" showed $2.37M)', () => {
     expect(labelError({ stats: [stat('AVAX share', 'borrows_usd', 'usd')], panels: [] }, [{ borrows_usd: 1 }], null)).toMatch(/^"AVAX share" shows borrows_usd as usd, and a share is a percent/);
     expect(labelError({ stats: [stat('Leader share', 'share_pct', 'percent')], panels: [] }, [{ share_pct: 12 }], null)).toBeNull();

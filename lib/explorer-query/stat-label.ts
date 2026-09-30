@@ -108,8 +108,30 @@ export const PERCENT_COLUMN = /(?:^|_)(?:pct|percent|ratio|share|rate|apr|apy)(?
 
 /** why a stat's label or a stacked panel misstates its figure, or null: a whole answer's figure named for the rows
     shown, a share that is no percent (r7's L03 "AVAX share" showed $2.37M), or parts stacked that overlap */
+/* a count of every group worded for a narrower set: r7's D08 and r11's G02 said "Pools 1,897, with volume" where 1,385
+   of them had priced volume. The totals count the groups that hold each figure, and uncut rows show it themselves */
+const NARROWER = /\bpriced\b|\bwith (?:priced |usd )?(?:volume|value)\b/i;
+const VOLUME = /(?:^|_)(?:usd|volume|value)(?:_|$)/i;
+function narrowerCount(stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column">[], callouts: readonly string[], rows: readonly Record<string, unknown>[], totals: Totals | null | undefined): string | null {
+  // the rows' own count of every group, past a LIMIT no totals read (r11's G02c)
+  const own = Number(rows[0]?.of_total);
+  const cut = !totals && Number.isFinite(own) && own > rows.length;
+  const all = totals?.rows ?? (cut ? own : rows.length);
+  // a ranking's own count gives the set's size alone (cut.ts), so nothing says every group had the figure
+  const sized = cut || (!!totals && Object.keys(totals.count).length === 0);
+  const held = (k: string) => (totals ? (totals.count[k] ?? all) : rows.filter((r) => typeof r[k] === "number").length);
+  const c = Object.keys(rows[0] ?? {}).find((k) => VOLUME.test(k) && (sized || held(k) < all));
+  if (!c) return null;
+  const why = sized ? `and the query counted every group, whatever its ${c}` : `and ${held(c)} of them have a ${c}`;
+  const s = stats.find((x) => (x.column === "of_total" || x.agg === "count" || x.agg === "distinct") && NARROWER.test(`${x.label} ${x.sub ?? ""}`));
+  if (s) return `"${s.label}" counts all ${all} groups, but its words say priced or with volume, ${why}: word it for what every group had (a swap, a transfer)`;
+  // a callout that gives the same count in the same words: r12's H04 said "across the 353 tokens that have priced volume"
+  const says = callouts.find((t) => NARROWER.test(t) && (t.match(/\d[\d,]*/g) ?? []).some((m) => Number(m.replace(/,/g, "")) === all));
+  return says ? `a callout counts all ${all} groups, but its words say priced or with volume, ${why}: word it for what every group had (a swap, a transfer): "${says.slice(0, 80)}"` : null;
+}
+
 export function labelError(
-  spec: { stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column" | "format">[]; panels: readonly Pick<Panel, "stacked" | "series">[] },
+  spec: { stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column" | "format">[]; panels: readonly Pick<Panel, "stacked" | "series">[]; callouts?: readonly string[] },
   rows: readonly Record<string, unknown>[],
   totals: Totals | null | undefined,
   sql?: string | null,
@@ -121,5 +143,5 @@ export function labelError(
   // and a percent is a rate or a share: r11's G10 page showed 390 registrations as "390.0%"
   const pct = spec.stats.find((s) => s.format === "percent" && !PERCENT_COLUMN.test(s.column));
   if (pct) return `"${pct.label}" shows ${pct.column} as a percent, and ${pct.column} is no rate or share: give it format number, or show a pct, rate or share column`;
-  return overlapped(spec.panels, rows);
+  return narrowerCount(spec.stats, spec.callouts ?? [], rows, totals) ?? overlapped(spec.panels, rows);
 }
