@@ -946,7 +946,7 @@ export function EvmTrace({
                           <Who addr={log.address} n={n} />
                           <span className={C.punct}>.</span>
                           {ev ? (
-                            <span className="flex flex-wrap items-center gap-x-1.5">
+                            <>
                               <span className={cn(C.fn, ev.guessed && "underline decoration-dotted decoration-current underline-offset-4")}>{ev.name}</span>
                               {ev.params.length > 0 && (
                                 <>
@@ -961,7 +961,7 @@ export function EvmTrace({
                                   <span className={C.punct}>)</span>
                                 </>
                               )}
-                            </span>
+                            </>
                           ) : (
                             <V v={{ kind: "bytes", text: log.topics[0] ?? "" }} />
                           )}
