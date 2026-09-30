@@ -32,8 +32,9 @@ const keyRow = (label: string, body: ReactNode) => (
     <div className="flex min-w-0 items-center gap-1.5">{body}</div>
   </>
 );
-// both grids share the label column, so every label and every control stand on the same two edges
-const keyGrid = "grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2";
+// both grids share the label column, so every label and every control stand on the same two edges; they keep the card's
+// width (its 320 px, less its padding and edge) in the panel's wider foot too, so opening the panel moves nothing in the key
+const keyGrid = "grid w-[18.125rem] grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2";
 
 export function CityKey({
   height,

@@ -1823,13 +1823,13 @@ export function CityApp({
       undefined,
       "/explorer/mainnet/token",
     ),
-    hudFigure("Market cap", market?.marketCap ? usd(market.marketCap) : "—", market ? `FDV ${usd(market.price * AVAX_CAP)}` : "fully diluted —", phone, narrow ? "hidden 2xl:flex" : undefined, "/explorer/mainnet/token"),
+    hudFigure("Market cap", market?.marketCap ? usd(market.marketCap) : "—", market ? `FDV ${usd(market.price * AVAX_CAP)}` : "fully diluted —", phone, narrow ? "hidden 2xl:flex" : "max-xl:group-data-[panel]/strip:hidden", "/explorer/mainnet/token"),
   ];
   // beside the open panel on a narrow screen, the strip keeps AVAX and the day's traffic
   const hud = (phone = false, narrow = false) => [
     ...marketCells(phone, narrow),
-    hudFigure("Chains", figures.chains.toLocaleString("en-US"), `${figures.districts} districts`, phone, narrow ? "hidden xl:flex" : undefined),
-    hudFigure("Validators", fmtCompact(figures.validators), figures.onShare === null ? "versions unknown" : `${figures.onShare.toFixed(0)}% on ${target}+`, phone, narrow ? "hidden xl:flex" : undefined),
+    hudFigure("Chains", figures.chains.toLocaleString("en-US"), `${figures.districts} districts`, phone, narrow ? "hidden xl:flex" : "max-xl:group-data-[panel]/strip:hidden"),
+    hudFigure("Validators", fmtCompact(figures.validators), figures.onShare === null ? "versions unknown" : `${figures.onShare.toFixed(0)}% on ${target}+`, phone, narrow ? "hidden xl:flex" : "max-xl:group-data-[panel]/strip:hidden"),
     hudFigure(
       `ICM · ${windowShort}`,
       fmtCompact(figures.icm),
@@ -2268,12 +2268,14 @@ export function CityApp({
       <NewsFeed className="absolute bottom-4 right-4 z-30" />
 
       {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button.
-          From xl the key stands in the bottom left corner: where the strip centred on the window would reach it (its 320 px
-          and 16 px each side), the strip moves right just far enough, half its width being the 50% of its own translate. A
-          panel and an answer both open leave the city too narrow for them */}
-      <div className={cn("pointer-events-none absolute bottom-4 z-10 flex items-end justify-center [--key-clear:0px] xl:[--key-clear:352px]", showPanel && ask && "hidden")} style={{ left: showPanel ? inset.left : 88, right: rightW ? rightW + 32 : 88 }}>
-        <div style={webgl && !showPanel && !ask && !paneOpen ? { transform: "translateX(max(0px, calc(var(--key-clear) - 50vw + 50%)))" } : undefined} className="pointer-events-auto flex divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
-          {showPanel || ask ? stripNarrow : stripWide}
+          The strip stays centred on the window, and where it would reach what stands in the bottom left (the key from xl, its
+          320 px and 16 px each side, or the open panel) it moves right just far enough, half its width being the 50% of its
+          own translate: opening the panel moves it only on a window too narrow for both. Beside the panel it stays whole from
+          xl, and below xl drops the cells the narrow strip drops; an answer or a live pane at the right takes the narrow
+          strip. A panel and an answer both open leave the city too narrow for them */}
+      <div data-panel={showPanel || undefined} className={cn("group/strip pointer-events-none absolute bottom-4 z-10 flex items-end justify-center [--key-clear:0px] xl:[--key-clear:352px]", showPanel && ask && "hidden")} style={{ left: 88, right: rightW ? rightW + 32 : 88 }}>
+        <div style={{ transform: `translateX(max(0px, calc(${showPanel ? `${PANEL_W + 32}px` : webgl && !ask && !paneOpen ? "var(--key-clear)" : "0px"} - ${(88 - (rightW ? rightW + 32 : 88)) / 2}px - 50vw + 50%)))` }} className="pointer-events-auto flex transition-transform duration-300 ease-out divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
+          {ask || paneOpen ? stripNarrow : stripWide}
         </div>
       </div>
     </div>
