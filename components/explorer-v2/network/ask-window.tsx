@@ -167,7 +167,7 @@ export function AskWindow({
       const out = await postQuery<{ visual: VisualSpec; designer: boolean; ms: number }>({
         chainId: c.chainId,
         // a kept answer is laid out by the server from its own SQL
-        ...(a.key ? { key: a.key } : { design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } }),
+        trace: a.trace, ...(a.key ? { key: a.key } : { design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } }),
       });
       if (my !== token.current) return;
       setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, visual: out.visual, draftVisual: false, model: { ...(prev.model ?? { steps: 0, ms: 0, tries: 0 }), designMs: out.ms, designer: out.designer } } : prev));
@@ -184,7 +184,7 @@ export function AskWindow({
     const my = token.current;
     setReading(true);
     try {
-      const out = await postQuery<{ callouts: string[] }>({ chainId: c.chainId, key: a.key, reading: true });
+      const out = await postQuery<{ callouts: string[] }>({ chainId: c.chainId, key: a.key, trace: a.trace, reading: true });
       if (my !== token.current) return;
       setAnswer((prev) => (prev && prev.sql === a.sql && prev.visual ? { ...prev, visual: { ...prev.visual, callouts: out.callouts } } : prev));
     } catch {

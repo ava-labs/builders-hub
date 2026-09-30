@@ -326,7 +326,7 @@ function QueryPage({
     const my = token.current;
     setReading(true);
     try {
-      const out = await post<{ callouts: string[]; ms: number }>({ key: a.key, reading: true });
+      const out = await post<{ callouts: string[]; ms: number }>({ key: a.key, trace: a.trace, reading: true });
       if (my !== token.current) return;
       setAnswer((prev) => (prev && prev.sql === a.sql && prev.visual ? { ...prev, visual: { ...prev.visual, callouts: out.callouts } } : prev));
     } catch {
@@ -346,8 +346,8 @@ function QueryPage({
         // a kept answer is laid out by the server from its own SQL; hand-edited rows are sent
         const out = await post<{ visual: VisualSpec; designer: boolean; ms: number }>(
           a.key && a.sql === answerSql.current
-            ? { key: a.key }
-            : { design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } },
+            ? { key: a.key, trace: a.trace }
+            : { trace: a.trace, design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } },
         );
         if (my !== token.current) return;
         setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, visual: out.visual, draftVisual: false, model: { ...(prev.model ?? { steps: 0, ms: 0, tries: 0 }), designMs: out.ms, designer: out.designer } } : prev));
