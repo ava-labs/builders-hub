@@ -20,6 +20,7 @@ import { formatAvax, formatNumber, timeAgo, truncate, ageShort } from "@/compone
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { useValidatorStats } from "@/components/explorer-v2/validator-stats";
+import { L1Versions } from "@/components/explorer-v2/network/l1-versions";
 import { txTypeLabel, type Stats, type TxSummary, type BlockSummary } from "@/lib/pchain-explorer";
 
 /* The /api/pchain-activity contract: staking money-flow, not tx counts.
@@ -132,9 +133,9 @@ function buildStatCells(
       sub: subs?.staked,
     },
     {
-      // denominator is the TOTAL SUPPLY cell beside it — the two read
+      // denominator is the P-CHAIN SUPPLY cell beside it: the two read
       // as one statement
-      label: "Staked · of Total Supply",
+      label: "Staked · of P-Chain Supply",
       value:
         stakingRatio !== null ? (
           <span className={FIG}>
@@ -146,8 +147,11 @@ function buildStatCells(
         ),
     },
     {
-      label: "Total Supply",
+      // the P-Chain's own counter: every AVAX minted, rewards reserved for
+      // current stakers included, and no burn taken off
+      label: "P-Chain Supply",
       value: s?.currentSupply ? avax(s.currentSupply) : <StatDash />,
+      sub: "before burns",
     },
     {
       label: "Delegators",
@@ -338,6 +342,10 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
               <ChainStatsBoard cells={buildStatCells(s, totalStake, stakingRatio, base)} />
             )}
           </div>
+
+          {/* the P-Chain keeps every set: below lg, where the city has no
+              Versions lens, each set's AvalancheGo versions stand here */}
+          {network === "mainnet" && <L1Versions className="lg:hidden" />}
 
           {/* staking money-flow: the 30 days behind us in rewards paid out
               (red: stake moving) beside the 30 days ahead in stake coming

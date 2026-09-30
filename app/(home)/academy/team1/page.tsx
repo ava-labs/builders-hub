@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createMetadata } from "@/utils/metadata";
 import { AcademyLayout } from "@/components/academy/shared/academy-layout";
+import { COURSE_STATS } from "@/lib/academy/course-stats.generated";
 import { team1AcademyLandingPageConfig } from "./config";
 import { Suspense } from "react";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -47,6 +48,7 @@ export default async function Team1AcademyPage(): Promise<React.ReactElement> {
     );
   }
 
+  const courseStats = COURSE_STATS["team1"];
   return (
     <Suspense
       fallback={
@@ -55,7 +57,7 @@ export default async function Team1AcademyPage(): Promise<React.ReactElement> {
         </div>
       }
     >
-      <AcademyLayout config={team1AcademyLandingPageConfig} />
+      <AcademyLayout config={team1AcademyLandingPageConfig} courseStats={courseStats} />
     </Suspense>
   );
 }

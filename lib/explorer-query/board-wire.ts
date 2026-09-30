@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { visualSpecSchema } from "./visual";
+import { MAX_METRIC_SERIES, METRIC_CHAIN, METRIC_KEYS } from "./stats-metrics";
 
 export const MAX_TILES = 40;
 export const MAX_BOARDS = 200;
@@ -27,6 +28,32 @@ const tileSchema = z.discriminatedUnion("kind", [
     visual: visualSpecSchema,
     panelIndex: z.number().int().min(0).nullable(),
     view: z.enum(["hbar", "bar", "line", "area", "scatter", "table"]).optional(),
+    /** the follow-ups after the question, so Open asks the same thread */
+    then: z.array(z.string().max(2000)).max(8).optional(),
+    /** how a mark opens into the records behind it */
+    drill: z.object({ sql: z.string().max(20_000), title: z.string().max(300) }).nullable().optional(),
+    ...base,
+  }),
+  /* a chart of stats API series (stats-metrics.ts), as a Playground dashboard kept it */
+  z.object({
+    kind: z.literal("metric"),
+    title: z.string().max(200),
+    series: z
+      .array(
+        z.object({
+          chainId: z.string().regex(METRIC_CHAIN),
+          chainName: z.string().max(80),
+          metric: z.enum(METRIC_KEYS),
+          mark: z.enum(["bar", "line", "area"]),
+          axis: z.enum(["left", "right"]),
+        }),
+      )
+      .min(1)
+      .max(MAX_METRIC_SERIES),
+    stacked: z.boolean(),
+    days: z.number().int().min(1).max(20_000).nullable().optional(),
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
     ...base,
   }),
 ]);
@@ -56,7 +83,16 @@ export const boardBodySchema = z.object({
   createdAt: z.number().int().positive(),
   updatedAt: z.number().int().positive(),
 });
-export type BoardBody = z.infer<typeof boardBodySchema>;
+
+/** a board as anyone with its link reads it: no owner, no tombstone */
+export interface SharedBoard {
+  id: string;
+  scope: string;
+  name: string;
+  tiles: unknown[];
+  createdAt: number;
+  updatedAt: number;
+}
 
 /** a board as the account keeps it */
 export interface WireBoard {
@@ -72,7 +108,7 @@ export interface WireBoard {
 
 /** a tile without the rows it read */
 export function withoutRows<T extends { kind: string }>(tile: T): Omit<T, "snapshot"> {
-  if (tile.kind !== "chart") return tile;
+  if (tile.kind === "note") return tile;
   const { snapshot: _rows, ...rest } = tile as T & { snapshot?: unknown };
   void _rows;
   return rest;

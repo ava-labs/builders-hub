@@ -15,11 +15,11 @@ const metadata: ConsoleToolMetadata = {
   description: (
     <>
       Convert between{' '}
-      <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/c-chain" className="text-primary hover:underline">
         C-Chain
       </Link>{' '}
       wei (10<sup>-18</sup>),{' '}
-      <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain" className="text-primary hover:underline">
         P-Chain
       </Link>{' '}
       nAVAX (10<sup>-9</sup>), and AVAX. Type in any field to convert.

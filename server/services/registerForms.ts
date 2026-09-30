@@ -136,9 +136,10 @@ export async function createRegisterForm(
   // emails). Keep them out of the RegisterForm payload itself.
   const rawTeammates = Array.isArray(registerData.teammates) ? registerData.teammates : [];
 
-  // Telegram is mandatory on the User profile (BasicProfileSetup gate),
-  // so the registration form no longer asks for it. Pull it from the user
-  // record here so the validation, upsert, and HubSpot payload all see it.
+  // Telegram is optional on the User profile (BasicProfileSetup can be
+  // skipped), so the registration form collects it too. When the user record
+  // already has one, it takes precedence here so the validation, upsert, and
+  // HubSpot payload all see the canonical value.
   // newsletter_subscription is treated as a per-event snapshot of the
   // canonical User.notifications value; mirror it here so the column reflects
   // the user's current marketing consent even when the grouped block in

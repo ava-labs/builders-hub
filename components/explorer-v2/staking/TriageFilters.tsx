@@ -1,41 +1,127 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { Check, X } from "lucide-react";
+import { useState, type CSSProperties } from "react";
+import { Check, Search, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRESETS, presetActive, type Facet, type FacetKey, type Preset, type Selection } from "@/lib/validator-triage";
+import { presetActive, type Facet, type FacetKey, type Preset, type Selection, type StatusRow } from "@/lib/validator-triage";
 
-/* The roster's filter, three ways in: the triage presets (the questions
-   the page is asked most), the facet rail (every part of the filter, each
-   option with the count it would leave), and the chips (what is on now). */
+/* The roster's filter, four ways in: the search, the triage presets (the
+   questions the page is asked most), the facet rail (every part of the
+   filter, each option with the count it would leave), and the chips (what
+   is on now). Each part takes its roster's facet keys; the Primary
+   Network's are the defaults. */
+
+/** a roster row's version, inked by its status against the target */
+export const STATUS_INK = {
+  current: "text-zinc-700 dark:text-zinc-300",
+  behind: "text-[#E6212F]",
+  unknown: "text-zinc-400 dark:text-zinc-500",
+} as const;
+
+/** a cell whose feed has no figure */
+export const NA = <span className="text-zinc-300 dark:text-zinc-700">n/a</span>;
+
+/** days until a validation ends or a balance runs out: red inside a week, amber inside a month */
+export function daysLeftTone(days: number): string {
+  if (days < 7) return "font-medium text-[#E6212F]";
+  if (days < 30) return "text-amber-600 dark:text-amber-400";
+  return "text-zinc-700 dark:text-zinc-300";
+}
 
 /** facets whose feed has not answered: their counts read `label`, not 0 */
-export interface Pending {
-  keys: FacetKey[];
+export interface Pending<K extends string = FacetKey> {
+  keys: K[];
   /** "…" while the feed loads, "n/a" when it failed */
   label: string;
   title: string;
 }
 
-export function PresetRow({
+/** the search: one line, so a pasted list keeps its IDs apart with spaces */
+export function RosterSearch({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div className="flex w-full items-center gap-3 rounded-full border border-zinc-200 bg-white px-4 py-2 transition-colors focus-within:border-zinc-900 sm:w-[26rem] dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
+      <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onPaste={(e) => {
+          // a one-line input drops line breaks, which would glue a pasted list together
+          const text = e.clipboardData.getData("text");
+          if (!/[\r\n]/.test(text)) return;
+          e.preventDefault();
+          const el = e.currentTarget;
+          const start = el.selectionStart ?? el.value.length;
+          const end = el.selectionEnd ?? el.value.length;
+          onChange(`${el.value.slice(0, start)}${text.replace(/\s+/g, " ").trim()}${el.value.slice(end)}`);
+        }}
+        placeholder={placeholder}
+        aria-label="Search validators"
+        spellCheck={false}
+        className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="Clear search"
+          className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** a toolbar action in the ledger voice */
+export function ToolButton({
+  icon: Icon,
+  onClick,
+  disabled,
+  title,
+  children,
+}: {
+  icon: LucideIcon;
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="inline-flex shrink-0 items-center gap-1.5 border border-zinc-200 bg-white/80 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600 transition-colors enabled:hover:border-zinc-900 enabled:hover:text-zinc-900 disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:enabled:hover:border-zinc-100 dark:enabled:hover:text-zinc-100"
+    >
+      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+      {children}
+    </button>
+  );
+}
+
+export function PresetRow<K extends string = FacetKey>({
+  presets,
   counts,
   selection,
   onPreset,
   pending = null,
 }: {
+  presets: Preset<K>[];
   /** preset id to the validators it lists */
   counts: Record<string, number>;
-  selection: Selection;
-  onPreset: (p: Preset) => void;
-  pending?: Pending | null;
+  selection: Selection<K>;
+  onPreset: (p: Preset<K>) => void;
+  pending?: Pending<K> | null;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="mr-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">Triage</span>
-      {PRESETS.map((p) => {
+      {presets.map((p) => {
         const on = presetActive(p, selection);
         const n = counts[p.id] ?? 0;
-        const waiting = !!pending && Object.keys(p.selection).some((k) => pending.keys.includes(k as FacetKey));
+        const waiting = !!pending && Object.keys(p.selection).some((k) => pending.keys.includes(k as K));
         return (
           <button
             key={p.id}
@@ -67,7 +153,7 @@ export function PresetRow({
   );
 }
 
-export function FacetRail({
+export function FacetRail<K extends string = FacetKey, R = StatusRow>({
   facets,
   counts,
   selection,
@@ -76,24 +162,38 @@ export function FacetRail({
   swatch,
   pending = null,
   layout = "rail",
+  fold,
 }: {
-  facets: Facet[];
+  facets: Facet<K, R>[];
   /** facet key to option id to the validators that option would leave */
-  counts: Record<FacetKey, Record<string, number>> | null;
-  selection: Selection;
-  onToggle: (key: FacetKey, id: string) => void;
-  onClearFacet: (key: FacetKey) => void;
+  counts: Record<K, Record<string, number>> | null;
+  selection: Selection<K>;
+  onToggle: (key: K, id: string) => void;
+  onClearFacet: (key: K) => void;
   /** a swatch that ties an option to the colors above the roster */
-  swatch?: (key: FacetKey, id: string) => CSSProperties | undefined;
-  pending?: Pending | null;
+  swatch?: (key: K, id: string) => CSSProperties | undefined;
+  pending?: Pending<K> | null;
   /** a column beside the roster, or a grid over it on narrow screens */
   layout?: "rail" | "grid";
+  /** facet key to the options a long facet shows until it is opened. Such a
+      facet sorts its options by count: the options that leave the most
+      validators under the rest of the filter come first */
+  fold?: Partial<Record<K, number>>;
 }) {
+  const [opened, setOpened] = useState<string[]>([]);
   return (
     <div className={cn(layout === "grid" ? "grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-4" : "flex flex-col gap-5")}>
       {facets.map((f) => {
         const picked = selection[f.key] ?? [];
         const waiting = !!pending?.keys.includes(f.key);
+        const countOf = (id: string) => counts?.[f.key]?.[id] ?? 0;
+        const limit = fold?.[f.key] ?? 0;
+        // the sort is stable: a tie keeps the facet's own order
+        const ordered = limit > 0 ? [...f.options].sort((a, b) => countOf(b.id) - countOf(a.id)) : f.options;
+        const folds = limit > 0 && ordered.length > limit + 1;
+        const open = opened.includes(f.key);
+        // a picked option stays in view while its facet is folded
+        const options = folds && !open ? ordered.filter((o, i) => i < limit || picked.includes(o.id)) : ordered;
         return (
           <div key={f.key} role="group" aria-label={f.label} title={waiting ? pending?.title : undefined} className="min-w-0">
             <div className="mb-1 flex min-h-5 items-center justify-between gap-2">
@@ -109,9 +209,9 @@ export function FacetRail({
               )}
             </div>
             <ul className="flex flex-col">
-              {f.options.map((o) => {
+              {options.map((o) => {
                 const on = picked.includes(o.id);
-                const n = counts?.[f.key]?.[o.id] ?? 0;
+                const n = countOf(o.id);
                 const empty = (waiting || n === 0) && !on;
                 const sw = swatch?.(f.key, o.id);
                 return (
@@ -151,6 +251,16 @@ export function FacetRail({
                 );
               })}
             </ul>
+            {folds && (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpened((keys) => (keys.includes(f.key) ? keys.filter((k) => k !== f.key) : [...keys, f.key]))}
+                className="mt-1 font-mono text-[10px] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                {open ? "Show fewer" : `Show all ${ordered.length}`}
+              </button>
+            )}
           </div>
         );
       })}
@@ -159,15 +269,15 @@ export function FacetRail({
 }
 
 /** what the roster is cut to, one chip a facet; a chip's cross clears that facet */
-export function ActiveChips({
+export function ActiveChips<K extends string = FacetKey, R = StatusRow>({
   facets,
   selection,
   onClearFacet,
   onClearAll,
 }: {
-  facets: Facet[];
-  selection: Selection;
-  onClearFacet: (key: FacetKey) => void;
+  facets: Facet<K, R>[];
+  selection: Selection<K>;
+  onClearFacet: (key: K) => void;
   onClearAll: () => void;
 }) {
   const chips = facets.flatMap((f) => {

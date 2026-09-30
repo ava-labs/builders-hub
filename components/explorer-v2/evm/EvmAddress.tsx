@@ -13,7 +13,7 @@ import { EvmContract, useIsContract, useVerifiedContract } from "./EvmContract";
 import { EvmToken } from "./EvmToken";
 import { TokenMark, NativeMark } from "./TokenMark";
 import { FIG, UNIT, Tabs, TxTable, TransferTable, EmptyRow } from "./AddressTables";
-import { useNativeBalance, useTokenBalances } from "./useErc20";
+import { useAddressBalances } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
@@ -73,7 +73,6 @@ export function EvmAddress({
   // what it holds: native balance from the RPC; tokens = the ones its
   // recent transfers touched plus the majors, asked with one balanceOf batch
   const liveRpc = readRpc(c.chainId, c.rpcUrl);
-  const nativeWei = useNativeBalance(liveRpc, addr);
   const { price } = usePrice(c.chainId);
   const usd = price?.price ?? null;
 
@@ -83,7 +82,7 @@ export function EvmAddress({
     for (const [a, t] of tokens) if (MAJORS.has(t.symbol.toUpperCase())) set.add(a);
     return [...set];
   }, [transfers.data, tokens]);
-  const { balances, ready: balancesReady } = useTokenBalances(liveRpc, addr, candidates);
+  const { nativeWei, balances, ready: balancesReady } = useAddressBalances(liveRpc, addr, candidates);
   const held = useMemo(
     () => [...balances.entries()].map(([a, amount]) => ({ address: a, amount, token: tokens.get(a)! })).filter((h) => h.token),
     [balances, tokens],

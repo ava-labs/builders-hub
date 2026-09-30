@@ -21,10 +21,15 @@ import { RailRow } from "@/components/explorer-v2/evm/EvmTx";
 import { dayLong, dayShort, formatAvax, formatNumber, formatTime, hourLong, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
+import { SubscribeAlerts } from "./SubscribeAlerts";
+import { balanceAt, useSecondClock, type SettledBalance } from "./seat-balance";
 import {
   PRIMARY_SUBNET_ID,
+  getBlockTime,
   getCurrentValidators,
+  getL1Validator,
   getPrimaryTotalStake,
+  getValidatorFeeState,
   type CurrentValidator,
 } from "@/lib/pchain-node";
 import { txTypeLabel, type NodeResponse, type NodeStakingTx, type TxSummary, type ValidationsResponse } from "@/lib/pchain-explorer";
@@ -106,6 +111,92 @@ function useStakeContext(network: string, nodeId: string, enabled: boolean) {
     };
   }, [network, nodeId, enabled]);
   return { identity, networkStake };
+}
+
+/* The P-Chain debits an L1 seat's continuous fee only when a block moves
+   chain time, so the node reports the balance as of its last block:
+   minutes old on a quiet chain. The seat read carries the height it was
+   read at, and that block's time anchors it, so the pair holds even when
+   the public RPC's nodes are a block apart. The view draws it down from
+   there; a re-read each minute picks up the next block or a top-up. */
+const SEAT_REFRESH_MS = 60_000;
+
+/** settledAt is the time of the block at `height` */
+interface SettledSeat extends SettledBalance {
+  height: number;
+}
+
+function useSettledSeat(network: string, validationID: string | undefined): SettledSeat | null {
+  const [seat, setSeat] = useState<SettledSeat | null>(null);
+  useEffect(() => {
+    if (!validationID) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let last: SettledSeat | null = null;
+    const read = async () => {
+      const v = await getL1Validator(network, validationID);
+      const height = Number(v?.height);
+      // one state per height: the block and the price are asked again only when it moves
+      if (v && height > 0 && height !== last?.height) {
+        const [settledAt, fee] = await Promise.all([getBlockTime(network, height), getValidatorFeeState(network)]);
+        if (settledAt && fee) {
+          // a seat the node still knows but that reports no balance has run dry
+          last = { balance: Number(v.balance ?? 0), settledAt, height, price: fee.price };
+          if (!cancelled) setSeat(last);
+        }
+      }
+      if (!cancelled) timer = setTimeout(next, SEAT_REFRESH_MS);
+    };
+    // a hidden tab skips its read and asks again a minute on
+    const next = () => {
+      if (document.visibilityState === "hidden") timer = setTimeout(next, SEAT_REFRESH_MS);
+      else void read();
+    };
+    void read();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [network, validationID]);
+  return seat;
+}
+
+/* An L1 node's AvalancheGo version: the indexer's node document carries
+   none for nodes off the Primary Network, so it comes from the same
+   per-subnet roster the L1 Validators tab reads (/api/chain-validators,
+   the discovery crawler's versions). The string is shown as reported, so a
+   custom build keeps its own name. The version belongs to the node, not
+   the seat, so every L1 it validates is asked in turn: the page's seat can
+   be one the node has since left, whose roster no longer lists it.
+   undefined while reading; null when no roster has a version for it. */
+function useL1NodeVersion(network: string, subnetIds: string[], nodeId: string): string | null | undefined {
+  const [version, setVersion] = useState<string | null | undefined>(undefined);
+  const key = subnetIds.join(",");
+  useEffect(() => {
+    let cancelled = false;
+    setVersion(undefined);
+    (async () => {
+      for (const subnetId of key.split(",").filter(Boolean)) {
+        try {
+          const res = await fetch(`/api/chain-validators/${subnetId}?network=${network}`);
+          if (!res.ok) continue;
+          const data: { validators?: { nodeId: string; version?: string }[] } = await res.json();
+          const v = data.validators?.find((x) => x.nodeId === nodeId)?.version?.trim();
+          if (v && v !== "Unknown") {
+            if (!cancelled) setVersion(v);
+            return;
+          }
+        } catch {
+          // the next roster may still know it
+        }
+      }
+      if (!cancelled) setVersion(null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [network, key, nodeId]);
+  return version;
 }
 
 /* Primary Network staking rules: a validator can carry delegations up to
@@ -307,8 +398,10 @@ export function PchainNode({
           page whose data is already in hand */}
       {(error || l1Only) && l1Checked && l1Subnet && (l1 ?? l1FromDoc) && (
         <L1ValidatorView
+          network={network}
           nodeId={nodeId}
           subnetId={l1Subnet}
+          otherSubnets={n?.validations?.filter((x) => x.kind === "l1").map((x) => x.subnetId)}
           v={(l1 ?? l1FromDoc)!}
           live={!!l1}
           base={base}
@@ -337,18 +430,22 @@ export function PchainNode({
                 ) : undefined
               }
             />
-            <div className="flex flex-col gap-2">
-              <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
-              {/* who it is, in one line a human can read */}
-              <p className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                {[
-                  n.nodeInfo?.version,
-                  n.nodeInfo?.publicIp,
-                  validations?.totals.firstStart ? `validating since ${dayLong(validations.totals.firstStart)}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="flex min-w-0 flex-col gap-2">
+                <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
+                {/* who it is, in one line a human can read */}
+                <p className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                  {[
+                    n.nodeInfo?.version,
+                    n.nodeInfo?.publicIp,
+                    validations?.totals.firstStart ? `validating since ${dayLong(validations.totals.firstStart)}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              {/* alerts watch the mainnet Primary Network set only */}
+              {network === "mainnet" && n.hasSnapshot && <SubscribeAlerts nodeId={n.nodeId} />}
             </div>
             {!n.hasSnapshot && (
               <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
@@ -778,10 +875,6 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
   const [showAll, setShowAll] = useState(false);
   const { periods, totals } = data;
   const lifetimeReward = BigInt(totals.validationReward) + BigInt(totals.delegationReward);
-  // delegations, not people: the same delegator re-staking across two terms
-  // counts twice, which is the honest reading of "how much work has this node
-  // taken on" rather than a unique-holder count the API can't give us
-  const delegationsServed = periods.reduce((s, p) => s + p.delegatorCount, 0);
   const rows = showAll ? periods : periods.slice(0, LIST_CAP);
 
   return (
@@ -900,19 +993,29 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
    the indexer view (no uptime history or delegators: L1 validators have
    neither on the Primary Network), but authoritative. */
 function L1ValidatorView({
+  network,
   nodeId,
   subnetId,
+  otherSubnets = [],
   v,
   live = true,
   base,
 }: {
+  network: string;
   nodeId: string;
   subnetId: string;
+  /** the node's other L1 seats: where to find its version when this seat's roster has it not */
+  otherSubnets?: string[];
   v: CurrentValidator;
   /** false when the record came from the indexer snapshot instead of the node */
   live?: boolean;
   base: string;
 }) {
+  const seat = useSettledSeat(network, v.validationID);
+  // the balance the chain will debit at its next block, a second at a time
+  const now = useSecondClock(!!seat);
+  const balance = seat ? balanceAt(seat, now) : v.balance;
+  const version = useL1NodeVersion(network, [subnetId, ...otherSubnets.filter((s) => s !== subnetId)], nodeId);
   return (
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4">
@@ -941,8 +1044,26 @@ function L1ValidatorView({
                 </SpecRow>
               )}
               <SpecRow label="Weight">{formatNumber(Number(v.weight))}</SpecRow>
-              {v.balance !== undefined && <SpecRow label="Balance">{formatAvax(v.balance)}</SpecRow>}
+              {balance !== undefined && (
+                <SpecRow label="Balance">
+                  {formatAvax(balance)}
+                  {seat && seat.balance > 0 && (
+                    <span className="mt-0.5 block font-mono text-[10px] font-normal text-zinc-400 dark:text-zinc-500">
+                      less {formatNumber(seat.price)} nAVAX/s since block {formatNumber(seat.height)} · {formatTime(seat.settledAt)}
+                    </span>
+                  )}
+                </SpecRow>
+              )}
               {v.startTime && <SpecRow label="Start">{formatTime(Number(v.startTime))}</SpecRow>}
+              {version !== undefined && (
+                <SpecRow label="AvalancheGo">
+                  {version ?? (
+                    <span className="text-zinc-400 dark:text-zinc-500" title="No version reported for this node">
+                      -
+                    </span>
+                  )}
+                </SpecRow>
+              )}
               {v.publicKey && (
                 <SpecRow label="BLS Public Key">
                   <HashChip value={v.publicKey} len={24} />

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { pchainPost } from "@/lib/pchain-rpc";
 
-// Same-origin proxy to the public AvalancheGo P-Chain RPC. The indexer
-// (Ash's explorer API) doesn't decode platform-op inputs — the initial
+// Same-origin proxy to the AvalancheGo P-Chain RPC (the public RPC, then our
+// dedicated node when the public one refuses: lib/pchain-rpc.ts). The indexer
+// (Ash's explorer API) doesn't decode platform-op inputs (the initial
 // validator set of a ConvertSubnetToL1Tx, subnet conversion state, live
-// L1 validator sets — so the explorer enriches those views straight from
+// L1 validator sets), so the explorer enriches those views straight from
 // the node. Read-only method allowlist.
 
-const RPC_BY_NETWORK: Record<string, string> = {
-  mainnet: "https://api.avax.network/ext/bc/P",
-  fuji: "https://api.avax-test.network/ext/bc/P",
-};
+const NETWORKS = new Set(["mainnet", "fuji"]);
 
 const ALLOWED_METHODS = new Set([
   "platform.getTx",
@@ -22,15 +21,17 @@ const ALLOWED_METHODS = new Set([
   // reward UTXOs are minted directly into state, never as tx outputs, so
   // the indexer can't see them: the tx page reads them off the node
   "platform.getRewardUTXOs",
-  // resolves an ACP-77 validationID to the seat's nodeID — the indexer's
+  // resolves an ACP-77 validationID to the seat's nodeID: the indexer's
   // balance/disable tx rows carry only the validationID
   "platform.getL1Validator",
+  // the time of the block a seat's balance was settled at, so the node
+  // page can draw the balance down to now
+  "platform.getBlockByHeight",
 ]);
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ network: string }> }) {
   const { network } = await params;
-  const rpc = RPC_BY_NETWORK[network];
-  if (!rpc) {
+  if (!NETWORKS.has(network)) {
     return NextResponse.json({ error: `no public RPC for network "${network}"` }, { status: 501 });
   }
 
@@ -45,17 +46,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ net
   }
 
   try {
-    const upstream = await fetch(rpc, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: body.method, params: body.params ?? {} }),
-      signal: AbortSignal.timeout(15_000),
-    });
+    const upstream = await pchainPost(network, { jsonrpc: "2.0", id: 1, method: body.method, params: body.params ?? {} }, 15_000);
     const json = await upstream.json();
     return NextResponse.json(json, {
       status: upstream.ok ? 200 : upstream.status,
       // decoded txs and conversion state are immutable once seen; validator
-      // sets drift slowly — a short shared cache absorbs bursts either way
+      // sets drift slowly: a short shared cache absorbs bursts either way
       headers: { "Cache-Control": "public, max-age=60, s-maxage=300" },
     });
   } catch {

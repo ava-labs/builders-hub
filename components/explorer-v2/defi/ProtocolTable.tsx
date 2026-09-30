@@ -7,6 +7,7 @@ import { Board, CellLabel, EmptyRow, HEAD, LoadMore, ROW, RowSkeleton } from "@/
 import { changeOf, deltaOf, type DefiProtocol, type Span } from "@/lib/defi/llama";
 import type { Sort, SortKey } from "@/lib/defi/protocol-filters";
 import { GROUP } from "@/lib/defi/taxonomy";
+import { SECONDS_PER_DAY } from "@/lib/explorer-query/values";
 import { groupTone, signedPct, signedUsd, usd } from "./palette";
 
 /* The protocol table: every column sorts, a row opens in place to show
@@ -16,10 +17,10 @@ import { groupTone, signedPct, signedUsd, usd } from "./palette";
 
 const GRID = "md:grid-cols-[2.25rem_minmax(0,1fr)_6.5rem_5.5rem_6.5rem_6.5rem_5.5rem_7rem_1.25rem]";
 const NA = <span className="text-zinc-300 dark:text-zinc-700">n/a</span>;
-const DAY = 86_400;
 
+/** "5d", "3mo", "1.2y": a listing's age, on to months and years, where ageShort in format.ts stops at days */
 function ago(unix: number, now: number): string {
-  const d = Math.floor((now - unix) / DAY);
+  const d = Math.floor((now - unix) / SECONDS_PER_DAY);
   if (d < 30) return `${Math.max(1, d)}d`;
   if (d < 365) return `${Math.floor(d / 30)}mo`;
   return `${(d / 365).toFixed(d < 3650 ? 1 : 0)}y`;
@@ -129,7 +130,7 @@ export function ProtocolTable({
                         <span className="flex shrink-0 items-center gap-1 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
                           <span className="h-1.5 w-1.5 rounded-[1px]" style={{ background: groupTone(p.group) }} />
                           {GROUP[p.group].label}
-                          {p.listedAt !== null && now - p.listedAt <= 90 * DAY && <span className="ml-1 rounded-[2px] bg-zinc-900 px-1 text-[9px] uppercase tracking-[0.08em] text-white dark:bg-zinc-100 dark:text-zinc-900">new</span>}
+                          {p.listedAt !== null && now - p.listedAt <= 90 * SECONDS_PER_DAY && <span className="ml-1 rounded-[2px] bg-zinc-900 px-1 text-[9px] uppercase tracking-[0.08em] text-white dark:bg-zinc-100 dark:text-zinc-900">new</span>}
                         </span>
                       </span>
                     </span>

@@ -1,0 +1,53 @@
+name: Explorer CI
+
+# Any PR that touches the explorer, stacked PRs included. The paths are EXPLORER in eslint.config.mjs, and the
+# files that hold the explorer's rules.
+on:
+  pull_request:
+    paths:
+      - 'components/explorer-v2/**'
+      - 'components/explorer/**'
+      - 'lib/explorer-query/**'
+      - 'lib/explorer-clickhouse.ts'
+      - 'lib/pchain-explorer.ts'
+      - 'app/(home)/explorer/**'
+      - 'app/api/explorer/**'
+      - 'tests/unit/explorer/**'
+      - 'eslint.config.mjs'
+      - 'scripts/explorer-size-ceilings.json'
+      - '.github/workflows/explorer-ci.yml'
+
+concurrency:
+  group: explorer-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # the size ceilings test compares the ceilings with master's
+      - name: Fetch master
+        run: git fetch --no-tags --depth=1 origin +refs/heads/master:refs/remotes/origin/master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # unused code, one home for each shared helper, and no file past its size ceiling (eslint.config.mjs)
+      - name: ESLint (explorer)
+        run: npx eslint --max-warnings 0 components/explorer-v2 components/explorer lib/explorer-query lib/explorer-clickhouse.ts lib/pchain-explorer.ts "app/(home)/explorer" app/api/explorer
+
+      - name: Unit tests (explorer)
+        run: npx vitest run tests/unit/explorer

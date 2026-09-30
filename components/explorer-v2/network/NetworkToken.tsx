@@ -293,7 +293,7 @@ export function NetworkToken() {
               sub={data && data.priceChange24h ? `${data.priceChange24h >= 0 ? "▲" : "▼"} ${Math.abs(data.priceChange24h).toFixed(2)}% · 24h` : undefined}
               spark={prices}
             />
-            <Readout label="Circulating" value={fig(circulating)} unit="AVAX" sub={data ? `${pctOf(circulating, TOKEN_CAP)} of cap · ${usdOf(circulating, price) ?? ""}` : undefined} />
+            <Readout label="Circulating" value={fig(circulating)} unit="AVAX" sub={data ? `net of burns · ${pctOf(circulating, TOKEN_CAP)} of cap · ${usdOf(circulating, price) ?? ""}` : undefined} />
             <Readout
               label="Staked"
               href="/explorer/mainnet/p-chain/staking"

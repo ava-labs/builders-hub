@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { boardHref, boardsHref, playgroundBoardId } from "@/lib/explorer-query/board-links";
 import type { PlaygroundCreator } from "./types";
 
 interface PlaygroundHeaderProps {
@@ -68,11 +69,13 @@ export function PlaygroundHeader({
   const { data: session, status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
 
-  const goToMyDashboards = () => {
+  // the dashboard came over to the owner's Query boards the first time they opened Query (lib/explorer-query/playground.ts)
+  const openAsBoard = () => {
+    const to = currentPlaygroundId ? boardHref("mainnet", "c-chain", playgroundBoardId(currentPlaygroundId)) : boardsHref("mainnet", "c-chain");
     if (status === "unauthenticated" || !session) {
-      openLoginModal("/stats/playground/my-dashboards");
+      openLoginModal(to);
     } else {
-      router.push("/stats/playground/my-dashboards");
+      router.push(to);
     }
   };
 
@@ -256,12 +259,12 @@ export function PlaygroundHeader({
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {isOwner && (
             <Button
-              onClick={goToMyDashboards}
+              onClick={openAsBoard}
               className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-              title="My Dashboards"
+              title="This dashboard as a Query board"
             >
               <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">My Dashboards</span>
+              <span className="hidden sm:inline">Open as board</span>
             </Button>
           )}
         </div>

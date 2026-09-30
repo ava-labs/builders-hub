@@ -14,7 +14,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, BoardHeader, CellLabel, SectionHeader, StatCell, SubjectHeadline, TxTypePill, TypeFilterRail, idInk, HEAD, ROW, LoadMore, RowSkeleton, Tabs } from "@/components/explorer-v2/ui";
-import { ageOrDate, formatNumber, formatUsd, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
+import { formatNumber, formatUsd, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { useAvaxUsd } from "@/components/explorer-v2/pchain/hooks";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";

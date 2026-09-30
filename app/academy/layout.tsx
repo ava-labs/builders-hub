@@ -7,6 +7,8 @@ import { AutoLoginModalTrigger } from '@/components/login/AutoLoginModalTrigger'
 import { LoginModalWrapper } from '@/components/login/LoginModalWrapper';
 import './critical.css';
 import './styles.css';
+import '@/components/academy/theme/academy-tokens.css';
+import '@/components/academy/theme/academy-docs.css';
 
 // Handwritten font for onboarding tooltip - loaded globally to prevent FOUT
 import { Caveat } from 'next/font/google';

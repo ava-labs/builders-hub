@@ -7,6 +7,7 @@ import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { StackBlock, type StackCol, type StackLayer } from "@/components/explorer-v2/gas/instruments";
 import { fadeUpStyle, riseStyle, useReveal, EASE_CSS } from "@/components/explorer-v2/motion";
+import { MONTHS_SHORT } from "@/lib/explorer-query/values";
 import {
   DATS as STATIC_DATS,
   ETFS as STATIC_ETFS,
@@ -61,11 +62,10 @@ function useDatEtf() {
   return { dats, etfs };
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /** "Sep 2025" as a sortable month index */
 const monthIndex = (d: string) => {
   const [m, y] = d.split(" ");
-  return Number(y) * 12 + MONTHS.indexOf(m);
+  return Number(y) * 12 + MONTHS_SHORT.indexOf(m);
 };
 
 interface MonthCol {
@@ -305,7 +305,7 @@ export function HoldersSection({ circulating }: { circulating: number }) {
           height={180}
           fmt={(v) => `${fmtCompact(v)} AVAX`}
           ticks={cols.map((_, i) => i)}
-          tip={(c, i) => {
+          tip={(_c, i) => {
             const m = months[i];
             return (
               <>

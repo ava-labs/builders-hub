@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk, HEAD, ROW, LoadMore, RowSkeleton } from "@/components/explorer-v2/ui";
-import { ageOrDate, formatBytes, formatNumber, timeAgo, ageShort } from "@/components/explorer-v2/format";
+import { formatBytes, formatNumber, ageShort } from "@/components/explorer-v2/format";
 import { pchainApiPath, type BlocksList, type BlockSummary } from "@/lib/pchain-explorer";
 import { LIVE_REFRESH_MS } from "./hooks";
 import { cn } from "@/lib/utils";
