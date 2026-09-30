@@ -15,6 +15,7 @@ import {
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
 import { isAllowedAttachmentSrc, isAllowedLogoSrc } from "@/lib/audits/blobSrc";
+import { parseWholeNumber } from "@/components/audits/shared/format";
 
 const MAX_NAME = 200;
 const MAX_URL = 2048;
@@ -75,6 +76,19 @@ const auditorServicesField = z
 // "required" instead.
 const requiredDate = (message: string) =>
   z.preprocess((v) => v ?? undefined, z.coerce.date({ message }));
+
+// Firms price from this number (Joey, 2026-09-30: two of them could not quote
+// a request that left it blank). The wizard holds it as typed text ("4,200"),
+// the stored row as an integer, and both pass through this one gate.
+const LINES_OF_CODE_MESSAGE = "Enter the lines of code as a whole number, like 4200";
+const requiredLinesOfCode = z.preprocess(
+  (v) => (typeof v === "string" ? parseWholeNumber(v) : v),
+  z
+    .number({ message: LINES_OF_CODE_MESSAGE })
+    .int(LINES_OF_CODE_MESSAGE)
+    .min(1, LINES_OF_CODE_MESSAGE)
+    .max(100_000_000, LINES_OF_CODE_MESSAGE),
+);
 
 const repoDraftSchema = z.strictObject({
   url: trimmed(MAX_URL),
@@ -154,6 +168,7 @@ export const auditSubmitSchema = z.object({
     .max(20)
     .optional()
     .default([]),
+  nsloc: requiredLinesOfCode,
   doc_links: z.array(httpsUrl).max(20).optional().default([]),
   // Re-checked against the STORED row at submit, like every other link:
   // without this the draft-time refinement is the only gate and a row written
