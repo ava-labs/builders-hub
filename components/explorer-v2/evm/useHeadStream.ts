@@ -218,7 +218,8 @@ export function useHeadStream(
     intervalMs?: number;
     /** how many heads to retain for cadence math and the tape */
     keep?: number;
-    /** heads to backfill on first contact so the tape opens full */
+    /** heads to backfill on first contact; the whole kept window unless
+     *  set, so every trace and list drawn from the heads opens full */
     seed?: number;
     /** executed transactions to retain for the receipts feed */
     keepTxs?: number;
@@ -230,7 +231,7 @@ export function useHeadStream(
 ): HeadStream {
   const intervalMs = opts?.intervalMs ?? 1_000;
   const keep = opts?.keep ?? 64;
-  const seed = opts?.seed ?? 20;
+  const seed = opts?.seed ?? keep;
   const keepTxs = opts?.keepTxs ?? 48;
   const pull = opts?.pull ?? 3;
   const [stream, setStream] = useState<HeadStream>(EMPTY);
@@ -324,14 +325,16 @@ export function useHeadStream(
         if (latest) {
           const tip = toHead(latest);
           // keep the retained window contiguous: a fresh page backfills
-          // `seed` heads; after that, any height still absent is asked for
-          // again. The public RPC is load-balanced and a node one block
+          // all `seed` heads in its first read, so a list opens full; after
+          // that, any height still absent is asked for again, a dozen a
+          // poll. The public RPC is load-balanced and a node one block
           // behind answers null for a height its peers already serve, so a
           // hole is not final until a later poll fills it.
           const have = new Set(headsRef.current.map((h) => h.number));
           const floor = have.size ? tip.number - keep + 1 : tip.number - seed + 1;
+          const cap = have.size ? 12 : seed;
           const missing: number[] = [];
-          for (let n = tip.number - 1; n >= floor && missing.length < 12; n--) {
+          for (let n = tip.number - 1; n >= floor && missing.length < cap; n--) {
             if (!have.has(n)) missing.push(n);
           }
           const filled = missing.length

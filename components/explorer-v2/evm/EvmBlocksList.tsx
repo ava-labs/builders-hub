@@ -35,7 +35,7 @@ export function EvmBlocksList({ network }: { network: string }) {
   const [older, setOlder] = useState(0);
 
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
-  const head = useHeadStream(liveRpc, { keep: 100, seed: LIVE_ROWS + 1, keepTxs: 0 });
+  const head = useHeadStream(liveRpc, { keep: 100, keepTxs: 0 });
   const live = head.heads.length > 0;
   const pace = cadence(head.heads, 60_000);
   const tip = head.tip;
