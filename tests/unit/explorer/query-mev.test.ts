@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { recipeKey } from '@/lib/explorer-query/cache';
 import { familyQuestion } from '@/lib/explorer-query/families';
 import { lendingQuestion } from '@/lib/explorer-query/lending';
+import { guardSql } from '@/lib/explorer-query/guard';
 
 const C = 43114;
 
@@ -30,6 +31,29 @@ describe('an MEV question', () => {
     expect(recipeKey(C, q)).toBe(createHash('sha256').update(`${C}\n${version}\n${q}\n\n${mevTurn(C, q)}`).digest('hex').slice(0, 32));
     expect(mevTurn(C, 'USDC transfers today')).toBe('');
     expect(mevTurn(43113, 'sandwich attacks today')).toBe('');
+  });
+
+  it("finds an arbitrage by what its pools paid out, and sizes it by its largest swap (r11's G07)", () => {
+    expect(mevTurn(C, 'Largest arbitrage transactions this week')).toContain("Open the query with $DEX: an arbitrage's size is its largest swap's value, max(usd) over its swaps in legs, never the fee it paid, and never answer");
+    expect(mevTurn(C, 'Top arbitrage contracts this week')).toContain('Open the query with $SWAPORDER, and never answer');
+    expect(mevTurn(C, 'the largest sandwiches today')).toContain('Open the query with $SWAPORDER');
+    // both arbitrage examples and their drills pass the guard, and the three that find arbitrages read one test
+    const prompt = systemPrompt({ chainId: C, chainName: 'C-Chain', symbol: 'AVAX', schema: '', coverage: null, mev: true });
+    const lines = prompt.split('\n').filter((l) => /^(drill: )?\$(DEX|SWAPORDER)\(/.test(l) && /\bpool_list\b|FROM legs WHERE tx =/.test(l));
+    expect(lines).toHaveLength(4);
+    for (const l of lines) {
+      const sql = l.replace(/^drill: /, '').replace(/\{\{(\w+):bytes\}\}/g, (_m, c: string) => `unhex('${'00'.repeat(c === 'tx_hash' ? 32 : 20)}')`);
+      const g = guardSql(sql, C);
+      expect(g.ok ? '' : g.error, l.slice(0, 60)).toBe('');
+    }
+    expect(lines.filter((l) => l.includes('HAVING tokens >= 2 AND min(paid) >= 0 AND max(paid) > 0'))).toHaveLength(3);
+    // the univ4 PoolManager is one of a transaction's pools when it swaps in a univ4 pool, written out for swap_order and
+    // as bytes for legs; counted in every transaction, it took back the profit a bot keeps there (r12's 0xb2a231bd)
+    expect(lines[0]).toContain("arrayConcat(groupUniqArray(pool), if(countIf(length(pool) = 66) > 0, ['0x06380c0e0912312b5150364b9dc4542ba0dbbc85'], []))");
+    expect(lines[2]).toContain("arrayConcat(groupUniqArray(pool), if(countIf(length(pool) = 32) > 0, [unhex('06380c0e0912312b5150364b9dc4542ba0dbbc85')], []))");
+    expect(lines[2]).toContain('ORDER BY size_usd DESC NULLS LAST LIMIT 15');
+    // no arbitrage is read from its first and last Transfer: a flash loan and its repayment passed that test
+    expect(prompt).not.toContain('first and last ERC-20 Transfer');
   });
 
   it("carries the MEV chapter in its prompt, under a prompt version of its own", () => {
