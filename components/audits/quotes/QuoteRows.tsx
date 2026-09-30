@@ -7,11 +7,11 @@ import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { HOVER_LIFT, ROW_ENTER } from "@/components/audits/shared/motion";
 import {
+  durationLabel,
   formatIsoDate,
   formatUsd,
   isOutsideWindow,
   priceDeltaLabel,
-  weeksLabel,
 } from "@/components/audits/shared/format";
 import { QuoteChipPill, chipsFor } from "@/components/audits/quotes/QuotesPanel";
 import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
@@ -118,7 +118,7 @@ export function QuoteRows({ quotes, neededBy = null, onAccept }: QuoteRowsProps)
                 </div>
 
                 <div className="mt-3 grid rounded-[10px] border border-zinc-200 sm:grid-cols-2 dark:border-white/10">
-                  <TermCell label="Duration">{weeksLabel(quote.duration_weeks)}</TermCell>
+                  <TermCell label="Duration">{durationLabel(quote.duration, quote.duration_unit)}</TermCell>
                   <TermCell label="Can start" divided>
                     <span className={cn(outside && "text-brand-deep dark:text-brand-soft")}>
                       {formatIsoDate(quote.earliest_start)}

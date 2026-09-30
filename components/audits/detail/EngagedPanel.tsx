@@ -1,6 +1,6 @@
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
+import { durationLabel, formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { ContactHandle } from "@/components/audits/shared/ContactHandle";
 import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
 import { parseRepos } from "@/components/audits/wizard/types";
@@ -95,7 +95,7 @@ export function EngagedPanel({
           <p className="font-mono text-[19px] font-bold">{formatUsd(acceptedQuote.price_usd)}</p>
         </div>
         <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
-          {weeksLabel(acceptedQuote.duration_weeks)} · starts {formatIsoDate(acceptedQuote.earliest_start)}
+          {durationLabel(acceptedQuote.duration, acceptedQuote.duration_unit)} · starts {formatIsoDate(acceptedQuote.earliest_start)}
           {/* The SOW matters most right here, at the off-platform handover
               (round-5 6a); the winner's message stays in the archive below. */}
           {acceptedQuote.deal_doc_url ? (

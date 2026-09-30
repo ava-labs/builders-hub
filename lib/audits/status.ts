@@ -36,6 +36,12 @@ export type QuoteStatus = (typeof QUOTE_STATUSES)[number];
 export const DISPLAY_QUOTE_STATUSES = [...QUOTE_STATUSES, "expired"] as const;
 export type DisplayQuoteStatus = (typeof DISPLAY_QUOTE_STATUSES)[number];
 
+// A firm quotes its duration in weeks or in days (Joey, 2026-09-30), and the
+// unit is stored as picked so the quote reads back the way the firm wrote it.
+// Weeks come first: every quote before days existed was in weeks.
+export const QUOTE_DURATION_UNITS = ["weeks", "days"] as const;
+export type QuoteDurationUnit = (typeof QUOTE_DURATION_UNITS)[number];
+
 // Full vocabulary kept for forward compatibility; v1 only ever writes
 // approved | declined (subsidy is admin-side only, decided after acceptance).
 export const SUBSIDY_STATES = ["none", "requested", "approved", "declined", "paid"] as const;

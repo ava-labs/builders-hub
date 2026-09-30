@@ -58,7 +58,9 @@ export interface OwnerRequestSummary {
 export interface OwnerQuote {
   id: string;
   price_usd: number;
-  duration_weeks: number;
+  /** In duration_unit, as the firm typed it: "weeks" | "days". */
+  duration: number;
+  duration_unit: string;
   earliest_start: Date;
   message: string;
   /** The firm's own proposal or SOW, if it attached one. */
@@ -129,7 +131,8 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
   const quotes: OwnerQuote[] = row.quotes.map((quote) => ({
     id: quote.id,
     price_usd: quote.price_usd,
-    duration_weeks: quote.duration_weeks,
+    duration: quote.duration,
+    duration_unit: quote.duration_unit,
     earliest_start: quote.earliest_start,
     message: quote.message,
     deal_doc_url: quote.deal_doc_url,
@@ -398,7 +401,8 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
           id: own_quote.id,
           status: own_quote.status,
           price_usd: own_quote.price_usd,
-          duration_weeks: own_quote.duration_weeks,
+          duration: own_quote.duration,
+          duration_unit: own_quote.duration_unit,
           earliest_start: own_quote.earliest_start,
           message: own_quote.message,
           deal_doc_url: own_quote.deal_doc_url,
@@ -718,7 +722,8 @@ export async function getAdminRequestDetail(requestId: string) {
     quotes: row.quotes.map((quote) => ({
       id: quote.id,
       price_usd: quote.price_usd,
-      duration_weeks: quote.duration_weeks,
+      duration: quote.duration,
+      duration_unit: quote.duration_unit,
       earliest_start: quote.earliest_start,
       message: quote.message,
       // Admins decide subsidies against these quotes; the proposal doc is
