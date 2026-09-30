@@ -817,7 +817,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
     if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
     // a stat is named for its figure (the whole answer's, a share as a percent) and a stack adds up parts of a whole
-    const label = labelError(spec, input.rows, input.totals);
+    const label = labelError(spec, input.rows, input.totals, input.sql);
     if (label) return { error: label };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
     // a flow runs from one column to another and draws one amount

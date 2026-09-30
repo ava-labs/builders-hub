@@ -40,3 +40,28 @@ describe('labelError', () => {
     expect(labelError({ stats: [], panels: [bars([{ column: 'buys', transform: 'none' }, { column: 'sells', transform: 'none' }])] }, [{ buys: 5, sells: 7, trades: 9 }], null)).toBeNull();
   });
 });
+
+describe('a max or a min over rows a LIMIT cut', () => {
+  // r11's G07: 15 of 9,664 arbitrages kept by fee; "Peak gas" read 1.01M, where the week's peak was 18.79M
+  const SQL = 'SELECT tx_hash, fee_avax, gas_charged, count() OVER () AS of_total FROM raw_txs ORDER BY fee_avax DESC LIMIT 15';
+  const rows = [
+    { fee_avax: 9.1, gas_charged: 1_010_000, of_total: 9664 },
+    { fee_avax: 4.2, gas_charged: 350_000, of_total: 9664 },
+  ];
+  const cut = { rows: 9664, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} };
+  const peak = (label: string, column: string, agg: 'max' | 'min' = 'max', sub?: string) => ({ label, column, agg, format: 'number' as const, sub });
+
+  it('is refused when the LIMIT kept the rows by another column', () => {
+    expect(labelError({ stats: [peak('Peak gas', 'gas_charged')], panels: [] }, rows, cut, SQL)).toBe(
+      '"Peak gas" shows the largest gas_charged of the 2 rows shown, not of all 9664: the LIMIT kept them by fee_avax. Name it for the rows shown ("Peak gas, top 2"), or leave it out',
+    );
+    expect(labelError({ stats: [peak('Highest fee', 'fee_avax', 'min')], panels: [] }, rows, cut, SQL)).toMatch(/^"Highest fee" shows the smallest fee_avax/);
+  });
+
+  it("passes the ranking's own peak, a figure every row holds, one named for the rows shown and one the totals carry", () => {
+    expect(labelError({ stats: [peak('Largest fee', 'fee_avax'), peak('Arbitrages', 'of_total')], panels: [] }, rows, cut, SQL)).toBeNull();
+    expect(labelError({ stats: [peak('Peak gas', 'gas_charged', 'max', 'of the top 15')], panels: [] }, rows, cut, SQL)).toBeNull();
+    expect(labelError({ stats: [peak('Peak gas', 'gas_charged')], panels: [] }, rows, { ...cut, max: { gas_charged: 18_790_000 } }, SQL)).toBeNull();
+    expect(labelError({ stats: [peak('Peak gas', 'gas_charged')], panels: [] }, rows, { ...cut, rows: 2 }, SQL)).toBeNull();
+  });
+});

@@ -45,6 +45,37 @@ export function wholeLabel(stats: readonly Pick<Stat, "label" | "sub" | "agg" | 
   return `${which} ${bad.length > 1 ? "show their figures" : "shows its figure"} over all ${totals.rows} rows, not the ${shown} here: the LIMIT cut the rest, and a stat's sum, average, count or distinct reads them all. Name the whole set ("Fees burned", "Transactions"), or show max or min`;
 }
 
+/** words that name the rows a LIMIT kept; "highest" and "largest" name the extreme, not the rows */
+const SHOWN_ROWS = /\b(?:top|first|these|shown|listed)\b/i;
+
+/** the column a LIMIT kept its rows by, and which way: the last ORDER BY's first key, or null */
+function rankedBy(sql: string | null | undefined): { column: string; desc: boolean } | null {
+  const m = sql ? [...sql.matchAll(/\bORDER\s+BY\s+`?([A-Za-z_]\w*)`?(\s+DESC)?/gi)].pop() : undefined;
+  return m ? { column: m[1], desc: !!m[2] } : null;
+}
+
+/** why a max or a min over rows a LIMIT cut is labelled for the whole answer, or null. It is the whole answer's when
+    the totals carry it, when the LIMIT kept the rows by its column, or when its column holds one figure on every row
+    (a window over all of them). r11: "Peak gas 1.01M" over the 15 largest fees, where the week's peak was 18.79M */
+function peakLabel(stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column">[], rows: readonly Record<string, unknown>[], totals: Totals | null | undefined, sql: string | null | undefined): string | null {
+  if (!totals || totals.rows <= rows.length || rows.length === 0) return null;
+  const rank = rankedBy(sql);
+  if (!rank || !(rank.column in rows[0])) return null;
+  const count = new RegExp(`\\b${rows.length}\\b`);
+  const bad = stats.find(
+    (s) =>
+      (s.agg === "max" || s.agg === "min") &&
+      wholeFigure(totals, s) === null &&
+      !(rank.column === s.column && rank.desc === (s.agg === "max")) &&
+      new Set(rows.map((r) => r[s.column])).size > 1 &&
+      !SHOWN_ROWS.test(`${s.label} ${s.sub ?? ""}`) &&
+      !count.test(`${s.label} ${s.sub ?? ""}`),
+  );
+  return bad
+    ? `"${bad.label}" shows the ${bad.agg === "max" ? "largest" : "smallest"} ${bad.column} of the ${rows.length} rows shown, not of all ${totals.rows}: the LIMIT kept them by ${rank.column}. Name it for the rows shown ("${bad.label}, top ${rows.length}"), or leave it out`
+    : null;
+}
+
 /* the highest or lowest of the rows' own averages is an average, not a price paid: the final audit's X04 read "Peak
    gas price 35.58 gwei", the highest hour's average, where the highest price paid was 19,999.92 gwei. A stat of one
    whose label and sub never say so says average ("Peak average gas price") */
@@ -81,8 +112,9 @@ export function labelError(
   spec: { stats: readonly Pick<Stat, "label" | "sub" | "agg" | "column" | "format">[]; panels: readonly Pick<Panel, "stacked" | "series">[] },
   rows: readonly Record<string, unknown>[],
   totals: Totals | null | undefined,
+  sql?: string | null,
 ): string | null {
-  const whole = wholeLabel(spec.stats, rows.length, totals);
+  const whole = wholeLabel(spec.stats, rows.length, totals) ?? peakLabel(spec.stats, rows, totals, sql);
   if (whole) return whole;
   const share = spec.stats.find((s) => /\bshare\b/i.test(s.label) && s.format !== "percent");
   if (share) return `"${share.label}" shows ${share.column} as ${share.format}, and a share is a percent: name the stat for its figure and give the share in its sub, or show a percent column with format percent`;
