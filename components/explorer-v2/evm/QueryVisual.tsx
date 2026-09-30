@@ -14,7 +14,7 @@ import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-que
 import { MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 import { wholeFigure } from "@/lib/explorer-query/stat-label";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
-import { rowCount } from "./query-client";
+import { rowCount, SAID_PARTIAL } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
 import { fmt, fmtX, nameFor, spanOf, type Span } from "./query-format";
@@ -681,11 +681,12 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
     (j: number, dashed: boolean) => {
       let o = lit[j] ? 0.9 : DIM;
       if (selected !== undefined && data[j]?.[x] !== selected) o = Math.min(o, 0.3);
-      const k = dashed ? 0.35 : 1;
+      // a bucket the edge marks partial or still filling is drawn faint, so a short edge bar never reads as a drop
+      const k = (dashed ? 0.35 : 1) * (panel.markers.some((m) => String(m.x) === String(data[j]?.[x]) && SAID_PARTIAL.test(m.label)) ? 0.45 : 1);
       const off = !hasSel && selected === undefined ? 0.4 : o;
       return { base: k * o, style: { "--qv-on": k * (lit[j] ? 1 : 0.5), "--qv-off": k * off } as CSSProperties };
     },
-    [data, lit, selected, x, hasSel],
+    [data, lit, selected, x, hasSel, panel.markers],
   );
   const drillRef = useRef(drill);
   drillRef.current = drill;
@@ -762,7 +763,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
             <ComposedChart
               data={data}
               layout={horizontal ? "vertical" : "horizontal"}
-              margin={{ top: drillMark && !horizontal ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
+              margin={{ top: !horizontal && (drillMark || (!scatter && panel.markers.length > 0)) ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
               barCategoryGap={horizontal ? "26%" : "18%"}
               stackOffset={signed ? "sign" : undefined}
               onMouseDown={(s) => ev.current.down(s)}

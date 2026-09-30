@@ -134,7 +134,7 @@ export function readerError(message: string): string {
 /* a bar the designer marked already takes the edge's word into its own label: two labels on one bar overlap. A
    label that says so already (the audit's V11 "Today, partial", V13 "Day not over") takes nothing, and any other
    ("Peak 519k") takes the word, so a peak on a period still filling never reads as whole */
-const SAID_PARTIAL = /\b(?:partial|so far|not over|filling|in progress|incomplete|index ends)\b/i;
+export const SAID_PARTIAL = /\b(?:partial|so far|not over|filling|in progress|incomplete|index ends)\b/i;
 function marked<M extends { x: string | number; label: string }>(markers: M[], x: string, label: string): (M | { x: string; label: string })[] {
   const i = markers.findIndex((m) => String(m.x) === x);
   if (i < 0) return [...markers, { x, label }];
