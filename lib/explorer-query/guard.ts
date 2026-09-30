@@ -233,6 +233,9 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   // the server reads the tables that hold duplicate rows through FINAL itself (sources.ts), and
   // ClickHouse refuses a FINAL over that read, so a query's own FINAL after one of them is dropped
   if (target.final.length) sql = sql.replace(new RegExp(`\\b(${target.final.join("|")})\\b((?:\\s+(?:AS\\s+)?(?!FINAL\\b)[A-Za-z_]\\w*)?)\\s+FINAL\\b`, "gi"), "$1$2");
+  // quantile and median read a random sample of 8192 values, so each run of a question gives another figure (up to 3%
+  // off the exact median of an hour's transactions); the exact functions hold a day's values in a few MB
+  if (!isFuji(chainId)) sql = sql.replace(/\b(quantiles?|median)(If)?\s*\(/g, (_m, f: string, c?: string) => `${f}Exact${c ?? ""}(`);
 
   // every table read must be one of the raw tables, or a reference table our server builds (sources.ts)
   // names a WITH defines (WITH snaps AS (…)) are the query's own, not tables
