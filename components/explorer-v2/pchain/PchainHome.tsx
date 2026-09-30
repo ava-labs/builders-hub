@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
@@ -279,20 +280,8 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
 
   // staking money-flow: rewards paid (last 14d) and stake unlocking (next
   // 14d). The section simply doesn't render without aggregate data.
-  const [staking, setStaking] = useState<StakingSeries | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    setStaking(null);
-    fetch(`/api/pchain-activity/${network}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: StakingSeries | null) => {
-        if (!cancelled && data?.rewards?.length) setStaking(data);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [network]);
+  const activity = useRememberedJson<StakingSeries>(`/api/pchain-activity/${network}`);
+  const staking = activity?.rewards?.length ? activity : null;
 
   const tape = blocks.data?.blocks ?? [];
   const tapeBlocks: TapeBlock[] = tape.map((b) => {

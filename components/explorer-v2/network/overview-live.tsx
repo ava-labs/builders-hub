@@ -6,7 +6,8 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
-import { Belt, GasBar, Height, MotionRow, Party, fmtAmount, useDrip } from "@/components/explorer-v2/evm/LiveBoards";
+import { Belt, GasBar, Height, MotionRow, Party, fmtAmount } from "@/components/explorer-v2/evm/LiveBoards";
+import { useTicker } from "./ticker";
 import { methodLabel } from "@/components/explorer-v2/evm/bits";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
@@ -82,6 +83,8 @@ const TX_LAG_SWEEPS = 3;
 /* rows each chain may add per sweep, so the fastest chain cannot take
    the whole board: the opening frame gets a few more */
 const OPEN_PER_CHAIN = 3;
+/* the opening frame's longest wait for half the chains to answer */
+const OPEN_WAIT_MS = 1_500;
 const SWEEP_PER_CHAIN = 2;
 const KEEP = 40;
 const ROWS = 10;
@@ -125,10 +128,22 @@ const blockNewer = (a: LiveBlock, b: LiveBlock) => b.at - a.at || b.height - a.h
 const txNewer = (a: LiveTx, b: LiveTx) =>
   b.timestamp - a.timestamp || b.blockNumber - a.blockNumber || b.txIndex - a.txIndex;
 
+/* The boards a visit leaves behind: the overview opened again within
+   MEMORY_MS (the back button from a chain) starts from them, and asks each
+   chain only for what came after. */
+const MEMORY_MS = 30_000;
+let left: { blocks: LiveBlock[]; txs: LiveTx[]; at: number } | null = null;
+const recallBoards = () => (left && Date.now() - left.at < MEMORY_MS ? left : null);
+
 function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, number>) => void) {
-  const [blocks, setBlocks] = useState<LiveBlock[]>([]);
-  const [txs, setTxs] = useState<LiveTx[]>([]);
-  const [settled, setSettled] = useState(false);
+  const [opening] = useState(recallBoards);
+  const [blocks, setBlocks] = useState<LiveBlock[]>(opening?.blocks ?? []);
+  const [txs, setTxs] = useState<LiveTx[]>(opening?.txs ?? []);
+  const [settled, setSettled] = useState(!!opening);
+
+  useEffect(() => {
+    if (blocks.length || txs.length) left = { blocks, txs, at: Date.now() };
+  }, [blocks, txs]);
 
   useEffect(() => {
     if (chains.length === 0) return;
@@ -145,6 +160,10 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
     const haveTx = new Map<string, number>();
     const lag = new Map<string, number>();
     const seenTx = new Set<string>();
+    // from the boards left behind: each chain is asked for what came after
+    const was = recallBoards();
+    for (const b of was?.blocks ?? []) lastBlock.set(b.chain.chainId, Math.max(lastBlock.get(b.chain.chainId) ?? 0, b.height));
+    for (const t of was?.txs ?? []) seenTx.add(t.hash);
     // every fresh block feeds its chain's run, so the reading is real
     // throughput, not what the board chooses to show
     const covers = new Map<string, Cover>();
@@ -243,28 +262,48 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       if (!first && document.visibilityState === "hidden") return;
       sweeping = true;
       sweepN += 1;
+      const perChain = first ? OPEN_PER_CHAIN : SWEEP_PER_CHAIN;
+      const publish = (freshBlocks: LiveBlock[], freshTxs: LiveTx[]) => {
+        if (cancelled) return;
+        if (freshBlocks.length > 0) {
+          const add = sample(freshBlocks, perChain, blockNewer);
+          setBlocks((prev) => [...add, ...prev].slice(0, KEEP));
+        }
+        if (freshTxs.length > 0) {
+          const add = sample(freshTxs, perChain, txNewer);
+          setTxs((prev) => [...add, ...prev].slice(0, KEEP));
+        }
+      };
+      // the opening frame waits for half the chains (or OPEN_WAIT_MS), not
+      // the slowest: it paints as one batch, and a chain that answers later
+      // joins on its own, placed by the ticker
+      const early: { b: LiveBlock[]; t: LiveTx[] }[] = [];
+      let opened = !first;
+      const open = () => {
+        if (opened) return;
+        opened = true;
+        publish(early.flatMap((r) => r.b), early.flatMap((r) => r.t));
+      };
+      const wait = first ? setTimeout(open, OPEN_WAIT_MS) : undefined;
       const results = await Promise.all(
         chains.map(async (chain) => {
           const b = await pollBlocks(chain, first);
           const t = await pollTxs(chain, first);
+          if (first && opened) publish(b, t);
+          else if (first) {
+            early.push({ b, t });
+            if (early.length * 2 >= chains.length) open();
+          }
           return { b, t };
         }),
       );
+      clearTimeout(wait);
       sweeping = false;
       if (cancelled) return;
       setSettled(true);
-      const freshBlocks = results.flatMap((r) => r.b);
-      const freshTxs = results.flatMap((r) => r.t);
       reportRates();
-      const perChain = first ? OPEN_PER_CHAIN : SWEEP_PER_CHAIN;
-      if (freshBlocks.length > 0) {
-        const add = sample(freshBlocks, perChain, blockNewer);
-        setBlocks((prev) => [...add, ...prev].slice(0, KEEP));
-      }
-      if (freshTxs.length > 0) {
-        const add = sample(freshTxs, perChain, txNewer);
-        setTxs((prev) => [...add, ...prev].slice(0, KEEP));
-      }
+      if (first) open();
+      else publish(results.flatMap((r) => r.b), results.flatMap((r) => r.t));
     }
 
     // back in view: catch up at once rather than wait out the interval
@@ -334,7 +373,7 @@ const chainBase = (c: LiveChain) => `/explorer/mainnet/${c.slug}`;
 function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading: boolean }) {
   // the belt holds still under the pointer so a row can be clicked
   const [hover, setHover] = useState(false);
-  const rows = useDrip(blocks, ROWS + 1, true, undefined, hover);
+  const rows = useTicker(blocks, ROWS + 1, { key: (b) => b.hash, newer: blockNewer, paused: hover });
   const cols = "md:grid-cols-[minmax(0,8rem)_6.5rem_2.5rem_minmax(0,1fr)_2.5rem]";
   return (
     <section className="flex flex-col gap-4">
@@ -394,7 +433,7 @@ function useMethodLabels(rows: LiveTx[]) {
 
 function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) {
   const [hover, setHover] = useState(false);
-  const rows = useDrip(txs, ROWS + 1, true, undefined, hover);
+  const rows = useTicker(txs, ROWS + 1, { key: (t) => t.hash, newer: txNewer, paused: hover });
   const method = useMethodLabels(rows);
   const cols =
     "md:grid-cols-[0.75rem_minmax(0,6.5rem)_6rem_minmax(0,6rem)_minmax(0,1fr)_minmax(0,6.5rem)_2.5rem]";

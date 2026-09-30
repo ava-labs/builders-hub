@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 
 /* The histories behind the network figures. Each hook returns daily
@@ -18,23 +19,10 @@ export interface DayPoint {
 export const SPARK_MIN_DAYS = 7;
 
 function useJson<T>(url: string | null, pick: (raw: unknown) => T | null): T | null {
-  const [data, setData] = useState<T | null>(null);
-  useEffect(() => {
-    if (!url) return;
-    let cancelled = false;
-    fetch(url)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((raw) => {
-        if (!cancelled && raw) setData(pick(raw));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-    // pick is an inline lambda; the url alone decides a refetch
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
-  return data;
+  const raw = useRememberedJson<unknown>(url);
+  // pick is an inline lambda; the payload alone decides a new pick
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => (raw ? pick(raw) : null), [raw]);
 }
 
 /* today's partial day would read as a collapse at the window's end */

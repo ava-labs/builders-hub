@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { recall, remember, useRememberedJson } from "@/components/explorer-v2/page-data";
 import { SectionHeader } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
@@ -76,16 +77,24 @@ function overviewWindowLabel(range: ExplorerRange): string {
 }
 
 function useOverviewStats(timeRange: ExplorerRange) {
-  const [data, setData] = useState<OverviewData | null>(null);
+  const url = `/api/overview-stats?timeRange=${timeRange}`;
+  // a range seen before opens from memory while it is read again
+  const [data, setData] = useState<OverviewData | null>(() => recall<OverviewData>(url, false)?.data ?? null);
   // when the figures landed: the anchor the live tx counter counts from
-  const [fetchedAt, setFetchedAt] = useState(0);
+  const [fetchedAt, setFetchedAt] = useState(() => recall<OverviewData>(url, false)?.at ?? 0);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
+    const hit = recall<OverviewData>(url, false);
+    if (hit) {
+      setData(hit.data);
+      setFetchedAt(hit.at);
+    }
     setRefreshing(true);
-    fetch(`/api/overview-stats?timeRange=${timeRange}`, { signal: controller.signal })
+    fetch(url, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((d: OverviewData) => {
+        remember(url, d);
         setData(d);
         setFetchedAt(Date.now());
       })
@@ -94,21 +103,12 @@ function useOverviewStats(timeRange: ExplorerRange) {
       })
       .finally(() => setRefreshing(false));
     return () => controller.abort();
-  }, [timeRange]);
+  }, [url]);
   return { data, fetchedAt, refreshing };
 }
 
 function useAvaxSupply() {
-  const [data, setData] = useState<SupplyData | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/avax-supply", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: SupplyData) => setData(d))
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
-  return data;
+  return useRememberedJson<SupplyData>("/api/avax-supply");
 }
 
 /* catalog lookups so activity rows link into each chain's own explorer */

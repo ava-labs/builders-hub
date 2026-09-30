@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { recall, remember } from "@/components/explorer-v2/page-data";
 import {
   Area,
   Bar,
@@ -51,15 +52,18 @@ const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as 
 const GRID = "rgba(161,161,170,0.18)";
 
 function useAccountsActivity(chainId: string, rangeDays: number) {
-  const [activity, setActivity] = useState<AccountsActivity | null>(null);
-  const [notIndexed, setNotIndexed] = useState(false);
   const served = Math.min(rangeDays, MAX_LEADERBOARD_DAYS);
+  const url = `/api/accounts/${chainId}?range=${served}`;
+  // a range seen before opens from memory while it is read again
+  const [activity, setActivity] = useState<AccountsActivity | null>(() => recall<AccountsActivity>(url, false)?.data ?? null);
+  const [notIndexed, setNotIndexed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setActivity(null);
+    const hit = recall<AccountsActivity>(url, false);
+    setActivity(hit?.data ?? null);
     setNotIndexed(false);
-    fetch(`/api/accounts/${chainId}?range=${served}`)
+    fetch(url)
       .then((res) => {
         if (res.status === 404) {
           if (!cancelled) setNotIndexed(true);
@@ -68,15 +72,17 @@ function useAccountsActivity(chainId: string, rangeDays: number) {
         return res.ok ? res.json() : null;
       })
       .then((data: AccountsActivity | null) => {
+        if (data) remember(url, data);
         if (!cancelled && data) setActivity(data);
       })
       .catch(() => {
-        if (!cancelled) setNotIndexed(true);
+        // the remembered boards stand through a failed read
+        if (!cancelled && !hit) setNotIndexed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [chainId, served]);
+  }, [url]);
 
   return { activity, notIndexed, served };
 }

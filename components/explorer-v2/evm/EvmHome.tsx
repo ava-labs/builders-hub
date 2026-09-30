@@ -14,15 +14,18 @@ import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { ChainRecord } from "./ChainRecord";
 import { useEvmData, LIVE_REFRESH_MS, usePrice } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { LatestBlocksBoard, LatestTxsBoard, type BlockRow, type TxRow } from "./LiveBoards";
+import { LatestBlocksBoard, LatestTxsBoard, ROWS, type BlockRow } from "./LiveBoards";
+import { useTxWindow } from "./tx-window";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import type { StatsResponse, TxListResponse, BlockListResponse } from "@/lib/evm-explorer";
+import type { StatsResponse, TxListResponse, TxSummary, BlockListResponse } from "@/lib/evm-explorer";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
-import { useTokenList, decodeErc20Call, formatTokenAmount } from "@/lib/token-list";
+import { useTokenList } from "@/lib/token-list";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
 import { readRpc } from "@/lib/explorer-rpc";
 
 
+
+const NO_TXS: TxSummary[] = [];
 
 export function EvmHome({ network }: { network: string }) {
   const c = useChainContext();
@@ -31,12 +34,12 @@ export function EvmHome({ network }: { network: string }) {
   const live = { refreshMs: LIVE_REFRESH_MS };
 
   const stats = useEvmData<StatsResponse>(c.chainId, "stats", undefined, { refreshMs: LIVE_REFRESH_MS * 2 });
-  const txs = useEvmData<TxListResponse>(c.chainId, "txs", { limit: 8 }, live);
+  // a board's worth and the row under its clip, so a chain without the stream opens full too
+  const txs = useEvmData<TxListResponse>(c.chainId, "txs", { limit: ROWS + 1 }, live);
   const blocks = useEvmData<BlockListResponse>(c.chainId, "blocks", { limit: 20 }, live);
 
   const s = stats.data;
   const blockList = blocks.data?.blocks ?? [];
-  const txList = txs.data?.transactions ?? [];
   const { price, settled: priceSettled } = usePrice(c.chainId);
   const isCchain = String(c.chainId) === "43114";
   // a chain whose token has a market price keeps its price cells in place while the price loads
@@ -118,37 +121,12 @@ export function EvmHome({ network }: { network: string }) {
         gasLimit: b.gasLimit,
       }));
 
-  // the transactions board: receipts as blocks settle (Continuous
-  // Execution chains), else the indexer's recent window
+  // the transactions board: the receipts stream and the indexer's page as
+  // one window (Continuous Execution chains), else the indexer's page. It
+  // opens full from whichever feed lands first; the newer rows of the other
+  // tick in above
   const tokens = useTokenList(c.chainId);
-  // same rule as the blocks: the receipts feed leads only while it is current
-  const streaming = head.streamTxs.length > 0 && head.streamTxs[0].blockNumber >= (txList[0]?.blockNumber ?? -1);
-  const txRows: TxRow[] = streaming
-    ? head.streamTxs.map((t) => {
-        const tok = t.to ? tokens.get(t.to.toLowerCase()) : undefined;
-        const call = tok ? decodeErc20Call(t.input) : null;
-        return {
-          hash: t.hash,
-          blockNumber: t.blockNumber,
-          from: t.from,
-          to: t.to,
-          value: t.value,
-          methodId: t.methodId,
-          success: t.success,
-          feeWei: t.feeWei,
-          tokenAmount: call && tok ? `${formatTokenAmount(call.amount, tok.decimals)} ${tok.symbol}` : null,
-        };
-      })
-    : txList.map((t) => ({
-        hash: t.hash,
-        blockNumber: t.blockNumber,
-        from: t.from,
-        to: t.to,
-        value: t.value,
-        methodId: t.methodId ?? "",
-        success: t.success,
-        feeWei: null,
-      }));
+  const txRows = useTxWindow(head.streamTxs, txs.data?.transactions ?? NO_TXS, tokens);
 
   // the header that committed a block's state root: the lowest head whose
   // settledHeight reaches it (heads are tip-first, so the last match)
@@ -259,8 +237,8 @@ export function EvmHome({ network }: { network: string }) {
               rpcUrl={readRpc(c.chainId, c.rpcUrl)}
               symbol={sym ?? "AVAX"}
               base={base}
-              loading={txs.loading && !streaming}
-              streaming={streaming}
+              loading={txs.loading && !head.streamTxs.length}
+              streaming={!!liveRpc}
             />
           </div>
 
