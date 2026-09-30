@@ -128,10 +128,22 @@ const blockNewer = (a: LiveBlock, b: LiveBlock) => b.at - a.at || b.height - a.h
 const txNewer = (a: LiveTx, b: LiveTx) =>
   b.timestamp - a.timestamp || b.blockNumber - a.blockNumber || b.txIndex - a.txIndex;
 
+/* The boards a visit leaves behind: the overview opened again within
+   MEMORY_MS (the back button from a chain) starts from them, and asks each
+   chain only for what came after. */
+const MEMORY_MS = 30_000;
+let left: { blocks: LiveBlock[]; txs: LiveTx[]; at: number } | null = null;
+const recallBoards = () => (left && Date.now() - left.at < MEMORY_MS ? left : null);
+
 function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, number>) => void) {
-  const [blocks, setBlocks] = useState<LiveBlock[]>([]);
-  const [txs, setTxs] = useState<LiveTx[]>([]);
-  const [settled, setSettled] = useState(false);
+  const [opening] = useState(recallBoards);
+  const [blocks, setBlocks] = useState<LiveBlock[]>(opening?.blocks ?? []);
+  const [txs, setTxs] = useState<LiveTx[]>(opening?.txs ?? []);
+  const [settled, setSettled] = useState(!!opening);
+
+  useEffect(() => {
+    if (blocks.length || txs.length) left = { blocks, txs, at: Date.now() };
+  }, [blocks, txs]);
 
   useEffect(() => {
     if (chains.length === 0) return;
@@ -148,6 +160,10 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
     const haveTx = new Map<string, number>();
     const lag = new Map<string, number>();
     const seenTx = new Set<string>();
+    // from the boards left behind: each chain is asked for what came after
+    const was = recallBoards();
+    for (const b of was?.blocks ?? []) lastBlock.set(b.chain.chainId, Math.max(lastBlock.get(b.chain.chainId) ?? 0, b.height));
+    for (const t of was?.txs ?? []) seenTx.add(t.hash);
     // every fresh block feeds its chain's run, so the reading is real
     // throughput, not what the board chooses to show
     const covers = new Map<string, Cover>();
