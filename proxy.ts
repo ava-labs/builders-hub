@@ -97,7 +97,7 @@ export async function proxy(req: NextRequest) {
 
   if (isAuthenticated) {
     if (isAuthPage)
-      return NextResponse.redirect(new URL(getAuthCallbackUrl(req.nextUrl.searchParams.get("callbackUrl") ?? "/", req.nextUrl.searchParams), req.url));
+      return NextResponse.redirect(new URL(getAuthCallbackUrl(req.nextUrl.searchParams.get("callbackUrl") ?? "/", req.nextUrl.searchParams, req.nextUrl.origin), req.url));
 
     if (isShowCase && !custom_attributes.includes('showcase'))
       return NextResponse.redirect(new URL("/events", req.url))

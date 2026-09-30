@@ -21,9 +21,9 @@ export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const { openLoginModal } = useLoginModalTrigger();
-  const handleLogin = () => {
+  const handleLogin = (mode: 'signin' | 'signup') => {
     setIsOpen(false);
-    openLoginModal();
+    openLoginModal(undefined, mode);
   };
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
@@ -111,13 +111,13 @@ export function NavbarDropdown() {
                   </Link>
                 ) : (
                   <div className="flex items-center gap-3 text-sm">
-                    <button type="button" onClick={handleLogin}>
+                    <button type="button" onClick={() => handleLogin('signin')}>
                       Log in
                     </button>
                     <button
                       type="button"
                       className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                      onClick={handleLogin}
+                      onClick={() => handleLogin('signup')}
                     >
                       Sign up
                     </button>

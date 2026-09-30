@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LoginArtwork } from "./LoginArtwork";
 
 import SocialLogin from "./social-login/SocialLogin";
+import { EmbeddedBrowserWarning } from "./EmbeddedBrowserWarning";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -127,6 +128,7 @@ function Formlogin({
                     </form>
                   </Form>
                 </div>
+                <EmbeddedBrowserWarning />
                 <SocialLogin callbackUrl={callbackUrl} />
                 <div>
                   <footer className="pt-10">

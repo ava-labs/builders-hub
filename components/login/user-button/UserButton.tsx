@@ -156,7 +156,7 @@ export function UserButton() {
         <button type="button" onClick={() => openLoginModal()} className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white">
           Log in
         </button>
-        <button type="button" onClick={() => openLoginModal()} className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+        <button type="button" onClick={() => openLoginModal(undefined, 'signup')} className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
           Sign up
         </button>
       </div>
