@@ -21,11 +21,13 @@ import { Board, HashChip, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { truncate } from "@/components/explorer-v2/format";
 import { Tabs, EmptyRow } from "./AddressTables";
 import { TokenMark, NativeMark } from "./TokenMark";
+import { useUnlistedTokenMeta } from "./useErc20";
 import { usePrice, usdOfWei } from "./hooks";
 import { useVerifiedContracts, decodeEventWithAbi, type SourcifyContract } from "@/lib/sourcify-client";
 import { decodeEventLog as registryDecodeEvent, decodeFunctionInput as registryDecodeInput } from "@/abi/event-signatures.generated";
-import { formatTokenAmount, usdOfToken, useSignatures, useTokenList, useTokenPrices, type SignatureHit, type TokenMap } from "@/lib/token-list";
+import { declaredSymbol, formatTokenAmount, usdOfToken, useSignatures, useTokenList, useTokenPrices, type SignatureHit, type TokenMap } from "@/lib/token-list";
 import { knownAddress } from "@/lib/evm-explorer";
+import { readRpc } from "@/lib/explorer-rpc";
 import {
   balanceChanges,
   contractsIn,
@@ -737,6 +739,8 @@ export function EvmTrace({
   const { price } = usePrice(chainId);
   const usd = price?.price ?? null;
   const prices = useTokenPrices(chainId, changes.map((c) => c.token).filter((t): t is string => !!t));
+  // an unlisted token's own decimals scale its balance changes, never its events: a pair's amount0In is not its LP token
+  const unlisted = useUnlistedTokenMeta(readRpc(chainId, undefined), changes.flatMap((c) => (c.token && !tokens.get(c.token) ? [c.token] : [])));
 
   // every address the execution mentions, for recovering mapping keys
   const slotLabels = useMemo(() => {
@@ -1016,24 +1020,21 @@ export function EvmTrace({
                 })
                 .map((c, i, arr) => {
                   const tok = c.token ? tokens.get(c.token) : undefined;
+                  const amt = c.token ? tok ?? unlisted.get(c.token) : undefined;
+                  const declared = c.token && !tok ? declaredSymbol(amt?.symbol, tokens, symbol) : null;
                   const neg = c.delta < 0n;
                   const abs = neg ? -c.delta : c.delta;
-                  const usdText = c.token ? (tok ? usdOfToken(abs, tok.decimals, prices.get(c.token)) : undefined) : usdOfWei(abs, usd);
-                  const first = i === 0 || arr[i - 1].address !== c.address;
+                  const usdText = c.token ? (amt ? usdOfToken(abs, amt.decimals, prices.get(c.token)) : undefined) : usdOfWei(abs, usd);
                   return (
                     <div key={`${c.address}-${c.token}`} className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 font-mono text-[12.5px] transition-colors hover:bg-zinc-50/60 md:h-11 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,12rem)_8rem] md:py-0 md:px-6 dark:hover:bg-zinc-900/60">
-                      <span className="min-w-0">{first ? <Who addr={c.address} n={n} /> : null}</span>
+                      <span className="min-w-0">{i === 0 || arr[i - 1].address !== c.address ? <Who addr={c.address} n={n} /> : null}</span>
                       <span className="flex min-w-0 items-center gap-1.5">
-                        {c.token ? (
-                          tok ? <TokenMark address={c.token} chainId={chainId} token={tok} size={14} /> : <HashChip value={c.token} href={`${base}/address/${c.token}`} len={8} />
-                        ) : (
-                          <NativeMark symbol={symbol} size={14} />
-                        )}
+                        {!c.token ? <NativeMark symbol={symbol} size={14} /> : tok ? <TokenMark address={c.token} chainId={chainId} token={tok} size={14} /> : nameOf(c.token, n) ? <Who addr={c.token} n={n} /> : <HashChip value={c.token} href={`${base}/address/${c.token}`} len={8} />}
                       </span>
                       <span className={cn("tabular-nums md:text-right", neg ? C.no : C.yes)}>
                         {neg ? "−" : "+"}
-                        {c.token ? (tok ? formatTokenAmount(abs, tok.decimals) : abs.toString()) : (Number(abs) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })}{" "}
-                        <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{c.token ? tok?.symbol ?? "" : symbol}</span>
+                        {c.token ? (amt ? formatTokenAmount(abs, amt.decimals) : abs.toLocaleString("en-US")) : (Number(abs) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })}{" "}
+                        <span className={cn("text-[11px] text-zinc-400 dark:text-zinc-500", declared && "underline decoration-dotted underline-offset-2")} title={declared ? "the symbol the contract declares; the token is not on our token list" : undefined}>{c.token ? tok?.symbol ?? declared ?? "" : symbol}</span>
                       </span>
                       <span className="tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{usdText ?? "—"}</span>
                     </div>
