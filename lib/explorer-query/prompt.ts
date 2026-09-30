@@ -88,6 +88,12 @@ const STARTED = /\b(?:start(?:ed|s|ing)?|began|begin|new|join(?:ed|s)?|add(?:ed|
 const validatorsTurn = (prompt: string) =>
   VALIDATORS.test(prompt) && STARTED.test(prompt) && !/\b(?:l1s?|subnets?)\b/i.test(prompt) ? " A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window." : "";
 
+/* a DEX question about pools groups by pool, never by a swap's tokens: a WOOFi pool trades many pairs, one per swap,
+   and r7's D08 split WOOFi's largest pool into its pairs, so the 9th pool by volume was missing from the top 10 */
+const POOLS = /\b(?:top(?:\s+\d+)?|busiest|largest|biggest|leading|which|what)\s+(?:\w+\s+)?pools?\b|\b(?:by|per|each|every)\s+pool\b|\bpools?\s+(?:by|with|ranked|sorted)\b/i;
+const poolsTurn = (chainId: number, prompt: string) =>
+  POOLS.test(prompt) && dexQuestion(chainId, prompt) ? " A query by pool groups by pool, protocol, version and k, never by t0 and t1: a WOOFi pool trades many pairs, one per swap, so a pool's tokens are if(uniqExact(t0, t1) = 1, any(t0), NULL) and the same for t1." : "";
+
 /** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
     the system prompt, so the prompt's version and cache stay the same from day to day. On an EVM chain a series
     question on its own is told its default window there too, and a follow-up the window of the chart before it
@@ -97,7 +103,7 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const evm = targetOf(chainId).kind !== "pchain";
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
-  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}` : validatorsTurn(prompt);
+  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}${poolsTurn(chainId, prompt)}` : validatorsTurn(prompt);
   return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
@@ -124,6 +130,8 @@ const LIQ = (at: number) => `toInt256(reinterpretAsUInt128(reverse(substring(dat
 /** an int24 tick in the last 4 bytes of a topic */
 const TICK = (c: string) => `reinterpretAsInt32(reverse(substring(${c}, 29, 4)))`;
 const hexOf = (c: string) => `lower(concat('0x', hex(${c})))`;
+/** a pool's token by pool: a WOOFi pool trades many pairs, one per swap, and has none */
+const ONE_PAIR = (t: string) => `if(uniqExact(t0, t1) = 1, any(${t}), NULL)`;
 
 const SWAPS = "uniqExact(tx, pool) AS swaps, uniqExactIf(tx, pool, usd IS NOT NULL) AS priced_swaps, round(sum(usd), 2) AS volume_usd";
 /** a drill's record columns for a log */
@@ -164,7 +172,7 @@ function dexRules(): string {
     algebra: `algebra: CustomPool ${topic(T.algebraCustom)} names the tokens in topic2 and topic3 (topic1 is its deployer), Pool ${topic(T.algebraPool)} in topic1 and topic2; both put the pool in word 0. Its pools emit the univ3 Swap, Mint and Burn, and set their fee with Fee ${topic(T.algebraFee)}: word 0, in millionths. Its positions contracts write IncreaseLiquidity ${topic(T.algebraIncrease)}, tokenId in topic1, the liquidity added in the last 16 bytes of word 1 and the pool in word 4, and the univ3 DecreaseLiquidity.`,
     lb: `lb: LBPairCreated ${topic(T.lbCreated)} puts the pool in word 0 and the bin step in topic3; tokenX is token0 and tokenY token1. Swap ${topic(T.lbSwap)}: word 1 is amountsIn and word 2 amountsOut, each two uint128, X in the last 16 bytes and Y in the first 16. DepositedToBins ${topic(T.lbDeposit)} and WithdrawnFromBins ${topic(T.lbWithdraw)}: to is topic2, word 1 is the byte offset of the amounts array, and each bin's amounts word holds X in its last 16 bytes and Y in its first 16. Read the words as the worked example does, with extractAll over their hex: a lambda over range(n) that reads data copies the log once for each bin and runs out of memory.`,
     univ4: `univ4: every pool lives in one PoolManager (dex_factories.factory). Initialize ${topic(T.v4Initialize)} creates a pool: its id is topic1 (32 bytes), its tokens are topic2 and topic3 (native AVAX is the zero address), its fee is word 0 (8388608 marks a fee that changes). Swap ${topic(T.v4Swap)}: the pool id is topic1; amount0 and amount1 are words 0 and 1, signed from the swapper's side: take their absolute values. The PoolManager holds the tokens of every univ4 pool, so no token moves to a univ4 pool's own address.`,
-    woofi: `woofi: no pools to find. Each woofi factory row is one WooPP contract that holds all its pairs, and the DEX WITH reads each as one pool: legs has WOOFi's swaps with the rest, each with its own two tokens as t0 and t1 (in address order, r0 and r1 their amounts), valued as any other swap. WooSwap ${topic(T.wooSwap)} (woo_swap in the WITH): fromToken topic1, toToken topic2, to topic3, and in data fromAmount substring(data, 1, 32), toAmount substring(data, 33, 32), from, rebateTo, swapVol substring(data, 129, 32) and swapFee substring(data, 161, 32). swapVol is WOOFi's own value of each swap in USDC (6 decimals): a question about WOOFi's own figures may read sum(${U(4)}) / 1e6 over its swaps, and the note says it is WOOFi's swapVol. swapFee is its fee, never its volume; WooPPV2.2 logs it as 0, so legs gives WOOFi's swaps no fee.`,
+    woofi: `woofi: no pools to find. Each woofi factory row is one WooPP contract that holds all its pairs, and the DEX WITH reads each as one pool: legs has WOOFi's swaps with the rest, each with its own two tokens as t0 and t1 (in address order, r0 and r1 their amounts), valued as any other swap. WooSwap ${topic(T.wooSwap)} (woo_swap in the WITH): fromToken topic1, toToken topic2, to topic3, and in data fromAmount substring(data, 1, 32), toAmount substring(data, 33, 32), from, rebateTo, swapVol substring(data, 129, 32) and swapFee substring(data, 161, 32). swapVol is WOOFi's own value of each swap in USDC (6 decimals): a question about WOOFi's own figures may read sum(${U(4)}) / 1e6 over its swaps, and the note says it is WOOFi's swapVol. swapFee is its fee, never its volume; WooPPV2.2 logs it as 0, so legs gives WOOFi's swaps no fee. A WooPP pool trades many pairs, so a query by pool groups by pool, never by t0 and t1, which would split it into its pairs.`,
   };
   return `
 ## DEXs
@@ -216,7 +224,7 @@ drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_i
   }
   if (tj.length) {
     blocks.push(`One protocol's 15 busiest pools today, with version, tokens and fee or bin step; drill into one pool's swaps:
-$DEX(${today}, 'trader-joe') SELECT ${hexOf("pool")} AS pool_address, version, ${hexOf("t0")} AS token0, ${hexOf("t1")} AS token1, k AS fee_or_bin_step, ${SWAPS}, count() OVER () AS of_total FROM legs GROUP BY pool, version, t0, t1, k ORDER BY swaps DESC LIMIT 15
+$DEX(${today}, 'trader-joe') SELECT ${hexOf("pool")} AS pool_address, version, ${hexOf(ONE_PAIR("t0"))} AS token0, ${hexOf(ONE_PAIR("t1"))} AS token1, k AS fee_or_bin_step, ${SWAPS}, count() OVER () AS of_total FROM legs GROUP BY pool, version, k ORDER BY swaps DESC LIMIT 15
 drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_NAMES}) AND l.address = {{pool_address:bytes}} ORDER BY l.block_time DESC LIMIT 50`);
   }
   if (uni) {

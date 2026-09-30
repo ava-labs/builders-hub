@@ -86,6 +86,12 @@ describe('the calendar rule', () => {
     expect(userTurn(43114, 'Which NFT collections had the most transfers today?', at)).not.toContain('topic3 IS NULL');
     expect(userTurn(43114, 'Top ERC-721 tokens by transfers this week', at)).not.toContain('topic3 IS NULL');
     expect(userTurn(43114, token, at)).not.toContain('topic3 IS NULL');
+    // a DEX question about pools groups by pool, so a WOOFi pool is one row, not its pairs (r7's D08)
+    expect(userTurn(43114, 'Top 10 pools by volume this week', at)).toContain('A query by pool groups by pool, protocol, version and k, never by t0 and t1');
+    expect(userTurn(43114, 'Which tokens had the most DEX volume today?', at)).not.toContain('A query by pool');
+    expect(userTurn(43114, 'New pools per week per DEX', at)).not.toContain('A query by pool');
+    expect(userTurn(43114, 'Which pools had the most swaps today?', at)).toContain('A query by pool');
+    expect(userTurn(43113, 'Top 10 pools by volume this week', at)).toBe('Top 10 pools by volume this week');
     // a P-Chain question about validators that started or were added counts nodes beside registrations (r7's P01)
     const nodes = ' A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window.';
     expect(turn('Validators added per week', 1)).toBe(`Today is 2026-09-28 (UTC).${nodes}`);
