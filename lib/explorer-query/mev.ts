@@ -38,7 +38,7 @@ export function mevQuestion(chainId: number, prompt: string, history: { prompt?:
 /** the MEV question's turn: the chapter's first rule where the writer reads it (a rule in the system prompt alone held
     in 1 of 6 replays; in the turn, 6 of 6) */
 export function mevTurn(chainId: number, prompt: string): string {
-  return chainId === DEX_CHAIN_ID && MEV_WORDS.test(prompt) ? ' An MEV question: the order a block ran its swaps in answers it (the MEV rules). Open the query with $SWAPORDER, and never answer kind "none" for want of a label.' : "";
+  return chainId === DEX_CHAIN_ID && MEV_WORDS.test(prompt) ? ' An MEV question: the order a block ran its swaps in answers it (the MEV rules). Open the query with $SWAPORDER, and never answer kind "none" for want of a label. Name whom a pattern finds as the rows show them: signers and the contracts they called (backrunners, attackers), a bot only where mev_bots lists it.' : "";
 }
 
 const hex = (c: string) => `lower(concat('0x', hex(${c})))`;

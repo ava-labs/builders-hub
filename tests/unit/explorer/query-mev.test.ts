@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { collapseMacros, expandMacros } from '@/lib/explorer-query/macros';
 import { MEV_BOTS, MEV_NAMES, mevQuestion, mevTurn } from '@/lib/explorer-query/mev';
-import { promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
+import { dexQuestion, promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
+import { createHash } from 'node:crypto';
+import { recipeKey } from '@/lib/explorer-query/cache';
+import { familyQuestion } from '@/lib/explorer-query/families';
+import { lendingQuestion } from '@/lib/explorer-query/lending';
 
 const C = 43114;
 
@@ -17,6 +21,13 @@ describe('an MEV question', () => {
 
   it("is told in its turn that the swaps' order answers it, and never to refuse for want of a label", () => {
     expect(mevTurn(C, 'sandwich attacks today')).toMatch(/\$SWAPORDER.*never answer kind "none" for want of a label/);
+    // a pattern finds signers and contracts; a bot is only what the registry labels one (the r6 audit's M09 called
+    // every backrunning signer a bot)
+    expect(mevTurn(C, 'backruns per hour today')).toContain('a bot only where mev_bots lists it');
+    // its recipe key holds that line, so a kept recipe written before a new line is asked again
+    const q = 'backruns per hour today';
+    const version = promptVersion(C, dexQuestion(C, q), lendingQuestion(C, q), familyQuestion(C, q), mevQuestion(C, q));
+    expect(recipeKey(C, q)).toBe(createHash('sha256').update(`${C}\n${version}\n${q}\n\n${mevTurn(C, q)}`).digest('hex').slice(0, 32));
     expect(mevTurn(C, 'USDC transfers today')).toBe('');
     expect(mevTurn(43113, 'sandwich attacks today')).toBe('');
   });

@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { redis } from "@/lib/redis";
 import { familyQuestion } from "./families";
-import { mevQuestion } from "./mev";
+import { mevQuestion, mevTurn } from "./mev";
 import { lendingQuestion } from "./lending";
 import { dexQuestion, promptVersion } from "./prompt";
 import { registryTurn } from "./registry-turn";
@@ -36,14 +36,14 @@ const LOCAL_MAX = 500;
 const local = new Map<string, Recipe>();
 
 /** the same question on the same chain, however it was typed, against the same prompt: a DEX, lending or family
-    question's names its variant, and a question that names a registry protocol with no chapter holds that protocol's
-    turn (registry-turn.ts), so a change to its lines or to the registry asks again; any other question's key is the
-    one it was */
+    question's names its variant, and a question that names a registry protocol with no chapter, or an MEV question,
+    holds its turn's lines (registry-turn.ts, mev.ts), so a change to them or to the registry asks again; any other
+    question's key is the one it was */
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
   const version = promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history), familyQuestion(chainId, prompt, history), mevQuestion(chainId, prompt, history));
-  const named = registryTurn(chainId, prompt);
+  const named = `${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}`;
   return createHash("sha256").update(`${chainId}\n${version}\n${norm}\n${past}${named && `\n${named}`}`).digest("hex").slice(0, 32);
 }
 
