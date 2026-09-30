@@ -2,12 +2,64 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+/* The explorer's memory of what it read. Each payload is kept by its URL
+   for the session, so a page opened again (a tab left and come back to,
+   the back button, a link hovered before its click) paints from memory at
+   once and reads again behind it. A polled list shows from memory only
+   while it is young: older rows would open the page on the past. A record
+   (a tx, a block, an address) shows for longer. */
+
+const MEMORY_MAX = 80;
+const LIVE_SHOW_MS = 30_000;
+const RECORD_SHOW_MS = 10 * 60_000;
+/* a payload this young (a hover's read a moment ago) is not asked for again when its page opens */
+const FRESH_MS = 3_000;
+
+const memory = new Map<string, { data: unknown; at: number }>();
+const reading = new Map<string, Promise<unknown>>();
+
+/** keep `data` as the last payload read from `url` */
+export function remember(url: string, data: unknown): void {
+  memory.delete(url);
+  memory.set(url, { data, at: Date.now() });
+  // least recent first: past the cap, the oldest go
+  for (const k of memory.keys()) {
+    if (memory.size <= MEMORY_MAX) break;
+    memory.delete(k);
+  }
+}
+
+/** the payload last read from `url`, while it is young enough to show */
+export function recall<T>(url: string, live: boolean): { data: T; at: number } | null {
+  if (!url || typeof window === "undefined") return null;
+  const hit = memory.get(url);
+  if (!hit || Date.now() - hit.at > (live ? LIVE_SHOW_MS : RECORD_SHOW_MS)) return null;
+  return hit as { data: T; at: number };
+}
+
+/** read `url` into memory ahead of its page: the page then opens on it.
+ *  A payload read a moment ago, or a read in flight, is not asked again. */
+export function prefetchJson(url: string): void {
+  const hit = memory.get(url);
+  if ((hit && Date.now() - hit.at < FRESH_MS) || reading.has(url)) return;
+  const read = fetch(url, { signal: AbortSignal.timeout(10_000) })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d: unknown) => {
+      if (d != null) remember(url, d);
+      return d;
+    })
+    .catch(() => null)
+    .finally(() => reading.delete(url));
+  reading.set(url, read);
+}
+
 /**
  * The explorer's one client read of a same-origin JSON route: plain fetch +
  * AbortController, silent background refresh (stale data stands on
  * failure), polling paused while the tab is hidden, and a 404 retry window
- * for entities the indexer trails on. useEvmData and usePchainData are this
- * hook with their own route's URL.
+ * for entities the indexer trails on. It opens on the memory's payload
+ * when there is one. useEvmData and usePchainData are this hook with their
+ * own route's URL.
  */
 export function usePolledJson<T>(
   /** "" reads nothing */
@@ -21,8 +73,9 @@ export function usePolledJson<T>(
 ): { data: T | null; loading: boolean; error: string | null; retry: () => void } {
   const refreshMs = opts?.refreshMs ?? 0;
   const retry404Ms = opts?.retry404Ms ?? 0;
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [opening] = useState(() => recall<T>(key, refreshMs > 0));
+  const [data, setData] = useState<T | null>(opening?.data ?? null);
+  const [loading, setLoading] = useState(!opening);
   const [error, setError] = useState<string | null>(null);
   // bumping the nonce re-runs the whole fetch effect: the "Retry" button
   // for feeds that died on an upstream outage rather than a 404
@@ -36,8 +89,16 @@ export function usePolledJson<T>(
     }
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
-    setLoading(true);
+    // the memory's payload shows at once; the read behind it replaces it
+    const hit = recall<T>(key, refreshMs > 0);
+    if (hit) setData(hit.data);
+    setLoading(!hit);
     setError(null);
+    const got = (d: T) => {
+      remember(key, d);
+      setData(d);
+      setError(null);
+    };
 
     // Every request carries a deadline: a fetch that never settles (laptop
     // sleep mid-request, a proxy socket that never closes) would otherwise
@@ -54,10 +115,7 @@ export function usePolledJson<T>(
       inFlight = true;
       try {
         const res = await fetch(key, { signal: pollSignal() });
-        if (res.ok) {
-          setData((await res.json()) as T);
-          setError(null);
-        }
+        if (res.ok) got((await res.json()) as T);
       } catch {
         /* keep showing the last good payload */
       }
@@ -92,8 +150,7 @@ export function usePolledJson<T>(
         try {
           const res = await fetch(key, { signal: pollSignal() });
           if (res.ok) {
-            setData((await res.json()) as T);
-            setError(null);
+            got((await res.json()) as T);
             if (refreshMs > 0) schedule();
             return;
           }
@@ -105,6 +162,16 @@ export function usePolledJson<T>(
     };
 
     (async () => {
+      // a payload read a moment ago (a hovered link) or a read of it in
+      // flight stands in for the first read
+      const early = hit && Date.now() - hit.at < FRESH_MS ? hit.data : ((await reading.get(key)) as T | null | undefined);
+      if (controller.signal.aborted) return;
+      if (early != null) {
+        setData(early);
+        setLoading(false);
+        if (refreshMs > 0) schedule();
+        return;
+      }
       // the upstream explorer API times out intermittently under load
       // (504 through the proxy); one spaced retry absorbs almost all of it.
       let notFound = false;
@@ -113,8 +180,7 @@ export function usePolledJson<T>(
           const res = await fetch(key, { signal: pollSignal() });
           if (res.status === 404) throw new Error("not found");
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          setData((await res.json()) as T);
-          setError(null);
+          got((await res.json()) as T);
           break;
         } catch (e) {
           if (e instanceof DOMException && e.name === "AbortError") return;
@@ -125,6 +191,8 @@ export function usePolledJson<T>(
             if (controller.signal.aborted) return;
             continue;
           }
+          // with the memory's payload on screen, a failed read is a failed refresh
+          if (hit) break;
           notFound = message === "not found";
           setError(message);
           setData(null);

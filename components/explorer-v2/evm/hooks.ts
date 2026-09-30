@@ -42,27 +42,8 @@ export function usePrice(chainId: string | number | undefined): {
    *  so USD-or-native cells can hold instead of flipping units */
   settled: boolean;
 } {
-  const [state, setState] = useState<{ price: PriceData | null; settled: boolean }>({
-    price: null,
-    settled: false,
-  });
-  useEffect(() => {
-    if (chainId == null) return;
-    let cancelled = false;
-    setState({ price: null, settled: false });
-    fetch(`/api/explorer/${chainId}?priceOnly=true`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { price?: PriceData } | null) => {
-        if (!cancelled) setState({ price: data?.price ?? null, settled: true });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ price: null, settled: true });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [chainId]);
-  return state;
+  const { data, loading } = usePolledJson<{ price?: PriceData }>(chainId != null ? `/api/explorer/${chainId}?priceOnly=true` : "");
+  return { price: data?.price ?? null, settled: chainId != null && !loading };
 }
 
 /** wei × USD/token → "$1,234.56"; undefined without a price or for zero */
