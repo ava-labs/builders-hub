@@ -1,7 +1,7 @@
-import type { LucideIcon } from 'lucide-react';
-import { avalancheCategoryStyles, avalancheLearningPaths } from '@/components/academy/learning-path-configs/avalanche.config';
-import { blockchainCategoryStyles, blockchainLearningPaths } from '@/components/academy/learning-path-configs/blockchain.config';
+import { AppWindow, ArrowLeftRight, BookOpen, Code, Layers, type LucideIcon } from 'lucide-react';
+import type { AcademyPartId } from '@/components/academy/learning-path-configs/academy.config';
 import { team1CategoryStyles, team1LearningPaths } from '@/components/academy/learning-path-configs/team1.config';
+import { academyCourseBySlug, academyPart } from '@/lib/academy/academy-programme';
 import { disciplineHue, type DisciplineHue } from '@/lib/academy/discipline';
 
 export interface CourseDiscipline {
@@ -11,20 +11,31 @@ export interface CourseDiscipline {
 }
 
 interface CategoryStyle { gradient: string; icon: LucideIcon; label: string }
-interface TrackConfig { nodes: { slug: string; category: string }[]; styles: Record<string, CategoryStyle> }
 
-// The discipline of a course lives only in the track configs; the category in content/courses.tsx
-// is a different taxonomy.
-const TRACKS: Record<string, TrackConfig> = {
-  'avalanche-l1': { nodes: avalancheLearningPaths, styles: avalancheCategoryStyles },
-  blockchain: { nodes: blockchainLearningPaths, styles: blockchainCategoryStyles },
-  team1: { nodes: team1LearningPaths, styles: team1CategoryStyles },
+// The overview tile's icon per part: the parts carry none (academy.config.ts).
+const PART_ICONS: Record<AcademyPartId, LucideIcon> = {
+  fundamentals: BookOpen,
+  'l1-development': Layers,
+  interoperability: ArrowLeftRight,
+  'vm-customization': Code,
+  applications: AppWindow,
 };
 
-/** The discipline label, icon and hue of a course, from its track config; null when the config does not list it. */
+const TEAM1_STYLES: Record<string, CategoryStyle> = team1CategoryStyles;
+
+/**
+ * The discipline of a course: its part for the 13 courses of the single landing (academy.config.ts), its category
+ * for a Team1 course (team1.config.ts); null when neither lists it. The category in content/courses.tsx is a
+ * different taxonomy.
+ */
 export function courseDiscipline(track: string, slug: string): CourseDiscipline | null {
-  const config = TRACKS[track];
-  const node = config?.nodes.find((n) => n.slug === `${track}/${slug}`);
-  const style = node ? config.styles[node.category] : undefined;
-  return style ? { label: style.label, Icon: style.icon, hue: disciplineHue(style.gradient) } : null;
+  if (track === 'team1') {
+    const node = team1LearningPaths.find((n) => n.slug === `team1/${slug}`);
+    const style = node ? TEAM1_STYLES[node.category] : undefined;
+    return style ? { label: style.label, Icon: style.icon, hue: disciplineHue(style.gradient) } : null;
+  }
+  const course = academyCourseBySlug(`${track}/${slug}`);
+  if (!course) return null;
+  const part = academyPart(course.part);
+  return { label: part.name, Icon: PART_ICONS[part.id], hue: part.hue };
 }

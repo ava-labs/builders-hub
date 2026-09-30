@@ -2304,30 +2304,6 @@ const config = {
           {
             type: 'query',
             key: 'path',
-            value: 'avalanche-l1',
-          },
-        ],
-        destination: "/academy/avalanche-l1",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
-            value: 'blockchain',
-          },
-        ],
-        destination: "/academy/blockchain",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
             value: 'team1',
           },
         ],
@@ -2345,6 +2321,19 @@ const config = {
       // matches the bare track url.
       {
         source: "/academy/entrepreneur/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-155): the Avalanche L1 and Blockchain landings merged into /academy. Exact
+      // paths only, so the course urls below them stay. No ?path rule may point here: Next passes the query on,
+      // so /academy would loop.
+      {
+        source: "/academy/avalanche-l1",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/academy/blockchain",
         destination: "/academy",
         permanent: true,
       },

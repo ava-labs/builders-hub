@@ -11,11 +11,17 @@ const facts = (outline: CourseOutline, duration: string | undefined) =>
   renderToStaticMarkup(createElement(CourseFacts, { outline, duration }));
 
 describe('CourseHeader', () => {
-  it('shows the hue tile and "Course · <discipline>"', () => {
-    const html = renderToStaticMarkup(createElement(CourseHeader, { discipline: courseDiscipline('avalanche-l1', 'avalanche-fundamentals') }));
-    expect(html).toContain('data-hue="blue"');
+  it('shows the hue tile and "Course · <part>"', () => {
+    const html = renderToStaticMarkup(createElement(CourseHeader, { discipline: courseDiscipline('avalanche-l1', 'interchain-messaging') }));
+    expect(html).toContain('data-hue="purple"');
     expect(html).toContain('bg-ac-t text-ac-h');
     expect(html).toContain('<svg');
+    expect(html.replace(/<[^>]+>/g, '')).toBe('Course·Interoperability');
+  });
+
+  it('draws the Fundamentals tile in ink, with no hue', () => {
+    const html = renderToStaticMarkup(createElement(CourseHeader, { discipline: courseDiscipline('avalanche-l1', 'avalanche-fundamentals') }));
+    expect(html).not.toContain('data-hue');
     expect(html.replace(/<[^>]+>/g, '')).toBe('Course·Fundamentals');
   });
 

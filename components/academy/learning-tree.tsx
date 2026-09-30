@@ -54,10 +54,16 @@ export interface TreeEdge {
   key: string;
   d: string;
   completed: boolean;
+  /** The prerequisite and the course the curve joins. */
+  from: string;
+  to: string;
 }
 
+/** What a curve needs from a course: the Team1 nodes and the landing's merged tree both have it. */
+export type TreeEdgeNode = Pick<CourseNode, "id" | "dependencies" | "position">;
+
 /** One curve per dependency, in the SVG's space (x in percent of the width, y in px). */
-export function treeEdges(courses: readonly CourseNode[], completion: ReadonlyMap<string, boolean>): TreeEdge[] {
+export function treeEdges(courses: readonly TreeEdgeNode[], completion: ReadonlyMap<string, boolean>): TreeEdge[] {
   return courses.flatMap((node) =>
     (node.dependencies ?? []).flatMap((dependencyId) => {
       const parent = courses.find((candidate) => candidate.id === dependencyId);
@@ -66,7 +72,7 @@ export function treeEdges(courses: readonly CourseNode[], completion: ReadonlyMa
       const midY = (startY + node.position.y) / 2;
       const endY = node.position.y + EDGE_END_INSET;
       const d = `M ${parent.position.x} ${startY} C ${parent.position.x} ${midY}, ${node.position.x} ${midY}, ${node.position.x} ${endY}`;
-      return [{ key: `${dependencyId}-${node.id}`, d, completed: completion.get(node.id) === true }];
+      return [{ key: `${dependencyId}-${node.id}`, d, completed: completion.get(node.id) === true, from: dependencyId, to: node.id }];
     }),
   );
 }
@@ -184,7 +190,7 @@ function MobileTree({ track, ordered, card, completion }: TreeViewProps & { orde
   );
 }
 
-export default function LearningTree({ pathType = 'avalanche', courseStats }: LearningTreeProps) {
+export default function LearningTree({ pathType = 'team1', courseStats }: LearningTreeProps) {
   const track = getAcademyTrack(pathType);
   const ordered = React.useMemo(() => coursesInOrder(track.courses), [track]);
 

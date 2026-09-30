@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const nav = vi.hoisted(() => ({ pathname: '/academy' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
 
 // Children that need a session, a browser or fumadocs' providers are stubbed; this file
 // tests the two scope roots only.
@@ -16,19 +17,26 @@ vi.mock('@/components/ui/decorative-grid', () => ({ DecorativeGrid: () => null }
 
 import { AcademyLayout } from '@/components/academy/shared/academy-layout';
 import { AcademyDocsLayoutWrapper } from '@/app/academy/layout-wrapper.client';
-import { avalancheDeveloperAcademyLandingPageConfig } from '@/app/(home)/academy/avalanche-l1/config';
+import { AcademyLanding } from '@/components/academy/landing/academy-landing';
+import { team1AcademyLandingPageConfig } from '@/app/(home)/academy/team1/config';
 
 /** The first opening tag of the markup. */
 const firstTag = (html: string) => html.slice(0, html.indexOf('>') + 1);
 
 describe('Academy scope roots', () => {
-  it('puts data-academy="landing" on the element that wraps the whole landing', () => {
-    nav.pathname = '/academy';
-    const html = renderToStaticMarkup(createElement(AcademyLayout, { config: avalancheDeveloperAcademyLandingPageConfig, courseStats: {} }));
+  it('puts data-academy="landing" on the element that wraps the whole /academy landing', () => {
+    // React 19 renders the eager banner's preload link before the root in a static render; Next moves it to <head>.
+    const html = renderToStaticMarkup(createElement(AcademyLanding, { view: 'overview', courseStats: {} })).replace(/^(?:<link rel="preload" [^>]*\/>)+/, '');
     const tag = firstTag(html);
     const name = tag.slice(1).split(/[\s>]/)[0];
     expect(tag).toContain('data-academy="landing"');
     expect(html.endsWith(`</${name}>`)).toBe(true);
+    expect(html.match(/data-academy=/g)).toHaveLength(1);
+  });
+
+  it('keeps the same root on the Team1 landing', () => {
+    const html = renderToStaticMarkup(createElement(AcademyLayout, { config: team1AcademyLandingPageConfig, courseStats: {} }));
+    expect(firstTag(html)).toContain('data-academy="landing"');
     expect(html).toContain('LEARNING_PATH');
     expect(html.match(/data-academy=/g)).toHaveLength(1);
   });

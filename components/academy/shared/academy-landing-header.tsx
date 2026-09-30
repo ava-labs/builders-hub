@@ -1,13 +1,10 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { AcademyTrackTabs } from './academy-track-tabs';
 import { coursesInOrder, courseUrl, getAcademyTrack } from './academy-tracks';
 import type { AcademyPathType } from './academy-types';
 
 /** Each track's title and the line under it: the landing's existing copy, now static. */
 const TRACK_HEADINGS: Record<AcademyPathType, { title: string; line: string }> = {
-    avalanche: { title: 'Avalanche L1 Learning Tree', line: 'Deploy L1s, bridge tokens, run and customize your own infrastructure' },
-    blockchain: { title: 'Blockchain Learning Tree', line: 'Master Solidity and deploy smart contracts' },
     team1: { title: 'Team1 Learning Tree', line: 'From fundamentals to advanced technical leadership and event organizing' },
 };
 
@@ -15,7 +12,7 @@ interface AcademyLandingHeaderProps {
     pathType: AcademyPathType;
 }
 
-/** The landing header: title, line, the button to card 01's course, then the track tabs. */
+/** The landing header: title, line, and the button to card 01's course. */
 export function AcademyLandingHeader({ pathType }: AcademyLandingHeaderProps) {
     const heading = TRACK_HEADINGS[pathType];
     const [firstCourse] = coursesInOrder(getAcademyTrack(pathType).courses);
@@ -37,7 +34,6 @@ export function AcademyLandingHeader({ pathType }: AcademyLandingHeaderProps) {
                     </Link>
                 </div>
             ) : null}
-            <AcademyTrackTabs active={pathType} />
         </div>
     );
 }

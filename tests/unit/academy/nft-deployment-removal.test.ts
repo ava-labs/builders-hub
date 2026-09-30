@@ -8,7 +8,7 @@ vi.mock("fumadocs-mdx/next", () => ({ createMDX: () => (config: unknown) => conf
 import nextConfig from "@/next.config.mjs";
 import quizData from "@/components/quizzes/data";
 import courses, { getCourseConfig } from "@/content/courses";
-import { blockchainLearningPaths } from "@/components/academy/learning-path-configs/blockchain.config";
+import { ACADEMY_COURSES } from "@/components/academy/learning-path-configs/academy.config";
 import { firstRedirect, type RedirectRule } from "./helpers/redirects";
 
 const ROOT = process.cwd();
@@ -47,14 +47,12 @@ describe("NFT Deployment removal (FDE-154)", () => {
     expect(meta.pages).not.toContain("nft-deployment");
   });
 
-  it("drops the course from the Blockchain tree and centres x402 and Encrypted ERC under Intro to Solidity", () => {
-    expect(blockchainLearningPaths.map((node) => node.id)).not.toContain("nft-deployment");
-    const third = blockchainLearningPaths.filter((node) => node.position.y === 400);
-    expect(third.map((node) => [node.id, node.position.x, node.dependencies])).toEqual([
-      ["x402-payment-infrastructure", 35, ["intro-to-solidity"]],
-      ["encrypted-erc", 65, ["intro-to-solidity"]],
+  it("keeps the course out of the merged Academy programme, x402 and Encrypted ERC after Intro to Solidity", () => {
+    expect(ACADEMY_COURSES.map((course) => course.id)).not.toContain("nft-deployment");
+    expect(ACADEMY_COURSES.filter((course) => course.dependencies.includes("intro-to-solidity")).map((course) => course.id)).toEqual([
+      "x402-payment-infrastructure",
+      "encrypted-erc",
     ]);
-    expect(blockchainLearningPaths.find((node) => node.id === "intro-to-solidity")?.position.x).toBe(50);
   });
 
   it("keeps no quiz data for the course", () => {

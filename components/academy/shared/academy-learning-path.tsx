@@ -1,7 +1,6 @@
 import LearningTree from '@/components/academy/learning-tree';
 import type { CourseStats } from '@/lib/academy/course-outline';
 import { AcademyLandingHeader } from './academy-landing-header';
-import { AcademyShortcutSection } from './academy-shortcut-section';
 import type { AcademyPathType } from './academy-types';
 
 interface AcademyLearningPathProps {
@@ -17,13 +16,6 @@ export function AcademyLearningPath({ pathType, courseStats }: AcademyLearningPa
             <div className="relative">
                 <LearningTree pathType={pathType} courseStats={courseStats} />
             </div>
-
-            {/* Shortcut section for Avalanche and Blockchain academies */}
-            {(pathType === 'avalanche' || pathType === 'blockchain') && (
-                <div className="mt-6">
-                    <AcademyShortcutSection pathType={pathType} />
-                </div>
-            )}
         </div>
     );
 }
