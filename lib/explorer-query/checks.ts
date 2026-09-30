@@ -10,6 +10,7 @@ import registryData from "@/data/contract-registry.json";
 import { FAMILY_LISTS, FAMILY_NAMES } from "./families";
 import { AAVE_SLUG, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS } from "./lending";
 import { DEX_CHAIN_ID, DEX_PROTOCOLS, DEX_TOKENS } from "./protocols";
+import { FOUND_BY } from "./registry-turn";
 import { isFuji } from "./target";
 
 /* A question that names a protocol our contract registry lists (Aave,
@@ -115,6 +116,8 @@ export function protocolScope(sql: string, questions: readonly string[], chainId
     if (slug && (text.includes(`'${slug}'`) || (TABLES[slug] && new RegExp(`\\b${TABLES[slug]}\\b`).test(text)))) return true;
     if (SERVER_NAMES.some(([name, list]) => list.some((hex) => hexes.includes(hex)) && new RegExp(`\\b${name}\\b`).test(text))) return true;
     if (family && whole(family)) return true;
+    // a protocol whose contracts the registry does not all list is read by the event that finds them (Yield Yak's Reinvest)
+    if (FOUND_BY[protocol] && text.includes(FOUND_BY[protocol])) return true;
     // a DEX's pools are not listed, only its factories: an address the registry and the token lists do not know may be one
     return !!slug && Object.hasOwn(DEX_PROTOCOLS, slug) && [...addresses].some((h) => !KNOWN.has(h));
   };

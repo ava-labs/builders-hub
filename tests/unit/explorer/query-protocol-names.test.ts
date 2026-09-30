@@ -43,8 +43,15 @@ describe('protocol names as a question types them', () => {
     expect(turn).toContain('never offer a count of calls in their place.');
     expect(turn).toContain("OrderExecuted unhex('680f10f06595d3d707241f604672ec4b6ae50eb82728ec2f3c65f6789e897760')");
     expect(turn).toContain('0xdb17b211c34240b014ab6d61d4a31fa0c0e20c26 (GMX V2 EventEmitter)');
+    // GMX's trader is the position's account, never the keeper that sends the transaction
+    expect(turn).toContain("topic2 is its account, the trader: tx_from is GMX's keeper");
+    // Yield Yak's strategies are found by their Reinvest event, as the registry lists none of them
+    const yak = registryTurn(43114, 'yield yak reinvests today');
+    expect(yak).toContain("YakStrategy's Reinvest(uint256,uint256) unhex('c7606d21ac05cd309191543e409f0845c016120563783d70e4f41419dc0ef234')");
+    expect(yak).toContain('Count what Yield Yak did from the logs these contracts and the ones the line above finds by its event emit');
+    expect(yak).toContain('The note says the count covers the contracts found that way.');
     // a protocol with no event line still gets the rule
-    expect(registryTurn(43114, 'yield yak users this week')).toContain('Count what Yield Yak did from the logs these contracts emit');
+    expect(registryTurn(43114, 'Platypus swaps this week')).toContain('Count what Platypus did from the logs these contracts emit');
     expect(userTurn(43114, 'GMX activity last 7 days', new Date('2026-09-29T12:00:00Z'))).toBe(`Today is 2026-09-29 (UTC).${turn}\n\nGMX activity last 7 days`);
     expect(registryNames(43114, 'yield yak users this week')).toEqual(['Yield Yak']);
     // a chapter's protocol, under any name the registry gives it, is the chapter's
