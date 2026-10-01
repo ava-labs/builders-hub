@@ -8,12 +8,12 @@ import { NotFound, RailRow } from "@/components/explorer-v2/detail-parts";
 import { dayLong, dayShort, formatNumber, truncate } from "@/components/explorer-v2/format";
 import { uptimeRequirementAt } from "@/constants/helicon";
 import { PRIMARY_SUBNET_ID, getCurrentValidators, type CurrentValidator } from "@/lib/pchain-node";
-import type { NodeResponse, NodeStakingTx, TxSummary } from "@/lib/pchain-explorer";
+import { isPrimaryTerm, type NodeResponse, type NodeStakingTx, type TxSummary } from "@/lib/pchain-explorer";
 import { usePchainData } from "./hooks";
 import { SubscribeAlerts } from "./SubscribeAlerts";
-import { MAX_TOTAL_STAKE_NAVAX, avax, delegationFeeCut, useP2PDetail, useStakeContext, useValidationHistory } from "./node-data";
+import { MAX_TOTAL_STAKE_NAVAX, avax, delegationFeeCut, leadSeat, useConversion, useP2PDetail, useStakeContext, useValidationHistory, validatedAsSubnet } from "./node-data";
 import { NodePerformance } from "./node-performance";
-import { ActivityTable, DelegatorsTable, ValidationHistory, ValidationsTable } from "./node-record";
+import { ActivityTable, DelegatorsTable, SubnetTerms, ValidationHistory, ValidationsTable } from "./node-record";
 import { L1ValidatorView } from "./node-l1";
 import { STORY, STORY_INK } from "./tx-story";
 import { humanPeriod } from "./tx-hooks";
@@ -23,7 +23,8 @@ import { humanPeriod } from "./tx-hooks";
    against the cap) and the current term as a line through time. Right:
    the readings a delegator judges a validator by, in a rail. Then how it
    has performed, its track record, its identifiers whole, and its
-   delegations and staking txs as ledgers. An L1-only node gets its seat. */
+   delegations and staking txs as ledgers. A node off the Primary Network
+   leads with its L1 seat, and its past terms follow as history. */
 
 const GOOD = "text-emerald-600 dark:text-emerald-400";
 
@@ -79,36 +80,43 @@ export function PchainNode({
   const validationPayout = identity?.validationRewardOwner ?? identity?.rewardOwner;
   const delegationPayout = identity?.delegationRewardOwner ?? identity?.rewardOwner;
 
-  // L1-only validators never stake on the Primary Network. The subnet can
-  // arrive two ways: a ?subnet= hint on the link, or (since the indexer
-  // learned to return L1-only nodes) the node document's own validations.
-  // Either way the page goes straight to the node for the seat view:
+  // The L1 seat the page leads with. A node off the Primary Network leads
+  // with its seat even when it has staking history: those are past terms,
+  // often on the very subnet that has since become this L1. The subnet
+  // arrives two ways: a ?subnet= hint on the link, or the node document's
+  // own validations. Either way the page asks the node for the seat:
   // platform.getCurrentValidators({subnetID, nodeIDs}).
-  const l1Subnet = subnetHint ?? n?.validations?.find((v) => v.kind === "l1")?.subnetId;
-  // no snapshot, no staking history: the L1 seat IS this node's story
-  const l1Only = !!n && !n.hasSnapshot && (n.history?.length ?? 0) === 0;
-  // the document's own l1 validation, shaped like the RPC record: the
-  // render fallback when the RPC can't answer (rate limit, outage). The
-  // page must never go blank while holding the seat data in hand.
+  const l1Subnet = error ? subnetHint : leadSeat(n, subnetHint);
+  // the document's own l1 validation on that subnet, shaped like the RPC
+  // record: the render fallback when the RPC can't answer (rate limit,
+  // outage). The page must never go blank while holding the seat data in hand.
   const l1FromDoc = useMemo<CurrentValidator | null>(() => {
-    const v = n?.validations?.find((x) => x.kind === "l1");
+    const v = n?.validations?.find((x) => x.kind === "l1" && x.subnetId === l1Subnet);
     if (!v) return null;
     return { nodeID: nodeId, weight: String(v.weight), balance: v.balance !== undefined ? String(v.balance) : undefined, validationID: v.validationId };
-  }, [n, nodeId]);
+  }, [n, nodeId, l1Subnet]);
   const [l1, setL1] = useState<CurrentValidator | null>(null);
+  const [l1Answered, setL1Answered] = useState(false);
   const [l1Checked, setL1Checked] = useState(false);
   useEffect(() => {
-    if (!(error || l1Only) || !l1Subnet) return;
+    if (!l1Subnet) return;
     let cancelled = false;
     getCurrentValidators(network, l1Subnet, [nodeId]).then((vs) => {
       if (cancelled) return;
       setL1(vs?.[0] ?? null);
+      // an empty list is the node's answer; null is a read that failed
+      setL1Answered(vs !== null);
       setL1Checked(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [error, l1Only, l1Subnet, network, nodeId]);
+  }, [l1Subnet, network, nodeId]);
+  // the node lists every seat on the L1, an inactive one too: an answer
+  // without this node's seat means it has left, whatever the document says
+  const seat = l1 ?? (l1Answered ? null : l1FromDoc);
+  // the node validated this L1 back when it was a subnet: one line says when it converted
+  const conversion = useConversion(network, validatedAsSubnet(l1Subnet, n, validations) ? l1Subnet : undefined);
 
   const [olderHistory, setOlderHistory] = useState<NodeStakingTx[]>([]);
   const [historyCursor, setHistoryCursor] = useState<number | undefined>(undefined);
@@ -143,29 +151,51 @@ export function PchainNode({
   };
   const fullHistory = n ? [...n.history, ...olderHistory] : [];
 
+  // the track record: every closed Primary Network term and what it paid,
+  // then the terms it served as a subnet validator
+  const terms = validations && (
+    <>
+      {validations.totals.periods > 0 && <ValidationHistory data={validations} base={base} />}
+      {validations.periods.some((p) => !isPrimaryTerm(p)) && <SubnetTerms data={validations} base={base} />}
+    </>
+  );
+  // the networks it validates, its delegations, its staking txs
+  const ledgers = n && (
+    <>
+      {n.validations.length > 1 && <ValidationsTable n={n} />}
+      {n.delegators.length > 0 && <DelegatorsTable n={n} base={base} />}
+      {n.history.length > 0 && <ActivityTable history={fullHistory} base={base} more={{ done: historyDone, loading: loadingOlder, onMore: loadOlderHistory }} />}
+    </>
+  );
+
   return (
     <ExplorerShell chain={chain} network={network}>
       {loading && <DetailSkeleton label="Validator" />}
-      {(error || l1Only) && l1Subnet && !l1Checked && <DetailSkeleton label="Validator" />}
+      {l1Subnet && !l1Checked && <DetailSkeleton label="Validator" />}
       {error && (!l1Subnet || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
       {/* the seat view: the RPC record when the node answered, the doc's
           own copy when it couldn't: a rate-limited RPC must not blank a
-          page whose data is already in hand */}
-      {(error || l1Only) && l1Checked && l1Subnet && (l1 ?? l1FromDoc) && (
-        <L1ValidatorView
-          network={network}
-          nodeId={nodeId}
-          subnetId={l1Subnet}
-          otherSubnets={n?.validations?.filter((x) => x.kind === "l1").map((x) => x.subnetId)}
-          v={(l1 ?? l1FromDoc)!}
-          live={!!l1}
-          base={base}
-        />
+          page whose data is already in hand. Its past terms follow it. */}
+      {l1Subnet && l1Checked && seat && (
+        <div className="flex flex-col gap-10">
+          <L1ValidatorView
+            network={network}
+            nodeId={nodeId}
+            subnetId={l1Subnet}
+            otherSubnets={n?.validations?.filter((x) => x.kind === "l1").map((x) => x.subnetId)}
+            v={seat}
+            live={!!l1}
+            conversion={conversion}
+            base={base}
+          />
+          {terms}
+          {ledgers}
+        </div>
       )}
-      {/* nodes with staking history (or no l1 seat at all) keep the full
-          indexer document view: including the corner where a subnet hint
-          exists but neither the RPC nor the doc could produce a seat */}
-      {n && (!l1Only || !l1Subnet || (l1Checked && !l1 && !l1FromDoc)) && (
+      {/* Primary Network validators, and nodes with no l1 seat at all, keep
+          the full indexer document view: including the corner where a seat
+          should lead but neither the RPC nor the doc could produce one */}
+      {n && (!l1Subnet || (l1Checked && !seat)) && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-5">
             <SectionHeader
@@ -337,8 +367,7 @@ export function PchainNode({
           {/* how it has performed: uptime by the hour, blocks by the day */}
           {n.hasSnapshot && <NodePerformance n={n} p2p={p2p} uptimeReq={uptimeReq} />}
 
-          {/* the track record: every closed term and what it actually paid */}
-          {validations && validations.periods.length > 0 && <ValidationHistory data={validations} base={base} />}
+          {terms}
 
           {/* the identifiers, whole */}
           {n.hasSnapshot && (
@@ -387,11 +416,7 @@ export function PchainNode({
             </section>
           )}
 
-          {n.validations.length > 1 && <ValidationsTable n={n} />}
-          {n.delegators.length > 0 && <DelegatorsTable n={n} base={base} />}
-          {n.history.length > 0 && (
-            <ActivityTable history={fullHistory} base={base} more={{ done: historyDone, loading: loadingOlder, onMore: loadOlderHistory }} />
-          )}
+          {ledgers}
         </div>
       )}
     </ExplorerShell>

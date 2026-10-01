@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Board, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, truncate } from "@/components/explorer-v2/format";
 import { RailRow } from "@/components/explorer-v2/detail-parts";
+import type { ConversionResponse } from "@/lib/pchain-explorer";
 import type { CurrentValidator } from "@/lib/pchain-node";
 import { balanceAt, useSecondClock } from "./seat-balance";
 import { useL1NodeVersion, useSettledSeat } from "./node-data";
@@ -22,6 +23,7 @@ export function L1ValidatorView({
   otherSubnets = [],
   v,
   live = true,
+  conversion,
   base,
 }: {
   network: string;
@@ -32,6 +34,8 @@ export function L1ValidatorView({
   v: CurrentValidator;
   /** false when the record came from the indexer snapshot instead of the node */
   live?: boolean;
+  /** when this L1 was a subnet the node validated: the story says when it converted */
+  conversion?: ConversionResponse | null;
   base: string;
 }) {
   const seat = useSettledSeat(network, v.validationID);
@@ -41,6 +45,8 @@ export function L1ValidatorView({
   const version = useL1NodeVersion(network, [subnetId, ...otherSubnets.filter((s) => s !== subnetId)], nodeId);
   // how long the balance pays the continuous fee at today's price
   const days = seat && seat.price > 0 && balance !== undefined ? balance / seat.price / 86_400 : null;
+  // an ACP-77 seat validates an L1; a record without a validationID is a legacy subnet validator's
+  const name = subnetName(subnetId) ?? `${v.validationID ? "L1" : "subnet"} ${truncate(subnetId, 8)}`;
   const owners = [
     ...(v.remainingBalanceOwner?.addresses ?? []).map((a) => ({ label: "Remaining Balance Owner", a })),
     ...(v.deactivationOwner?.addresses ?? []).map((a) => ({ label: "Deactivation Owner", a })),
@@ -62,7 +68,7 @@ export function L1ValidatorView({
                 </span>{" "}
                 validates{" "}
                 <Link href={`${base}/tx/${subnetId}`} className={STORY_LINK} title={subnetId}>
-                  {subnetName(subnetId) ?? `subnet ${truncate(subnetId, 8)}`}
+                  {name}
                 </Link>{" "}
                 with weight {formatNumber(Number(v.weight))}
                 {v.startTime && <> since {formatTime(Number(v.startTime)).slice(0, 10)}</>}.{" "}
@@ -75,11 +81,21 @@ export function L1ValidatorView({
                 ) : (
                   <>Its balance has run out: the seat stays inactive until a top-up.</>
                 )}
+                {conversion?.txHash && conversion.timestamp ? (
+                  <>
+                    {" "}
+                    {name} ran as a subnet until it{" "}
+                    <Link href={`${base}/tx/${conversion.txHash}`} className={STORY_LINK} title={conversion.txHash}>
+                      converted to an L1
+                    </Link>{" "}
+                    on {formatTime(conversion.timestamp).slice(0, 10)}.
+                  </>
+                ) : null}
               </p>
             </Board>
             <Board divide={false} className="px-5 md:px-6">
               <SpecSheet>
-                <SpecLine label="Subnet">
+                <SpecLine label={v.validationID ? "L1" : "Subnet"}>
                   <HashChip value={subnetId} href={`${base}/tx/${subnetId}`} len={66} />
                 </SpecLine>
                 {v.validationID && (

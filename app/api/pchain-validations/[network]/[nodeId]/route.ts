@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
-import type { ValidationPeriod, ValidationsResponse } from "@/lib/pchain-explorer";
+import { isPrimaryTerm, type ValidationPeriod, type ValidationsResponse } from "@/lib/pchain-explorer";
 
 /* Completed validation periods for a P-Chain node.
  *
@@ -16,6 +16,11 @@ import type { ValidationPeriod, ValidationsResponse } from "@/lib/pchain-explore
  * whether each term paid out. Note it does NOT retain per-period uptime, only
  * the rewards that were paid. Since a term only pays when the node met the
  * uptime requirement, the payout IS the performance record.
+ *
+ * The Data API also lists the node's subnet validator terms (AddSubnetValidatorTx).
+ * Each period carries its subnetId so the page can show those as their own
+ * history, and the totals count the Primary Network terms only: a subnet term
+ * stakes no AVAX and earns no reward, so it is never "unrewarded".
  */
 
 export const dynamic = "force-dynamic";
@@ -60,44 +65,74 @@ export async function GET(
   }
 }
 
-async function fetchPeriods(network: ExplorerNetwork, nodeId: string): Promise<ValidationPeriod[]> {
-  const avalanche = new Avalanche({ network: NETWORKS[network] });
+/* One page is the whole record for every real validator; take it rather than
+   walk the iterator into more Data API calls we have no use for. */
+async function firstPage(avalanche: Avalanche, nodeId: string, validationStatus: "completed" | "removed") {
   const pages = await avalanche.data.primaryNetwork.getValidatorDetails({
     nodeId,
-    validationStatus: "completed",
+    validationStatus,
     sortOrder: "desc",
     pageSize: PAGE_SIZE,
   });
-
-  const periods: ValidationPeriod[] = [];
-  for await (const page of pages) {
-    for (const v of page.result?.validators ?? []) {
-      // The union also covers active/pending/removed shapes; only completed
-      // ones carry a settled `rewards` object.
-      if (!("rewards" in v) || v.validationStatus !== "completed") continue;
-      const validationReward = v.rewards?.validationRewardAmount ?? "0";
-      periods.push({
-        txHash: v.txHash,
-        startTimestamp: v.startTimestamp,
-        endTimestamp: v.endTimestamp,
-        amountStaked: v.amountStaked,
-        delegationFeePercent: Number(v.delegationFee ?? 0),
-        delegatorCount: v.delegatorCount,
-        amountDelegated: v.amountDelegated ?? "0",
-        validationReward,
-        delegationReward: v.rewards?.delegationRewardAmount ?? "0",
-        rewardTxHash: v.rewards?.rewardTxHash,
-        rewarded: toBig(validationReward) > 0n,
-      });
-    }
-    // One page is the whole record for every real validator; bail rather than
-    // walking the iterator into more Data API calls we have no use for.
-    break;
-  }
-  return periods;
+  for await (const page of pages) return page.result?.validators ?? [];
+  return [];
 }
 
-function summarize(periods: ValidationPeriod[]): ValidationsResponse["totals"] {
+async function fetchPeriods(network: ExplorerNetwork, nodeId: string): Promise<ValidationPeriod[]> {
+  const avalanche = new Avalanche({ network: NETWORKS[network] });
+  const [completed, removed] = await Promise.all([
+    firstPage(avalanche, nodeId, "completed"),
+    // A subnet validator taken off before its end (RemoveSubnetValidatorTx) is
+    // "removed", not "completed", and is still one of its past subnet terms.
+    // Best effort: the terms that paid matter more than these rows.
+    firstPage(avalanche, nodeId, "removed").catch(() => []),
+  ]);
+
+  const periods: ValidationPeriod[] = [];
+  for (const v of completed) {
+    // The union also covers active/pending/removed shapes; only completed
+    // ones carry a settled `rewards` object.
+    if (!("rewards" in v) || v.validationStatus !== "completed") continue;
+    const validationReward = v.rewards?.validationRewardAmount ?? "0";
+    periods.push({
+      txHash: v.txHash,
+      subnetId: v.subnetId,
+      startTimestamp: v.startTimestamp,
+      endTimestamp: v.endTimestamp,
+      amountStaked: v.amountStaked,
+      delegationFeePercent: Number(v.delegationFee ?? 0),
+      delegatorCount: v.delegatorCount,
+      amountDelegated: v.amountDelegated ?? "0",
+      validationReward,
+      delegationReward: v.rewards?.delegationRewardAmount ?? "0",
+      rewardTxHash: v.rewards?.rewardTxHash,
+      rewarded: toBig(validationReward) > 0n,
+    });
+  }
+  for (const v of removed) {
+    if (!("removeTimestamp" in v) || v.validationStatus !== "removed") continue;
+    const term: ValidationPeriod = {
+      txHash: v.txHash,
+      subnetId: v.subnetId,
+      startTimestamp: v.startTimestamp,
+      // the term ran until the removal, not to its planned end
+      endTimestamp: v.removeTimestamp,
+      amountStaked: v.amountStaked,
+      delegationFeePercent: 0,
+      delegatorCount: 0,
+      amountDelegated: "0",
+      validationReward: "0",
+      delegationReward: "0",
+      rewarded: false,
+    };
+    // only a subnet validator can be removed; a Primary Network term never counts here
+    if (!isPrimaryTerm(term)) periods.push(term);
+  }
+  return periods.sort((a, b) => b.startTimestamp - a.startTimestamp);
+}
+
+function summarize(all: ValidationPeriod[]): ValidationsResponse["totals"] {
+  const periods = all.filter(isPrimaryTerm);
   // nAVAX totals over a multi-year validator exceed what a double holds
   // exactly, so sum in BigInt and hand the caller strings.
   let validation = 0n;
