@@ -1,5 +1,5 @@
 import { evmApiPath } from "@/lib/evm-explorer";
-import { pchainApiPath } from "@/lib/pchain-explorer";
+import { pchainActivityPath, pchainApiPath, pchainL1OpsPath } from "@/lib/pchain-explorer";
 import { resolveCatalogChain } from "@/lib/explorer-catalog";
 import { readJson, recall } from "./page-data";
 import { RANGE_DAYS, currentExplorerRange, type ExplorerRange } from "./time-range";
@@ -37,8 +37,18 @@ const EVM_PAGES: Record<string, (id: string, arg: string | undefined) => string[
 };
 
 const PCHAIN_PAGES: Record<string, (network: string, arg: string | undefined) => string[]> = {
-  "": (n) => [pchainApiPath(n, "stats"), pchainApiPath(n, "txs", { limit: 8 }), pchainApiPath(n, "blocks", { limit: 20 })],
+  // PchainHome: the figures, a board of ten and the row under its clip for each board,
+  // the staking flow and the L1 conversions; the stake's history is mainnet's alone
+  "": (n) => [
+    pchainApiPath(n, "stats"),
+    pchainApiPath(n, "txs", { limit: 11 }),
+    pchainApiPath(n, "blocks", { limit: 11 }),
+    pchainL1OpsPath(n),
+    pchainActivityPath(n),
+    ...(n === "mainnet" ? [STAKE_HISTORY_URL] : []),
+  ],
   txs: (n) => [pchainApiPath(n, "txs", { limit: 50 })],
+  blocks: (n) => [pchainApiPath(n, "blocks", { limit: 25 })],
   tx: (n, id) => (id ? [pchainApiPath(n, `tx/${id}`)] : []),
   block: (n, id) => (id ? [pchainApiPath(n, `block/${id}`)] : []),
   address: (n, a) => (a ? [pchainApiPath(n, `address/${a}`), pchainApiPath(n, `address/${a}/txs`, { limit: 50 })] : []),

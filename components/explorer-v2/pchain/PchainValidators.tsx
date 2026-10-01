@@ -8,8 +8,9 @@ import { PrimaryStakingContent } from "@/components/explorer-v2/staking/PrimaryS
 import { PrimaryValidatorsContent } from "@/components/explorer-v2/staking/PrimaryValidators";
 import { L1ValidatorSetContent } from "@/components/explorer-v2/staking/L1ValidatorSet";
 import { ValidatorSetSwitch } from "@/components/explorer-v2/evm/views";
-import { Board, CellLabel, SectionHeader, TypeFilterRail, HEAD, LoadMore } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, EmptyRow, HEAD, INK, LoadMore, MUTED, ROW, RowDoor, SectionHeader, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
+import { NotFound } from "@/components/explorer-v2/detail-parts";
 import {
   VersionBarChart,
   VersionLabels,
@@ -19,14 +20,14 @@ import {
 } from "@/components/stats/VersionBreakdown";
 import { usePchainData } from "./hooks";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
-import { NotFound } from "./PchainTx";
 import type { ValidatorsResponse, ValidatorSummary } from "@/lib/pchain-explorer";
 import { cn } from "@/lib/utils";
 
-/* Numeric columns the table can order by — all present on every row. */
+/* Numeric columns the table can order by: all present on every row. */
 type SortKey = "totalStake" | "delegatorCount" | "delegationFeePercent" | "uptimePercent";
+const COLS = "md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.6fr)_minmax(0,0.7fr)_minmax(0,0.7fr)]";
 
-/* Network health — the stats surface folded into the explorer: client
+/* Network health: the stats surface folded into the explorer, client
    version breakdown for the Primary Network (per network) and the
    hand-off to the full staking dashboard (which owns the world map). */
 function NetworkHealth({ network }: { network: string }) {
@@ -50,18 +51,14 @@ function NetworkHealth({ network }: { network: string }) {
     <Board divide={false}>
       <div className="flex h-full flex-col gap-4 px-5 py-5 md:px-6">
         <div className="flex items-baseline justify-between gap-4">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-            Client versions · Primary Network
-          </span>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Client Versions · Primary Network</span>
           <span className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
             {stats.nodesPercentAbove.toFixed(1)}% of nodes on {latest}
           </span>
         </div>
         <VersionBarChart versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
         <VersionLabels versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
-        <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-          {stats.stakePercentAbove.toFixed(1)}% of stake runs the latest client
-        </p>
+        <p className="text-[13px] tabular-nums text-zinc-500 dark:text-zinc-400">{stats.stakePercentAbove.toFixed(1)}% of stake runs the latest client.</p>
         {network === 'mainnet' && (
           <Link
             href="/explorer/mainnet/c-chain/validators"
@@ -102,27 +99,24 @@ export function PchainL1Validators({ chain, network }: { chain: string; network:
   return (
     <ExplorerShell chain={chain} network={network}>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <SectionHeader label="Validator Sets" action={<ValidatorSetSwitch base={base} view="l1s" />} />
-          {/* the two sets share the P-Chain's record, not the work */}
-          <p className="font-mono text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            L1 validators validate only their own L1. <span className="text-zinc-900 dark:text-zinc-100">They do not validate the Primary Network.</span> They need
-            no AVAX stake: each pays a continuous fee from its prepaid balance.
-          </p>
-        </div>
+        <SectionHeader label="Validator Sets" action={<ValidatorSetSwitch base={base} view="l1s" />} />
         <L1ValidatorSetContent network={network} />
+        {/* the two sets share the P-Chain's record, not the work */}
+        <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+          L1 validators validate only their own L1, not the Primary Network. They stake no AVAX: each pays a continuous fee from its prepaid balance.
+        </p>
       </div>
     </ExplorerShell>
   );
 }
 
-/* The P-Chain's Staking tab — the economics half of the old observatory,
+/* The P-Chain's Staking tab: the economics half of the old observatory,
    split out so the validator roster stands alone above. Mainnet only;
    the route redirects Fuji to the validators list. */
 export function PchainStaking({ chain, network }: { chain: string; network: string }) {
   return (
     <ExplorerShell chain={chain} network={network}>
-      {/* purely the Primary Network's staking economy — the ACP-77 L1
+      {/* purely the Primary Network's staking economy: the ACP-77 L1
           seat market lives on its own L1s tab (staking mints; seats burn:
           different economies, different doors) */}
       <PrimaryStakingContent
@@ -136,7 +130,7 @@ export function PchainStaking({ chain, network }: { chain: string; network: stri
 
 /* The validators body, shell-agnostic (like ChainDetailsContent): the
    P-Chain route wraps it in the P-Chain shell; the C-Chain mounts it under
-   its own Validators tab — same set, no context switch. `base` is the
+   its own Validators tab: same set, no context switch. `base` is the
    P-Chain explorer base, where the node detail pages live. */
 export function ValidatorsContent({ network, base }: { network: string; base: string }) {
   const { data, loading, error } = usePchainData<ValidatorsResponse>(network, "validators");
@@ -227,8 +221,8 @@ export function ValidatorsContent({ network, base }: { network: string; base: st
         {error && <NotFound label="No validator snapshot for this network yet" />}
         {data && (
           <>
-            <Board>
-              <div className={cn(HEAD, "grid-cols-[minmax(19rem,1.6fr)_1fr_0.7fr_0.6fr_0.7fr_0.7fr]")}>
+            <Board divide={false}>
+              <div className={cn(HEAD, COLS, "border-b border-zinc-200 dark:border-zinc-800")}>
                 <span>Node</span>
                 <SortHeader label="Total Stake" k="totalStake" />
                 <SortHeader label="Delegators" k="delegatorCount" />
@@ -236,42 +230,34 @@ export function ValidatorsContent({ network, base }: { network: string; base: st
                 <SortHeader label="Uptime" k="uptimePercent" />
                 <span className="text-right">Status</span>
               </div>
-              {rows.slice(0, shown).map((v) => (
-                <Link
-                  key={`${v.nodeId}-${v.subnetId}`}
-                  href={`${base}/node/${v.nodeId}`}
-                  className="group grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[minmax(19rem,1.6fr)_1fr_0.7fr_0.6fr_0.7fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
-                >
-                  <span className="truncate font-mono text-[12px] text-[#0061E2] group-hover:underline dark:text-[#5f9dff]">
-                    {v.nodeId}
-                  </span>
-                  <div className="font-mono text-[11px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
-                    <CellLabel>Total Stake</CellLabel>
-                    {formatAvax(v.totalStake, { compact: true })}
-                  </div>
-                  <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                    <CellLabel>Delegators</CellLabel>
-                    {formatNumber(v.delegatorCount)}
-                  </div>
-                  <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                    <CellLabel>Fee</CellLabel>
-                    {v.delegationFeePercent}%
-                  </div>
-                  <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                    <CellLabel>Uptime</CellLabel>
-                    {v.uptimePercent.toFixed(1)}%
-                  </div>
-                  <span
-                    className={`font-mono text-[10px] uppercase tracking-[0.1em] md:text-right ${
-                      v.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
-                    }`}
-                  >
-                    {v.connected ? "online" : "offline"}
-                  </span>
-                </Link>
-              ))}
+              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {rows.slice(0, shown).map((v) => (
+                  <RowDoor key={`${v.nodeId}-${v.subnetId}`} href={`${base}/node/${v.nodeId}`} className={cn(ROW, COLS)}>
+                    <span className={cn("truncate font-mono text-[12.5px]", idInk)}>{v.nodeId}</span>
+                    <span className={cn(INK, "text-right")}>
+                      <CellLabel>Total Stake</CellLabel>
+                      {formatAvax(v.totalStake, { compact: true })}
+                    </span>
+                    <span className={cn(MUTED, "md:text-right")}>
+                      <CellLabel>Delegators</CellLabel>
+                      {formatNumber(v.delegatorCount)}
+                    </span>
+                    <span className={cn(MUTED, "text-right")}>
+                      <CellLabel>Fee</CellLabel>
+                      {v.delegationFeePercent}%
+                    </span>
+                    <span className={cn(MUTED, "md:text-right")}>
+                      <CellLabel>Uptime</CellLabel>
+                      {v.uptimePercent.toFixed(1)}%
+                    </span>
+                    <span className={cn("text-right font-mono text-[10px] uppercase tracking-[0.1em]", v.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500")}>
+                      {v.connected ? "online" : "offline"}
+                    </span>
+                  </RowDoor>
+                ))}
+              </div>
               {rows.length === 0 && (
-                <div className="flex items-baseline gap-3 px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
+                <EmptyRow>
                   No validators match
                   {isFiltered && (
                     <button
@@ -280,12 +266,12 @@ export function ValidatorsContent({ network, base }: { network: string; base: st
                         setStatus("");
                         setShown(50);
                       }}
-                      className="uppercase tracking-[0.12em] text-zinc-500 underline-offset-4 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-400"
+                      className="ml-3 uppercase tracking-[0.12em] text-zinc-500 underline-offset-4 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-400"
                     >
                       Clear filters
                     </button>
                   )}
-                </div>
+                </EmptyRow>
               )}
             </Board>
             {shown < rows.length && (

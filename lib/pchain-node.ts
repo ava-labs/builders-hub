@@ -33,6 +33,7 @@ export interface PlatformUnsignedTx {
   balance?: number; // RegisterL1ValidatorTx: initial nAVAX balance
   proofOfPossession?: number[] | string; // RegisterL1ValidatorTx: BLS PoP (json = byte array)
   message?: string; // Register/SetWeight: the signed Warp message, hex
+  outputs?: unknown[]; // the tx's own outputs: a seat's refund comes after them
 }
 
 export interface SubnetInfo {
