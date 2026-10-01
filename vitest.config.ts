@@ -12,5 +12,11 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['app/api/**', 'components/toolbox/**', 'utils/**'],
+      exclude: ['**/*.md', '**/*.generated.ts'],
+    },
   },
 });
