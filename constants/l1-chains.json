@@ -1,5 +1,44 @@
 [
   {
+    "chainId": "wgrCFsWT9Gn7VjEyYAXEk7QrPo4BLT5WXM1cVNzmJgQL8No5Z",
+    "chainName": "Consequence",
+    "chainLogoURI": "/images/consequence-seal.png",
+    "blockchainId": "0x7c2c719d67441e074e3ad3ae80cd492cd4c3ae7f2b27b77b0c6cf26bea0c947a",
+    "subnetId": "WJcV97GNpiTuQMYnCPmPeuS3JA5PvF8T2Er84PNRHoaADiFc2",
+    "slug": "consequence-7c2c71",
+    "color": "#35CABB",
+    "isTestnet": false,
+    "isActive": true,
+    "isEvm": false,
+    "isIndexed": false
+  },
+  {
+    "chainId": "2vWDrWHFyAHJ5iU1ze3kyZbWBuvWAvsWnBzcc2vBbyN6qMyQvB",
+    "chainName": "Matter",
+    "chainLogoURI": "/images/matter-nucleus.png",
+    "blockchainId": "0xfd2edd69563ad0006bd5c9f8a0dfea3a7a57f4198f4954027f0afbfbe0a8fbf5",
+    "subnetId": "WJcV97GNpiTuQMYnCPmPeuS3JA5PvF8T2Er84PNRHoaADiFc2",
+    "slug": "matter-fd2edd",
+    "color": "#39B75C",
+    "isTestnet": false,
+    "isActive": true,
+    "isEvm": false,
+    "isIndexed": false
+  },
+  {
+    "chainId": "BQg8qm52wA8BfuQgbXbTKM1Z3FaVy4K265dHhAQ8u1KEvVYFD",
+    "chainName": "Relation",
+    "chainLogoURI": "/images/relation-interval.png",
+    "blockchainId": "0x17a21014bf479d4434a1c55fe140c52469cbfa47228da0be405f96f1c7b88789",
+    "subnetId": "WJcV97GNpiTuQMYnCPmPeuS3JA5PvF8T2Er84PNRHoaADiFc2",
+    "slug": "relation-17a210",
+    "color": "#ADB6BD",
+    "isTestnet": false,
+    "isActive": true,
+    "isEvm": false,
+    "isIndexed": false
+  },
+  {
     "chainId": "LEJHppkiGCMMrTyH8y6CGSuWaB6g3ZN6TVqJ9WUrTwwUNiz6N",
     "chainName": "Athera",
     "chainLogoURI": "",
