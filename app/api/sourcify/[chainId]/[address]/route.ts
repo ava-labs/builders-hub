@@ -24,11 +24,10 @@ export async function GET(
   const { chainId, address } = await params;
   const id = Number(chainId);
   const contract = await getVerifiedContractResolvingProxies(id, address);
+  // a miss is an answer, not an error: a 404 here put one console error on a
+  // page for every unverified contract it named
   if (!contract) {
-    return NextResponse.json(
-      { verified: false },
-      { status: 404, headers: { "Cache-Control": MISS_CACHE } },
-    );
+    return NextResponse.json({ verified: false }, { headers: { "Cache-Control": MISS_CACHE } });
   }
   return NextResponse.json(
     { verified: true, ...contract },

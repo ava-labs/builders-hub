@@ -16,7 +16,7 @@ describe('the execution lanes', () => {
     const html = lanes(TIP - 4, [tx(TIP - 4, 0, true), tx(TIP - 4, 1, false), tx(TIP - 4, 2, true)]);
     expect(html).toContain('queue 4 · #1,027 executing');
     // the root trails the tip by six blocks, counted in blocks
-    expect(html).toContain('#1,024 committed · 6 executing');
+    expect(html).toContain('#1,024 committed · 6 accepted');
     expect(html.match(/ring-zinc-200/g)).toHaveLength(4);
     // one reverted receipt, in red, in the block that ran it
     expect(html.match(/bg-\[#E6212F\]/g)).toHaveLength(1);

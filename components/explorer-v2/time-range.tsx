@@ -104,6 +104,13 @@ function restoreOnce() {
   }
 }
 
+/* the clock outside React, for a read ahead of its page (the link warmer):
+   this visit's pick, restored first if no page has asked for it yet */
+export function currentExplorerRange(): ExplorerRange {
+  restoreOnce();
+  return range;
+}
+
 /* Read the clock AND register as one of its consumers: any component
    calling this makes the subnav's range control appear on its page. */
 export function useExplorerTimeRange(): ExplorerRange {

@@ -5,6 +5,8 @@
    and who they dealt with. The page turns this into words. It never
    guesses beyond the evidence: an unknown shape is "called X on Y". */
 
+import type { PrecompileAct } from "@/lib/precompiles";
+
 export type Verb =
   | "swap"
   | "send"
@@ -21,6 +23,9 @@ export type Verb =
   | "wrap"
   | "unwrap"
   | "approve"
+  | "mint"
+  | "configure"
+  | "message"
   | "call"
   | "deploy"
   | "revert";
@@ -46,6 +51,9 @@ export interface StoryInput {
   targetIsToken: boolean;
   methodName: string | null;
   revertReason?: string | null;
+  /** what the chain's precompiles changed: native coin minted, roles,
+   *  fee and reward settings, Warp messages sent */
+  acts?: PrecompileAct[];
 }
 
 export interface Story {
@@ -64,9 +72,15 @@ export interface Story {
   movements: { token: string; count: number; total: bigint }[];
   methodName: string | null;
   revertReason: string | null;
+  /** the precompile changes the sentence tells (mint, configure, message) */
+  acts: PrecompileAct[];
+  /** the sender called the precompile itself, not through a contract */
+  direct: boolean;
 }
 
 const ZERO = "0x0000000000000000000000000000000000000000";
+
+type Mint = Extract<PrecompileAct, { kind: "mint" }>;
 
 export function storyOf(i: StoryInput): Story {
   const actor = i.actor.toLowerCase();
@@ -105,9 +119,18 @@ export function storyOf(i: StoryInput): Story {
   const has = (re: RegExp) => names.some((n) => re.test(n));
   const onlyTokenIs = (flows: Flow[], token: string | null) => flows.length === 1 && flows[0].token === token;
 
+  // a precompile's change is the chain's own record of what happened:
+  // a mint or a new setting leads, a Warp message only names a bare call
+  const acts = i.acts ?? [];
+  const mints = acts.filter((a): a is Mint => a.kind === "mint");
+  const settings = acts.filter((a) => a.kind !== "mint" && a.kind !== "warp");
+  const warps = acts.filter((a) => a.kind === "warp");
+
   let verb: Verb;
   if (!i.success) verb = "revert";
   else if (!to) verb = "deploy";
+  else if (mints.length) verb = "mint";
+  else if (settings.length) verb = "configure";
   else if (i.targetIsToken && onlyTokenIs(outs, null) && onlyTokenIs(ins, to)) verb = "wrap";
   else if (i.targetIsToken && onlyTokenIs(outs, to) && onlyTokenIs(ins, null)) verb = "unwrap";
   else if (has(/liquidat/)) verb = "liquidate";
@@ -124,7 +147,9 @@ export function storyOf(i: StoryInput): Story {
   else if (outs.length) verb = "send";
   else if (ins.length) verb = "receive";
   else if (has(/^approval$/) && i.transfers.length === 0) verb = "approve";
+  else if (warps.length) verb = "message";
   else verb = "call";
+  const told = verb === "mint" ? mints : verb === "configure" ? settings : verb === "message" ? warps : [];
 
   // who the sentence is about: a plain transfer names its recipient, a
   // receipt names its source, everything else names the call target
@@ -143,7 +168,9 @@ export function storyOf(i: StoryInput): Story {
   }
 
   const leadsWithOut = new Set<Verb>(["swap", "send", "repay", "deposit", "stake", "bridge", "wrap", "unwrap"]);
-  const primary = leadsWithOut.has(verb) ? outs[0] ?? ins[0] ?? null : ins[0] ?? outs[0] ?? null;
+  // a mint leads with what it minted, whoever got it
+  const minted: Flow = { token: null, amount: mints.reduce((sum, m) => sum + m.amount, 0n) };
+  const primary = verb === "mint" ? minted : leadsWithOut.has(verb) ? outs[0] ?? ins[0] ?? null : ins[0] ?? outs[0] ?? null;
   const secondary = verb === "swap" || verb === "wrap" || verb === "unwrap" ? ins[0] ?? null : null;
 
   return {
@@ -157,6 +184,8 @@ export function storyOf(i: StoryInput): Story {
     movements: [...moves.entries()].map(([token, m]) => ({ token, ...m })).sort((a, b) => b.count - a.count),
     methodName: i.methodName,
     revertReason: i.revertReason ?? null,
+    acts: told,
+    direct: told.length > 0 && told.every((a) => a.by === actor),
   };
 }
 
@@ -178,6 +207,9 @@ export const VERB_WORDS: Record<Verb, { past: string; join: string }> = {
   wrap: { past: "wrapped", join: "" },
   unwrap: { past: "unwrapped", join: "" },
   approve: { past: "approved", join: "" },
+  mint: { past: "minted", join: "to" },
+  configure: { past: "changed", join: "on" },
+  message: { past: "sent a Warp message", join: "via" },
   call: { past: "called", join: "on" },
   deploy: { past: "deployed a contract", join: "at" },
   revert: { past: "reverted", join: "on" },

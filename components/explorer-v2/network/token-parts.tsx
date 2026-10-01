@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChartBoard } from "@/components/explorer-v2/ui";
@@ -8,7 +8,9 @@ import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { StackBlock, type StackCol, type StackLayer } from "@/components/explorer-v2/gas/instruments";
 import { useNarrow } from "@/components/explorer-v2/evm/query/motion";
+import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import { fmtBurn } from "./token-live";
+import { priceHistoryUrl } from "./network-reads";
 
 /* The token page's instruments: where the 720M cap sits, what was
    issued, what each chain has burned, and the fees burned on the page
@@ -24,22 +26,9 @@ export const usdOf = (v: number, price: number) => (price > 0 ? `$${fmtCompact(v
 /* Price history for the price readout's trace, on the page clock       */
 
 export function usePriceHistory(n: number): number[] | undefined {
-  // the upstream stops at a year; the day clock gets hourly points
-  const days = n <= 1 ? "1" : n <= 7 ? "7" : n <= 30 ? "30" : n <= 90 ? "90" : "365";
-  const [prices, setPrices] = useState<number[] | undefined>(undefined);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/market-history/43114?days=${days}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { prices?: number[] } | null) => {
-        if (!cancelled && data?.prices?.length) setPrices(n <= 1 ? data.prices : data.prices.slice(-n));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [days, n]);
-  return prices;
+  // a window read before opens from memory while it is read again
+  const data = useRememberedJson<{ prices?: number[] }>(priceHistoryUrl(n));
+  return useMemo(() => (data?.prices?.length ? (n <= 1 ? data.prices : data.prices.slice(-n)) : undefined), [data, n]);
 }
 
 /* ------------------------------------------------------------------ */

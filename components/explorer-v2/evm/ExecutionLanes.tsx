@@ -114,7 +114,7 @@ export function ExecutionLanes({ heads, executedHeight, txs, live, base }: { hea
   const readings = {
     accepted: tip ? `#${formatNumber(tip.number)}` : "…",
     executed: queue === null ? "…" : queue === 0 ? "queue 0" : `queue ${queue} · #${formatNumber((executedHeight ?? 0) + 1)} executing`,
-    root: settled === null || rootGap === null ? "…" : `#${formatNumber(settled)} committed · ${rootGap} executing`,
+    root: settled === null || rootGap === null ? "…" : `#${formatNumber(settled)} committed · ${rootGap} accepted`,
   };
   const lanes = [
     { label: "Accepted", reading: readings.accepted, title: "Final: consensus accepted it. Squares are its transactions.", h: "h-10" },

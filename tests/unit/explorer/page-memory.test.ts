@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { prefetchJson, recall, remember } from '@/components/explorer-v2/page-data';
+import { readJson, recall, remember } from '@/components/explorer-v2/page-data';
 
 // the memory only answers in a browser
 beforeEach(() => {
@@ -38,16 +38,19 @@ describe('the explorer memory', () => {
       url.endsWith('/bad') ? new Response('no', { status: 502 }) : new Response(JSON.stringify({ url }), { status: 200 }),
     );
     vi.stubGlobal('fetch', fetch);
-    prefetchJson('/api/evm/43114/blocks?limit=25');
-    prefetchJson('/api/evm/43114/blocks?limit=25');
+    const read = readJson('/api/evm/43114/blocks?limit=25');
+    // the read in flight stands in for a second one
+    expect(readJson('/api/evm/43114/blocks?limit=25')).toBe(read);
     await vi.runAllTimersAsync();
     expect(fetch).toHaveBeenCalledTimes(1);
+    await expect(read).resolves.toEqual({ url: '/api/evm/43114/blocks?limit=25' });
     expect(recall('/api/evm/43114/blocks?limit=25', true)?.data).toEqual({ url: '/api/evm/43114/blocks?limit=25' });
     // a moment later it is still fresh: no second read
-    prefetchJson('/api/evm/43114/blocks?limit=25');
+    await expect(readJson('/api/evm/43114/blocks?limit=25')).resolves.toEqual({ url: '/api/evm/43114/blocks?limit=25' });
     expect(fetch).toHaveBeenCalledTimes(1);
-    prefetchJson('/api/evm/43114/bad');
+    const bad = readJson('/api/evm/43114/bad');
     await vi.runAllTimersAsync();
+    await expect(bad).resolves.toBeNull();
     expect(recall('/api/evm/43114/bad', false)).toBeNull();
   });
 });

@@ -16,11 +16,13 @@ import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcTx } from "./useRpcTx";
 import { EvmTrace, useTrace } from "./EvmTrace";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { useVerifiedContracts, functionNameFromAbi } from "@/lib/sourcify-client";
+import { useVerifiedContracts, functionNameFromAbi, decodeEventWithAbi, decodeFunctionWithAbi } from "@/lib/sourcify-client";
 import { getEventByTopic, getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { balanceChanges, flatten } from "@/lib/trace";
 import { storyOf } from "@/lib/tx-story";
+import { precompileActs } from "@/lib/precompiles";
 import { EvmTxStory } from "./EvmTxStory";
+import { PrecompileArgs, TxLogs } from "./TxLogs";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type TxDetail } from "@/lib/evm-explorer";
 import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount, useSignatures } from "@/lib/token-list";
@@ -155,7 +157,7 @@ function StatusWord({ success }: { success: boolean }) {
 
 /** an address with its name in front of it: the token list's mark
  *  (logo + symbol · name) first, then Sourcify's contract name, then a
- *  protocol fixture's label */
+ *  protocol fixture's label, which says so when it is a precompile */
 function Party({
   addr,
   name,
@@ -169,7 +171,8 @@ function Party({
   chainId: string;
   token?: { symbol: string; name: string; decimals: number; logoURI: string | null } | null;
 }) {
-  const label = token ? null : name ?? knownAddress(addr)?.label;
+  const known = knownAddress(addr, chainId);
+  const label = token ? null : name ?? known?.label;
   const quiet = !!(token || label);
   return (
     <span className="inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1">
@@ -179,7 +182,8 @@ function Party({
           <span className="text-zinc-500 dark:text-zinc-400">{token.name}</span>
         </span>
       )}
-      {label && <span>{label}</span>}
+      {label && <span title={known?.note}>{label}</span>}
+      {label && known?.abi && <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">precompile</span>}
       <HashChip value={addr} href={href} len={66} className={quiet ? "text-zinc-400 dark:text-zinc-500" : undefined} />
     </span>
   );
@@ -254,13 +258,17 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const usd = price?.price ?? null;
 
   // names: the called contract's verified record names both the party and
-  // the selector; the generated registry names the classics after that
+  // the selector, a precompile's ABI stands in for one; the generated
+  // registry names the classics after that
   const contracts = useVerifiedContracts(c.chainId, [t?.to]);
   const toContract = t?.to ? contracts.get(t.to.toLowerCase()) : undefined;
+  const toPrecompile = knownAddress(t?.to, c.chainId)?.abi;
   const selector = t?.input && t.input.length >= 10 ? t.input.slice(0, 10).toLowerCase() : "";
   const methodName = selector
-    ? functionNameFromAbi(toContract?.abi, selector) ?? getFunctionBySelector(selector)?.name ?? null
+    ? functionNameFromAbi(toContract?.abi ?? toPrecompile, selector) ?? getFunctionBySelector(selector)?.name ?? null
     : null;
+  // a precompile call's arguments, read in the precompile's own terms
+  const precompileCall = t && toPrecompile ? decodeFunctionWithAbi(toPrecompile, t.input) : null;
 
   // token metadata: names the called contract, scales a decoded transfer
   const tokens = useTokenList(c.chainId);
@@ -276,9 +284,11 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const gasPct = t && t.gasLimit > 0 ? (t.gasUsed / t.gasLimit) * 100 : 0;
   const value = t ? Number(t.value) : 0;
 
-  // the glance layer: the events' names (registry first, then the
-  // signature database), the sender's native net, and the story they make
-  const topics = t ? [...new Set(t.logs.map((l) => (l.topics[0] ?? "").toLowerCase()).filter(Boolean))] : [];
+  // the glance layer: the events' names (a precompile's ABI, the
+  // registry, then the signature database), what the precompiles changed,
+  // the sender's native net, and the story they make
+  const precompileEvent = (l: TxDetail["logs"][number]) => decodeEventWithAbi(knownAddress(l.address, c.chainId)?.abi, l)?.name ?? null;
+  const topics = t ? [...new Set(t.logs.filter((l) => !precompileEvent(l)).map((l) => (l.topics[0] ?? "").toLowerCase()).filter(Boolean))] : [];
   const unnamedTopics = topics.filter((tp) => !getEventByTopic(tp, 1));
   const sigs = useSignatures(selector && !methodName ? [selector] : [], unnamedTopics);
   // unnamed, the selector itself is the honest word for what was called
@@ -287,10 +297,11 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
     ? t.logs
         .map((l) => {
           const tp = (l.topics[0] ?? "").toLowerCase();
-          return getEventByTopic(tp, l.topics.length)?.name ?? sigs.ev.get(tp)?.name.split("(")[0] ?? null;
+          return precompileEvent(l) ?? getEventByTopic(tp, l.topics.length)?.name ?? sigs.ev.get(tp)?.name.split("(")[0] ?? null;
         })
         .filter((n): n is string => !!n)
     : [];
+  const acts = t ? precompileActs(c.chainId, t) : [];
   const nativeNet = (() => {
     if (!t) return 0n;
     if (trace) {
@@ -298,7 +309,9 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
       return (mine?.delta ?? 0n) + feeWei;
     }
     const refunds = t.internalTxns.filter((it) => it.to?.toLowerCase() === t.from.toLowerCase()).reduce((acc, it) => acc + BigInt(it.value || "0"), 0n);
-    return refunds - BigInt(t.value || "0");
+    // with no trace, native coin the Native Minter sent the sender shows only in its log
+    const minted = acts.reduce((acc, a) => (a.kind === "mint" && a.to === t.from.toLowerCase() ? acc + a.amount : acc), 0n);
+    return refunds + minted - BigInt(t.value || "0");
   })();
   const story = t
     ? storyOf({
@@ -312,6 +325,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
         targetIsToken: !!toToken,
         methodName: storyMethod,
         revertReason: trace?.call.revertReason ?? trace?.call.error ?? null,
+        acts,
       })
     : null;
 
@@ -398,6 +412,11 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                       </span>
                     </SpecLine>
                   )}
+                  {precompileCall && precompileCall.params.length > 0 && (
+                    <SpecLine label="Arguments" align="start">
+                      <PrecompileArgs params={precompileCall.params} base={base} chainId={c.chainId} symbol={sym} />
+                    </SpecLine>
+                  )}
                   <SpecLine label="Block">
                     <span className="inline-flex flex-wrap items-baseline gap-x-3">
                       <Link href={`${base}/block/${t.blockNumber}`} className="font-mono text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]">
@@ -438,7 +457,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                     {life.ready ? (
                       <span className="flex items-center gap-2.5">
                         <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">executing</span>}
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">accepted</span>}
                       </span>
                     ) : (
                       "…"
@@ -606,39 +625,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </section>
           )}
 
-          {!traced && (
-          <section className="flex flex-col gap-4">
-            <SectionHeader label={`Event Logs · ${t.logs.length}`} />
-            <Board>
-              {t.logs.length === 0 && (
-                <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  no logs emitted
-                </div>
-              )}
-              {t.logs.map((log) => (
-                <div key={log.logIndex} className="flex flex-col gap-2 px-5 py-4 md:px-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <HashChip value={log.address} href={`${base}/address/${log.address}`} len={42} />
-                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                      #{log.logIndex}
-                    </span>
-                  </div>
-                  {log.topics.map((topic, ti) => (
-                    <p key={ti} className="break-all font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                      <span className="text-zinc-400 dark:text-zinc-600">[{ti}] </span>
-                      {topic}
-                    </p>
-                  ))}
-                  {log.data && log.data !== "0x" && (
-                    <p className="break-all font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                      {truncate(log.data, 80)}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </Board>
-          </section>
-          )}
+          {!traced && <TxLogs logs={t.logs} base={base} chainId={c.chainId} symbol={sym} />}
         </div>
       )}
     </EvmShell>

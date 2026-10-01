@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { readsOf } from '@/components/explorer-v2/warm-reads';
+import { readsOf, warmReads } from '@/components/explorer-v2/warm-reads';
 
 describe('readsOf', () => {
   it('names the first reads of a chain home, its lists and its records', () => {
@@ -26,11 +26,51 @@ describe('readsOf', () => {
     expect(readsOf('/explorer/mainnet/x-chain/txs')).toEqual(['/api/xchain/mainnet/txs?limit=50']);
   });
 
+  it('reads the network scope on the page clock, mainnet only', () => {
+    expect(readsOf('/explorer/mainnet', 'all')).toEqual([
+      '/api/overview-stats?timeRange=year',
+      '/api/avax-supply',
+      '/api/dapps',
+      '/api/chain-stats/all?metrics=txCount,activeAddresses,icmMessages&timeRange=all',
+      '/api/primary-network-stats?timeRange=all',
+      '/api/chain-stats/43114?metrics=cumulativeBurn&timeRange=1y',
+    ]);
+    expect(readsOf('/explorer/mainnet/token', 'week')).toEqual([
+      '/api/avax-supply',
+      '/api/chain-stats/43114?metrics=feesPaid&timeRange=1y',
+      '/api/icm-contract-fees?timeRange=1y',
+      '/api/market-history/43114?days=7',
+      '/api/primary-network-stats?timeRange=all',
+      '/api/chain-stats/43114?metrics=cumulativeBurn&timeRange=1y',
+    ]);
+    // no range named: the clock's, a month by default
+    expect(readsOf('/explorer/mainnet/')[0]).toBe('/api/overview-stats?timeRange=month');
+    expect(readsOf('/explorer/fuji')).toEqual([]);
+    expect(readsOf('/explorer/fuji/token')).toEqual([]);
+    expect(readsOf('/explorer/mainnet/token/supply')).toEqual([]);
+  });
+
   it('warms nothing for a page it does not list, a chain it does not know or a path outside the explorer', () => {
     expect(readsOf('/explorer/mainnet/c-chain/gas')).toEqual([]);
     expect(readsOf('/explorer/mainnet/c-chain/constructor')).toEqual([]);
     expect(readsOf('/explorer/mainnet/no-such-chain/txs')).toEqual([]);
-    expect(readsOf('/explorer/mainnet')).toEqual([]);
     expect(readsOf('/docs/explorer/mainnet/c-chain')).toEqual([]);
+  });
+});
+
+describe('warmReads', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('warms the overview boards of the chains its figures name, at low priority', async () => {
+    vi.stubGlobal('window', {});
+    const chains = [{ chainId: '43114', chainName: 'Avalanche C-Chain', chainLogoURI: '', txCount: 9 }];
+    const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
+      new Response(JSON.stringify(url.startsWith('/api/overview-stats') ? { chains } : {}), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    warmReads('/explorer/mainnet');
+    await vi.waitFor(() => expect(fetch.mock.calls.map(([url]) => url)).toContain('/api/evm/43114/txs?limit=6'));
+    expect(fetch.mock.calls.map(([url]) => url)).toContain('/api/explorer/43114?blocksOnly=true');
+    expect(fetch.mock.calls.every(([, init]) => init?.priority === 'low')).toBe(true);
   });
 });

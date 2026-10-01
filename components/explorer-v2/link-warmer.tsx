@@ -33,6 +33,8 @@ export function LinkWarmer() {
     let rest: ReturnType<typeof setTimeout> | undefined;
     const warm = (href: string) => {
       const now = Date.now();
+      // the page's own link: its reads are on screen already
+      if (href.split(/[?#]/)[0] === location.pathname) return;
       if (now - (warmed.get(href) ?? 0) < AGAIN_MS) return;
       warmed.set(href, now);
       router.prefetch(href, { kind: FULL });

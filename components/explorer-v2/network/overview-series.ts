@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
+import { BURN_HISTORY_URL, STAKE_HISTORY_URL, networkSeriesUrl } from "./network-reads";
 
 /* The histories behind the network figures. Each hook returns daily
    points, oldest first, so a figure can draw its spark and its move
@@ -38,12 +39,6 @@ const toPoints = (rows: Raw[] | undefined, key: "value" | "messageCount" = "valu
     return typeof v === "number" && Number.isFinite(v) ? [{ t: r.timestamp, v }] : [];
   });
 
-/** the chain-stats window that holds two of the clock's windows */
-function statsRange(days: number): string {
-  const need = days * 2;
-  return need <= 30 ? "30d" : need <= 90 ? "90d" : need <= 365 ? "1y" : "all";
-}
-
 export interface NetworkSeries {
   txCount: DayPoint[];
   activeAddresses: DayPoint[];
@@ -52,7 +47,7 @@ export interface NetworkSeries {
 
 /** the whole network's daily activity: the metrics API's mainnet rollup */
 export function useNetworkSeries(days: number): NetworkSeries | null {
-  return useJson(`/api/chain-stats/all?metrics=txCount,activeAddresses,icmMessages&timeRange=${statsRange(days)}`, (raw) => {
+  return useJson(networkSeriesUrl(days), (raw) => {
     const r = raw as Record<string, { data?: Raw[] } | undefined>;
     return {
       txCount: complete(toPoints(r.txCount?.data)),
@@ -62,18 +57,9 @@ export function useNetworkSeries(days: number): NetworkSeries | null {
   });
 }
 
-/** AVAX's daily price, oldest first; the upstream stops at a year */
-export function usePriceHistory(days: number): number[] | null {
-  const span = days <= 7 ? 7 : days <= 30 ? 30 : days <= 90 ? 90 : 365;
-  return useJson(`/api/market-history/43114?days=${span}`, (raw) => {
-    const prices = (raw as { prices?: number[] }).prices;
-    return Array.isArray(prices) && prices.length ? prices : null;
-  });
-}
-
 /** the Primary Network's stake by day, in AVAX: own stake plus delegations */
 export function useStakeHistory(): DayPoint[] | null {
-  return useJson("/api/primary-network-stats?timeRange=all", (raw) => {
+  return useJson(STAKE_HISTORY_URL, (raw) => {
     const r = raw as { validator_weight?: { data?: Raw[] }; delegator_weight?: { data?: Raw[] } };
     const delegated = new Map(toPoints(r.delegator_weight?.data).map((p) => [p.t, p.v]));
     const own = toPoints(r.validator_weight?.data);
@@ -84,7 +70,7 @@ export function useStakeHistory(): DayPoint[] | null {
 
 /** every AVAX burned to date, by day */
 export function useBurnHistory(): DayPoint[] | null {
-  return useJson("/api/chain-stats/43114?metrics=cumulativeBurn&timeRange=1y", (raw) => {
+  return useJson(BURN_HISTORY_URL, (raw) => {
     const rows = (raw as { cumulativeBurn?: { data?: Raw[] } }).cumulativeBurn?.data;
     return rows ? complete(toPoints(rows)) : null;
   });

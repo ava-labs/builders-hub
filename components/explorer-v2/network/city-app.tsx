@@ -2032,13 +2032,13 @@ export function CityApp({
   /* large screens: the city, and its panels over it                   */
   /* ---------------------------------------------------------------- */
   const PANEL_W = 372;
-  // the card's other view: the 2D explorer of the whole network
-  const EXPLORER_2D = "/explorer/mainnet";
   const LIVE_W = 344;
   // the panel stands while the list is asked for, or while a chain or a district is open
   // without WebGL 2 the list stands open: it is the way to the chains while the city cannot
   // the P-Chain picked (its wing downtown) opens its own view in the panel, and its newest txs at the right
   const pchainOpen = net === "mainnet" && selected === PCHAIN_PICK;
+  // the card's other view, the 2D explorer: the open chain's own home when it has one, else the whole network's
+  const explorer2d = (selectedRow?.chain && explorerOf(selectedRow.chain)) || (pchainOpen ? "/explorer/mainnet/p-chain" : "/explorer/mainnet");
   // an ICM route picked on its street opens its own view in the panel
   const routeOpen = net === "mainnet" && route !== null;
   const showPanel = panelOpen || !webgl || !!selectedRow || pchainOpen || routeOpen || (!!focus && net === "mainnet");
@@ -2177,7 +2177,7 @@ export function CityApp({
           className="flex h-11 items-stretch gap-0.5 rounded-2xl border border-zinc-200/90 bg-white/[0.94] p-1 text-[13px] font-medium shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]"
         >
           {/* Explorer first, City second: the same order as the 2D subnav's toggle */}
-          <Link href={EXPLORER_2D} transitionTypes={VIEW_SWITCH} className="flex items-center rounded-xl px-3 text-zinc-500 transition-colors hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100">
+          <Link href={explorer2d} transitionTypes={VIEW_SWITCH} className="flex items-center rounded-xl px-3 text-zinc-500 transition-colors hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100">
             Explorer
           </Link>
           <span aria-current="page" className="flex items-center rounded-xl bg-zinc-100 px-3 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50">

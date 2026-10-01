@@ -174,7 +174,7 @@ const GAS_GLOSSARY = `Gas vocabulary on this chain (ACP-194, Continuous Executio
 - Gas reserved: the sum of the gas limits of a block's transactions. It is what fills a block and what the block header reports as gasUsed.
 - Gas charged: what the sender pays for, max(gas used, half the gas limit). It is the receipt's gasUsed. Fee = gas charged x effective gas price.
 - Gas used: what execution consumed: intrinsic gas + opcode costs. Since Helicon the EVM credits no storage refund, so gas charged equals gas used unless the half-limit floor applied. Only the execution trace knows the split.
-- A transaction is FINAL the moment its block is accepted. The state root commits a few blocks later; that is bookkeeping, not finality. Say "state root pending" or "state root committed", never "settled" or "waiting".`;
+- A transaction is FINAL the moment its block is accepted. The state root commits a few blocks later; that is bookkeeping, not finality. Say "accepted" while its state root is not committed yet, then "state root committed", never "settled", "waiting" or "pending".`;
 
 /* ------------------------------------------------------------------ */
 /* the brief: cheap, on every request                                  */
@@ -243,7 +243,7 @@ export async function pageBrief(ref: PageRef, baseUrl: string): Promise<string> 
       }
       case "evm-address": {
         lines.push(`It is the page of account ${ref.address} on ${chainName(ref.scope)}.`);
-        const known = knownAddress(ref.address);
+        const known = knownAddress(ref.address, ref.scope.chainId);
         if (known) lines.push(`This is a well-known address: ${known.label}. ${known.note}`);
         lines.push(
           "The page shows the balance, token holdings, transactions, token transfers, and for contracts the verified source, ABI and bytecode.",
@@ -326,7 +326,7 @@ async function txHeadline(scope: ChainScope, hash: string): Promise<TxHead | nul
   const charged = hexInt(receipt.gasUsed);
   const limit = hexInt(tx.gas);
   const fee = BigInt(receipt.gasUsed) * BigInt(receipt.effectiveGasPrice);
-  const known = tx.to ? knownAddress(tx.to) : undefined;
+  const known = tx.to ? knownAddress(tx.to, scope.chainId) : undefined;
   const text = [
     `Status: ${receipt.status === "0x1" ? "Final (succeeded)" : "Reverted"}. Block #${num(hexInt(tx.blockNumber))}${timestamp ? ` at ${iso(timestamp)}` : ""}.`,
     `From ${tx.from} to ${tx.to ?? `(contract creation${receipt.contractAddress ? `: ${receipt.contractAddress}` : ""})`}${known ? ` (${known.label})` : ""}. Value ${amount(BigInt(tx.value), 18)} ${sym}.`,
@@ -690,7 +690,7 @@ async function addressData(ref: Extract<PageRef, { kind: "evm-address" }>, baseU
     if (codeBytes) out.push(`It is a contract: ${num(codeBytes)} bytes of code.`);
     else out.push("It is an externally owned account (no code).");
   }
-  const known = knownAddress(address);
+  const known = knownAddress(address, scope.chainId);
   if (known) out.push(`Well-known address: ${known.label}. ${known.note}`);
   if (scope.chainId && isGenesisCode(scope.chainId, address)) out.push("Its code was written at genesis and only reverts: every call fails, so nothing can be transferred out. Fees sent here are burned.");
   if (scope.chainId) {
