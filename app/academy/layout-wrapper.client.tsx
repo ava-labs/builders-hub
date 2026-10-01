@@ -3,7 +3,7 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { useMemo } from 'react';
+import { createElement, useMemo } from 'react';
 import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-injector';
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
@@ -13,6 +13,7 @@ import { withModuleNumbers } from '@/components/academy/sidebar/module-numbers';
 import { RevealActiveSidebarItem } from '@/components/academy/sidebar/reveal-active-sidebar-item';
 import { useMediaQuery } from 'fumadocs-core/utils/use-media-query';
 import { AcademySubNav, partMenu } from '@/components/academy/course/academy-subnav';
+import { COURSE_ICONS } from '@/components/academy/course/course-icons';
 import { CourseSidebarHeading } from '@/components/academy/sidebar/course-sidebar-heading';
 import { academyCourseOfPathname } from '@/lib/academy/academy-programme';
 
@@ -68,6 +69,9 @@ export function AcademyDocsLayoutWrapper({
                     ? inDrawer
                         ? partMenu(part).map((item) => ({
                               title: item.title,
+                              // The course's own icon at the docs config's icon size
+                              // (components/navigation/docs-nav-config.tsx:35): nothing in fumadocs sizes it.
+                              icon: createElement(COURSE_ICONS[item.id], { className: 'w-5 h-5' }),
                               // The popover renders outside the Academy root (portalled to body), so the line
                               // carries its own Academy scope for the tokens, as the landing's hover card does.
                               description: <span data-academy="docs" className="text-ac-ink-3">{item.line}</span>,

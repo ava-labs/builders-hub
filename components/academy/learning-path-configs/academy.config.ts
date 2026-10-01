@@ -50,12 +50,25 @@ export const ACADEMY_STAGES: readonly AcademyStage[] = [
   { id: 'advanced', name: 'Advanced' },
 ];
 
-/** The spotlight's course, and the course offered to newcomers before it. */
+/**
+ * The spotlight's course, and the course before it: the newcomer line's, and the first step of every learning path
+ * that starts at the spotlight's course. A step, not a dependency: the spotlight's course stays a root of the tree.
+ */
 export const START_COURSE_ID = 'avalanche-fundamentals';
 export const NEWCOMER_COURSE_ID = 'blockchain-fundamentals';
 
 /** The 13 courses in reading order: the parts in order, then each part's own order. The numbers follow it. */
 export const ACADEMY_COURSES: readonly AcademyCourse[] = [
+  {
+    id: 'blockchain-fundamentals',
+    name: 'Blockchain Fundamentals',
+    description: 'Learn the basics of blockchain and Solidity',
+    slug: 'blockchain/blockchain-fundamentals',
+    part: 'fundamentals',
+    stage: 'foundations',
+    dependencies: [],
+    tree: { x: 83.333, row: 0 },
+  },
   {
     id: 'avalanche-fundamentals',
     name: 'Avalanche Fundamentals',
@@ -65,16 +78,6 @@ export const ACADEMY_COURSES: readonly AcademyCourse[] = [
     stage: 'foundations',
     dependencies: [],
     tree: { x: 33.333, row: 0 },
-  },
-  {
-    id: 'blockchain-fundamentals',
-    name: 'Blockchain Fundamentals',
-    description: 'Start here to learn about blockchain and solidity basics',
-    slug: 'blockchain/blockchain-fundamentals',
-    part: 'fundamentals',
-    stage: 'foundations',
-    dependencies: [],
-    tree: { x: 83.333, row: 0 },
   },
   {
     id: 'permissioned-l1s',
@@ -149,7 +152,7 @@ export const ACADEMY_COURSES: readonly AcademyCourse[] = [
   {
     id: 'access-restriction',
     name: 'Access Restriction',
-    description: 'Master access control patterns using transaction and contract deployer allowlists with hands-on precompile implementation',
+    description: 'Control who can transact and deploy contracts with allowlist precompiles',
     slug: 'avalanche-l1/access-restriction',
     part: 'vm-customization',
     stage: 'advanced',
@@ -159,7 +162,7 @@ export const ACADEMY_COURSES: readonly AcademyCourse[] = [
   {
     id: 'intro-to-solidity',
     name: 'Intro to Solidity',
-    description: 'Start here to learn about Solidity basics with Foundry',
+    description: 'Learn Solidity basics with Foundry',
     slug: 'blockchain/solidity-foundry',
     part: 'applications',
     stage: 'foundations',

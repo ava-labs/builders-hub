@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createElement, type ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+
+// J's Team1 line reads the session; a visitor here (academy-landing.render.test.tsx covers members).
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
+
 import type { LandingViewProps } from '@/components/academy/landing/academy-views';
 import { SpotlightView } from '@/components/academy/landing/spotlight-view';
 import { StagesView } from '@/components/academy/landing/stages-view';
@@ -26,7 +30,7 @@ const classesOf = (markup: string) => (markup.match(/^<[^>]*?\bclass="([^"]*)"/)
 const FOCUS_RING = ['focus-visible:outline-2', 'focus-visible:outline-offset-2', 'focus-visible:outline-ac-ink'];
 
 describe('J, the start course spotlight', () => {
-  it('features Avalanche Fundamentals: the flat banner, course 01, its facts, the start button', () => {
+  it('features Avalanche Fundamentals: the flat banner, "Start here" with no course number, its facts, the start button', () => {
     expect(spotlight).toContain('academy-fundamentals.webp');
     expect(spotlight).toContain('alt="The Avalanche Fundamentals course banner: a grid of outlined blocks on red, with a white disc and the Avalanche mark"');
     // The default view's largest paint: fetched at once and first, not lazily after layout.
@@ -34,7 +38,7 @@ describe('J, the start course spotlight', () => {
     expect(banner).toContain('loading="eager"');
     expect(banner).toContain('fetchPriority="high"');
     expect(text(spotlight)).toContain(
-      'Start here Course 01 Avalanche Fundamentals Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs 31 lessons · 4 modules · 1 h · certificate Start the course',
+      'Start here Avalanche Fundamentals Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs 31 lessons · 4 modules · 1 h · certificate Start the course',
     );
     expect(anchors(spotlight).find((a) => a.includes('>Start the course<'))).toContain('href="/academy/avalanche-l1/avalanche-fundamentals"');
   });
@@ -89,6 +93,13 @@ describe('A, the merged tree', () => {
     expect(tree).toContain('left:33.333%;top:450px');
   });
 
+  it('lists the phone column in number order: Blockchain Fundamentals 01, then Avalanche Fundamentals 02', () => {
+    expect(anchors(tree).slice(0, 2).map(text)).toEqual([
+      'Fundamentals 01 Blockchain Fundamentals 24 lessons · 8 modules 1 h',
+      'Fundamentals 02 Avalanche Fundamentals 31 lessons · 4 modules 1 h',
+    ]);
+  });
+
   it('prints the part with its dot, the number, the name and the counts on each card', () => {
     const [phone] = linksTo(tree, 'permissioned-l1s');
     expect(phone).toContain('data-hue="emerald"');
@@ -114,8 +125,14 @@ describe('F, the stage columns', () => {
     ['3 courses · 85 lessons · 3 h', '6 courses · 197 lessons · 15 h', '4 courses · 95 lessons · 8 h'].forEach((line) => expect(stages).toContain(line));
   });
 
+  it('opens Foundations on Blockchain Fundamentals, then Avalanche Fundamentals and Intro to Solidity', () => {
+    const order = anchors(stages).map((a) => a.match(/data-course-id="([^"]+)"/)?.[1]);
+    expect(order.slice(0, 3)).toEqual(['blockchain-fundamentals', 'avalanche-fundamentals', 'intro-to-solidity']);
+  });
+
   it('writes each row as number, name, part and line, the start course tagged, a join with its After line', () => {
-    expect(text(linksTo(stages, 'avalanche-fundamentals')[0])).toBe('01 Avalanche Fundamentals Start Fundamentals · 31 lessons · 1 h');
+    expect(text(linksTo(stages, 'blockchain-fundamentals')[0])).toBe('01 Blockchain Fundamentals Fundamentals · 24 lessons · 1 h');
+    expect(text(linksTo(stages, 'avalanche-fundamentals')[0])).toBe('02 Avalanche Fundamentals Start Fundamentals · 31 lessons · 1 h');
     expect(text(linksTo(stages, 'intro-to-solidity')[0])).toBe('11 Intro to Solidity Applications · 30 lessons · 1 h');
     expect(text(linksTo(stages, 'native-token-bridge')[0])).toBe(
       '08 Native Token Bridge Interoperability · 22 lessons · 2 h After L1 Native Tokenomics and ERC20 Bridge',

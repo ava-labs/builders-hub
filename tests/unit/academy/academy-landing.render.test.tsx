@@ -13,8 +13,10 @@ vi.mock('next-auth/react', () => ({
 
 import AcademyPage, { metadata } from '@/app/(home)/academy/page';
 import { parseAcademyView, viewHref, type AcademyView } from '@/components/academy/landing/academy-views';
+import { CourseLink } from '@/components/academy/landing/course-state';
 import { QUICK_ACCESS } from '@/components/academy/landing/quick-access';
-import { Team1Link } from '@/components/academy/landing/team1-link';
+import { Team1Line } from '@/components/academy/landing/team1-link';
+import { NEWCOMER_COURSE_ID } from '@/components/academy/learning-path-configs/academy.config';
 import { loadAcademyTree } from './helpers/content-tree';
 
 const page = async (searchParams: Record<string, string | string[] | undefined>, attrs: string[] | null = null) => {
@@ -117,19 +119,29 @@ describe('the view toggle', () => {
   });
 });
 
-describe('the Team1 link', () => {
+describe('the Team1 line', () => {
   const render = (attrs: string[] | null, status = 'unauthenticated') => {
     auth.attrs = attrs;
     auth.status = status;
-    return renderToStaticMarkup(createElement(Team1Link));
+    return renderToStaticMarkup(createElement(Team1Line, { className: 'mt-3.5' }));
   };
+  /** The paragraph that holds a text, up to its closing tag. */
+  const paragraphOf = (html: string, needle: string) => {
+    const at = html.indexOf(needle);
+    return html.slice(html.lastIndexOf('<p ', at), html.indexOf('</p>', at) + '</p>'.length);
+  };
+  const TEAM1 = /href="\/academy\/team1"/g;
 
-  it('shows the Team1 track to Team1 members and to devrel', () => {
+  it('offers the Team1 Academy to Team1 members and to devrel, as a line with a plain link', () => {
     for (const attrs of [['team1-member'], ['team1-admin'], ['devrel']]) {
       const html = render(attrs);
-      expect(html, attrs.join()).toContain('href="/academy/team1"');
-      expect(html).toContain('>Team1 track</a>');
-      expect(classesOf(html)).toEqual(expect.arrayContaining([...FOCUS_RING, 'ml-auto']));
+      expect(html.replace(/<[^>]+>/g, ''), attrs.join()).toBe('Team1 member? Open the Team1 Academy');
+      expect(html).toMatch(/^<p [^>]*>Team1 member\? <a /);
+      const [link] = anchors(html);
+      expect(link).toContain('href="/academy/team1"');
+      // A plain link, not a CourseLink: no path card, and it never dims with the courses.
+      expect(link).not.toContain('data-course-id');
+      expect(link).not.toContain('data-state');
     }
   });
 
@@ -140,12 +152,33 @@ describe('the Team1 link', () => {
     expect(render(['hackathon-judge'])).toBe('');
   });
 
-  it('sits at the end of the hero row, after the facts', async () => {
+  it('sits under the newcomer line in J, with its classes and its link classes, and leaves the hero row', async () => {
     const html = await page({}, ['team1-member']);
-    const facts = html.indexOf('13 courses · 377 lessons · 26 hours');
-    const link = html.indexOf('>Team1 track</a>');
-    expect(link).toBeGreaterThan(facts);
-    expect(html.slice(facts, link)).not.toContain('<div');
+    expect(html.match(TEAM1)).toHaveLength(1);
+    const newcomer = paragraphOf(html, 'Begin with Blockchain Fundamentals');
+    const team1 = paragraphOf(html, 'Open the Team1 Academy');
+    expect(html.indexOf(team1)).toBe(html.indexOf(newcomer) + newcomer.length);
+    expect(classesOf(team1).sort()).toEqual(classesOf(newcomer).sort());
+    // The newcomer link is a CourseLink, which adds its own dimming classes (course-state.tsx:89); the Team1 link is a
+    // plain link, so it carries the newcomer link's className (spotlight-view.tsx:92) and nothing else.
+    const dimming = classesOf(renderToStaticMarkup(createElement(CourseLink, { id: NEWCOMER_COURSE_ID, href: '/', children: '' })));
+    expect([...dimming, ...classesOf(anchors(team1)[0])].sort()).toEqual(classesOf(anchors(newcomer)[0]).sort());
+  });
+
+  it('sits at the end of the hero row in the tree and stages views, after the facts', async () => {
+    for (const view of ['tree', 'stages']) {
+      const html = await page({ view }, ['team1-member']);
+      expect(html.match(TEAM1), view).toHaveLength(1);
+      const facts = html.indexOf('13 courses · 377 lessons · 26 hours');
+      const link = html.indexOf('href="/academy/team1"');
+      // The row is the div that holds the facts. The link sits in it, after the facts: from the row's opening tag to
+      // the link no div opens or closes, and the row's closing tag comes after the link.
+      const row = html.lastIndexOf('<div', facts);
+      expect(link).toBeGreaterThan(facts);
+      expect(html.slice(row, link).match(/<\/?div\b/g)).toEqual(['<div']);
+      expect(html.indexOf('</div>', link)).toBeGreaterThan(link);
+      expect(classesOf(paragraphOf(html, 'Open the Team1 Academy'))).toEqual(expect.arrayContaining(['ml-auto', 'max-md:ml-0']));
+    }
   });
 });
 

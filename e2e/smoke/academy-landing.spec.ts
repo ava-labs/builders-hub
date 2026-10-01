@@ -152,10 +152,11 @@ test.describe('academy landing', () => {
       .poll(() => cardLines(page))
       .toEqual([
         'LEARNING PATH',
-        'Blockchain Fundamentals · optional',
         '1',
-        'Avalanche Fundamentals',
+        'Blockchain Fundamentals',
         '2',
+        'Avalanche Fundamentals',
+        '3',
         'Interchain Messaging',
       ]);
     await expect

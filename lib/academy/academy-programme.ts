@@ -76,9 +76,10 @@ export function joinsLine(course: AcademyCourse): string | null {
 export type PathStep = { kind: 'course'; id: string } | { kind: 'branches'; branches: string[][] };
 
 export interface LearningPath {
-  /** Blockchain Fundamentals before a path that starts at Avalanche Fundamentals; null when the path needs it anyway. */
-  optional: string | null;
-  /** The prerequisites in order, the course itself last; a join is one step of side-by-side branches. */
+  /**
+   * The prerequisites in order, the course itself last; a join is one step of side-by-side branches. A path that
+   * starts at Avalanche Fundamentals opens on Blockchain Fundamentals, a numbered step but not a dependency.
+   */
   steps: PathStep[];
 }
 
@@ -105,25 +106,25 @@ function stepsTo(id: string): PathStep[] {
   return [...stepsTo(fork), { kind: 'branches', branches: parents.map((parent) => branchTo(fork, parent)) }, { kind: 'course', id }];
 }
 
-/** The path to a course: its prerequisites in order, a join as its branches side by side, the course last. */
+/**
+ * The path to a course: its prerequisites in order, a join as its branches side by side, the course last; the
+ * newcomer course first when the path starts at the start course.
+ */
 export function learningPath(id: string): LearningPath {
   const steps = stepsTo(id);
   const [first] = steps;
-  const optional = first.kind === 'course' && first.id === START_COURSE_ID ? NEWCOMER_COURSE_ID : null;
-  return { optional, steps };
+  const startsAtStart = first.kind === 'course' && first.id === START_COURSE_ID;
+  return { steps: startsAtStart ? [{ kind: 'course', id: NEWCOMER_COURSE_ID }, ...steps] : steps };
 }
 
-/** Every course a path names, its optional first step included: the courses the landing keeps lit. */
+/** Every course a path names: the courses the landing keeps lit. */
 export function pathCourseIds(path: LearningPath): Set<string> {
-  return new Set([
-    ...(path.optional ? [path.optional] : []),
-    ...path.steps.flatMap((step) => (step.kind === 'course' ? [step.id] : step.branches.flat())),
-  ]);
+  return new Set(path.steps.flatMap((step) => (step.kind === 'course' ? [step.id] : step.branches.flat())));
 }
 
-/** A path worth a card: a prerequisite, or the optional first step. Blockchain Fundamentals has neither. */
+/** A path worth a card: a step before the course. Blockchain Fundamentals has none. */
 export function hasPathToShow(path: LearningPath): boolean {
-  return path.optional !== null || path.steps.length > 1;
+  return path.steps.length > 1;
 }
 
 /**

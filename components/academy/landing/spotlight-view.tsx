@@ -17,7 +17,6 @@ import {
   courseFolder,
   courseLine,
   courseLineWithModules,
-  courseNumber,
   coursesOfPart,
   groupFacts,
   groupLine,
@@ -27,6 +26,7 @@ import { cn } from '@/utils/cn';
 import type { LandingViewProps } from './academy-views';
 import { CourseMarker, FOCUS_RING, START_BUTTON } from './course-marks';
 import { CourseLink, LandingProvider, useCourseState } from './course-state';
+import { Team1Line } from './team1-link';
 
 const DURATIONS = getCourseDurations();
 // Fundamentals is the spotlight and its newcomer line; the four other parts are the lanes.
@@ -71,7 +71,6 @@ function StartFeature({ stats }: { stats: CourseStats | undefined }) {
       />
       <div className="mt-4 flex items-center gap-2.5">
         <span className="font-ac-mono text-[10px] font-medium uppercase leading-none tracking-[0.12em] text-ac-red">Start here</span>
-        <span className="font-ac-mono text-[11px] leading-none text-ac-ink-3">{`Course ${courseNumber(course.id)}`}</span>
       </div>
       <h2 className="mt-2 font-ac-display text-[30px] font-medium leading-[1.08] tracking-[-0.018em] text-ac-ink lg:max-xl:text-[26px]">
         {course.name}
@@ -95,6 +94,7 @@ function StartFeature({ stats }: { stats: CourseStats | undefined }) {
           {`Begin with ${newcomer.name}`}
         </CourseLink>
       </p>
+      <Team1Line className="mt-3.5" />
     </article>
   );
 }

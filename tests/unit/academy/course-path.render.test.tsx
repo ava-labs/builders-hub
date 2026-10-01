@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { PathSteps } from '@/components/academy/landing/path-steps';
 import { CourseLink, LandingProvider } from '@/components/academy/landing/course-state';
 import { CourseMarker, PartDot } from '@/components/academy/landing/course-marks';
+import { ACADEMY_COURSES } from '@/components/academy/learning-path-configs/academy.config';
 import { learningPath } from '@/lib/academy/academy-programme';
 
 /** The markup's text, one entry per text run. */
@@ -11,16 +12,21 @@ const runs = (html: string) => html.replace(/<[^>]+>/g, '|').split('|').map((par
 const steps = (id: string) => renderToStaticMarkup(createElement(PathSteps, { path: learningPath(id) }));
 
 describe('PathSteps, the hover card of a course', () => {
-  it('lists the optional first step, then the path, the course last', () => {
+  it('numbers every step from 1, Blockchain Fundamentals first, the course last', () => {
     expect(runs(steps('interchain-messaging'))).toEqual([
-      'Learning path', 'Blockchain Fundamentals · optional', '1', 'Avalanche Fundamentals', '2', 'Interchain Messaging',
+      'Learning path', '1', 'Blockchain Fundamentals', '2', 'Avalanche Fundamentals', '3', 'Interchain Messaging',
     ]);
+  });
+
+  it('opens the Avalanche Fundamentals card on Blockchain Fundamentals, and no card says optional', () => {
+    expect(runs(steps('avalanche-fundamentals'))).toEqual(['Learning path', '1', 'Blockchain Fundamentals', '2', 'Avalanche Fundamentals']);
+    ACADEMY_COURSES.forEach((entry) => expect(steps(entry.id), entry.id).not.toContain('optional'));
   });
 
   it('shows both branches of a join under one step', () => {
     expect(runs(steps('native-token-bridge'))).toEqual([
-      'Learning path', 'Blockchain Fundamentals · optional', '1', 'Avalanche Fundamentals',
-      '2', 'L1 Native Tokenomics', 'Interchain Messaging, then ERC20 Bridge', '3', 'Native Token Bridge',
+      'Learning path', '1', 'Blockchain Fundamentals', '2', 'Avalanche Fundamentals',
+      '3', 'L1 Native Tokenomics', 'Interchain Messaging, then ERC20 Bridge', '4', 'Native Token Bridge',
     ]);
   });
 
@@ -30,10 +36,11 @@ describe('PathSteps, the hover card of a course', () => {
     ]);
   });
 
-  it('sets the course in ink at weight 600 and the steps before it in ink-2', () => {
+  it('sets the course in ink at weight 600 and the steps before it in ink-2, Blockchain Fundamentals included', () => {
     const html = steps('erc20-bridge');
     expect(html).toContain('<span class="font-semibold text-ac-ink">ERC20 Bridge</span>');
     expect(html).toContain('<span class="text-ac-ink-2">Interchain Messaging</span>');
+    expect(html).toContain('<span class="text-ac-ink-2">Blockchain Fundamentals</span>');
   });
 });
 

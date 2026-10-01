@@ -22,7 +22,7 @@ const COMPLETION_ENTRIES: CourseCompletionEntry[] = ACADEMY_COURSES.map((course)
 interface LandingState {
   /** The course whose path shows, or null. */
   active: string | null;
-  /** The courses that path names, its optional first step included; null while none shows. */
+  /** The courses that path names; null while none shows. */
   lit: ReadonlySet<string> | null;
   canHover: boolean;
   /** Completed courses by id, empty until IndexedDB answers after mount (the server markup is neutral). */

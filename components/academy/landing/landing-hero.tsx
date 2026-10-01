@@ -3,7 +3,7 @@ import { START_COURSE_ID } from '@/components/academy/learning-path-configs/acad
 import { academyCourse, academyCourseUrl } from '@/lib/academy/academy-programme';
 import type { AcademyView } from './academy-views';
 import { START_BUTTON } from './course-marks';
-import { Team1Link } from './team1-link';
+import { Team1Line } from './team1-link';
 import { ViewToggle } from './view-toggle';
 
 /** The navbar Academy card's line (app/layout.config.tsx:249). */
@@ -16,9 +16,9 @@ interface LandingHeroProps {
 }
 
 /**
- * Title, line, the view toggle, then the row: the start button (tree and stages; J has its own), the facts, and the
- * Team1 link at the end. From 1024 px the toggle sits on the title line; below, under the line, so a view change,
- * which adds or drops the button, never moves it.
+ * Title, line, the view toggle, then the row: the start button, the facts, and the Team1 line at the end; in J, which
+ * carries its own button and Team1 line, the facts alone. From 1024 px the toggle sits on the title line; below,
+ * under the line, so a view change, which adds or drops the button and the Team1 line, never moves it.
  */
 export function LandingHero({ view, facts }: LandingHeroProps) {
   const start = academyCourse(START_COURSE_ID);
@@ -38,7 +38,7 @@ export function LandingHero({ view, facts }: LandingHeroProps) {
           </Link>
         )}
         <span className="font-ac-mono text-[12px] tracking-[0.02em] text-ac-ink-3 tabular-nums">{facts}</span>
-        <Team1Link />
+        {view === 'overview' ? null : <Team1Line className="ml-auto max-md:ml-0" />}
       </div>
     </div>
   );

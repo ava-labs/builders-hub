@@ -58,15 +58,18 @@ describe('the course page layout', () => {
     expect(renderToStaticMarkup(layout.sidebar?.banner as ReactElement)).toContain('>ERC20 Bridge</p>');
   });
 
-  it("lists the current part's courses in the drawer below 1024 px, without icons", () => {
+  it("lists the current part's courses in the drawer below 1024 px, each with its course icon", () => {
     renderLayout('/academy/avalanche-l1/erc20-bridge/02-intro/01-intro', true);
     // ForceMobileSidebar's drawer breakpoint (components/navigation/force-mobile-sidebar.tsx).
     expect(media.query).toBe('(max-width: 1023px)');
-    const tabs = layout.sidebar?.tabs as { title: string; description: ReactElement; url: string }[];
-    expect(tabs.map((tab) => ({ ...tab, description: renderToStaticMarkup(tab.description) }))).toEqual([
-      { title: 'Interchain Messaging', description: '<span data-academy="docs" class="text-ac-ink-3">30 lessons · 2 h</span>', url: '/academy/avalanche-l1/interchain-messaging' },
-      { title: 'ERC20 Bridge', description: '<span data-academy="docs" class="text-ac-ink-3">21 lessons · 2 h</span>', url: '/academy/avalanche-l1/erc20-bridge' },
-      { title: 'Native Token Bridge', description: '<span data-academy="docs" class="text-ac-ink-3">22 lessons · 2 h</span>', url: '/academy/avalanche-l1/native-token-bridge' },
+    const tabs = layout.sidebar?.tabs as { title: string; icon: ReactElement; description: ReactElement; url: string }[];
+    // At the docs config's icon size (components/navigation/docs-nav-config.tsx:35): fumadocs' option box does not size
+    // the icons of a tabs array.
+    const svgClass = (icon: ReactElement) => renderToStaticMarkup(icon).match(/^<svg [^>]*class="([^"]*)"/)?.[1];
+    expect(tabs.map((tab) => ({ ...tab, icon: svgClass(tab.icon), description: renderToStaticMarkup(tab.description) }))).toEqual([
+      { title: 'Interchain Messaging', icon: 'lucide lucide-send-horizontal w-5 h-5', description: '<span data-academy="docs" class="text-ac-ink-3">30 lessons · 2 h</span>', url: '/academy/avalanche-l1/interchain-messaging' },
+      { title: 'ERC20 Bridge', icon: 'lucide lucide-arrow-left-right w-5 h-5', description: '<span data-academy="docs" class="text-ac-ink-3">21 lessons · 2 h</span>', url: '/academy/avalanche-l1/erc20-bridge' },
+      { title: 'Native Token Bridge', icon: 'lucide lucide-arrow-left-right w-5 h-5', description: '<span data-academy="docs" class="text-ac-ink-3">22 lessons · 2 h</span>', url: '/academy/avalanche-l1/native-token-bridge' },
     ]);
   });
 

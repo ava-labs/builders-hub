@@ -43,7 +43,7 @@ const course = (id: string) => ({ kind: 'course', id });
 describe('the Academy programme config', () => {
   it('lists the 13 courses of the two merged trees in reading order', () => {
     expect(ids(ACADEMY_COURSES)).toEqual([
-      'avalanche-fundamentals', 'blockchain-fundamentals',
+      'blockchain-fundamentals', 'avalanche-fundamentals',
       'permissioned-l1s', 'l1-native-tokenomics', 'permissionless-l1s',
       'interchain-messaging', 'erc20-bridge', 'native-token-bridge',
       'customizing-evm', 'access-restriction',
@@ -58,7 +58,7 @@ describe('the Academy programme config', () => {
 
   it('names the five parts in order, each with its courses', () => {
     expect(ACADEMY_PARTS.map((part) => [part.name, ids(coursesOfPart(part.id))])).toEqual([
-      ['Fundamentals', ['avalanche-fundamentals', 'blockchain-fundamentals']],
+      ['Fundamentals', ['blockchain-fundamentals', 'avalanche-fundamentals']],
       ['L1 Development', ['permissioned-l1s', 'l1-native-tokenomics', 'permissionless-l1s']],
       ['Interoperability', ['interchain-messaging', 'erc20-bridge', 'native-token-bridge']],
       ['VM Customization', ['customizing-evm', 'access-restriction']],
@@ -72,7 +72,7 @@ describe('the Academy programme config', () => {
 
   it('puts the courses in the three stages as drawn, rows in number order', () => {
     expect(ACADEMY_STAGES.map((stage) => [stage.name, ids(coursesOfStage(stage.id))])).toEqual([
-      ['Foundations', ['avalanche-fundamentals', 'blockchain-fundamentals', 'intro-to-solidity']],
+      ['Foundations', ['blockchain-fundamentals', 'avalanche-fundamentals', 'intro-to-solidity']],
       ['Core', ['permissioned-l1s', 'l1-native-tokenomics', 'interchain-messaging', 'customizing-evm', 'x402-payment-infrastructure', 'encrypted-erc']],
       ['Advanced', ['permissionless-l1s', 'erc20-bridge', 'native-token-bridge', 'access-restriction']],
     ]);
@@ -121,10 +121,11 @@ describe('the Academy programme config', () => {
 });
 
 describe('programme lookups', () => {
-  it('numbers the courses 01 to 13 in reading order', () => {
+  it('numbers the courses 01 to 13 in reading order, Blockchain Fundamentals 01 and Avalanche Fundamentals 02', () => {
     expect(ACADEMY_COURSES.map((entry) => courseNumber(entry.id))).toEqual(
       ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13'],
     );
+    expect([courseNumber('blockchain-fundamentals'), courseNumber('avalanche-fundamentals')]).toEqual(['01', '02']);
     expect(courseNumber('intro-to-solidity')).toBe('11');
   });
 
@@ -152,33 +153,46 @@ describe('programme lookups', () => {
 });
 
 describe('learningPath', () => {
+  // A path that starts at Avalanche Fundamentals opens on Blockchain Fundamentals: a numbered step, not a dependency.
   it.each([
-    ['avalanche-fundamentals', 'blockchain-fundamentals', [course('avalanche-fundamentals')]],
-    ['blockchain-fundamentals', null, [course('blockchain-fundamentals')]],
-    ['permissioned-l1s', 'blockchain-fundamentals', [course('avalanche-fundamentals'), course('permissioned-l1s')]],
-    ['l1-native-tokenomics', 'blockchain-fundamentals', [course('avalanche-fundamentals'), course('l1-native-tokenomics')]],
-    ['permissionless-l1s', 'blockchain-fundamentals', [
+    ['avalanche-fundamentals', [course('blockchain-fundamentals'), course('avalanche-fundamentals')]],
+    ['blockchain-fundamentals', [course('blockchain-fundamentals')]],
+    ['permissioned-l1s', [course('blockchain-fundamentals'), course('avalanche-fundamentals'), course('permissioned-l1s')]],
+    ['l1-native-tokenomics', [course('blockchain-fundamentals'), course('avalanche-fundamentals'), course('l1-native-tokenomics')]],
+    ['permissionless-l1s', [
+      course('blockchain-fundamentals'),
       course('avalanche-fundamentals'),
       { kind: 'branches', branches: [['permissioned-l1s'], ['l1-native-tokenomics']] },
       course('permissionless-l1s'),
     ]],
-    ['interchain-messaging', 'blockchain-fundamentals', [course('avalanche-fundamentals'), course('interchain-messaging')]],
-    ['erc20-bridge', 'blockchain-fundamentals', [course('avalanche-fundamentals'), course('interchain-messaging'), course('erc20-bridge')]],
-    ['native-token-bridge', 'blockchain-fundamentals', [
+    ['interchain-messaging', [course('blockchain-fundamentals'), course('avalanche-fundamentals'), course('interchain-messaging')]],
+    ['erc20-bridge', [
+      course('blockchain-fundamentals'),
+      course('avalanche-fundamentals'),
+      course('interchain-messaging'),
+      course('erc20-bridge'),
+    ]],
+    ['native-token-bridge', [
+      course('blockchain-fundamentals'),
       course('avalanche-fundamentals'),
       { kind: 'branches', branches: [['l1-native-tokenomics'], ['interchain-messaging', 'erc20-bridge']] },
       course('native-token-bridge'),
     ]],
-    ['customizing-evm', 'blockchain-fundamentals', [course('avalanche-fundamentals'), course('customizing-evm')]],
-    ['access-restriction', 'blockchain-fundamentals', [course('avalanche-fundamentals'), course('customizing-evm'), course('access-restriction')]],
-    ['intro-to-solidity', null, [course('blockchain-fundamentals'), course('intro-to-solidity')]],
-    ['x402-payment-infrastructure', null, [course('blockchain-fundamentals'), course('intro-to-solidity'), course('x402-payment-infrastructure')]],
-    ['encrypted-erc', null, [course('blockchain-fundamentals'), course('intro-to-solidity'), course('encrypted-erc')]],
-  ])('%s', (id, optional, steps) => {
-    expect(learningPath(id)).toEqual({ optional, steps });
+    ['customizing-evm', [course('blockchain-fundamentals'), course('avalanche-fundamentals'), course('customizing-evm')]],
+    ['access-restriction', [
+      course('blockchain-fundamentals'),
+      course('avalanche-fundamentals'),
+      course('customizing-evm'),
+      course('access-restriction'),
+    ]],
+    ['intro-to-solidity', [course('blockchain-fundamentals'), course('intro-to-solidity')]],
+    ['x402-payment-infrastructure', [course('blockchain-fundamentals'), course('intro-to-solidity'), course('x402-payment-infrastructure')]],
+    ['encrypted-erc', [course('blockchain-fundamentals'), course('intro-to-solidity'), course('encrypted-erc')]],
+  ])('%s', (id, steps) => {
+    expect(learningPath(id)).toEqual({ steps });
   });
 
-  it('lights the whole path, its optional first step included', () => {
+  it('lights the whole path, Blockchain Fundamentals included', () => {
     expect([...pathCourseIds(learningPath('native-token-bridge'))].sort()).toEqual([
       'avalanche-fundamentals', 'blockchain-fundamentals', 'erc20-bridge', 'interchain-messaging', 'l1-native-tokenomics', 'native-token-bridge',
     ]);
