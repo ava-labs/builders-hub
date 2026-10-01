@@ -64,7 +64,7 @@ export function EvmAddress({
   const { contract: verified } = useVerifiedContract(c.chainId, addr, { expectVerified: justVerified });
   const hasCode = useIsContract(readRpc(c.chainId, c.rpcUrl), addr);
   const isContract = verified !== null || hasCode === true;
-  const fixture = knownAddress(addr);
+  const fixture = knownAddress(addr, c.chainId);
 
   // is it a token? the list says so outright; the page shows the token then
   const tokens = useTokenList(c.chainId);
@@ -107,7 +107,8 @@ export function EvmAddress({
   const tabs: Tab[] = isContract ? ["holdings", "txs", "transfers", "contract"] : ["holdings", "txs", "transfers"];
   const activeTab: Tab = tab === "contract" && !isContract ? "holdings" : tab;
 
-  const who = listed ? "Token" : verified ? "Verified contract" : isContract ? "Contract" : "Account";
+  // a fixture with an ABI is a precompile: built in, so nothing to verify
+  const who = listed ? "Token" : verified ? "Verified contract" : fixture?.abi ? "Precompile" : isContract ? "Contract" : "Account";
 
   return (
     <EvmShell network={network}>

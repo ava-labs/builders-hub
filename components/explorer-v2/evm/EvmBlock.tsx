@@ -110,7 +110,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // a segment and its row lights up, pick a group and the table narrows
   const [hover, setHover] = useState<string | null>(null);
   const [filter, setFilter] = useState<Set<string> | null>(null);
-  const nameOf = (addr: string) => tokens.get(addr.toLowerCase())?.symbol;
+  const nameOf = (addr: string) => tokens.get(addr.toLowerCase())?.symbol ?? knownAddress(addr, c.chainId)?.label;
   const shownTxs = b ? (filter ? b.transactions.filter((t) => filter.has(t.hash)) : b.transactions) : [];
   const burn = b ? knownAddress(b.miner) : undefined;
   const gasPct = b && b.gasLimit > 0 ? (b.gasUsed / b.gasLimit) * 100 : 0;

@@ -148,7 +148,7 @@ function nameOf(addr: string | undefined, n: Names): string | null {
   if (!addr) return null;
   const a = addr.toLowerCase();
   if (a === n.sender.toLowerCase()) return "sender";
-  return n.tokens.get(a)?.symbol ?? n.contracts.get(a)?.name ?? knownAddress(a)?.label ?? null;
+  return n.tokens.get(a)?.symbol ?? n.contracts.get(a)?.name ?? knownAddress(a, n.chainId)?.label ?? null;
 }
 
 /** a party in the trace: token mark, verified name, fixture, or a stub */
@@ -261,7 +261,7 @@ function decodeWithFn(fn: AbiFunction, f: TraceFrame, n: Names, guessed: boolean
 function decodeCall(f: TraceFrame, n: Names): Decoded | null {
   if (!f.input || f.input.length < 10) return null;
   const sel = f.input.slice(0, 10).toLowerCase();
-  const abi = f.to ? n.contracts.get(f.to.toLowerCase())?.abi : null;
+  const abi = f.to ? n.contracts.get(f.to.toLowerCase())?.abi ?? knownAddress(f.to, n.chainId)?.abi : null;
   if (abi) {
     const fn = (abi as Abi).find((i): i is AbiFunction => i.type === "function" && toFunctionSelector(i) === sel);
     if (fn) {
@@ -379,7 +379,7 @@ const plain = (v: unknown): string =>
   typeof v === "bigint" ? v.toString() : typeof v === "boolean" ? String(v) : Array.isArray(v) ? `(${v.map(plain).join(", ")})` : typeof v === "object" && v !== null ? plain(Object.values(v)) : String(v);
 
 function decodeLog(log: { address: string; topics: string[]; data: string }, n: Names): DecodedEvent | null {
-  const abi = n.contracts.get(log.address.toLowerCase())?.abi;
+  const abi = n.contracts.get(log.address.toLowerCase())?.abi ?? knownAddress(log.address, n.chainId)?.abi;
   const viaAbi = decodeEventWithAbi(abi, log);
   if (viaAbi) return viaAbi;
   const reg = registryDecodeEvent(log);
@@ -716,20 +716,20 @@ export function EvmTrace({
       const fr = f.frame;
       if (!fr.input || fr.input.length < 10) continue;
       const sel = fr.input.slice(0, 10).toLowerCase();
-      const abi = fr.to ? verified.get(fr.to.toLowerCase())?.abi : null;
+      const abi = fr.to ? verified.get(fr.to.toLowerCase())?.abi ?? knownAddress(fr.to, chainId)?.abi : null;
       const inAbi = abi ? (abi as Abi).some((i) => i.type === "function" && toFunctionSelector(i as AbiFunction) === sel) : false;
       if (!inAbi && !registryDecodeInput(fr.input)) out.add(sel);
     }
     return [...out];
-  }, [frames, verified]);
+  }, [frames, verified, chainId]);
   const unknownTopics = useMemo(() => {
     const out = new Set<string>();
     for (const { log } of logs) {
-      const abi = verified.get(log.address.toLowerCase())?.abi;
+      const abi = verified.get(log.address.toLowerCase())?.abi ?? knownAddress(log.address, chainId)?.abi;
       if (!decodeEventWithAbi(abi, log) && !registryDecodeEvent(log) && log.topics[0]) out.add(log.topics[0].toLowerCase());
     }
     return [...out];
-  }, [logs, verified]);
+  }, [logs, verified, chainId]);
   const sigs = useSignatures(unknownSel, unknownTopics);
 
   const n: Names = { tokens, contracts: verified, sigs, chainId, base, sender };

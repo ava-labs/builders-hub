@@ -12,6 +12,9 @@
 //   resource = "" (home) | blocks | block/{id} | txs | tx/{hash}
 //              | address/{addr} | address/{addr}/txs | address/{addr}/transfers
 
+import type { Abi } from "viem";
+import { precompileAt } from "@/lib/precompiles";
+
 export const EVM_API_BASE =
   process.env.EXPLORER_API_URL || "https://stats-api.avax.network";
 
@@ -75,11 +78,18 @@ export function isGenesisCode(chainId: string | number, addr?: string): boolean 
   return !!addr && !!GENESIS_CODE[String(chainId)]?.has(addr.toLowerCase());
 }
 
-/** name for a protocol-fixture address */
-export function knownAddress(
-  addr?: string,
-): { label: string; note: string } | undefined {
-  return addr ? WELL_KNOWN_ADDRESSES[addr.toLowerCase()] : undefined;
+export interface KnownAddress {
+  label: string;
+  note: string;
+  /** set for a precompile: the ABI its calls and logs decode against */
+  abi?: Abi;
+}
+
+/** name for a protocol-fixture address. A precompile is named only on a
+ *  chain that carries it, so it needs the chain. */
+export function knownAddress(addr?: string | null, chainId?: string | number | null): KnownAddress | undefined {
+  if (!addr) return undefined;
+  return WELL_KNOWN_ADDRESSES[addr.toLowerCase()] ?? precompileAt(chainId, addr);
 }
 
 // --- response types (mirror stats-api/evmexplorer/handlers.go) ------------

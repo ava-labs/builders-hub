@@ -10,7 +10,7 @@ import { formatNumber } from "@/components/explorer-v2/format";
 import { rpcBatch } from "./useHeadStream";
 import { useVerifiedContract } from "./EvmContract";
 import { useSignatures } from "@/lib/token-list";
-import { isGenesisCode } from "@/lib/evm-explorer";
+import { isGenesisCode, knownAddress } from "@/lib/evm-explorer";
 
 /* What an unverified contract still tells you, read off the chain: its
    runtime bytecode (size, hash, the compiler that produced it), whether
@@ -144,9 +144,11 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
   const implTarget = facts?.implementation ?? facts?.beacon ?? null;
   const { contract: implVerified } = useVerifiedContract(chainId, implTarget ?? "0x0000000000000000000000000000000000000000");
   const verifyHref = `${base}/verify/${addr.toLowerCase()}`;
-  // genesis code has no deploy tx and no source to submit: say where it
-  // came from instead of offering verification
+  // genesis code has no deploy tx and no source to submit, and a
+  // precompile runs in the node itself: say where the code came from
+  // instead of offering verification
   const genesis = isGenesisCode(chainId, addr);
+  const precompile = !!knownAddress(addr, chainId)?.abi;
 
   const functions = useMemo(
     () =>
@@ -164,8 +166,8 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
       {/* what the chain knows, and the door to telling it more */}
       <Board divide={false} className="px-5 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 py-3 dark:border-zinc-800">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{genesis ? "Genesis code" : "Source not verified"}</span>
-          {!genesis && <Link
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{genesis ? "Genesis code" : precompile ? "Precompile" : "Source not verified"}</span>
+          {!genesis && !precompile && <Link
             href={verifyHref}
             className="inline-flex items-center gap-2 border border-zinc-900 bg-zinc-900 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-opacity hover:opacity-90 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
           >
@@ -186,6 +188,12 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
                 <SpecLine label="Origin">
                   C-Chain genesis
                   <span className="text-zinc-500 dark:text-zinc-400"> · allocated at launch, not deployed by a transaction</span>
+                </SpecLine>
+              )}
+              {precompile && (
+                <SpecLine label="Origin">
+                  Built into the chain&apos;s EVM
+                  <span className="text-zinc-500 dark:text-zinc-400"> · the node runs it, so the code here only marks the address</span>
                 </SpecLine>
               )}
               <SpecLine label="Code Hash">

@@ -3,6 +3,8 @@
 // this module adds wei/ether + gas conversions, which are BigInt-safe because a
 // uint256 wei value blows past Number's 2^53 precision ceiling.
 
+import { paramUnit, ROLES } from "@/lib/precompiles";
+
 /** Decimal wei string → "1.2345" (fixed `decimals` significant fraction),
  *  trailing zeros trimmed. Pure integer/BigInt math — no float rounding. */
 function formatUnits(wei: string | number | undefined, unit: bigint, decimals: number): string {
@@ -53,4 +55,22 @@ export function formatNano(wei: string | number | undefined, symbol = "AVAX"): s
   const n = Number(wei) / 1e9;
   if (!Number.isFinite(n)) return "—";
   return `${n >= 100 ? Math.round(n).toLocaleString("en-US") : n.toFixed(2)} n${symbol}`;
+}
+
+/** a precompile's number in the unit it means: the native coin, a role,
+ *  a gas price (in wei below a hundredth of a nano), seconds, or a count */
+export function precompileValue(name: string, value: string | bigint, symbol: string): string {
+  const v = BigInt(value);
+  switch (paramUnit(name)) {
+    case "native":
+      return formatEther(v.toString(), { symbol, decimals: 6 });
+    case "role":
+      return ROLES[Number(v)] ?? v.toString();
+    case "gasPrice":
+      return v < 10_000_000n ? `${v.toLocaleString("en-US")} wei` : formatNano(v.toString(), symbol);
+    case "seconds":
+      return `${v} s`;
+    default:
+      return v.toLocaleString("en-US");
+  }
 }

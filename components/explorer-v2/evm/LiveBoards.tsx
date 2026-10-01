@@ -348,7 +348,7 @@ export function Party({
    *  name is cut */
   column?: boolean;
 }) {
-  const fixture = knownAddress(addr);
+  const fixture = knownAddress(addr, chainId);
   const label = name ?? fixture?.label;
   const inner =
     token && chainId ? (
