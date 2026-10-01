@@ -12,10 +12,16 @@ import { menuSections } from '@/components/navigation/nav-config';
 import { NavSectionBlock } from '@/components/navigation/navbar-dropdown';
 import { activeNavSection } from '@/components/navigation/active-nav-highlighter';
 
-type MenuItem = { text?: unknown; url?: string; menu?: { banner?: unknown } };
+type MenuItem = { text?: unknown; url?: string; menu?: { banner?: unknown; prefetch?: boolean } };
 
 const itemsOf = (menu: unknown) => (menu as { items: MenuItem[] }).items;
-const urlOf = (menu: unknown) => (menu as { url?: string }).url;
+/** a menu's trigger: the Link it holds as its text, read as its label, href and prefetch */
+const triggerOf = (menu: unknown) => {
+  const text = (menu as { text?: unknown }).text;
+  if (!isValidElement(text)) return null;
+  const { children, href, prefetch } = (text as ReactElement<{ children?: unknown; href?: string; prefetch?: boolean }>).props;
+  return { label: children, href, prefetch };
+};
 const bannerSrc = (item: MenuItem) => {
   const banner = item.menu?.banner;
   return isValidElement(banner) ? (banner as ReactElement<{ src?: string }>).props.src : undefined;
@@ -32,13 +38,21 @@ const hrefOf = (anchor: string) => anchor.match(/href="([^"]+)"/)?.[1];
 
 describe('Developers menu (desktop)', () => {
   it('opens on the docs landing and offers exactly Documentation and Academy as picture cards', () => {
-    expect(developersMenu).toMatchObject({ type: 'menu', text: 'Developers', url: '/docs/primary-network' });
+    expect(developersMenu).toMatchObject({ type: 'menu' });
+    expect(triggerOf(developersMenu)).toMatchObject({ label: 'Developers', href: '/docs/primary-network' });
     const items = itemsOf(developersMenu);
     expect(items.map((item) => [item.text, item.url])).toEqual([
       ['Documentation', '/docs/primary-network'],
       ['Academy', '/academy'],
     ]);
     expect(items.map(bannerSrc)).toEqual(['/nav/documentation.webp', '/nav/academy-fundamentals.webp']);
+  });
+
+  it('prefetches none of its links', () => {
+    // a prefetched docs or Academy route preloads its CSS and first image into
+    // the current page, and Chrome reports them as preloaded but not used
+    expect(triggerOf(developersMenu)?.prefetch).toBe(false);
+    expect(itemsOf(developersMenu).map((item) => item.menu?.prefetch)).toEqual([false, false]);
   });
 });
 
@@ -127,6 +141,6 @@ describe('active navbar section', () => {
 
   it('marks the Developers trigger on Academy pages', () => {
     // The highlighter marks every navbar link whose href starts with `${section}/`.
-    expect(urlOf(developersMenu)?.startsWith(`${activeNavSection('/academy')}/`)).toBe(true);
+    expect(triggerOf(developersMenu)?.href?.startsWith(`${activeNavSection('/academy')}/`)).toBe(true);
   });
 });
