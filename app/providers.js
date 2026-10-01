@@ -13,9 +13,10 @@ if (typeof window !== 'undefined') {
       persistence: consent === 'yes' ? 'localStorage+cookie' : 'memory',
       enable_heatmaps: true,
       capture_exceptions: true,
+      // the project's remote config records canvases; its snapshots read each 2D canvas back
+      // pixel by pixel, and Chrome warns about those readbacks on every page that draws one
+      session_recording: { captureCanvas: { recordCanvas: false } },
     })
-  } else {
-    console.warn('PostHog key not found in environment variables')
   }
 }
 
