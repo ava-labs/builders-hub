@@ -19,7 +19,7 @@ import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explo
 import { useAvaxUsd } from "@/components/explorer-v2/pchain/hooks";
 import { usePolledJson } from "@/components/explorer-v2/page-data";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
-import { UtxoColumn } from "@/components/explorer-v2/pchain/PchainTx";
+import { UtxoColumn } from "@/components/explorer-v2/pchain/utxo-ledger";
 import type { AssetAmount, Utxo } from "@/lib/pchain-explorer";
 import { crossChainTxUrl } from "@/lib/crosschain-links";
 

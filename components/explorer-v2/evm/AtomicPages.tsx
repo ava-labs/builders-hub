@@ -17,7 +17,7 @@ import { usePrice, usdOfWei } from "@/components/explorer-v2/evm/hooks";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { formatNumber, formatTime, timeAgo, truncate as truncFmt, ageShort } from "@/components/explorer-v2/format";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
-import { UtxoColumn } from "@/components/explorer-v2/pchain/PchainTx";
+import { UtxoColumn } from "@/components/explorer-v2/pchain/utxo-ledger";
 import type { AssetAmount, Utxo } from "@/lib/pchain-explorer";
 import { isAddress } from "@/lib/explorer-query/values";
 

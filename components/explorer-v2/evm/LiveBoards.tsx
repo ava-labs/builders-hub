@@ -156,7 +156,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export const ROWS = 10;
 /** a phone row is two or three lines, so the boards stop short there:
  *  "View all" is one tap away and the page is not a feed */
-const PHONE_ROWS = 6;
+export const PHONE_ROWS = 6;
 /** row pitch: the 44 px row plus its 1 px rule */
 export const ROW_H = 45;
 
@@ -505,7 +505,7 @@ export function LatestTxsBoard({
 
 /* ------------------------------------------------------------------ */
 
-function ViewAll({ href }: { href: string }) {
+export function ViewAll({ href }: { href: string }) {
   return (
     <Link
       href={href}
