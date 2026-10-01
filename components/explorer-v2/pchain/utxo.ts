@@ -86,30 +86,40 @@ export function lockAhead(u: Pick<Utxo, "platformLocktime">, now = Date.now() / 
 /**
  * The ledger of a tx: consumed UTXOs grouped by owner and origin, produced
  * UTXOs grouped by purpose and owner. The tx type says what the outputs
- * the inputs did not fund are: a reward is minted, and a disabled L1
- * seat's balance is refunded to its owner.
+ * the inputs did not fund are: a reward is minted, and a removed L1
+ * seat's balance is refunded to its owner. avalanchego adds that refund
+ * after the tx's own outputs, at the output index equal to their count.
  */
 export function ledgerOf({
   consumed,
   emitted,
   txType,
+  outputCount,
   home = "P-Chain",
 }: {
   consumed: Utxo[];
   emitted: Utxo[];
   txType: string;
+  /** the tx's own outputs, as the node decodes the tx */
+  outputCount?: number;
   home?: CrossChain;
 }): Ledger {
   const owners = new Set(consumed.flatMap((u) => u.addresses));
   const reward = txType.startsWith("Reward");
-  const refunds = txType === "DisableL1ValidatorTx" || txType === "SetL1ValidatorWeightTx";
+  // until the node counts the tx's outputs, a refund shows as the last
+  // output when the outputs sum to more than the inputs could fund
+  const refundAt =
+    txType === "DisableL1ValidatorTx" || txType === "SetL1ValidatorWeightTx"
+      ? (outputCount ?? (sumBig(emitted) > sumBig(consumed) ? Math.max(...emitted.map((u) => u.outputIndex)) : -1))
+      : -1;
   const purposeOf = (u: Utxo): Purpose => {
     if (reward) return "reward";
+    if (u.outputIndex === refundAt) return "refund";
     if (u.staked) return "stake";
     if (crossOf(u, "out", home)) return "export";
     if (txType === "ImportTx") return "import";
     if (u.addresses.length && u.addresses.every((a) => owners.has(a))) return "change";
-    return refunds ? "refund" : "sent";
+    return "sent";
   };
   const group = (utxos: Utxo[], side: "in" | "out") => {
     const rows = new Map<string, LedgerRow>();

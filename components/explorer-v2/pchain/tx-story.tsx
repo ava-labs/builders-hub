@@ -31,7 +31,8 @@ const PURPOSE: Record<LedgerRow["purpose"], { type: string; label: string }> = {
   refund: { type: "subnet", label: "refund" },
 };
 
-const day = (ts: number) => formatTime(ts).slice(0, 10);
+/** a day as the tx pages state it: 2026-10-18 */
+export const day = (ts: number) => formatTime(ts).slice(0, 10);
 
 export function PchainTxStory({
   tx,
@@ -49,7 +50,8 @@ export function PchainTxStory({
   decoded: DecodedL1WarpMessage | null;
   base: string;
   avaxUsd: number | null;
-  uptimeReq: number;
+  /** the uptime the stake's reward needed; null while its start is read */
+  uptimeReq: number | null;
   /** nAVAX the tx moved into L1 validators' balances; null while the node's copy loads */
   balance: number | null;
 }) {
@@ -99,6 +101,15 @@ export function PchainTxStory({
   const pct = autoCompoundPct(tx);
   const outsOf = (p: LedgerRow["purpose"]) => ledger.produced.filter((r) => r.purpose === p);
   const total = (rows: LedgerRow[]) => rows.reduce((t, r) => t + r.amount, 0n);
+  // a removed seat's balance goes back to its owner, after the tx's own outputs
+  const refunded = () => {
+    const refund = outsOf("refund");
+    return refund.length > 0 ? (
+      <>
+        , and its remaining {amt(total(refund))} went back to {many(ownersOf(refund), "owners")}
+      </>
+    ) : null;
+  };
   const seatName = ctx.l1Seat?.nodeID ? node(ctx.l1Seat.nodeID, ctx.l1Seat.subnetID) : d?.validationId ? <span className={cn("font-medium", INK)} title={d.validationId}>the validator {truncate(d.validationId, 8)}</span> : <>an L1 validator</>;
 
   const kept = BigInt(Math.round(balance ?? 0));
@@ -146,7 +157,7 @@ export function PchainTxStory({
         if (d?.rewardPaid === false)
           return (
             <>
-              {txl(d.stakingTxId, "The stake ")} ended with no reward: its uptime was under {uptimeReq}%
+              {txl(d.stakingTxId, "The stake ")} ended with no reward: its uptime was {uptimeReq !== null ? `under ${uptimeReq}%` : "too low"}
             </>
           );
         const owners = ownersOf(ledger.produced);
@@ -232,6 +243,7 @@ export function PchainTxStory({
         return decoded.weight === 0 ? (
           <>
             {who} removed the validator {truncate(decoded.validationId, 8)} from its L1
+            {refunded()}
           </>
         ) : (
           <>
@@ -244,19 +256,13 @@ export function PchainTxStory({
             {who} added {amt(kept)} to the balance of {seatName}
           </>
         );
-      case "DisableL1ValidatorTx": {
-        const refund = outsOf("refund");
+      case "DisableL1ValidatorTx":
         return (
           <>
             {who} disabled {seatName}
-            {refund.length > 0 && (
-              <>
-                , and its remaining {amt(total(refund))} went back to {many(ownersOf(refund), "owners")}
-              </>
-            )}
+            {refunded()}
           </>
         );
-      }
       case "AddSubnetValidatorTx":
         return (
           <>

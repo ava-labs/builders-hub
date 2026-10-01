@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Board, EmptyRow, HEAD, ROW, INK, MUTED, TxTypePill, idInk } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, EmptyRow, HEAD, ROW, INK, MUTED, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { formatTime, truncate } from "@/components/explorer-v2/format";
 import { crossChainAddressUrl, crossChainTxUrl } from "@/lib/crosschain-links";
 import type { Utxo } from "@/lib/pchain-explorer";
@@ -77,8 +77,12 @@ export function UtxoColumn({ base, title, utxos, side }: { base: string; title: 
                   {assetAmount(u, true)}
                 </span>
                 {/* a phone sets the lineage beside the amount, the owners and holds under them */}
-                <span className="truncate text-right font-mono text-[12px] md:hidden">{link}</span>
+                <span className="truncate text-right font-mono text-[12px] md:hidden">
+                  <CellLabel>{side === "in" ? "Made In" : "Spent In"}</CellLabel>
+                  {link}
+                </span>
                 <span className="col-span-2 min-w-0 truncate font-mono text-[12px] md:col-span-1">
+                  <CellLabel>Owner</CellLabel>
                   {u.addresses.length === 0 ? (
                     <span className={MUTED}>{cross ? `on the ${cross}` : "—"}</span>
                   ) : (
@@ -96,6 +100,7 @@ export function UtxoColumn({ base, title, utxos, side }: { base: string; title: 
                   )}
                 </span>
                 <span className="col-span-2 min-w-0 overflow-hidden md:col-span-1">
+                  <CellLabel>Held By</CellLabel>
                   <UtxoFlags u={u} side={side} home={home} />
                 </span>
                 <span className="hidden truncate text-right font-mono text-[12px] md:block">{link}</span>

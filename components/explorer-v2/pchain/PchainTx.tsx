@@ -14,7 +14,7 @@ import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "./FundFlowDiag
 import { UtxoColumn } from "./utxo-ledger";
 import { avaxExact, ledgerOf, sumBig, type Ledger } from "./utxo";
 import { humanPeriod, useTxContext, type TxContext } from "./tx-hooks";
-import { PchainTxStory } from "./tx-story";
+import { PchainTxStory, day } from "./tx-story";
 import { ConversionSheet, ContinuousSheet, CreationSheet, CrossChainSheet, InitialValidatorSet, L1ValidationSheet, StakingSheet, WarpSheet, useWarpMessage } from "./tx-sections";
 
 /* One P-Chain transaction, in the C-Chain tx page's grammar: the type in
@@ -23,8 +23,6 @@ import { ConversionSheet, ContinuousSheet, CreationSheet, CrossChainSheet, Initi
    to produced, then the identifiers. Right, the readings a tx is judged
    by: final, what it staked or moved, the fee it burned, its UTXOs. The
    tx type's own sheets follow, then every UTXO as a flow or a table. */
-
-const day = (ts: number) => formatTime(ts).slice(0, 10);
 
 /** nAVAX the tx moved into L1 validators' balances; null while the node's copy is read */
 function l1BalanceOf(tx: Tx, ctx: TxContext): number | null {
@@ -35,7 +33,7 @@ function l1BalanceOf(tx: Tx, ctx: TxContext): number | null {
 }
 
 /** the rail's headline: what the tx staked, minted, moved or paid in */
-function headline(tx: Tx, ledger: Ledger, balance: number | null, ctx: TxContext, uptimeReq: number) {
+function headline(tx: Tx, ledger: Ledger, balance: number | null, ctx: TxContext, uptimeReq: number | null) {
   const outs = (p: string) => ledger.produced.filter((r) => r.purpose === p).reduce((t, r) => t + r.amount, 0n);
   const staked = sumBig(tx.amountStaked);
   if (staked > 0n)
@@ -44,7 +42,14 @@ function headline(tx: Tx, ledger: Ledger, balance: number | null, ctx: TxContext
       value: staked,
       sub: tx.endTimestamp ? `${tx.endTimestamp > Date.now() / 1000 ? "locked to" : "unlocked"} ${day(tx.endTimestamp)}` : tx.period ? `renews every ${tx.periodHuman ?? humanPeriod(tx.period)}` : undefined,
     };
-  if (tx.txType === "RewardValidatorTx" && tx.details?.rewardPaid === false) return { label: "Reward", value: null, sub: `none: uptime under ${uptimeReq}%` };
+  if (tx.txType === "RewardValidatorTx" && tx.details?.rewardPaid === false)
+    return { label: "Reward", value: null, sub: uptimeReq !== null ? `uptime under ${uptimeReq}%` : "uptime too low" };
+  // a cycle's reward is its restaked share and its payout, as the sheet adds them
+  if (tx.txType === "RewardAutoRenewedValidatorTx" && ctx.rewardRestaked !== null && ctx.rewardUtxos) {
+    const restaked = BigInt(Math.round(ctx.rewardRestaked));
+    const paid = BigInt(ctx.rewardWithdrawn);
+    return { label: "Reward", value: restaked + paid, sub: paid > 0n ? `${formatAvax(ctx.rewardRestaked)} restaked · ${formatAvax(ctx.rewardWithdrawn)} paid out` : "all restaked into the stake" };
+  }
   if (ctx.isReward) return { label: "Reward", value: ledger.totalOut || BigInt(ctx.rewardWithdrawn), sub: "minted by the P-Chain" };
   if (tx.txType === "ImportTx") return { label: "Imported", value: ledger.totalOut, sub: "into this chain's UTXOs" };
   if (tx.txType === "ExportTx") return { label: "Exported", value: outs("export"), sub: "to another chain's shared memory" };
@@ -67,8 +72,11 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
 
   // ACP-267 raised the reward threshold from 80% to 90%, judged by the
   // validation's own start: a stake begun before Helicon is still judged
-  // at 80%. The block's time stands in when the start is unknown.
-  const uptimeReq = uptimeRequirementAt(((tx?.startTimestamp || tx?.blockTimestamp) ?? 0) * 1000, network === "fuji" ? "fuji" : ("mainnet" as HeliconNetwork));
+  // at 80%. A staking tx's block stands in for an unknown start; a reward
+  // tx's block is the stake's end, so its start is the staking tx's, and
+  // the percent is left out until that read lands.
+  const start = ctx.isReward ? ctx.stakeStart : tx?.startTimestamp || tx?.blockTimestamp;
+  const uptimeReq = start ? uptimeRequirementAt(start * 1000, network === "fuji" ? "fuji" : ("mainnet" as HeliconNetwork)) : null;
 
   return (
     <ExplorerShell chain={chain} network={network}>
@@ -102,12 +110,12 @@ function TxBody({
   decoded: ReturnType<typeof useWarpMessage>;
   base: string;
   avaxUsd: number | null;
-  uptimeReq: number;
+  uptimeReq: number | null;
   flowView: "diagram" | "table";
   setFlowView: (v: "diagram" | "table") => void;
 }) {
   const d = tx.details;
-  const ledger = ledgerOf({ consumed: tx.consumedUtxos, emitted: ctx.flowEmitted, txType: tx.txType });
+  const ledger = ledgerOf({ consumed: tx.consumedUtxos, emitted: ctx.flowEmitted, txType: tx.txType, outputCount: ctx.platformOp.data?.outputs?.length });
   const balance = l1BalanceOf(tx, ctx);
   const kept = BigInt(Math.round(balance ?? 0));
   const fee = ledger.burned > kept ? ledger.burned - kept : 0n;

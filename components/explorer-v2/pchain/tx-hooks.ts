@@ -79,8 +79,9 @@ const sumOf = (us: RewardUtxo[] | null) => us?.reduce((s, u) => s + u.amount, 0)
 
 export function useTxContext(network: string, txHash: string, tx: Tx | null, notFound: boolean) {
   const k = txKind(tx);
-  // on a 404 the node's copy doubles as the "is it on-chain at all" check
-  const platformOp = usePlatformTx(network, txHash, k.isConvert || k.isWarpOp || k.isCreateChain || notFound);
+  // on a 404 the node's copy doubles as the "is it on-chain at all" check;
+  // a disable's copy counts its own outputs, which its refund follows
+  const platformOp = usePlatformTx(network, txHash, k.isConvert || k.isWarpOp || k.isCreateChain || tx?.txType === "DisableL1ValidatorTx" || notFound);
 
   // reward payouts are minted into P-Chain state, not as tx outputs: classic
   // reward UTXOs sit under the staking tx they reward, auto-renew payouts
@@ -89,15 +90,17 @@ export function useTxContext(network: string, txHash: string, tx: Tx | null, not
   const rewardKey = k.isReward ? (k.isClassicReward ? (stakingTxId ?? txHash) : txHash) : null;
   const rewardUtxos = useRead(rewardKey && `${network}|${rewardKey}`, () => getRewardUtxos(network, rewardKey!));
 
-  // the compound ratio, for the restaked row
-  const compoundShares = useRead(
-    tx?.txType === "RewardAutoRenewedValidatorTx" && stakingTxId ? `${network}|${stakingTxId}` : null,
+  // the staking tx a reward closes: its compound ratio for the restaked
+  // row, and its start, which sets the uptime a forfeited reward missed
+  const forfeit = tx?.txType === "RewardValidatorTx" && tx.details?.rewardPaid === false;
+  const staker = useRead<Tx>(
+    stakingTxId && (tx?.txType === "RewardAutoRenewedValidatorTx" || forfeit) ? `${network}|${stakingTxId}` : null,
     () =>
       fetch(`/api/pchain/${network}/tx/${stakingTxId}`)
         .then((res) => (res.ok ? res.json() : null))
-        .then((staker: Tx | null) => (typeof staker?.autoCompoundRewardShares === "number" ? staker.autoCompoundRewardShares : null))
         .catch(() => null),
   );
+  const compoundShares = typeof staker?.autoCompoundRewardShares === "number" ? staker.autoCompoundRewardShares : null;
 
   // a live continuous validator's weight above its first stake is every renewal's restake so far
   const liveWeight = useRead(tx?.txType === "AddAutoRenewedValidatorTx" && tx.nodeId ? `${network}|${tx.nodeId}` : null, () =>
@@ -181,6 +184,8 @@ export function useTxContext(network: string, txHash: string, tx: Tx | null, not
     rewardWithdrawn: sumOf(rewardUtxos),
     rewardRestaked,
     compoundShares,
+    /** the stake's start, unix seconds, when this tx closes one; null until it is read */
+    stakeStart: staker ? staker.startTimestamp || staker.blockTimestamp : null,
     liveWeight,
     restakedToDate,
     l1Seat,

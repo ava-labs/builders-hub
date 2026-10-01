@@ -104,11 +104,15 @@ function OwnerCell({ base, owner }: { base: string; owner: { threshold: number; 
 }
 
 /* the uptime line of a stake the chain did not reward */
-function Forfeit({ uptimeReq }: { uptimeReq: number }) {
-  return <span className={cn(NOTE, "ml-0 mt-0.5 block font-mono text-[11px]")}>uptime was under {uptimeReq}% at the stake&apos;s end: the stake came back, the reward did not</span>;
+function Forfeit({ uptimeReq }: { uptimeReq: number | null }) {
+  return (
+    <span className="mt-0.5 block font-sans text-[13px] font-normal text-zinc-500 dark:text-zinc-400">
+      uptime was {uptimeReq !== null ? `under ${uptimeReq}%` : "too low"} at the stake&apos;s end: the stake came back, the reward did not
+    </span>
+  );
 }
 
-export function StakingSheet({ tx, ctx, base, uptimeReq, bls }: { tx: Tx; ctx: TxContext; base: string; uptimeReq: number; bls?: string }) {
+export function StakingSheet({ tx, ctx, base, uptimeReq, bls }: { tx: Tx; ctx: TxContext; base: string; uptimeReq: number | null; bls?: string }) {
   const d = tx.details;
   const reward = (() => {
     // the stake's own payout once it ended, the live potential reward until then, the indexer's estimate last
