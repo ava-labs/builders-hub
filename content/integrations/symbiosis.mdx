@@ -1,0 +1,77 @@
+---
+title: Symbiosis
+category: Crosschain Solutions
+available: ["C-Chain"]
+description: "Symbiosis is a cross-chain liquidity protocol that lets users swap any token between Avalanche and 50+ EVM and non-EVM networks in a single transaction."
+logo: /images/symbiosis.png
+developer: Symbiosis Finance
+website: https://symbiosis.finance/
+documentation: https://docs.symbiosis.finance/
+---
+
+## Overview
+
+Symbiosis is a decentralized cross-chain liquidity protocol and exchange. It lets users trade any token and move assets between blockchains in a single transaction, without relying on wrapped assets on the destination chain.
+
+Avalanche C-Chain is a fully supported network. Symbiosis routes swaps between Avalanche and more than 50 other chains, including Ethereum, BNB Chain, Arbitrum, Base, Polygon, as well as non-EVM networks such as Bitcoin, Solana, TON and Tron. Avalanche also acts as a depository chain, so cross-chain swaps can settle directly into native tokens on the C-Chain.
+
+## Features
+
+- **Any-to-any Cross-chain Swaps**: Swap any token on Avalanche into any token on a supported chain in one transaction. Routing uses stablecoins, WETH or WBTC as transit assets and DEX aggregators on both sides for best execution.
+- **Native Assets, No Wrapping**: Users receive native tokens on the destination chain. Liquidity is provided through Octopools on the Symbiosis host chain.
+- **EVM and Non-EVM Coverage**: Bridge between Avalanche and Bitcoin, Solana, TON, Tron and other non-EVM networks alongside the major EVM chains.
+- **Cross-chain Zaps**: Provide liquidity to Octopools from Avalanche in a single transaction.
+- **Interchain Messaging**: Use Symbiosis as a cross-chain communication layer for DeFi protocols that need to trigger actions on another chain.
+- **Decentralized Relayers Network**: Cross-chain operations are signed by a network of relayers running MPC/TSS, with a permissionless solver service completing swaps on the destination chain.
+- **Partner Fee Collectors**: Integrators can attach their own fee to swaps routed through their integration.
+
+## Getting Started
+
+The recommended way to integrate Symbiosis is the REST API. All endpoints are documented and can be tried live in the [Swagger interface](https://api.symbiosis.finance/crosschain/docs/).
+
+1. **Check supported chains and tokens**: `GET /v1/chains` and `GET /v2/tokens` return the networks and assets available for routing. Avalanche C-Chain uses chain ID `43114`.
+2. **Request a quote**: `POST /v2/quote` returns the expected output amount, fees and route for a swap.
+3. **Build and send the transaction**: `POST /v2/swap` returns calldata for the source chain. Sign and broadcast it with the user's wallet.
+4. **Track the swap**: `GET /v2/tx/{chainId}/{txHash}` reports the status of the cross-chain operation.
+
+Example quote request for swapping USDC on Avalanche C-Chain to USDC on Arbitrum:
+
+```bash
+curl -X POST https://api.symbiosis.finance/crosschain/v2/quote \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tokenAmountIn": {
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "chainId": 43114,
+      "decimals": 6,
+      "amount": "100000000"
+    },
+    "tokenOut": {
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "chainId": 42161,
+      "decimals": 6
+    },
+    "from": "0xYourWalletAddress",
+    "to": "0xYourWalletAddress",
+    "slippage": 300
+  }'
+```
+
+For the native token, pass an empty string as `address` (for example AVAX on chain `43114` with `decimals: 18`).
+
+## Documentation
+
+For the full API reference, fee collector setup and protocol architecture, visit the [Symbiosis Documentation](https://docs.symbiosis.finance/) and the [Symbiosis API guide](https://docs.symbiosis.finance/developer-tools/symbiosis-api).
+
+## Use Cases
+
+Symbiosis supports a range of cross-chain scenarios for Avalanche builders:
+
+- **Cross-chain Onboarding**: Let users enter an Avalanche dApp with funds from any supported chain, receiving native tokens on the C-Chain in one step.
+- **Wallet and DEX Integration**: Embed cross-chain swaps into wallets, aggregators and DEX front-ends through the API, with optional partner fees.
+- **Bitcoin and TON Liquidity**: Bring BTC and TON liquidity into Avalanche DeFi without custodial wrapping.
+- **Cross-chain Liquidity Provision**: Zap into Octopools from Avalanche assets in a single transaction.
+
+## Conclusion
+
+Symbiosis connects Avalanche C-Chain to a broad set of EVM and non-EVM networks with single-transaction, native-asset swaps, giving developers a straightforward API to add cross-chain liquidity to their applications.
