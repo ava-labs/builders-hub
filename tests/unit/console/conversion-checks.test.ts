@@ -22,7 +22,8 @@ const SUBNET = 'i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK';
 const OTHER_SUBNET = '2QBurQNZuE1WpmqTZCvWThCvhVJZozjkEWkEfMTciMAvxBKbq4';
 const PROXY = '0x755f6ba3290a3366c8aa4431e0afefbff5a7b7c8';
 const NODE = 'NodeID-PTEhrdQJ9iqx5paHwgWB1TUVP1jSLUnp6';
-const OWNER = { addresses: ['P-fuji1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqurvdp9'], threshold: 1 };
+const OWNER = { addresses: ['P-fuji1qyqszqgpqyqszqgpqyqszqgpqyqszqgptrggc7'], threshold: 1 };
+const ZERO_OWNER = { addresses: ['P-fuji1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2nffjl'], threshold: 1 };
 
 const validator = (over: Partial<ConvertToL1Validator> = {}): ConvertToL1Validator => ({
   nodeID: NODE,
@@ -104,6 +105,9 @@ describe('conversionProblems', () => {
     expect(
       conversionProblems(input({ validators: [validator({ remainingBalanceOwner: { ...OWNER, threshold: 2 } })] }))[0],
     ).toMatch(/remaining balance owner/);
+    expect(conversionProblems(input({ validators: [validator({ remainingBalanceOwner: ZERO_OWNER })] }))[0]).toMatch(
+      /remaining balance owner has the zero address/,
+    );
     expect(conversionProblems(input({ validators: [validator({ nodeID: NODE + 'x' })] }))[0]).toMatch(/NodeID/);
     expect(conversionProblems(input({ managerAddress: '0x1234' }))[0]).toMatch(/not a valid EVM address/);
   });
