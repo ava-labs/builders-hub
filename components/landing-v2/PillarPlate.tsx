@@ -18,23 +18,18 @@ import PlateVideo, { type PlateVideoSpec } from "@/components/landing-v2/PlateVi
 /* ------------------------------------------------------------------ */
 
 const PHOTOS: Partial<Record<PillarSlug, string>> = {
-  interoperability: "/images/solutions/delta-districts.jpg",
-  performance: "/images/solutions/f1-finality.jpg",
-  privacy: "/images/solutions/glass-boardroom.jpg",
-  compliance: "/images/solutions/vault-lock.jpg",
+  interoperability: "/images/solutions/interop-board.jpg",
+  performance: "/images/solutions/platform-pass.jpg",
+  privacy: "/images/solutions/privacy-closed-room.jpg",
+  compliance: "/images/solutions/compliance-gate-stop.jpg",
 };
 
 // pillars whose plate is a silent loop; the photo above is its poster
 const VIDEOS: Partial<Record<PillarSlug, PlateVideoSpec>> = {
   performance: {
-    mp4: "/videos/solutions/f1-finality.mp4",
-    webm: "/videos/solutions/f1-finality.webm",
-    poster: "/images/solutions/f1-finality.jpg",
-  },
-  compliance: {
-    mp4: "/videos/solutions/vault-lock.mp4",
-    webm: "/videos/solutions/vault-lock.webm",
-    poster: "/images/solutions/vault-lock.jpg",
+    mp4: "/videos/solutions/platform-pass.mp4",
+    webm: "/videos/solutions/platform-pass.webm",
+    poster: "/images/solutions/platform-pass.jpg",
   },
 };
 
