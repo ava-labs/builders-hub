@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { SOFT_READ, isOk, statusOf } from "@/lib/explorer-soft-status";
 
 /* The explorer's memory of what it read. Each payload is kept by its URL
    for the session, so a page opened again (a tab left and come back to,
@@ -46,8 +47,8 @@ export function readJson<T>(url: string, priority?: RequestPriority): Promise<T 
   if (hit && Date.now() - hit.at < FRESH_MS) return Promise.resolve(hit.data as T);
   const pending = reading.get(url);
   if (pending) return pending as Promise<T | null>;
-  const read = fetch(url, { priority, signal: AbortSignal.timeout(10_000) })
-    .then((r) => (r.ok ? r.json() : null))
+  const read = fetch(url, { ...SOFT_READ, priority, signal: AbortSignal.timeout(10_000) })
+    .then((r) => (isOk(r) ? r.json() : null))
     .then((d: unknown) => {
       if (d != null) remember(url, d);
       return d;
@@ -119,8 +120,8 @@ export function usePolledJson<T>(
       if (inFlight) return;
       inFlight = true;
       try {
-        const res = await fetch(key, { signal: pollSignal() });
-        if (res.ok) got((await res.json()) as T);
+        const res = await fetch(key, { ...SOFT_READ, signal: pollSignal() });
+        if (isOk(res)) got((await res.json()) as T);
       } catch {
         /* keep showing the last good payload */
       }
@@ -153,8 +154,8 @@ export function usePolledJson<T>(
       timer = setTimeout(async () => {
         if (controller.signal.aborted) return;
         try {
-          const res = await fetch(key, { signal: pollSignal() });
-          if (res.ok) {
+          const res = await fetch(key, { ...SOFT_READ, signal: pollSignal() });
+          if (isOk(res)) {
             got((await res.json()) as T);
             if (refreshMs > 0) schedule();
             return;
@@ -182,9 +183,9 @@ export function usePolledJson<T>(
       let notFound = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const res = await fetch(key, { signal: pollSignal() });
-          if (res.status === 404) throw new Error("not found");
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const res = await fetch(key, { ...SOFT_READ, signal: pollSignal() });
+          if (statusOf(res) === 404) throw new Error("not found");
+          if (!isOk(res)) throw new Error(`HTTP ${statusOf(res)}`);
           got((await res.json()) as T);
           break;
         } catch (e) {
@@ -235,7 +236,7 @@ export function useRememberedJson<T>(url: string | null): T | null {
     setRead({ url, data: hit?.data ?? null });
     if (hit && Date.now() - hit.at < FRESH_MS) return;
     // a hover's read in flight stands in for this one
-    const pending = reading.get(url) ?? fetch(url).then((r) => (r.ok ? r.json() : null));
+    const pending = reading.get(url) ?? fetch(url, SOFT_READ).then((r) => (isOk(r) ? r.json() : null));
     pending
       .then((d) => {
         if (d == null) return;

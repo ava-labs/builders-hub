@@ -9,6 +9,7 @@ import type { L1Chain } from "@/types/stats";
 import { hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import { buildTxUrl, buildAddressUrl, buildBlockUrl } from "@/utils/eip3091";
+import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
 
 /* ------------------------------------------------------------------ */
 /* The one chain-suggestion engine behind every explorer search bar    */
@@ -232,8 +233,8 @@ function icmLookupCached(hash: string): Promise<IcmMessage | null> {
   const key = hash.toLowerCase();
   let p = icmLookupCache.get(key);
   if (!p) {
-    p = fetch(`/api/icm/message/${key}`)
-      .then((res) => (res.ok ? res.json() : null))
+    p = fetch(`/api/icm/message/${key}`, SOFT_READ)
+      .then((res) => (isOk(res) ? res.json() : null))
       .then((body) => (body && !body.error ? (body as IcmMessage) : null))
       .catch(() => null);
     icmLookupCache.set(key, p);

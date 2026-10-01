@@ -14,6 +14,7 @@ import { useSignatures } from "@/lib/token-list";
 import { hasRealChainLogo } from "@/lib/pchain-explorer";
 import type { TxListResponse } from "@/lib/evm-explorer";
 import { readJson, recall } from "@/components/explorer-v2/page-data";
+import { SOFT_READ, isOk, statusOf } from "@/lib/explorer-soft-status";
 import { RATE_WINDOW_MS, chainClock, coverRates, extendCover, type Cover } from "./throughput";
 import { blocksFeed, txsFeed, type LiveChain } from "./network-reads";
 
@@ -168,8 +169,8 @@ async function readFeed<T>(url: string, viaMemory: boolean, init?: RequestInit):
     if (data == null) throw new Error("no answer");
     return data;
   }
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(POLL_MS * 2) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await fetch(url, { ...SOFT_READ, ...init, signal: AbortSignal.timeout(POLL_MS * 2) });
+  if (!isOk(res)) throw new Error(`HTTP ${statusOf(res)}`);
   return (await res.json()) as T;
 }
 

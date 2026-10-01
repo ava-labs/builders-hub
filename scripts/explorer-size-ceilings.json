@@ -7,7 +7,7 @@
   "components/explorer-v2/pchain/PchainTx.tsx": 1103,
   "components/explorer-v2/network/city3d/City3D.tsx": 1019,
   "components/explorer-v2/pchain/PchainNode.tsx": 1018,
-  "components/explorer-v2/evm/EvmTrace.tsx": 1004,
+  "components/explorer-v2/evm/EvmTrace.tsx": 981,
   "components/explorer-v2/evm/EvmQuery.tsx": 985,
   "components/explorer-v2/network/city3d/Backdrop.tsx": 963,
   "components/explorer-v2/staking/StakingMetricPage.tsx": 867,
