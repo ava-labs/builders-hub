@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, DetailSkeleton, HashChip, LiveDot, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, Tabs, TxTypePill, UNIT, feeInk, idInk } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
-import { RailRow } from "@/components/explorer-v2/evm/EvmTx";
+import { NotFound, RailRow } from "@/components/explorer-v2/detail-parts";
 import { uptimeRequirementAt, type HeliconNetwork } from "@/constants/helicon";
 import { txTypeLabel, type Tx } from "@/lib/pchain-explorer";
 import { useAvaxUsd, usePchainData } from "./hooks";
@@ -280,15 +280,6 @@ function IndexingWait({ txHash }: { txHash: string }) {
         </p>
         <HashChip value={txHash} len={66} />
       </div>
-    </Board>
-  );
-}
-
-export function NotFound({ label, id }: { label: string; id?: string }) {
-  return (
-    <Board divide={false} className="px-6 py-16 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">{label}</p>
-      {id && <p className="mt-3 break-all font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{id}</p>}
     </Board>
   );
 }

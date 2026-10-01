@@ -19,7 +19,7 @@ import {
 } from "@/components/stats/VersionBreakdown";
 import { usePchainData } from "./hooks";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
-import { NotFound } from "./PchainTx";
+import { NotFound } from "@/components/explorer-v2/detail-parts";
 import type { ValidatorsResponse, ValidatorSummary } from "@/lib/pchain-explorer";
 import { cn } from "@/lib/utils";
 

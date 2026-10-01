@@ -7,7 +7,7 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, idInk, HEAD, ROW, LoadMore } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
-import { NotFound } from "./PchainTx";
+import { NotFound } from "@/components/explorer-v2/detail-parts";
 import { GenesisViewer } from "./GenesisViewer";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";

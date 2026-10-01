@@ -5,7 +5,7 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, SubjectHeadline, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
-import { NotFound } from "./PchainTx";
+import { NotFound } from "@/components/explorer-v2/detail-parts";
 import { txTypeLabel, type Block } from "@/lib/pchain-explorer";
 
 export function PchainBlock({ chain, network, id }: { chain: string; network: string; id: string }) {

@@ -17,10 +17,9 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, BoardHeader, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecPlate, SpecRow, SpecSheet, SubjectHeadline, TxTypePill, idInk, ROW, LoadMore } from "@/components/explorer-v2/ui";
 import { ShareMap } from "@/components/explorer-v2/ShareMap";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
-import { RailRow } from "@/components/explorer-v2/evm/EvmTx";
+import { NotFound, RailRow } from "@/components/explorer-v2/detail-parts";
 import { dayLong, dayShort, formatAvax, formatNumber, formatTime, hourLong, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
-import { NotFound } from "./PchainTx";
 import { SubscribeAlerts } from "./SubscribeAlerts";
 import { balanceAt, useSecondClock, type SettledBalance } from "./seat-balance";
 import {

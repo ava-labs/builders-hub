@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ageOrDate, formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { useAvaxUsd, usePchainData } from "./hooks";
-import { NotFound } from "./PchainTx";
+import { NotFound } from "@/components/explorer-v2/detail-parts";
 import { txTypeLabel, type Address, type AddressBreakdown, type AddressTxs } from "@/lib/pchain-explorer";
 
 /* Address view: subject, then figures, then activity.
