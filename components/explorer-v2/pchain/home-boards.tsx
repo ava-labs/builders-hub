@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Board, HEAD, INK, MUTED, ROW, RowDoor, RowSkeleton, SectionHeader, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { ageShort, formatNumber, truncate } from "@/components/explorer-v2/format";
-import { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ViewAll, useOpening } from "@/components/explorer-v2/evm/LiveBoards";
+import { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ViewAll, useOpening } from "@/components/explorer-v2/evm/belt";
 import { useTicker } from "@/components/explorer-v2/network/ticker";
 import { blockTypeLabel, txTypeLabel, type BlockSummary, type TxSummary } from "@/lib/pchain-explorer";
 

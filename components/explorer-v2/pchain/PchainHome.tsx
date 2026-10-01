@@ -11,7 +11,7 @@ import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-
 import { usePolledJson, useRememberedJson } from "@/components/explorer-v2/page-data";
 import { levelWindow, usePrimaryHistory, type DayPoint } from "@/components/explorer-v2/network/overview-series";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
-import { ROWS } from "@/components/explorer-v2/evm/LiveBoards";
+import { ROWS } from "@/components/explorer-v2/evm/belt";
 import { dayLong, dayShort } from "@/components/explorer-v2/format";
 import { useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { L1Versions } from "@/components/explorer-v2/network/l1-versions";
