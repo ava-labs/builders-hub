@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Board, HEAD, INK, MUTED, ROW, SectionHeader, TypeFilterRail } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
@@ -8,6 +8,7 @@ import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { StackBlock, type StackCol, type StackLayer } from "@/components/explorer-v2/gas/instruments";
 import { fadeUpStyle, riseStyle, useReveal, EASE_CSS } from "@/components/explorer-v2/motion";
 import { MONTHS_SHORT } from "@/lib/explorer-query/values";
+import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import {
   DATS as STATIC_DATS,
   ETFS as STATIC_ETFS,
@@ -42,24 +43,9 @@ interface Holder {
 }
 
 function useDatEtf() {
-  const [dats, setDats] = useState<DatEntry[]>(STATIC_DATS);
-  const [etfs, setEtfs] = useState<EtfEntry[]>(STATIC_ETFS);
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/avax-dat-etf")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { dats?: DatEntry[]; etfs?: EtfEntry[] } | null) => {
-        if (cancelled || !data) return;
-        if (Array.isArray(data.dats)) setDats(data.dats);
-        if (Array.isArray(data.etfs)) setEtfs(data.etfs);
-      })
-      // the static set still says something true
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  return { dats, etfs };
+  // a visit before opens on its read; until a read lands, or when it fails, the static set still says something true
+  const data = useRememberedJson<{ dats?: DatEntry[]; etfs?: EtfEntry[] }>("/api/avax-dat-etf");
+  return { dats: Array.isArray(data?.dats) ? data.dats : STATIC_DATS, etfs: Array.isArray(data?.etfs) ? data.etfs : STATIC_ETFS };
 }
 
 /** "Sep 2025" as a sortable month index */

@@ -37,12 +37,16 @@ export function recall<T>(url: string, live: boolean): { data: T; at: number } |
   return hit as { data: T; at: number };
 }
 
-/** read `url` into memory ahead of its page: the page then opens on it.
- *  A payload read a moment ago, or a read in flight, is not asked again. */
-export function prefetchJson(url: string): void {
+/** read `url` into memory: a hovered link's read ahead of its page, which
+ *  then opens on it, or a page's first read outside a hook. A payload read
+ *  a moment ago, or a read in flight, stands in for a new one. Resolves to
+ *  the payload, or null on a failed read. */
+export function readJson<T>(url: string, priority?: RequestPriority): Promise<T | null> {
   const hit = memory.get(url);
-  if ((hit && Date.now() - hit.at < FRESH_MS) || reading.has(url)) return;
-  const read = fetch(url, { signal: AbortSignal.timeout(10_000) })
+  if (hit && Date.now() - hit.at < FRESH_MS) return Promise.resolve(hit.data as T);
+  const pending = reading.get(url);
+  if (pending) return pending as Promise<T | null>;
+  const read = fetch(url, { priority, signal: AbortSignal.timeout(10_000) })
     .then((r) => (r.ok ? r.json() : null))
     .then((d: unknown) => {
       if (d != null) remember(url, d);
@@ -51,6 +55,7 @@ export function prefetchJson(url: string): void {
     .catch(() => null)
     .finally(() => reading.delete(url));
   reading.set(url, read);
+  return read as Promise<T | null>;
 }
 
 /**

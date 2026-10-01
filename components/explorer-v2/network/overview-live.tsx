@@ -13,7 +13,9 @@ import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
 import { hasRealChainLogo } from "@/lib/pchain-explorer";
 import type { TxListResponse } from "@/lib/evm-explorer";
+import { readJson, recall } from "@/components/explorer-v2/page-data";
 import { RATE_WINDOW_MS, chainClock, coverRates, extendCover, type Cover } from "./throughput";
+import { blocksFeed, txsFeed, type LiveChain } from "./network-reads";
 
 /* The splash's live boards: the C-Chain home's Latest Blocks and Latest
    Transactions, merged across the busiest chains. Every row wears the
@@ -27,15 +29,6 @@ import { RATE_WINDOW_MS, chainClock, coverRates, extendCover, type Cover } from 
    chain costs nothing past its block poll. A chain that returns no new
    block backs off to one poll in four sweeps. Polls stop while the tab is
    hidden, and a chain that fails three times drops out silently. */
-
-export interface LiveChain {
-  /** EVM chain id, the API route key */
-  chainId: string;
-  slug: string;
-  name: string;
-  logo: string;
-  symbol: string;
-}
 
 interface ApiBlock {
   number: string;
@@ -110,6 +103,21 @@ function toLiveBlocks(chain: LiveChain, blocks: ApiBlock[]): LiveBlock[] {
   });
 }
 
+function toLiveTxs(chain: LiveChain, txs: TxListResponse["transactions"]): LiveTx[] {
+  return txs.map((t) => ({
+    hash: t.hash,
+    chain,
+    blockNumber: t.blockNumber,
+    txIndex: t.txIndex,
+    from: t.from,
+    to: t.to,
+    value: t.value,
+    methodId: t.methodId,
+    success: t.success,
+    timestamp: t.timestamp,
+  }));
+}
+
 /* newest first, each chain limited to its share */
 function sample<T extends { chain: LiveChain }>(rows: T[], perChain: number, newer: (a: T, b: T) => number): T[] {
   const counts = new Map<string, number>();
@@ -135,8 +143,38 @@ const MEMORY_MS = 30_000;
 let left: { blocks: LiveBlock[]; txs: LiveTx[]; at: number } | null = null;
 const recallBoards = () => (left && Date.now() - left.at < MEMORY_MS ? left : null);
 
+/* The boards a hovered link's reads hold (the page memory): the overview
+   opens on them as on the boards a visit left, once half the chains are
+   there, the first sweep's own rule */
+function warmBoards(chains: LiveChain[]): { blocks: LiveBlock[]; txs: LiveTx[] } | null {
+  const reads = chains.map((c) => ({
+    c,
+    blocks: recall<{ blocks?: ApiBlock[] }>(blocksFeed(c.chainId), true)?.data.blocks,
+    txs: recall<TxListResponse>(txsFeed(c.chainId, true), true)?.data.transactions,
+  }));
+  if (!chains.length || reads.filter((r) => r.blocks && r.txs).length * 2 < chains.length) return null;
+  return {
+    blocks: sample(reads.flatMap((r) => toLiveBlocks(r.c, r.blocks ?? [])), OPEN_PER_CHAIN, blockNewer),
+    txs: sample(reads.flatMap((r) => toLiveTxs(r.c, r.txs ?? [])), OPEN_PER_CHAIN, txNewer),
+  };
+}
+
+/* A feed's read. The first sweep's opening read goes through the page
+   memory, so a hovered link's read (in flight, or a moment old) stands in
+   for it; `init` is for the polls, which read afresh. */
+async function readFeed<T>(url: string, viaMemory: boolean, init?: RequestInit): Promise<T> {
+  if (viaMemory) {
+    const data = await readJson<T>(url);
+    if (data == null) throw new Error("no answer");
+    return data;
+  }
+  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(POLL_MS * 2) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as T;
+}
+
 function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, number>) => void) {
-  const [opening] = useState(recallBoards);
+  const [opening] = useState(() => recallBoards() ?? warmBoards(chains));
   const [blocks, setBlocks] = useState<LiveBlock[]>(opening?.blocks ?? []);
   const [txs, setTxs] = useState<LiveTx[]>(opening?.txs ?? []);
   const [settled, setSettled] = useState(!!opening);
@@ -180,11 +218,8 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       if ((failures.get(id) ?? 0) >= MAX_FAILURES) return [];
       if (!first && (nextSweep.get(id) ?? 0) > sweepN) return [];
       const last = lastBlock.get(id);
-      const query = last ? `blocksOnly=true&lastFetchedBlock=${last}` : "blocksOnly=true";
       try {
-        const res = await fetch(`/api/explorer/${id}?${query}`, { signal: AbortSignal.timeout(POLL_MS * 2) });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { blocks?: ApiBlock[] };
+        const data = await readFeed<{ blocks?: ApiBlock[] }>(blocksFeed(id, last), first && !last);
         const fresh = toLiveBlocks(chain, data.blocks ?? []);
         // three failures in a row drop a chain, not three in a session
         failures.set(id, 0);
@@ -218,26 +253,8 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       try {
         // no-store: the proxy's stale-while-revalidate would otherwise make
         // the browser send each poll twice
-        const res = await fetch(`/api/evm/${id}/txs?limit=${first ? 6 : 10}`, {
-          cache: "no-store",
-          signal: AbortSignal.timeout(POLL_MS * 2),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as TxListResponse;
-        const fresh = (data.transactions ?? [])
-          .filter((t) => !seenTx.has(t.hash))
-          .map<LiveTx>((t) => ({
-            hash: t.hash,
-            chain,
-            blockNumber: t.blockNumber,
-            txIndex: t.txIndex,
-            from: t.from,
-            to: t.to,
-            value: t.value,
-            methodId: t.methodId,
-            success: t.success,
-            timestamp: t.timestamp,
-          }));
+        const data = await readFeed<TxListResponse>(txsFeed(id, first), first, { cache: "no-store" });
+        const fresh = toLiveTxs(chain, (data.transactions ?? []).filter((t) => !seenTx.has(t.hash)));
         fresh.forEach((t) => seenTx.add(t.hash));
         const newest = Math.max(have, ...fresh.map((t) => t.blockNumber));
         haveTx.set(id, newest);
