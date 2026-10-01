@@ -6,11 +6,11 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { bytesToHex, hexToBytes, encodeFunctionData, Abi } from 'viem';
 import {
-  getRegistrationJustification,
   newL1ValidatorRegistrationMessage,
   newWarpMessage,
   packWarpIntoAccessList,
 } from '@avalanche-sdk/interchain/warp';
+import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -149,7 +149,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       });
 
       // Step 2: Get justification for the validation (using the extracted validation ID)
-      const justification = await getRegistrationJustification(
+      const justification = await findRegistrationJustification(
         weightMessageData.validationIdHex,
         subnetIdL1,
         chainPublicClient,
