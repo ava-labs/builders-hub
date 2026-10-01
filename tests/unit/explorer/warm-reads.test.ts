@@ -34,6 +34,7 @@ describe('readsOf', () => {
       '/api/pchain-activity/fuji',
     ]);
     expect(readsOf('/explorer/fuji/p-chain/tx/2abc')).toEqual(['/api/pchain/fuji/tx/2abc']);
+    expect(readsOf('/explorer/mainnet/p-chain/blocks')).toEqual(['/api/pchain/mainnet/blocks?limit=25']);
     expect(readsOf('/explorer/mainnet/x-chain/txs')).toEqual(['/api/xchain/mainnet/txs?limit=50']);
   });
 

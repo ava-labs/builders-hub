@@ -48,6 +48,7 @@ const PCHAIN_PAGES: Record<string, (network: string, arg: string | undefined) =>
     ...(n === "mainnet" ? [STAKE_HISTORY_URL] : []),
   ],
   txs: (n) => [pchainApiPath(n, "txs", { limit: 50 })],
+  blocks: (n) => [pchainApiPath(n, "blocks", { limit: 25 })],
   tx: (n, id) => (id ? [pchainApiPath(n, `tx/${id}`)] : []),
   block: (n, id) => (id ? [pchainApiPath(n, `block/${id}`)] : []),
   address: (n, a) => (a ? [pchainApiPath(n, `address/${a}`), pchainApiPath(n, `address/${a}/txs`, { limit: 50 })] : []),

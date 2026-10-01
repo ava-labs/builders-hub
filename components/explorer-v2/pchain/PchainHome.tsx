@@ -18,7 +18,7 @@ import { L1Versions } from "@/components/explorer-v2/network/l1-versions";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { pchainActivityPath, pchainL1OpsPath, type BlockSummary, type BlocksList, type Stats, type TxSummary } from "@/lib/pchain-explorer";
 import { LIVE_REFRESH_MS, usePchainData } from "./hooks";
-import { LatestPchainBlocks, LatestPchainTxs } from "./home-boards";
+import { LatestPchainBlocks, LatestPchainTxs } from "./boards";
 
 /* The /api/pchain-activity contract: staking money flow, not tx counts */
 interface RewardDay {
