@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, idInk, HEAD, ROW, LoadMore } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HEAD, HashChip, INK, LoadMore, MUTED, ROW, RowDoor, SectionHeader, SpecLine, SpecSheet, idInk } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
-import { usePchainData } from "./hooks";
 import { NotFound } from "@/components/explorer-v2/detail-parts";
+import { usePchainData } from "./hooks";
 import { GenesisViewer } from "./GenesisViewer";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
@@ -27,6 +27,9 @@ import {
 import type { Tx } from "@/lib/pchain-explorer";
 import { cn } from "@/lib/utils";
 
+/* the live validator set's ledger columns */
+const SET_COLS = "md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)]";
+
 /* A blockchain ID *is* the ID of the CreateChainTx that made it, so the
    indexer's tx endpoint is the chain's birth certificate: name, VM,
    genesis hash, subnet, creation time. The node RPC layers on what the
@@ -41,7 +44,7 @@ export function PchainChain({ chain, network, id }: { chain: string; network: st
 
 /* The details body, shell-agnostic: the P-Chain route wraps it in the
    P-Chain shell; every EVM chain mounts it under its own Details tab.
-   `base` is the P-Chain explorer base — the entities linked here (create
+   `base` is the P-Chain explorer base: the entities linked here (create
    txs, validators, conversions) live on the P-Chain wherever it's viewed. */
 export function ChainDetailsContent({
   network,
@@ -57,7 +60,7 @@ export function ChainDetailsContent({
   socials?: { twitter?: string; linkedin?: string };
 }) {
   // links arrive in either encoding (the catalog speaks hex, the P-Chain
-  // speaks CB58) — normalize once and speak CB58 from here on
+  // speaks CB58): normalize once and speak CB58 from here on
   const cb58Id = useMemo(() => {
     if (!id.startsWith("0x")) return id;
     try {
@@ -69,7 +72,7 @@ export function ChainDetailsContent({
   const { data: tx, loading, error } = usePchainData<Tx>(network, `tx/${cb58Id}`);
   const isChain = tx?.txType === "CreateChainTx";
 
-  // catalog match by blockchain ID — the catalog mixes encodings (the
+  // catalog match by blockchain ID: the catalog mixes encodings (the
   // C-Chain's is CB58, most L1s' are hex), so compare in hex both ways
   const catalog = useMemo(() => {
     const hex = (id.startsWith("0x") ? id : cb58ToHex(cb58Id))?.toLowerCase();
@@ -83,7 +86,7 @@ export function ChainDetailsContent({
     });
   }, [id, cb58Id]);
 
-  // genesis chains (the C-Chain) predate the P-Chain's tx record — the
+  // genesis chains (the C-Chain) predate the P-Chain's tx record: the
   // catalog carries their identity instead
   const genesisFallback = !loading && !isChain && !!catalog;
   const subnetId = isChain ? tx?.subnetId : genesisFallback ? catalog?.subnetId : undefined;
@@ -91,7 +94,7 @@ export function ChainDetailsContent({
   const [subnet, setSubnet] = useState<SubnetInfo | null>(null);
   const [validators, setValidators] = useState<CurrentValidator[] | null>(null);
   const [shown, setShown] = useState(50);
-  // the chain's genesis rides in its CreateChainTx — the node keeps the bytes
+  // the chain's genesis rides in its CreateChainTx: the node keeps the bytes
   const [genesisData, setGenesisData] = useState<unknown>(undefined);
 
   useEffect(() => {
@@ -105,7 +108,7 @@ export function ChainDetailsContent({
 
   useEffect(() => {
     // the Primary Network's subnet is implicit and its validator set is the
-    // whole network — that story belongs to the validators tab, not here
+    // whole network: that story belongs to the validators tab, not here
     if (!subnetId || subnetId === PRIMARY_SUBNET_ID) return;
     let cancelled = false;
     getSubnetInfo(network, subnetId).then((s) => !cancelled && setSubnet(s));
@@ -133,23 +136,23 @@ export function ChainDetailsContent({
                 </span>
               }
             />
-            <Board divide={false} className="px-5 py-4 md:px-6">
-              <SpecPlate>
-                <SpecRow label="Network Name">{catalog.chainName}</SpecRow>
-                <SpecRow label="Blockchain ID">
+            <Board divide={false} className="px-5 md:px-6">
+              <SpecSheet>
+                <SpecLine label="Network Name">{catalog.chainName}</SpecLine>
+                <SpecLine label="Blockchain ID">
                   <HashChip value={cb58Id} len={40} />
-                </SpecRow>
+                </SpecLine>
                 {catalog.subnetId && (
-                  <SpecRow label="Subnet ID">
+                  <SpecLine label="Subnet ID">
                     <HashChip
                       value={catalog.subnetId}
                       href={catalog.subnetId !== PRIMARY_SUBNET_ID ? `${base}/tx/${catalog.subnetId}` : undefined}
                       len={32}
                     />
-                  </SpecRow>
+                  </SpecLine>
                 )}
-                <SpecRow label="Created">Genesis (predates the P-Chain's transaction record)</SpecRow>
-              </SpecPlate>
+                <SpecLine label="Created">Genesis (predates the P-Chain's transaction record)</SpecLine>
+              </SpecSheet>
             </Board>
           </section>
           <CatalogStrip catalog={catalog} website={website} socials={socials} />
@@ -170,41 +173,41 @@ export function ChainDetailsContent({
                 ) : undefined
               }
             />
-            <Board divide={false} className="px-5 py-4 md:px-6">
-              <SpecPlate>
-                {chainName && <SpecRow label="Network Name">{chainName}</SpecRow>}
-                <SpecRow label="Blockchain ID">
+            <Board divide={false} className="px-5 md:px-6">
+              <SpecSheet>
+                {chainName && <SpecLine label="Network Name">{chainName}</SpecLine>}
+                <SpecLine label="Blockchain ID">
                   <HashChip value={id} len={40} />
-                </SpecRow>
+                </SpecLine>
                 {tx.subnetId && (
-                  <SpecRow label="Subnet ID">
+                  <SpecLine label="Subnet ID">
                     <HashChip
                       value={tx.subnetId}
                       href={tx.subnetId !== PRIMARY_SUBNET_ID ? `${base}/tx/${tx.subnetId}` : undefined}
                       len={32}
                     />
-                  </SpecRow>
+                  </SpecLine>
                 )}
                 {vmId && (
-                  <SpecRow label="VM">
+                  <SpecLine label="VM">
                     <span className="inline-flex items-center gap-2">
                       {VM_NAMES[vmId] && <span>{VM_NAMES[vmId]} ·</span>}
                       <HashChip value={vmId} len={16} />
                     </span>
-                  </SpecRow>
+                  </SpecLine>
                 )}
                 {tx.details?.genesisDataHash && (
-                  <SpecRow label="Genesis Hash">
+                  <SpecLine label="Genesis Hash">
                     <HashChip value={tx.details.genesisDataHash} len={32} />
-                  </SpecRow>
+                  </SpecLine>
                 )}
-                <SpecRow label="Created">
+                <SpecLine label="Created">
                   {formatTime(tx.blockTimestamp)} · {timeAgo(tx.blockTimestamp)}
-                </SpecRow>
-                <SpecRow label="Created By">
+                </SpecLine>
+                <SpecLine label="Created By">
                   <HashChip value={tx.txHash} href={`${base}/tx/${tx.txHash}`} len={24} />
-                </SpecRow>
-              </SpecPlate>
+                </SpecLine>
+              </SpecSheet>
             </Board>
           </section>
 
@@ -212,48 +215,48 @@ export function ChainDetailsContent({
           {subnet && (
             <section className="flex flex-col gap-4">
               <SectionHeader label={subnet.isPermissioned ? "Subnet Status" : "L1 Status"} />
-              <Board divide={false} className="px-5 py-4 md:px-6">
-                <SpecPlate>
+              <Board divide={false} className="px-5 md:px-6">
+                <SpecSheet>
                   {subnet.isPermissioned ? (
                     <>
-                      <SpecRow label="Status">Permissioned subnet</SpecRow>
-                      <SpecRow label="Threshold">
+                      <SpecLine label="Status">Permissioned subnet</SpecLine>
+                      <SpecLine label="Threshold">
                         {subnet.threshold} of {subnet.controlKeys?.length ?? 0} control keys
-                      </SpecRow>
+                      </SpecLine>
                       {(subnet.controlKeys ?? []).slice(0, 5).map((k) => (
-                        <SpecRow key={k} label="Control Key">
+                        <SpecLine key={k} label="Control Key">
                           <HashChip value={k} len={24} />
-                        </SpecRow>
+                        </SpecLine>
                       ))}
                     </>
                   ) : (
                     <>
-                      <SpecRow label="Status">Sovereign L1 (converted via ACP-77)</SpecRow>
+                      <SpecLine label="Status">Sovereign L1 (converted via ACP-77)</SpecLine>
                       {/* the ACP-77 conversionID is the SHA-256 of the conversion
-                          data, NOT the ConvertSubnetToL1Tx's ID — there is no tx
+                          data, NOT the ConvertSubnetToL1Tx's ID: there is no tx
                           at this ID, so it must never link to a tx page */}
                       {subnet.conversionID && (
-                        <SpecRow label="Conversion ID">
+                        <SpecLine label="Conversion ID">
                           <HashChip value={subnet.conversionID} len={24} />
-                        </SpecRow>
+                        </SpecLine>
                       )}
                       {subnet.managerChainID && (
-                        <SpecRow label="Manager Chain">
+                        <SpecLine label="Manager Chain">
                           <HashChip
                             value={subnet.managerChainID}
                             href={`${base}/chain/${subnet.managerChainID}`}
                             len={24}
                           />
-                        </SpecRow>
+                        </SpecLine>
                       )}
                       {subnet.managerAddress && (
-                        <SpecRow label="Validator Manager">
+                        <SpecLine label="Validator Manager">
                           <HashChip value={subnet.managerAddress} len={24} />
-                        </SpecRow>
+                        </SpecLine>
                       )}
                     </>
                   )}
-                </SpecPlate>
+                </SpecSheet>
               </Board>
             </section>
           )}
@@ -266,36 +269,27 @@ export function ChainDetailsContent({
           {validators && validators.length > 0 && (
             <section className="flex flex-col gap-4">
               <SectionHeader label={`Validators · ${validators.length}`} />
-              <Board>
-                <div className={cn(HEAD, "grid-cols-[1.6fr_0.8fr_0.8fr_1fr]")}>
+              <Board divide={false}>
+                <div className={cn(HEAD, SET_COLS, "border-b border-zinc-200 dark:border-zinc-800")}>
                   <span>Node</span>
                   <span className="text-right">Weight</span>
                   <span className="text-right">Balance</span>
                   <span className="text-right">Validation ID</span>
                 </div>
-                {validators.slice(0, shown).map((v) => (
-                  <Link
-                    key={v.validationID ?? v.nodeID}
-                    href={`${base}/node/${v.nodeID}${subnetId ? `?subnet=${subnetId}` : ""}`}
-                    className={cn(ROW, "md:grid-cols-[1.6fr_0.8fr_0.8fr_1fr]")}
-                  >
-                    <span className={`break-all font-mono text-[12px] ${idInk}`}>
-                      {v.nodeID}
-                    </span>
-                    <div className="font-mono text-[11px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
-                      <CellLabel>Weight</CellLabel>
-                      {formatNumber(Number(v.weight))}
-                    </div>
-                    <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                      <CellLabel>Balance</CellLabel>
-                      {v.balance !== undefined ? formatAvax(v.balance) : "—"}
-                    </div>
-                    <div className="min-w-0 truncate font-mono text-[11px] text-zinc-500 md:text-right dark:text-zinc-400">
-                      <CellLabel>Validation ID</CellLabel>
-                      {v.validationID ? truncate(v.validationID, 12) : "—"}
-                    </div>
-                  </Link>
-                ))}
+                <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {validators.slice(0, shown).map((v) => (
+                    <RowDoor key={v.validationID ?? v.nodeID} href={`${base}/node/${v.nodeID}${subnetId ? `?subnet=${subnetId}` : ""}`} className={cn(ROW, SET_COLS)}>
+                      <span className={cn("truncate font-mono text-[12.5px]", idInk)} title={v.nodeID}>
+                        {v.nodeID}
+                      </span>
+                      <span className={cn(INK, "text-right")}>{formatNumber(Number(v.weight))}</span>
+                      <span className={cn(MUTED, "text-right")}>{v.balance !== undefined ? formatAvax(v.balance) : "—"}</span>
+                      <span className={cn(MUTED, "truncate text-right")} title={v.validationID}>
+                        {v.validationID ? truncate(v.validationID, 12) : "—"}
+                      </span>
+                    </RowDoor>
+                  ))}
+                </div>
               </Board>
               {shown < validators.length && (
                 <LoadMore onClick={() => setShown((s) => s + 50)} />
