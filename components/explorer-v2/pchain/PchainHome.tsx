@@ -67,7 +67,7 @@ const NO_MOVE: { spark?: number[]; delta: number | null } = { delta: null };
    level moves against the page clock's window and draws its days; the
    metrics feed is mainnet's, so Fuji shows the levels alone. */
 
-function HomeReadouts({ s, network, base, days }: { s: Stats | null; network: string; base: string; days: number | null }) {
+function HomeReadouts({ s, done, network, base, days }: { s: Stats | null; done: boolean; network: string; base: string; days: number | null }) {
   const { subnets, loading: stakeLoading } = useValidatorStats(network);
   const history = usePrimaryHistory(days !== null);
   // the staking and L1 sheets are mainnet's; Fuji's figures door into its validators
@@ -88,7 +88,8 @@ function HomeReadouts({ s, network, base, days }: { s: Stats | null; network: st
   const conversions = ops.data?.conversions ?? [];
   const toDate = conversions.length ? conversions[conversions.length - 1].cumulative : null;
   const recent = ops.data ? ops.data.ops.reduce((t, d) => t + d.convert, 0) : null;
-  const count = (v: number | undefined) => (v === undefined ? null : v.toLocaleString("en-US"));
+  // a stats read that failed shows the dash, not a figure still loading
+  const count = (v: number | undefined) => (v !== undefined ? v.toLocaleString("en-US") : done ? "—" : null);
 
   return (
     <ReadoutRow cols={6} className="sm:grid-cols-3">
@@ -97,7 +98,7 @@ function HomeReadouts({ s, network, base, days }: { s: Stats | null; network: st
         href={sheet("staking/total-stake", "validators")}
         value={staked !== null ? fmtCompact(staked) : stakeLoading ? null : "—"}
         unit="AVAX"
-        sub={staked && supply ? `${((staked / supply) * 100).toFixed(1)}% of P-Chain supply` : undefined}
+        sub={staked && supply ? `${((staked / supply) * 100).toFixed(1)}% of supply` : undefined}
         delta={stakeMove.delta}
         spark={stakeMove.spark}
       />
@@ -113,13 +114,13 @@ function HomeReadouts({ s, network, base, days }: { s: Stats | null; network: st
         spark={conversions.length >= 2 ? conversions.map((c) => c.cumulative) : undefined}
       />
       {/* the P-Chain's own counter: every AVAX minted, the rewards held for current stakers too, no burn taken off */}
-      <Readout label="P-Chain Supply" value={supply !== null ? fmtCompact(supply) : s ? "—" : null} unit="AVAX" sub="before burns" />
+      <Readout label="P-Chain Supply" value={supply !== null ? fmtCompact(supply) : done ? "—" : null} unit="AVAX" sub="before burns" />
     </ReadoutRow>
   );
 }
 
 /* mainnet: the readouts ride the page clock, so the subnav shows its range control */
-function ClockedReadouts(props: { s: Stats | null; network: string; base: string }) {
+function ClockedReadouts(props: { s: Stats | null; done: boolean; network: string; base: string }) {
   const clock = useExplorerTimeRange();
   return <HomeReadouts {...props} days={RANGE_DAYS[clock]} />;
 }
@@ -193,7 +194,11 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
         </Board>
       ) : (
         <div className="flex flex-col gap-12">
-          {network === "mainnet" ? <ClockedReadouts s={s} network={network} base={base} /> : <HomeReadouts s={s} network={network} base={base} days={null} />}
+          {network === "mainnet" ? (
+            <ClockedReadouts s={s} done={!stats.loading} network={network} base={base} />
+          ) : (
+            <HomeReadouts s={s} done={!stats.loading} network={network} base={base} days={null} />
+          )}
 
           {/* the P-Chain keeps every set: below lg, where the city has no
               Versions lens, each set's AvalancheGo versions stand here */}
