@@ -112,17 +112,27 @@ export function useIndexedChainIds(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    fetch("/api/indexed-chains")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { indexed?: string[] | null } | null) => {
-        if (cancelled || !body?.indexed) return;
-        setIds(new Set(body.indexed));
-      })
-      .catch(() => {});
+    void readIndexedChainIds().then((read) => {
+      if (!cancelled && read) setIds(read);
+    });
     return () => {
       cancelled = true;
     };
   }, [enabled]);
 
   return ids;
+}
+
+let indexedRead: Promise<Set<string> | null> | null = null;
+/** the indexed set, read once a session (a failed read is asked again); null on failure */
+export function readIndexedChainIds(): Promise<Set<string> | null> {
+  indexedRead ??= fetch("/api/indexed-chains")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((body: { indexed?: string[] | null } | null) => (body?.indexed ? new Set(body.indexed) : null))
+    .catch(() => null)
+    .then((read) => {
+      if (!read) indexedRead = null;
+      return read;
+    });
+  return indexedRead;
 }

@@ -222,16 +222,27 @@ export const explorerMenu: LinkItemType = {
   ],
 };
 
+// No link in the Developers menu prefetches. Next prefetches a static route in
+// full, and the docs and Academy payloads preload their CSS and first image into
+// the page that holds the navbar, which Chrome reports as preloaded but not used.
+// Fumadocs spreads a card's menu props onto its Link, which passes prefetch on.
+const noPrefetch = { prefetch: false };
+
 export const developersMenu: LinkItemType = {
   type: 'menu',
-  text: 'Developers',
-  url: '/docs/primary-network',
+  // the trigger's own Link: a menu url gets a Link that prefetches
+  text: (
+    <Link href="/docs/primary-network" prefetch={false}>
+      Developers
+    </Link>
+  ),
   items: [
     {
       text: 'Documentation',
       description: 'Reference for the network, nodes, APIs, tools, and ACPs.',
       url: '/docs/primary-network',
       menu: {
+        ...noPrefetch,
         // two featured cards side by side: .nav-featured + .nav-duo in global.css
         className: 'nav-featured nav-duo',
         banner: (
@@ -250,6 +261,7 @@ export const developersMenu: LinkItemType = {
       description: 'Guided courses, from blockchain fundamentals to launching your own L1.',
       url: '/academy',
       menu: {
+        ...noPrefetch,
         className: 'nav-featured nav-duo',
         banner: (
           <Image

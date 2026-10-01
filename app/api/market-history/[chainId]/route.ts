@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { softStatus } from "@/lib/explorer-soft-status";
 
 // A chain's native token over time, for the sparklines beside the live
 // price and market cap on the explorer home: CoinGecko's market_chart,
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
   const cacheHeader = intraday ? "public, max-age=120, s-maxage=300" : "public, max-age=900, s-maxage=1800";
 
   const chain = l1ChainsData.find((c) => c.chainId === chainId) as { coingeckoId?: string } | undefined;
-  if (!chain?.coingeckoId) return NextResponse.json({ error: "no market data for this chain" }, { status: 404 });
+  if (!chain?.coingeckoId) return NextResponse.json({ error: "no market data for this chain" }, softStatus(req, 404));
 
   const key = `${chain.coingeckoId}:${days}`;
   const hit = cache.get(key);
@@ -72,6 +73,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
   } catch (e) {
     // serve the stale shape rather than nothing when the upstream is rate-limited
     if (hit) return NextResponse.json(hit.data, { headers: { "Cache-Control": "no-store" } });
-    return NextResponse.json({ error: e instanceof Error ? e.message : "market history failed" }, { status: 502, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ error: e instanceof Error ? e.message : "market history failed" }, softStatus(req, 502, { "cache-control": "no-store" }));
   }
 }
