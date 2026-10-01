@@ -20,6 +20,8 @@ import { autoCompoundPct, humanPeriod, type TxContext } from "./tx-hooks";
 const INK = "text-zinc-900 dark:text-zinc-50";
 /** a named thing inside a sentence: an address, a node, a tx, a block */
 export const STORY_LINK = cn("font-medium hover:text-[#E6212F]", INK);
+/** a named thing that is no link: the same ink, no hover */
+export const STORY_INK = cn("font-medium", INK);
 /** the sentence's voice, which the block page speaks too */
 export const STORY = "px-5 py-7 font-mono text-[15px] leading-[1.9] text-zinc-600 md:px-6 md:py-8 md:text-[17px] dark:text-zinc-400";
 
@@ -72,13 +74,13 @@ export function PchainTxStory({
   // a named subnet reads by its name, "the Beam subnet" where the sentence is about the subnet itself
   const subnet = (id: string, noun = false) =>
     id === PRIMARY_SUBNET_ID ? (
-      <span className={cn("font-medium", INK)}>the Primary Network</span>
+      <span className={STORY_INK}>the Primary Network</span>
     ) : (
       <Link href={`${base}/tx/${id}`} className={STORY_LINK} title={id}>
         {subnetName(id) ? (noun ? `the ${subnetName(id)} subnet` : subnetName(id)) : `subnet ${truncate(id, 8)}`}
       </Link>
     );
-  const chain = (id: string | undefined) => <span className={cn("font-medium", INK)}>{id ? (blockchainName(id) ?? truncate(id, 8)) : "another chain"}</span>;
+  const chain = (id: string | undefined) => <span className={STORY_INK}>{id ? (blockchainName(id) ?? truncate(id, 8)) : "another chain"}</span>;
   const txl = (hash: string | undefined, noun = "") =>
     hash ? (
       <Link href={`${base}/tx/${hash}`} className={STORY_LINK} title={hash}>
@@ -113,7 +115,7 @@ export function PchainTxStory({
       </>
     ) : null;
   };
-  const seatName = ctx.l1Seat?.nodeID ? node(ctx.l1Seat.nodeID, ctx.l1Seat.subnetID) : d?.validationId ? <span className={cn("font-medium", INK)} title={d.validationId}>the validator {truncate(d.validationId, 8)}</span> : <>an L1 validator</>;
+  const seatName = ctx.l1Seat?.nodeID ? node(ctx.l1Seat.nodeID, ctx.l1Seat.subnetID) : d?.validationId ? <span className={STORY_INK} title={d.validationId}>the validator {truncate(d.validationId, 8)}</span> : <>an L1 validator</>;
 
   const kept = BigInt(Math.round(balance ?? 0));
   const fee = ledger.burned > kept ? ledger.burned - kept : 0n;
@@ -217,7 +219,7 @@ export function PchainTxStory({
       case "CreateChainTx":
         return (
           <>
-            {who} created {d?.chainName ? <span className={cn("font-medium", INK)}>{d.chainName}</span> : "a chain"}
+            {who} created {d?.chainName ? <span className={STORY_INK}>{d.chainName}</span> : "a chain"}
             {tx.subnetId && <> on {subnet(tx.subnetId)}</>}
             {d?.vmId && VM_NAMES[d.vmId] && <>, running {VM_NAMES[d.vmId]}</>}
           </>
