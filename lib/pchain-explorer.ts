@@ -364,6 +364,7 @@ export const TX_TYPE_LABELS: Record<string, string> = {
   BaseTx: "Transfer",
   CreateSubnetTx: "Create Subnet",
   CreateChainTx: "Create Chain",
+  TransferSubnetOwnershipTx: "Transfer Subnet Ownership",
   ConvertSubnetToL1Tx: "Convert to L1",
   RegisterL1ValidatorTx: "Register L1 Validator",
   SetL1ValidatorWeightTx: "Set L1 Validator Weight",
@@ -371,9 +372,28 @@ export const TX_TYPE_LABELS: Record<string, string> = {
   DisableL1ValidatorTx: "Disable L1 Validator",
 };
 
+/** The staking money flow by day: rewards paid over the last 30 days and
+ *  stake unlocking over the next 30 (ClickHouse, behind /api/pchain-activity). */
+export function pchainActivityPath(network: string): string {
+  return `/api/pchain-activity/${network}`;
+}
+
+/** The ACP-77 ops by day over the last `days`, and the conversions to date
+ *  by month (ClickHouse, behind /api/pchain-l1-ops). */
+export function pchainL1OpsPath(network: string, days: 30 | 90 | 365 = 30): string {
+  return `/api/pchain-l1-ops/${network}?days=${days}`;
+}
+
 /** Display name for a tx type, falling back to the raw type minus its `Tx`. */
 export function txTypeLabel(txType: string): string {
   return TX_TYPE_LABELS[txType] ?? txType.replace(/Tx$/, "");
+}
+
+/** A block type's kind: "BanffCommitBlock" reads "Commit". The Banff and
+ *  Apricot prefixes name protocol eras; Standard, Proposal, Commit and
+ *  Abort are what a reader needs. */
+export function blockTypeLabel(blockType: string): string {
+  return blockType.replace(/^(Banff|Apricot)/, "").replace(/Block$/, "");
 }
 
 export interface AddressTx {

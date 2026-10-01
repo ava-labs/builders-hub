@@ -277,10 +277,17 @@ export const developersMenu: LinkItemType = {
   ],
 };
 
+// The Console trigger does not prefetch. A prefetched Console route preloads its
+// CSS into the page that holds the navbar, which Chrome reports as preloaded but
+// not used on a page without that CSS, such as the home page.
 export const consoleMenu: LinkItemType = {
   type: 'menu',
-  text: 'Console',
-  url: '/console',
+  // the trigger's own Link: a menu url gets a Link that prefetches
+  text: (
+    <Link href="/console" prefetch={false}>
+      Console
+    </Link>
+  ),
   items: [
     {
       icon: <Waypoints />,

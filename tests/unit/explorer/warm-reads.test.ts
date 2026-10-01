@@ -19,10 +19,22 @@ describe('readsOf', () => {
   it('reads the P-Chain and X-Chain routes by network', () => {
     expect(readsOf('/explorer/mainnet/p-chain')).toEqual([
       '/api/pchain/mainnet/stats',
-      '/api/pchain/mainnet/txs?limit=8',
-      '/api/pchain/mainnet/blocks?limit=20',
+      '/api/pchain/mainnet/txs?limit=11',
+      '/api/pchain/mainnet/blocks?limit=11',
+      '/api/pchain-l1-ops/mainnet?days=30',
+      '/api/pchain-activity/mainnet',
+      '/api/primary-network-stats?timeRange=all',
+    ]);
+    // the stake's history is mainnet's: Fuji's home does not read it
+    expect(readsOf('/explorer/fuji/p-chain')).toEqual([
+      '/api/pchain/fuji/stats',
+      '/api/pchain/fuji/txs?limit=11',
+      '/api/pchain/fuji/blocks?limit=11',
+      '/api/pchain-l1-ops/fuji?days=30',
+      '/api/pchain-activity/fuji',
     ]);
     expect(readsOf('/explorer/fuji/p-chain/tx/2abc')).toEqual(['/api/pchain/fuji/tx/2abc']);
+    expect(readsOf('/explorer/mainnet/p-chain/blocks')).toEqual(['/api/pchain/mainnet/blocks?limit=25']);
     expect(readsOf('/explorer/mainnet/x-chain/txs')).toEqual(['/api/xchain/mainnet/txs?limit=50']);
   });
 

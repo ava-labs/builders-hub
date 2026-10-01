@@ -17,6 +17,7 @@ import { GlobeData } from "@/components/landing/globe";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import BuiltOnMarquee from "@/components/landing-v2/BuiltOnMarquee";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
+import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import PillarsChapter from "@/components/landing-v2/PillarsChapter";
 import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
@@ -365,6 +366,7 @@ function ChapterOne() {
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
           <BrandButton
             href="/console"
+            prefetchOnIntent
             onClick={() => track("home_cta_clicked", { section: "hero", label: "Build an L1", href: "/console" })}
             className="w-full sm:w-auto"
           >
@@ -379,13 +381,13 @@ function ChapterOne() {
             Build on C-Chain
           </BrandButton>
           </div>
-          <Link
+          <HoverPrefetchLink
             href="/docs/avalanche-l1s"
             onClick={() => track("home_cta_clicked", { section: "hero", label: "Read the architecture", href: "/docs/avalanche-l1s" })}
             className="font-mono text-[11px] tracking-[0.18em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
             READ THE ARCHITECTURE →
-          </Link>
+          </HoverPrefetchLink>
         </motion.div>
       </div>
 
@@ -570,7 +572,7 @@ function StatsChapter({
 
         {/* board footer: the full instrument lives at /stats */}
         <motion.div variants={ROW_VARIANTS}>
-          <Link
+          <HoverPrefetchLink
             href="/explorer"
             onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore the network", href: "/explorer" })}
             className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-5"
@@ -585,7 +587,7 @@ function StatsChapter({
               </span>
               <ArrowRight className="h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
             </span>
-          </Link>
+          </HoverPrefetchLink>
         </motion.div>
       </motion.div>
     </section>
@@ -696,19 +698,20 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
               <div className="mt-auto flex flex-col items-center gap-5 pt-9 sm:flex-row sm:gap-7">
                 <BrandButton
                   href={offering.cta.href}
+                  prefetchOnIntent
                   onClick={() => track("home_cta_clicked", { section: "offering", path: offering.eyebrow, label: offering.cta.text, href: offering.cta.href })}
                   className="w-full sm:w-auto"
                 >
                   {offering.cta.text}
                 </BrandButton>
-                <Link
+                <HoverPrefetchLink
                   href={offering.secondary.href}
                   onClick={() => track("home_cta_clicked", { section: "offering", path: offering.eyebrow, label: offering.secondary.text, href: offering.secondary.href })}
                   className="group inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"
                 >
                   {offering.secondary.text}
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                </HoverPrefetchLink>
               </div>
             </div>
           ))}
@@ -974,14 +977,14 @@ function LiveChainsChapter({
             ALL CHAINS
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <Link
+          <HoverPrefetchLink
             href="/explorer"
             onClick={() => track("home_cta_clicked", { section: "live-chains", label: "Explorer", href: "/explorer" })}
             className="group inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"
           >
             EXPLORER
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          </HoverPrefetchLink>
         </motion.div>
       </div>
     </section>
@@ -1372,6 +1375,7 @@ function PlaybooksChapter({ reducedMotion }: { reducedMotion: boolean }) {
             <BrandButton
               variant="secondary"
               href="/console"
+              prefetchOnIntent
               onClick={() => track("home_cta_clicked", { section: "playbooks", label: "Configure your L1", href: "/console" })}
             >
               Configure your L1
@@ -1389,6 +1393,7 @@ function PlaybooksChapter({ reducedMotion }: { reducedMotion: boolean }) {
           <BrandButton
             variant="secondary"
             href="/console"
+            prefetchOnIntent
             onClick={() => track("home_cta_clicked", { section: "playbooks", label: "Configure your L1", href: "/console" })}
             className="mt-4 w-full sm:w-auto"
           >
@@ -1428,7 +1433,7 @@ function FinaleRow({
   description: string;
 }) {
   return (
-    <Link
+    <HoverPrefetchLink
       href={href}
       onClick={() => track("home_cta_clicked", { section: "finale", label: title, href })}
       className="group grid grid-cols-[1fr_auto] items-center gap-6 px-5 py-7 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
@@ -1442,7 +1447,7 @@ function FinaleRow({
         </span>
       </span>
       <ArrowRight className="h-5 w-5 text-zinc-400 transition-transform group-hover:translate-x-1 group-hover:text-zinc-900 dark:group-hover:text-zinc-50" />
-    </Link>
+    </HoverPrefetchLink>
   );
 }
 

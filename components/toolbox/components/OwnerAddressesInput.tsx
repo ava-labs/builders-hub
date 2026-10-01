@@ -14,19 +14,18 @@ interface OwnerAddressesInputProps {
   onChange: (owner: PChainOwner) => void;
 }
 
+/**
+ * The owner after its address list changes. The threshold stays from 1 to the
+ * number of addresses, and at 1 with no address: threshold 0 would need no
+ * signature, and the signing checks refuse an owner with no address.
+ */
+export function ownerWithAddresses(owner: PChainOwner, addresses: string[]): PChainOwner {
+  const threshold = addresses.length <= 1 ? 1 : owner.threshold;
+  return { addresses, threshold: Math.max(1, Math.min(threshold, addresses.length)) };
+}
+
 export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesInputProps) {
-  const updateAddresses = (addresses: string[]) => {
-    // If there's only one address, set threshold to 1
-    const threshold = addresses.length <= 1 ? 1 : owner.threshold;
-
-    // Make sure threshold is not greater than the number of addresses
-    const validThreshold = Math.min(threshold, addresses.length);
-
-    onChange({
-      addresses,
-      threshold: validThreshold,
-    });
-  };
+  const updateAddresses = (addresses: string[]) => onChange(ownerWithAddresses(owner, addresses));
 
   const updateThreshold = (threshold: number) => {
     onChange({

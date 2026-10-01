@@ -12,6 +12,7 @@ import { LockedContent } from '@/components/toolbox/components/LockedContent';
 import { ValidatorPreflightChecklist } from '@/components/toolbox/components/ValidatorPreflightChecklist';
 import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
+import { firstOwnerProblem } from '@/components/toolbox/coreViem/utils/pchainOwner';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
@@ -321,19 +322,20 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           ? [pChainAddress]
           : [];
 
-      if (remainingOwnerAddresses.length === 0) {
-        throw new Error('Remaining Balance Owner is required. Add P-Chain addresses in validator details.');
-      }
-      if (disableOwnerAddresses.length === 0) {
-        throw new Error('Disable Owner is required. Add P-Chain addresses in validator details.');
-      }
+      const remainingThreshold = remainingBalanceOwnerProp?.threshold || 1;
+      const disableThreshold = disableOwnerProp?.threshold || 1;
+      const ownerProblem = firstOwnerProblem([
+        [{ addresses: remainingOwnerAddresses, threshold: remainingThreshold }, 'Remaining Balance Owner'],
+        [{ addresses: disableOwnerAddresses, threshold: disableThreshold }, 'Disable Owner'],
+      ]);
+      if (ownerProblem) throw new Error(ownerProblem);
 
       const remainingBalanceOwnerStruct = {
-        threshold: remainingBalanceOwnerProp?.threshold || 1,
+        threshold: remainingThreshold,
         addresses: remainingOwnerAddresses.map((addr) => parsePChainAddress(addr)),
       };
       const disableOwnerStruct = {
-        threshold: disableOwnerProp?.threshold || 1,
+        threshold: disableThreshold,
         addresses: disableOwnerAddresses.map((addr) => parsePChainAddress(addr)),
       };
 
