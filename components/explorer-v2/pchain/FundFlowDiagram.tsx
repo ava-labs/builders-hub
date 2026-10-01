@@ -303,7 +303,7 @@ export function FundFlowDiagram({
           return (
             <motion.path key={f.key} d={ribbon(IN_X, slotCy, CEN_L, segCy, w)} className={cls} fill={hex}
               stroke={hex ?? "currentColor"} strokeOpacity={hover === f.key ? 0.7 : 0.35} strokeWidth={0.6}
-              initial={{ opacity: 0 }} animate={{ opacity: 1, fillOpacity: fillOp(f.key, 0.6) }}
+              initial={{ opacity: 0, fillOpacity: 0.6 }} animate={{ opacity: 1, fillOpacity: fillOp(f.key, 0.6) }}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               onMouseEnter={() => setHover(f.key)} onMouseLeave={() => setHover(null)} />
           );
@@ -313,7 +313,7 @@ export function FundFlowDiagram({
           return (
             <motion.path key={f.key} d={ribbon(CEN_R, segCy, OUT_X, slotCy, w)} className={cls} fill={hex}
               stroke={hex ?? "currentColor"} strokeOpacity={hover === f.key ? 0.7 : 0.35} strokeWidth={0.6}
-              initial={{ opacity: 0 }} animate={{ opacity: 1, fillOpacity: fillOp(f.key, 0.6) }}
+              initial={{ opacity: 0, fillOpacity: 0.6 }} animate={{ opacity: 1, fillOpacity: fillOp(f.key, 0.6) }}
               transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               onMouseEnter={() => setHover(f.key)} onMouseLeave={() => setHover(null)} />
           );
