@@ -18,7 +18,10 @@ import { autoCompoundPct, humanPeriod, type TxContext } from "./tx-hooks";
    the flow and the table below show the same UTXOs one by one. */
 
 const INK = "text-zinc-900 dark:text-zinc-50";
-const LINK = cn("font-medium hover:text-[#E6212F]", INK);
+/** a named thing inside a sentence: an address, a node, a tx, a block */
+export const STORY_LINK = cn("font-medium hover:text-[#E6212F]", INK);
+/** the sentence's voice, which the block page speaks too */
+export const STORY = "px-5 py-7 font-mono text-[15px] leading-[1.9] text-zinc-600 md:px-6 md:py-8 md:text-[17px] dark:text-zinc-400";
 
 const PURPOSE: Record<LedgerRow["purpose"], { type: string; label: string }> = {
   in: { type: "neutral", label: "in" },
@@ -57,12 +60,12 @@ export function PchainTxStory({
 }) {
   const d = tx.details;
   const addr = (a: string) => (
-    <Link href={`${base}/address/${a.replace(/^P-/, "")}`} className={LINK} title={a}>
+    <Link href={`${base}/address/${a.replace(/^P-/, "")}`} className={STORY_LINK} title={a}>
       {truncate(a, 12)}
     </Link>
   );
   const node = (id: string, subnet?: string) => (
-    <Link href={`${base}/node/${id}${subnet && subnet !== PRIMARY_SUBNET_ID ? `?subnet=${subnet}` : ""}`} className={LINK} title={id}>
+    <Link href={`${base}/node/${id}${subnet && subnet !== PRIMARY_SUBNET_ID ? `?subnet=${subnet}` : ""}`} className={STORY_LINK} title={id}>
       {truncate(id, 13)}
     </Link>
   );
@@ -71,14 +74,14 @@ export function PchainTxStory({
     id === PRIMARY_SUBNET_ID ? (
       <span className={cn("font-medium", INK)}>the Primary Network</span>
     ) : (
-      <Link href={`${base}/tx/${id}`} className={LINK} title={id}>
+      <Link href={`${base}/tx/${id}`} className={STORY_LINK} title={id}>
         {subnetName(id) ? (noun ? `the ${subnetName(id)} subnet` : subnetName(id)) : `subnet ${truncate(id, 8)}`}
       </Link>
     );
   const chain = (id: string | undefined) => <span className={cn("font-medium", INK)}>{id ? (blockchainName(id) ?? truncate(id, 8)) : "another chain"}</span>;
   const txl = (hash: string | undefined, noun = "") =>
     hash ? (
-      <Link href={`${base}/tx/${hash}`} className={LINK} title={hash}>
+      <Link href={`${base}/tx/${hash}`} className={STORY_LINK} title={hash}>
         {noun}
         {truncate(hash, 8)}
       </Link>
@@ -311,7 +314,7 @@ export function PchainTxStory({
 
   return (
     <Board divide={false}>
-      <p className="px-5 py-7 font-mono text-[15px] leading-[1.9] text-zinc-600 md:px-6 md:py-8 md:text-[17px] dark:text-zinc-400">{sentence}</p>
+      <p className={STORY}>{sentence}</p>
 
       {/* the ledger: what went in, what came out and why, what the inputs paid beyond it */}
       <div className="border-t border-zinc-200 dark:border-zinc-800">
