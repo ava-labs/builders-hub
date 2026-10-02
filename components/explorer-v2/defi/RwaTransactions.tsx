@@ -15,12 +15,11 @@ import { Money } from "./rwa-parts";
    tranche pool and the borrower, one row per transfer, cut by direction,
    sorted by date or amount either way, searched by hash, address or name,
    five or twenty rows a page. Each address and hash copies with a click,
-   and a transaction opens on the explorer the reader picks. */
+   and each hash opens its transaction on the Builder Hub explorer. */
 
 type Direction = TransactionRecord["direction"] | "all";
 type SortField = "date" | "amount";
 type SortDir = "asc" | "desc";
-export type TxExplorer = "bh" | "snowtrace" | "avalanche";
 
 const DIRECTIONS: { key: Direction; label: string }[] = [
   { key: "all", label: "All" },
@@ -28,25 +27,14 @@ const DIRECTIONS: { key: Direction; label: string }[] = [
   { key: "outbound", label: "Outbound" },
   { key: "internal", label: "Internal" },
 ];
-const EXPLORERS: { v: TxExplorer; label: string }[] = [
-  { v: "bh", label: "Builder Hub" },
-  { v: "snowtrace", label: "Snowtrace" },
-  { v: "avalanche", label: "Avalanche Explorer" },
-];
 const DIRECTION_LABEL: Record<TransactionRecord["direction"], string> = { inbound: "Inbound", outbound: "Outbound", internal: "Internal" };
 /* the old table's two page sizes */
 const SIZES = { compact: 5, expanded: 20 } as const;
 /* the route's largest page, so reading every row takes the fewest reads */
 const ALL_PAGE = 100;
-const GRID = "md:grid-cols-[9.5rem_5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_8.5rem]";
+/* the hash column takes a share of a wide row, so the amount sits off the hash rather than against it */
+const GRID = "md:grid-cols-[9.5rem_5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_minmax(8.5rem,0.6fr)]";
 const WHEN = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "UTC" });
-
-/** where a transaction opens: the Builder Hub explorer, Snowtrace or the Avalanche explorer */
-export function txHref(explorer: TxExplorer, hash: string): string {
-  if (explorer === "snowtrace") return `https://snowtrace.io/tx/${hash}`;
-  if (explorer === "avalanche") return `https://explorer.avax.network/c-chain/tx/${hash}`;
-  return `/explorer/mainnet/c-chain/tx/${hash}`;
-}
 
 /** a search over the hash, both addresses and their names, in any case */
 export function matchesSearch(t: TransactionRecord, query: string): boolean {
@@ -123,25 +111,18 @@ function Party({ address, label }: { address: string; label: string }) {
   );
 }
 
-function TxCell({ hash, explorer }: { hash: string; explorer: TxExplorer }) {
-  const href = txHref(explorer, hash);
-  const open = "shrink-0 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
-  const name = EXPLORERS.find((x) => x.v === explorer)?.label ?? "the explorer";
+/** a transaction's hash, a link to its Builder Hub page like the arrow beside it, and a copy */
+export function TxCell({ hash }: { hash: string }) {
+  const href = `/explorer/mainnet/c-chain/tx/${hash}`;
   return (
     <span className="flex min-w-0 items-center gap-1.5 md:justify-end">
-      <span className={cn("truncate", idInk)} title={hash}>
+      <Link href={href} title={hash} className={cn("truncate hover:underline", idInk)}>
         {short(hash)}
-      </span>
+      </Link>
       <CopyButton value={hash} />
-      {explorer === "bh" ? (
-        <Link href={href} aria-label={`Open on ${name}`} className={open}>
-          <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
-      ) : (
-        <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`Open on ${name}`} className={open}>
-          <ArrowUpRight className="h-3.5 w-3.5" />
-        </a>
-      )}
+      <Link href={href} aria-label="Open the transaction" className="shrink-0 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+        <ArrowUpRight className="h-3.5 w-3.5" />
+      </Link>
     </span>
   );
 }
@@ -161,7 +142,6 @@ export function RwaTransactions({ slug }: { slug: string }) {
   const [direction, setDirection] = useState<Direction>("all");
   const [sort, setSort] = useState<SortField>("date");
   const [dir, setDir] = useState<SortDir>("desc");
-  const [explorer, setExplorer] = useState<TxExplorer>("bh");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState(false);
@@ -262,13 +242,6 @@ export function RwaTransactions({ slug }: { slug: string }) {
           className="w-44 bg-transparent font-mono text-[10.5px] text-zinc-900 outline-none placeholder:text-zinc-500 sm:w-52 dark:text-zinc-100 dark:placeholder:text-zinc-400"
         />
       </label>
-      <select value={explorer} onChange={(e) => setExplorer(e.target.value as TxExplorer)} aria-label="Open transactions on" className={cn(CHIP, OFF, "cursor-pointer")}>
-        {EXPLORERS.map((x) => (
-          <option key={x.v} value={x.v}>
-            {x.label}
-          </option>
-        ))}
-      </select>
       <span className="mx-1 h-4 w-px bg-zinc-200 dark:bg-zinc-800" aria-hidden />
       {DIRECTIONS.map((d) => (
         <button key={d.key} type="button" aria-pressed={direction === d.key} onClick={() => restart(() => setDirection(d.key))} className={cn(CHIP, direction === d.key ? ON : OFF)}>
@@ -308,7 +281,7 @@ export function RwaTransactions({ slug }: { slug: string }) {
             <span className="tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
               <Money value={bigintToNumber(t.amount)} /> <span className="text-[10px] text-zinc-500 dark:text-zinc-400">USDC</span>
             </span>
-            <TxCell hash={t.txHash} explorer={explorer} />
+            <TxCell hash={t.txHash} />
           </div>
         ))}
       </Board>

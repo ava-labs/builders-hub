@@ -5,7 +5,7 @@ import { FacilityFigures, KeyMetrics, OatFiBreakdown, PartnerLogos } from '@/com
 import { CapitalFlow } from '@/components/explorer-v2/defi/rwa-flow';
 import { RwaHistory } from '@/components/explorer-v2/defi/RwaHistory';
 import { RwaCollections } from '@/components/explorer-v2/defi/RwaCollections';
-import { RwaTransactions, matchesSearch, txHref } from '@/components/explorer-v2/defi/RwaTransactions';
+import { RwaTransactions, TxCell, matchesSearch } from '@/components/explorer-v2/defi/RwaTransactions';
 import type { TransactionRecord } from '@/lib/rwa/types';
 import { FENCE, FENCE_HISTORY, HISTORY, METRICS } from './rwa-fixtures';
 
@@ -162,18 +162,20 @@ describe('the recent transactions', () => {
     direction: 'internal',
   };
 
-  it('offer the search, the explorer picker, the direction cut and the row count', () => {
+  it('offer the search, the direction cut and the row count, and open every transaction on the Builder Hub explorer', () => {
     const html = renderToStaticMarkup(<RwaTransactions slug="oatfi" />);
-    for (const text of ['Recent Transactions', 'Search tx hash or address', 'Builder Hub', 'Snowtrace', 'Avalanche Explorer', 'All', 'Inbound', 'Outbound', 'Internal', 'Show 20 rows']) {
+    for (const text of ['Recent Transactions', 'Search tx hash or address', 'All', 'Inbound', 'Outbound', 'Internal', 'Show 20 rows']) {
       expect(html, text).toContain(text);
     }
+    for (const gone of ['<select', 'Snowtrace', 'Avalanche Explorer']) expect(html, gone).not.toContain(gone);
     expect(html).toContain('id="rwa-transactions"');
   });
 
-  it('link a transaction to the explorer the reader picks', () => {
-    expect(txHref('bh', '0xabc')).toBe('/explorer/mainnet/c-chain/tx/0xabc');
-    expect(txHref('snowtrace', '0xabc')).toBe('https://snowtrace.io/tx/0xabc');
-    expect(txHref('avalanche', '0xabc')).toBe('https://explorer.avax.network/c-chain/tx/0xabc');
+  it('link the transaction hash itself, not only the arrow, to its Builder Hub page', () => {
+    const html = renderToStaticMarkup(<TxCell hash={transfer.txHash} />);
+    const links = [...html.matchAll(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/g)].map(([, href, inner]) => ({ href, inner }));
+    expect(links.map((l) => l.href)).toEqual([`/explorer/mainnet/c-chain/tx/${transfer.txHash}`, `/explorer/mainnet/c-chain/tx/${transfer.txHash}`]);
+    expect(links[0].inner).toContain('0x34ef');
   });
 
   it('match a search against the hash, the addresses and their names, in any case', () => {

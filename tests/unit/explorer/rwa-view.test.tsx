@@ -85,8 +85,6 @@ const OLD_DASHBOARD = [
   // transactions
   'Recent Transactions',
   'Search tx hash',
-  'Snowtrace',
-  'Avalanche Explorer',
   'Inbound',
   'Outbound',
   'Date (UTC)',
