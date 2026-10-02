@@ -1,0 +1,46 @@
+---
+title: Zerion API
+category: Indexers
+available: ["C-Chain", "All Avalanche L1s"]
+description: Zerion API provides multichain wallet portfolio data, transaction history, DeFi positions, and real-time webhooks across 38+ blockchains through unified REST endpoints.
+logo: /images/zerion.png
+developer: Zerion
+website: https://zerion.io/api
+documentation: https://developers.zerion.io/
+---
+
+## Overview
+
+[Zerion API](https://zerion.io/api) is a REST API that provides indexed, human-readable blockchain data across 38+ networks, including Avalanche's C-Chain. Instead of running your own indexing infrastructure, a single API call retrieves enriched wallet portfolios, parsed transaction histories, DeFi positions, NFT holdings, and profit-and-loss calculations. Zerion API labels complex transactions (swaps, approvals, bridging, batched operations) with structured metadata, making onchain data immediately usable in your application.
+
+## Features
+
+- **Multichain Portfolio Data**: Retrieve token balances, NFT holdings, and net-worth calculations across 38+ chains, including Avalanche C-Chain, in a single request.
+- **Parsed Transaction History**: Get human-readable transaction feeds with automatic labeling for swaps, transfers, approvals, contract interactions, and bridging operations.
+- **DeFi Position Tracking**: Access detailed DeFi positions across 8,000+ protocols with reward accrual and underlying asset breakdowns.
+- **Profit & Loss Calculations**: Query historical PnL at the wallet or per-position level without building your own accounting logic.
+- **Real-Time Webhooks**: Subscribe to wallet activity and receive push notifications for onchain transactions as they happen.
+- **NFT Enrichment**: Fetch NFT metadata, floor pricing, collection stats, and ownership history.
+
+## Getting Started
+
+1. **Create an API Key**: Sign up at the [Zerion API Dashboard](https://dashboard.zerion.io/).
+2. **Authenticate**: Zerion uses Basic Authentication. Append a colon to your API key and Base64-encode the result.
+3. **Explore Endpoints**: Use the interactive API reference to test calls directly in your browser at [developers.zerion.io](https://developers.zerion.io/).
+4. **Integrate**: Add portfolio views, transaction feeds, or DeFi dashboards to your Avalanche application using the unified JSON responses.
+
+## Documentation
+
+For endpoint references, request and response schemas, and integration guides, visit the [Zerion API Documentation](https://developers.zerion.io/).
+
+## Use Cases
+
+- **Wallet Applications**: Display consolidated portfolio balances and transaction history across Avalanche and other chains without maintaining your own indexer.
+- **DeFi Dashboards**: Show users their active DeFi positions, pending rewards, and PnL across protocols deployed on Avalanche.
+- **AI Agents & Bots**: Feed structured on-chain data into AI-powered assistants for portfolio analysis, alerts, or automated reporting.
+- **Accounting & Compliance**: Use PnL and transaction history endpoints to generate tax reports and audit trails for Avalanche activity.
+- **Notification Services**: Subscribe to wallet webhooks to trigger alerts, emails, or downstream workflows when on-chain events occur.
+
+## Conclusion
+
+Zerion API offers a production-ready indexing layer for Avalanche developers who need structured, multichain wallet data without operating their own infrastructure. With millisecond response times, support for 38+ chains, and built-in transaction parsing, it reduces the complexity of building portfolio, DeFi, and analytics features on Avalanche's C-Chain and Layer 1 networks.
