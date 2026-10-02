@@ -1,6 +1,7 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { desktopOnly, phoneOnly } from '../lib/skip';
+import { waitForHydration } from '../lib/hydration';
 
 const COURSE = '/academy/avalanche-l1/avalanche-fundamentals';
 const LESSON = `${COURSE}/02-avalanche-consensus-intro/02-consensus-mechanisms`;
@@ -52,6 +53,8 @@ test('next lesson link opens the next lesson', async ({ app, screen, browser }) 
       browser.evaluate(() => (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).type),
     )
     .toBe('reload');
+  // A tap while React hydrates the reloaded page can be lost (CI saw this as a flaky retry), so wait for it.
+  await waitForHydration(browser, 'article');
   // The footer under the article links the previous and the next lesson by title.
   await screen.getByRole('article').getByRole('link', /^Snowman Consensus/).tap();
 
