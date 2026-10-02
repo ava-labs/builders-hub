@@ -19,15 +19,17 @@ import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import {
   ChainHitRow,
   EntityHitRow,
+  heightHitCached,
   matchChains,
   looksLikeIdentifier,
   lookupTxAcrossChainsCached,
   useSearchEntity,
   type ChainHit,
+  type EntityTargets,
 } from "@/components/explorer-v2/chain-search";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import { Rise } from "@/components/explorer-v2/ui";
-import { buildAddressUrl, buildTxUrl } from "@/utils/eip3091";
+import { buildAddressUrl, buildBlockUrl, buildTxUrl } from "@/utils/eip3091";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 type EntityType = "block" | "tx" | "address" | "node" | "chain";
@@ -105,13 +107,16 @@ export function SearchBox({
 
   // what the identifier in the box resolves to — tx hashes race every
   // chain live, so the dropdown names the chain before Enter is pressed
-  const entity = useSearchEntity(q, {
+  const targets: EntityTargets = {
     network,
     blockBase: base,
     blockChainName: "P-Chain",
     evmAddressBase: `/explorer/${network}/c-chain`,
     evmAddressChainName: "C-Chain",
-  });
+    // the network box: a height the P-Chain lacks is a C-Chain height, as in the page's Latest Blocks
+    heightFallback: askAt ? { base: `/explorer/${network}/c-chain`, chainName: "C-Chain" } : undefined,
+  };
+  const entity = useSearchEntity(q, targets);
 
   const goToHref = (href: string) => {
     setQ("");
@@ -166,6 +171,19 @@ export function SearchBox({
     // plain-Enter classification even while chain rows are on offer
     if (hits.length > 0 && (sel >= 0 || !looksLikeIdentifier(query))) {
       goToChain(hits[Math.max(0, sel)].chain);
+      return;
+    }
+
+    // the network box's height goes where its row points; only a P-Chain block is a recent
+    if (targets.heightFallback && /^\d+$/.test(query)) {
+      setBusy(true);
+      try {
+        const hit = await heightHitCached(query, targets);
+        if (hit.href === buildBlockUrl(base, query)) go("block", query);
+        else if (hit.href) goToHref(hit.href);
+      } finally {
+        setBusy(false);
+      }
       return;
     }
 
