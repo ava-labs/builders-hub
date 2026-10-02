@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T16:26:36.760Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Validators\"",
+        "target": {
+          "role": "link",
+          "name": "Validators"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-explorer.e2e.ts::visitor%20finds%20the%20validator%20stake%20ranking%20from%20the%20P-Chain%20overview%20and%20opens%20the%20top%20validator",
+      "targetId": "desktop",
+      "instructionDigest": "f2029adf3a3ab7f5c1b855e12557abc59f3cb2d6eadb0d710c7a05f3ccfb621b"
+    },
+    "summary": "Opened the Validators page (/explorer/mainnet/p-chain/validators) with the Primary Network set selected. It lists 587 validators, sorted by \"Total Stake ↓\" descending: #1 has 3.0M AVAX, and stake decreases down to #50 at 1.2M. A \"Load more · 537 remaining\" button follows the list.",
+    "startPath": "/explorer/mainnet/p-chain",
+    "endPath": "/explorer/mainnet/p-chain/validators",
+    "endAnchors": [
+      {
+        "text": "Validator Sets"
+      },
+      {
+        "role": "link",
+        "name": "Primary Network"
+      },
+      {
+        "text": "Validators"
+      },
+      {
+        "text": "Median Uptime"
+      },
+      {
+        "text": "%"
+      },
+      {
+        "text": "Total Weight"
+      },
+      {
+        "text": "own stake + delegations"
+      }
+    ],
+    "endWaitMs": 16264
+  }
+}

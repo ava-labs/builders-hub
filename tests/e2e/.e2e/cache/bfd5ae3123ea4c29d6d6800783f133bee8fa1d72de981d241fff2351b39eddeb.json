@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T16:07:54.605Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Search ⌘ K\"",
+        "target": {
+          "role": "button",
+          "name": "Search ⌘ K",
+          "text": "Search"
+        }
+      },
+      {
+        "name": "type",
+        "summary": "type \"teleporter\" into textbox \"Search\" in \"ESC\"",
+        "target": {
+          "role": "textbox",
+          "name": "Search",
+          "placeholder": "Search",
+          "within": "ESC"
+        },
+        "value": "teleporter"
+      },
+      {
+        "name": "tap",
+        "summary": "tap button \"What is ICM Contracts?\" in \"ESC\"",
+        "target": {
+          "role": "button",
+          "name": "What is ICM Contracts?",
+          "within": "ESC"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-docs.e2e.ts::docs%20search%20leads%20a%20visitor%20from%20%22teleporter%22%20to%20the%20cross-chain%20docs",
+      "targetId": "desktop",
+      "instructionDigest": "d39776f82e599c2006afb8360fd361df34031e241212b670b8a96a051a7cddf2"
+    },
+    "summary": "Searched \"teleporter\" in docs search and opened the \"What is ICM Contracts?\" result. It loaded /docs/cross-chain/icm-contracts/overview, whose notes describe Teleporter / TeleporterMessenger. No result was titled \"What is Teleporter\", so I chose this as the best match.",
+    "startPath": "/docs/primary-network",
+    "endPath": "/docs/cross-chain/icm-contracts/overview",
+    "endAnchors": [
+      {
+        "role": "link",
+        "name": "Introduction"
+      },
+      {
+        "text": "Avalanche Interchain Messaging"
+      },
+      {
+        "role": "link",
+        "name": "What is ICM?"
+      },
+      {
+        "text": "ICM Contracts"
+      },
+      {
+        "role": "link",
+        "name": "What is ICM Contracts?"
+      },
+      {
+        "role": "link",
+        "name": "Teleporter CLI"
+      },
+      {
+        "role": "link",
+        "name": "Upgradeability"
+      },
+      {
+        "role": "link",
+        "name": "ICM Contract Addresses"
+      }
+    ],
+    "endWaitMs": 14061
+  }
+}
