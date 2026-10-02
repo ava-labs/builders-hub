@@ -9,7 +9,7 @@ import {
   type OptionState,
 } from '@/components/quizzes/quiz-question';
 
-type Extra = { marker?: string; multiple?: boolean; locked?: boolean };
+type Extra = { marker?: string; multiple?: boolean; locked?: boolean; checked?: boolean };
 const option = (state: OptionState, extra: Extra = {}) =>
   renderToStaticMarkup(
     createElement(QuizOption, {
@@ -17,6 +17,8 @@ const option = (state: OptionState, extra: Extra = {}) =>
       marker: extra.marker ?? 'B',
       multiple: extra.multiple ?? false,
       locked: extra.locked ?? false,
+      name: 'quiz-102',
+      checked: extra.checked ?? false,
       onSelect: () => undefined,
       children: 'An α-majority of sampled validators',
     }),
@@ -53,6 +55,15 @@ describe('QuizOption', () => {
     expect(html).toContain('>B</span>');
     expect(html).toContain('cursor-pointer');
     expect(html).toContain('An α-majority of sampled validators');
+  });
+
+  it('carries a native radio, or a checkbox on multiple-answer questions, and keeps the marker out of its name', () => {
+    const html = option('selected', { checked: true });
+    expect(html).toMatch(/<label [^>]*data-option-state="selected"/);
+    expect(html).toMatch(/<input type="radio" [^>]*name="quiz-102" [^>]*checked=""/);
+    expect(html).toContain('<span aria-hidden="true"');
+    expect(option('idle', { multiple: true, marker: '' })).toContain('type="checkbox"');
+    expect(option('dimmed', { locked: true })).toContain('disabled=""');
   });
 
   it('rings the selected row in ink', () => {

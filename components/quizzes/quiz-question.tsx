@@ -57,26 +57,42 @@ export interface QuizOptionProps {
   state: OptionState;
   /** Production's marker text: the option letter, or on multiple-answer questions a check mark or nothing. */
   marker: string;
-  /** Several correct answers: production's square marker instead of the ring. */
+  /** Several correct answers: production's square marker instead of the ring, and a checkbox instead of the radio. */
   multiple: boolean;
   locked: boolean;
+  /** The radio group: one name for all options of the question. */
+  name: string;
+  checked: boolean;
   onSelect: () => void;
   children: ReactNode;
 }
 
-/** One option as a radio row. The option text stays in the last span. */
-export function QuizOption({ state, marker, multiple, locked, onSelect, children }: QuizOptionProps) {
+/**
+ * One option as a radio row. A visually hidden native input gives the role, the tab stop and the
+ * keys (arrows and Space); the row takes the button's ink ring on keyboard focus. The marker is
+ * hidden from the accessible name. The option text stays in the last span.
+ */
+export function QuizOption({ state, marker, multiple, locked, name, checked, onSelect, children }: QuizOptionProps) {
   return (
-    <div
+    <label
       data-option-state={state}
       className={cn(
         'flex items-center rounded-[10px] border px-3.5 py-3',
+        'has-focus-visible:outline-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ac-ink',
         ROW[state],
         locked ? 'cursor-not-allowed' : 'cursor-pointer',
       )}
-      onClick={onSelect}
     >
+      <input
+        type={multiple ? 'checkbox' : 'radio'}
+        name={name}
+        checked={checked}
+        disabled={locked}
+        onChange={onSelect}
+        className="sr-only"
+      />
       <span
+        aria-hidden="true"
         className={cn(
           'mr-3 flex size-[22px] shrink-0 items-center justify-center border-[1.5px] font-ac-mono text-[11px] leading-[calc(1.25/0.875)]',
           multiple ? 'rounded-md' : 'rounded-full',
@@ -86,7 +102,7 @@ export function QuizOption({ state, marker, multiple, locked, onSelect, children
         {state === 'correct' ? <Check className="size-3" strokeWidth={3} aria-hidden="true" /> : marker}
       </span>
       <span className={cn('text-[14.5px] leading-[calc(1.25/0.875)]', TEXT[state])}>{children}</span>
-    </div>
+    </label>
   );
 }
 
