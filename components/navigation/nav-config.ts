@@ -35,8 +35,8 @@ export const menuSections: NavSection[] = [
     href: '/solutions',
     items: [
       { text: 'Why Avalanche', href: '/solutions' },
-      { text: 'Performance', href: '/solutions/performance' },
       { text: 'Interoperability', href: '/solutions/interoperability' },
+      { text: 'Performance', href: '/solutions/performance' },
       { text: 'Privacy', href: '/solutions/privacy' },
       { text: 'Compliance', href: '/solutions/compliance' },
     ],
