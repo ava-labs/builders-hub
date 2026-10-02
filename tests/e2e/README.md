@@ -61,9 +61,42 @@ The `npm` scripts turn telemetry off (`E2E_TELEMETRY_DISABLED=1`). If you call `
 
 ## Agent tests
 
-The agent steps use `claude-sonnet-5-5` (`e2e.config.ts`). To run them locally, put `ANTHROPIC_API_KEY=<key>` in `tests/e2e/.env.local`. Git ignores that file.
+Agent tests in `ai/` use Claude (`claude-sonnet-5-5`, set in `e2e.config.ts`). They check what a locator cannot state well. There are three kinds:
 
-A verified `agent.act` step saves its actions in `.e2e/cache/`. The next run replays them with no model call. Commit the cache with the test. `agent.assert` calls the model on every run.
+| Kind | Files | How it works | Model cost per run |
+|---|---|---|---|
+| Journey | `ai/journey-*.e2e.ts` and the older `ai/*.e2e.ts` | `agent.act` does a visitor task in plain words, then a locator `expect` checks where it landed | Close to 0: a verified `act` replays from the cache |
+| Visual | `ai/visual-*.e2e.ts`, tag `visual` | `agent.assert(..., { vision: true })` judges a screenshot: nothing cut off, overlapping or covered | About 2k to 3k tokens per page and size |
+| Data | `ai/data-*.e2e.ts` | `agent.extract` reads facts off the page, then `expect` compares them with known values | About 4k to 10k tokens per test |
+
+A full run of `ai/` costs well under 1 dollar when the cache replays.
+
+To run them locally, put `ANTHROPIC_API_KEY=<key>` in `tests/e2e/.env.local`. Git ignores that file.
+
+```bash
+E2E_BASE_URL=http://localhost:3000 npm test -- ai/
+E2E_BASE_URL=http://localhost:3000 npm test -- --tag visual
+```
+
+Rules for a new agent test:
+
+- Take the fixtures as one object and call `needsModel()` before you read `agent` (see `ai/agent-smoke.e2e.ts`). Without a key the test is skipped.
+- After an `act`, check the result with a locator (URL, heading, active tab). The model does the task; the `expect` decides pass or fail.
+- Use `desktopOnly()` unless the test is about layout. Visual tests run at both sizes on purpose.
+- Explorer data is live. Use a fixed historical block or transaction, never a live value.
+- An `act` step replays only when the page it ends on is the same. A step that reads a live ranking or a live number calls the model on every run.
+- Commit the new cache entries in `.e2e/cache/` with the test. A local run records and updates entries; CI only reads them. When the page changes, the next passing local run records the step again. `npx e2e cache clear` deletes every entry.
+
+`agent.assert`, `agent.waitFor` and `agent.extract` call the model on every run.
+
+## Nightly bug hunt
+
+`.github/workflows/e2e-explore.yml` runs `e2e explore` once a night on production, one job for each charter in `explore/charters.json`. The agent gets the charter's goal, drives the site and reports findings. Findings go to the job summary and to the artifact `e2e-explore-<key>` (14 days). They do not fail the job: a person triages them. A job fails only when the run tested nothing.
+
+- A charter costs about 1M to 3M model tokens. The 8 charters cost about 9 to 11 dollars a night.
+- Run it by hand on GitHub (Actions, E2E explore, Run workflow), with an optional target URL and charter keys.
+- Run one charter locally: `npx e2e explore '<goal>' --target desktop --output .e2e/explore/<key>`.
+- Without the `ANTHROPIC_API_KEY` secret the job skips.
 
 ## Known bugs
 
@@ -81,4 +114,4 @@ The `phone` target sets the size and an iPhone user agent. It does not emulate t
 
 ## CI
 
-[`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml) runs on each pull request to `master`. It waits for the Vercel preview of the PR's head commit, then runs the browser tests with 4 workers and the API tests once. The agent tests run only when the repo has an `ANTHROPIC_API_KEY` secret. The job summary shows the results. A failed run uploads `.e2e/` (traces and failure pages) as an artifact.
+[`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml) runs on each pull request to `master`. It waits for the Vercel preview of the PR's head commit, then runs the browser tests with 4 workers and the API tests once. The agent tests run only when the repo has an `ANTHROPIC_API_KEY` secret. The nightly bug hunt is a separate workflow (see "Nightly bug hunt"). The job summary shows the results. A failed run uploads `.e2e/` (traces and failure pages) as an artifact.
