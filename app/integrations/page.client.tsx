@@ -51,7 +51,7 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
             return validIntegrations;
         }
         
-        const query = searchQuery.toLowerCase();
+        const query = searchQuery.trim().toLowerCase();
         return validIntegrations.filter((integration) => {
             const title = typeof integration.data.title === 'string' ? integration.data.title.toLowerCase() : '';
             const description = typeof integration.data.description === 'string' ? integration.data.description.toLowerCase() : '';
