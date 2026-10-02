@@ -655,7 +655,7 @@ export function ExplorerSubnav({
     // sit in a strip under the rail (after it, below), which takes the
     // page's spacing from the rail there.
     <>
-    <div
+    <div data-explorer-subnav
       className={cn(
         "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex flex-wrap items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
         className,

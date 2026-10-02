@@ -1,77 +1,76 @@
 "use client";
 
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { cn } from "@/lib/utils";
-import { ChartBoard } from "@/components/explorer-v2/ui";
-import { SheetGrid } from "@/components/explorer-v2/metric-sheet";
-import { ChartEmpty, TipPlate } from "@/components/explorer-v2/staking/bits";
-import { dayLong, dayShort } from "@/components/explorer-v2/format";
-import type { CollectionDay } from "@/lib/rwa/series";
-import { COUNTED_TONE, usd } from "./palette";
-import { Money } from "./rwa-parts";
+import { useMemo, useState } from "react";
+import { ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
+import { fenceSeries, firstDay, windowFor, type RangeChoice } from "@/lib/rwa/series";
+import type { FenceHistoricalData, TimeInterval } from "@/lib/rwa/types";
+import { usd } from "./palette";
+import { RwaChart, zipRows, type RwaSeries } from "./rwa-chart";
+import { IntervalSwitch, RangePicker, TimedHeader } from "./rwa-time";
 
-/* Paid against expected collections, both as Fence's running totals on
-   one scale, over the page clock's window: the paid line above the
-   dashed one means collections run ahead of schedule. */
+/* The old dashboard's collections over time: Fence's paid and expected
+   collections, both running totals, over the reader's range by day, week
+   or month. The cumulative reading draws the totals; the periodic one
+   each bucket's increase. Combined they share a scale; split, each gets
+   its own chart. */
 
-/* full-strength ticks in the wrapper's ink: the sheets' 45% tick falls under 4.5:1 here */
-const TICK = { fontSize: 10, fill: "currentColor" } as const;
+const TONE = "var(--rwa-1)";
+const INK = "var(--rwa-2)";
+const SYNC = "rwa-fence";
+/* module constants: recharts resets a chart's brush whenever its data or series change identity */
+const PAID: RwaSeries[] = [{ key: "paid", label: "Paid", color: TONE }];
+const EXPECTED: RwaSeries[] = [{ key: "expected", label: "Expected", color: INK, dashed: true }];
+const BOTH: RwaSeries[] = [...PAID, ...EXPECTED];
+const SPLIT_OPTIONS: { v: "combined" | "split"; label: string }[] = [
+  { v: "combined", label: "Combined" },
+  { v: "split", label: "Split" },
+];
 
-function CollectionsTip({ active, payload }: { active?: boolean; payload?: { payload: CollectionDay }[] }) {
-  const day = active ? payload?.[0]?.payload : undefined;
-  if (!day) return null;
+export function RwaCollections({ history, failed }: { history: FenceHistoricalData | null; failed: boolean }) {
+  const [interval, setInterval] = useState<TimeInterval>("daily");
+  const [range, setRange] = useState<RangeChoice>({ preset: "all" });
+  const [split, setSplit] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const first = history ? firstDay(history.paidCollections, history.expectedCollections) : null;
+  const w = windowFor(range, today, first);
+
+  // the window's days stand in for the window, rebuilt on every render
+  const { periodic, cumulative } = useMemo(() => {
+    if (!history) return { periodic: [], cumulative: [] };
+    const paid = fenceSeries(history.paidCollections, w, interval);
+    const expected = fenceSeries(history.expectedCollections, w, interval);
+    return {
+      periodic: zipRows({ paid: paid.periodic, expected: expected.periodic }),
+      cumulative: zipRows({ paid: paid.cumulative, expected: expected.cumulative }),
+    };
+  }, [history, w.from, w.to, interval]);
+
+  const state = { interval, syncId: SYNC, fmt: usd, kind: "line" as const, cumulative: true, defaultView: "cumulative" as const, loading: !history && !failed, failed: failed && !history };
+  const splitSwitch = <ViewSwitch id="rwa-collections-split" value={split ? "split" : "combined"} onChange={(v) => setSplit(v === "split")} options={SPLIT_OPTIONS} />;
+
   return (
-    <TipPlate>
-      <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{dayLong(day.date)}</p>
-      <p className="flex justify-between gap-4 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-        <span>paid</span>
-        {day.paid === null ? "n/a" : <Money value={day.paid} />}
-      </p>
-      <p className="flex justify-between gap-4 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-        <span>expected</span>
-        {day.expected === null ? "n/a" : <Money value={day.expected} />}
-      </p>
-    </TipPlate>
-  );
-}
-
-/** `stale`: the last window's answer while the new window loads, dimmed (the Flows view's rule) */
-export function RwaCollections({ days, note, failed, stale = false }: { days: CollectionDay[] | null; note: string; failed: boolean; stale?: boolean }) {
-  return (
-    <ChartBoard
-      className={cn("transition-opacity", stale && "opacity-60")}
-      label="Paid vs Expected Collections"
-      action={
-        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
-          <span className="flex items-center gap-1.5">
-            <span className="w-4 border-t-2" style={{ borderColor: COUNTED_TONE }} />
-            paid
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-4 border-t border-dashed border-zinc-500 dark:border-zinc-400" />
-            expected
-          </span>
-          <span>{note}</span>
-        </span>
-      }
-    >
-      {!days || days.length === 0 ? (
-        <ChartEmpty failed={failed} label={days ? "No collections in this window" : "Loading…"} />
-      ) : (
-        // the expected line draws in currentColor, so it follows the theme's ink
-        <div className="h-56 text-zinc-500 dark:text-zinc-400">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={days} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
-              <SheetGrid />
-              <XAxis dataKey="date" tickFormatter={dayShort} tick={TICK} tickLine={false} axisLine={false} minTickGap={36} />
-              <YAxis tickFormatter={usd} tick={TICK} tickLine={false} axisLine={false} width={56} domain={["auto", "auto"]} />
-              <Tooltip cursor={{ stroke: "currentColor", strokeOpacity: 0.3 }} content={<CollectionsTip />} />
-              <Line dataKey="paid" type="monotone" dot={false} stroke={COUNTED_TONE} strokeWidth={1.75} isAnimationActive={false} />
-              <Line dataKey="expected" type="monotone" dot={false} stroke="currentColor" strokeWidth={1.25} strokeDasharray="4 3" isAnimationActive={false} />
-            </LineChart>
-          </ResponsiveContainer>
+    <div className="flex flex-col gap-4">
+      <TimedHeader label="Collections Over Time">
+        <IntervalSwitch id="rwa-collections-interval" value={interval} onChange={setInterval} />
+        <RangePicker value={range} shown={w} bounds={{ from: first ?? today, to: today }} onChange={setRange} />
+      </TimedHeader>
+      {split ? (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <RwaChart id="rwa-paid" title="Paid Collections" series={PAID} rows={periodic} cumulativeRows={cumulative} extra={splitSwitch} {...state} />
+          <RwaChart id="rwa-expected" title="Expected Collections" series={EXPECTED} rows={periodic} cumulativeRows={cumulative} {...state} />
         </div>
+      ) : (
+        <RwaChart
+          id="rwa-collections"
+          title="Paid vs Expected Collections"
+          series={BOTH}
+          rows={periodic}
+          cumulativeRows={cumulative}
+          extra={splitSwitch}
+          {...state}
+        />
       )}
-    </ChartBoard>
+      <p className="font-mono text-[10px] leading-relaxed text-zinc-500 dark:text-zinc-400">Data sourced from Fence Finance. Expected collections are available from March 2026.</p>
+    </div>
   );
 }

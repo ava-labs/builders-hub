@@ -4,7 +4,10 @@ import { compact, compact2 } from "@/components/explorer-v2/format";
 /* The DeFi page's colors as CSS variables, scoped to .defi-map so the
    light and dark steps swap in one place (the stablecoins page's
    pattern). A group wears its categorical slot everywhere; a change
-   wears the diverging pair, blue up and red down, with gray at zero. */
+   wears the diverging pair, blue up and red down, with gray at zero.
+   The RWA view's two series take the first two categorical slots, blue
+   and orange, each over 3:1 on both surfaces and apart for color-blind
+   readers. */
 
 export const DEFI_SCOPE = "defi-map";
 
@@ -26,9 +29,11 @@ const dark = GROUPS.map((g) => `--g-${g.key}: ${g.color.dark}; --g-ink-${g.key}:
 
 export const DEFI_STYLE = `
 .${DEFI_SCOPE} { ${light}
-  --d-up: #2a78d6; --d-down: #e34948; --d-flat: #d4d4d8; --d-counted: #3f3f46; --d-gap: #ffffff; --d-current: #ffffff; }
+  --d-up: #2a78d6; --d-down: #e34948; --d-flat: #d4d4d8; --d-counted: #3f3f46; --d-gap: #ffffff; --d-current: #ffffff;
+  --rwa-1: #2a78d6; --rwa-2: #eb6834; }
 .dark .${DEFI_SCOPE} { ${dark}
-  --d-up: #3987e5; --d-down: #e66767; --d-flat: #3f3f46; --d-counted: #d4d4d8; --d-gap: #09090b; --d-current: #e4e4e7; }`;
+  --d-up: #3987e5; --d-down: #e66767; --d-flat: #3f3f46; --d-counted: #d4d4d8; --d-gap: #09090b; --d-current: #e4e4e7;
+  --rwa-1: #3987e5; --rwa-2: #d95926; }`;
 
 export const groupTone = (g: GroupKey) => `var(--g-${g})`;
 export const groupInk = (g: GroupKey) => `var(--g-ink-${g})`;
