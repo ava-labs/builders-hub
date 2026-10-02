@@ -110,8 +110,9 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     // Initial state
     coreWalletClient: null,
     publicClient: createPublicClient({
+      // An element with id="avalanche" (an "Avalanche" heading) is also window.avalanche: require a provider
       transport:
-        typeof window !== 'undefined' && window.avalanche
+        typeof window !== 'undefined' && typeof window.avalanche?.request === 'function'
           ? custom(window.avalanche)
           : http(avalancheFuji.rpcUrls.default.http[0]),
     }),
