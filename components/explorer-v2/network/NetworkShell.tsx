@@ -13,18 +13,24 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 export function NetworkShell({
   network = "mainnet",
   search = true,
+  heading = true,
   children,
 }: {
   /** Defaults to mainnet */
   network?: string;
   /** Set false where the page has its own input, such as Query's prompt box */
   search?: boolean;
+  /** Set false where the page shows its own h1, such as a Query answer */
+  heading?: boolean;
   children: React.ReactNode;
 }) {
+  // a div: the site layout's <main> holds the page
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
+    <div className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+        {/* no display title by design; the h1 names the page for screen readers */}
+        {heading && <h1 className="sr-only">Avalanche Explorer</h1>}
         {/* no chainSlug = the subnav's network scope: All Networks switcher
             row, ecosystem facet tabs, static network label. The facet tabs stay
             pinned to mainnet on purpose: those aggregates exist there only. */}
@@ -38,6 +44,6 @@ export function NetworkShell({
         )}
         <Rise delay={0.14}>{children}</Rise>
       </div>
-    </main>
+    </div>
   );
 }

@@ -12,8 +12,9 @@ interface AcademyLayoutProps {
 }
 
 export function AcademyLayout({ config, courseStats, afterLearningPath }: AcademyLayoutProps) {
+    // a div: the site layout's <main> holds the page
     return (
-        <main className="relative w-full" data-academy="landing">
+        <div className="relative w-full" data-academy="landing">
             {/* The hub's ground; HeroBackground stays on the other pages that use it. */}
             <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 bg-ac-ground" />
             <div className="pb-32 sm:pb-36">
@@ -23,6 +24,6 @@ export function AcademyLayout({ config, courseStats, afterLearningPath }: Academ
                     {afterLearningPath}
                 </div>
             </div>
-        </main>
+        </div>
     );
 }

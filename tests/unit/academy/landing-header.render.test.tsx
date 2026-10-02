@@ -59,7 +59,7 @@ describe("landing header server markup", () => {
 
   it("paints the hub's ground inside the landing root, with no typewriter, legend or rail", () => {
     const html = render(avalancheDeveloperAcademyLandingPageConfig);
-    expect(html).toMatch(/<main [^>]*data-academy="landing"[^>]*><div aria-hidden="true" class="[^"]*bg-ac-ground/);
+    expect(html).toMatch(/<div [^>]*data-academy="landing"[^>]*><div aria-hidden="true" class="[^"]*bg-ac-ground/);
     expect(html).not.toContain("bg-[size:24px_24px]");
     expect(html).not.toContain("animate-pulse");
     expect(html).not.toContain("sm:block");

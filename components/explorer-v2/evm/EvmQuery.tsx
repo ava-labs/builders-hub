@@ -222,21 +222,21 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
 
 /* each chain family's own chrome; stable components, so a re-render of
    the wrapper never remounts the page and loses its answer */
-function QueryShell({ kind, scope, network, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; children: React.ReactNode }) {
+function QueryShell({ kind, scope, network, heading, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; heading: boolean; children: React.ReactNode }) {
   if (scope === "network")
     return (
-      <NetworkShell network={network} search={false}>
+      <NetworkShell network={network} search={false} heading={heading}>
         {children}
       </NetworkShell>
     );
   if (kind === "pchain")
     return (
-      <ExplorerShell chain="p-chain" network={network} hideHeader>
+      <ExplorerShell chain="p-chain" network={network} hideHeader heading={heading}>
         <div className="mx-auto w-full max-w-[90rem] px-5 pb-24 pt-2 md:px-6">{children}</div>
       </ExplorerShell>
     );
   return (
-    <EvmShell network={network} search={false}>
+    <EvmShell network={network} search={false} heading={heading}>
       {children}
     </EvmShell>
   );
@@ -714,8 +714,8 @@ function QueryPage({
   const quiet = "flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50";
 
   return (
-    // the prompt box below is this page's search bar; the shell's would repeat it
-    <QueryShell kind={c.kind} scope={scope} network={network}>
+    // the prompt box below is this page's search bar; the shell's would repeat it. An answer's title is the h1
+    <QueryShell kind={c.kind} scope={scope} network={network} heading={!answer}>
       {picker && <div className="mb-6">{picker}</div>}
       {index === "empty" ? (
         <p className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-[13.5px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">

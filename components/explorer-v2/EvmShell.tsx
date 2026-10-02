@@ -17,6 +17,7 @@ export function EvmShell({
   tape,
   search = true,
   subnav = true,
+  heading = true,
   children,
 }: {
   network: string;
@@ -31,6 +32,8 @@ export function EvmShell({
    *  promise a lookup that cannot resolve. */
   search?: boolean;
   subnav?: boolean;
+  /** Set false where the page shows its own h1, such as a Query answer */
+  heading?: boolean;
   children: React.ReactNode;
 }) {
   const c = useChainContext();
@@ -39,13 +42,16 @@ export function EvmShell({
   // consumer falls back to the Avalanche red, which is what the C-Chain keeps.
   const accent = c.chainSlug !== "c-chain" ? c.themeColor : undefined;
 
+  // a div: the site layout's <main> holds the page
   return (
-    <main
+    <div
       className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950"
       style={accent ? ({ "--chain-accent": accent } as React.CSSProperties) : undefined}
     >
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+        {/* no display title by design; the h1 names the page for screen readers */}
+        {heading && <h1 className="sr-only">{c.chainName} Explorer</h1>}
         {subnav && (
           <ExplorerSubnav
             network={network}
@@ -71,6 +77,6 @@ export function EvmShell({
         )}
         <Rise delay={0.14}>{children}</Rise>
       </div>
-    </main>
+    </div>
   );
 }

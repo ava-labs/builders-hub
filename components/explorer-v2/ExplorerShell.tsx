@@ -416,6 +416,7 @@ export function ExplorerShell({
   network,
   aside,
   hideHeader = false,
+  heading = true,
   children,
 }: {
   chain: string;
@@ -426,16 +427,21 @@ export function ExplorerShell({
    *  the chain identity header and search, keeping only the subnav spine.
    *  Same contract as ExplorerLayout's hideHeader. */
   hideHeader?: boolean;
+  /** Set false where the page shows its own h1, such as a Query answer */
+  heading?: boolean;
   children: React.ReactNode;
 }) {
   const c = getExplorerChain(chain) ?? EXPLORER_CHAINS["p-chain"];
+  // a div: the site layout's <main> holds the page
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
+    <div className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       {/* the drafting-sheet triangle lattice, snowfall only — visible in the
           margins; the content column is an opaque sheet laid on top of it,
           bounded by the vertical rules */}
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+        {/* no display title by design; the h1 names the page for screen readers */}
+        {heading && <h1 className="sr-only">{c.name} Explorer</h1>}
         {/* the app's spine: chain switcher, section tabs, network */}
         <ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />
         {/* load sequence, as on the homepage/solutions: header rises first,
@@ -456,6 +462,6 @@ export function ExplorerShell({
         )}
         <Rise delay={0.14}>{children}</Rise>
       </div>
-    </main>
+    </div>
   );
 }
