@@ -16,7 +16,8 @@ import { EASE, MaskText, Reveal } from "@/components/landing-v2/SpecKit";
 /* /solutions: the four pillars, stated in one line                    */
 /* ------------------------------------------------------------------ */
 
-const PILLAR_WORDS = ["Performance", "Interoperability", "Privacy", "Compliance"];
+// the headline names the pillars in the order the sections below read them
+const PILLAR_WORDS = PILLARS.map((p) => p.label.charAt(0) + p.label.slice(1).toLowerCase());
 
 // the avalanche pass: a step every CASCADE_MS while the pulse is on a word
 // (steps 0-3), then the remaining steps are the rest at the bottom before
