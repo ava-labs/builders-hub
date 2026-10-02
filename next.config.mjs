@@ -20,6 +20,8 @@ const vercelToolbarSources =
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  // AGENTS.md holds the agent instructions, so next dev must not write its own AGENTS.md or CLAUDE.md.
+  agentRules: false,
   serverExternalPackages: [
     'ts-morph',
     'typescript',
