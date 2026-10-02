@@ -22,7 +22,6 @@
   "components/explorer-v2/network/city3d/warmup.tsx": 666,
   "components/explorer-v2/network/city3d/Traffic.tsx": 641,
   "components/explorer/GasMarketPage.tsx": 626,
-  "components/explorer-v2/ExplorerSubnav.tsx": 612,
   "components/explorer-v2/network/ask-window.tsx": 610,
   "components/explorer-v2/staking/UpgradeReadiness.tsx": 609
 }

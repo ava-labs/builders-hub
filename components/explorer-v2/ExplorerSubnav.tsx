@@ -14,8 +14,9 @@ import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, resolveCata
 import { isPrivateChain } from "@/components/explorer-v2/network/private";
 import { ExplorerRangeControl, useRangeConsumersPresent } from "@/components/explorer-v2/time-range";
 import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
-import { queryTarget } from "@/lib/explorer-query/board";
 import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
+import { NETWORK_HOME, buildTabs, type Tab } from "@/components/explorer-v2/subnav-tabs";
+import { networkSwitchTarget } from "@/components/explorer-v2/network-switch";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -65,11 +66,6 @@ interface ExplorerSubnavProps {
   rangeClassName?: string;
   className?: string;
 }
-
-/* The network scope's home — every ecosystem-wide facet hangs off it. */
-const NETWORK_HOME = "/explorer/mainnet";
-/* the city of every chain, with the explorer's search: one tab from the front door */
-const NETWORK_CITY = `${NETWORK_HOME}/chains`;
 
 /* Chain switcher — the dropdown that holds the whole ecosystem. The two
    system chains are pinned; the L1 list is validated against the P-Chain
@@ -234,9 +230,9 @@ function ChainSwitcher({
             />
           )
         )}
-        {/* below sm the name would starve the section tabs — the mark and
-            chevron carry the switcher, the page header names the surface */}
-        <span className="hidden truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:block sm:max-w-40 md:max-w-56 dark:text-zinc-100">
+        {/* below sm the name would starve the section tabs: the mark and
+            chevron carry the switcher, and the name stays for screen readers */}
+        <span className="truncate max-sm:sr-only font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:block sm:max-w-40 md:max-w-56 dark:text-zinc-100">
           {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks"}
         </span>
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
@@ -282,18 +278,6 @@ function ChainSwitcher({
   );
 }
 
-/** query: the tab opens into recent questions and boards on hover */
-type Tab = {
-  label: string;
-  /** the name below 1024 px, where the tab's page draws a list and not what its label names */
-  phone?: string;
-  href: string;
-  isActive: (path: string) => boolean;
-  query?: boolean;
-  /** one of the city and 2D explorer toggle's two views */
-  view?: boolean;
-};
-
 /* A tab names what it opens: its page switches form at 1024 px (NetworkChains
    draws the city from min-width 1024px, the chains list below it), so the label
    switches at the same width, in CSS, and never names the other form. */
@@ -307,177 +291,11 @@ function tabText(tab: Tab): React.ReactNode {
   );
 }
 
-/* ask the chain a question, get a chart with its SQL; boards live under it */
-function queryTab(network: string, chainSlug: string): Tab[] {
-  if (!queryTarget(network, chainSlug)) return [];
-  const base = `/explorer/${network}/${chainSlug}/query`;
-  return [{ label: "Query", href: base, isActive: (p) => p.startsWith(base), query: true }];
-}
-
-/* Section tabs per chain kind. Detail pages light up their list's tab
-   (a block detail is still "Blocks"); on EVM chains the stats surfaces
-   are first-class sections of the same chain, so they ride here too.
-   No chain at all is the widest lens — the network scope, where every
-   ecosystem-wide facet (chains, ICM, validators, the token) lives. */
-function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
-  if (!chainSlug) {
-    return [
-      {
-        // the explorer leads: it is the front door, and the city's card names the two views Explorer and City
-        label: "Explorer",
-        href: NETWORK_HOME,
-        view: true,
-        // the network stats live on the overview now
-        isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"),
-      },
-      {
-        // a phone and a small tablet get the chains list, not the city
-        label: "City",
-        phone: "Chains",
-        href: NETWORK_CITY,
-        view: true,
-        // the network map, ICM and validator versions live on the chains tab; message pages light it too
-        isActive: (p) =>
-          p.startsWith(NETWORK_CITY) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
-      },
-      {
-        label: "AVAX",
-        href: `${NETWORK_HOME}/token`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/token`),
-      },
-      {
-        // Query at the network scope: a picker on the page names the chain it asks
-        label: "Query",
-        href: `${NETWORK_HOME}/query`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/query`),
-      },
-    ];
-  }
-
-  if (getExplorerChain(chainSlug)?.kind === "pchain") {
-    const base = `/explorer/${network}/${chainSlug}`;
-    const tabs: Tab[] = [
-      {
-        label: "Overview",
-        href: base,
-        isActive: (p) => p === base || p.startsWith(`${base}/address`),
-      },
-      { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-      { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
-    ];
-    // the staking + L1-economy feeds are mainnet-only AND P-chain-only —
-    // the X-chain shares this kind (Overview/Blocks/Transactions) but has
-    // no staking surfaces
-    if (network === "mainnet" && chainSlug === "p-chain") {
-      tabs.push(
-        {
-          label: "Staking",
-          href: `${base}/staking`,
-          isActive: (p) => p.startsWith(`${base}/staking`),
-        },
-        // the OTHER validator economy: ACP-77 seats burn where staking
-        // mints — different money, different tab
-        {
-          label: "L1s",
-          href: `${base}/l1s`,
-          isActive: (p) => p.startsWith(`${base}/l1s`),
-        },
-      );
-    }
-    tabs.push({
-      label: "Validators",
-      href: `${base}/validators`,
-      isActive: (p) => p.startsWith(`${base}/validators`) || p.startsWith(`${base}/node`),
-    });
-    tabs.push(...queryTab(network, chainSlug));
-    return tabs;
-  }
-
-  const base = `/explorer/${network}/${chainSlug}`;
-  const tabs: Tab[] = [
-    {
-      label: "Overview",
-      href: base,
-      isActive: (p) => p === base || p.startsWith(`${base}/address`),
-    },
-  ];
-
-  // custom chains (localStorage imports) have no stats surfaces
-  const catalogChain = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
-  if (catalogChain) {
-    if (catalogChain.rpcUrl) {
-      // list tabs mirror the P-Chain's; detail pages light their list
-      tabs.push(
-        { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-        // the tab's views: EVM txs, the C-Chain's atomic imports and exports
-        // (txs/atomic), ICM messages (txs/icm); atomic detail pages light it too
-        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) || p.startsWith(`${base}/atomic-tx`) },
-        // the gas market: live half is pure RPC, so any chain with an RPC
-        // earns the tab; history fills in where ClickHouse ingests the chain
-        { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
-        ...queryTab(network, chainSlug),
-      );
-    }
-    if (network === "mainnet" && chainSlug === "c-chain") {
-      // protocols and stablecoins: one tab, a switch on the page picks the view
-      tabs.push({
-        label: "DeFi",
-        href: `${base}/defi`,
-        isActive: (p) => p.startsWith(`${base}/defi`) || p.startsWith("/stats/dapps"),
-      });
-    }
-    // who's on the chain: population charts for every catalog chain,
-    // leaderboards where ClickHouse ingests it
-    tabs.push({
-      label: "Accounts",
-      href: `${base}/accounts`,
-      isActive: (p) => p.startsWith(`${base}/accounts`),
-    });
-    if (catalogChain.isTestnet !== true) {
-      // the C-Chain's validators ARE the Primary Network's, so on mainnet
-      // the tab also carries their staking economy (validators/staking)
-      tabs.push({
-        label: "Validators",
-        // every chain's set lives in its own chrome — the C-Chain mounts
-        // the Primary Network roster, L1s their own weight table
-        href: `${base}/validators`,
-        isActive: (p) => p.startsWith(`${base}/validators`),
-      });
-    }
-  }
-  return tabs;
-}
-
 /* Counterparts that exist but aren't explorable yet: the toggle stays
    visible so the network is discoverable, but the segment is disabled and
    says why. Move an entry up into TESTNET_COUNTERPART when its indexing
    comes online. */
 const UNAVAILABLE_TESTNET: Record<string, string> = {};
-
-/* Crossing networks keeps the section when the counterpart has it: an
-   accounts page lands on the counterpart's accounts, everything else
-   lands on its explorer overview. */
-function counterpartTarget(network: string, slug: string, pathname: string): string {
-  const base = `/explorer/${network}/${slug}`;
-  return pathname.endsWith("/accounts") ? `${base}/accounts` : base;
-}
-
-/* Switching P-Chain networks keeps the section you're on. Entity pages
-   fall back to their parent list — a block height or tx hash means
-   nothing on the other network. */
-function pchainNetworkTarget(network: string, chainSlug: string, pathname: string): string {
-  const base = `/explorer/${network}/${chainSlug}`;
-  const section = pathname.split("/").filter(Boolean)[3];
-  const list =
-    section === "blocks" || section === "block"
-      ? "blocks"
-      : section === "txs" || section === "tx"
-        ? "txs"
-        : section === "validators" || section === "node"
-          ? "validators"
-          : "";
-  return list ? `${base}/${list}` : base;
-}
 
 /* Network control: the P-Chain spans networks, so it gets the segmented
    switcher; EVM chains get a Mainnet/Fuji toggle when a verified
@@ -500,7 +318,9 @@ function NetworkControl({
           return (
             <Link
               key={n}
-              href={pchainNetworkTarget(n, chainSlug, pathname)}
+              href={networkSwitchTarget(n, chainSlug, pathname)}
+              // the current network is named to assistive tech too, not by colour alone
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
                 active
@@ -547,7 +367,8 @@ function NetworkControl({
         {segments.map((seg) => (
           <Link
             key={seg.label}
-            href={counterpartTarget(seg.network, seg.slug, pathname)}
+            href={networkSwitchTarget(seg.network, seg.slug, pathname)}
+            aria-current={seg.active ? "page" : undefined}
             className={cn(
               "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
               seg.active
