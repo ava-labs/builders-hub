@@ -75,6 +75,8 @@ function NetworkHealth({ network }: { network: string }) {
 
 export function PchainValidators({ chain, network }: { chain: string; network: string }) {
   const base = `/explorer/${network}/${chain}`;
+  // the Primary Network's staking page is the P-Chain's, for the X-Chain's tab too
+  const staking = `/explorer/${network}/p-chain/staking`;
   return (
     <ExplorerShell chain={chain} network={network}>
       {/* the Primary Network's set secures P, C, and X alike: each gets the
@@ -84,10 +86,10 @@ export function PchainValidators({ chain, network }: { chain: string; network: s
       {chain === "p-chain" ? (
         <div className="flex flex-col gap-6">
           <SectionHeader label="Validator Sets" action={<ValidatorSetSwitch base={base} view="primary" />} />
-          <PrimaryValidatorsContent stakingHref={`${base}/staking`} network={network} />
+          <PrimaryValidatorsContent stakingHref={staking} network={network} />
         </div>
       ) : (
-        <PrimaryValidatorsContent stakingHref={`${base}/staking`} network={network} />
+        <PrimaryValidatorsContent stakingHref={staking} network={network} />
       )}
     </ExplorerShell>
   );

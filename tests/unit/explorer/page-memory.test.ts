@@ -53,4 +53,14 @@ describe('the explorer memory', () => {
     await expect(bad).resolves.toBeNull();
     expect(recall('/api/evm/43114/bad', false)).toBeNull();
   });
+
+  it('asks for soft answers, and keeps nothing from a soft miss', async () => {
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify({ error: 'not found' }), { status: 200, headers: { 'x-status': '404' } }));
+    vi.stubGlobal('fetch', fetch);
+    const read = readJson('/api/evm/43114/tx/0xsoftmiss');
+    await vi.runAllTimersAsync();
+    await expect(read).resolves.toBeNull();
+    expect(recall('/api/evm/43114/tx/0xsoftmiss', false)).toBeNull();
+    expect(new Headers(fetch.mock.calls[0][1]?.headers).get('x-soft-status')).toBe('1');
+  });
 });

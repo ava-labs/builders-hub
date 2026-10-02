@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BURN_CHAINS, sumFeesWei, type FeeReceipt } from "@/lib/evm-burn";
+import { softStatus } from "@/lib/explorer-soft-status";
 
 // AVAX burned per block on the C-Chain and Fuji: the sum of every receipt's
 // fee, read with eth_getBlockReceipts from our dedicated node (the public
@@ -78,7 +79,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "burn is served for the C-Chain and Fuji only" }, { status: 404 });
   }
   const url = NODES[chainId];
-  if (!url) return NextResponse.json({ error: "node not configured" }, { status: 503 });
+  // a deployment without the node: the page stops asking (useBlockBurns)
+  if (!url) return NextResponse.json({ error: "node not configured" }, softStatus(request, 503));
 
   const raw = new URL(request.url).searchParams.get("blocks") ?? "";
   const blocks = [...new Set(raw.split(",").filter(Boolean).map(Number))];
@@ -103,7 +105,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     } catch (err) {
       console.error(`[Explorer API] burn failed for chain ${chainId}:`, err instanceof Error ? err.message : err);
-      return NextResponse.json({ error: "upstream unreachable" }, { status: 502, headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json({ error: "upstream unreachable" }, softStatus(request, 502, { "cache-control": "no-store" }));
     }
   }
 

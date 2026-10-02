@@ -15,7 +15,8 @@ import { useEvmData, usePrice, usdOfWei } from "./hooks";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcTx } from "./useRpcTx";
-import { EvmTrace, useTrace } from "./EvmTrace";
+import { EvmTrace } from "./EvmTrace";
+import { useTrace } from "./useTrace";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useVerifiedContracts, functionNameFromAbi, decodeEventWithAbi, decodeFunctionWithAbi } from "@/lib/sourcify-client";
 import { getEventByTopic, getFunctionBySelector } from "@/abi/event-signatures.generated";
@@ -30,6 +31,7 @@ import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount, u
 import { TokenLogo, TokenMark } from "./TokenMark";
 import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
 import { readRpc } from "@/lib/explorer-rpc";
+import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
 
 /* One transaction, in the block page's grammar: status in the section
    header, the hash as the subject with its time beside it, the readings
@@ -73,8 +75,8 @@ function useIcmFallback(txHash: string, enabled: boolean): IcmMessage | null {
     if (!enabled) return;
     let live = true;
     const controller = new AbortController();
-    fetch(`/api/icm/message/${txHash}`, { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
+    fetch(`/api/icm/message/${txHash}`, { ...SOFT_READ, signal: controller.signal })
+      .then((r) => (isOk(r) ? r.json() : null))
       .then((body) => {
         if (live && body && !body.error) setMessage(body as IcmMessage);
       })

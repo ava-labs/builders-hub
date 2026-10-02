@@ -576,7 +576,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
           L1 validators don&apos;t stake AVAX or earn rewards. Each seat prepays a continuous fee
           from its own balance — burned per second at the network&apos;s current price (
           <Link
-            href="/docs/acps/77-reinventing-subnets"
+            href="/docs/acps/77-reinventing-subnets" prefetch={false}
             className="text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
           >
             ACP-77

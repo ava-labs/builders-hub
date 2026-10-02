@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EVM_API_BASE } from "@/lib/evm-explorer";
 import { toStatsChainId } from "@/lib/dedicated-stats";
+import { softStatus } from "@/lib/explorer-soft-status";
 
 // Server-side proxy to the EVM chain explorer API (plain HTTP on an IP). The
 // browser calls same-origin `/api/evm/{chainId}/{...}`; this handler fetches
@@ -61,19 +62,20 @@ export async function GET(
   try {
     const res = await fetchWithTimeout(upstream);
     const body = await res.text();
-    // Pass through status + body; attach cache headers only on success.
-    return new NextResponse(body, {
-      status: res.status,
-      headers: {
+    // Pass through status + body; attach cache headers only on success. A
+    // miss or an upstream error comes back soft to a read that asks.
+    return new NextResponse(
+      body,
+      softStatus(req, res.status, {
         "content-type": res.headers.get("content-type") ?? "application/json",
         ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId) } : {}),
-      },
-    });
+      }),
+    );
   } catch (err) {
     const aborted = err instanceof DOMException && err.name === "AbortError";
     return NextResponse.json(
       { error: aborted ? "explorer API timeout" : "explorer API unreachable" },
-      { status: 504 },
+      softStatus(req, 504),
     );
   }
 }
