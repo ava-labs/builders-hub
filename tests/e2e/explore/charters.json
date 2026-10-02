@@ -1,0 +1,42 @@
+[
+  {
+    "key": "academy-course",
+    "target": "desktop",
+    "goal": "Start at /academy, pick a course, and move through five lessons with the next and previous links. Check the lesson order, the progress display and the sidebar stay correct."
+  },
+  {
+    "key": "docs-search",
+    "target": "desktop",
+    "goal": "Start at /docs, search for \"ICM\", \"validator manager\" and \"convert to L1\", and open one result for each. Check the results match and each page scrolls to the right heading."
+  },
+  {
+    "key": "site-programs",
+    "target": "desktop",
+    "goal": "Start at / and visit the hackathons, grants and events pages from the navigation, without signing in or submitting a form. Use their tabs, filters and cards, and check nothing errors and every link works."
+  },
+  {
+    "key": "site-integrations",
+    "target": "desktop",
+    "goal": "Start at /integrations, search and filter the directory, then open two integrations. Check the filters work and the detail pages load."
+  },
+  {
+    "key": "explorer-gas-state",
+    "target": "desktop",
+    "goal": "Start at /explorer/mainnet/c-chain/gas and change the timeframe and the metric. Check that the chart and the URL change, and that a reload keeps your choice."
+  },
+  {
+    "key": "explorer-l1s",
+    "target": "desktop",
+    "goal": "Start at /explorer/mainnet/chains, open three different L1s, then the blocks and validators pages of each. Check each page names the L1, shows data, and the chain switcher at the top names the same L1."
+  },
+  {
+    "key": "console-browse",
+    "target": "desktop",
+    "goal": "Start at /console without connecting a wallet or signing in, and open five different tools from the sidebar and the command palette. Check each tool explains what it needs (for example a wallet connection) and nothing crashes."
+  },
+  {
+    "key": "site-phone",
+    "target": "phone",
+    "goal": "On this phone-size screen, start at / and use the mobile menu to reach five different sections. Check the menu opens and closes, and each page is usable at this size."
+  }
+]
