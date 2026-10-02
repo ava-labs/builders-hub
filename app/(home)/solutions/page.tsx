@@ -7,7 +7,7 @@ const ogImage = { url: '/api/og/solutions', width: 1200, height: 630, alt: 'Aval
 export const metadata: Metadata = createMetadata({
   title: 'Solutions',
   description:
-    'Performance, interoperability, privacy, and compliance: the four guarantees enterprise chains on Avalanche are built on.',
+    'Interoperability, performance, privacy, and compliance: the four guarantees enterprise chains on Avalanche are built on.',
   openGraph: { url: '/solutions', images: ogImage },
   twitter: { images: ogImage },
 });

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import l1ChainsData from '@/constants/l1-chains.json';
 import { lookupTransactionAcrossChains } from '@/lib/cross-chain-lookup';
+import { raceChains } from '@/components/explorer-v2/chain-search';
 import { isPublicRpcUrl } from '@/lib/explorer-rpc';
 import type { L1Chain } from '@/types/stats';
 
@@ -68,5 +69,22 @@ describe('lookupTransactionAcrossChains', () => {
     ] as L1Chain[];
     await expect(lookupTransactionAcrossChains(`0x${'ab'.repeat(32)}`, chains)).resolves.toEqual({ found: false });
     expect(fetch.mock.calls.map((call) => (call as unknown[])[0])).toEqual([PUBLIC]);
+  });
+});
+
+describe('raceChains', () => {
+  const chains = [
+    { chainId: '1', chainName: 'Indexed', rpcUrl: PUBLIC },
+    { chainId: '2', chainName: 'Not indexed', rpcUrl: PUBLIC },
+    { chainId: '3', chainName: 'Testnet', rpcUrl: PUBLIC, isTestnet: true },
+    { chainId: '4', chainName: 'Flagged off', rpcUrl: PUBLIC, isIndexed: false },
+  ] as L1Chain[];
+
+  it('races only the mainnet chains the explorer indexes', () => {
+    expect(raceChains(new Set(['1', '3']), chains).map((c) => c.chainName)).toEqual(['Indexed']);
+  });
+
+  it('falls back to the catalog flag without the indexed set', () => {
+    expect(raceChains(null, chains).map((c) => c.chainName)).toEqual(['Indexed', 'Not indexed']);
   });
 });

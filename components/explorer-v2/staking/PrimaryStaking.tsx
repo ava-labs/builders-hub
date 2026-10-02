@@ -951,7 +951,7 @@ export function PrimaryStakingContent({
           the uptime requirement through the whole term. Rewards are newly minted AVAX.
           Auto-renewed staking (
           <Link
-            href="/docs/acps/236-auto-renewed-staking"
+            href="/docs/acps/236-auto-renewed-staking" prefetch={false}
             className="text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
           >
             ACP-236
@@ -1239,7 +1239,7 @@ export function PrimaryStakingContent({
             label="Staking Parameters"
             action={
               <Link
-                href="/docs/primary-network/validate/how-to-stake"
+                href="/docs/primary-network/validate/how-to-stake" prefetch={false}
                 className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               >
                 How to stake

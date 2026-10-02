@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 
 /**
  * Brand CTA per avax.network/business: square block, label left, arrow
@@ -16,15 +17,19 @@ export function BrandButton({
   variant = "primary",
   onClick,
   className = "",
+  prefetchOnIntent = false,
 }: {
   href: string;
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "light";
   onClick?: () => void;
   className?: string;
+  /** prefetch on hover, focus or touch, not on view (see HoverPrefetchLink) */
+  prefetchOnIntent?: boolean;
 }) {
   const isPrimary = variant === "primary";
   const isLight = variant === "light";
+  const LinkTag = prefetchOnIntent ? HoverPrefetchLink : Link;
   return (
     <span className={`group inline-flex items-stretch ${className}`}>
       {/* the red edge bar yields to the sweep: once the light fill takes
@@ -35,7 +40,7 @@ export function BrandButton({
           className="w-1 shrink-0 bg-[#E6212F] transition-opacity duration-300 group-hover:opacity-0"
         />
       )}
-      <Link
+      <LinkTag
         href={href}
         onClick={onClick}
         className={`relative inline-flex w-full min-w-[220px] items-center justify-between gap-8 overflow-hidden px-6 py-4 text-sm font-semibold transition-colors duration-300 ${
@@ -56,7 +61,7 @@ export function BrandButton({
             isPrimary ? "text-[#1F1F1F] group-hover:text-[#E6212F]" : "text-[#E6212F]"
           }`}
         />
-      </Link>
+      </LinkTag>
     </span>
   );
 }

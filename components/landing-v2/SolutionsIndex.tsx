@@ -10,13 +10,14 @@ import Image from "next/image";
 import { pillarPlate } from "@/components/landing-v2/PillarPlate";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import { COMPARISON, PILLARS } from "@/components/landing-v2/pillars";
-import { EASE, MaskText, Reveal, sentenceCase } from "@/components/landing-v2/SpecKit";
+import { EASE, MaskText, Reveal } from "@/components/landing-v2/SpecKit";
 
 /* ------------------------------------------------------------------ */
 /* /solutions: the four pillars, stated in one line                    */
 /* ------------------------------------------------------------------ */
 
-const PILLAR_WORDS = ["Performance", "Interoperability", "Privacy", "Compliance"];
+// the headline names the pillars in the order the sections below read them
+const PILLAR_WORDS = PILLARS.map((p) => p.label.charAt(0) + p.label.slice(1).toLowerCase());
 
 // the avalanche pass: a step every CASCADE_MS while the pulse is on a word
 // (steps 0-3), then the remaining steps are the rest at the bottom before
@@ -46,27 +47,31 @@ export default function SolutionsIndex() {
           key: pillar.slug,
           plate: pillarPlate(pillar.slug),
           content: (
-            <div className="max-w-2xl">
-              <p className="text-[15px] font-medium text-[#E6212F]">{sentenceCase(pillar.label)}</p>
-              <h2 className="v2-heading mt-4 text-4xl leading-[1.05] text-zinc-900 md:text-5xl xl:text-[3.5rem] dark:text-zinc-50">
+            <div className="max-w-xl">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+                <span className="text-zinc-400 dark:text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
+                <span className="mx-2 text-zinc-300 dark:text-zinc-700">·</span>
+                <span className="text-[#E6212F]">{pillar.label}</span>
+              </p>
+              <h2 className="v2-heading mt-5 text-4xl leading-[1.05] text-zinc-900 md:text-5xl xl:text-[3.5rem] dark:text-zinc-50">
                 {pillar.title}.
               </h2>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-300">{pillar.tagline}</p>
-              {/* the mechanisms, each with its one-line argument */}
-              <dl className="mt-10 border-t border-zinc-200 dark:border-zinc-800">
-                {pillar.capabilities.map((capability) => (
+              <p className="mt-6 max-w-md text-[17px] leading-relaxed text-zinc-600 dark:text-zinc-400">{pillar.tagline}</p>
+              {/* the claim as three spec rows; the full mechanisms live on the pillar's page */}
+              <dl className="mt-12 border-t border-zinc-200 dark:border-zinc-800">
+                {pillar.proofs.map((proof) => (
                   <div
-                    key={capability.title}
-                    className="grid gap-1.5 border-b border-zinc-200 py-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-8 dark:border-zinc-800"
+                    key={proof.label}
+                    className="flex items-baseline justify-between gap-6 border-b border-zinc-200 py-3.5 font-mono uppercase dark:border-zinc-800"
                   >
-                    <dt className="text-[15px] font-medium text-zinc-900 dark:text-zinc-50">{capability.title}</dt>
-                    <dd className="text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400">{capability.body}</dd>
+                    <dt className="text-[11px] tracking-[0.16em] text-zinc-500">{proof.label}</dt>
+                    <dd className="text-right text-[13px] tracking-[0.08em] text-zinc-900 dark:text-zinc-100">{proof.value}</dd>
                   </div>
                 ))}
               </dl>
               <Link
                 href={`/solutions/${pillar.slug}`}
-                className="group mt-8 inline-flex items-center gap-2 text-[15px] font-medium text-zinc-900 dark:text-zinc-50"
+                className="group mt-10 inline-flex items-center gap-2 text-[15px] font-medium text-zinc-900 dark:text-zinc-50"
               >
                 <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-0.5 transition-[background-size] duration-300 group-hover:bg-[length:100%_1px]">
                   Explore {pillar.label.toLowerCase()}

@@ -8,7 +8,10 @@ import { ICM_STATUS_LABEL, type IcmMessage } from "@/lib/icm-message";
 import type { L1Chain } from "@/types/stats";
 import { hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
+import { readIndexedChainIds } from "@/components/explorer-v2/validator-stats";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 import { buildTxUrl, buildAddressUrl, buildBlockUrl } from "@/utils/eip3091";
+import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
 
 /* ------------------------------------------------------------------ */
 /* The one chain-suggestion engine behind every explorer search bar    */
@@ -198,14 +201,24 @@ export interface EntityHit {
   status: "ready" | "searching" | "notfound";
 }
 
+/* The chains a pasted tx hash is raced across: the mainnet chains the
+   explorer indexes. A hit opens /explorer/mainnet/{slug}/tx, and an
+   unindexed chain has no tx page there; several of their RPCs refuse a
+   browser's read as well. Without the indexed set, the catalog's flag
+   stands in. */
+export function raceChains(indexed: Set<string> | null, chains: L1Chain[] = l1ChainsData as L1Chain[]): L1Chain[] {
+  return chains.filter((c) => !c.isTestnet && (indexed ? indexed.has(toStatsChainId(c.chainId)) : c.isIndexed !== false));
+}
+
 const txRaceCache = new Map<string, Promise<{ found: boolean; chain?: L1Chain }>>();
-/** lookupTransactionAcrossChains, one race per hash per session — the
- *  dropdown resolves it and the Enter key gets the answer for free. */
+/** lookupTransactionAcrossChains over the indexed mainnet chains, one race
+ *  per hash per session: the dropdown resolves it and the Enter key gets
+ *  the answer for free. */
 export function lookupTxAcrossChainsCached(hash: string) {
   const key = hash.toLowerCase();
   let p = txRaceCache.get(key);
   if (!p) {
-    p = lookupTransactionAcrossChains(hash);
+    p = readIndexedChainIds().then((indexed) => lookupTransactionAcrossChains(hash, raceChains(indexed)));
     txRaceCache.set(key, p);
   }
   return p;
@@ -232,8 +245,8 @@ function icmLookupCached(hash: string): Promise<IcmMessage | null> {
   const key = hash.toLowerCase();
   let p = icmLookupCache.get(key);
   if (!p) {
-    p = fetch(`/api/icm/message/${key}`)
-      .then((res) => (res.ok ? res.json() : null))
+    p = fetch(`/api/icm/message/${key}`, SOFT_READ)
+      .then((res) => (isOk(res) ? res.json() : null))
       .then((body) => (body && !body.error ? (body as IcmMessage) : null))
       .catch(() => null);
     icmLookupCache.set(key, p);

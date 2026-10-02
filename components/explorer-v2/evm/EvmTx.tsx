@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, LiveDot } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT } from "@/components/explorer-v2/ui";
+import { RailRow } from "@/components/explorer-v2/detail-parts";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown } from "./bits";
@@ -14,7 +15,8 @@ import { useEvmData, usePrice, usdOfWei } from "./hooks";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcTx } from "./useRpcTx";
-import { EvmTrace, useTrace } from "./EvmTrace";
+import { EvmTrace } from "./EvmTrace";
+import { useTrace } from "./useTrace";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useVerifiedContracts, functionNameFromAbi, decodeEventWithAbi, decodeFunctionWithAbi } from "@/lib/sourcify-client";
 import { getEventByTopic, getFunctionBySelector } from "@/abi/event-signatures.generated";
@@ -29,6 +31,7 @@ import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount, u
 import { TokenLogo, TokenMark } from "./TokenMark";
 import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
 import { readRpc } from "@/lib/explorer-rpc";
+import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
 
 /* One transaction, in the block page's grammar: status in the section
    header, the hash as the subject with its time beside it, the readings
@@ -72,8 +75,8 @@ function useIcmFallback(txHash: string, enabled: boolean): IcmMessage | null {
     if (!enabled) return;
     let live = true;
     const controller = new AbortController();
-    fetch(`/api/icm/message/${txHash}`, { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
+    fetch(`/api/icm/message/${txHash}`, { ...SOFT_READ, signal: controller.signal })
+      .then((r) => (isOk(r) ? r.json() : null))
       .then((body) => {
         if (live && body && !body.error) setMessage(body as IcmMessage);
       })
@@ -186,40 +189,6 @@ function Party({
       {label && known?.abi && <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">precompile</span>}
       <HashChip value={addr} href={href} len={66} className={quiet ? "text-zinc-400 dark:text-zinc-500" : undefined} />
     </span>
-  );
-}
-
-/** one reading in the tx page's rail: label, figure, qualifier */
-export function RailRow({
-  label,
-  children,
-  sub,
-  href,
-  live = false,
-}: {
-  label: string;
-  children: React.ReactNode;
-  sub?: React.ReactNode;
-  href?: string;
-  live?: boolean;
-}) {
-  const inner = (
-    <>
-      <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-        {live && <LiveDot />}
-        {label}
-      </span>
-      <span className="font-mono text-[17px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{children}</span>
-      {sub != null && <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{sub}</span>}
-    </>
-  );
-  const cls = "flex flex-1 flex-col justify-center gap-1 border-b border-zinc-200 px-5 py-3.5 last:border-b-0 dark:border-zinc-800";
-  return href ? (
-    <Link href={href} className={cn(cls, "transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
-      {inner}
-    </Link>
-  ) : (
-    <div className={cls}>{inner}</div>
   );
 }
 

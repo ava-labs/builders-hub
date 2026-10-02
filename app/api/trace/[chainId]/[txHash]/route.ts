@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { softStatus } from "@/lib/explorer-soft-status";
 
 // One transaction's execution trace, from a debug-enabled node the public
 // RPC does not offer: the call tree with logs (callTracer), the account
@@ -118,7 +119,7 @@ async function rpc<T>(url: string, method: string, params: unknown[]): Promise<T
 export async function GET(req: NextRequest, { params }: { params: Promise<{ chainId: string; txHash: string }> }) {
   const { chainId, txHash } = await params;
   const url = DEBUG_RPC[chainId];
-  if (!url) return NextResponse.json({ error: "no trace node for this chain" }, { status: 404 });
+  if (!url) return NextResponse.json({ error: "no trace node for this chain" }, softStatus(req, 404));
   const hash = txHash.toLowerCase();
   if (!/^0x[0-9a-f]{64}$/.test(hash)) return NextResponse.json({ error: "invalid transaction hash" }, { status: 400 });
 
@@ -132,7 +133,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
   const now = Date.now();
   const r = rate.get(ip);
   if (!r || now - r.at > RATE_WINDOW_MS) rate.set(ip, { n: 1, at: now });
-  else if (r.n >= RATE_MAX) return NextResponse.json({ error: "rate limit" }, { status: 429 });
+  else if (r.n >= RATE_MAX) return NextResponse.json({ error: "rate limit" }, softStatus(req, 429));
   else r.n++;
 
   try {
@@ -163,6 +164,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
   } catch (e) {
     const msg = e instanceof Error ? e.message : "trace failed";
     const status = /not found/i.test(msg) ? 404 : 502;
-    return NextResponse.json({ error: msg }, { status, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ error: msg }, softStatus(req, status, { "cache-control": "no-store" }));
   }
 }

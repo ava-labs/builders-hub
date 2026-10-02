@@ -57,15 +57,33 @@ export function useNetworkSeries(days: number): NetworkSeries | null {
   });
 }
 
-/** the Primary Network's stake by day, in AVAX: own stake plus delegations */
-export function useStakeHistory(): DayPoint[] | null {
-  return useJson(STAKE_HISTORY_URL, (raw) => {
-    const r = raw as { validator_weight?: { data?: Raw[] }; delegator_weight?: { data?: Raw[] } };
+export interface PrimaryHistory {
+  /** in AVAX: own stake plus delegations */
+  staked: DayPoint[];
+  validators: DayPoint[];
+  delegators: DayPoint[];
+}
+
+/** the Primary Network by day: its stake, its validators and its
+ *  delegators. The feed is mainnet's: pass false elsewhere and it reads nothing */
+export function usePrimaryHistory(enabled = true): PrimaryHistory | null {
+  return useJson(enabled ? STAKE_HISTORY_URL : null, (raw) => {
+    type Metric = { data?: Raw[] } | undefined;
+    const r = raw as { validator_weight?: Metric; delegator_weight?: Metric; validator_count?: Metric; delegator_count?: Metric };
     const delegated = new Map(toPoints(r.delegator_weight?.data).map((p) => [p.t, p.v]));
     const own = toPoints(r.validator_weight?.data);
     if (!own.length) return null;
-    return complete(own.map((p) => ({ t: p.t, v: (p.v + (delegated.get(p.t) ?? 0)) / 1e9 })));
+    return {
+      staked: complete(own.map((p) => ({ t: p.t, v: (p.v + (delegated.get(p.t) ?? 0)) / 1e9 }))),
+      validators: complete(toPoints(r.validator_count?.data)),
+      delegators: complete(toPoints(r.delegator_count?.data)),
+    };
   });
+}
+
+/** the Primary Network's stake by day, in AVAX: own stake plus delegations */
+export function useStakeHistory(): DayPoint[] | null {
+  return usePrimaryHistory()?.staked ?? null;
 }
 
 /** every AVAX burned to date, by day */

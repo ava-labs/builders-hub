@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 import {
@@ -28,6 +28,7 @@ import { decodeEventLog as registryDecodeEvent, decodeFunctionInput as registryD
 import { declaredSymbol, formatTokenAmount, usdOfToken, useSignatures, useTokenList, useTokenPrices, type SignatureHit, type TokenMap } from "@/lib/token-list";
 import { knownAddress } from "@/lib/evm-explorer";
 import { readRpc } from "@/lib/explorer-rpc";
+import type { TraceState } from "./useTrace";
 import {
   balanceChanges,
   contractsIn,
@@ -101,35 +102,6 @@ function V({ v, className }: { v: Val; className?: string }) {
     : "text-zinc-600 dark:text-zinc-300";
   const inner = <span className={cn(v.kind === "address" || v.kind === "number" ? "whitespace-nowrap" : "break-all", "tabular-nums", cls, className)} title={v.title}>{v.text}</span>;
   return v.href ? <Link href={v.href} className="hover:underline underline-offset-4" onClick={(e) => e.stopPropagation()}>{inner}</Link> : inner;
-}
-
-/* ------------------------------------------------------------------ */
-/* data                                                                */
-
-export type TraceState = "loading" | "ready" | "none" | "error";
-
-export function useTrace(chainId: string, hash: string, enabled: boolean): { trace: TraceResponse | null; state: TraceState } {
-  const [trace, setTrace] = useState<TraceResponse | null>(null);
-  const [state, setState] = useState<TraceState>(enabled ? "loading" : "none");
-  useEffect(() => {
-    setTrace(null);
-    if (!enabled) {
-      setState("none");
-      return;
-    }
-    setState("loading");
-    const controller = new AbortController();
-    fetch(`/api/trace/${chainId}/${hash}`, { signal: controller.signal })
-      .then(async (r) => {
-        if (r.status === 404) return setState("none");
-        if (!r.ok) return setState("error");
-        setTrace((await r.json()) as TraceResponse);
-        setState("ready");
-      })
-      .catch(() => !controller.signal.aborted && setState("error"));
-    return () => controller.abort();
-  }, [chainId, hash, enabled]);
-  return { trace, state };
 }
 
 /* ------------------------------------------------------------------ */

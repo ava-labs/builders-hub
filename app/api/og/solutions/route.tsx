@@ -16,7 +16,7 @@ export async function GET(request: NextRequest): Promise<ImageResponse> {
     title: title ?? 'Solutions',
     description:
       description ??
-      'Performance, interoperability, privacy, and compliance: the four guarantees enterprise chains on Avalanche are built on',
+      'Interoperability, performance, privacy, and compliance: the four guarantees enterprise chains on Avalanche are built on',
     path: 'solutions',
     fonts,
   });

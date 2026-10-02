@@ -10,7 +10,7 @@ import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explor
 import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
-import { NotFound, RailRow } from "./EvmTx";
+import { NotFound, RailRow } from "@/components/explorer-v2/detail-parts";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcBlock } from "./useRpcBlock";
