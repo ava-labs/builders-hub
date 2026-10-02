@@ -34,7 +34,7 @@ export const solutionsMenu: LinkItemType = {
       icon: <Landmark />,
       text: 'Why Avalanche',
       description:
-        'The guarantees enterprise chains are built on: performance, interoperability, privacy, and compliance.',
+        'The guarantees enterprise chains are built on: interoperability, performance, privacy, and compliance.',
       url: '/solutions',
       menu: {
         // featured panel: the image leads, the four pillars stack in the
@@ -52,21 +52,21 @@ export const solutionsMenu: LinkItemType = {
       },
     },
     {
-      icon: <Gauge />,
-      text: 'Performance',
-      description:
-        'Sub-second, irreversible finality on dedicated blockspace.',
-      url: '/solutions/performance',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-1',
-      },
-    },
-    {
       icon: <ArrowLeftRight />,
       text: 'Interoperability',
       description:
         'Native messaging and asset transfer between public, permissioned, and private chains.',
       url: '/solutions/interoperability',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-1',
+      },
+    },
+    {
+      icon: <Gauge />,
+      text: 'Performance',
+      description:
+        'Sub-second, irreversible finality on dedicated blockspace.',
+      url: '/solutions/performance',
       menu: {
         className: 'lg:col-start-2 lg:row-start-2',
       },
