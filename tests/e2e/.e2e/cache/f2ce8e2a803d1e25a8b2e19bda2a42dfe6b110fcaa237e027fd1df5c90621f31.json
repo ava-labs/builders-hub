@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T06:39:09.362Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "hover",
+        "summary": "hover over listitem \"Developers\"",
+        "target": {
+          "role": "listitem",
+          "name": "Developers"
+        }
+      },
+      {
+        "name": "hover",
+        "summary": "hover over listitem \"Solutions\"",
+        "target": {
+          "role": "listitem",
+          "name": "Solutions"
+        }
+      },
+      {
+        "name": "hover",
+        "summary": "hover over listitem \"Developers\"",
+        "target": {
+          "role": "listitem",
+          "name": "Developers"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Developers\"",
+        "target": {
+          "role": "link",
+          "name": "Developers"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Avalanche L1\" in \"Primary Network\"",
+        "target": {
+          "role": "link",
+          "name": "Avalanche L1",
+          "within": "Primary Network"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Tools\"",
+        "target": {
+          "role": "link",
+          "name": "Tools"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Network\"",
+        "target": {
+          "role": "link",
+          "name": "Network"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Interchain Messaging Interchain messagi…\"",
+        "target": {
+          "role": "link",
+          "name": "Interchain Messaging Interchain messaging protocol"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/site-navigation.e2e.ts::site%20navigation%20leads%20from%20the%20home%20page%20to%20the%20Interchain%20Messaging%20docs",
+      "targetId": "desktop",
+      "instructionDigest": "0fa9648d840eec10e7e892c5b2266924398f5d6250cf8c70eb81aa9801cdb3b7"
+    },
+    "summary": "I opened Developers > Documentation, then chose \"Interchain Messaging\" in the docs section switcher. The app loaded /docs/cross-chain, titled \"Introduction | Avalanche Builder Hub\". The sidebar shows the Interchain Messaging, ICM Contracts and ICTT sections.",
+    "startPath": "/",
+    "endPath": "/docs/cross-chain",
+    "endAnchors": [
+      {
+        "text": "Network"
+      },
+      {
+        "text": "Nodes"
+      },
+      {
+        "text": "APIs"
+      },
+      {
+        "text": "Tools"
+      },
+      {
+        "text": "ACPs"
+      },
+      {
+        "role": "link",
+        "name": "Introduction"
+      },
+      {
+        "text": "Avalanche Interchain Messaging"
+      },
+      {
+        "role": "link",
+        "name": "What is ICM?"
+      }
+    ],
+    "endWaitMs": 12598
+  }
+}
