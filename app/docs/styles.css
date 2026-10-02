@@ -168,6 +168,11 @@ header + * {
     padding-right: 1rem !important;
   }
   
+  /* Anchor jumps stop below the fixed toc nav, not under it (fumadocs headings use scroll-m-28) */
+  body[data-layout="docs"] #nd-tocnav ~ article :is(h1, h2, h3, h4, h5, h6)[id] {
+    scroll-margin-top: calc(var(--fd-banner-height, 0px) + 9.5rem) !important; /* Banner + navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
+  }
+
   /* Center subnavbar content on mobile */
   #docs-subnav > div {
     justify-content: center !important;
