@@ -165,7 +165,7 @@ export function SupplyModel({
       { key: "staked", label: "Staked", value: staked, sub: `${pct(staked)}${usd(staked)}` },
       { key: "locked", label: "Locked", value: locked, sub: `${pct(locked)}${usd(locked)}` },
       { key: "liquid", label: "Liquid", value: liquid, sub: `${pct(liquid)}${usd(liquid)}` },
-      { key: "unissued", label: "Not yet issued", value: unissued, sub: `${pct(unissued)} · staking rewards still to mint` },
+      { key: "unissued", label: "Not yet minted", value: unissued, sub: `${pct(unissued)} · staking rewards still to mint` },
     ];
     let at = 0;
     const out: Floor[] = parts.map((p) => {
@@ -242,7 +242,7 @@ export function SupplyModel({
       </div>
       {/* desktops: the solid */}
       <Board divide={false} className="hidden border lg:block">
-        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="The AVAX supply as floors of the 720M cap, beside the AVAX issued" onMouseLeave={() => setHover(null)}>
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="The AVAX supply as floors of the 720M cap, beside the AVAX minted" onMouseLeave={() => setHover(null)}>
           {!still && (
             <style>{`@keyframes ${uid}rise{from{transform:scaleY(0.02)}to{transform:scaleY(1)}}@keyframes ${uid}float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}@keyframes ${uid}drop{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:translateY(0)}}`}</style>
           )}
@@ -286,7 +286,7 @@ export function SupplyModel({
           <line x1={SX + SHW + 6} x2={TX - HW - 6} y1={srcTop} y2={srcTop} strokeDasharray="2 4" strokeWidth={1} className="stroke-zinc-400 dark:stroke-zinc-500" />
           <g className="font-mono" textAnchor="middle">
             <text x={SX} y={srcTop - SD - 34} className="fill-zinc-500 text-[10px] font-bold uppercase tracking-[0.16em] dark:fill-zinc-400">
-              Issued
+              Minted
             </text>
             <text x={SX} y={srcTop - SD - 14} className="fill-zinc-900 text-[18px] tabular-nums dark:fill-zinc-50">
               {avax(issued)}
@@ -428,7 +428,7 @@ export function SupplyModel({
 
           {/* the key, bottom left */}
           <text x={24} y={H - 16} className="fill-zinc-400 font-mono text-[10px] uppercase tracking-[0.12em] dark:fill-zinc-500">
-            {`Issued ${avax(issued)} = circulating ${avax(circulating)} + burned ${avax(burned)} · total supply ${avax(supply)} · burn to scale, lifted off the cap`}
+            {`Minted ${avax(issued)} = circulating ${avax(circulating)} + burned ${avax(burned)} · burned AVAX still counts against the cap: drawn at its top, to scale`}
           </text>
         </svg>
         <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-zinc-200 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 md:px-6 dark:border-zinc-800 dark:text-zinc-500">
