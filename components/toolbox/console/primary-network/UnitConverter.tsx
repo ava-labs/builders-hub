@@ -120,6 +120,7 @@ function UnitConverterInner(_props: BaseConsoleToolProps) {
                     }
                   }}
                   placeholder="0"
+                  aria-label={`${unit.label} amount`}
                   className="flex-1 bg-transparent px-3 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none min-w-0"
                 />
                 <button

@@ -19,15 +19,17 @@ import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import {
   ChainHitRow,
   EntityHitRow,
+  heightHitCached,
   matchChains,
   looksLikeIdentifier,
   lookupTxAcrossChainsCached,
   useSearchEntity,
   type ChainHit,
+  type EntityTargets,
 } from "@/components/explorer-v2/chain-search";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import { Rise } from "@/components/explorer-v2/ui";
-import { buildAddressUrl, buildTxUrl } from "@/utils/eip3091";
+import { buildAddressUrl, buildBlockUrl, buildTxUrl } from "@/utils/eip3091";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 type EntityType = "block" | "tx" | "address" | "node" | "chain";
@@ -105,13 +107,16 @@ export function SearchBox({
 
   // what the identifier in the box resolves to — tx hashes race every
   // chain live, so the dropdown names the chain before Enter is pressed
-  const entity = useSearchEntity(q, {
+  const targets: EntityTargets = {
     network,
     blockBase: base,
     blockChainName: "P-Chain",
     evmAddressBase: `/explorer/${network}/c-chain`,
     evmAddressChainName: "C-Chain",
-  });
+    // the network box: a height the P-Chain lacks is a C-Chain height, as in the page's Latest Blocks
+    heightFallback: askAt ? { base: `/explorer/${network}/c-chain`, chainName: "C-Chain" } : undefined,
+  };
+  const entity = useSearchEntity(q, targets);
 
   const goToHref = (href: string) => {
     setQ("");
@@ -166,6 +171,19 @@ export function SearchBox({
     // plain-Enter classification even while chain rows are on offer
     if (hits.length > 0 && (sel >= 0 || !looksLikeIdentifier(query))) {
       goToChain(hits[Math.max(0, sel)].chain);
+      return;
+    }
+
+    // the network box's height goes where its row points; only a P-Chain block is a recent
+    if (targets.heightFallback && /^\d+$/.test(query)) {
+      setBusy(true);
+      try {
+        const hit = await heightHitCached(query, targets);
+        if (hit.href === buildBlockUrl(base, query)) go("block", query);
+        else if (hit.href) goToHref(hit.href);
+      } finally {
+        setBusy(false);
+      }
       return;
     }
 
@@ -416,6 +434,7 @@ export function ExplorerShell({
   network,
   aside,
   hideHeader = false,
+  heading = true,
   children,
 }: {
   chain: string;
@@ -426,16 +445,21 @@ export function ExplorerShell({
    *  the chain identity header and search, keeping only the subnav spine.
    *  Same contract as ExplorerLayout's hideHeader. */
   hideHeader?: boolean;
+  /** Set false where the page shows its own h1, such as a Query answer */
+  heading?: boolean;
   children: React.ReactNode;
 }) {
   const c = getExplorerChain(chain) ?? EXPLORER_CHAINS["p-chain"];
+  // a div: the site layout's <main> holds the page
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
+    <div className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       {/* the drafting-sheet triangle lattice, snowfall only — visible in the
           margins; the content column is an opaque sheet laid on top of it,
           bounded by the vertical rules */}
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+        {/* no display title by design; the h1 names the page for screen readers */}
+        {heading && <h1 className="sr-only">{c.name} Explorer</h1>}
         {/* the app's spine: chain switcher, section tabs, network */}
         <ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />
         {/* load sequence, as on the homepage/solutions: header rises first,
@@ -456,6 +480,6 @@ export function ExplorerShell({
         )}
         <Rise delay={0.14}>{children}</Rise>
       </div>
-    </main>
+    </div>
   );
 }

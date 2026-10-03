@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T16:07:02.273Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Testnet Faucet\"",
+        "target": {
+          "role": "link",
+          "name": "Testnet Faucet"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-console.e2e.ts::visitor%20finds%20where%20to%20get%20test%20AVAX%20from%20the%20Console%20home",
+      "targetId": "desktop",
+      "instructionDigest": "161a3b7fe24ee4886e31ac30e2362d5e73393c3728fd825741deaccf66e5676d"
+    },
+    "summary": "Opened the \"Testnet Faucet\" tool (Get test AVAX) from the console. The page is at /console/primary-network/faucet. It lists requirements: wallet detected, wallet connected, and a Builder Hub account.",
+    "startPath": "/console",
+    "endPath": "/console/primary-network/faucet",
+    "endAnchors": [
+      {
+        "role": "heading",
+        "name": "To use this tool you need:"
+      },
+      {
+        "text": "Wallet detected"
+      },
+      {
+        "text": "Wallet connected"
+      },
+      {
+        "text": "Builder Hub Account"
+      },
+      {
+        "role": "heading",
+        "name": "How to meet these requirements:"
+      },
+      {
+        "text": "Download Core Wallet"
+      },
+      {
+        "text": "Get Core — the wallet built for Avalanche"
+      },
+      {
+        "role": "button",
+        "name": "Download"
+      }
+    ],
+    "endWaitMs": 12136
+  }
+}

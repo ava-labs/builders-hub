@@ -264,6 +264,28 @@ export interface EntityTargets {
   /** base + display name for 0x addresses */
   evmAddressBase: string;
   evmAddressChainName: string;
+  /** base + display name for a plain height the P-Chain does not have; when
+   *  set, a height waits on the P-Chain search (the network search) */
+  heightFallback?: { base: string; chainName: string };
+}
+
+/** A plain height's row. With a fallback chain, a height opens on blockBase
+ *  only when the P-Chain search found that block; any other height opens on
+ *  the fallback chain, whose heights run far past the P-Chain tip. */
+export function heightHit(q: string, targets: EntityTargets, found?: SearchResult): EntityHit {
+  const other = targets.heightFallback && found?.type !== "block" ? targets.heightFallback : null;
+  return {
+    icon: "block", label: "Block", id: q,
+    href: buildBlockUrl(other?.base ?? targets.blockBase, q),
+    detail: other?.chainName ?? targets.blockChainName,
+    status: "ready",
+  };
+}
+
+/** heightHit after the P-Chain search, one lookup per height per session:
+ *  the dropdown's row and the Enter key share it. */
+export function heightHitCached(q: string, targets: EntityTargets): Promise<EntityHit> {
+  return pchainSearchCached(targets.network, q).then((found) => heightHit(q, targets, found));
 }
 
 const ENTITY_DEBOUNCE_MS = 350;
@@ -276,12 +298,17 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   // bech32 addresses share most of the CB58 alphabet — they resolve
   // instantly below and must not trigger a P-Chain search here
   const isCb58 = /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q) && !/^(P-)?(avax|fuji|custom)1/i.test(q);
+  // with a fallback chain, a plain height asks the P-Chain whether it has it
+  const isAskedHeight = !!targets.heightFallback && /^\d+$/.test(q);
 
   useEffect(() => {
-    if (!isTxHash && !isCb58) return;
+    if (!isTxHash && !isCb58 && !isAskedHeight) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
-      if (isTxHash) {
+      if (isAskedHeight) {
+        const hit = await heightHitCached(q, targets);
+        if (!cancelled) setResolved({ q, hit });
+      } else if (isTxHash) {
         const race = await lookupTxAcrossChainsCached(q);
         if (cancelled) return;
         if (race.found && race.chain) {
@@ -331,14 +358,12 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [q, isTxHash, isCb58, targets.network]);
+  }, [q, isTxHash, isCb58, isAskedHeight, targets.network]);
 
   if (!q) return null;
 
   // instant shapes — no network round-trip, mirrors Enter exactly
-  if (/^\d+$/.test(q)) {
-    return { icon: "block", label: "Block", id: q, href: buildBlockUrl(targets.blockBase, q), detail: targets.blockChainName, status: "ready" };
-  }
+  if (/^\d+$/.test(q) && !isAskedHeight) return heightHit(q, targets);
   if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) {
     return { icon: "node", label: "Validator node", id: q, href: `/explorer/${targets.network}/p-chain/node/${q}`, detail: "P-Chain", status: "ready" };
   }
@@ -350,11 +375,11 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   }
 
   // async shapes — the resolved answer when it's in, a searching row until
-  if (isTxHash || isCb58) {
+  if (isTxHash || isCb58 || isAskedHeight) {
     if (resolved && resolved.q === q) return resolved.hit;
     return {
-      icon: "tx",
-      label: isTxHash ? "Transaction" : "P-Chain ID",
+      icon: isAskedHeight ? "block" : "tx",
+      label: isTxHash ? "Transaction" : isAskedHeight ? "Block" : "P-Chain ID",
       id: q,
       href: null,
       detail: isTxHash ? "Searching every chain…" : "Searching the P-Chain…",

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T06:38:44.174Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Interoperability 03 Interchain Messagin…\"",
+        "target": {
+          "role": "link",
+          "name": "Interoperability 03 Interchain Messaging Build apps leveraging Avalanche's Interchain Messaging Console 30 lessons · 6 modules 2 h"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/agent-smoke.e2e.ts::agent%20opens%20the%20Interchain%20Messaging%20course%20from%20the%20Academy",
+      "targetId": "desktop",
+      "instructionDigest": "934212bc7183f9b37e329bd69d94bbeb62113fb33935e0e406c6f1de647a7261"
+    },
+    "summary": "Tapped the Interchain Messaging course card on /academy. The course landing page loaded at /academy/avalanche-l1/interchain-messaging, titled \"Welcome to the course\". It shows 6 modules and 30 lessons, with a \"Start course\" link.",
+    "startPath": "/academy",
+    "endPath": "/academy/avalanche-l1/interchain-messaging",
+    "endAnchors": [
+      {
+        "text": "Interchain Messaging"
+      },
+      {
+        "role": "link",
+        "name": "Welcome to the course"
+      },
+      {
+        "role": "link",
+        "name": "Interoperability between blockchain"
+      },
+      {
+        "role": "link",
+        "name": "Source, Message and Destination"
+      },
+      {
+        "role": "link",
+        "name": "Recap of Multi-Chain Networks"
+      },
+      {
+        "role": "link",
+        "name": "Interoperability in Multi-Chain Systems"
+      },
+      {
+        "role": "link",
+        "name": "Finality Importance in Interoperabile Systems"
+      },
+      {
+        "role": "link",
+        "name": "Trusted Third Parties"
+      }
+    ],
+    "endWaitMs": 14157
+  }
+}

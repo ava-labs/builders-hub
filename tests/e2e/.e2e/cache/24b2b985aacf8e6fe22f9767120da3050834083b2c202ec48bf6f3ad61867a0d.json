@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T06:39:01.873Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Interoperability 03 Interchain Messagin…\"",
+        "target": {
+          "role": "link",
+          "name": "Interoperability 03 Interchain Messaging Build apps leveraging Avalanche's Interchain Messaging Console 30 lessons · 6 modules 2 h"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/agent-smoke.e2e.ts::agent%20opens%20the%20Interchain%20Messaging%20course%20from%20the%20Academy",
+      "targetId": "phone",
+      "instructionDigest": "934212bc7183f9b37e329bd69d94bbeb62113fb33935e0e406c6f1de647a7261"
+    },
+    "summary": "Tapped the Interchain Messaging card on /academy. The course landing page opened at /academy/avalanche-l1/interchain-messaging, titled \"Welcome to the course\". It shows 6 modules, 30 lessons, a \"Start course\" link and the module list.",
+    "startPath": "/academy",
+    "endPath": "/academy/avalanche-l1/interchain-messaging",
+    "endAnchors": [
+      {
+        "role": "button",
+        "name": "Toggle academy sidebar"
+      },
+      {
+        "text": "Welcome to the course"
+      },
+      {
+        "text": "Why Take This Course?"
+      },
+      {
+        "role": "heading",
+        "name": "Welcome to the course"
+      },
+      {
+        "text": "Learn about Interchain Messaging, the interoperability protocol of Avalanche."
+      },
+      {
+        "text": "Certificate"
+      },
+      {
+        "role": "link",
+        "name": "Start course"
+      },
+      {
+        "text": "In this course, you will learn the fundamentals of Avalanche Interchain Messaging (ICM) and set up cross-chain communication infrastructure using Console tools."
+      }
+    ],
+    "endWaitMs": 13111
+  }
+}

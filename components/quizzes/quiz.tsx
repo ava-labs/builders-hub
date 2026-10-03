@@ -56,6 +56,7 @@ function useQuizPosition(
 
 const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = true }) => {
   const rootRef = useRef<HTMLDivElement>(null);
+  const questionId = React.useId();
   const position = useQuizPosition(rootRef, showPosition, quizId);
   const [quizInfo, setQuizInfo] = useState<QuizData | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
@@ -241,7 +242,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = tru
         <QuizHeader position={position} />
         <div className="px-[18px] pb-1.5 pt-[22px]">
           <div className="mb-4 text-left">
-            <h2 className="mb-[18px] mt-0 text-[18px] font-semibold leading-[1.4] tracking-[-0.01em] text-ac-ink">
+            <h2 id={questionId} className="mb-[18px] mt-0 text-[18px] font-semibold leading-[1.4] tracking-[-0.01em] text-ac-ink">
               {parseTextWithLinks(quizInfo.question)}
             </h2>
             {attemptCount > 0 && !isCorrect && !isLocked && (
@@ -250,7 +251,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = tru
               </p>
             )}
           </div>
-          <div className="space-y-3">
+          <div role={multiple ? 'group' : 'radiogroup'} aria-labelledby={questionId} className="space-y-3">
             {shuffledIndices.filter(idx => idx < quizInfo.options.length).map((originalIndex, displayIndex) => (
               <QuizOption
                 key={`option-${originalIndex}`}
@@ -265,6 +266,8 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = tru
                   : String.fromCharCode(65 + displayIndex)}
                 multiple={multiple}
                 locked={isLocked}
+                name={questionId}
+                checked={selectedAnswers.includes(originalIndex)}
                 onSelect={() => handleAnswerSelect(originalIndex)}
               >
                 {parseTextWithLinks(quizInfo.options[originalIndex])}

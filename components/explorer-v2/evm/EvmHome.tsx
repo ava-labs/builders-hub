@@ -179,7 +179,8 @@ export function EvmHome({ network }: { network: string }) {
                   label: "Chain Height",
                   live: true,
                   href: `${base}/blocks`,
-                  value: formatNumber(Math.max(tip?.number ?? 0, s?.tipHeight ?? 0, blockList[0]?.number ?? 0)),
+                  // 0 means no feed has answered yet: show the placeholder, not a height of 0
+                  value: formatNumber(Math.max(tip?.number ?? 0, s?.tipHeight ?? 0, blockList[0]?.number ?? 0) || undefined),
                   // the heights over the stream's window: a straight climb, the cadence's line
                   values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
                 },

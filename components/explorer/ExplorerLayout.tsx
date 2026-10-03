@@ -250,8 +250,9 @@ export function ExplorerLayout({
     }
   };
 
+  // a div: the site layout's <main> holds the page
   return (
-    <main
+    <div
       className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950"
       style={accent ? ({ "--chain-accent": accent } as React.CSSProperties) : undefined}
     >
@@ -260,6 +261,8 @@ export function ExplorerLayout({
           bounded by the vertical rules */}
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white pt-10 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+      {/* ChainHeader's h1 names the page; without it, a hidden h1 does */}
+      {(loading || hideHeader || hideIdentity) && <h1 className="sr-only">{chainName} Explorer</h1>}
       {/* the app's spine: chain switcher, section tabs, network. Rendered
           during loading too — the chain identity comes in via props. Hoisted
           out of the header box below: a sticky element only pins while its
@@ -408,6 +411,6 @@ export function ExplorerLayout({
         </div>
       )}
       </div>
-    </main>
+    </div>
   );
 }

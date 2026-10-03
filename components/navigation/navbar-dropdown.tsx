@@ -69,8 +69,11 @@ export function NavbarDropdown() {
       {isOpen && (
         <>
           {/* Dropdown menu — v2 sheet: squared, hairline-ruled ledger */}
+          {/* The privacy banner covers the bottom of the viewport until the visitor answers it. While it
+              shows, the sheet ends above it, so the last items can scroll into view and be tapped.
+              4rem is the sheet top (under the 3.5rem navbar) plus a small gap. */}
           <div
-            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[70vh] overflow-y-auto"
+            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[min(70vh,calc(100dvh-var(--fd-banner-height,0px)-var(--privacy-banner-inset,0px)-4rem))] overflow-y-auto"
           >
             <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {/* Controls row: theme + login */}

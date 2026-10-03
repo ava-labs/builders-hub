@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T16:27:32.996Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Ecosystem\"",
+        "target": {
+          "role": "button",
+          "name": "Ecosystem"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Integrations Browse wallet SDKs, block …\"",
+        "target": {
+          "role": "link",
+          "name": "Integrations Browse wallet SDKs, block explorers, indexers, data feeds, and more."
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-site.e2e.ts::visitor%20goes%20from%20the%20home%20page%20to%20Grants%20and%20then%20to%20Integrations",
+      "targetId": "desktop",
+      "instructionDigest": "10c7ff28fd9c7285b6c673892b8edbfb699a5a6c9c40a6c124f5208d9091b3d9"
+    },
+    "summary": "Opened the Ecosystem menu in the top navigation and tapped \"Integrations\". The browser is now at /integrations, titled \"Integrations | Avalanche Builder Hub\", showing \"Every tool, listed.\" with 234 integrations in 33 categories.",
+    "startPath": "/grants",
+    "endPath": "/integrations",
+    "endAnchors": [
+      {
+        "text": "."
+      },
+      {
+        "text": "Wallets, data, custody, audits and infrastructure that already run on Avalanche. Filter by what your chain needs."
+      },
+      {
+        "role": "textbox",
+        "name": "Search integrations by name, category, or description...",
+        "placeholder": "Search integrations by name, category, or description..."
+      },
+      {
+        "role": "link",
+        "name": "Add your integration"
+      },
+      {
+        "role": "heading",
+        "name": "Categories"
+      },
+      {
+        "text": "Featured"
+      },
+      {
+        "text": "Analytics & Data"
+      }
+    ],
+    "endWaitMs": 13990
+  }
+}

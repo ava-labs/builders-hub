@@ -1,0 +1,127 @@
+name: E2E
+
+# Browser tests in tests/e2e (tester-army/e2e) against the Vercel preview of the PR's head commit, at a desktop and
+# a phone size, then the API tests in tests/e2e/api. Console wallet flows have no tests until the framework can
+# inject the wallet shim before page load (tester-army/e2e#696).
+#
+# Secrets:
+#   - VERCEL_AUTOMATION_BYPASS_SECRET opens the SSO-protected preview. The engine sends it only to the preview's site.
+# Fork PRs get no secrets, so the job skips them.
+
+on:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Base URL to test'
+        required: false
+        default: 'https://build.avax.network'
+
+permissions:
+  contents: read
+  deployments: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E (desktop, phone, API)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt.
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p .
+
+      # Vercel builds the preview in parallel with the steps above (median about 7 min). The GitHub deployment for the
+      # commit can appear only when the build is done, so poll for it.
+      - name: Resolve target URL
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          DISPATCH_URL: ${{ github.event.inputs.target_url }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "url=$DISPATCH_URL" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          for _ in $(seq 1 60); do
+            id=$(gh api "repos/${{ github.repository }}/deployments?sha=$SHA&environment=Preview&per_page=1" --jq '.[0].id // empty')
+            if [ -n "$id" ]; then
+              latest=$(gh api "repos/${{ github.repository }}/deployments/$id/statuses?per_page=1" --jq '.[0] | "\(.state) \(.environment_url // "")"')
+              state=${latest%% *}
+              url=${latest#* }
+              case "$state" in
+                success) echo "url=$url" >> "$GITHUB_OUTPUT"; echo "Target: $url"; exit 0 ;;
+                failure|error) echo "::error::The Vercel preview for $SHA did not deploy ($state)"; exit 1 ;;
+              esac
+            fi
+            sleep 20
+          done
+          echo "::error::No Vercel preview for $SHA after 20 minutes"; exit 1
+
+      - name: Run browser tests
+        env:
+          E2E_BASE_URL: ${{ steps.target.outputs.url }}
+          E2E_TELEMETRY_DISABLED: '1'
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          # Agent steps (tests/e2e/ai) use Claude. Without this secret they skip.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npx e2e run --workers 4
+
+      # API tests run once, with no browser (api/e2e.config.ts). They run when the browser tests fail too.
+      - name: Run API tests
+        if: success() || (failure() && steps.target.outcome == 'success')
+        env:
+          E2E_BASE_URL: ${{ steps.target.outputs.url }}
+          E2E_TELEMETRY_DISABLED: '1'
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: npx e2e run --config api/e2e.config.ts
+
+      - name: Job summary
+        if: always()
+        run: |
+          for f in .e2e/summary.md api/.e2e/summary.md; do
+            if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; fi
+          done
+
+      # Traces and failure pages for failed runs only; green runs need nothing.
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-report
+          path: |
+            tests/e2e/.e2e/report.json
+            tests/e2e/.e2e/junit.xml
+            tests/e2e/.e2e/failures
+            tests/e2e/.e2e/artifacts
+            tests/e2e/api/.e2e/report.json
+            tests/e2e/api/.e2e/failures
+          retention-days: 7
+          if-no-files-found: ignore
