@@ -63,7 +63,7 @@ function resolveDismissTarget(callbackUrl: string): string {
 }
 
 export function LoginModal() {
-  const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
+  const { isOpen, callbackUrl = "/", mode, closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
   const router = useRouter();
@@ -141,10 +141,10 @@ export function LoginModal() {
                 {/* Title */}
                 <div className="text-center">
                   <DialogTitle className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-1">
-                    Sign in to your account
+                    {mode === 'signup' ? 'Create your Builder Hub account' : 'Sign in to your account'}
                   </DialogTitle>
                   <Dialog.Description className="text-zinc-500 dark:text-zinc-400 text-xs">
-                    Enter your email to receive a sign-in code
+                    {mode === 'signup' ? 'Enter your email to get started. Already have an account? We’ll sign you in.' : 'Enter your email to receive a sign-in code'}
                   </Dialog.Description>
                 </div>
 
@@ -189,7 +189,7 @@ export function LoginModal() {
                 {/* Footer */}
                 <footer className="pt-1">
                   <p className="text-zinc-500 dark:text-zinc-400 text-center text-[10px] leading-relaxed">
-                    By signing in, you agree to our{" "}
+                    By continuing, you agree to our{" "}
                     <Link
                       href="https://www.avax.network/terms-of-use"
                       target="_blank"

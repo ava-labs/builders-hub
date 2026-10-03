@@ -1503,9 +1503,23 @@ nav button[aria-current="page"]:hover {
   gap: 0.5rem !important;
 }
 
+/* Keep the full menu beside the logo when centered links would meet the
+   search and account controls. Fumadocs already uses this layout below xl. */
+@media (max-width: 1500px) {
+  #nd-nav ul.flex.flex-row.items-center.gap-2.px-6.max-sm\:hidden {
+    position: static !important;
+    transform: none !important;
+  }
+}
+
 #nd-nav div.flex.flex-row.items-center.justify-end.gap-1\.5.flex-1.max-lg\:hidden {
-  flex: 1 0 auto !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
   justify-content: flex-end !important;
+}
+
+#nd-nav div.flex.flex-row.items-center.justify-end.gap-1\.5.flex-1.max-lg\:hidden > ul a {
+  white-space: nowrap;
 }
 
 /* Add overflow scroll for mobile menu on small screens */

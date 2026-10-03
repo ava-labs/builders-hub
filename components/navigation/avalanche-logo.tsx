@@ -1,5 +1,5 @@
 export function AvalancheLogo(
-  props: React.SVGProps<SVGSVGElement>,
+  { outline = false, ...props }: React.SVGProps<SVGSVGElement> & { outline?: boolean },
 ): React.ReactElement {
   return (
     <svg
@@ -38,7 +38,7 @@ export function AvalancheLogo(
 		C196.006195,172.076218 198.644424,167.142075 195.809311,161.653442 
 		C194.133530,158.409164 192.156281,155.320618 189.977249,151.515366 
 	z"/>
-	<path fill="#FD3648" opacity="1.000000" stroke="none" 
+	<path fill={outline ? "none" : "#FD3648"} opacity="1.000000" stroke={outline ? "currentColor" : "none"} strokeWidth={outline ? 2 : undefined} strokeLinejoin="round"
 		d="
 	M109.139252,23.041748 
 		C111.741776,24.518684 114.786873,25.521351 116.039948,27.602837 
@@ -52,7 +52,7 @@ export function AvalancheLogo(
 		C97.235901,37.821735 99.810646,32.750118 102.939713,28.046438 
 		C104.299789,26.001934 106.781303,24.703455 109.139252,23.041748 
 	z"/>
-	<path fill="#FC3648" opacity="1.000000" stroke="none" 
+	<path fill={outline ? "none" : "#FC3648"} opacity="1.000000" stroke={outline ? "currentColor" : "none"} strokeWidth={outline ? 2 : undefined} strokeLinejoin="round"
 		d="
 	M190.145935,151.838699 
 		C192.156281,155.320618 194.133530,158.409164 195.809311,161.653442 
