@@ -32,6 +32,7 @@ const SECTION_TAGLINES: Record<string, string> = {
   university: 'STUDENTS · EDUCATORS · RESEARCH',
   showcase: 'PROJECTS FROM THE COMMUNITY',
   audits: 'AVA LABS AUDIT PROGRAM · FREE FOR BUILDERS',
+  ecosystem: 'EVENTS · PROGRAMS · GUIDES · TOOLS',
   tools: 'DEVELOPER TOOLS',
 };
 
