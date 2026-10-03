@@ -11,14 +11,16 @@ import { RANGE_DAYS, RANGE_LABEL } from "@/components/explorer-v2/time-range";
 import { truncate } from "@/components/explorer-v2/format";
 import { useEvmData, LIVE_REFRESH_MS, usePrice, usdOfWei } from "./hooks";
 import { useHeadStream, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { Belt, MotionRow, Party, RowSkeleton, ageShort, fmtAmount, useDrip, HEAD, ROW, INK, MUTED, type TxRow } from "./LiveBoards";
+import { Belt, MotionRow, Party, RowSkeleton, ageShort, fmtAmount, useOpening, HEAD, ROW, INK, MUTED } from "./LiveBoards";
+import { txNewer, useTxWindow } from "./tx-window";
+import { useTicker } from "@/components/explorer-v2/network/ticker";
 import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, useChainMetrics } from "./metric-charts";
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
-import { decodeErc20Call, formatTokenAmount, useTokenList } from "@/lib/token-list";
+import { useTokenList } from "@/lib/token-list";
 import { TxsViewSwitch } from "./views";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import type { TxListResponse } from "@/lib/evm-explorer";
+import type { TxListResponse, TxSummary } from "@/lib/evm-explorer";
 import { readRpc } from "@/lib/explorer-rpc";
 
 /* The Transactions tab: the receipts stream as a full-width ledger.
@@ -31,6 +33,7 @@ const LIVE_ROWS = 25;
 const PAGE = 25;
 const MAX = 100;
 const METRICS = ["txCount", "avgTps", "cumulativeTxCount"].join(",");
+const NO_TXS: TxSummary[] = [];
 
 export function EvmTxsList({ network }: { network: string }) {
   const c = useChainContext();
@@ -40,6 +43,9 @@ export function EvmTxsList({ network }: { network: string }) {
 
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc, { keep: 40, seed: 8, keepTxs: 160 });
+  // with the stream the list is a ticker from its first paint: the receipts
+  // and the indexer's page as one window, full from whichever lands first
+  const ticking = !!liveRpc;
   const streaming = head.streamTxs.length > 0;
 
   const indexed = useEvmData<TxListResponse>(c.chainId, "txs", { limit }, { refreshMs: streaming ? 0 : LIVE_REFRESH_MS });
@@ -47,45 +53,17 @@ export function EvmTxsList({ network }: { network: string }) {
   const { price } = usePrice(c.chainId);
   const usd = price?.price ?? null;
 
-  const source: TxRow[] = streaming
-    ? head.streamTxs.map((t) => {
-        const tok = t.to ? tokens.get(t.to.toLowerCase()) : undefined;
-        const call = tok ? decodeErc20Call(t.input) : null;
-        return {
-          hash: t.hash,
-          blockNumber: t.blockNumber,
-          from: t.from,
-          to: t.to,
-          value: t.value,
-          methodId: t.methodId,
-          success: t.success,
-          feeWei: t.feeWei,
-          tokenAmount: call && tok ? `${formatTokenAmount(call.amount, tok.decimals)} ${tok.symbol}` : null,
-          timestamp: t.timestamp,
-        };
-      })
-    : (indexed.data?.transactions ?? []).map((t) => ({
-        hash: t.hash,
-        blockNumber: t.blockNumber,
-        from: t.from,
-        to: t.to,
-        value: t.value,
-        methodId: t.methodId ?? "",
-        success: t.success,
-        feeWei: null,
-        timestamp: t.timestamp,
-      }));
+  const source = useTxWindow(head.streamTxs, indexed.data?.transactions ?? NO_TXS, tokens);
 
   const [hover, setHover] = useState(false);
-  const rows = useDrip(
-    source,
-    streaming ? LIVE_ROWS + 1 : limit,
-    streaming,
-    (fresh) => {
-      void prewarmContractNames(c.chainId, fresh.map((t) => t.to));
-    },
-    hover,
-  );
+  const rows = useTicker(source, ticking ? LIVE_ROWS + 1 : limit, {
+    key: (t) => t.hash,
+    newer: txNewer,
+    paused: hover,
+    onEnqueue: (fresh) => void prewarmContractNames(c.chainId, fresh.map((t) => t.to)),
+    enabled: ticking,
+  });
+  const opening = useOpening(rows, (t) => t.hash);
   const contracts = useVerifiedContracts(c.chainId, rows.map((t) => t.to));
   const method = useMethodNames(c.chainId, rows);
 
@@ -98,7 +76,7 @@ export function EvmTxsList({ network }: { network: string }) {
   // the parties take what the fixed columns leave: at 1400px and up that is
   // room for two whole addresses
   const cols = "md:grid-cols-[0.75rem_8rem_minmax(0,10rem)_minmax(0,1fr)_minmax(0,9rem)_7.5rem_3.5rem]";
-  const loading = streaming ? rows.length === 0 : indexed.loading && rows.length === 0;
+  const loading = rows.length === 0 && (ticking || indexed.loading);
 
   return (
     <EvmShell network={network}>
@@ -119,13 +97,13 @@ export function EvmTxsList({ network }: { network: string }) {
           {!loading && rows.length === 0 && (
             <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">no transactions</div>
           )}
-          <Belt rows={streaming ? LIVE_ROWS : rows.length}>
+          <Belt rows={ticking ? LIVE_ROWS : rows.length}>
             {rows.map((t, i) => {
               const mth = method(t);
               const value = Number(t.value);
               const tok = t.to ? tokens.get(t.to.toLowerCase()) : undefined;
               return (
-                <MotionRow key={t.hash} animateIn={streaming} overflow={i >= LIVE_ROWS}>
+                <MotionRow key={t.hash} animateIn={ticking && !opening.has(t.hash)} overflow={i >= LIVE_ROWS}>
                   <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
@@ -142,7 +120,7 @@ export function EvmTxsList({ network }: { network: string }) {
                     </span>
                     <span className="col-span-2 flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} full />
+                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} full column />
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to ? (
                         <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} href={`${base}/address/${t.to}`} full />
@@ -188,7 +166,7 @@ export function EvmTxsList({ network }: { network: string }) {
             })}
           </Belt>
         </Board>
-        {!streaming && !indexed.loading && rows.length >= limit && limit < MAX && (
+        {!ticking && !indexed.loading && rows.length >= limit && limit < MAX && (
           <button
             onClick={() => setLimit((l) => Math.min(l + PAGE, MAX))}
             className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
@@ -196,7 +174,7 @@ export function EvmTxsList({ network }: { network: string }) {
             Load more
           </button>
         )}
-        {streaming && (
+        {ticking && (
           <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
             live: receipts read from the RPC as they are written · the newest {LIVE_ROWS} on screen, older ones on the address and block pages
           </p>

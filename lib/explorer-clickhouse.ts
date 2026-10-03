@@ -1,18 +1,10 @@
-// Per-chain transaction count helpers backed by ClickHouse.
+// The explorer's reads through stats-api, which runs them on ClickHouse: a chain's lifetime transaction count, the
+// daily transactions of every tracked chain, P-Chain L1 operations, C-Chain daily activity, the gas market and its
+// history, and a chain's busiest accounts. Each read keeps a stale-while-revalidate cache with one request in flight
+// per key, the pattern of `lib/icm-clickhouse.ts`.
 //
-// Replaces the dead Solokhin endpoints used by `app/api/explorer/[chainId]/route.ts`:
-//   - `idx6.solokhin.com/api/<chainId>/stats/cumulative-txs`
-//   - `idx6.solokhin.com/api/global/overview/dailyTxsByChainCompact`
-//
-// Queries target the `raw_txs` table whose sort key is `(chain_id, hash)` —
-// see `docs/clickhouse-schema.md`. The 14-day aggregate MUST include an
-// explicit `chain_id IN (...)` list to stay performant; without it ClickHouse
-// would scan the monthly partition across every chain.
-//
-// Mirrors the SWR + promise dedup cache pattern from `lib/icm-clickhouse.ts`.
-// Known limitation: Fuji (chain_id 43113) has a stale ingestion watermark
-// frozen at 2021-12-23, so its lifetime tx count and recent-day series will
-// reflect that frozen state until upstream indexing resumes.
+// Fuji (chain_id 43113) has an ingestion watermark frozen at 2021-12-23, so its lifetime count and recent days show
+// that frozen state until upstream indexing resumes.
 
 import l1ChainsData from '@/constants/l1-chains.json';
 import { getContractInfo, PROTOCOL_SLUGS } from '@/lib/contracts';
@@ -27,11 +19,6 @@ const QUERY_TIMEOUT_MS = 30_000;
 const CUMULATIVE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const DAILY_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const DAILY_WINDOW_DAYS = 14;
-// The staking money-flow charts read better with a wider window: 30 bars
-// of rewards behind, 30 of unlocks ahead.
-const STAKING_WINDOW_DAYS = 30;
-/** windows the staking money-flow feed serves (past rewards / future unlocks) */
-export type PchainStakingDays = 30 | 90 | 365;
 
 type L1ChainEntry = {
   chainId: string;
@@ -47,52 +34,7 @@ const trackedEvmChainIds: number[] = (() => {
   return Array.from(ids).sort((a, b) => a - b);
 })();
 
-async function clickhouseFetch<T>(
-  sql: string,
-  timeoutMs: number,
-): Promise<T[]> {
-  const url = process.env.CLICKHOUSE_URL;
-  if (!url) {
-    console.warn('[explorer-clickhouse] CLICKHOUSE_URL not set — returning empty');
-    return [];
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'X-ClickHouse-User': process.env.CLICKHOUSE_USER || 'readonly',
-        'X-ClickHouse-Key': process.env.CLICKHOUSE_PASSWORD || '',
-        'X-ClickHouse-Database': process.env.CLICKHOUSE_DATABASE || 'default',
-        'Content-Type': 'text/plain',
-      },
-      body: sql,
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(
-        `ClickHouse query failed (${response.status}): ${text.slice(0, 300)}`,
-      );
-    }
-
-    const text = (await response.text()).trim();
-    if (!text) return [];
-    return text.split('\n').map((line) => JSON.parse(line) as T);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
 // --- Cumulative tx count per chain --------------------------------------
-
-interface CumulativeRow {
-  cumulative_txs: string;
-}
 
 interface CumulativeCacheEntry {
   count: number;
@@ -101,15 +43,6 @@ interface CumulativeCacheEntry {
 
 const cumulativeCache = new Map<number, CumulativeCacheEntry>();
 const cumulativeInFlight = new Map<number, Promise<number>>();
-
-function sqlCumulativeTxs(chainId: number): string {
-  return `
-    SELECT toString(count()) AS cumulative_txs
-    FROM raw_txs
-    WHERE chain_id = ${chainId}
-    FORMAT JSONEachRow
-  `;
-}
 
 async function fetchCumulativeFromCh(chainId: number): Promise<number> {
   const body = await statsApi<{ txCount?: number }>(
@@ -167,24 +100,6 @@ interface DailyCache {
 
 let dailyCache: DailyCache | null = null;
 let dailyFetchPromise: Promise<DailyCache> | null = null;
-
-function sqlDailyTxs(): string {
-  // `chain_id IN (...)` first to leverage the (chain_id, hash) sort key.
-  // `toDate(now() - INTERVAL N DAY)` keeps date-aligned partition pruning.
-  const ids = trackedEvmChainIds.join(', ');
-  return `
-    SELECT
-      chain_id,
-      toDate(block_time) AS day,
-      toString(count()) AS tx_count
-    FROM raw_txs
-    WHERE chain_id IN (${ids})
-      AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
-    GROUP BY chain_id, day
-    ORDER BY chain_id, day
-    FORMAT JSONEachRow
-  `;
-}
 
 function buildPastDates(days: number = DAILY_WINDOW_DAYS, completeOnly = false): string[] {
   // YYYY-MM-DD entries for the last `days` days, oldest first, ending
@@ -349,130 +264,6 @@ export interface PchainStakingSeries {
   unlocks: PchainUnlockPoint[];
 }
 
-// A reward UTXO's amount sits at a fixed offset in its serialization:
-// codec(2) + txID(32) + outputIndex(4) + assetID(32) + outputTypeID(4),
-// then the 8-byte big-endian amount — bytes 75..82, 1-indexed. Verified
-// against the independent supply_p_history current_supply diffs.
-const REWARD_AMOUNT_EXPR =
-  "reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8)))";
-
-function sqlPchainDailyRewards(networkId: number, days: PchainStakingDays): string {
-  return `
-    SELECT
-      toDate(block_time) AS day,
-      toString(count()) AS payouts,
-      toString(round(sum(${REWARD_AMOUNT_EXPR}) / 1e9, 2)) AS avax
-    FROM raw_p_reward_utxos
-    WHERE chain_id = ${networkId}
-      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
-    GROUP BY day
-    ORDER BY day
-    FORMAT JSONEachRow
-  `;
-}
-
-// Primary Network subnet id is 32 zero bytes; L1/subnet validators don't
-// carry meaningful end_times, so unlocks are primary-only by construction.
-function sqlPchainUnlocks(networkId: number, table: string, amountCol: string, days: PchainStakingDays): string {
-  const subnetFilter =
-    table === "p_validator_snapshots"
-      ? "AND subnet_id = toFixedString(unhex(repeat('00', 32)), 32)"
-      : "";
-  return `
-    SELECT
-      toDate(end_time) AS day,
-      toString(round(sum(${amountCol}) / 1e9, 2)) AS avax,
-      toString(count()) AS n
-    FROM ${table}
-    WHERE chain_id = ${networkId}
-      AND snapshot_time = (SELECT max(snapshot_time) FROM ${table} WHERE chain_id = ${networkId})
-      ${subnetFilter}
-      AND end_time >= now()
-      AND end_time < now() + INTERVAL ${days} DAY
-    GROUP BY day
-    ORDER BY day
-    FORMAT JSONEachRow
-  `;
-}
-
-function buildFutureDates(days: number): string[] {
-  const dates: string[] = [];
-  const today = new Date();
-  for (let i = 0; i < days; i++) {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() + i);
-    dates.push(d.toISOString().slice(0, 10));
-  }
-  return dates;
-}
-
-const pchainStakingCache = new Map<
-  string,
-  { data: PchainStakingSeries; fetchedAt: number }
->();
-
-/**
- * Staking money-flow series for one network: AVAX rewards paid per day
- * (the past STAKING_WINDOW_DAYS) and stake unlocking per day (the next),
- * each padded to exactly that many points. Returns null for unknown
- * networks or when ClickHouse is unreachable with no cache to fall on.
- */
-export async function getPchainStakingSeries(
-  network: string,
-  days: PchainStakingDays = STAKING_WINDOW_DAYS,
-): Promise<PchainStakingSeries | null> {
-  const networkId = PCHAIN_NETWORK_IDS[network];
-  if (networkId === undefined) return null;
-
-  const cacheKey = `${network}:${days}`;
-  const cached = pchainStakingCache.get(cacheKey);
-  if (cached && Date.now() - cached.fetchedAt < DAILY_TTL_MS) {
-    return cached.data;
-  }
-
-  try {
-    type Row = { day: string; avax: string; n?: string; payouts?: string };
-    const [rewardRows, validatorRows, delegatorRows] = await Promise.all([
-      clickhouseFetch<Row>(sqlPchainDailyRewards(networkId, days), QUERY_TIMEOUT_MS),
-      clickhouseFetch<Row>(
-        sqlPchainUnlocks(networkId, "p_validator_snapshots", "weight", days),
-        QUERY_TIMEOUT_MS,
-      ),
-      clickhouseFetch<Row>(
-        sqlPchainUnlocks(networkId, "p_delegator_snapshots", "stake_amount", days),
-        QUERY_TIMEOUT_MS,
-      ),
-    ]);
-
-    const rewardsByDay = new Map(rewardRows.map((r) => [r.day, r]));
-    const rewards = buildPastDates(days).map((iso) => ({
-      date: iso,
-      avax: Number(rewardsByDay.get(iso)?.avax) || 0,
-      payouts: Number(rewardsByDay.get(iso)?.payouts) || 0,
-    }));
-
-    const unlocksByDay = new Map<string, { avax: number; stakers: number }>();
-    for (const r of [...validatorRows, ...delegatorRows]) {
-      const day = unlocksByDay.get(r.day) ?? { avax: 0, stakers: 0 };
-      day.avax += Number(r.avax) || 0;
-      day.stakers += Number(r.n) || 0;
-      unlocksByDay.set(r.day, day);
-    }
-    const unlocks = buildFutureDates(days).map((iso) => ({
-      date: iso,
-      avax: Math.round(unlocksByDay.get(iso)?.avax ?? 0),
-      stakers: unlocksByDay.get(iso)?.stakers ?? 0,
-    }));
-
-    const data = { rewards, unlocks };
-    pchainStakingCache.set(cacheKey, { data, fetchedAt: Date.now() });
-    return data;
-  } catch (err) {
-    console.error('[explorer-clickhouse] pchain staking-series query failed:', err);
-    return cached?.data ?? null;
-  }
-}
-
 // --- P-Chain L1 operations ----------------------------------------------------
 // The P-Chain's own view of the L1 world: every seat registration, weight
 // set, disable, top-up, and subnet conversion is a P-Chain transaction it
@@ -499,39 +290,6 @@ export interface PchainL1ConversionPoint {
 export interface PchainL1Ops {
   ops: PchainL1OpsPoint[];
   conversions: PchainL1ConversionPoint[];
-}
-
-const L1_OP_TYPES = [
-  "RegisterL1ValidatorTx",
-  "SetL1ValidatorWeightTx",
-  "DisableL1ValidatorTx",
-  "IncreaseL1ValidatorBalanceTx",
-  "ConvertSubnetToL1Tx",
-] as const;
-
-function sqlPchainL1Ops(networkId: number, days: PchainL1OpsDays): string {
-  const types = L1_OP_TYPES.map((t) => `'${t}'`).join(",");
-  return `
-    SELECT toDate(block_time) AS day, tx_type, toString(count()) AS n
-    FROM decoded_p_txs
-    WHERE chain_id = ${networkId}
-      AND tx_type IN (${types})
-      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
-    GROUP BY day, tx_type
-    ORDER BY day
-    FORMAT JSONEachRow
-  `;
-}
-
-function sqlPchainL1Conversions(networkId: number): string {
-  return `
-    SELECT toString(toStartOfMonth(block_time)) AS month, toString(count()) AS n
-    FROM decoded_p_txs
-    WHERE chain_id = ${networkId} AND tx_type = 'ConvertSubnetToL1Tx'
-    GROUP BY month
-    ORDER BY month
-    FORMAT JSONEachRow
-  `;
 }
 
 const pchainL1OpsCache = new Map<string, { data: PchainL1Ops; fetchedAt: number }>();
@@ -582,15 +340,6 @@ export interface CchainActivityPoint {
   other: number;
 }
 
-// topic0 signatures: UniV2 Swap, UniV3 Swap, LFJ LiquidityBook Swap;
-// ERC-20/721 Transfer (721 has an indexed tokenId → topic3 present);
-// ERC-1155 TransferSingle / TransferBatch
-const TOPIC_SWAP_V2 = "d78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822";
-const TOPIC_SWAP_V3 = "c42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67";
-const TOPIC_SWAP_LB = "ad7d6f97abf51ce18e17a38f4d70e975be9c0708474987bb3e26ad21bd93ca70";
-const TOPIC_TRANSFER = "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const TOPIC_1155_SINGLE = "c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62";
-const TOPIC_1155_BATCH = "4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb";
 
 const CCHAIN_EVM_ID = 43114;
 // ~80M logs in a fortnight — give the classification room to run
@@ -600,52 +349,6 @@ const CCHAIN_ACTIVITY_TIMEOUT_MS = 60_000;
  *  the per-tx classification over raw_logs spills to disk past a month
  *  and a full year quadruples the spill for no extra story */
 export type CchainActivityDays = 7 | 30 | 90;
-
-function sqlCchainClassified(days: CchainActivityDays): string {
-  // GROUP BY (day, tx) must hold every tx key in the window at once; the
-  // box caps a query at ~9.3 GiB, which the 32-byte hashes blow past a
-  // month. cityHash64 shrinks the key 4x and external_group_by lets the
-  // rest spill to disk (~10s at 90d, fine behind the 15-minute cache).
-  return `
-    SELECT
-      day,
-      toString(countIf(cls = 3)) AS defi,
-      toString(countIf(cls = 2)) AS nft,
-      toString(countIf(cls = 1)) AS tokens
-    FROM (
-      SELECT
-        toDate(block_time) AS day,
-        cityHash64(transaction_hash) AS tx,
-        max(multiIf(
-          topic0 IN (unhex('${TOPIC_SWAP_V2}'), unhex('${TOPIC_SWAP_V3}'), unhex('${TOPIC_SWAP_LB}')), 3,
-          topic0 = unhex('${TOPIC_TRANSFER}') AND topic3 IS NOT NULL, 2,
-          topic0 IN (unhex('${TOPIC_1155_SINGLE}'), unhex('${TOPIC_1155_BATCH}')), 2,
-          topic0 = unhex('${TOPIC_TRANSFER}'), 1,
-          0
-        )) AS cls
-      FROM raw_logs
-      WHERE chain_id = ${CCHAIN_EVM_ID}
-        AND block_time >= toDate(now() - INTERVAL ${days} DAY)
-      GROUP BY day, tx
-    )
-    GROUP BY day
-    ORDER BY day
-    SETTINGS max_bytes_before_external_group_by = 3000000000
-    FORMAT JSONEachRow
-  `;
-}
-
-function sqlCchainDailyTotals(days: CchainActivityDays): string {
-  return `
-    SELECT toDate(block_time) AS day, toString(count()) AS total
-    FROM evm_txs
-    WHERE chain_id = ${CCHAIN_EVM_ID}
-      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
-    GROUP BY day
-    ORDER BY day
-    FORMAT JSONEachRow
-  `;
-}
 
 const cchainActivityCache = new Map<
   CchainActivityDays,
@@ -827,112 +530,8 @@ export interface GasMarket {
 }
 
 const GAS_MARKET_TTL_MS = 5 * 60 * 1000;
-const GAS_DAILY_WINDOW_DAYS = 60;
-const GAS_HOURLY_WINDOW_HOURS = 48;
-// deep enough that registry protocols aggregate meaningfully before the cut
-const GAS_CONSUMERS_LIMIT = 60;
 // protocol entries surfaced to the page; the rest fold into "Long tail"
 const GAS_PROTOCOLS_SHOWN = 13;
-
-function sqlGasHourly(chainId: number): string {
-  return `
-    SELECT
-      formatDateTime(toStartOfHour(block_time), '%FT%R') AS t,
-      round(quantile(0.25)(base_fee_per_gas) / 1e9, 4) AS p25,
-      round(quantile(0.5)(base_fee_per_gas) / 1e9, 4) AS p50,
-      round(quantile(0.75)(base_fee_per_gas) / 1e9, 4) AS p75,
-      round(quantile(0.95)(base_fee_per_gas) / 1e9, 4) AS p95,
-      toString(sum(toUInt64(gas_used))) AS gas
-    FROM raw_blocks
-    WHERE chain_id = ${chainId}
-      AND block_time >= now() - INTERVAL ${GAS_HOURLY_WINDOW_HOURS} HOUR
-    GROUP BY t
-    ORDER BY t
-    FORMAT JSONEachRow
-  `;
-}
-
-function sqlGasDaily(chainId: number, days: number = GAS_DAILY_WINDOW_DAYS): string {
-  return `
-    SELECT
-      toString(toDate(block_time)) AS d,
-      round(quantile(0.25)(base_fee_per_gas) / 1e9, 4) AS p25,
-      round(quantile(0.5)(base_fee_per_gas) / 1e9, 4) AS p50,
-      round(quantile(0.75)(base_fee_per_gas) / 1e9, 4) AS p75,
-      round(quantile(0.95)(base_fee_per_gas) / 1e9, 4) AS p95,
-      toString(sum(toUInt64(gas_used))) AS gas,
-      round(avg(gas_used / gas_limit) * 100, 2) AS utilPct,
-      toString(count()) AS blocks
-    FROM raw_blocks
-    WHERE chain_id = ${chainId}
-      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
-    GROUP BY d
-    ORDER BY d
-    FORMAT JSONEachRow
-  `;
-}
-
-function sqlGasHeatmap(chainId: number, days: number): string {
-  return `
-    SELECT
-      toDayOfWeek(block_time) AS dow,
-      toHour(block_time) AS hour,
-      round(quantile(0.5)(base_fee_per_gas) / 1e9, 4) AS p50
-    FROM raw_blocks
-    WHERE chain_id = ${chainId}
-      AND block_time >= now() - INTERVAL ${days} DAY
-    GROUP BY dow, hour
-    ORDER BY dow, hour
-    FORMAT JSONEachRow
-  `;
-}
-
-// Post-Etna the C-Chain idles near 10% full, so the buckets are dense at
-// the low end where the signal lives.
-const UTIL_BUCKETS = "['0-2%','2-5%','5-10%','10-15%','15-25%','25-50%','50-100%']";
-
-function sqlGasHistogram(chainId: number, hours: number): string {
-  return `
-    SELECT
-      multiIf(
-        u < 0.02, '0-2%',
-        u < 0.05, '2-5%',
-        u < 0.10, '5-10%',
-        u < 0.15, '10-15%',
-        u < 0.25, '15-25%',
-        u < 0.50, '25-50%',
-        '50-100%'
-      ) AS bucket,
-      toString(count()) AS blocks
-    FROM (
-      SELECT gas_used / gas_limit AS u
-      FROM raw_blocks
-      WHERE chain_id = ${chainId}
-        AND block_time >= now() - INTERVAL ${hours} HOUR
-    )
-    GROUP BY bucket
-    ORDER BY indexOf(${UTIL_BUCKETS}, bucket)
-    FORMAT JSONEachRow
-  `;
-}
-
-function sqlGasSelectors(chainId: number, hours: number): string {
-  // plain value transfers carry no calldata — fold them into one
-  // "native" row so the decomposition covers all gas, not just contracts
-  return `
-    SELECT
-      if(length(input) >= 4, concat('0x', lower(hex(substring(input, 1, 4)))), 'native') AS selector,
-      toString(sum(toUInt64(gas_used))) AS gas,
-      toString(count()) AS txs
-    FROM raw_txs
-    WHERE chain_id = ${chainId}
-      AND block_time >= now() - INTERVAL ${hours} HOUR
-    GROUP BY selector
-    ORDER BY sum(toUInt64(gas_used)) DESC
-    LIMIT 10
-    FORMAT JSONEachRow
-  `;
-}
 
 // Selector → signature via Sourcify's signature database (the openchain
 // dataset Sourcify took over). One batched lookup per gas-market build;
@@ -982,43 +581,6 @@ async function decodeSelectorNames(selectors: string[]): Promise<Map<string, str
     if (name) names.set(s, name);
   }
   return names;
-}
-
-function sqlGasReverted(chainId: number, hours: number): string {
-  return `
-    SELECT
-      toString(sum(toUInt64(gas_used))) AS gas,
-      toString(count()) AS txs,
-      toString(sumIf(toUInt64(gas_used), success = 0)) AS revertedGas,
-      toString(countIf(success = 0)) AS revertedTxs
-    FROM raw_txs
-    WHERE chain_id = ${chainId}
-      AND block_time >= now() - INTERVAL ${hours} HOUR
-    FORMAT JSONEachRow
-  `;
-}
-
-function sqlGasConsumers(chainId: number, fromHoursAgo: number, toHoursAgo: number): string {
-  // effective price (gas_price) × gas_used = what senders actually paid;
-  // on the C-Chain all of it burns. Windowed [from, to) hours ago so the
-  // same builder serves the current window and the delta baseline.
-  return `
-    SELECT
-      concat('0x', lower(hex(\`to\`))) AS address,
-      toString(sum(toUInt64(gas_used))) AS gas,
-      toString(count()) AS txs,
-      toString(uniq(\`from\`)) AS senders,
-      round(sum(toUInt64(gas_used) * gas_price) / 1e18, 4) AS feesAvax
-    FROM raw_txs
-    WHERE chain_id = ${chainId}
-      AND block_time >= now() - INTERVAL ${fromHoursAgo} HOUR
-      AND block_time < now() - INTERVAL ${toHoursAgo} HOUR
-      AND \`to\` IS NOT NULL
-    GROUP BY \`to\`
-    ORDER BY sum(toUInt64(gas_used)) DESC
-    LIMIT ${GAS_CONSUMERS_LIMIT}
-    FORMAT JSONEachRow
-  `;
 }
 
 /* Fold the address-level consumer rows into protocol groups via the
@@ -1105,23 +667,6 @@ function aggregateProtocols(
 const gasMarketCache = new Map<string, { data: GasMarket; fetchedAt: number }>();
 const gasMarketInFlight = new Map<string, Promise<GasMarket | null>>();
 
-// The box caps the readonly user at 4 concurrent queries with instant
-// rejection (TOO_MANY_SIMULTANEOUS_QUERIES) — same reason
-// lib/clickhouse/client.ts gates at 3. Run the gas-market batch through a
-// 3-slot pool, leaving headroom for other routes on the shared user.
-async function allLimited<T>(limit: number, tasks: (() => Promise<T>)[]): Promise<T[]> {
-  const results: T[] = new Array(tasks.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < tasks.length) {
-      const i = next++;
-      results[i] = await tasks[i]();
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
-  return results;
-}
-
 interface RawConsumerRow {
   address: string;
   gas: string;
@@ -1158,8 +703,6 @@ export async function getGasMarket(
   }
   const inFlight = gasMarketInFlight.get(cacheKey);
   if (inFlight) return inFlight;
-
-  const hours = rangeDays * 24;
 
   const fetchPromise = (async (): Promise<GasMarket | null> => {
     try {
@@ -1350,7 +893,6 @@ export interface AccountsActivity {
 }
 
 const ACCOUNTS_TTL_MS = 5 * 60 * 1000;
-const ACCOUNTS_LIMIT = 15;
 
 interface RawLeaderRow {
   address: string;
@@ -1359,31 +901,6 @@ interface RawLeaderRow {
   counterparties: string;
   native: number;
   feesNative: number;
-}
-
-// The two sides of every transaction, each ranked by how often it appears.
-// Same shape either way; `col` picks the perspective and `other` counts the
-// far side. Grouping `to` includes EOAs that just receive a lot — that's
-// signal too (bridges, exchange deposits), so they rank rather than filter.
-function sqlAccountLeaders(chainId: number, hours: number, col: "to" | "from"): string {
-  const other = col === "to" ? "from" : "to";
-  return `
-    SELECT
-      concat('0x', lower(hex(\`${col}\`))) AS address,
-      toString(count()) AS txs,
-      toString(sum(toUInt64(gas_used))) AS gas,
-      toString(uniq(\`${other}\`)) AS counterparties,
-      round(sum(value) / 1e18, 4) AS native,
-      round(sum(toUInt64(gas_used) * gas_price) / 1e18, 4) AS feesNative
-    FROM raw_txs
-    WHERE chain_id = ${chainId}
-      AND block_time >= now() - INTERVAL ${hours} HOUR
-      AND \`${col}\` IS NOT NULL
-    GROUP BY \`${col}\`
-    ORDER BY count() DESC
-    LIMIT ${ACCOUNTS_LIMIT}
-    FORMAT JSONEachRow
-  `;
 }
 
 function parseLeaders(rows: RawLeaderRow[]): AccountLeader[] {
@@ -1418,7 +935,6 @@ export async function getAccountsActivity(
   const inFlight = accountsInFlight.get(cacheKey);
   if (inFlight) return inFlight;
 
-  const hours = rangeDays * 24;
   const fetchPromise = (async (): Promise<AccountsActivity | null> => {
     try {
       const body = await statsApi<{
@@ -1449,10 +965,3 @@ export async function getAccountsActivity(
   return fetchPromise;
 }
 
-export const __internal = {
-  sqlCumulativeTxs,
-  sqlDailyTxs,
-  buildPastDates,
-  formatDayLabel,
-  trackedEvmChainIds,
-};

@@ -4,6 +4,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
 import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
+import { firstOwnerProblem } from '@/components/toolbox/coreViem/utils/pchainOwner';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -52,6 +53,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   // Initialize validator manager hook
   const validatorManager = useValidatorManager(validatorManagerAddress || null);
 
+  // The owners go into the registration as typed, and the Validator Manager and
+  // the P-Chain accept an owner that needs no signature.
+  const ownerProblem = validators[0]
+    ? firstOwnerProblem([
+        [validators[0].remainingBalanceOwner, 'remaining balance owner'],
+        [validators[0].deactivationOwner, 'deactivation owner'],
+      ])
+    : null;
+
   const validateInputs = (): boolean => {
     if (validators.length === 0) {
       setErrorState('Please add a validator to continue');
@@ -61,6 +71,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     // Check ownership permissions
     if (ownershipState === 'differentEOA') {
       setErrorState('You are not the owner of this contract. Only the contract owner can add validators.');
+      return false;
+    }
+
+    if (ownerProblem) {
+      setErrorState(ownerProblem);
       return false;
     }
 
@@ -312,6 +327,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     ];
   };
 
+  const blocked =
+    isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null || !!ownerProblem;
+
   return (
     <div className="space-y-4">
       {ownershipState === 'contract' && (
@@ -321,12 +339,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           args={getMultisigArgs()}
           onSuccess={handleMultisigSuccess}
           onError={handleMultisigError}
-          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+          disabled={blocked}
         >
-          <Button
-            onClick={handleInitiateValidatorRegistration}
-            disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
-          >
+          <Button onClick={handleInitiateValidatorRegistration} disabled={blocked} error={ownerProblem ?? undefined}>
             Initiate Validator Registration
           </Button>
         </MultisigOption>
@@ -335,8 +350,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       {ownershipState === 'currentWallet' && (
         <Button
           onClick={handleInitiateValidatorRegistration}
-          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
-          error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
+          disabled={blocked}
+          error={
+            ownerProblem ??
+            (!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined)
+          }
         >
           {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Validator Registration'}
         </Button>

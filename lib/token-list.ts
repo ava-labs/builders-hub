@@ -150,6 +150,15 @@ export function formatTokenAmount(amount: bigint, decimals: number): string {
   return neg ? `-${text}` : text;
 }
 
+/** the symbol an unlisted token declares, when it can stand as the unit of its amounts: short plain ASCII, and
+ *  neither the chain's coin nor a listed token's symbol (a token that calls itself USDC is not USDC); else null */
+export function declaredSymbol(symbol: string | undefined, listed: TokenMap, native: string): string | null {
+  if (!symbol || !/^[A-Za-z0-9.$_+-]{1,16}$/.test(symbol)) return null;
+  const s = symbol.toLowerCase();
+  if (s === native.toLowerCase() || [...listed.values()].some((t) => t.symbol.toLowerCase() === s)) return null;
+  return symbol;
+}
+
 /* ------------------------------------------------------------------ */
 /* Prices: DefiLlama by way of /api/token-price, batched per address set */
 

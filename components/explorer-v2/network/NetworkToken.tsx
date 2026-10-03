@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useMemo } from "react";
+import { preload } from "react-dom";
+import { usePolledJson } from "@/components/explorer-v2/page-data";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { Board, HashChip, SectionHeader, SpecLine, SpecSheet } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
@@ -11,6 +13,7 @@ import { SupplyModel } from "./token-model";
 import { LiveBurnPanel, useLiveBurns } from "./token-live";
 import { levelWindow, useBurnHistory, useStakeHistory } from "./overview-series";
 import { HoldersSection } from "./token-holders";
+import { FEES_URL, ICM_FEES_URL, SUPPLY_URL } from "./network-reads";
 
 /* The network scope's AVAX tab: the token across the P-, C-, and X-Chains
    (formerly /stats/avax-token). Four figures lead; then the 720M cap as
@@ -64,11 +67,13 @@ interface ICMFeesResponse {
 type Period = "D" | "W" | "M";
 
 export function NetworkToken() {
-  const [data, setData] = useState<AvaxSupplyData | null>(null);
-  const [cChainFees, setCChainFees] = useState<FeeDataPoint[]>([]);
-  const [icmFees, setICMFees] = useState<FeeDataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // each feed fills its part as it lands, and opens from memory (a visit before, a hovered link's read) while it
+  // is read again: the figures and the supply model never wait on the fee history
+  const supply = usePolledJson<AvaxSupplyData>(SUPPLY_URL);
+  const fees = usePolledJson<CChainFeesResponse>(FEES_URL);
+  // ICM data is non-critical: a failed read leaves its series out, and the page stands
+  const icm = usePolledJson<ICMFeesResponse>(ICM_FEES_URL);
+  const { data, loading } = supply;
   // the page clock in the subnav windows the fee history; bucket width
   // follows it (daily bars up to a month, weekly for a quarter, monthly
   // for a year) so the chart stays readable at every window
@@ -80,78 +85,31 @@ export function NetworkToken() {
   // one live feed for the page: the embers on the solid and the burn panel
   const live = useLiveBurns();
 
-  const abortRef = useRef<AbortController | null>(null);
+  // the figures' feeds start with the page's HTML (the server render puts these hints in its head), not once its
+  // script has run; the reads above get the preloaded responses
+  preload(SUPPLY_URL, { as: "fetch", crossOrigin: "anonymous" });
+  preload(FEES_URL, { as: "fetch", crossOrigin: "anonymous" });
 
-  const fetchData = useCallback(async () => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [supplyRes, cChainRes, icmRes] = await Promise.all([
-        fetch("/api/avax-supply", { signal: controller.signal }),
-        fetch("/api/chain-stats/43114?timeRange=1y", { signal: controller.signal }),
-        fetch("/api/icm-contract-fees?timeRange=1y", { signal: controller.signal }),
-      ]);
-
-      if (!supplyRes.ok || !cChainRes.ok) {
-        throw new Error(
-          `Failed to fetch required data (supply: HTTP ${supplyRes.status}, c-chain: HTTP ${cChainRes.status})`
-        );
-      }
-
-      const supplyData = await supplyRes.json();
-      const cChainData: CChainFeesResponse = await cChainRes.json();
-
-      setData(supplyData);
-
-      const cChainFeesRaw = cChainData?.feesPaid?.data;
-      if (!Array.isArray(cChainFeesRaw)) {
-        throw new Error("C-Chain fees response is missing expected shape");
-      }
-      const cChainFeesData: FeeDataPoint[] = cChainFeesRaw
-        .map((item) => ({
-          date: item.date,
-          timestamp: item.timestamp,
-          value: typeof item.value === "string" ? parseFloat(item.value) : item.value,
-        }))
-        .reverse();
-
-      setCChainFees(cChainFeesData);
-
-      if (icmRes.ok) {
-        const icmData: ICMFeesResponse = await icmRes.json();
-        if (icmData.data && Array.isArray(icmData.data)) {
-          const icmFeesData: FeeDataPoint[] = icmData.data
-            .map((item) => ({
-              date: item.date,
-              timestamp: item.timestamp,
-              value: item.feesPaid / 1e18,
-            }))
-            .reverse();
-          setICMFees(icmFeesData);
-        }
-      } else {
-        // ICM data is non-critical: log and continue without breaking the page.
-        console.warn(`ICM contract fees fetch failed: HTTP ${icmRes.status}`);
-      }
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    return () => abortRef.current?.abort();
-  }, [fetchData]);
+  const feeRows = fees.data?.feesPaid?.data;
+  const cChainFees = useMemo<FeeDataPoint[]>(
+    () =>
+      (Array.isArray(feeRows) ? feeRows : [])
+        .map((item) => ({ date: item.date, timestamp: item.timestamp, value: typeof item.value === "string" ? parseFloat(item.value) : item.value }))
+        .reverse(),
+    [feeRows],
+  );
+  const icmRows = icm.data?.data;
+  const icmFees = useMemo<FeeDataPoint[]>(
+    () => (Array.isArray(icmRows) ? icmRows : []).map((item) => ({ date: item.date, timestamp: item.timestamp, value: item.feesPaid / 1e18 })).reverse(),
+    [icmRows],
+  );
+  const feesError = fees.error ?? (fees.data && !Array.isArray(feeRows) ? "the response is missing its series" : null);
+  const error = supply.error
+    ? `Failed to fetch the AVAX supply: ${supply.error}`
+    : feesError
+      ? `Failed to fetch the C-Chain fees: ${feesError}`
+      : null;
+  const retry = () => [supply, fees, icm].forEach((f) => f.retry());
 
   const aggregatedFeeData = useMemo(() => {
     if (cChainFees.length === 0 && icmFees.length === 0) return [];
@@ -277,7 +235,7 @@ export function NetworkToken() {
         <div className="flex flex-col items-center gap-4 border border-zinc-200 bg-white/80 py-16 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
           <p className="max-w-md px-6 text-center font-mono text-[12px] text-[#E6212F]">{error}</p>
           <button
-            onClick={fetchData}
+            onClick={retry}
             className="border border-zinc-300 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
           >
             Retry

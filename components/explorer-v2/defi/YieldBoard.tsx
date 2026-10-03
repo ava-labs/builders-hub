@@ -28,6 +28,7 @@ const OFF =
   "border-zinc-200 bg-white/80 text-zinc-600 enabled:hover:border-zinc-400 enabled:hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:enabled:hover:border-zinc-500 dark:enabled:hover:text-zinc-100";
 const ON = "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900";
 
+/** an APY: two places under 100%, whole from there, n/a when the pool has none */
 const pct = (v: number | null) => (v === null ? "n/a" : `${v >= 100 ? v.toFixed(0) : v.toFixed(2)}%`);
 
 /** a DefiLlama slug the protocol list does not name, made readable: "cian-yield-layer" to "Cian Yield Layer" */

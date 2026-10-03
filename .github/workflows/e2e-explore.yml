@@ -1,0 +1,167 @@
+name: E2E explore (nightly)
+
+# A nightly AI bug hunt. Each charter in tests/e2e/explore/charters.json runs one `e2e explore`: the agent gets the
+# goal, drives the site, and reports findings. Findings go to the job summary and an artifact. They do not fail
+# the job, because a person must triage them first. A leg fails only when the run tested nothing: an infrastructure,
+# config or model error, or a blocked run.
+#
+# Secrets:
+#   - ANTHROPIC_API_KEY is the model. Without it the hunt skips with a notice.
+# Each charter costs about 1M to 3M model tokens (about $1 to $3), so add charters with care.
+
+on:
+  schedule:
+    # 07:17 UTC is 02:17 or 03:17 in New York, so the report is ready before the US workday. GitHub can delay or
+    # drop scheduled runs at the start of an hour, so the minute is not 0.
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Base URL to explore (a public site: this job sends no Vercel bypass header)'
+        required: false
+        default: 'https://build.avax.network'
+      charters:
+        description: 'Charter keys to run, comma-separated (empty runs all)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# Two hunts at once would double the cost and load the site twice. A new run waits for the old one.
+concurrency:
+  group: e2e-explore
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      enabled: ${{ steps.plan.outputs.enabled }}
+      charters: ${{ steps.plan.outputs.charters }}
+    env:
+      # An if: expression cannot read a secret, so map its presence to a plain flag.
+      HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      # The plan needs only the charter file, so skip the rest of the repo.
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          sparse-checkout: tests/e2e/explore
+
+      - name: Read charters
+        id: plan
+        env:
+          FILTER: ${{ inputs.charters }}
+        run: |
+          file=tests/e2e/explore/charters.json
+          if [ "$HAS_ANTHROPIC_KEY" != "true" ]; then
+            echo "::notice title=E2E explore skipped::The ANTHROPIC_API_KEY secret is not set. The explorer has no model, so no charter runs."
+            echo "E2E explore skipped: the ANTHROPIC_API_KEY secret is not set." >> "$GITHUB_STEP_SUMMARY"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          charters=$(jq -c --arg filter "$FILTER" '
+            ($filter | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $keys
+            | map(select(($keys | length) == 0 or (.key | IN($keys[]))))
+          ' "$file")
+          # An empty matrix is a workflow error, so name the valid keys instead.
+          if [ "$(jq length <<< "$charters")" -eq 0 ]; then
+            echo "::error::No charter matches '$FILTER'. Valid keys: $(jq -r 'map(.key) | join(", ")' "$file")"
+            exit 1
+          fi
+          echo "Charters: $(jq -r 'map(.key) | join(", ")' <<< "$charters")"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "charters=$charters" >> "$GITHUB_OUTPUT"
+
+  explore:
+    name: ${{ matrix.charter.key }} (${{ matrix.charter.target }})
+    needs: plan
+    if: needs.plan.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    # An exploration stops itself after 10 minutes. The rest is install time and margin.
+    timeout-minutes: 25
+    strategy:
+      # One charter's failure must not stop the others.
+      fail-fast: false
+      # Two at a time keeps the load on the live site low.
+      max-parallel: 2
+      matrix:
+        charter: ${{ fromJSON(needs.plan.outputs.charters) }}
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      # The explorer needs only the test package, so skip the site source.
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          sparse-checkout: tests/e2e
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt.
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      # e2e explore exits 1 for an issue finding or a blocked run, and 2 or more for an infrastructure, config or
+      # model error. Only a finding leaves the leg green.
+      - name: Explore
+        env:
+          E2E_BASE_URL: ${{ inputs.target_url || 'https://build.avax.network' }}
+          E2E_TELEMETRY_DISABLED: '1'
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          KEY: ${{ matrix.charter.key }}
+          TARGET: ${{ matrix.charter.target }}
+          GOAL: ${{ matrix.charter.goal }}
+        run: |
+          code=0
+          npx e2e explore "$GOAL" --target "$TARGET" --output ".e2e/explore/$KEY" --reporter list,markdown || code=$?
+          if [ "$code" -eq 0 ]; then exit 0; fi
+          if [ "$code" -ne 1 ]; then
+            echo "::error title=$KEY::e2e explore exited $code: an infrastructure, config or model error, not a finding."
+            exit "$code"
+          fi
+          # Exit 1 is a finding (status failed) or a blocked run, which tested nothing (for example
+          # STEP_BUDGET_EXHAUSTED). The report says which.
+          status=$(jq -r '.run.status // empty' ".e2e/explore/$KEY/report.json" 2>/dev/null || true)
+          case "$status" in
+            failed) echo "::warning title=$KEY::The explorer reported issues. Triage them from the job summary." ;;
+            blocked) echo "::error title=$KEY::The explorer was blocked and tested nothing. The job summary names the blocker."; exit 1 ;;
+            *) echo "::error title=$KEY::e2e explore exited 1 and wrote no readable report."; exit 1 ;;
+          esac
+
+      - name: Job summary
+        if: always()
+        env:
+          KEY: ${{ matrix.charter.key }}
+        run: |
+          f=".e2e/explore/$KEY/summary.md"
+          if [ -f "$f" ]; then
+            cat "$f" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No summary for $KEY: the run ended before it wrote one." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # The report, the summary and the finding screenshots, for triage. CI records no trace by default.
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-explore-${{ matrix.charter.key }}
+          path: tests/e2e/.e2e/explore/${{ matrix.charter.key }}
+          retention-days: 14
+          if-no-files-found: ignore
+          # A re-run of a failed leg uploads the same name again, which v4 refuses without this.
+          overwrite: true

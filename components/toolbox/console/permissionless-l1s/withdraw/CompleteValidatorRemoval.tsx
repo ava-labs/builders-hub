@@ -17,11 +17,11 @@ import { CoreWalletTransactionButton } from '@/components/toolbox/components/Cor
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import {
-  getRegistrationJustification,
   newL1ValidatorRegistrationMessage,
   newWarpMessage,
   packWarpIntoAccessList,
 } from '@avalanche-sdk/interchain/warp';
+import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
@@ -130,7 +130,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       // This is the preimage that proves the validationID corresponds to a
       // validator that was previously registered — required by P-Chain's
       // verifyL1ValidatorRegistration for the registered=false case.
-      const justification = await getRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
+      const justification = await findRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
       if (!justification) {
         throw new Error(
           'No registration justification found for this validation ID. The validator may not have been registered through the standard flow, or its registration logs may be on a chain we cannot reach.',

@@ -332,6 +332,14 @@ describe('a question that names a protocol', () => {
   const MASTERCHEF = "SELECT toStartOfHour(block_time) AS hour, count() AS deposits FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 24 HOUR AND substring(input, 1, 4) = unhex('e2bbb158') GROUP BY hour";
   const scope = (sql: string, ...questions: string[]) => protocolScope(sql, questions, 43114);
 
+  it('is read by the event that finds the contracts our registry does not list', () => {
+    // Yield Yak's strategies are not in the registry: each logs Reinvest (the r6 audit's N10 answered 0 for 3 from the
+    // listed contracts, and a query by the event alone was sent back once)
+    const reinvests = "SELECT count() AS reinvests FROM raw_logs WHERE chain_id = 43114 AND block_time >= toStartOfDay(now()) AND topic0 = unhex('c7606d21ac05cd309191543e409f0845c016120563783d70e4f41419dc0ef234')";
+    expect(scope(reinvests, 'How many Yield Yak strategy reinvests happened today?')).toBeNull();
+    expect(scope(MASTERCHEF, 'How many Yield Yak strategy reinvests happened today?')).toMatch(/^the question names Yield Yak,/);
+  });
+
   it('is sent back once when the query reads none of its contracts, naming the shorthand and the addresses to use', () => {
     const why = scope(MASTERCHEF, 'aave deposits last 24 hrs');
     expect(why).toMatch(/^the question names Aave, and the query reads none of Aave's contracts, so its rows are not Aave's\. Open it with \$LEND\(start, 'aave-v3'\)/);

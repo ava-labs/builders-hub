@@ -70,8 +70,9 @@ export async function createCoreWalletClient(
     return null; // Return null for SSR
   }
 
-  // Check if window.avalanche exists and is an object
-  if (!window.avalanche || typeof window.avalanche !== 'object') {
+  // Check that window.avalanche is a provider. An element with id="avalanche" (an "Avalanche" heading) is
+  // also window.avalanche.
+  if (typeof window.avalanche?.request !== 'function') {
     return null; // Return null if Core wallet is not found
   }
 

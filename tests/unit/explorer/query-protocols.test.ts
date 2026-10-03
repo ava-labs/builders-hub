@@ -137,7 +137,7 @@ describe('DEX tables', () => {
     expect(Buffer.byteLength(out.sql)).toBeLessThanOrEqual(SQL_BUDGET);
   });
 
-  it('send the positions contracts only to a query that reads them, and fit the woofi rows last', async () => {
+  it('send the positions contracts only to a query that reads them, and fit what a query names first', async () => {
     const all = DEX_FACTORIES.flatMap((f) => f.positions.map(packed));
     expect(all.length).toBeGreaterThan(0);
     const plain = await withSources(POOLS, 43114);
@@ -152,12 +152,13 @@ describe('DEX tables', () => {
     expect(fees.ok).toBe(true);
     expect(fees.ok && readsPositions(fees.sql)).toBe(false);
     expect(readsPositions('SELECT count(*) AS n FROM dex_factories')).toBe(false);
-    // woofi's contracts create no pools for the DEX WITH, so a short room leaves them out first, unless the query names them
-    const pooled = DEX_FACTORIES.filter((f) => f.family !== 'woofi');
-    const room = Buffer.byteLength(factoriesSql(43114, pooled, false));
-    expect(factoriesFor(POOLS, room).kept).toEqual(pooled);
+    // a short room keeps the registry's order, WOOFi's WooPP contracts in their place (each is a pool of the DEX WITH),
+    // and what the query names first
+    const some = DEX_FACTORIES.slice(0, -3);
+    const room = Buffer.byteLength(factoriesSql(43114, some, false));
+    expect(factoriesFor(POOLS, room).kept).toEqual(some);
     const woofi = factoriesFor(`${POOLS} AND f.protocol = 'woofi'`, room).kept;
-    expect(woofi.filter((f) => f.family === 'woofi')).toHaveLength(DEX_FACTORIES.length - pooled.length);
+    expect(woofi.filter((f) => f.family === 'woofi')).toHaveLength(DEX_FACTORIES.filter((f) => f.family === 'woofi').length);
   });
 
   it('keep what a long query names when the whole registry does not fit, the quote tokens always', () => {
@@ -301,8 +302,10 @@ describe('DEX rules and worked examples', () => {
     // data is the six fields not indexed, a word each
     const data = ['fromAmount', 'toAmount', 'from', 'rebateTo', 'swapVol', 'swapFee'];
     for (const [k, name] of data.entries()) if (name !== 'from' && name !== 'rebateTo') expect(woofi).toContain(`${name} substring(data, ${1 + 32 * k}, 32)`);
-    expect(woofi).toContain("so WOOFi's volume is sum(toFloat64(reinterpretAsUInt256(reverse(substring(data, 129, 32))))) / 1e6 over every swap");
-    expect(woofi).toContain('swapFee is its fee, never its volume.');
+    expect(woofi).toContain("may read sum(toFloat64(reinterpretAsUInt256(reverse(substring(data, 129, 32))))) / 1e6 over its swaps");
+    expect(woofi).toContain('swapFee is its fee, never its volume;');
+    // legs holds WOOFi's swaps with the rest, so a per-protocol answer has its row
+    expect(woofi).toContain('legs has WOOFi\'s swaps with the rest');
     expect(woofi).not.toMatch(/\bword \d/);
   });
 

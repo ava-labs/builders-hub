@@ -9,6 +9,7 @@ import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { Board, ChartBoard, EmptyRow, HEAD, LoadMore, ROW, RowSkeleton, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { short } from "@/lib/explorer-query/values";
 import type { FlowsResponse, Move, ProtocolFlow } from "@/lib/defi/flows";
 import { DEFI_SCOPE, DEFI_STYLE, groupTone, signedUsd, usd } from "./palette";
 import { actionOf, flowGroup, flowLabel } from "./flow-labels";
@@ -44,6 +45,7 @@ function useFlows(hours: number) {
   return { data, stale: !!data && data.hours !== hours, failed };
 }
 
+/** "5m ago", "3h ago": a move's age from its time text, in whole minutes from 1m (timeAgo in format.ts takes unix seconds and shows seconds) */
 function ago(time: string, now: number): string {
   const t = Date.parse(`${time.replace(" ", "T").replace(/\.\d+$/, "")}Z`);
   if (!Number.isFinite(t)) return time;
@@ -52,8 +54,6 @@ function ago(time: string, now: number): string {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
-
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 export function DefiFlows() {
   const range = useExplorerTimeRange();
@@ -239,7 +239,8 @@ function MovesFeed({ moves, asOf, hours }: { moves: Move[] | null; asOf: number 
             <span className="tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
               {usd(mv.usd)} <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{mv.token}</span>
             </span>
-            <span className="col-span-2 flex min-w-0 items-center gap-1.5 md:col-span-1">
+            {/* sender and recipient each take half the cell, so every row's arrow and recipient line up */}
+            <span className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 md:col-span-1">
               <Party p={mv.from} />
               <ArrowRight className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
               <Party p={mv.to} />

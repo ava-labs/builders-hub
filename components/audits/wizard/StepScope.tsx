@@ -124,7 +124,9 @@ export function StepScope() {
         name="nsloc"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Lines of code to audit</FormLabel>
+            <FormLabel>
+              Lines of code to audit <span className="text-brand">*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 {...field}

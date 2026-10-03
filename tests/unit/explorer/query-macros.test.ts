@@ -22,7 +22,7 @@ const OLD = 'write the DEX WITH out in full: $DEX, $POOLS, $START and $PROTOCOL 
 describe('the DEX shorthand', () => {
   it('writes the DEX WITH out with the start in both of its places, and a protocol filter for a slug', () => {
     const all = expanded(`$DEX(${today})${OWN}`);
-    expect(all).toBe(DEX_WITH.replaceAll('$START', today).replace('$END', '').replace('$PROTOCOL', '') + OWN);
+    expect(all).toBe(DEX_WITH.replaceAll('$START', today).replace('$END', '').replaceAll('$PROTOCOL', '') + OWN);
     expect(all.split(`block_time >= ${today}`).length - 1).toBe(2);
     const one = expanded(`$DEX(now() - INTERVAL 7 DAY, '${slug}')${OWN}`);
     expect(one).toContain(`WHERE chain_id = 43114 AND protocol = '${slug}')`);
@@ -32,7 +32,7 @@ describe('the DEX shorthand', () => {
 
   it("stops the window's Swap logs at an end, before the slug, and reads quoted dates as DateTimes", () => {
     const day = expanded(`$DEX(toDateTime('2026-09-26 00:00:00'), toDateTime('2026-09-27 00:00:00'), '${slug}')${OWN}`);
-    expect(day).toContain("WHERE chain_id = 43114 AND block_time >= toDateTime('2026-09-26 00:00:00') AND block_time < toDateTime('2026-09-27 00:00:00') AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap))");
+    expect(day).toContain("WHERE chain_id = 43114 AND block_time >= toDateTime('2026-09-26 00:00:00') AND block_time < toDateTime('2026-09-27 00:00:00') AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap, woo_swap))");
     expect(day).toContain(`WHERE chain_id = 43114 AND protocol = '${slug}')`);
     expect(day.split('block_time < ').length - 1).toBe(1);
     expect(expanded(`$DEX('2026-09-21', '2026-09-28')${OWN}`)).toContain("block_time >= toDateTime('2026-09-21') AND block_time < toDateTime('2026-09-28') AND topic0");
@@ -40,9 +40,21 @@ describe('the DEX shorthand', () => {
     expect(expanded(`$DEX(${today}, '${slug}')${OWN}`)).not.toContain('block_time < ');
   });
 
+  it("reads WOOFi's WooSwap in legs: each WooPP contract a pool, each swap its own tokens, no fee where it logs 0", () => {
+    const all = expanded(`$DEX(${today}) SELECT protocol, count() AS swaps FROM legs GROUP BY protocol`);
+    expect(all).toContain(`unhex('${DEX_TOPICS.wooSwap}') AS woo_swap`);
+    expect(all).toContain('AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap, woo_swap))');
+    expect(all).toContain("UNION ALL SELECT protocol, version, factory AS pool, '' AS t0, '' AS t1, 0 AS k FROM dex_factories WHERE chain_id = 43114 AND family = 'woofi' )");
+    expect(all).toContain('ifNull(s.wt0, p.pt0) AS t0, ifNull(s.wt1, p.pt1) AS t1');
+    // a slug keeps one protocol's pools in both parts of pools
+    expect(expanded(`$DEX(${today}, '${slug}') SELECT count() AS swaps FROM legs`).match(new RegExp(`AND protocol = '${slug}'`, 'g'))).toHaveLength(2);
+    const fees = expanded(`$DEX(${today}) SELECT round(sum(fee_usd), 2) AS fees_usd FROM legs`);
+    expect(fees).toContain('topic0 = woo_swap, nullIf(toFloat64(reinterpretAsUInt256(reverse(substring(data, 161, 32)))), 0) / nullIf(toFloat64(reinterpretAsUInt256(reverse(substring(data, 129, 32)))), 0)');
+  });
+
   it('writes $POOLS as the Swap topic names and the pools alone', () => {
     const pools = expanded('$POOLS() SELECT count() AS pools FROM pools');
-    expect(pools).toMatch(/^WITH unhex\('[0-9a-f]{64}'\) AS v2_swap, .* AS v4_swap, pools AS \(SELECT /);
+    expect(pools).toMatch(/^WITH unhex\('[0-9a-f]{64}'\) AS v2_swap, .* AS woo_swap, pools AS \(SELECT /);
     expect(pools).not.toContain('swap_logs');
     expect(pools).not.toContain('AND protocol =');
     expect(expanded(`$POOLS('${slug}') SELECT count() AS pools FROM pools`)).toContain(`AND protocol = '${slug}')`);
@@ -106,7 +118,7 @@ describe('the DEX shorthand', () => {
     const g = guardSql(`$DEX(${today})${OWN}`, 43114);
     expect(g.ok && g.sql.startsWith(DEX_WITH.slice(0, 40)) && g.tables.includes('raw_logs')).toBe(true);
     const long = guardSql(`$DEX(${today})${OWN} HAVING volume_usd > ${'1 + '.repeat(2200)}1`, 43114);
-    const size = DEX_WITH.replaceAll('$START', today).replace('$END', '').replace('$PROTOCOL', '').length;
+    const size = DEX_WITH.replaceAll('$START', today).replace('$END', '').replaceAll('$PROTOCOL', '').length;
     expect(long.ok ? '' : long.error).toMatch(new RegExp(`^query too long: \\d+ characters with \\$DEX written out, ${QUERY_CHARS} at most\\. Its WITH takes ${size}, so what follows it may take ${QUERY_CHARS - size}$`));
     expect((guardSql(`SELECT 1 FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND ${'1 + '.repeat(3200)}1 = 1`, 43114) as { error: string }).error).toBe(`query too long (${QUERY_CHARS} chars max)`);
   });
@@ -125,7 +137,7 @@ describe("a swap's fee", () => {
     expect(fee).toContain('AS fee_rate, usd * fee_rate AS fee_usd FROM swap_logs');
     expect(fee).not.toMatch(/AS tin\b|token_in/);
     expect(tokenIn).toContain(' AS tin FROM raw_logs');
-    expect(tokenIn).toContain('if(s.tin, p.t1, p.t0) AS token_in, if(s.tin, s.r1, s.r0) * fee_rate AS fee_in FROM swap_logs');
+    expect(tokenIn).toContain('if(s.tin, ifNull(s.wt1, p.pt1), ifNull(s.wt0, p.pt0)) AS token_in, if(s.tin, s.r1, s.r0) * fee_rate AS fee_in FROM swap_logs');
     // every fee a pool set, from the first day, by the two events that set one
     expect(fee).toMatch(/fees AS \(SELECT substring\(address, 1, 20\) AS pool, block_number, .* AND block_time >= '2020-09-23' AND topic0 IN \(unhex\('0cba8718[0-9a-f]{56}'\), unhex\('598b9f04[0-9a-f]{56}'\)\)\)/);
   });
@@ -219,13 +231,13 @@ describe('the checks that stop a wrong answer', () => {
     expect(again).toMatch(/^this \$DEX query reads the window's Swap logs from raw_logs again, and legs holds them already, one row per log\. /);
     expect(again).toContain("legs has pool, block_time, block_number, tx (the log's transaction_hash), trader (its tx_from), router (its tx_to), protocol, version, t0, t1, k, r0, r1 and usd: read them FROM legs alone");
     expect(error(`$DEX(${today}) SELECT count() AS logs FROM raw_logs AS l WHERE ${from} AND l.topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap)`)).toBe(again);
+    // WOOFi's WooSwap is in legs too, so a WOOFi row read beside the other protocols counts its swaps twice
+    expect(error(`$DEX(${today}) SELECT protocol, round(sum(usd), 2) AS volume_usd FROM legs GROUP BY protocol UNION ALL SELECT 'woofi' AS protocol, round(sum(toFloat64(reinterpretAsUInt256(reverse(substring(l.data, 129, 32)))) / 1e6), 2) AS volume_usd FROM raw_logs AS l WHERE ${from} AND l.topic0 = ${t('wooSwap')}`)).toBe(again);
     // a join of another event's logs to legs repeats each swap as well
     const joined = error(`$DEX(${today}) SELECT legs.tx, round(sum(legs.usd), 2) AS volume_usd FROM legs INNER JOIN raw_logs AS l ON l.transaction_hash = legs.tx WHERE ${from} AND l.topic0 = ${t('transfer')} GROUP BY legs.tx`);
     expect(joined).toMatch(/^this \$DEX query joins raw_logs to legs, so each swap comes back once for every log it matches .* filter legs with tx IN \(SELECT transaction_hash FROM raw_logs WHERE …\) or pool IN \(SELECT …\)$/);
     expect(error(`$DEX(${today}) SELECT count() AS n FROM default.raw_logs AS l INNER JOIN swap_logs AS s ON l.transaction_hash = s.tx WHERE ${from} AND l.topic0 = ${t('transfer')}`)).toBe(joined);
     for (const ok of [
-      // WOOFi's WooSwap, which legs lacks, beside the other protocols
-      `$DEX(${today}) SELECT protocol, round(sum(usd), 2) AS volume_usd FROM legs GROUP BY protocol UNION ALL SELECT 'woofi' AS protocol, round(sum(toFloat64(reinterpretAsUInt256(reverse(substring(l.data, 129, 32)))) / 1e6), 2) AS volume_usd FROM raw_logs AS l WHERE ${from} AND l.topic0 = ${t('wooSwap')}`,
       // the swaps of the transactions another event names, and a count per pool of another event joined on the pool
       `$DEX(${today}) SELECT count() AS swaps FROM legs WHERE tx IN (SELECT transaction_hash FROM raw_logs AS l WHERE ${from} AND l.topic0 = ${t('transfer')})`,
       `$DEX(${today}), syncs AS (SELECT l.address AS pool_address, count() AS n FROM raw_logs AS l WHERE ${from} AND l.topic0 = ${t('v2Sync')} GROUP BY pool_address) SELECT g.pool, round(sum(g.usd), 2) AS volume_usd, any(y.n) AS syncs FROM legs AS g INNER JOIN syncs AS y ON g.pool = y.pool_address GROUP BY g.pool`,

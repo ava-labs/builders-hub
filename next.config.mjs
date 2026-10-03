@@ -2,9 +2,26 @@ import { createMDX } from 'fumadocs-mdx/next';
 
 const withMDX = createMDX();
 
+// The Vercel toolbar runs on preview deployments only, so the report-only CSP
+// adds the sources its docs list there and nowhere else
+// (vercel.com/docs/vercel-toolbar/managing-toolbar).
+const vercelToolbarSources =
+  process.env.VERCEL_ENV === 'preview'
+    ? {
+        'script-src': 'https://vercel.live',
+        'style-src': 'https://vercel.live',
+        'img-src': 'https://vercel.live https://vercel.com',
+        'font-src': 'https://vercel.live https://assets.vercel.com',
+        'connect-src': 'https://vercel.live wss://ws-us3.pusher.com',
+        'frame-src': 'https://vercel.live',
+      }
+    : {};
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  // AGENTS.md holds the agent instructions, so next dev must not write its own AGENTS.md or CLAUDE.md.
+  agentRules: false,
   serverExternalPackages: [
     'ts-morph',
     'typescript',
@@ -65,10 +82,6 @@ const config = {
       {
         protocol: 'https',
         hostname: 'developers.avacloud.io',
-      },
-      {
-        protocol: 'https',
-        hostname: 'dashboard-assets.dappradar.com',
       },
       {
         protocol: 'https',
@@ -2545,16 +2558,23 @@ const config = {
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://app.posthog.com https://mcp.figma.com",
+              // PostHog loads its config and extensions from us-assets; Cloudflare
+              // injects its analytics beacon on build.avax.network
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://us-assets.i.posthog.com https://app.posthog.com https://mcp.figma.com https://static.cloudflareinsights.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://dashboard-assets.dappradar.com https://www.avalanche.com",
+              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://www.avalanche.com",
               "font-src 'self'",
               "connect-src 'self' https://us.i.posthog.com https://app.posthog.com https://api.openai.com https://api.github.com https://www.googleapis.com https://api.hubapi.com https://api.dune.com https://glacier-api.avax.network https://data-api.avax.network https://accounts.google.com https://api.avax.network https://api.avax-test.network",
               "frame-src 'self' https://calendar.google.com https://www.google.com https://chromewebstore.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
-            ].join('; '),
+            ]
+              .map((directive) => {
+                const extra = vercelToolbarSources[directive.split(' ')[0]];
+                return extra ? `${directive} ${extra}` : directive;
+              })
+              .join('; '),
           },
         ],
       },

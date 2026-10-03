@@ -11,9 +11,10 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { QueryLoader } from "@/components/explorer-v2/evm/QueryLoader";
 import { QueryMonitor } from "@/components/explorer-v2/evm/QueryMonitor";
 import { CARD, QueryVisual, fmt, nameFor } from "@/components/explorer-v2/evm/QueryVisual";
-import { NoteText, PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
+import { NoteText, PanelRows, fillTitle, formatOf, header, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
 import { QueryInspector, RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
 import { Crumbs, DrillView, ZoomStage, type OpenDrill } from "@/components/explorer-v2/evm/QueryZoom";
+import { bucketOf } from "@/components/explorer-v2/evm/drill-plot";
 import { NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "@/components/explorer-v2/evm/query-client";
 import { askChainsOf, queryHref, routeFor, scopeOf, sentOf, towerOfRow, towersOf, type AskChain, type AskThread } from "@/components/explorer-v2/network/ask-route";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
@@ -21,6 +22,7 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { DrillAnswer, QueryAnswer, Turn } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
+import { isAddress } from "@/lib/explorer-query/values";
 import type { Node } from "@/components/explorer-v2/network/icm-map";
 
 /* A question asked in the city, answered in a window over it. The city's
@@ -165,7 +167,7 @@ export function AskWindow({
       const out = await postQuery<{ visual: VisualSpec; designer: boolean; ms: number }>({
         chainId: c.chainId,
         // a kept answer is laid out by the server from its own SQL
-        ...(a.key ? { key: a.key } : { design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } }),
+        trace: a.trace, ...(a.key ? { key: a.key } : { design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } }),
       });
       if (my !== token.current) return;
       setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, visual: out.visual, draftVisual: false, model: { ...(prev.model ?? { steps: 0, ms: 0, tries: 0 }), designMs: out.ms, designer: out.designer } } : prev));
@@ -182,7 +184,7 @@ export function AskWindow({
     const my = token.current;
     setReading(true);
     try {
-      const out = await postQuery<{ callouts: string[] }>({ chainId: c.chainId, key: a.key, reading: true });
+      const out = await postQuery<{ callouts: string[] }>({ chainId: c.chainId, key: a.key, trace: a.trace, reading: true });
       if (my !== token.current) return;
       setAnswer((prev) => (prev && prev.sql === a.sql && prev.visual ? { ...prev, visual: { ...prev.visual, callouts: out.callouts } } : prev));
     } catch {
@@ -353,10 +355,10 @@ export function AskWindow({
       if (drill.index === index) setDrill(null);
       return;
     }
-    const title = fillTitle(answer.drill.title, row, answer.names);
-    setDrill({ title, row, index, answer: null, error: null, prev: [] });
+    const title = fillTitle(answer.drill.title, row, answer.names), span = bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []);
+    setDrill({ title, row, index, answer: null, error: null, prev: [], span });
     try {
-      const out = await postQuery<DrillAnswer>({ chainId: on.chainId, drill: { sql: answer.drill.sql, row } });
+      const out = await postQuery<DrillAnswer>({ chainId: on.chainId, drill: { sql: answer.drill.sql, row, span } });
       setDrill((d) => (d && d.index === index ? { ...d, answer: out } : d));
     } catch (e) {
       setDrill((d) => (d && d.index === index ? { ...d, error: e instanceof Error ? e.message : "The transactions did not load." } : d));
@@ -547,6 +549,7 @@ export function AskWindow({
                     names={names}
                     sym={sym}
                     totals={answer.totals}
+                    span={answer.span}
                     base={base}
                     canDrill={opens}
                     // a mark that is one thing on the chain opens that thing's own page, and a chain its tower
@@ -580,7 +583,7 @@ export function AskWindow({
                         <div key={col.name} className={cn(CARD, "flex min-w-0 flex-col gap-2 px-4 py-4")}>
                           <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{header(col.name)}</span>
                           <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
-                            {typeof v === "number" ? fmt(v, /pct|percent|ratio/i.test(col.name) && f === "number" ? "percent" : f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
+                            {typeof v === "number" ? fmt(v, f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
                           </span>
                         </div>
                       );

@@ -8,9 +8,11 @@ import { fetchAllSubnets } from "@/lib/pchain-subnets";
 import type { SubnetStats } from "@/types/validator-stats";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, readsPositions, tokensFor, tokensSql } from "./protocols";
 import { FAMILY_NAMES } from "./families";
+import { MEV_NAMES } from "./mev";
 import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
+import { DAY, WEEK } from "./values";
 
 /* What the server puts in front of a question's SQL. Two kinds of table:
 
@@ -121,7 +123,6 @@ const UNKNOWN = "Unknown";
 const CB58 = /^[1-9A-HJ-NP-Za-km-z]{30,60}$/;
 const NODE = /^NodeID-[1-9A-HJ-NP-Za-km-z]{20,60}$/;
 const LINE = /^\d{1,3}\.\d{1,3}$/;
-const DAY_MS = 86_400_000;
 
 /** newest line first; Unknown after every line */
 function byLine(a: string, b: string): number {
@@ -187,8 +188,8 @@ async function readVersions(network: Network): Promise<VersionSet> {
     lines.set(line, {
       n: had.n + 1,
       w: had.w + s.weight,
-      day: had.day + Number(known && age < DAY_MS),
-      week: had.week + Number(known && age < 7 * DAY_MS),
+      day: had.day + Number(known && age < DAY),
+      week: had.week + Number(known && age < WEEK),
       crawler: had.crawler + Number(known && !mine),
     });
   }
@@ -362,7 +363,7 @@ const factories: Source = {
     const protocols = new Set(DEX_FACTORIES.map((f) => f.protocol)).size;
     const text =
       kept.length < n
-        ? `Protocols and their pool factories come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)} factories: the ones the query names, then the others in the registry's order, WOOFi's last.`
+        ? `Protocols and their pool factories come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)} factories: the ones the query names, then the others in the registry's order.`
         : `Protocols and their pool factories come from our contract registry: ${fmt(n)} factories of ${fmt(protocols)} protocols.`;
     return { sql, note: { table: "dex_factories", label: "the contract registry", at: DEX_LISTED_AT, total: n, known: kept.length, text } };
   },
@@ -397,8 +398,8 @@ const tokens: Source = {
    markets first, since without one a market loses its asset, and without
    a token only its decimals. */
 
-/** the names our server defines in front of a query that reads them: the lending protocols' and the families' */
-const SERVER_NAMES: Record<string, string> = { ...LENDING_NAMES, ...FAMILY_NAMES };
+/** the names our server defines in front of a query that reads them: the lending protocols', the families' and MEV's */
+const SERVER_NAMES: Record<string, string> = { ...LENDING_NAMES, ...FAMILY_NAMES, ...MEV_NAMES };
 
 /** the WITH around the two tables, in bytes */
 const LENDING_WRAP = 64;

@@ -1,3 +1,4 @@
+import type { DrillProfile } from "./drill-profile";
 import type { MonitorSpec } from "./monitor";
 import { z } from "zod";
 import type { Coverage, QueryResult } from "./clickhouse";
@@ -90,6 +91,8 @@ export interface StepTiming {
 export interface QueryAnswer {
   title: string;
   note: string;
+  /** the window the answer reads, as a figure over all of it says it ("last 6 hours"), or null for none */
+  span?: string | null;
   sql: string;
   chart: ChartSpec;
   drill: Drill | null;
@@ -109,6 +112,8 @@ export interface QueryAnswer {
   draftVisual?: boolean;
   /** the cache key of this answer's recipe; the layout is kept under it */
   key?: string;
+  /** the PostHog trace of the question that made this answer: its layout and its reading are counted under it */
+  trace?: string;
   /** the question belongs to the other chain's data; the page asks it there */
   route?: "p-chain" | "c-chain";
   /** a live monitor: no SQL ran, and the page reads the chain's RPC for it (monitor.ts) */
@@ -137,4 +142,6 @@ export interface DrillAnswer {
   sources?: SourceNote[];
   result: QueryResult;
   names: Names;
+  /** a ranked drill's whole population over the opened bucket, in bins (drill-profile.ts) */
+  profile?: DrillProfile | null;
 }

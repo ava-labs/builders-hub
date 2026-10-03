@@ -156,6 +156,19 @@ describe("submitRequestForReview", () => {
     expect(txRequestUpdateMock).not.toHaveBeenCalled();
   });
 
+  it("rejects a stored row with no lines of code, which firms cannot price", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...completeDraft, nsloc: null });
+
+    const result = await submitRequestForReview("req-1", OWNER);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.code).toBe("invalid");
+      expect(result.errors?.nsloc).toBeDefined();
+    }
+    expect(txRequestUpdateMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a row whose required needed_by date is null (no 1970 coercion)", async () => {
     txRequestFindFirstMock.mockResolvedValue({ ...completeDraft, needed_by: null });
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ExternalLink, Search, X } from "lucide-react";
 import { ResponsiveContainer, Tooltip as RechartsTooltip, Treemap } from "recharts";
 import { cn } from "@/lib/utils";
+import { compact2 } from "@/components/explorer-v2/format";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
@@ -44,13 +45,8 @@ const TREEMAP_STYLE = `
   --sc-ink-0: #09090b; --sc-ink-2: #09090b; --sc-ink-3: #09090b; --sc-ink-tail: #fafafa;
 }`;
 
-const usdCompact = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 2,
-});
-
 function fmtUsd(v: number): string {
-  return `$${usdCompact.format(v)}`;
+  return `$${compact2(v)}`;
 }
 
 function fmtPrice(p: number | null): string | null {

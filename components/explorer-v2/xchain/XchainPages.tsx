@@ -9,7 +9,7 @@
 // time (none exists in a DAG). Those rows get an "indexed" badge so replay
 // dates are never presented as chain truth.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
@@ -17,37 +17,18 @@ import { Board, BoardHeader, CellLabel, SectionHeader, StatCell, SubjectHeadline
 import { formatNumber, formatUsd, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { useAvaxUsd } from "@/components/explorer-v2/pchain/hooks";
+import { usePolledJson } from "@/components/explorer-v2/page-data";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
-import { UtxoColumn } from "@/components/explorer-v2/pchain/PchainTx";
+import { UtxoColumn } from "@/components/explorer-v2/pchain/utxo-ledger";
 import type { AssetAmount, Utxo } from "@/lib/pchain-explorer";
 import { crossChainTxUrl } from "@/lib/crosschain-links";
 
 const LIVE_REFRESH_MS = 12_000;
 
-/** Same-origin fetch against the /api/xchain proxy, with the pchain hook's
- *  semantics: silent background refresh, last-good data kept on failure. */
+/** A read of the /api/xchain proxy: the explorer's shared poll hook
+ *  (page-data.ts), so its pages open from memory as the others do */
 function useXchain<T>(path: string | null, refreshMs?: number): { data: T | null; loading: boolean } {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    if (!path) return;
-    let alive = true;
-    const load = () =>
-      fetch(path)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          if (alive && d) setData(d);
-        })
-        .catch(() => {})
-        .finally(() => alive && setLoading(false));
-    load();
-    if (!refreshMs) return () => void (alive = false);
-    const id = setInterval(() => document.visibilityState === "visible" && load(), refreshMs);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, [path, refreshMs]);
+  const { data, loading } = usePolledJson<T>(path ?? "", { refreshMs });
   return { data, loading };
 }
 

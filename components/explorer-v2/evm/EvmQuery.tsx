@@ -17,12 +17,14 @@ import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
+import { isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
-import { type Row, NoteText, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, rowDoor, toUnix } from "./QueryRows";
+import { type Row, NoteText, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isTxList, rowDoor, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
+import { bucketOf } from "./drill-plot";
 import { QueryLoader } from "./QueryLoader";
 import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
 import { QueryMonitor } from "./QueryMonitor";
@@ -220,21 +222,21 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
 
 /* each chain family's own chrome; stable components, so a re-render of
    the wrapper never remounts the page and loses its answer */
-function QueryShell({ kind, scope, network, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; children: React.ReactNode }) {
+function QueryShell({ kind, scope, network, heading, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; heading: boolean; children: React.ReactNode }) {
   if (scope === "network")
     return (
-      <NetworkShell network={network} search={false}>
+      <NetworkShell network={network} search={false} heading={heading}>
         {children}
       </NetworkShell>
     );
   if (kind === "pchain")
     return (
-      <ExplorerShell chain="p-chain" network={network} hideHeader>
+      <ExplorerShell chain="p-chain" network={network} hideHeader heading={heading}>
         <div className="mx-auto w-full max-w-[90rem] px-5 pb-24 pt-2 md:px-6">{children}</div>
       </ExplorerShell>
     );
   return (
-    <EvmShell network={network} search={false}>
+    <EvmShell network={network} search={false} heading={heading}>
       {children}
     </EvmShell>
   );
@@ -324,7 +326,7 @@ function QueryPage({
     const my = token.current;
     setReading(true);
     try {
-      const out = await post<{ callouts: string[]; ms: number }>({ key: a.key, reading: true });
+      const out = await post<{ callouts: string[]; ms: number }>({ key: a.key, trace: a.trace, reading: true });
       if (my !== token.current) return;
       setAnswer((prev) => (prev && prev.sql === a.sql && prev.visual ? { ...prev, visual: { ...prev.visual, callouts: out.callouts } } : prev));
     } catch {
@@ -344,8 +346,8 @@ function QueryPage({
         // a kept answer is laid out by the server from its own SQL; hand-edited rows are sent
         const out = await post<{ visual: VisualSpec; designer: boolean; ms: number }>(
           a.key && a.sql === answerSql.current
-            ? { key: a.key }
-            : { design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } },
+            ? { key: a.key, trace: a.trace }
+            : { trace: a.trace, design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } },
         );
         if (my !== token.current) return;
         setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, visual: out.visual, draftVisual: false, model: { ...(prev.model ?? { steps: 0, ms: 0, tries: 0 }), designMs: out.ms, designer: out.designer } } : prev));
@@ -481,11 +483,11 @@ function QueryPage({
         }
         return;
       }
-      const title = fillTitle(answer.drill.title, row, answer.names);
-      setDrill({ title, row, index, answer: null, error: null, prev: sel });
+      const title = fillTitle(answer.drill.title, row, answer.names), span = bucketOf(row[answer.chart.x ?? ""], answer.chart.x, answer.result?.rows ?? []);
+      setDrill({ title, row, index, answer: null, error: null, prev: sel, span });
       setSel([]);
       try {
-        const out = await post<DrillAnswer>({ drill: { sql: answer.drill.sql, row } });
+        const out = await post<DrillAnswer>({ drill: { sql: answer.drill.sql, row, span } });
         setDrill((d) => (d && d.index === index ? { ...d, answer: out } : d));
         setDigSelection({
           kind: "records",
@@ -712,8 +714,8 @@ function QueryPage({
   const quiet = "flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50";
 
   return (
-    // the prompt box below is this page's search bar; the shell's would repeat it
-    <QueryShell kind={c.kind} scope={scope} network={network}>
+    // the prompt box below is this page's search bar; the shell's would repeat it. An answer's title is the h1
+    <QueryShell kind={c.kind} scope={scope} network={network} heading={!answer}>
       {picker && <div className="mb-6">{picker}</div>}
       {index === "empty" ? (
         <p className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-[13.5px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
@@ -871,6 +873,7 @@ function QueryPage({
                     names={names}
                     sym={sym}
                     totals={answer.totals}
+                    span={answer.span}
                     base={base}
                     canDrill={canDrill || recordRows}
                     // a mark that is one thing on the chain (a transaction, a
@@ -909,7 +912,7 @@ function QueryPage({
                         <div key={col.name} className={cn(CARD, "flex min-w-0 flex-col gap-2 px-4 py-4 sm:px-5 sm:py-5")}>
                           <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{header(col.name)}</span>
                           <span className="truncate font-mono text-[22px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">
-                            {typeof v === "number" ? fmt(v, /pct|percent|ratio/i.test(col.name) && f === "number" ? "percent" : f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
+                            {typeof v === "number" ? fmt(v, f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
                           </span>
                         </div>
                       );

@@ -16,6 +16,8 @@ import type { VersionMix } from "@/components/explorer-v2/network/icm-map";
 export { PRIMARY_SUBNET_ID as PRIMARY_NETWORK_ID } from "@/lib/pchain-node";
 
 const inflight = new Map<string, Promise<SubnetStats[]>>();
+/* the answers already in, so a page opened later draws them in its first frame */
+const answered = new Map<string, SubnetStats[]>();
 
 export function fetchValidatorStats(network = "mainnet"): Promise<SubnetStats[]> {
   let p = inflight.get(network);
@@ -27,6 +29,7 @@ export function fetchValidatorStats(network = "mainnet"): Promise<SubnetStats[]>
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json() as Promise<SubnetStats[]>;
     });
+    p.then((s) => answered.set(network, s)).catch(() => {});
     // a failed fetch shouldn't poison the session; let the next caller retry
     p.catch(() => inflight.delete(network));
     inflight.set(network, p);
@@ -65,13 +68,13 @@ export function mixOf(byVersion: Record<string, { nodes: number }>, target: stri
 /* `enabled` keeps the lazy callers lazy: the switcher fetches on first
    open, the portal's name search on the first two typed characters. */
 export function useValidatorStats(network = "mainnet", enabled = true) {
-  const [subnets, setSubnets] = useState<SubnetStats[] | null>(null);
+  const [subnets, setSubnets] = useState<SubnetStats[] | null>(() => (enabled ? (answered.get(network) ?? null) : null));
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    setSubnets(null);
+    setSubnets(answered.get(network) ?? null);
     setError(false);
     fetchValidatorStats(network)
       .then((s) => {
@@ -109,17 +112,27 @@ export function useIndexedChainIds(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    fetch("/api/indexed-chains")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { indexed?: string[] | null } | null) => {
-        if (cancelled || !body?.indexed) return;
-        setIds(new Set(body.indexed));
-      })
-      .catch(() => {});
+    void readIndexedChainIds().then((read) => {
+      if (!cancelled && read) setIds(read);
+    });
     return () => {
       cancelled = true;
     };
   }, [enabled]);
 
   return ids;
+}
+
+let indexedRead: Promise<Set<string> | null> | null = null;
+/** the indexed set, read once a session (a failed read is asked again); null on failure */
+export function readIndexedChainIds(): Promise<Set<string> | null> {
+  indexedRead ??= fetch("/api/indexed-chains")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((body: { indexed?: string[] | null } | null) => (body?.indexed ? new Set(body.indexed) : null))
+    .catch(() => null)
+    .then((read) => {
+      if (!read) indexedRead = null;
+      return read;
+    });
+  return indexedRead;
 }

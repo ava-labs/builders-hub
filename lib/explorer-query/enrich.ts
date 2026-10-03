@@ -16,7 +16,7 @@
 
 import { pchainRows, toHexBytes } from "./pchain-ids";
 import { LENDING_PROTOCOLS } from "./lending";
-import { DEX_CHAIN_ID, DEX_PROTOCOLS, dexContractName } from "./protocols";
+import { DEX_CHAIN_ID, DEX_PROTOCOLS, DEX_TOKENS, dexContractName } from "./protocols";
 import { subnetNames } from "./sources";
 import { targetOf } from "./target";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -28,12 +28,9 @@ import { getContractInfo, type ContractInfo as RegistryContract } from "@/lib/co
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { ColumnMeta } from "./clickhouse";
 import type { Names } from "./types";
+import { HOUR, MINUTE, isAddress, isHash, isSelector } from "./values";
 
 type Row = Record<string, unknown>;
-
-const SELECTOR = /^0x[0-9a-fA-F]{8}$/;
-const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-const TOPIC = /^0x[0-9a-fA-F]{64}$/;
 
 interface TokenInfo {
   symbol: string;
@@ -46,7 +43,7 @@ interface ContractInfo {
   fns: Map<string, string> | null;
 }
 
-const tokenCache = new Map<number, { at: number; tokens: Map<string, TokenInfo> }>();
+const tokenCache = new Map<number, { at: number; ttl: number; tokens: Map<string, TokenInfo> }>();
 const contractCache = new Map<string, { at: number; info: ContractInfo }>();
 const sigCache = new Map<string, string | null>();
 
@@ -82,13 +79,14 @@ async function getJson<T>(url: string, timeoutMs: number): Promise<T | null> {
 const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
   Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
 
-/** the chain's token list by lowercase address, held an hour; a monitor reads its symbols and decimals too */
+/** the chain's token list by lowercase address, held an hour and a failed read a minute (one bad read once left
+    every monitor and name without tokens for the hour); a monitor reads its symbols and decimals too */
 export async function tokenList(chainId: number, baseUrl: string): Promise<Map<string, TokenInfo>> {
   const hit = tokenCache.get(chainId);
-  if (hit && Date.now() - hit.at < 3_600_000) return hit.tokens;
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.tokens;
   const body = await getJson<{ tokens?: Record<string, TokenInfo> }>(`${baseUrl}/api/token-list/${chainId}`, 15_000);
   const tokens = new Map(Object.entries(body?.tokens ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
-  tokenCache.set(chainId, { at: Date.now(), tokens });
+  tokenCache.set(chainId, { at: Date.now(), ttl: body ? HOUR : MINUTE, tokens });
   return tokens;
 }
 
@@ -96,9 +94,9 @@ export async function tokenList(chainId: number, baseUrl: string): Promise<Map<s
 function kindOf(values: unknown[]): "selector" | "address" | "topic" | null {
   const strs = values.filter((v): v is string => typeof v === "string");
   if (strs.length === 0) return null;
-  if (strs.every((s) => SELECTOR.test(s))) return "selector";
-  if (strs.every((s) => ADDRESS.test(s))) return "address";
-  if (strs.every((s) => TOPIC.test(s))) return "topic";
+  if (strs.every((s) => isSelector(s))) return "selector";
+  if (strs.every((s) => isAddress(s))) return "address";
+  if (strs.every((s) => isHash(s))) return "topic";
   return null;
 }
 
@@ -285,8 +283,47 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
     for (const c of columns) {
       if (TOKEN_COLUMN.test(c.name) && rows.some((r) => typeof r[c.name] === "string" && String(r[c.name]).toLowerCase() === ZERO_ADDRESS)) (names[c.name] ??= {})[ZERO_ADDRESS] = "AVAX";
     }
+    pairNames(columns, rows, names);
   }
   return names;
+}
+
+const DEX_SYMBOLS: ReadonlyMap<string, string> = new Map(DEX_TOKENS.map((t) => [t.token, t.symbol]));
+const POOL_COLUMN = /(?:^|_)(?:pool|pair)(?:_|$)/i;
+const SYMBOL = /^[A-Za-z0-9.$_+-]{1,12}$/;
+
+/** a DEX pool's name, where the rows carry its two tokens: its protocol, version and pair, as Pharaoh V3 WAVAX/USDC.
+    A verified pool's name is its code's, and r11's G02 drew three bars "RamsesV3Pool"; a name that is a pair already
+    stays, and two pools of one name take their address's ends. A protocol every pool shares is left out, as the title
+    names it: a bar name ends at 26 characters, and r12's H02 drew two bars "Trader Joe LB v2.2 WAVAX/…" */
+export function pairNames(columns: ColumnMeta[], rows: Row[], names: Names): void {
+  const col = (re: RegExp) => columns.find((c) => re.test(c.name))?.name;
+  const [t0, t1] = [col(/^(?:token_?0|t0)$/i), col(/^(?:token_?1|t1)$/i)];
+  if (!t0 || !t1) return;
+  const [protocol, version] = [col(/^protocol$/i), col(/^version$/i)];
+  const symbol = (c: string, v: unknown) => {
+    if (typeof v !== "string") return undefined;
+    const name = DEX_SYMBOLS.get(v.toLowerCase()) ?? names[c]?.[v.toLowerCase()];
+    return name && SYMBOL.test(name) ? name : undefined;
+  };
+  for (const c of columns) {
+    if (!POOL_COLUMN.test(c.name)) continue;
+    const parts = new Map<string, { by: string; words: string }>();
+    for (const r of rows) {
+      const pool = r[c.name];
+      const [a, b] = [symbol(t0, r[t0]), symbol(t1, r[t1])];
+      if (typeof pool !== "string" || !a || !b || names[c.name]?.[pool.toLowerCase()]?.includes("/")) continue;
+      const slug = protocol ? r[protocol] : undefined;
+      const by = protocol && typeof slug === "string" ? (names[protocol]?.[slug] ?? slug) : "";
+      const v = version && typeof r[version] === "string" ? String(r[version]) : "";
+      parts.set(pool.toLowerCase(), { by, words: [v, `${a}/${b}`].filter(Boolean).join(" ") });
+    }
+    const shared = parts.size > 1 && new Set([...parts.values()].map((p) => p.by)).size === 1;
+    const labels = new Map([...parts].map(([pool, p]) => [pool, shared || !p.by ? p.words : `${p.by} ${p.words}`]));
+    const seen = new Map<string, number>();
+    for (const label of labels.values()) seen.set(label, (seen.get(label) ?? 0) + 1);
+    for (const [pool, label] of labels) (names[c.name] ??= {})[pool] = (seen.get(label) ?? 0) > 1 ? `${label} ${pool.slice(0, 6)}…${pool.slice(-4)}` : label;
+  }
 }
 
 /* ------------------------------------------------------------------ */

@@ -9,11 +9,11 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import {
-  getRegistrationJustification,
   newL1ValidatorRegistrationMessage,
   newWarpMessage,
   packWarpIntoAccessList,
 } from '@avalanche-sdk/interchain/warp';
+import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
 import { extractRegisterL1ValidatorMessageFromPChainTx } from '@avalanche-sdk/interchain/validator-manager';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
@@ -245,7 +245,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       const l1ValidatorRegistrationMessage = hexToBytes(unsignedRegistrationMsg.toHex() as `0x${string}`);
 
       // Step 5: Get justification for the validation
-      const justification = await getRegistrationJustification(validationId, subnetIdL1, chainPublicClient!);
+      const justification = await findRegistrationJustification(validationId, subnetIdL1, chainPublicClient!);
 
       if (!justification) {
         throw new Error(

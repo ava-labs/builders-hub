@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { usePolledJson, useRememberedJson } from "@/components/explorer-v2/page-data";
 import { SectionHeader } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { NetworkStatsBody } from "@/components/explorer-v2/network/NetworkStats";
 import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
-import l1ChainsData from "@/constants/l1-chains.json";
-import type { L1Chain } from "@/types/stats";
-import { useDapps } from "@/app/(home)/stats/dapps/_hooks/useDapps";
-import { OverviewLiveBoards, type LiveChain } from "./overview-live";
+import type { DAppsMetrics } from "@/types/dapps";
+import { OverviewLiveBoards } from "./overview-live";
+import { DAPPS_URL, SUPPLY_URL, overviewStatsUrl, overviewWindow, rosterOf, type LiveChain } from "./network-reads";
 import { useChainPulse } from "./chain-pulse";
 import { networkTps } from "./throughput";
 import { L1Versions } from "./l1-versions";
@@ -41,8 +41,6 @@ interface ChainRow {
   tps: number | null;
 }
 
-const metricDesc = (a: number | null, b: number | null) => (b ?? -1) - (a ?? -1);
-
 interface OverviewData {
   chains: ChainRow[];
   coverage?: { indexed: number; total: number };
@@ -65,56 +63,9 @@ interface SupplyData {
   totalXBurned: string;
 }
 
-/* the overview aggregate's longest upstream window is a year: the ALL
-   tick clamps to it, and the pulse labels say so */
-function overviewWindow(range: ExplorerRange): Exclude<ExplorerRange, "all"> {
-  return range === "all" ? "year" : range;
-}
-
 function overviewWindowLabel(range: ExplorerRange): string {
   return range === "all" ? `${RANGE_LABEL.year} · longest window` : RANGE_LABEL[range];
 }
-
-function useOverviewStats(timeRange: ExplorerRange) {
-  const [data, setData] = useState<OverviewData | null>(null);
-  // when the figures landed: the anchor the live tx counter counts from
-  const [fetchedAt, setFetchedAt] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController();
-    setRefreshing(true);
-    fetch(`/api/overview-stats?timeRange=${timeRange}`, { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: OverviewData) => {
-        setData(d);
-        setFetchedAt(Date.now());
-      })
-      .catch(() => {
-        /* the previous range's data stands */
-      })
-      .finally(() => setRefreshing(false));
-    return () => controller.abort();
-  }, [timeRange]);
-  return { data, fetchedAt, refreshing };
-}
-
-function useAvaxSupply() {
-  const [data, setData] = useState<SupplyData | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/avax-supply", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: SupplyData) => setData(d))
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
-  return data;
-}
-
-/* catalog lookups so activity rows link into each chain's own explorer */
-const catalogByChainId = new Map(
-  (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c]),
-);
 
 const num = (v: string | undefined) => {
   const n = v ? parseFloat(v) : NaN;
@@ -125,12 +76,13 @@ export function NetworkOverview() {
   // the shared clock: registers this page as a consumer, so the subnav
   // surfaces its range control and every reading below tracks the one pick
   const range = useExplorerTimeRange();
-  const clamped = overviewWindow(range);
-  const days = RANGE_DAYS[clamped];
-  const { data } = useOverviewStats(clamped);
-  const supply = useAvaxSupply();
-  // DeFi on the C-Chain: DefiLlama's chain TVL, the same feed the DeFi tab reads
-  const { metrics: defi, loading: defiLoading } = useDapps();
+  const days = RANGE_DAYS[overviewWindow(range)];
+  // each feed opens from memory (a range seen before, a hovered link's read) while it is read again
+  const { data } = usePolledJson<OverviewData>(overviewStatsUrl(range));
+  const supply = useRememberedJson<SupplyData>(SUPPLY_URL);
+  // DeFi on the C-Chain
+  const { data: dapps, loading: defiLoading } = usePolledJson<{ metrics?: DAppsMetrics }>(DAPPS_URL);
+  const defi = dapps?.metrics;
 
   // the figures' pasts: sparks and moves against the previous window
   const series = useNetworkSeries(days);
@@ -158,23 +110,7 @@ export function NetworkOverview() {
   const liveChainsRef = useRef<LiveChain[]>([]);
   const liveChains = useMemo<LiveChain[]>(() => {
     if (liveChainsRef.current.length > 0) return liveChainsRef.current;
-    const roster = (data?.chains ?? [])
-      .slice()
-      .sort((a, b) => metricDesc(a.txCount, b.txCount))
-      .flatMap((c) => {
-        const catalog = catalogByChainId.get(String(c.chainId));
-        if (!catalog?.rpcUrl) return [];
-        return [
-          {
-            chainId: String(c.chainId),
-            slug: catalog.slug,
-            name: c.chainName,
-            logo: c.chainLogoURI || catalog.chainLogoURI || "",
-            symbol: catalog.networkToken?.symbol || "",
-          },
-        ];
-      })
-      .slice(0, 8);
+    const roster = rosterOf(data?.chains ?? []);
     if (roster.length > 0) liveChainsRef.current = roster;
     return roster;
   }, [data]);

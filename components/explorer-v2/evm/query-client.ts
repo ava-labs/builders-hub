@@ -4,6 +4,7 @@
    Query page and the city's answer window, so both speak to the route and
    to the reader the same way. */
 
+import posthog from "posthog-js";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
@@ -20,9 +21,15 @@ export class QueryError extends Error {
   }
 }
 
+/** the page's PostHog ids, so the route's events for a question join this visit; none when PostHog is off or blocked */
+function tracked(): Record<string, string> {
+  if (!posthog.__loaded) return {};
+  return { "x-posthog-distinct-id": posthog.get_distinct_id(), "x-posthog-session-id": posthog.get_session_id() };
+}
+
 /** one plain call: a drill, a layout, a reading, a hand-edited SQL */
 export async function postQuery<T>(body: object): Promise<T> {
-  const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json", ...tracked() }, body: JSON.stringify(body) });
   const out = (await res.json()) as T & { error?: string };
   if (!res.ok || out.error) throw new Error(out.error ?? `HTTP ${res.status}`);
   return out;
@@ -30,7 +37,7 @@ export async function postQuery<T>(body: object): Promise<T> {
 
 /** a question, streamed: each step as it ends, then the answer */
 export async function streamQuery(body: object, onEvent: (e: QueryEvent) => void): Promise<QueryAnswer> {
-  const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json", ...tracked() }, body: JSON.stringify(body) });
   if (!res.ok || !res.body) {
     const out = (await res.json().catch(() => ({}))) as { error?: string; signIn?: boolean };
     throw new QueryError(out.error ?? `HTTP ${res.status}`, !!out.signIn);
@@ -127,7 +134,7 @@ export function readerError(message: string): string {
 /* a bar the designer marked already takes the edge's word into its own label: two labels on one bar overlap. A
    label that says so already (the audit's V11 "Today, partial", V13 "Day not over") takes nothing, and any other
    ("Peak 519k") takes the word, so a peak on a period still filling never reads as whole */
-const SAID_PARTIAL = /\b(?:partial|so far|not over|filling|in progress|incomplete|index ends)\b/i;
+export const SAID_PARTIAL = /\b(?:partial|so far|not over|filling|in progress|incomplete|index ends)\b/i;
 function marked<M extends { x: string | number; label: string }>(markers: M[], x: string, label: string): (M | { x: string; label: string })[] {
   const i = markers.findIndex((m) => String(m.x) === x);
   if (i < 0) return [...markers, { x, label }];

@@ -1,6 +1,7 @@
 import { useVerifiedContracts, functionNameFromAbi } from "@/lib/sourcify-client";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
+import { knownAddress } from "@/lib/evm-explorer";
 
 /* Row-level garnish shared by the EVM home and list pages: what a tx DID
    (the 4-byte selector, named when it's a classic) and how full a block
@@ -55,15 +56,17 @@ export interface MethodName {
 
 /** One resolver for every transaction table, so a selector reads the
  *  same on the home board, the block page, the address page and the
- *  list: the called contract's verified ABI first, then the generated
- *  registry and the classics table, then the signature database for
- *  whatever is left, then the selector itself. */
+ *  list: the called contract's verified ABI first (a precompile's own
+ *  ABI stands in for one), then the generated registry and the classics
+ *  table, then the signature database for whatever is left, then the
+ *  selector itself. */
 export function useMethodNames(chainId: string | number, rows: { methodId?: string; to: string | null | undefined }[]): (t: { methodId?: string; to: string | null | undefined }) => MethodName {
   const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
   const local = (t: { methodId?: string; to: string | null | undefined }): string | null => {
     const sel = t.methodId?.toLowerCase() ?? "";
     if (!sel) return null;
-    return functionNameFromAbi(t.to ? contracts.get(t.to.toLowerCase())?.abi : null, sel) ?? getFunctionBySelector(sel)?.name ?? SELECTOR_NAMES[sel] ?? null;
+    const abi = t.to ? contracts.get(t.to.toLowerCase())?.abi ?? knownAddress(t.to, chainId)?.abi : null;
+    return functionNameFromAbi(abi, sel) ?? getFunctionBySelector(sel)?.name ?? SELECTOR_NAMES[sel] ?? null;
   };
   const unknown = rows.filter((t) => t.methodId && !local(t)).map((t) => t.methodId!.toLowerCase());
   const sigs = useSignatures(unknown, []);

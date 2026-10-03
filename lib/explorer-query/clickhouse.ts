@@ -148,6 +148,7 @@ async function postStats(sql: string): Promise<RawJson> {
   // instances share the key, so this one's slots are not the whole story
   let res: Response | null = null;
   let text = "";
+  let pages = 0;
   for (let attempt = 0; attempt < 4; attempt += 1) {
     // the rows stream: the query runs until the body is read, so the slot is held until then
     const got = await statsSlot(async () => {
@@ -161,6 +162,11 @@ async function postStats(sql: string): Promise<RawJson> {
     });
     res = got.r;
     text = got.t;
+    // a 403 web page in place of JSON is the service's answer, not the query's (r12's H07 got one): once more
+    if (res.status === 403 && /^\s*</.test(text) && pages++ < 1) {
+      await new Promise((r) => setTimeout(r, 1000));
+      continue;
+    }
     if (res.status !== 429 && res.status !== 503) break;
     const after = Number(res.headers.get("retry-after"));
     if (attempt === 3) break;
@@ -173,6 +179,7 @@ async function postStats(sql: string): Promise<RawJson> {
   } catch {
     // rows that began and stopped: the service ends its answer where a value is NaN or infinite, which JSON cannot hold
     if (text.startsWith('{"columns":')) throw new Error(CUT_OFF);
+    if (res.status === 403 && /^\s*</.test(text)) throw new Error("stats-api 403: the query service answered with a web page, not a query error, so the SQL may be right: run it again");
     throw new Error(`stats-api ${res.status}: ${text.slice(0, 200)}`);
   }
   // the endpoint streams, so a query can fail after the rows began: the trailer says so

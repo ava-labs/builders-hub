@@ -400,7 +400,7 @@ async function fetchHistoricalIcmMessages(
   }
 }
 
-async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
+async function fetchExplorerData(evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
   const startTime = Date.now();
   const timing: Record<string, number> = {};
 
@@ -945,7 +945,7 @@ export async function GET(
     // Fetch fresh data and check Glacier support in parallel
     const dataFetchStart = Date.now();
     const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
+      fetchExplorerData(chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
       checkGlacierSupport(chainId),
     ]);
     requestTiming.dataFetch = Date.now() - dataFetchStart;

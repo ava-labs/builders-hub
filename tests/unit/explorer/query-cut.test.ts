@@ -65,7 +65,7 @@ describe('figures', () => {
   it('says a cut first, and sets the whole result beside the rows', () => {
     const t = totals(142, { sum: { fees_avax: 500 }, count: { fees_avax: 142 }, min: { fees_avax: 0.5 }, max: { fees_avax: 12 }, distinct: { t: 142 } });
     const f = figures({ columns, rows, names: {}, x: 't', totals: t });
-    expect(f[0]).toBe("The rows are the first 73 of 142: the query's LIMIT cut the rest. A sum over these rows is not the total; the total over all 142 is given beside it.");
+    expect(f[0]).toBe("The rows are the first 73 of 142: the query's LIMIT cut the rest. A sum over these rows is not the total; the total over all 142 is given beside it. A stat's sum, average, count or distinct shows the figure over all 142, so its label names the whole set, never these 73.");
     const text = f.join('\n');
     expect(text).toContain('total 500 over all 142 rows');
     expect(text).toContain('(12 in a row not shown)');

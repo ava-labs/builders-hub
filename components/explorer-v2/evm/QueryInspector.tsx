@@ -6,12 +6,13 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronLeft, Copy, Download, Table2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fnInk } from "@/components/explorer-v2/ui";
-import { formatNumber, truncate } from "@/components/explorer-v2/format";
+import { ageShort, formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
+import { isAddress, isTime } from "@/lib/explorer-query/values";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
-import { LEDGER_KNOWN, ResultTable, type Row, ago, doorFor, downloadCsv, formatOf, header, isAddress, isTime, isTxList, toUnix } from "./QueryRows";
+import { LEDGER_KNOWN, ResultTable, type Row, doorFor, downloadCsv, formatOf, header, isTxList, toUnix } from "./QueryRows";
 
 /* The rows behind the chart, read in a sheet beside it. The chart is
    the index: whatever the reader has picked on it is what the sheet
@@ -82,7 +83,7 @@ export function TxCards({ rows, names, visual, base, sym, step = 40 }: { rows: R
                 </span>
                 {isTime(r.t) && (
                   <span className="shrink-0 tabular-nums text-zinc-400 dark:text-zinc-500" title={`${String(r.t).replace("T", " ").slice(0, 19)} UTC`}>
-                    {ago(toUnix(r.t))} ago
+                    {ageShort(toUnix(r.t))} ago
                   </span>
                 )}
               </span>

@@ -10,7 +10,7 @@ import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explor
 import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
-import { NotFound, RailRow } from "./EvmTx";
+import { NotFound, RailRow } from "@/components/explorer-v2/detail-parts";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcBlock } from "./useRpcBlock";
@@ -110,7 +110,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // a segment and its row lights up, pick a group and the table narrows
   const [hover, setHover] = useState<string | null>(null);
   const [filter, setFilter] = useState<Set<string> | null>(null);
-  const nameOf = (addr: string) => tokens.get(addr.toLowerCase())?.symbol;
+  const nameOf = (addr: string) => tokens.get(addr.toLowerCase())?.symbol ?? knownAddress(addr, c.chainId)?.label;
   const shownTxs = b ? (filter ? b.transactions.filter((t) => filter.has(t.hash)) : b.transactions) : [];
   const burn = b ? knownAddress(b.miner) : undefined;
   const gasPct = b && b.gasLimit > 0 ? (b.gasUsed / b.gasLimit) * 100 : 0;
@@ -252,7 +252,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     {life.ready ? (
                       <span className="flex items-center gap-2.5">
                         <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">executing</span>}
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">accepted</span>}
                       </span>
                     ) : (
                       "…"
@@ -368,7 +368,8 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     </span>
                     <span className="col-span-2 flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <span className="truncate">{truncate(t.from, 8)}</span>
+                      {/* the sender's column holds its 13 characters in every row, so the arrows and recipients line up */}
+                      <span className="w-[13ch] shrink-0 truncate">{truncate(t.from, 8)}</span>
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to && tokens.get(t.to.toLowerCase()) ? (
                         <TokenMark address={t.to} chainId={c.chainId} token={tokens.get(t.to.toLowerCase())!} size={14} />

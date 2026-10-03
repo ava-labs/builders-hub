@@ -7,6 +7,7 @@
    Mainnet C-Chain only. */
 
 import registryData from "@/data/contract-registry.json";
+import { mentioned } from "./names";
 import { packed, strings } from "./protocols";
 
 interface RegistryEntry {
@@ -106,6 +107,9 @@ export const FAMILY_TOPICS = {
   savaxUnlock: "d843ce9ef55b27026be6c5e44e9f58097e0ebfa0d9d2d5823cb8ffa779585170",
   savaxRedeem: "bd5034ffbd47e4e72a94baa2cdb74c6fad73cb3bcdc13036b72ec8306f5a7646",
   savaxRewards: "915149a1670a81177a53d6f73ee6f911abec9e8d13d0ca02a93a28fcc0d54458",
+  /** UnlockCancelled(address,uint256,uint256) and RedeemOverdueShares(address,uint256), each checked against its signature */
+  savaxCancel: "7e4a9502fd577f76f1dc8c9c8f63196816f7c1bd73c6db99f888e8d7bb2f8998",
+  savaxOverdue: "eaca243f6502ade1b9ea0909306c290366d6ea6778ca407ca4415c4a0f45e353",
   transfer: "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
   cctpBurnV1: "2fa9ca894982930190727e75500a97d8dc500233a5065e0f3126c48fbe0343c0",
   cctpBurnV2: "0c8c1cbdc5190613ebd485511d4e2812cfa45eecb79d845893331fedad5130a5",
@@ -157,6 +161,8 @@ export const FAMILY_NAMES: Record<string, string> = {
   savax_unlock_t: hexOf(FAMILY_TOPICS.savaxUnlock),
   savax_redeem_t: hexOf(FAMILY_TOPICS.savaxRedeem),
   savax_rewards_t: hexOf(FAMILY_TOPICS.savaxRewards),
+  savax_cancel_t: hexOf(FAMILY_TOPICS.savaxCancel),
+  savax_overdue_t: hexOf(FAMILY_TOPICS.savaxOverdue),
   transfer_t: hexOf(FAMILY_TOPICS.transfer),
   cctp_burn_v1_t: hexOf(FAMILY_TOPICS.cctpBurnV1),
   cctp_burn_v2_t: hexOf(FAMILY_TOPICS.cctpBurnV2),
@@ -170,11 +176,15 @@ export const FAMILY_NAMES: Record<string, string> = {
 const FAMILY_WORDS =
   /\b(avant|sav(usd|btc)|av(usd|btc)|spark|spusdc|hypha|st-?avax|gg-?avax|gogopool|opentrade|open trade|savax|liquid[- ]staking|stak(e|ed|ing) avax|unstak\w*|cctp|circle (bridge|cctp)|bridged usdc|usdc (bridge|bridged)|cross[- ]chain usdc|erc[- ]?4626|vaults?)\b/i;
 
-/** a question about the vaults, sAVAX or CCTP, whose prompt carries their chapter: it names one of them, or an earlier
-    turn read their contracts. Every other question's prompt is the one it was */
+/** the family names long enough for a slip to read as them (names.ts) */
+const SLIPPED = ["OpenTrade", "GoGoPool"];
+
+/** a question about the vaults, sAVAX or CCTP, whose prompt carries their chapter: it names one of them (OpenTrade or
+    GoGoPool one slip off), or an earlier turn read their contracts. Every other question's prompt is the one it was */
 export function familyQuestion(chainId: number, prompt: string, history: { prompt?: string; sql?: string }[] = []): boolean {
   if (chainId !== FAMILY_CHAIN_ID || VAULTS.length + OPENTRADE_POOLS.length === 0 || !SAVAX) return false;
-  return FAMILY_WORDS.test(prompt) || history.some((t) => FAMILY_WORDS.test(t.prompt ?? "") || /\b(vaults|ot_pools|savax_token|cctp_\w+)\b/.test(t.sql ?? ""));
+  const about = (q: string) => FAMILY_WORDS.test(q) || mentioned(q, SLIPPED).length > 0;
+  return about(prompt) || history.some((t) => about(t.prompt ?? "") || /\b(vaults|ot_pools|savax_token|cctp_\w+)\b/.test(t.sql ?? ""));
 }
 
 /* A query on these contracts writes our server's names for them
@@ -184,8 +194,37 @@ export function familyQuestion(chainId: number, prompt: string, history: { promp
 
 /** the topics a query on these contracts may write out: the named ones, an ERC-20's Approval, the transmitters'
     MessageSent, and WAVAX's Deposit, which sAVAX writes too (keccak of each signature, viem) */
+/* the other events these contracts logged in the 90 days to 2026-09-30, read from raw_logs: the vaults' fee and admin
+   events, sAVAX's Withdraw, the OpenTrade pools' own. A topic the server has
+   no name for is no mistake when the contract logs it: the r6 audit's UnlockCancelled on sAVAX (208 logs) was sent
+   back as "no event of these contracts" */
+const SEEN_TOPICS = [
+  "142999da1b7c9b15a43b8fb11fb55ab6bae6111cbd90626e5b47e49efd6a4799",
+  "156e588d1067ba3c8a6a7f4376ef70794f8afed114dc9d1421e054b65743e630",
+  "180eacdf7dbaeecaa983d93173b4285db2f2c0de0044697e1f932bbbb73dcaa6",
+  "191e16d6a3a6d3f67535002b7d83fbc2c172ea76845d852135a96f46b821c304",
+  "456468d0d5c249d1e9c2eb03d20f2a6627334ac8667838011f1df0013816f1cf",
+  "4b9e0347eed22e6497acaf0cff5d4e76fbd04032e68f81edf1823ff8d3f9737c",
+  "4bba2b08298cf59661b4895e384cc2ac3962ce2d71f1b7c11bca52e1169f9599",
+  "73cd35236d624d907e365ebb596cec5a00d8732dd494db7fe7a51a6561a5b5d3",
+  "7aa50fb4f250f9725bff6436208316b64f66ab969d3cf340fe345f2718fdee12",
+  "884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364",
+  "8a16e0e94d3e61227e5da91c8fef19e22a0b136b335a7b5ce57e762bf5474d5f",
+  "95531cf01679ac5aa7d49c50fdb23ccff8bd527cdd85214ca1d81f6d2aee7780",
+  "ab64f92ab780ecbf4f3866f57cee465ff36c89450dcce20237ca7a8d81fb7d13",
+  "ad1e8a53178522eb68a9d94d862bf30c841f709d2115f743eb6b34528751c79f",
+  "b0f90eb9923b5c0a32d2df54960511caffba716d1baa3d348d4af0cb2aa79f59",
+  "b30a03a0e2a407f18ae0e83491331dc069d1521e292feffb071e61c8f7f40636",
+  "bb28dd7cd6be6f61828ea9158a04c5182c716a946a6d2f31f4864edb87471aa6",
+  "bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
+  "c94c46ffbbc1b036a4912660fe60c404ba4d10638d365a46d1bac54abf76a849",
+  "d69eabfc802f58b2a23d16767d1fcab6551f30a60ab43a24f147d3823d7d0368",
+  "dd4573165d2d2b3ad7be79cfb35bd79c5d5e90e9a51ca373b975e89591b1e513",
+  "e0ba1f7b9ab1ce44306b7c0a5c04982a401d90b491eb18517662e955579746ac",
+];
 export const FAMILY_EVENTS: ReadonlySet<string> = new Set([
   ...Object.values(FAMILY_TOPICS),
+  ...SEEN_TOPICS,
   "8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
   "8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036",
   "e1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c",
@@ -233,6 +272,6 @@ export function familyHex(sql: string, chainId: number, also: ReadonlySet<string
   if (!READS_FAMILIES.test(sql)) return null;
   const topic = topicLiterals(sql).find((t) => !FAMILY_EVENTS.has(t) && !also.has(t));
   return topic
-    ? `unhex('${shown(topic)}') is no event of these contracts: a topic written from memory is often wrong, and this one reads no rows. Write the name our server defines for the event, as it is: vault_deposit_t or vault_withdraw_t on a vault; ot_deposit_t, ot_request_t, ot_accept_t, ot_repay_t, ot_rate_t or ot_rate_old_t on an OpenTrade pool; submitted_t, savax_unlock_t, savax_redeem_t, savax_rewards_t or transfer_t on savax_token; cctp_burn_v1_t, cctp_burn_v2_t, cctp_mint_v1_t or cctp_mint_v2_t on a messenger; cctp_received_v1_t or cctp_received_v2_t on a transmitter`
+    ? `unhex('${shown(topic)}') is no event of these contracts: a topic written from memory is often wrong, and this one reads no rows. Write the name our server defines for the event, as it is: vault_deposit_t or vault_withdraw_t on a vault; ot_deposit_t, ot_request_t, ot_accept_t, ot_repay_t, ot_rate_t or ot_rate_old_t on an OpenTrade pool; submitted_t, savax_unlock_t, savax_cancel_t, savax_redeem_t, savax_overdue_t, savax_rewards_t or transfer_t on savax_token; cctp_burn_v1_t, cctp_burn_v2_t, cctp_mint_v1_t or cctp_mint_v2_t on a messenger; cctp_received_v1_t or cctp_received_v2_t on a transmitter`
     : null;
 }

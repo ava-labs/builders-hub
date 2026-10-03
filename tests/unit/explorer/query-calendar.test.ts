@@ -80,7 +80,43 @@ describe('the calendar rule', () => {
     expect(userTurn(43419, token, at).split('\n\n')[0]).toBe("Today is 2026-09-28 (UTC). A question about a token's transfers counts its mints (transfers from the zero address) and burns (to it) in columns of their own.");
     expect(userTurn(43114, 'How many transactions were there today?', at).split('\n\n')[0]).toBe('Today is 2026-09-28 (UTC).');
     expect(userTurn(43113, token, at)).toBe(token);
-    expect(turn('Validators added per week', 1)).toBe('Today is 2026-09-28 (UTC).');
+    // a question about tokens' transfers that names no token and no NFT reads ERC-20 Transfers only (r7's E03)
+    const erc20 = " A token transfer is an ERC-20 Transfer log, topic3 IS NULL: an NFT's Transfer (ERC-721) has the same topic0 and its token id in topic3.";
+    expect(userTurn(43114, 'Which tokens had the most transfers today?', at).split('\n\n')[0]).toBe(`Today is 2026-09-28 (UTC).${erc20}`);
+    expect(userTurn(43114, 'Which NFT collections had the most transfers today?', at)).not.toContain('topic3 IS NULL');
+    expect(userTurn(43114, 'Top ERC-721 tokens by transfers this week', at)).not.toContain('topic3 IS NULL');
+    expect(userTurn(43114, token, at)).not.toContain('topic3 IS NULL');
+    // a DEX question about pools groups by pool, so a WOOFi pool is one row, not its pairs (r7's D08)
+    expect(userTurn(43114, 'Top 10 pools by volume this week', at)).toContain('A query by pool groups by pool, protocol, version and k, never by t0 and t1');
+    expect(userTurn(43114, 'Which tokens had the most DEX volume today?', at)).not.toContain('A query by pool');
+    expect(userTurn(43114, 'New pools per week per DEX', at)).not.toContain('A query by pool');
+    // a DEX question about fees says what swappers paid, never that LPs earned it all (r7's D09)
+    expect(userTurn(43114, 'Pharaoh fees per day this week', at)).toContain("A DEX's fees are what its swappers paid, sum(fee_usd)");
+    expect(userTurn(43114, 'What was the average gas fee today?', at)).not.toContain("A DEX's fees");
+    // an sAVAX unstake is a request and a redemption, counted apart (r11's G09 counted the redemptions alone)
+    expect(userTurn(43114, 'sAVAX stakes and unstakes per day this week', at)).toContain('An sAVAX unstake is two events: UnlockRequested savax_unlock_t');
+    expect(userTurn(43114, 'sAVAX stakes per day this week', at)).not.toContain('An sAVAX unstake');
+    expect(userTurn(43114, 'How many validators unstaked this week?', at)).not.toContain('An sAVAX unstake');
+    // a C-Chain question about NFTs leaves the DEX pools out: an LB pool's bin shares log TransferBatch (r11's G03)
+    const lb = 'opens with $POOLS() and leaves the DEX pools out, AND address NOT IN (SELECT pool FROM pools)';
+    expect(userTurn(43114, 'Which NFT collections had the most transfers today?', at)).toContain(lb);
+    expect(userTurn(43114, 'Top ERC-1155 contracts by transfers today', at)).not.toContain(lb);
+    expect(userTurn(43419, 'Which NFT collections had the most transfers today?', at)).not.toContain(lb);
+    const system = (chainId: number) => systemPrompt({ chainId, chainName: 'x', symbol: 'AVAX', schema: '', coverage: null });
+    expect(system(43114)).toContain(lb);
+    expect(system(43419)).not.toContain(lb);
+    expect(userTurn(43114, 'Which pools had the most swaps today?', at)).toContain('A query by pool');
+    expect(userTurn(43113, 'Top 10 pools by volume this week', at)).toBe('Top 10 pools by volume this week');
+    // a P-Chain question about validators that started or were added counts nodes beside registrations (r7's P01)
+    const nodes = ' A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window.';
+    // the current set reads the newest snapshot as full as the one before it (r12's H16 read one 24 minutes old); Fuji's stays
+    const pchain = (chainId: number) => pchainPrompt({ chainId, network: 'x', schema: '', coverage: null });
+    expect(pchain(1)).toContain('GROUP BY snapshot_time) WHERE (snap_before > 0 AND snap_rows >= snap_before) OR snap_t <= now() - INTERVAL 15 MINUTE)');
+    expect(pchain(5)).not.toContain('snap_rows');
+    expect(turn('Validators added per week', 1)).toBe(`Today is 2026-09-28 (UTC).${nodes}`);
+    expect(turn('How many validators started validating the Primary Network this week?', 1)).toBe(`Today is 2026-09-28 (UTC).${nodes}`);
+    expect(turn('How many validators joined L1s this week?', 1)).toBe('Today is 2026-09-28 (UTC).');
+    expect(turn('Validator uptime by version', 1)).toBe('Today is 2026-09-28 (UTC).');
     for (const chainId of [43113, 5]) expect(userTurn(chainId, 'New pools per week per DEX', at)).toBe('New pools per week per DEX');
   });
 

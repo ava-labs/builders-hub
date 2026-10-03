@@ -900,7 +900,11 @@ model AuditQuote {
   request_id       String
   auditor_id       String
   price_usd        Int
-  duration_weeks   Int
+  // The number as the firm typed it, in duration_unit (Joey, 2026-09-30:
+  // days as well as weeks). The column keeps its original name, so adding
+  // days took one new column and no rewrite of the quotes already on file.
+  duration         Int      @map("duration_weeks")
+  duration_unit    String   @default("weeks") // weeks | days (lib/audits/status.ts)
   earliest_start   DateTime @db.Timestamptz(3)
   message          String
   // Optional link to the firm's own proposal or scoping doc.

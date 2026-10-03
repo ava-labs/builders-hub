@@ -36,6 +36,6 @@ describe("Team1 landing header server markup", () => {
   });
 
   it("paints the hub's ground inside the landing root", () => {
-    expect(html).toMatch(/<main [^>]*data-academy="landing"[^>]*><div aria-hidden="true" class="[^"]*bg-ac-ground/);
+    expect(html).toMatch(/<div [^>]*data-academy="landing"[^>]*><div aria-hidden="true" class="[^"]*bg-ac-ground/);
   });
 });

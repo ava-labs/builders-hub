@@ -54,7 +54,7 @@ export function SidebarActions({
       console.error('Failed to copy markdown:', err);
       // Fallback to copying the page URL
       try {
-        await navigator.clipboard.writeText(`${window.location.origin}${pagePath}`);
+        await navigator.clipboard.writeText(`${window.location.origin}${fullPath}`);
         setIsCopied(true);
         setTimeout(() => {
           setIsCopied(false);
@@ -87,7 +87,7 @@ export function SidebarActions({
     title: `Update ${title} information`,
     body: `It appears that the information on this page might be outdated. Please review and update as needed.
 
-Page: [${pagePath}](https://build.avax.network${pagePath})
+Page: [${fullPath}](https://build.avax.network${fullPath})
 
 [Provide more details here...]`,
     labels: pageType === 'academy' ? ['outdated', 'Academy'] : ['outdated', 'Docs'],

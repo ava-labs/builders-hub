@@ -92,6 +92,7 @@ export function useNow(ms = 30_000): number {
   return now;
 }
 
+/** "just now", "3m ago", then the date from 30 days: a board's refresh time, rounded (timeAgo in format.ts floors and never gives a date) */
 export function ago(at: number, now: number): string {
   const s = Math.max(0, Math.round((now - at) / 1000));
   if (s < 45) return "just now";
@@ -304,15 +305,16 @@ export function BoardThumb({ board, className }: { board: Board; className?: str
 /* ------------------------------------------------------------------ */
 /* the page chrome: the same shells the Query page wears                */
 
+// a board page names itself in a visible h1, so the shell adds none
 export function QueryPageShell({ kind, network, children }: { kind: "evm" | "pchain"; network: string; children: React.ReactNode }) {
   if (kind === "pchain")
     return (
-      <ExplorerShell chain="p-chain" network={network} hideHeader>
+      <ExplorerShell chain="p-chain" network={network} hideHeader heading={false}>
         <div className="mx-auto w-full max-w-[90rem] px-5 pb-24 pt-2 md:px-6">{children}</div>
       </ExplorerShell>
     );
   return (
-    <EvmShell network={network} search={false}>
+    <EvmShell network={network} search={false} heading={false}>
       {children}
     </EvmShell>
   );

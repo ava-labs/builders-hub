@@ -424,7 +424,7 @@ const TxList = memo(function TxList({
                   )}
                 </span>
                 <span className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5 font-mono text-[11.5px] text-zinc-500 dark:text-zinc-400">
-                  <Party addr={t.from} name={null} href={base ? `${base}/address/${t.from}` : undefined} />
+                  <Party addr={t.from} name={null} href={base ? `${base}/address/${t.from}` : undefined} column />
                   <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                   {t.to ? (
                     <Party

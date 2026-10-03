@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /* The ticker: a feed lands in batches (a poll's blocks, a block's txs), and
    the list should read as a steady tape. Newcomers queue up and are
@@ -11,7 +11,10 @@ import { useEffect, useRef, useState } from "react";
    make room. A newcomer older than the top row (a hole filled late) is let
    go rather than slotted in, and a newcomer with a row's own key (the same
    tx, read again with more on it) takes that row's place without moving
-   it. The first batch paints whole. */
+   it. The first batch paints whole, and while the window is short a
+   newcomer older than its last row fills in beneath it: a board fed by two
+   sources (the indexer's page and the stream's first blocks) opens full
+   whichever lands first. */
 
 /* the release pace stays between these */
 const MIN_MS = 150;
@@ -19,6 +22,36 @@ const MAX_MS = 700;
 /* a fresh batch waits this long before its first row, so names can warm */
 const WARM_MS = 180;
 
+/** Where a batch of newcomers goes. An empty window paints them whole.
+ *  Otherwise a newcomer newer than the top row and than every row waiting
+ *  joins the queue (oldest first), one older than the last row fills in
+ *  beneath it while the window is short, and one in between is let go. */
+export function admit<T>(
+  visible: readonly T[],
+  queue: readonly T[],
+  fresh: readonly T[],
+  visibleMax: number,
+  newer: (a: T, b: T) => number,
+): { visible: T[]; queue: T[] } {
+  const sorted = [...fresh].sort(newer);
+  if (!visible.length) return { visible: sorted.slice(0, visibleMax), queue: [...queue] };
+  const top = visible[0];
+  const last = visible[visible.length - 1];
+  const tail = queue[queue.length - 1];
+  const next = [...queue];
+  for (const t of [...sorted].reverse()) {
+    if (newer(t, top) >= 0) continue;
+    if (tail !== undefined && newer(t, tail) >= 0) continue;
+    next.push(t);
+  }
+  const room = visibleMax - visible.length;
+  const below = room > 0 ? sorted.filter((t) => newer(t, last) > 0).slice(0, room) : [];
+  return { visible: below.length ? [...visible, ...below] : [...visible], queue: next };
+}
+
+/** `incoming` is newest first and keeps each row's object between
+ *  renders while the row is unchanged: a new object is read as the row
+ *  read again, and is drawn again */
 export function useTicker<T>(
   incoming: T[],
   visibleMax: number,
@@ -30,15 +63,18 @@ export function useTicker<T>(
     paused?: boolean;
     /** the newcomers of a batch, before any shows: the caller warms their names */
     onEnqueue?: (fresh: T[]) => void;
+    /** false: the feed's rows show as they come (a list that swaps whole on
+     *  each poll); the ticker still keeps count of them, so turning it on
+     *  carries on from the rows on screen */
+    enabled?: boolean;
   },
 ): T[] {
-  const { key, newer, paused = false, onEnqueue } = opts;
+  const { key, newer, paused = false, onEnqueue, enabled = true } = opts;
   const [visible, setVisible] = useState<T[]>([]);
   const visibleRef = useRef<T[]>([]);
   // oldest first: the next to release is at the front
   const queue = useRef<T[]>([]);
   const seen = useRef(new Set<string>());
-  const painted = useRef(false);
   const pausedRef = useRef(paused);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastRelease = useRef(0);
@@ -80,8 +116,28 @@ export function useTicker<T>(
     timer.current = setTimeout(release, wait);
   };
 
-  useEffect(() => {
+  const remember = (rows: T[]) => {
     const k = keyRef.current;
+    for (const t of rows) seen.current.add(k(t));
+    if (seen.current.size > 2000) seen.current = new Set([...seen.current].slice(-1000));
+  };
+
+  // before paint: rows that are there when the list mounts (a page opened
+  // from memory) show in its first frame, not one frame after a skeleton
+  useLayoutEffect(() => {
+    const k = keyRef.current;
+    if (!enabled) {
+      // the rows on screen are the feed's own; counted, so the ticker can take over from them
+      remember(incoming);
+      queue.current = [];
+      const shown = incoming.slice(0, visibleMax);
+      const same = shown.length === visibleRef.current.length && shown.every((t, i) => k(t) === k(visibleRef.current[i]));
+      if (same) return;
+      visibleRef.current = shown;
+      setVisible(shown);
+      if (shown.length) lastRelease.current = lastArrive.current = Date.now();
+      return;
+    }
     // a row read again (the same key, another object) is refreshed where it stands
     const byKey = new Map(incoming.map((t) => [k(t), t]));
     let changed = false;
@@ -98,17 +154,19 @@ export function useTicker<T>(
     queue.current = queue.current.map((q) => byKey.get(k(q)) ?? q);
     const fresh = incoming.filter((t) => !seen.current.has(k(t)));
     if (!fresh.length) return;
-    for (const t of fresh) seen.current.add(k(t));
-    if (seen.current.size > 2000) seen.current = new Set([...seen.current].slice(-1000));
+    remember(fresh);
     onEnqueueRef.current?.(fresh);
     const now = Date.now();
-    const sorted = [...fresh].sort(newerRef.current);
-    if (!painted.current) {
-      painted.current = true;
+    const opening = !visibleRef.current.length;
+    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current);
+    queue.current = placed.queue;
+    if (placed.visible.length !== visibleRef.current.length) {
+      visibleRef.current = placed.visible;
+      setVisible(placed.visible);
+    }
+    if (opening) {
       lastRelease.current = now;
       lastArrive.current = now;
-      visibleRef.current = sorted.slice(0, visibleMax);
-      setVisible(visibleRef.current);
       return;
     }
     // the rate: this batch over the time since the last, smoothed
@@ -116,18 +174,9 @@ export function useTicker<T>(
     lastArrive.current = now;
     const inst = fresh.length / dt;
     rate.current = rate.current ? 0.35 * inst + 0.65 * rate.current : inst;
-    // only newer than the top row joins the queue; the queue stays oldest first
-    const top = visibleRef.current[0];
-    const q = queue.current;
-    const tail = q[q.length - 1];
-    for (const t of sorted.reverse()) {
-      if (top !== undefined && newerRef.current(t, top) >= 0) continue;
-      if (tail !== undefined && newerRef.current(t, tail) >= 0) continue;
-      q.push(t);
-    }
     arm(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incoming, visibleMax]);
+  }, [incoming, visibleMax, enabled]);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -142,5 +191,5 @@ export function useTicker<T>(
     [],
   );
 
-  return visible;
+  return enabled ? visible : incoming.slice(0, visibleMax);
 }

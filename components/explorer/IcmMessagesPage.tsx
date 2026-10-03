@@ -13,7 +13,8 @@ import {
 } from "recharts";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
-import { LiveTag, getChainFromBlockchainId } from "@/components/explorer/L1ExplorerPage";
+import { LiveTag } from "@/components/explorer-v2/ui";
+import { getChainFromBlockchainId } from "@/components/explorer/utils/chainLookup";
 import { FeedDown } from "@/components/explorer-v2/evm/bits";
 import { CellLabel, ChartBoard, idInk } from "@/components/explorer-v2/ui";
 import { dayLong, dayShort, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";

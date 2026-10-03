@@ -1,10 +1,11 @@
 import "server-only";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { anthropic, type ModelCall } from "./meter";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { protocolScope, unitName } from "./checks";
 import { familyQuestion } from "./families";
+import { mevQuestion } from "./mev";
 import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
 import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
@@ -15,10 +16,12 @@ import { isCChain, isFuji, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey, type Recipe } from "./cache";
 import { fixedRecipe, fixedRoute } from "./fixed";
 import { versionLines } from "./sources";
-import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
+import { codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
+import { basicVisual } from "./draft";
+import { labelError } from "./stat-label";
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
-import { scopeError, sqlWindow, withWindow } from "./scope";
+import { asOfWords, scopeError, snapshotSql, sqlWindow, windowSpan, withWindow } from "./scope";
 import { contradictions, withoutContradictions } from "./claims";
 import { absurdFigure } from "./magnitude";
 import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
@@ -29,8 +32,6 @@ import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
    one thing, at medium effort for comparisons, follow-ups, and anything
    the first could not finish. Every step reports as it ends, so the
    page can show the work. */
-
-const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 /** the writers, each with its own output cap. The SDK sends a model's cap only for the models it knows, and gave
     claude-sonnet-5 4096 tokens, which a written-out query with its drill can pass: a cut call is lost. 16k is five
@@ -107,6 +108,8 @@ interface Ask {
   emit: (e: QueryEvent) => void;
   /** answer from the model even when a recipe is kept (the warm job) */
   fresh?: boolean;
+  /** each model call the writer makes reports here (meter.ts) */
+  spent?: (call: ModelCall) => void;
 }
 
 /** what a reader is told when no answer came: a question with no words, one the chain's records cannot
@@ -146,20 +149,27 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
+    // a kept layout that misstates these rows (stats named for the rows a LIMIT kept, a share, a stack) is laid out again
+    const stale = !!key && !!recipe.visual && !!labelError(recipe.visual, result.rows, totals, sql);
+    if (stale && key) await putRecipe(key, { ...recipe, sql, visual: null });
+    const visual = stale ? null : recipe.visual;
     const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
+    // a snapshot's figures stand at its time, read after the rows and their totals, beside no other query
+    const span = said.span ?? (isFuji(a.chainId) ? null : await snapshotSpan(run.sql));
     return {
       anchor: run.anchor,
       sources: run.sources,
       title: said.title,
       note: said.note,
+      span,
       sql,
       chart: recipe.chart,
       drill: recipe.drill,
       result,
       totals,
       names,
-      visual: recipe.visual ?? basicVisual(recipe.chart, result.columns),
-      draftVisual: !recipe.visual,
+      visual: visual ?? basicVisual(recipe.chart, result.columns),
+      draftVisual: !visual,
       coverage: cover,
       key: key ?? undefined,
       model: { steps: 0, ms: Date.now() - t0, tries: 0, writer: recipe.writer, cached: true, timings: [] },
@@ -169,12 +179,28 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
   }
 }
 
+/** the time a snapshot answer's figures stand at, read by the snapshot's own subquery run alone; null for an answer
+    that reads no snapshot, and when the read fails */
+async function snapshotSpan(sql: string): Promise<string | null> {
+  const pick = snapshotSql(sql);
+  if (!pick) return null;
+  try {
+    const t = msOf((await runQuery(pick)).rows[0]?.at);
+    return t > 0 ? asOfWords(t, Date.now()) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** a kept recipe's title and note as the page shows them: the note loses any sentence that names the SQL's parts,
     and both name the window the query reads, in the reader's dates when the index runs behind. The second phase
     writes its reading from these words too, so the reading never says today for a day the index ended on */
-export function keptWords(recipe: Pick<Recipe, "title" | "note" | "chart">, sql: string, rows: readonly Record<string, unknown>[], anchor: string | null | undefined, chainId: number): { title: string; note: string } {
+export function keptWords(recipe: Pick<Recipe, "title" | "note" | "chart">, sql: string, rows: readonly Record<string, unknown>[], anchor: string | null | undefined, chainId: number): { title: string; note: string; span: string | null } {
   const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
-  return isFuji(chainId) ? words : withWindow(words, collapseMacros(sql, chainId), rows, recipe.chart.x, anchor ? msOf(anchor) : Date.now(), Date.now());
+  if (isFuji(chainId)) return { ...words, span: null };
+  const read = collapseMacros(sql, chainId);
+  const now = anchor ? msOf(anchor) : Date.now();
+  return { ...withWindow(words, read, rows, recipe.chart.x, now, Date.now()), span: windowSpan(read, rows, recipe.chart.x, now, Date.now()) };
 }
 
 /** the answer, without its layout when none is kept: the page asks for that next */
@@ -222,7 +248,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const system =
     targetOf(a.chainId).kind === "pchain"
       ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine, lines: await versionLines(a.chainId) })
-      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history), families: familyQuestion(a.chainId, a.prompt, a.history) });
+      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history), families: familyQuestion(a.chainId, a.prompt, a.history), mev: mevQuestion(a.chainId, a.prompt, a.history) });
 
   // earlier turns, so "make it weekly" refines the last chart
   const messages: ModelMessage[] = [];
@@ -484,7 +510,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
           const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now, Date.now());
-          final = { title: said.title, note: said.note, sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
+          final = { title: said.title, note: said.note, span: fuji ? null : (windowSpan(read, rows.rows, chart.x, now, Date.now()) ?? (await snapshotSpan(ran.sql))), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };
@@ -497,7 +523,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     });
 
     const call = (msgs: ModelMessage[], budget: number) => generateText({
-      model: anthropic(w.id),
+      model: anthropic(w.id, a.spent),
       // the writer's own cap on mainnet; Fuji keeps the SDK's
       ...(fuji ? {} : { maxOutputTokens: w.maxOutputTokens }),
       ...(w.effort ? { providerOptions: { anthropic: { effort: w.effort } } } : {}),

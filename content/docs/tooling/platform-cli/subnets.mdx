@@ -81,6 +81,34 @@ platform-cli subnet convert-to-l1 \
   --key-name mykey
 ```
 
+### Validator Owners
+
+Each initial validator has two P-Chain owners. The P-Chain cannot change them after the conversion.
+
+| Owner | Flag | Permission |
+|-------|------|------------|
+| Remaining balance owner | `--validator-remaining-balance-owner` | Receives the validator's remaining balance when the validator is disabled or removed |
+| Deactivation owner | `--validator-deactivation-owner` | Can disable the validator (`l1 disable-validator`) |
+
+Both owners default to the P-Chain address of your key, with threshold 1. To set other owners, give 1 address for all validators, or 1 address per validator in the same order as `--validators` or `--validator-node-ids`:
+
+```bash
+platform-cli subnet convert-to-l1 \
+  --subnet-id 2QYfFcfZ9... \
+  --chain-id 3RZgGdaH1... \
+  --manager 0x1234... \
+  --validators 127.0.0.1:9650,127.0.0.1:9652 \
+  --validator-remaining-balance-owner P-fuji1abc... \
+  --validator-deactivation-owner P-fuji1def...,P-fuji1ghi... \
+  --key-name mykey
+```
+
+The CLI prints both owners of each validator before it submits the transaction.
+
+<Callout type="warn">
+An empty owner has threshold 0, so any funded P-Chain key can disable the validator and spend its remaining balance. The CLI refuses to issue an empty owner unless you set `--allow-empty-owners`. Do not use that flag on a real L1. Versions before v2.2.0 set both owners to empty on every conversion.
+</Callout>
+
 ### Mock Validator (Testing)
 
 For local testing, generate a mock validator with random BLS credentials:

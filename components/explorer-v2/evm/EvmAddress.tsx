@@ -13,7 +13,7 @@ import { EvmContract, useIsContract, useVerifiedContract } from "./EvmContract";
 import { EvmToken } from "./EvmToken";
 import { TokenMark, NativeMark } from "./TokenMark";
 import { FIG, UNIT, Tabs, TxTable, TransferTable, EmptyRow } from "./AddressTables";
-import { useNativeBalance, useTokenBalances } from "./useErc20";
+import { useAddressBalances } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
@@ -64,7 +64,7 @@ export function EvmAddress({
   const { contract: verified } = useVerifiedContract(c.chainId, addr, { expectVerified: justVerified });
   const hasCode = useIsContract(readRpc(c.chainId, c.rpcUrl), addr);
   const isContract = verified !== null || hasCode === true;
-  const fixture = knownAddress(addr);
+  const fixture = knownAddress(addr, c.chainId);
 
   // is it a token? the list says so outright; the page shows the token then
   const tokens = useTokenList(c.chainId);
@@ -73,7 +73,6 @@ export function EvmAddress({
   // what it holds: native balance from the RPC; tokens = the ones its
   // recent transfers touched plus the majors, asked with one balanceOf batch
   const liveRpc = readRpc(c.chainId, c.rpcUrl);
-  const nativeWei = useNativeBalance(liveRpc, addr);
   const { price } = usePrice(c.chainId);
   const usd = price?.price ?? null;
 
@@ -83,7 +82,7 @@ export function EvmAddress({
     for (const [a, t] of tokens) if (MAJORS.has(t.symbol.toUpperCase())) set.add(a);
     return [...set];
   }, [transfers.data, tokens]);
-  const { balances, ready: balancesReady } = useTokenBalances(liveRpc, addr, candidates);
+  const { nativeWei, balances, ready: balancesReady } = useAddressBalances(liveRpc, addr, candidates);
   const held = useMemo(
     () => [...balances.entries()].map(([a, amount]) => ({ address: a, amount, token: tokens.get(a)! })).filter((h) => h.token),
     [balances, tokens],
@@ -108,7 +107,8 @@ export function EvmAddress({
   const tabs: Tab[] = isContract ? ["holdings", "txs", "transfers", "contract"] : ["holdings", "txs", "transfers"];
   const activeTab: Tab = tab === "contract" && !isContract ? "holdings" : tab;
 
-  const who = listed ? "Token" : verified ? "Verified contract" : isContract ? "Contract" : "Account";
+  // a fixture with an ABI is a precompile: built in, so nothing to verify
+  const who = listed ? "Token" : verified ? "Verified contract" : fixture?.abi ? "Precompile" : isContract ? "Contract" : "Account";
 
   return (
     <EvmShell network={network}>

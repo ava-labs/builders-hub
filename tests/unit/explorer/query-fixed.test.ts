@@ -100,6 +100,30 @@ describe('a suggestion asked', () => {
     expect(generateText).not.toHaveBeenCalled();
   });
 
+  it("gives a snapshot's figures the snapshot's time, read after the rows by its own subquery", async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse('2026-09-28T12:00:00Z'));
+    const time = (at: string) => ({ ...ROWS, columns: [{ name: 'at', type: 'DateTime' }], rows: [{ at }] });
+    runQuery.mockImplementation(async (sql: string) => (sql.startsWith('SELECT (SELECT max(snapshot_time)') ? time('2026-09-28 11:45:00') : ROWS));
+    const a = await ask(1, 'L1s by active validators, with the balance left for fees');
+    expect(a?.span).toBe('as of 11:45 UTC');
+    // one query at a time: the rows, then the time
+    expect(runQuery.mock.calls.map(([sql]) => sql)).toEqual([a?.sql, 'SELECT (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY) AS at']);
+    // a snapshot a day old names its day, and a time that fails to come names none
+    runQuery.mockImplementation(async (sql: string) => (sql.startsWith('SELECT (SELECT') ? time('2026-09-27 11:45:00') : ROWS));
+    expect((await ask(1, 'Validators whose staking period ends in the next 7 days'))?.span).toBe('as of September 27, 11:45 UTC');
+    runQuery.mockImplementation(async (sql: string) => {
+      if (sql.startsWith('SELECT (SELECT')) throw new Error('stats-api 503');
+      return ROWS;
+    });
+    expect((await ask(1, 'Largest validators right now, with delegators and uptime'))?.span).toBeNull();
+    // an answer over a window reads no time of its own
+    runQuery.mockReset().mockResolvedValue(ROWS);
+    expect((await ask(43114, 'Fees burned per 5 minutes'))?.span).toBe('last 6 hours');
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
   it('on the other chain is sent there, with no model', async () => {
     const a = await ask(43114, PCHAIN[0]);
     expect(a?.route).toBe('p-chain');

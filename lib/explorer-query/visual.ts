@@ -4,15 +4,16 @@
    where a reference line belongs, and what a reader should notice.
    It speaks a small visual grammar the page knows how to draw. */
 
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { anthropic, type ModelCall } from "./meter";
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { ColumnMeta } from "./clickhouse";
 import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
+import { basicVisual } from "./draft";
+import { averageLabel, labelError } from "./stat-label";
 
-const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const DESIGN_MODEL = "claude-opus-5-5";
 /** the designer runs at low effort: in 20 blind pairs its charts were rated as good as the default's (7 wins each, 6 ties), in about half the time */
 export const DESIGN_OPTIONS = { anthropic: { effort: "low" as const } };
@@ -94,33 +95,6 @@ export const visualSpecSchema = z.object({
 export type VisualSpec = z.infer<typeof visualSpecSchema>;
 
 type Row = Record<string, unknown>;
-
-/** the old one-chart spec, as a visual, for when the designer is unavailable */
-export function basicVisual(chart: ChartSpec, columns: ColumnMeta[]): VisualSpec {
-  if (chart.kind === "none" || chart.kind === "table" || !chart.x || chart.series.length === 0) {
-    return { stats: [], panels: [{ title: "Rows", kind: "table", series: [], markers: [], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }], callouts: [] };
-  }
-  const time = columns.find((c) => c.name === chart.x)?.type.startsWith("Date");
-  return {
-    stats: [],
-    panels: [
-      {
-        title: "",
-        kind: chart.kind === "bar" && !time ? "hbar" : chart.kind,
-        x: chart.x,
-        series: chart.series.map((s) => ({ column: s.column, label: s.label, format: /%/.test(s.unit ?? "") ? "percent" : /avax/i.test(s.unit ?? "") ? "avax" : /gas/i.test(s.unit ?? "") ? "gas" : "number", axis: "left", mark: "auto", transform: "none", dashed: false })),
-        markers: [],
-        bands: [],
-        stacked: !!chart.stacked,
-        sortDir: "desc",
-        referenceLines: [],
-        width: "full",
-      },
-    ],
-    callouts: [],
-  };
-}
-
 
 /** the most rows a model reads in full; past that it reads a sample */
 const ALL_ROWS = 100;
@@ -236,18 +210,6 @@ function labelsOf(v: VisualSpec): string[] {
   ];
 }
 
-/* the highest or lowest of the rows' own averages is an average, not a price paid: the final audit's X04 read "Peak
-   gas price 35.58 gwei", the highest hour's average, where the highest price paid was 19,999.92 gwei. A stat of one
-   whose label and sub never say so says average ("Peak average gas price") */
-const AVERAGE_NAME = /(?:^|_)(?:avg|average|mean)(?:_|$)/i;
-const SAYS_AVERAGE = /\b(?:avg|averages?|mean|median|typical)\b/i;
-const EXTREME_WORD = /^(?:peak|highest|lowest|top|max(?:imum)?|min(?:imum)?|busiest|cheapest)\b/i;
-export function averageLabel<S extends { label: string; sub?: string; agg: string; column: string }>(s: S): S {
-  if ((s.agg !== "max" && s.agg !== "min") || !AVERAGE_NAME.test(s.column) || SAYS_AVERAGE.test(`${s.label} ${s.sub ?? ""}`)) return s;
-  const m = EXTREME_WORD.exec(s.label);
-  return { ...s, label: m ? `${m[0]} average${s.label.slice(m[0].length)}` : `${s.label} (average)` };
-}
-
 /** a visual in the reader's words: a snake_case name left in a label reads as words, and a callout that names a column,
     or an address the rows do not hold, is left out. A name the rows hold (shown) stays as written */
 export function readerSpec(v: VisualSpec, names: readonly string[], held?: readonly string[], shown: ReadonlySet<string> = new Set()): VisualSpec {
@@ -303,6 +265,8 @@ export interface DesignInput {
   /** the SQL as written and the time it read as now: which edge buckets its window cuts */
   sql?: string;
   anchor?: string | null;
+  /** each model call reports here (meter.ts) */
+  spent?: (call: ModelCall) => void;
 }
 
 type Seen = Pick<DesignInput, "columns" | "rows" | "names" | "totals" | "x" | "sql" | "anchor">;
@@ -349,6 +313,10 @@ export function distinctColumns(columns: readonly ColumnMeta[], sql?: string): S
    count beside it (txs) weighs each row's average, which gives that average. A maximum in each row (max_fee) ranks
    rows, not the items in them: T02 read the second-highest hourly maximum as the second-highest block */
 const MEAN_NAME = /(?:^|_)(?:avg|average|mean|median|p\d{2})(?:_|$)/i;
+/* a median or a percentile in each row has no weighted average either: no count beside it weighs the rows' medians
+   into the median of what they count (the r6 audit's C05b called the transaction-weighted mean of 8 hourly medians,
+   6.54, the day's median, which is 6.50) */
+const QUANTILE_NAME = /(?:^|_)(?:median|p\d{2})(?:_|$)/i;
 const MAX_NAME = /(?:^|_)(?:max|maximum|peak|highest)(?:_|$)/i;
 const EXTREME_NAME = /(?:^|_)(?:max|maximum|peak|highest|min|minimum|lowest)(?:_|$)/i;
 const COUNT_NAME = /(?:^|_)(?:txs|transactions|transfers|count|blocks|calls|swaps)(?:_|$)/i;
@@ -394,7 +362,7 @@ function pairsOf(columns: readonly ColumnMeta[]): [ColumnMeta, ColumnMeta][] {
 function weightOf(columns: readonly ColumnMeta[], c: ColumnMeta): ColumnMeta | null {
   const word = periodOf(c.name)?.word ?? null;
   const counts = columns.filter((k) => k !== c && NUMERIC.test(k.type) && COUNT_NAME.test(k.name) && !MEAN_NAME.test(k.name) && (periodOf(k.name)?.word ?? null) === word);
-  return counts.length === 1 ? counts[0] : null;
+  return counts.length === 1 && !QUANTILE_NAME.test(c.name) ? counts[0] : null;
 }
 
 /** a value as a model reads it: a name where the server found one */
@@ -528,7 +496,7 @@ export function figures(input: Seen): string[] {
     out.push(
       totals.newest
         ? `The rows are the newest ${rows.length} of ${totals.rows}: the row cap cut the oldest.`
-        : `The rows are the first ${rows.length} of ${totals.rows}: the query's LIMIT cut the rest. ${sizeOnly(totals) ? `A sum over these rows is not the total over all ${totals.rows}.` : `A sum over these rows is not the total; the total over all ${totals.rows} is given beside it.`}`,
+        : `The rows are the first ${rows.length} of ${totals.rows}: the query's LIMIT cut the rest. ${sizeOnly(totals) ? `A sum over these rows is not the total over all ${totals.rows}; a count stat shows all ${totals.rows}.` : `A sum over these rows is not the total; the total over all ${totals.rows} is given beside it. A stat's sum, average, count or distinct shows the figure over all ${totals.rows}, so its label names the whole set, never these ${rows.length}.`}`,
     );
   }
   // which edge buckets the window cuts, from the same reading of the SQL as the chart's labels
@@ -580,7 +548,7 @@ export function figures(input: Seen): string[] {
         ...(whole.has(c.name) ? [`each row's share of the sum over ${size ? `all ${plain(size)}` : "all the"} rows the query keeps (after its filters, before its LIMIT), not of the chain's whole: name that base by what those rows are`] : []),
         noTotal ? "no total: each row counts its own distinct ones, and one in several rows is in each" : mean ? "no total: each row holds an average, and a sum of averages means nothing" : extreme ? "no total: each row holds its own highest or lowest value, and a sum of them means nothing" : all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
         mean
-          ? `mean of the row values ${plain(sum / nums.length)}, which is not the average over what the rows count${weighed !== null ? `; weighted by ${weight!.name}, that average is ${plain(weighed)}` : ""}`
+          ? `mean of the row values ${plain(sum / nums.length)}, which is not the ${QUANTILE_NAME.test(c.name) ? "median of what the rows count, and no weighting makes one" : "average over what the rows count"}${weighed !== null ? `; weighted by ${weight!.name}, that average is ${plain(weighed)}` : ""}`
           : `avg ${plain(sum / nums.length)}`,
         `max ${plain(hi.v)} at ${at(hi.r)}${held(hi.v)}${all && all.max[c.name] > hi.v ? hidden(all.max[c.name], all.maxAt?.[c.name]) : ""}${next.length ? `, then${MAX_NAME.test(c.name) ? " the next rows' own maxima (each the highest within its row, not the next highest overall)," : ""} ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
         `min ${plain(lo.v)} at ${at(lo.r)}${held(lo.v)}${all && all.min[c.name] < lo.v ? hidden(all.min[c.name], all.minAt?.[c.name]) : ""}`,
@@ -652,8 +620,7 @@ export function figures(input: Seen): string[] {
 
 /** an average over what the rows count: each row's average weighed by its count */
 function weighted(c: ColumnMeta, w: ColumnMeta, rows: readonly Row[]): number | null {
-  let top = 0;
-  let bottom = 0;
+  let [top, bottom] = [0, 0];
   for (const r of rows) {
     const [v, n] = [numOf(c, r[c.name]), numOf(w, r[w.name])];
     if (v === null || n === null || n <= 0) continue;
@@ -753,7 +720,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
   });
   try {
     await generateText({
-      model: anthropic(READER_MODEL),
+      model: anthropic(READER_MODEL, input.spent),
       providerOptions: READER_OPTIONS,
       system: [
         "You write the short reading under a chart on the Avalanche explorer.",
@@ -849,6 +816,9 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     }
     const averaged = input.rows.length > 1 ? spec.stats.filter((s) => s.agg === "sum" && (MEAN_NAME.test(s.column) || EXTREME_NAME.test(s.column))) : [];
     if (averaged.length) return { error: `${averaged.map((s) => s.column).join(", ")} holds an average or an extreme in each row, so a sum over the rows means nothing: use avg or max, or leave the stat out` };
+    // a stat is named for its figure (the whole answer's, a share as a percent) and a stack adds up parts of a whole
+    const label = labelError(spec, input.rows, input.totals, input.sql);
+    if (label) return { error: label };
     if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
     // a flow runs from one column to another and draws one amount
     const flows = spec.panels.filter((p) => p.kind === "flow");
@@ -886,7 +856,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
 
   try {
     const r = await generateText({
-      model: anthropic(DESIGN_MODEL),
+      model: anthropic(DESIGN_MODEL, input.spent),
       providerOptions: DESIGN_OPTIONS,
       // the house style is the same for every answer; read it from the cache
       system: { role: "system", content: HOUSE_STYLE, providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } },
@@ -918,7 +888,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
   if (!visual) {
     try {
       const r = await generateText({
-        model: anthropic(DESIGN_MODEL),
+        model: anthropic(DESIGN_MODEL, input.spent),
         providerOptions: DESIGN_OPTIONS,
         system: HOUSE_STYLE,
         messages: [{ role: "user", content: `Question: ${input.question}\nColumns: ${[...cols].join(", ")}\nRows: ${input.rows.length}\nFirst rows:\n${sample.slice(0, 8).map((r) => JSON.stringify(r)).join("\n")}\nCall design once, using only these columns.` }],
