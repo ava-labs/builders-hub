@@ -5,7 +5,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 const nav = vi.hoisted(() => ({ pathname: '/academy/avalanche-l1/erc20-bridge' }));
 const media = vi.hoisted(() => ({ drawer: false as boolean | null, query: null as string | null }));
 const layout = vi.hoisted(() => ({ sidebar: null as null | { tabs?: unknown; banner?: unknown } }));
-const treeContext = vi.hoisted(() => ({ value: { root: { name: 'ERC20 Bridge' } as unknown, full: { name: 'Academy' } as unknown } }));
 
 vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 vi.mock('fumadocs-core/utils/use-media-query', () => ({
@@ -20,14 +19,12 @@ vi.mock('fumadocs-ui/layouts/notebook', () => ({
     return children;
   },
 }));
-vi.mock('fumadocs-ui/contexts/tree', () => ({ useTreeContext: () => treeContext.value }));
 vi.mock('@/components/navigation/navbar-dropdown-injector', () => ({ NavbarDropdownInjector: () => null }));
 vi.mock('@/components/navigation/force-mobile-sidebar', () => ({ ForceMobileSidebar: () => null }));
 vi.mock('@/components/navigation/docs-navbar-toggle', () => ({ DocsNavbarToggle: () => null }));
 vi.mock('@/components/ui/decorative-grid', () => ({ DecorativeGrid: () => null }));
 
 import { AcademyDocsLayoutWrapper } from '@/app/academy/layout-wrapper.client';
-import { CourseSidebarHeading } from '@/components/academy/sidebar/course-sidebar-heading';
 
 const EMPTY = { name: 'Academy', children: [] };
 const renderLayout = (pathname: string, drawer: boolean | null) => {
@@ -51,11 +48,10 @@ describe('the course page layout', () => {
     expect(html.indexOf('id="academy-subnav"')).toBeLessThan(html.indexOf('COURSE_PAGE'));
   });
 
-  it('gives the desktop sidebar no course dropdown, and the course heading as its banner', () => {
+  it('gives the desktop sidebar no course dropdown and no course title', () => {
     renderLayout('/academy/avalanche-l1/erc20-bridge/02-intro/01-intro', false);
     expect(layout.sidebar?.tabs).toBe(false);
-    treeContext.value = { root: { name: 'ERC20 Bridge' }, full: { name: 'Academy' } };
-    expect(renderToStaticMarkup(layout.sidebar?.banner as ReactElement)).toContain('>ERC20 Bridge</p>');
+    expect(layout.sidebar?.banner).toBeUndefined();
   });
 
   it("lists the current part's courses in the drawer below 1024 px, each with its course icon", () => {
@@ -85,20 +81,5 @@ describe('the course page layout', () => {
   it('keeps no dropdown on a course of the 13 before the media query answers', () => {
     renderLayout('/academy/avalanche-l1/erc20-bridge', null);
     expect(layout.sidebar?.tabs).toBe(false);
-  });
-});
-
-describe('CourseSidebarHeading', () => {
-  it('names the course of the current page, and hides below 1024 px where the drawer dropdown names it', () => {
-    treeContext.value = { root: { name: 'Avalanche Fundamentals' }, full: { name: 'Academy' } };
-    expect(renderToStaticMarkup(createElement(CourseSidebarHeading))).toBe(
-      '<p data-academy-part="course-heading" class="mb-2 px-2 pt-2 pb-2.5 text-[15px] font-semibold leading-[1.3] text-ac-ink max-lg:hidden">Avalanche Fundamentals</p>',
-    );
-  });
-
-  it('renders nothing outside a course folder', () => {
-    const full = { name: 'Academy' };
-    treeContext.value = { root: full, full };
-    expect(renderToStaticMarkup(createElement(CourseSidebarHeading))).toBe('');
   });
 });

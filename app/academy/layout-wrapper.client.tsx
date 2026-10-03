@@ -14,7 +14,6 @@ import { RevealActiveSidebarItem } from '@/components/academy/sidebar/reveal-act
 import { useMediaQuery } from 'fumadocs-core/utils/use-media-query';
 import { AcademySubNav, partMenu } from '@/components/academy/course/academy-subnav';
 import { COURSE_ICONS } from '@/components/academy/course/course-icons';
-import { CourseSidebarHeading } from '@/components/academy/sidebar/course-sidebar-heading';
 import { academyCourseOfPathname } from '@/lib/academy/academy-programme';
 
 type Tree = DocsLayoutProps['tree'];
@@ -64,7 +63,8 @@ export function AcademyDocsLayoutWrapper({
                 // The sub-nav picks the part, so the desktop sidebar has no course dropdown; the drawer lists the
                 // current part's courses, as the docs drawer lists a section's pages
                 // (app/docs/docs-layout-wrapper.tsx:111-112).
-                // Pages outside the 13 (the Team1 courses) keep fumadocs' default course dropdown and no heading.
+                // The sidebar names no course: it starts with the course's welcome page, under the part sub-nav.
+                // Pages outside the 13 (the Team1 courses) keep fumadocs' default course dropdown.
                 tabs: part
                     ? inDrawer
                         ? partMenu(part).map((item) => ({
@@ -79,7 +79,6 @@ export function AcademyDocsLayoutWrapper({
                           }))
                         : false
                     : undefined,
-                banner: part ? <CourseSidebarHeading /> : undefined,
             },
         }),
         [activeTree, inDrawer, part],

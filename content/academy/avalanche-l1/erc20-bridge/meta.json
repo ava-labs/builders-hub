@@ -3,7 +3,6 @@
     "icon": "ArrowLeftRight",
     "root": true,
     "pages": [
-        "---ERC20 Bridge---",
         "index",
         "---Token Bridging---",
         "...01-token-bridging",

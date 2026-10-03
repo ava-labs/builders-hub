@@ -127,7 +127,7 @@
   top: calc(var(--fd-banner-height, 0px) + 3.5rem + var(--ac-subnav-height)) !important;
 }
 
-/* The sidebar header starts flush before hydration too (the twin of styles.css:63-67), so the course heading does not jump */
+/* The sidebar header starts flush before hydration too (the twin of styles.css:63-67), so the first row does not jump */
 [data-route-layout="academy"] #nd-sidebar > div:first-child,
 [data-route-layout="academy"] [data-sidebar="sidebar"] > div:first-child {
   padding-top: 0 !important;
