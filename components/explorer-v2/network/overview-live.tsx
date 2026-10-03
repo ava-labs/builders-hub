@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { Belt, GasBar, Height, MotionRow, Party, fmtAmount } from "@/components/explorer-v2/evm/LiveBoards";
-import { useTicker } from "./ticker";
+import { useTicker, type Lag } from "./ticker";
 import { methodLabel } from "@/components/explorer-v2/evm/bits";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
@@ -388,10 +388,27 @@ function ViewAll({ href }: { href: string }) {
 
 const chainBase = (c: LiveChain) => `/explorer/mainnet/${c.slug}`;
 
+/* Both boards play the rows of each sweep over the sweep's interval, so a
+   row enters about every second instead of a clump of rows and then a
+   pause. The chains' feeds lag by different amounts: on 2026-10-03 the
+   indexer trailed the C-Chain by 11 s and the other chains by 17 to 22 s
+   (medians). So a row up to LAG_MS older than the top one still shows, in
+   the order its chain's read brought it, and an older one (a quiet chain's
+   last block, minutes old) is let go. */
+const LAG_MS = 30_000;
+const BLOCK_LAG: Lag<LiveBlock> = { ms: LAG_MS, at: (b) => b.at };
+const TX_LAG: Lag<LiveTx> = { ms: LAG_MS, at: (t) => t.timestamp * 1000 };
+
 function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading: boolean }) {
   // the belt holds still under the pointer so a row can be clicked
   const [hover, setHover] = useState(false);
-  const rows = useTicker(blocks, ROWS + 1, { key: (b) => b.hash, newer: blockNewer, paused: hover });
+  const rows = useTicker(blocks, ROWS + 1, {
+    key: (b) => b.hash,
+    newer: blockNewer,
+    paused: hover,
+    every: POLL_MS,
+    lag: BLOCK_LAG,
+  });
   const cols = "md:grid-cols-[minmax(0,8rem)_6.5rem_2.5rem_minmax(0,1fr)_2.5rem]";
   return (
     <section className="flex flex-col gap-4">
@@ -451,7 +468,13 @@ function useMethodLabels(rows: LiveTx[]) {
 
 function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) {
   const [hover, setHover] = useState(false);
-  const rows = useTicker(txs, ROWS + 1, { key: (t) => t.hash, newer: txNewer, paused: hover });
+  const rows = useTicker(txs, ROWS + 1, {
+    key: (t) => t.hash,
+    newer: txNewer,
+    paused: hover,
+    every: POLL_MS,
+    lag: TX_LAG,
+  });
   const method = useMethodLabels(rows);
   const cols =
     "md:grid-cols-[0.75rem_minmax(0,6.5rem)_6rem_minmax(0,6rem)_minmax(0,1fr)_minmax(0,6.5rem)_2.5rem]";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { admit } from '@/components/explorer-v2/network/ticker';
+import { admit, clockPace } from '@/components/explorer-v2/network/ticker';
 
 // a row is its block and its place in the block; newer is the higher block, then the lower index
 type Row = { block: number; index: number };
@@ -54,5 +54,97 @@ describe('admit', () => {
     const next = admit(first.visible, first.queue, [row(202), row(201), row(200, 1)], 11, newer);
     expect(blocks(next.visible)).toEqual(blocks(first.visible));
     expect(blocks(next.queue)).toEqual(['201.0', '202.0']);
+  });
+});
+
+describe('admit, with a lag', () => {
+  // a row's time: one block a second
+  const lag = { ms: 3_000, at: (r: Row) => r.block * 1_000 };
+
+  it('queues a newcomer older than the top row, within the lag, after the rows waiting', () => {
+    // 9.0 comes from a feed that runs behind: older than the top row, still kept
+    const { visible, queue } = admit([row(10), row(8)], [row(11)], [row(12), row(9)], 2, newer, lag);
+    expect(blocks(visible)).toEqual(['10.0', '8.0']);
+    expect(blocks(queue)).toEqual(['11.0', '9.0', '12.0']);
+  });
+
+  it('lets a newcomer go when it is older than the top row by more than the lag', () => {
+    // 6.0 is 4 s behind the top row: a quiet chain's last block, not news
+    const { queue } = admit([row(10), row(9)], [], [row(11), row(6)], 2, newer, lag);
+    expect(blocks(queue)).toEqual(['11.0']);
+  });
+
+  it('still paints the first batch whole', () => {
+    const { visible, queue } = admit([], [], [row(3), row(5), row(4)], 2, newer, lag);
+    expect(blocks(visible)).toEqual(['5.0', '4.0']);
+    expect(queue).toEqual([]);
+  });
+
+  it('still fills a short window from below, and queues the rest', () => {
+    // a chain that answers after the opening frame: two rows fit beneath, the others wait
+    const { visible, queue } = admit(
+      [row(20), row(18)],
+      [],
+      [row(21), row(19), row(17), row(16), row(15)],
+      4,
+      newer,
+      lag,
+    );
+    expect(blocks(visible)).toEqual(['20.0', '18.0', '17.0', '16.0']);
+    expect(blocks(queue)).toEqual(['19.0', '21.0']);
+  });
+});
+
+describe('clockPace', () => {
+  const EVERY = 5_000;
+
+  it('spreads a batch over the interval and a tenth', () => {
+    expect(clockPace(EVERY, 0, 0, 5)).toBe(1_100);
+  });
+
+  it('gives the rows left the time left, and one row no more than an interval', () => {
+    expect(clockPace(EVERY, 0, 3_300, 2)).toBe(1_100);
+    expect(clockPace(EVERY, 10_000, 0, 1)).toBe(EVERY);
+  });
+
+  it('lets a backlog catch up at the floor', () => {
+    // the tape was held under the pointer past the next poll
+    expect(clockPace(EVERY, 0, 9_000, 30)).toBe(150);
+  });
+
+  // The overview's feed: one batch per 5 s sweep, of 3 to 8 rows, landing up to 0.9 s late.
+  // Rows released at clockPace never stand still between sweeps.
+  it('keeps a tape of 5 s batches moving, with no pause over 2 s', () => {
+    const sizes = [5, 7, 3, 6, 8, 4, 6, 5, 7, 3, 8, 6];
+    const late = [0, 400, 900, 100, 0, 700, 200, 900, 0, 300, 600, 0];
+    const batches = sizes.map((n, i) => ({ at: i * EVERY + late[i], n }));
+    const released: number[] = [];
+    let waiting = 0;
+    let lastBatch = 0;
+    let lastRelease = 0;
+    let next = Infinity;
+    // each step takes the next event: a batch lands, or the next row is released
+    for (let b = 0; b < batches.length || waiting > 0; ) {
+      let landed = false;
+      if (b < batches.length && batches[b].at <= next) {
+        waiting += batches[b].n;
+        lastBatch = batches[b].at;
+        if (released.length === 0) lastRelease = lastBatch;
+        b += 1;
+        landed = true;
+      } else {
+        waiting -= 1;
+        released.push(next);
+        lastRelease = next;
+      }
+      // as the hook does, a batch that lands waits WARM_MS (180 ms) before its first row
+      const after = landed ? lastBatch + 180 : 0;
+      next = waiting > 0 ? Math.max(lastRelease + clockPace(EVERY, lastBatch, lastRelease, waiting), after) : Infinity;
+    }
+    const gaps = released.slice(1).map((t, i) => t - released[i]);
+    expect(released).toHaveLength(sizes.reduce((a, n) => a + n, 0));
+    expect(Math.max(...gaps)).toBeLessThanOrEqual(2_000);
+    // and a row waits about one interval at most after its batch lands
+    expect(released.at(-1)! - batches.at(-1)!.at).toBeLessThanOrEqual(EVERY * 1.1);
   });
 });

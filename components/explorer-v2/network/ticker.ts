@@ -14,29 +14,59 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
    it. The first batch paints whole, and while the window is short a
    newcomer older than its last row fills in beneath it: a board fed by two
    sources (the indexer's page and the stream's first blocks) opens full
-   whichever lands first. */
+   whichever lands first.
+
+   A feed that polls on a clock (`every`) gets a pace from the clock
+   instead: each batch spreads evenly until a little after the next poll is
+   due, so the tape runs out about as the next batch lands and never stands
+   still between polls. A board merged from feeds that lag by different
+   amounts (`lag`) keeps a newcomer older than the top row, in the order it
+   came, so the slowest feed's rows are not let go; only one older than the
+   top row by more than the feeds' lag is. */
 
 /* the release pace stays between these */
 const MIN_MS = 150;
 const MAX_MS = 700;
 /* a fresh batch waits this long before its first row, so names can warm */
 const WARM_MS = 180;
+/* a clocked feed's queue runs out this share of an interval after the next
+   poll is due, so a poll that lands a little late finds the tape still moving */
+const SLACK = 0.1;
+
+/** How far apart a merged board's feeds run: a newcomer up to `ms` older
+ *  than the top row still shows. `at` is a row's time, epoch ms. */
+export interface Lag<T> {
+  ms: number;
+  at: (t: T) => number;
+}
 
 /** Where a batch of newcomers goes. An empty window paints them whole.
  *  Otherwise a newcomer newer than the top row and than every row waiting
  *  joins the queue (oldest first), one older than the last row fills in
- *  beneath it while the window is short, and one in between is let go. */
+ *  beneath it while the window is short, and one in between is let go.
+ *  With `lag`, a newcomer that does not fill in beneath joins the queue,
+ *  oldest first, after the rows already waiting, unless it is older than
+ *  the top row by more than the lag. */
 export function admit<T>(
   visible: readonly T[],
   queue: readonly T[],
   fresh: readonly T[],
   visibleMax: number,
   newer: (a: T, b: T) => number,
+  lag?: Lag<T>,
 ): { visible: T[]; queue: T[] } {
   const sorted = [...fresh].sort(newer);
   if (!visible.length) return { visible: sorted.slice(0, visibleMax), queue: [...queue] };
   const top = visible[0];
   const last = visible[visible.length - 1];
+  const room = visibleMax - visible.length;
+  const below = room > 0 ? sorted.filter((t) => newer(t, last) > 0).slice(0, room) : [];
+  const shown = below.length ? [...visible, ...below] : [...visible];
+  if (lag) {
+    const oldest = lag.at(top) - lag.ms;
+    const join = sorted.filter((t) => !below.includes(t) && lag.at(t) >= oldest);
+    return { visible: shown, queue: [...queue, ...join.reverse()] };
+  }
   const tail = queue[queue.length - 1];
   const next = [...queue];
   for (const t of [...sorted].reverse()) {
@@ -44,9 +74,16 @@ export function admit<T>(
     if (tail !== undefined && newer(t, tail) >= 0) continue;
     next.push(t);
   }
-  const room = visibleMax - visible.length;
-  const below = room > 0 ? sorted.filter((t) => newer(t, last) > 0).slice(0, room) : [];
-  return { visible: below.length ? [...visible, ...below] : [...visible], queue: next };
+  return { visible: shown, queue: next };
+}
+
+/** A clocked feed's pace: the wait after the last row for the next one.
+ *  The rows waiting share the time from the last release until a little
+ *  after the next poll is due. One row never waits more than an interval,
+ *  and a backlog (rows held under the pointer) catches up at the floor. */
+export function clockPace(every: number, lastBatch: number, lastRelease: number, waiting: number): number {
+  const left = lastBatch + every * (1 + SLACK) - lastRelease;
+  return Math.min(every, Math.max(MIN_MS, left / Math.max(1, waiting)));
 }
 
 /** `incoming` is newest first and keeps each row's object between
@@ -67,9 +104,13 @@ export function useTicker<T>(
      *  each poll); the ticker still keeps count of them, so turning it on
      *  carries on from the rows on screen */
     enabled?: boolean;
+    /** the feed's poll interval in ms: each batch spreads over it (see clockPace) */
+    every?: number;
+    /** the rows come from feeds that run this far apart (see admit) */
+    lag?: Lag<T>;
   },
 ): T[] {
-  const { key, newer, paused = false, onEnqueue, enabled = true } = opts;
+  const { key, newer, paused = false, onEnqueue, enabled = true, every, lag } = opts;
   const [visible, setVisible] = useState<T[]>([]);
   const visibleRef = useRef<T[]>([]);
   // oldest first: the next to release is at the front
@@ -89,6 +130,7 @@ export function useTicker<T>(
   keyRef.current = key;
 
   const pace = () => {
+    if (every) return clockPace(every, lastArrive.current, lastRelease.current, queue.current.length);
     const r = Math.max(rate.current, 0.001);
     let p = 1000 / r;
     // a backlog past a couple of seconds' worth tightens the pace
@@ -158,7 +200,7 @@ export function useTicker<T>(
     onEnqueueRef.current?.(fresh);
     const now = Date.now();
     const opening = !visibleRef.current.length;
-    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current);
+    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current, lag);
     queue.current = placed.queue;
     if (placed.visible.length !== visibleRef.current.length) {
       visibleRef.current = placed.visible;
@@ -174,6 +216,11 @@ export function useTicker<T>(
     lastArrive.current = now;
     const inst = fresh.length / dt;
     rate.current = rate.current ? 0.35 * inst + 0.65 * rate.current : inst;
+    // a clocked feed's batch changes the pace of the rows still waiting: plan the next release again
+    if (every && timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     arm(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incoming, visibleMax, enabled]);
