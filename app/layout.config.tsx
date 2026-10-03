@@ -97,6 +97,7 @@ export const solutionsMenu: LinkItemType = {
 export const ecosystemMenu: LinkItemType = {
   type: 'menu',
   text: 'Ecosystem',
+  url: '/ecosystem',
   items: [
     // grouped columns: events, then programs, then reading and tools
     {
