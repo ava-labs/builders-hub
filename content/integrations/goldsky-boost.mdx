@@ -1,0 +1,28 @@
+---
+title: Goldsky Boost
+category: RPC Endpoints
+available: ["C-Chain"]
+description: Goldsky Boost is a free RPC cache in front of your existing Avalanche C-Chain provider.
+logo: /images/goldsky-logo.svg
+developer: Goldsky
+website: https://goldsky.com/products/boost
+documentation: https://docs.goldsky.com/boost
+---
+
+## Overview
+
+Goldsky Boost is a free JSON-RPC cache for Avalanche C-Chain. It serves eligible historical reads from indexed data and forwards other requests to your existing provider.
+
+## Features
+
+- **Historical reads**: Caches block, transaction, receipt, and fixed-range log queries.
+- **Provider continuity**: Forwards writes, state reads, traces, and latest-block queries to your provider.
+- **Free usage**: No charge for cached or forwarded requests, subject to fair use.
+
+## Getting Started
+
+Configure your existing HTTPS RPC provider, then point JSON-RPC requests to `https://edge.goldsky.com/boost/avalanche?key=YOUR_API_KEY`. Keep WebSocket subscriptions on your provider.
+
+## Documentation
+
+See the [Boost quickstart](https://docs.goldsky.com/boost/quickstart).
