@@ -28,8 +28,10 @@ import { blocksFeed, txsFeed, type LiveChain } from "./network-reads";
    chain's transactions are only asked for when its block feed has seen a
    block with transactions the indexer has not yet returned, so a quiet
    chain costs nothing past its block poll. A chain that returns no new
-   block backs off to one poll in four sweeps. Polls stop while the tab is
-   hidden, and a chain that fails three times drops out silently. */
+   block backs off to one poll in four sweeps. Each chain's rows go up as
+   its reads land, and a chain whose read is still out sits the next sweep
+   out, so a slow chain holds back only its own rows. Polls stop while the
+   tab is hidden, and a chain that fails three times drops out silently. */
 
 interface ApiBlock {
   number: string;
@@ -187,8 +189,9 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
   useEffect(() => {
     if (chains.length === 0) return;
     let cancelled = false;
-    let sweeping = false;
     let sweepN = 0;
+    // the chains whose reads are still out
+    const busy = new Set<string>();
     const lastBlock = new Map<string, number>();
     const nextSweep = new Map<string, number>();
     const idle = new Map<string, number>();
@@ -276,9 +279,7 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
     }
 
     async function sweep(first: boolean) {
-      if (sweeping) return; // a slow round still in flight: let it finish
       if (!first && document.visibilityState === "hidden") return;
-      sweeping = true;
       sweepN += 1;
       const perChain = first ? OPEN_PER_CHAIN : SWEEP_PER_CHAIN;
       const publish = (freshBlocks: LiveBlock[], freshTxs: LiveTx[]) => {
@@ -303,25 +304,25 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
         publish(early.flatMap((r) => r.b), early.flatMap((r) => r.t));
       };
       const wait = first ? setTimeout(open, OPEN_WAIT_MS) : undefined;
-      const results = await Promise.all(
+      await Promise.all(
         chains.map(async (chain) => {
+          if (busy.has(chain.chainId)) return;
+          busy.add(chain.chainId);
           const b = await pollBlocks(chain, first);
           const t = await pollTxs(chain, first);
-          if (first && opened) publish(b, t);
-          else if (first) {
+          busy.delete(chain.chainId);
+          if (opened) publish(b, t);
+          else {
             early.push({ b, t });
             if (early.length * 2 >= chains.length) open();
           }
-          return { b, t };
         }),
       );
       clearTimeout(wait);
-      sweeping = false;
       if (cancelled) return;
       setSettled(true);
       reportRates();
       if (first) open();
-      else publish(results.flatMap((r) => r.b), results.flatMap((r) => r.t));
     }
 
     // back in view: catch up at once rather than wait out the interval
