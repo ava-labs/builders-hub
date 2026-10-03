@@ -52,7 +52,7 @@ export const ECOSYSTEM_GROUPS: EcosystemGroup[] = [
     entries: [
       {
         title: 'Grants & Funding',
-        line: 'Grants, the Blizzard Fund, partner programs and the bug bounty.',
+        line: 'Grants, the Blizzard Fund and the bug bounty.',
         href: '/grants',
       },
       {
