@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-03T15:22:41.418Z",
+  "createdAt": "2026-10-03T17:55:34.975Z",
   "payload": {
     "actions": [
       {
@@ -30,7 +30,7 @@
       "targetId": "desktop",
       "instructionDigest": "f5295c55971cbf274325fb1ca3a03cf5385c19513bd1ba7cca0f9e96142fd543"
     },
-    "summary": "Tapped \"Start the course\" on /academy, which opened the Avalanche Fundamentals welcome page. Then opened the second lesson, \"Consensus Mechanisms\", at /academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms. The page shows \"Lesson 2 of 4\" under the module \"…",
+    "summary": "The course was started and the second lesson is open. The page is /academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms, titled \"Consensus Mechanisms\", and it shows \"Lesson 2 of 4\" under \"Primer on Avalanche Consensus\". The sidebar highlights that lesson.…",
     "startPath": "/academy",
     "endPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
     "endAnchors": [
@@ -50,17 +50,18 @@
         "text": "Applications"
       },
       {
-        "text": "Avalanche Fundamentals"
-      },
-      {
         "role": "link",
         "name": "Welcome to the Course"
       },
       {
         "role": "link",
         "name": "Avalanche Consensus"
+      },
+      {
+        "role": "link",
+        "name": "Consensus Mechanisms"
       }
     ],
-    "endWaitMs": 13471
+    "endWaitMs": 30757
   }
 }

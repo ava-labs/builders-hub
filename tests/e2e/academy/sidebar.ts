@@ -4,7 +4,8 @@ import { expect, type Locator, type Screen } from 'e2e';
 import { isPhoneLayout } from '../lib/skip';
 import { waitForHydration } from '../lib/hydration';
 
-// The course sidebar (app/academy/layout-wrapper.client.tsx) lists one course: its name, then its numbered modules.
+// The course sidebar (app/academy/layout-wrapper.client.tsx) lists one course: its welcome page, then its numbered
+// modules.
 // The truth is the course's meta.json in content/academy, so a renamed course or module changes the expected text.
 const ACADEMY = new URL('../../../content/academy/', import.meta.url);
 
@@ -18,8 +19,8 @@ const PICTOGRAPH = new RegExp('\\p{RGI_Emoji}', 'v');
 export interface SidebarCourse {
   /** The course page, for example /academy/blockchain/solidity-foundry. */
   path: string;
-  /** The title in the course's meta.json. The desktop sidebar shows it above the lessons. */
-  title: string;
+  /** The title of the course's index page. The sidebar's first link opens it. */
+  welcome: string;
   /** The module headings in order, as the sidebar numbers them 01, 02, ... */
   modules: string[];
 }
@@ -74,6 +75,12 @@ function moduleNames(pages: string[], dir: URL): string[] {
   return modules.filter((courseModule) => courseModule.lessons > 0).map((courseModule) => courseModule.name);
 }
 
+/** An MDX page's frontmatter title. Every academy page has a one-line title. */
+function pageTitle(file: URL): string {
+  const title = /^title:\s*(.+)$/m.exec(readFileSync(file, 'utf8'))?.[1].trim() ?? '';
+  return title.replace(/^(['"])(.*)\1$/, '$2');
+}
+
 /** Every course of the Avalanche L1 and Blockchain tracks: each folder whose meta.json is a sidebar root. */
 export function sidebarCourses(): SidebarCourse[] {
   const courses: SidebarCourse[] = [];
@@ -84,13 +91,16 @@ export function sidebarCourses(): SidebarCourse[] {
       .sort();
     for (const folder of folders) {
       const meta = JSON.parse(readFileSync(new URL(`${track}/${folder}/meta.json`, ACADEMY), 'utf8')) as {
-        title: string;
         root?: boolean;
         pages: string[];
       };
       if (!meta.root) continue;
       const dir = new URL(`${track}/${folder}/`, ACADEMY);
-      courses.push({ path: `/academy/${track}/${folder}`, title: meta.title, modules: moduleNames(meta.pages, dir) });
+      courses.push({
+        path: `/academy/${track}/${folder}`,
+        welcome: pageTitle(new URL('index.mdx', dir)),
+        modules: moduleNames(meta.pages, dir),
+      });
     }
   }
   return courses;
@@ -119,12 +129,21 @@ export async function openSidebar(screen: Screen, browser: Browser): Promise<Loc
   return sidebar;
 }
 
-/** The sidebar lists this course: its name (desktop), its first module, no track folders and no emoji. */
+/** The sidebar lists this course: its welcome page first, its first module, no track folders and no emoji. */
 export async function expectSidebarOf(sidebar: Locator, browser: Browser, course: SidebarCourse): Promise<void> {
-  // The phone drawer names the course in its course menu button instead (lesson-navigation.e2e.ts checks it).
-  // components/academy/sidebar/course-sidebar-heading.tsx marks the heading. A tier heading can share its text (ERC20 Bridge).
+  // The welcome page is the course's index, so its link names the course the sidebar lists.
+  await expect(sidebar.getByRole('link', course.welcome)).toHaveAttribute('href', course.path);
+  // On desktop nothing sits above it: the sidebar names no course, the part sub-nav and the page do. The phone
+  // drawer starts with its course menu button instead (lesson-navigation.e2e.ts checks it).
   if (!(await isPhoneLayout(browser))) {
-    await expect(browser.locator('[data-academy-part="course-heading"]')).toHaveText(course.title);
+    const firstRow = await browser.evaluate(
+      () =>
+        (document.querySelector('#nd-sidebar') as HTMLElement | null)?.innerText
+          .split('\n')
+          .map((line) => line.trim())
+          .find(Boolean) ?? '',
+    );
+    expect(firstRow, 'the first row of the sidebar').toBe(course.welcome);
   }
   await expect(sidebar.getByText(moduleHeading(1, course.modules[0]))).toBeVisible();
   for (const folder of TRACK_FOLDERS) await expect(sidebar.getByText(folder)).toHaveCount(0);

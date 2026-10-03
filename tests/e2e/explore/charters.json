@@ -7,7 +7,7 @@
   {
     "key": "academy-parts",
     "target": "desktop",
-    "goal": "Start at /academy/avalanche-l1/avalanche-fundamentals and use the Academy parts bar above the page to open one course of each of the five parts, by the part links and by the courses in their hover cards. After each move check the sidebar lists the course you are on and its modules, not a list of tracks, and holds no emoji."
+    "goal": "Start at /academy/avalanche-l1/avalanche-fundamentals and use the Academy parts bar above the page to open one course of each of the five parts, by the part links and by the courses in their hover cards. After each move check the sidebar lists the modules of the course you are on, not a list of tracks, and holds no emoji."
   },
   {
     "key": "docs-search",

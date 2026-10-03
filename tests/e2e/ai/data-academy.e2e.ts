@@ -69,7 +69,7 @@ test('fundamentals course page lists the modules and lesson counts of the course
 // The agent reads it; the truth is the course's meta.json (academy/sidebar.ts). The course page also lists its modules,
 // so the test moves on to the first lesson, which does not: there only the sidebar can give the list.
 test(
-  'sidebar lists Blockchain Fundamentals and its modules after a move from Avalanche Fundamentals',
+  'sidebar lists the modules of Blockchain Fundamentals after a move from Avalanche Fundamentals',
   { timeout: TWO_ROUTE_TIMEOUT },
   async (fixtures) => {
     needsModel();
@@ -83,10 +83,10 @@ test(
     await expect(browser).toHaveURL(/\/academy\/blockchain\/blockchain-fundamentals\/.+/, { timeout: 120_000 });
     await expectSamePage(browser);
     const facts = await agent.extract(
-      'Read the left sidebar only: the course name at its top, and each numbered module heading in order, without its number.',
-      { schema: z.object({ course: z.string(), modules: z.array(z.string()) }) },
+      'Read the left sidebar only: the name of its first link, and each numbered module heading in order, without its number.',
+      { schema: z.object({ firstLink: z.string(), modules: z.array(z.string()) }) },
     );
     const course = sidebarCourse('/academy/blockchain/blockchain-fundamentals');
-    expect(facts).toEqual({ course: course.title, modules: course.modules });
+    expect(facts).toEqual({ firstLink: course.welcome, modules: course.modules });
   },
 );

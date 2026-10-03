@@ -71,9 +71,10 @@ test(
     await expectSamePage(browser);
     await waitForStillScreen(browser);
     await agent.assert(
-      'The left sidebar shows the course name "Intro to Solidity" at its top, then numbered module headings (01, 02, ...) ' +
-        'with lesson links under them. It is not a short list of three folders named "Avalanche l1", "Blockchain" and ' +
-        '"Team1 Academy". No sidebar heading has an emoji.',
+      'The left sidebar starts with a "Welcome to the course" link, then numbered module headings that begin ' +
+        '"01 Avalanche Starter Kit" and "02 Smart Contracts", with lesson links under them. It does not show ' +
+        '"Primer on Avalanche Consensus". It is not a short list of three folders named "Avalanche l1", "Blockchain" ' +
+        'and "Team1 Academy". No sidebar heading has an emoji.',
       SCREENSHOT_ONLY,
     );
   },

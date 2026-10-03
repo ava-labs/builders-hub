@@ -21,9 +21,9 @@ test('desktop sidebar shows the course outline', async ({ app, screen, browser }
   }
   await expect(parts.getByRole('link', 'Fundamentals')).toHaveAttribute('aria-current', 'true');
 
-  // The sidebar names the course, then lists its modules, each with its number, and their lessons.
+  // The sidebar starts with the course's welcome page, then lists its modules, each with its number, and their lessons.
   const outline = screen.getByRole('complementary');
-  await expect(outline.getByText('Avalanche Fundamentals')).toBeVisible();
+  await expect(outline.getByRole('link', 'Welcome to the Course')).toHaveAttribute('href', COURSE);
   await expect(outline.getByText(/^01\s*Primer on Avalanche Consensus$/)).toBeVisible();
   await expect(outline.getByRole('link', 'Consensus Mechanisms')).toBeVisible();
   await expect(outline.getByRole('link', 'Snowman Consensus')).toBeVisible();
