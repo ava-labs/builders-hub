@@ -28,6 +28,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Browser and API tests live in tests/e2e. This job fails when the old Playwright harness comes back (a root e2e/
+  # folder, or a file that uses the Playwright test runner). It needs no secrets, so it runs on fork PRs too.
+  location:
+    name: E2E test location
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Check the test location
+        run: ./scripts/check-e2e-location.sh
+
   e2e:
     name: E2E (desktop, phone, API)
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository

@@ -83,6 +83,8 @@ E2E_BASE_URL=http://localhost:3000 npm test
 - Do not call `createPublicClient` in the toolbox. Use `usePublicClientForChain`, `makePublicClientForChain` or `useChainPublicClient`.
 - Folder names under `components/toolbox/console` are kebab-case, and so are the MDX import paths to them.
 
+**E2E** (`scripts/check-e2e-location.sh`, every PR, forks too): browser and API tests go in `tests/e2e/`. A root `e2e/` folder, or an import of `@playwright/test` or `playwright/test`, fails CI.
+
 **Commits** (`commitlint.config.js`): `type(scope): subject`. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. The subject starts in lower case and has no full stop. The header has at most 100 characters.
 
 **Formatting** (`.prettierrc`): single quotes, semicolons, trailing commas, width 120. lint-staged applies it to the toolbox.
