@@ -1,8 +1,8 @@
 name: E2E
 
 # Browser tests in tests/e2e (tester-army/e2e) against the Vercel preview of the PR's head commit, at a desktop and
-# a phone size, then the API tests in tests/e2e/api. Console wallet flows have no tests until the framework can
-# inject the wallet shim before page load (tester-army/e2e#696).
+# a phone size, then the API tests in tests/e2e/api and the in-app browser tests in tests/e2e/webview. Console
+# wallet flows have no tests until the framework can inject the wallet shim before page load (tester-army/e2e#696).
 #
 # Secrets:
 #   - VERCEL_AUTOMATION_BYPASS_SECRET opens the SSO-protected preview. The engine sends it only to the preview's site.
@@ -103,10 +103,20 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: npx e2e run --config api/e2e.config.ts
 
+      # In-app browser tests run on their own targets, an Instagram and a LinkedIn user agent (webview/e2e.config.ts).
+      # They run when the tests above fail too.
+      - name: Run in-app browser tests
+        if: success() || (failure() && steps.target.outcome == 'success')
+        env:
+          E2E_BASE_URL: ${{ steps.target.outputs.url }}
+          E2E_TELEMETRY_DISABLED: '1'
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: npx e2e run --config webview/e2e.config.ts
+
       - name: Job summary
         if: always()
         run: |
-          for f in .e2e/summary.md api/.e2e/summary.md; do
+          for f in .e2e/summary.md api/.e2e/summary.md webview/.e2e/summary.md; do
             if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; fi
           done
 
@@ -123,5 +133,7 @@ jobs:
             tests/e2e/.e2e/artifacts
             tests/e2e/api/.e2e/report.json
             tests/e2e/api/.e2e/failures
+            tests/e2e/webview/.e2e/report.json
+            tests/e2e/webview/.e2e/failures
           retention-days: 7
           if-no-files-found: ignore

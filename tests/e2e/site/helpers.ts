@@ -13,23 +13,28 @@ export const TWO_ROUTE_TIMEOUT = 240_000;
 // A returning visitor has answered both. Write those answers to localStorage, then open the page.
 // All URLs of the site share one localStorage. A small static file loads fast, so write the answers there.
 // Set answeredConsoleWelcome to false for a visitor who has answered the privacy banner only.
+// Set theme for a visitor who picked a theme before. The site's theme script reads it before the first paint.
 export async function openAsReturningVisitor(
   app: App,
   browser: Browser,
   path: string,
-  { answeredConsoleWelcome = true } = {},
+  { answeredConsoleWelcome = true, theme }: { answeredConsoleWelcome?: boolean; theme?: 'light' | 'dark' } = {},
 ): Promise<void> {
   await app.open('/small-logo.png');
-  await browser.evaluate((welcome) => {
-    localStorage.setItem('cookie_consent', 'no');
-    if (welcome) {
-      localStorage.setItem(
-        'console-onboarding-tour',
-        JSON.stringify({ state: { hasCompletedTour: true, hasSeenWelcome: true }, version: 0 }),
-      );
-    }
-    return null;
-  }, answeredConsoleWelcome);
+  await browser.evaluate(
+    ({ welcome, theme }) => {
+      localStorage.setItem('cookie_consent', 'no');
+      if (welcome) {
+        localStorage.setItem(
+          'console-onboarding-tour',
+          JSON.stringify({ state: { hasCompletedTour: true, hasSeenWelcome: true }, version: 0 }),
+        );
+      }
+      if (theme) localStorage.setItem('theme', theme);
+      return null;
+    },
+    { welcome: answeredConsoleWelcome, theme: theme ?? null },
+  );
   await app.open(path);
 }
 
