@@ -1,0 +1,34 @@
+---
+title: Pinax
+category: Indexers
+available: ["C-Chain"]
+description: Pinax provides Firehose block streaming, Substreams parallel indexing, archive JSON-RPC, and a Token API for Avalanche C-Chain.
+logo: /images/pinax.svg
+developer: Pinax
+website: https://pinax.network/
+documentation: https://app.pinax.network/docs
+---
+
+## Overview
+
+Pinax provides blockchain data infrastructure for Avalanche C-Chain: Firehose for full block streaming, Substreams for parallel indexing, archive JSON-RPC, and a Token API. Pinax maintains the open source Firehose and Substreams projects alongside StreamingFast, and runs its own Avalanche nodes.
+
+## Features
+
+- **Firehose**: Streams full blocks over gRPC, including transactions, receipts, logs, call traces, and balance changes that a JSON-RPC node does not return.
+- **Substreams**: Runs Rust modules in parallel on top of Firehose blocks, writing results to PostgreSQL or ClickHouse, streaming them to a consumer, or feeding a Graph Node as a subgraph data source.
+- **Archive RPC**: Standard Ethereum JSON-RPC 2.0 with full historical state, queryable at any block.
+- **Token API**: Balances, transfers, holders, NFTs, prices, and DEX activity over REST, with an MCP server for AI agents.
+- **Open source**: Firehose and Substreams are developed in the open and can be self-hosted.
+
+## Getting Started
+
+1. Create an API key at [app.pinax.network](https://app.pinax.network/).
+2. Read the [Pinax documentation](https://app.pinax.network/docs) for each service and its authentication.
+3. For Substreams, install the [CLI](https://docs.substreams.dev/) and point it at `avalanche.substreams.pinax.network:443`.
+4. For Firehose, stream from `avalanche.firehose.pinax.network:443` with an `X-Api-Key` header.
+5. For RPC, use `https://avalanche.rpc.pinax.network`.
+
+## Documentation
+
+See the [Pinax documentation](https://app.pinax.network/docs) for endpoint references, authentication, and quickstarts for each service.
