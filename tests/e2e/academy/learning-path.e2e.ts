@@ -1,6 +1,7 @@
 import { test, type Browser } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { desktopOnly, phoneOnly } from '../lib/skip';
+import { waitForHydration } from '../lib/hydration';
 import { openAsReturningVisitor } from '../site/helpers';
 
 // The learning path on the Academy overview (/academy), the client state in components/academy/landing/course-state.tsx.
@@ -241,8 +242,13 @@ test('narrowing below 1024 px closes the path and dims nothing; widening again d
 test('a tap on a phone opens the course with no card', async ({ app, browser }) => {
   await openOverview(app, browser);
   await phoneOnly(browser, 'the desktop tests cover the card');
-  expect(await browser.evaluate(() => matchMedia('(hover: hover) and (min-width: 1024px)').matches)).toBe(false);
-  await expect(browser.locator(CARD)).toHaveCount(0);
+  // The phone target has no touch, so a tap is a mouse click that hovers first. Below 1024 px a hover opens no card.
+  // A hover before hydration proves nothing, so wait until React owns the link, then hover past the 150 ms open delay.
+  await waitForHydration(browser, 'main [data-course-id="erc20-bridge"]');
+  await course(browser, 'erc20-bridge').hover();
+  await pause(600);
+  expect(await browser.locator(CARD).count()).toBe(0);
+  expect(await browser.locator(DIMMED).count()).toBe(0);
 
   await course(browser, 'erc20-bridge').tap();
   // The tap can be the first visit to the course route. Give the navigation the budget of app.open.

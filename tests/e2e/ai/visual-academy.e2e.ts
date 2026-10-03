@@ -17,9 +17,11 @@ test('academy lesson is laid out without clipped or overlapping content', VISUAL
   await waitForStillScreen(browser);
   await agent.assert(
     layoutIsIntact(
-      'the site header, the bar of the five Academy parts under it, and the lesson heading "Avalanche L1s" with the start of the lesson, all fully visible',
-      // The part bar scrolls sideways below 1024 px (app/academy/critical.css).
-      ['On a narrow screen the bar of Academy parts scrolls sideways, so its last label can be cut at the right edge.'],
+      'the site header, the start of the bar of Academy parts under it, and the lesson heading "Avalanche L1s" with the start of the lesson, all fully visible',
+      // The part bar scrolls sideways below 1024 px (app/academy/critical.css). At 390 px two of its five parts are off-screen.
+      [
+        'On a narrow screen the bar of Academy parts scrolls sideways, so the parts past the right edge are hidden, and the last one in view can be cut there.',
+      ],
     ),
     SCREENSHOT_ONLY,
   );
