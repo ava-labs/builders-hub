@@ -15,7 +15,6 @@ export function activeNavSection(pathname: string): string {
   if (pathname.startsWith('/hackathons') || pathname.startsWith('/events')) return '/events';
   if (pathname.startsWith('/grants')) return '/grants';
   if (pathname.startsWith('/audits')) return '/audits';
-  if (pathname.startsWith('/university')) return '/university';
   if (pathname.startsWith('/chat')) return '/chat';
   return '';
 }

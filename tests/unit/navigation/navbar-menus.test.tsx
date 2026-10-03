@@ -132,7 +132,6 @@ describe('active navbar section', () => {
     ['/events', '/events'],
     ['/grants', '/grants'],
     ['/audits', '/audits'],
-    ['/university', '/university'],
     ['/chat', '/chat'],
     ['/', ''],
   ])('%s marks %s', (pathname, section) => {
