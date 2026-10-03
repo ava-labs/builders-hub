@@ -69,7 +69,7 @@ describe('the /academy page', () => {
   it('keeps one Academy root around the whole landing', async () => {
     const html = await page({});
     // React 19 renders the eager banner's preload link before the root in a static render; Next moves it to <head>.
-    expect(html).toMatch(/^(?:<link rel="preload" [^>]*\/>)*<main [^>]*data-academy="landing"/);
+    expect(html).toMatch(/^(?:<link rel="preload" [^>]*\/>)*<div [^>]*data-academy="landing"/);
     expect(html.match(/data-academy=/g)).toHaveLength(1);
   });
 });

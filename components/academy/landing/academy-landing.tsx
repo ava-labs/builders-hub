@@ -25,8 +25,9 @@ function LandingView({ view, courseStats }: AcademyLandingProps) {
  */
 export function AcademyLanding({ view, courseStats }: AcademyLandingProps) {
   const facts = programmeLine(groupFacts(ACADEMY_COURSES, courseStats, getCourseDurations()));
+  // a div: the site layout's <main> holds the page
   return (
-    <main className="relative w-full" data-academy="landing">
+    <div className="relative w-full" data-academy="landing">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 bg-ac-ground" />
       <div className="mx-auto max-w-7xl px-6 pb-32 sm:pb-36 lg:px-8">
         <LandingHero view={view} facts={facts} />
@@ -35,6 +36,6 @@ export function AcademyLanding({ view, courseStats }: AcademyLandingProps) {
         </div>
         <QuickAccess />
       </div>
-    </main>
+    </div>
   );
 }
