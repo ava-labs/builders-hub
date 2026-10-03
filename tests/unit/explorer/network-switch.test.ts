@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { networkSwitchTarget } from '@/components/explorer-v2/network-switch';
+import { switchTarget } from '@/components/explorer-v2/network-switch';
 
 /* The Mainnet/Fuji switch keeps the page the reader is on when the other
    network has its tab. The rows mirror the CASES table of
    tests/e2e/explorer/network-switch.e2e.ts. The switch reads the path
-   without its query string (usePathname), so ?q=ava is not here. */
+   without its query string (usePathname), so ?q=ava is not here. Its rules
+   are the chain switch's too: tests/unit/explorer/chain-switch.test.ts. */
+
+// The switch from a page: the chain is the URL's chain segment in every row here.
+const networkSwitch = (from: string, network: string, slug: string) => switchTarget(from, from.split('/')[3], network, slug);
 
 type Row = [from: string, network: string, slug: string, expected: string];
 
@@ -62,17 +66,17 @@ const ENTITIES: Row[] = [
   ['/explorer/mainnet/c-chain/query/boards/b-123', 'fuji', 'c-chain', '/explorer/fuji/c-chain/query/boards'],
 ];
 
-describe('networkSwitchTarget', () => {
+describe('the Mainnet/Fuji switch', () => {
   it.each(CASES)('switches %s to %s %s: %s', (from, network, slug, expected) => {
-    expect(networkSwitchTarget(network, slug, from)).toBe(expected);
+    expect(networkSwitch(from, network, slug)).toBe(expected);
   });
 
   it.each(ENTITIES)('switches the entity page %s to %s %s: %s', (from, network, slug, expected) => {
-    expect(networkSwitchTarget(network, slug, from)).toBe(expected);
+    expect(networkSwitch(from, network, slug)).toBe(expected);
   });
 
   it('links the active network to the page the reader is on', () => {
-    expect(networkSwitchTarget('mainnet', 'c-chain', '/explorer/mainnet/c-chain/defi')).toBe('/explorer/mainnet/c-chain/defi');
-    expect(networkSwitchTarget('mainnet', 'p-chain', '/explorer/mainnet/p-chain/staking')).toBe('/explorer/mainnet/p-chain/staking');
+    expect(networkSwitch('/explorer/mainnet/c-chain/defi', 'mainnet', 'c-chain')).toBe('/explorer/mainnet/c-chain/defi');
+    expect(networkSwitch('/explorer/mainnet/p-chain/staking', 'mainnet', 'p-chain')).toBe('/explorer/mainnet/p-chain/staking');
   });
 });
