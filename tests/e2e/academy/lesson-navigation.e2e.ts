@@ -14,9 +14,17 @@ test('desktop sidebar shows the course outline', async ({ app, screen, browser }
   await app.open(LESSON);
   await desktopOnly(browser);
 
+  // The sub-nav above the page links the five parts of the Academy. This course is in Fundamentals.
+  const parts = screen.getByRole('navigation', 'Academy parts');
+  for (const part of ['Fundamentals', 'L1 Development', 'Interoperability', 'VM Customization', 'Applications']) {
+    await expect(parts.getByRole('link', part)).toBeVisible();
+  }
+  await expect(parts.getByRole('link', 'Fundamentals')).toHaveAttribute('aria-current', 'true');
+
+  // The sidebar names the course, then lists its modules, each with its number, and their lessons.
   const outline = screen.getByRole('complementary');
-  await expect(outline.getByRole('button', 'Course Avalanche Fundamentals')).toBeVisible();
-  await expect(outline.getByText('01 Primer on Avalanche Consensus')).toBeVisible();
+  await expect(outline.getByText('Avalanche Fundamentals')).toBeVisible();
+  await expect(outline.getByText(/^01\s*Primer on Avalanche Consensus$/)).toBeVisible();
   await expect(outline.getByRole('link', 'Consensus Mechanisms')).toBeVisible();
   await expect(outline.getByRole('link', 'Snowman Consensus')).toBeVisible();
   await expect(outline.getByRole('link', 'Course Completion Certificate')).toBeVisible();
@@ -30,9 +38,10 @@ test('phone menu opens the course outline and a lesson from it', async ({ app, s
   await expect(screen.getByRole('complementary')).toBeHidden();
   await screen.getByRole('button', 'Toggle academy sidebar').tap();
 
+  // The drawer names the course in a menu button that lists the other courses of its part.
   const outline = screen.getByRole('complementary');
-  await expect(outline.getByRole('button', 'Course Avalanche Fundamentals')).toBeVisible();
-  await expect(outline.getByText('01 Primer on Avalanche Consensus')).toBeVisible();
+  await expect(outline.getByRole('button', /^Course Avalanche Fundamentals \d+ lessons/)).toBeVisible();
+  await expect(outline.getByText(/^01\s*Primer on Avalanche Consensus$/)).toBeVisible();
   await outline.getByRole('link', 'Snowman Consensus').tap();
 
   await expect(browser).toHaveURL(NEXT_LESSON, NAVIGATION);
