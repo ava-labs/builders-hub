@@ -8,14 +8,12 @@ export function activeNavSection(pathname: string): string {
   // Developers (url '/docs/primary-network') covers both Docs and Academy
   if (pathname.startsWith('/docs') || pathname.startsWith('/academy')) return '/docs';
   if (pathname.startsWith('/console')) return '/console';
-  if (pathname.startsWith('/blog') || pathname.startsWith('/guides')) return '/guides'; // Blog menu has url '/guides'
-  if (pathname.startsWith('/integrations')) return '/integrations';
   if (pathname.startsWith('/explorer')) return '/explorer';
   if (pathname.startsWith('/stats')) return '/stats';
-  if (pathname.startsWith('/hackathons') || pathname.startsWith('/events')) return '/events';
-  if (pathname.startsWith('/grants')) return '/grants';
-  if (pathname.startsWith('/audits')) return '/audits';
-  if (pathname.startsWith('/university')) return '/university';
+  // Ecosystem (trigger href '/ecosystem') covers the overview and every page in its menu
+  if (/^\/(ecosystem|events|hackathons|university|grants|audits|blog|guides|integrations)(\/|$)/.test(pathname)) {
+    return '/ecosystem';
+  }
   if (pathname.startsWith('/chat')) return '/chat';
   return '';
 }

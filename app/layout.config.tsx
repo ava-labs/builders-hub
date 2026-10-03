@@ -94,9 +94,16 @@ export const solutionsMenu: LinkItemType = {
   ],
 };
 
+// The Ecosystem trigger opens the /ecosystem overview and does not prefetch it,
+// for the reason the Console trigger gives below.
 export const ecosystemMenu: LinkItemType = {
   type: 'menu',
-  text: 'Ecosystem',
+  // the trigger's own Link: a menu url gets a Link that prefetches
+  text: (
+    <Link href="/ecosystem" prefetch={false}>
+      Ecosystem
+    </Link>
+  ),
   items: [
     // grouped columns: events, then programs, then reading and tools
     {
