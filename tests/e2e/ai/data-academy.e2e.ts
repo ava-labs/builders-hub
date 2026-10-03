@@ -4,6 +4,8 @@ import { expect } from 'e2e';
 import { z } from 'zod';
 import { desktopOnly, needsModel } from '../lib/skip';
 import { waitForHydration } from '../lib/hydration';
+import { TWO_ROUTE_TIMEOUT, openAsReturningVisitor } from '../site/helpers';
+import { expectSamePage, markPage, sidebarCourse } from '../academy/sidebar';
 
 // Data tests: the agent reads facts off a page, and plain code compares them with the known truth.
 // Here the truth is the course content, so a new lesson in content/academy changes the expected list too.
@@ -62,3 +64,29 @@ test('fundamentals course page lists the modules and lesson counts of the course
     headerLessonCount: expected.reduce((sum, courseModule) => sum + courseModule.lessons, 0),
   });
 });
+
+// After a client move from the Avalanche L1 track to the Blockchain track, the sidebar must list the new course.
+// The agent reads it; the truth is the course's meta.json (academy/sidebar.ts). The course page also lists its modules,
+// so the test moves on to the first lesson, which does not: there only the sidebar can give the list.
+test(
+  'sidebar lists Blockchain Fundamentals and its modules after a move from Avalanche Fundamentals',
+  { timeout: TWO_ROUTE_TIMEOUT },
+  async (fixtures) => {
+    needsModel();
+    const { app, agent, browser, screen } = fixtures;
+    await openAsReturningVisitor(app, browser, '/academy/avalanche-l1/avalanche-fundamentals');
+    await desktopOnly(browser, 'the facts are the same at both sizes');
+    await markPage(browser);
+    await screen.getByRole('navigation', 'Academy parts').getByRole('link', 'Fundamentals').tap();
+    await expect(browser).toHaveURL('/academy/blockchain/blockchain-fundamentals', { timeout: 120_000 });
+    await screen.getByRole('link', 'Start course').tap();
+    await expect(browser).toHaveURL(/\/academy\/blockchain\/blockchain-fundamentals\/.+/, { timeout: 120_000 });
+    await expectSamePage(browser);
+    const facts = await agent.extract(
+      'Read the left sidebar only: the course name at its top, and each numbered module heading in order, without its number.',
+      { schema: z.object({ course: z.string(), modules: z.array(z.string()) }) },
+    );
+    const course = sidebarCourse('/academy/blockchain/blockchain-fundamentals');
+    expect(facts).toEqual({ course: course.title, modules: course.modules });
+  },
+);

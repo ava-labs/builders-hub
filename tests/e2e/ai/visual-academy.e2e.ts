@@ -1,8 +1,9 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
-import { needsModel } from '../lib/skip';
+import { desktopOnly, needsModel } from '../lib/skip';
 import { waitForHydration } from '../lib/hydration';
-import { openAsReturningVisitor } from '../site/helpers';
+import { TWO_ROUTE_TIMEOUT, openAsReturningVisitor } from '../site/helpers';
+import { expectSamePage, markPage } from '../academy/sidebar';
 import { SCREENSHOT_ONLY, VISUAL, layoutIsIntact, waitForStillScreen } from './visual';
 
 // This lesson has a diagram near the top, so the screenshot shows text next to an image.
@@ -54,3 +55,26 @@ for (const { view, path, subject, normal } of [
     await agent.assert(layoutIsIntact(`the site header, ${subject}, all fully visible`, normal), SCREENSHOT_ONLY);
   });
 }
+
+// After a client move between tracks the sidebar listed three track folders in place of the course.
+test(
+  'sidebar after a move between tracks shows one course outline',
+  { ...VISUAL, timeout: TWO_ROUTE_TIMEOUT },
+  async (fixtures) => {
+    needsModel();
+    const { app, agent, browser, screen } = fixtures;
+    await openAsReturningVisitor(app, browser, '/academy/avalanche-l1/avalanche-fundamentals');
+    await desktopOnly(browser, 'the phone keeps the sidebar in a drawer; academy/course-sidebar.e2e.ts opens it');
+    await markPage(browser);
+    await screen.getByRole('navigation', 'Academy parts').getByRole('link', 'Applications').tap();
+    await expect(browser).toHaveURL('/academy/blockchain/solidity-foundry', { timeout: 120_000 });
+    await expectSamePage(browser);
+    await waitForStillScreen(browser);
+    await agent.assert(
+      'The left sidebar shows the course name "Intro to Solidity" at its top, then numbered module headings (01, 02, ...) ' +
+        'with lesson links under them. It is not a short list of three folders named "Avalanche l1", "Blockchain" and ' +
+        '"Team1 Academy". No sidebar heading has an emoji.',
+      SCREENSHOT_ONLY,
+    );
+  },
+);
