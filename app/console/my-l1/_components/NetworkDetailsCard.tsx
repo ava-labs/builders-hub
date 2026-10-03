@@ -1,12 +1,13 @@
 'use client';
 
-import { Check, ChevronRight, Copy } from 'lucide-react';
+import { Check, ChevronRight, Copy, Pencil } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
+import { useEditRpcUrlModal } from '@/components/toolbox/providers/modals/EditRpcUrlModal';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import type { L1ValidatorManagerInfo } from '@/lib/console/my-l1/useL1ValidatorManager';
 
@@ -25,6 +26,21 @@ export function NetworkDetailsCard({
   validatorManager?: L1ValidatorManagerInfo;
 }) {
   const { copiedId, copyToClipboard } = useCopyToClipboard();
+  const { openEditRpcUrl } = useEditRpcUrlModal();
+
+  // Managed L1s get their RPC URL from the server-side node registration,
+  // which wins over the wallet store in the dashboard merge, so an edit
+  // there would not show up here. Only wallet-sourced entries are editable.
+  const canEditRpc = l1.source === 'wallet' && l1.evmChainId !== null;
+  const handleEditRpc = () => {
+    if (l1.evmChainId === null) return;
+    void openEditRpcUrl({
+      evmChainId: l1.evmChainId,
+      name: l1.chainName,
+      rpcUrl: l1.rpcUrl,
+      isTestnet: l1.isTestnet,
+    });
+  };
 
   // Order chosen to keep the 2-col grid tidy:
   //   row 1: RPC URL          | Subnet ID
@@ -43,9 +59,12 @@ export function NetworkDetailsCard({
      *  hasn't been deployed yet but the user can configure it via the
      *  prominent banner above. */
     placeholder?: boolean;
+    /** Opens an editor for this value. Only the RPC URL of wallet-sourced
+     *  L1s is editable today (issue #4450). */
+    onEdit?: () => void;
   };
   const items: Item[] = [
-    { label: 'RPC URL', value: l1.rpcUrl, id: 'rpc-url' },
+    { label: 'RPC URL', value: l1.rpcUrl, id: 'rpc-url', onEdit: canEditRpc ? handleEditRpc : undefined },
     { label: 'Subnet ID', value: l1.subnetId, id: 'subnet-id' },
     { label: 'Blockchain ID', value: l1.blockchainId, id: 'blockchain-id' },
   ];
@@ -152,6 +171,20 @@ export function NetworkDetailsCard({
                   >
                     {item.value}
                   </code>
+                  {item.onEdit && (
+                    <button
+                      type="button"
+                      aria-label={`Edit ${item.label}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        item.onEdit?.();
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="p-1.5 shrink-0 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <span
                     className="p-1.5 shrink-0 text-muted-foreground group-hover/item:text-foreground transition-colors"
                     aria-hidden="true"
