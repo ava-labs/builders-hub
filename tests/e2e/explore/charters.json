@@ -5,6 +5,11 @@
     "goal": "Start at /academy, pick a course, and move through five lessons with the next and previous links. Check the lesson order, the progress display and the sidebar stay correct."
   },
   {
+    "key": "academy-parts",
+    "target": "desktop",
+    "goal": "Start at /academy/avalanche-l1/avalanche-fundamentals and use the Academy parts bar above the page to open one course of each of the five parts, by the part links and by the courses in their hover cards. After each move check the sidebar lists the modules of the course you are on, not a list of tracks, and holds no emoji."
+  },
+  {
     "key": "docs-search",
     "target": "desktop",
     "goal": "Start at /docs, search for \"ICM\", \"validator manager\" and \"convert to L1\", and open one result for each. Check the results match and each page scrolls to the right heading."

@@ -2,7 +2,6 @@ import type { FullQuizData, Course, QuizDataStructure } from './types';
 
 import blockchainFundamentals from './courses/blockchain-fundamentals.json';
 import encryptedErc from './courses/encrypted-erc.json';
-import nftDeployment from './courses/nft-deployment.json';
 import x402PaymentInfrastructure from './courses/x402-payment-infrastructure.json';
 import avalancheFundamentals from './courses/avalanche-fundamentals.json';
 import accessRestrictionFundamentals from './courses/access-restriction-fundamentals.json';
@@ -18,10 +17,6 @@ import nativeTokenBridge from './courses/native-token-bridge.json';
 import permissionlessL1s from './courses/permissionless-l1s.json';
 import multichainArchitecture from './courses/multichain-architecture.json';
 import permissionedL1s from './courses/permissioned-l1s.json';
-import foundationsWeb3Venture from './courses/foundations-web3-venture.json';
-import web3CommunityArchitect from './courses/web3-community-architect.json';
-import goToMarket from './courses/go-to-market.json';
-import fundraisingFinance from './courses/fundraising-finance.json';
 import team1Fundamentals from './courses/team1-fundamentals.json';
 import team1TechnicalMember from './courses/team1-technical-member.json';
 import team1AdvancedTechnicalMember from './courses/team1-advanced-technical-member.json';
@@ -31,7 +26,6 @@ import solidityFoundry from './courses/solidity-foundry.json';
 const courseFiles: Record<string, { title: string; quizzes: Record<string, unknown> }> = {
   'blockchain-fundamentals': blockchainFundamentals,
   'encrypted-erc': encryptedErc,
-  'nft-deployment': nftDeployment,
   'x402-payment-infrastructure': x402PaymentInfrastructure,
   'avalanche-fundamentals': avalancheFundamentals,
   'access-restriction-fundamentals': accessRestrictionFundamentals,
@@ -47,10 +41,6 @@ const courseFiles: Record<string, { title: string; quizzes: Record<string, unkno
   'permissionless-l1s': permissionlessL1s,
   'multichain-architecture': multichainArchitecture,
   'permissioned-l1s': permissionedL1s,
-  'foundations-web3-venture': foundationsWeb3Venture,
-  'web3-community-architect': web3CommunityArchitect,
-  'go-to-market': goToMarket,
-  'fundraising-finance': fundraisingFinance,
   'team1-fundamentals': team1Fundamentals,
   'team1-technical-member': team1TechnicalMember,
   'team1-advanced-technical-member': team1AdvancedTechnicalMember,

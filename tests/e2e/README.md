@@ -93,7 +93,7 @@ Rules for a new agent test:
 
 `.github/workflows/e2e-explore.yml` runs `e2e explore` once a night on production, one job for each charter in `explore/charters.json`. The agent gets the charter's goal, drives the site and reports findings. Findings go to the job summary and to the artifact `e2e-explore-<key>` (14 days). They do not fail the job: a person triages them. A job fails only when the run tested nothing.
 
-- A charter costs about 1M to 3M model tokens. The 8 charters cost about 9 to 11 dollars a night.
+- A charter costs about 1M to 3M model tokens. The 9 charters cost about 10 to 14 dollars a night.
 - Run it by hand on GitHub (Actions, E2E explore, Run workflow), with an optional target URL and charter keys.
 - Run one charter locally: `npx e2e explore '<goal>' --target desktop --output .e2e/explore/<key>`.
 - Without the `ANTHROPIC_API_KEY` secret the job skips.

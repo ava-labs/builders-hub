@@ -118,10 +118,8 @@ export default async function Page(props: {
   const path = `content/academy/${page.path}`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
-  // Check both official courses and entrepreneur courses
-  // page.slugs[1] contains the course slug (e.g., "avalanche-fundamentals", "foundations-web3-venture")
-  const course = COURSES.official.find((c) => c.slug === page.slugs[1]) 
-    || COURSES.avalancheEntrepreneur.find((c) => c.slug === page.slugs[1]);
+  // page.slugs[1] contains the course slug (e.g., "avalanche-fundamentals")
+  const course = COURSES.official.find((c) => c.slug === page.slugs[1]);
   const outline = findCourseOutline(academy.pageTree, page.slugs[0], page.slugs[1]);
   const isOverview = page.slugs.length === 2;
   const isCertificatePage = outline?.certificateUrl === page.url;

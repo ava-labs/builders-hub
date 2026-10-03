@@ -98,15 +98,15 @@ const SAMPLES: Record<string, () => string[]> = {
   '/solutions/[slug]': pillarSlugs,
 };
 
-// A C-Chain address page of the mainnet explorer.
-const EXPLORER_ADDRESS = /^\/explorer\/mainnet\/c-chain\/address\/0x[0-9a-f]{40}$/;
+// The RWA view of the C-Chain DeFi tab in the mainnet explorer.
+const RWA_VIEW = /^\/explorer\/mainnet\/c-chain\/defi\/rwa$/;
 
 // Dynamic pages that only redirect. The sweep checks the redirect, not the page it lands on (explorer/ covers that).
-// An RWA slug opens its tranche pool. An unknown slug lands on /explorer/mainnet/c-chain/defi instead.
+// An RWA slug opens the RWA view. An unknown slug lands on /explorer/mainnet/c-chain/defi instead.
 // Both pages call permanentRedirect, which answers 308.
 const REDIRECT_SAMPLES: Record<string, { values: () => string[]; location: RegExp }> = {
-  '/stats/dapps/[slug]': { values: firstRwaSlug, location: EXPLORER_ADDRESS },
-  '/stats/dapps/rwa/[slug]': { values: firstRwaSlug, location: EXPLORER_ADDRESS },
+  '/stats/dapps/[slug]': { values: firstRwaSlug, location: RWA_VIEW },
+  '/stats/dapps/rwa/[slug]': { values: firstRwaSlug, location: RWA_VIEW },
 };
 
 // Paths that other suites open. A page that only redirects there is checked by its redirect, not by the page it lands on.

@@ -1,23 +1,15 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T16:06:45.591Z",
+  "createdAt": "2026-10-03T17:55:34.975Z",
   "payload": {
     "actions": [
       {
         "name": "tap",
-        "summary": "tap link \"Start with Avalanche Fundamentals\"",
+        "summary": "tap link \"Start the course\" in \"Start here\"",
         "target": {
           "role": "link",
-          "name": "Start with Avalanche Fundamentals"
-        }
-      },
-      {
-        "name": "tap",
-        "summary": "tap link \"Start course\" in \"·\"",
-        "target": {
-          "role": "link",
-          "name": "Start course",
-          "within": "·"
+          "name": "Start the course",
+          "within": "Start here"
         }
       },
       {
@@ -38,12 +30,24 @@
       "targetId": "desktop",
       "instructionDigest": "f5295c55971cbf274325fb1ca3a03cf5385c19513bd1ba7cca0f9e96142fd543"
     },
-    "summary": "Started the Avalanche Fundamentals course, then opened its second lesson, \"Consensus Mechanisms\". The page is at /academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms and shows \"Lesson 2 of 4\".",
+    "summary": "The course was started and the second lesson is open. The page is /academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms, titled \"Consensus Mechanisms\", and it shows \"Lesson 2 of 4\" under \"Primer on Avalanche Consensus\". The sidebar highlights that lesson.…",
     "startPath": "/academy",
     "endPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
     "endAnchors": [
       {
-        "text": "Avalanche Fundamentals"
+        "text": "Fundamentals"
+      },
+      {
+        "text": "L1 Development"
+      },
+      {
+        "text": "Interoperability"
+      },
+      {
+        "text": "VM Customization"
+      },
+      {
+        "text": "Applications"
       },
       {
         "role": "link",
@@ -56,24 +60,8 @@
       {
         "role": "link",
         "name": "Consensus Mechanisms"
-      },
-      {
-        "role": "link",
-        "name": "Snowman Consensus"
-      },
-      {
-        "role": "link",
-        "name": "Throughput vs. Time to Finality"
-      },
-      {
-        "role": "link",
-        "name": "Multi-Chain Architecture"
-      },
-      {
-        "role": "link",
-        "name": "The Primary Network"
       }
     ],
-    "endWaitMs": 13497
+    "endWaitMs": 30757
   }
 }

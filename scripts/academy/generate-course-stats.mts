@@ -18,7 +18,7 @@ const { getCourseStats } = requireCjs('../../lib/academy/course-outline.ts') as 
 
 const OUTPUT_FILE = path.join(process.cwd(), 'lib/academy/course-stats.generated.ts');
 // The landing tracks by url segment, which is also the course outline's track key.
-const TRACKS = ['avalanche-l1', 'blockchain', 'entrepreneur', 'team1'] as const;
+const TRACKS = ['avalanche-l1', 'blockchain', 'team1'] as const;
 
 const HEADER = `/**
  * AUTO-GENERATED FILE - DO NOT EDIT

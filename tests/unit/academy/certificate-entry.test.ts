@@ -33,7 +33,6 @@ describe('certificateCourseName', () => {
     expect(certificateCourseName(bySlug('solidity-foundry'))).toBe('Solidity Programming with Foundry');
     expect(certificateCourseName(bySlug('erc20-bridge'))).toBe('ERC-20 to ERC-20 Bridge');
     expect(certificateCourseName(bySlug('encrypted-erc'))).toBe('Encrypted ERC');
-    expect(certificateCourseName(bySlug('foundations-web3-venture'))).toBe('Foundations of a Web3 Venture');
   });
 
   it("names Access Restriction's first certificate entry, and nothing for Team1", () => {

@@ -11,7 +11,7 @@ const DOCS_LAYOUT_BUG = 'fumadocs DocsLayout renders a second <main> inside the 
 const PAGES: { path: string; bug?: string }[] = [
   { path: '/', bug: 'components/landing-v2 StoryHome renders a second <main> inside the HomeLayout <main>' },
   { path: '/docs/primary-network', bug: DOCS_LAYOUT_BUG },
-  { path: '/academy', bug: DOCS_LAYOUT_BUG },
+  { path: '/academy' },
   { path: '/explorer/mainnet' },
   { path: '/explorer/mainnet/c-chain' },
   { path: '/explorer/mainnet/c-chain/blocks' },

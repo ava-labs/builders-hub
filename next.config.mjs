@@ -702,7 +702,7 @@ const config = {
       },
       {
         source: '/docs/dapps/deploy-nft-collection/prep-nft-files',
-        destination: '/academy/blockchain/nft-deployment/02-prepare-nft-files',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -842,12 +842,12 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur',
-        destination: '/academy/entrepreneur',
+        destination: '/academy',
         permanent: true,
       },
       {
         source: '/codebase-entrepreneur/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -857,7 +857,7 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur-academy/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -1724,12 +1724,12 @@ const config = {
       },
       {
         source: "/docs/build/dapp/smart-contracts/nfts/deploy-collection",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
         source: "/docs/build/tutorials/smart-digital-assets/wallet-nft-studio",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -1996,7 +1996,7 @@ const config = {
       },
       {
         source: "/academy/codebase-entrepreneur-academy/09-fundraising/:path*",
-        destination: "/academy/entrepreneur/fundraising-finance/09-fundraising/:path*",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -2317,46 +2317,37 @@ const config = {
           {
             type: 'query',
             key: 'path',
-            value: 'avalanche-l1',
-          },
-        ],
-        destination: "/academy/avalanche-l1",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
-            value: 'blockchain',
-          },
-        ],
-        destination: "/academy/blockchain",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
-            value: 'entrepreneur',
-          },
-        ],
-        destination: "/academy/entrepreneur",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
             value: 'team1',
           },
         ],
         destination: "/academy/team1",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-154): the NFT Deployment course was removed; `:path*` also
+      // matches the bare course url.
+      {
+        source: "/academy/blockchain/nft-deployment/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-153): the Entrepreneur Academy was removed; `:path*` also
+      // matches the bare track url.
+      {
+        source: "/academy/entrepreneur/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-155): the Avalanche L1 and Blockchain landings merged into /academy. Exact
+      // paths only, so the course urls below them stay. No ?path rule may point here: Next passes the query on,
+      // so /academy would loop.
+      {
+        source: "/academy/avalanche-l1",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/academy/blockchain",
+        destination: "/academy",
         permanent: true,
       },
       // Hackathons → Events migration
