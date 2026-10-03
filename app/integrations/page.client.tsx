@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { integrationCategoryCount, listedIntegrations } from '@/lib/integrations/listed';
 
 interface IntegrationsClientProps {
     list: any[];
@@ -18,32 +19,10 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
     }, []);
     
     // Filter out integrations with undefined essential properties
-    const validIntegrations = useMemo(() => list.filter((integration) => {
-        // Check if integration exists and has required data
-        if (!integration || !integration.data) {
-            return false;
-        }
-        
-        const { title, category, logo, description } = integration.data;
-        
-        // Skip README entries
-        if (title === 'README') {
-            return false;
-        }
-        
-        // Check if essential properties are defined
-        return title !== undefined && 
-               category !== undefined && 
-               logo !== undefined && 
-               description !== undefined &&
-               integration.url !== undefined;
-    }), [list]);
-    
+    const validIntegrations = useMemo(() => listedIntegrations(list), [list]);
+
     // Distinct categories across the valid entries, for the header line
-    const categoryCount = useMemo(
-        () => new Set(validIntegrations.map((integration) => integration.data.category)).size,
-        [validIntegrations]
-    );
+    const categoryCount = useMemo(() => integrationCategoryCount(validIntegrations), [validIntegrations]);
     
     // Filter integrations based on search query
     const filteredIntegrations = useMemo(() => {
