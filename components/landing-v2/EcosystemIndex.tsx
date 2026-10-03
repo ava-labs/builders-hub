@@ -8,6 +8,7 @@ import {
   BookOpen,
   ChevronDown,
   Globe,
+  Map as MapIcon,
   Rss,
   Users,
   Wrench,
@@ -107,6 +108,7 @@ const TEAM1_CHANNELS: Channel[] = [
   { icon: XIcon, name: "@AvaxTeam1", href: "https://x.com/AvaxTeam1", external: true },
   { icon: Rss, name: "Blog", href: "https://www.team1.blog/", external: true },
   { icon: Globe, name: "team1.network", href: "https://team1.network/", external: true },
+  { icon: MapIcon, name: "Cascade", href: CASCADE_URL, external: true },
   { icon: BookOpen, name: "Academy", href: "/academy", external: false },
 ];
 
@@ -165,9 +167,11 @@ function ChannelCell({ channel }: { channel: Channel }) {
 export default function EcosystemIndex({
   events,
   l1Count,
+  integrationCount,
 }: {
   events: HackathonHeader[];
   l1Count: number | null;
+  integrationCount: number;
 }) {
   const reducedMotion = useReducedMotion();
 
@@ -194,41 +198,8 @@ export default function EcosystemIndex({
     <main className="relative overflow-x-clip bg-white dark:bg-zinc-950">
       <SheetBackdrop snowOnly />
       <div className="relative">
-        {/* -- summit strip - temporary: remove after Sep 17 ------------- */}
-        <div className="relative border-b border-zinc-200 bg-white/85 dark:border-zinc-800 dark:bg-zinc-950/85">
-          <div
-            className={`mx-auto flex h-10 w-full max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-5 md:px-6 ${MONO_LABEL} text-zinc-500 dark:text-zinc-400`}
-          >
-            <span className="h-1.5 w-1.5 shrink-0 bg-[#E6212F]" />
-            <b className="font-medium text-zinc-900 dark:text-zinc-100">Avalanche Summit</b>
-            <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            New York City
-            <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            Sep 16-17
-            <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            Chelsea Industrial
-            <a
-              href="https://www.avalanchesummit.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() =>
-                track("ecosystem_cta_clicked", {
-                  section: "summit-strip",
-                  label: "Get tickets",
-                  href: "https://www.avalanchesummit.com/",
-                })
-              }
-              className="ml-auto text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-100"
-            >
-              Get tickets ↗
-            </a>
-          </div>
-        </div>
-
         {/* -- hero: the solutions cascade, ecosystem verticals ---------- */}
-        {/* 2.5rem below the 3.5rem navbar accounts for the summit strip;
-            revert to -3.5rem alone when the strip is removed */}
-        <section className="flex min-h-[calc(100vh-3.5rem-2.5rem)] flex-col">
+        <section className="flex min-h-[calc(100vh-3.5rem)] flex-col">
           <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 pb-7 pt-12 md:px-6">
             <motion.div
               className={`flex items-center gap-3 ${MONO_LABEL} text-zinc-500 dark:text-zinc-400`}
@@ -315,26 +286,24 @@ export default function EcosystemIndex({
                 </div>
                 {/* ecosystem scale, each number a doorway */}
                 <div className="mt-8 grid grid-cols-2 gap-px border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800">
-                  <a
-                    href={CASCADE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href="/integrations"
                     onClick={() =>
                       track("ecosystem_cta_clicked", {
                         section: "hero-stats",
-                        label: "600+ projects",
-                        href: CASCADE_URL,
+                        label: "Integrations",
+                        href: "/integrations",
                       })
                     }
                     className="group bg-white p-4 transition-colors hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900"
                   >
                     <div className="v2-display text-3xl text-zinc-900 dark:text-zinc-50">
-                      600+
+                      {integrationCount}
                     </div>
                     <div className="mt-2 whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 transition-colors group-hover:text-zinc-700 dark:text-zinc-400 dark:group-hover:text-zinc-300">
-                      Projects <span className="text-[#E6212F]">·</span> Cascade ↗
+                      Integrations →
                     </div>
-                  </a>
+                  </Link>
                   <Link
                     href="/explorer/mainnet/chains"
                     onClick={() =>
@@ -510,14 +479,10 @@ export default function EcosystemIndex({
                     d="M150.83,219.57v39.49c0,2.6-2.1,4.7-4.7,4.7h-51.22c-32.39,0-58.64-26.29-58.64-58.72v-65.4c0-2.6-2.1-4.7-4.7-4.7H4.7c-2.59,0-4.7-2.11-4.7-4.7v-39.49c0-2.59,2.1-4.7,4.7-4.7h26.88c2.59,0,4.7-2.11,4.7-4.7v-10.34c0-2.6,2.1-4.7,4.69-4.7h39.44c2.59,0,4.7,2.11,4.7,4.7v132.52c0,6.26,5.07,11.34,11.32,11.34h49.71c2.59,0,4.7,2.11,4.7,4.7Z"
                   />
                 </svg>
-                <div className="absolute bottom-5 left-6 right-6 z-10 flex items-end gap-8 text-white">
-                  <div>
-                    <div className="v2-display text-4xl">600+</div>
-                    <div className={`mt-1.5 ${MONO_LABEL} opacity-85`}>Members</div>
-                  </div>
-                  <div>
-                    <div className="v2-display text-4xl">60+</div>
-                    <div className={`mt-1.5 ${MONO_LABEL} opacity-85`}>Countries</div>
+                <div className="absolute bottom-5 left-6 right-6 z-10 text-white">
+                  <div className="v2-display text-4xl">Community-run.</div>
+                  <div className={`mt-1.5 ${MONO_LABEL} opacity-85`}>
+                    Builders · creators · operators
                   </div>
                 </div>
               </motion.div>
@@ -578,7 +543,7 @@ export default function EcosystemIndex({
             </div>
 
             <motion.div
-              className="mt-5 grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 md:grid-cols-5 dark:border-zinc-800 dark:bg-zinc-800"
+              className="mt-5 grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 dark:border-zinc-800 dark:bg-zinc-800"
               {...rise(0.21)}
             >
               {TEAM1_CHANNELS.map((channel) => (

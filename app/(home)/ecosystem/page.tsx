@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import EcosystemIndex from '@/components/landing-v2/EcosystemIndex';
+import { integration } from '@/lib/source';
 import { getFilteredHackathons } from '@/server/services/hackathons';
 import type { HackathonHeader } from '@/types/hackathons';
 
@@ -12,21 +13,26 @@ const EVENT_CARD_LIMIT = 4;
 const ogImage = { url: '/api/og/default', width: 1200, height: 630, alt: 'Avalanche Ecosystem' };
 
 export const metadata: Metadata = createMetadata({
-  title: 'Ecosystem | Avalanche Builder Hub',
+  title: 'Ecosystem',
   description:
     'Finance, gaming, payments, community: the Avalanche ecosystem and the Team1 community events, programs and grants growing it.',
   openGraph: { url: '/ecosystem', images: ogImage },
   twitter: { images: ogImage },
 });
 
-// Same source as /events: ongoing first, then upcoming, then the most recent
+// Same source as /events: ongoing first, then the nearest upcoming, then the most recent
 // past events fill the remaining slots. The page must render without the
 // events store, so failures degrade to an empty list.
 async function getEvents(): Promise<HackathonHeader[]> {
   try {
     const [ongoing, upcoming, ended] = await Promise.all([
       getFilteredHackathons({ page: 1, pageSize: EVENT_CARD_LIMIT, status: 'ONGOING' }),
-      getFilteredHackathons({ page: 1, pageSize: EVENT_CARD_LIMIT, status: 'UPCOMING' }),
+      getFilteredHackathons({
+        page: 1,
+        pageSize: EVENT_CARD_LIMIT,
+        status: 'UPCOMING',
+        sort: 'start_date_asc',
+      }),
       getFilteredHackathons({ page: 1, pageSize: EVENT_CARD_LIMIT, status: 'ENDED' }),
     ]);
     return [...ongoing.hackathons, ...upcoming.hackathons, ...ended.hackathons].slice(
@@ -57,5 +63,9 @@ async function getL1Count(): Promise<number | null> {
 
 export default async function EcosystemPage() {
   const [events, l1Count] = await Promise.all([getEvents(), getL1Count()]);
-  return <EcosystemIndex events={events} l1Count={l1Count} />;
+  // the hub's own integrations directory, the same pages /integrations lists
+  const integrationCount = integration.getPages().length;
+  return (
+    <EcosystemIndex events={events} l1Count={l1Count} integrationCount={integrationCount} />
+  );
 }
