@@ -27,9 +27,9 @@ export const COURSE_STATS: Record<CourseStatsTrack, Record<string, CourseStats>>
     "/academy/blockchain/x402-payment-infrastructure": { modules: 4, lessons: 20 },
   },
   "team1": {
-    "/academy/team1/team1-advanced-technical-member": { modules: 0, lessons: 4 },
+    "/academy/team1/team1-advanced-technical-member": { modules: 0, lessons: 5 },
     "/academy/team1/team1-event-organizer-pro": { modules: 0, lessons: 7 },
-    "/academy/team1/team1-fundamentals": { modules: 0, lessons: 6 },
+    "/academy/team1/team1-fundamentals": { modules: 0, lessons: 8 },
     "/academy/team1/team1-organizing-first-event": { modules: 0, lessons: 6 },
     "/academy/team1/team1-soft-skills": { modules: 0, lessons: 6 },
     "/academy/team1/team1-technical-member": { modules: 0, lessons: 7 },
