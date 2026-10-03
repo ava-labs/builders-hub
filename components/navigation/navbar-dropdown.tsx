@@ -7,8 +7,8 @@ import Image from 'next/image';
 import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
 import { menuSections, singleItems, type NavItem, type NavSection } from './nav-config';
 import { useSession } from 'next-auth/react';
-import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -20,9 +20,13 @@ import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { openLoginModal } = useLoginModalTrigger();
+  const handleLogin = (mode: 'signin' | 'signup') => {
+    setIsOpen(false);
+    openLoginModal(undefined, mode);
+  };
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
-  const { openLoginModal } = useLoginModalTrigger();
   const isAuthenticated = status === 'authenticated';
   const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
   const visibleMenuSections = menuSections.map((section) => ({
@@ -109,18 +113,18 @@ export function NavbarDropdown() {
                     <UserRound className="size-4.5" strokeWidth={1.25} />
                   </Link>
                 ) : (
-                  <button
-                    type="button"
-                    aria-label="Login"
-                    title="Login"
-                    className="inline-flex h-8 w-8 items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-50 transition-colors"
-                    onClick={() => {
-                      setIsOpen(false);
-                      openLoginModal(window.location.href);
-                    }}
-                  >
-                    <UserRound className="size-4.5" strokeWidth={1.25} />
-                  </button>
+                  <div className="flex items-center gap-3 text-sm">
+                    <button type="button" onClick={() => handleLogin('signin')}>
+                      Log in
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                      onClick={() => handleLogin('signup')}
+                    >
+                      Sign up
+                    </button>
+                  </div>
                 )}
               </div>
               {/* Menu sections */}
@@ -200,4 +204,3 @@ export function NavSectionBlock({ section }: { section: NavSection }) {
     </div>
   );
 }
-

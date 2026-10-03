@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 import { Board, CellLabel, FIG, HEAD, INK, LoadMore, MUTED, ROW, RowDoor, SectionHeader, StatCell, StatStrip, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { dayLong, dayShort, formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
-import { txTypeLabel, type NodeResponse, type NodeStakingTx, type ValidationsResponse } from "@/lib/pchain-explorer";
+import { isPrimaryTerm, txTypeLabel, type NodeResponse, type NodeStakingTx, type ValidationsResponse } from "@/lib/pchain-explorer";
 import { LIST_CAP, avax, delegationFeeCut } from "./node-data";
 import { subnetName } from "./names";
 
 /* A validator's record, in the explorer's ledger grammar: the terms it
-   closed and what each paid, the delegations it carries, its recent
-   staking txs, and every network it validates. Long lists stop at eight
-   rows behind an expander. */
+   closed and what each paid, its terms as a subnet validator, the
+   delegations it carries, its recent staking txs, and every network it
+   validates. Long lists stop at eight rows behind an expander. */
 
 const RULE = "border-b border-zinc-200 dark:border-zinc-800";
 const GOOD = "text-emerald-600 dark:text-emerald-400";
@@ -42,7 +42,9 @@ function ExpandRow({ expanded, count, onClick }: { expanded: boolean; count: num
  */
 export function ValidationHistory({ data, base }: { data: ValidationsResponse; base: string }) {
   const [showAll, setShowAll] = useState(false);
-  const { periods, totals } = data;
+  // the Primary Network's terms: a subnet term pays no reward, so it has its own ledger below
+  const periods = data.periods.filter(isPrimaryTerm);
+  const { totals } = data;
   const lifetimeReward = BigInt(totals.validationReward) + BigInt(totals.delegationReward);
   const rows = showAll ? periods : periods.slice(0, LIST_CAP);
   const cols = "md:grid-cols-[minmax(0,1.6fr)_4rem_minmax(0,1fr)_6rem_minmax(0,1fr)_6rem]";
@@ -123,6 +125,62 @@ export function ValidationHistory({ data, base }: { data: ValidationsResponse; b
           })}
         </div>
         {periods.length > LIST_CAP && <ExpandRow expanded={showAll} count={periods.length - LIST_CAP} onClick={() => setShowAll((v) => !v)} />}
+      </Board>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Terms the node served as a subnet validator: its record from before a
+   subnet became an L1, or on a subnet that never did. A subnet validator
+   stakes no AVAX and earns no reward, so a row reads the subnet and its
+   weight, not stake and pay. */
+
+export function SubnetTerms({ data, base }: { data: ValidationsResponse; base: string }) {
+  const [showAll, setShowAll] = useState(false);
+  const terms = data.periods.filter((p) => !isPrimaryTerm(p));
+  const rows = showAll ? terms : terms.slice(0, LIST_CAP);
+  const cols = "md:grid-cols-[minmax(0,1.6fr)_4rem_minmax(0,1fr)_6rem_minmax(0,1fr)]";
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionHeader
+        label="Past Subnet Terms"
+        action={<span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{formatNumber(terms.length)} ended</span>}
+      />
+      <Board divide={false}>
+        <div className={cn(HEAD, cols, RULE)}>
+          <span>Term</span>
+          <span className="text-right">Days</span>
+          <span className="text-right">Subnet</span>
+          <span className="text-right">Weight</span>
+          <span className="text-right">Ended</span>
+        </div>
+        <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          {rows.map((p) => (
+            <div key={p.txHash} className={cn(ROW, cols, "hover:bg-transparent dark:hover:bg-transparent")}>
+              <Link href={`${base}/tx/${p.txHash}`} className={cn(INK, "truncate hover:text-[#E6212F] max-md:col-span-2")} title="the tx that added it to the subnet">
+                {dayShort(p.startTimestamp)} → {dayLong(p.endTimestamp).replace(/^\w+, /, "")}
+              </Link>
+              <span className={cn(MUTED, "md:text-right")}>
+                <CellLabel>Days</CellLabel>
+                {formatNumber(Math.round((p.endTimestamp - p.startTimestamp) / 86400))}
+              </span>
+              <span className={cn(INK, "truncate text-right")} title={p.subnetId}>
+                <CellLabel>Subnet</CellLabel>
+                {subnetName(p.subnetId) ?? truncate(p.subnetId ?? "", 16)}
+              </span>
+              <span className={cn(MUTED, "md:text-right")}>
+                <CellLabel>Weight</CellLabel>
+                {formatNumber(Number(p.amountStaked))}
+              </span>
+              <span className={cn(MUTED, "text-right")}>
+                <CellLabel>Ended</CellLabel>
+                {timeAgo(p.endTimestamp)}
+              </span>
+            </div>
+          ))}
+        </div>
+        {terms.length > LIST_CAP && <ExpandRow expanded={showAll} count={terms.length - LIST_CAP} onClick={() => setShowAll((v) => !v)} />}
       </Board>
     </section>
   );
@@ -255,7 +313,8 @@ export function ActivityTable({
               <span className="flex min-w-0 max-md:justify-end">
                 <TxTypePill type={h.txType} label={txTypeLabel(h.txType)} />
               </span>
-              <span className={cn(INK, "text-right")}>{(h.weight ?? 0) > 0 ? avax(h.weight!) : ""}</span>
+              {/* a subnet validator's weight is the subnet's own number, not nAVAX */}
+              <span className={cn(INK, "text-right")}>{(h.weight ?? 0) > 0 ? (h.subnetId && h.subnetId !== PRIMARY_SUBNET_ID ? formatNumber(h.weight!) : avax(h.weight!)) : ""}</span>
               <span className={cn(MUTED, "text-right")} title={formatTime(h.blockTimestamp)}>
                 {timeAgo(h.blockTimestamp)}
               </span>
