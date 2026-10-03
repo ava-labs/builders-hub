@@ -13,6 +13,8 @@
 //   resource = "" (home) | blocks | block/{id} | txs | tx/{id}
 //              | address/{addr} | node/{nodeId} | validators
 
+import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+
 export const EXPLORER_API_BASE =
   process.env.EXPLORER_API_URL || "https://stats-api.avax.network";
 
@@ -477,6 +479,10 @@ export interface NodeResponse {
 
 export interface ValidationPeriod {
   txHash: string;
+  /** the network the term validated; absent means the Primary Network. A
+   *  subnet validator's term stakes no AVAX and earns no reward: its
+   *  amountStaked is the subnet's weight */
+  subnetId?: string;
   startTimestamp: number;
   endTimestamp: number;
   amountStaked: string;
@@ -488,13 +494,19 @@ export interface ValidationPeriod {
   /** nAVAX actually paid out of the delegators' rewards as this node's fee */
   delegationReward: string;
   rewardTxHash?: string;
-  /** a term that closed without paying missed the uptime requirement */
+  /** a Primary Network term that closed without paying missed the uptime requirement */
   rewarded: boolean;
+}
+
+/** a term on the Primary Network, not a subnet validator's */
+export function isPrimaryTerm(p: ValidationPeriod): boolean {
+  return !p.subnetId || p.subnetId === PRIMARY_SUBNET_ID;
 }
 
 export interface ValidationsResponse {
   nodeId: string;
   periods: ValidationPeriod[];
+  /** the Primary Network terms only: a subnet term pays no reward, so it never counts as unrewarded */
   totals: {
     periods: number;
     validationReward: string;
@@ -504,6 +516,16 @@ export interface ValidationsResponse {
     /** terms that closed without a reward */
     unrewarded: number;
   };
+}
+
+/* When a subnet became an L1. Served by
+   app/api/pchain-conversion/[network]/[subnetId]. */
+export interface ConversionResponse {
+  subnetId: string;
+  /** the ConvertSubnetToL1Tx; null while the subnet is not converted */
+  txHash: string | null;
+  /** unix seconds of the conversion's block */
+  timestamp: number | null;
 }
 
 export interface ValidatorSummary {
