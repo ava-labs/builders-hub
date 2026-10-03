@@ -98,6 +98,7 @@ E2E_BASE_URL=http://localhost:3000 npm test
 
 - **Unit:** Vitest, node environment, no DOM (`vitest.config.ts`). Put tests in `tests/unit/<area>/`. CI runs only `tests/unit/explorer` today.
 - **Browser and API:** `tests/e2e/`, with [tester-army/e2e](https://e2e.tester.army/docs). Details: `tests/e2e/README.md`.
+  - Write every new browser or API test in `tests/e2e/` with tester-army/e2e. Do not add tests with `@playwright/test`, Cypress, Puppeteer or another runner, and do not add a second e2e folder. For page behavior that Vitest cannot test (it has no DOM), write a tester-army/e2e test.
   - Every browser test runs at a desktop and a phone size. Find elements by role and accessible name. Explorer data is live: assert structure, not values.
   - A test for a bug the site still has calls `knownBug()` and is skipped until the fix lands. `E2E_KNOWN_BUGS=1` runs it.
   - API tests (`tests/e2e/api/`) have their own config and run once, with no browser.
