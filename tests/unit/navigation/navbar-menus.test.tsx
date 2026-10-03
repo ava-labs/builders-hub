@@ -107,6 +107,12 @@ describe('card pictures', () => {
 });
 
 describe('Ecosystem menu', () => {
+  it('opens the /ecosystem overview from the desktop trigger without a prefetch, and from the phone header', () => {
+    // a prefetched route preloads its CSS into the page that holds the navbar
+    expect(triggerOf(ecosystemMenu)).toEqual({ label: 'Ecosystem', href: '/ecosystem', prefetch: false });
+    expect(phoneSection('Ecosystem').href).toBe('/ecosystem');
+  });
+
   it('holds Blog & Guides and Integrations on desktop and on the phone', () => {
     const desktop = itemsOf(ecosystemMenu).map((item) => item.url);
     const phone = phoneSection('Ecosystem').items.map((item) => item.href);
@@ -123,16 +129,17 @@ describe('active navbar section', () => {
     ['/academy/avalanche-l1/avalanche-fundamentals', '/docs'],
     ['/docs/primary-network', '/docs'],
     ['/console/layer-1/l1-node-setup', '/console'],
-    ['/blog/some-post', '/guides'],
-    ['/guides', '/guides'],
-    ['/integrations', '/integrations'],
     ['/explorer/mainnet', '/explorer'],
     ['/stats/overview', '/stats'],
-    ['/hackathons/some-hackathon', '/events'],
-    ['/events', '/events'],
-    ['/grants', '/grants'],
-    ['/audits', '/audits'],
-    ['/university', '/university'],
+    ['/ecosystem', '/ecosystem'],
+    ['/blog/some-post', '/ecosystem'],
+    ['/guides', '/ecosystem'],
+    ['/integrations', '/ecosystem'],
+    ['/hackathons/some-hackathon', '/ecosystem'],
+    ['/events', '/ecosystem'],
+    ['/grants', '/ecosystem'],
+    ['/audits', '/ecosystem'],
+    ['/ecosystem-careers', ''],
     ['/chat', '/chat'],
     ['/', ''],
   ])('%s marks %s', (pathname, section) => {
@@ -142,5 +149,18 @@ describe('active navbar section', () => {
   it('marks the Developers trigger on Academy pages', () => {
     // The highlighter marks every navbar link whose href starts with `${section}/`.
     expect(triggerOf(developersMenu)?.href?.startsWith(`${activeNavSection('/academy')}/`)).toBe(true);
+  });
+
+  it('marks the Ecosystem trigger on the overview and on every Builder Hub page of its menus', () => {
+    // The highlighter marks the navbar link whose href equals the section. The pages come from the
+    // menus, so an item added to either menu must also be added to activeNavSection.
+    const pages = [
+      ...itemsOf(ecosystemMenu).map((item) => item.url),
+      ...phoneSection('Ecosystem').items.map((item) => item.href),
+    ].filter((href): href is string => !!href?.startsWith('/'));
+    expect(pages.length).toBeGreaterThan(0);
+    for (const pathname of ['/ecosystem', ...pages]) {
+      expect(activeNavSection(pathname), pathname).toBe(triggerOf(ecosystemMenu)?.href);
+    }
   });
 });

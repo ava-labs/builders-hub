@@ -27,3 +27,19 @@ export async function appFetch(app: App, path: string, init: RequestInit = {}): 
   }
   return res;
 }
+
+// Requests a path without following a redirect and returns the status and the Location path.
+// appFetch fails on a redirect, so this sends its own request. The bypass header goes only to the site's origin.
+export async function redirectOf(app: App, path: string): Promise<{ status: number; location: string }> {
+  const base = baseUrl(app);
+  const url = new URL(path, base);
+  const headers = new Headers();
+  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (secret && url.origin === base.origin) headers.set('x-vercel-protection-bypass', secret);
+  const res = await fetch(url, { headers, redirect: 'manual' });
+  const location = res.headers.get('location');
+  if (!location) return { status: res.status, location: '' };
+  const target = new URL(location, base);
+  // A redirect to another host is a failure: show the full URL.
+  return { status: res.status, location: target.origin === base.origin ? target.pathname : target.href };
+}
