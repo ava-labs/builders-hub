@@ -1,9 +1,8 @@
 /**
  * The /ecosystem overview: every item of the navbar's Ecosystem menu, in the
- * desktop menu's three columns (events, programs, guides and tools). Campus
- * Connect is in the phone menu only; it sits with the programs, in its phone
- * menu order. Titles, badges and external flags match the menu items;
- * tests/unit/navigation/ecosystem-page.test.ts holds the two lists together.
+ * desktop menu's three columns (events, programs, guides and tools). Titles,
+ * badges and external flags match the menu items;
+ * tests/unit/navigation/ecosystem-page.test.ts holds the lists together.
  */
 
 /** A live figure the overview reads for an entry (server/services/ecosystem.ts). */
@@ -51,11 +50,6 @@ export const ECOSYSTEM_GROUPS: EcosystemGroup[] = [
     id: 'programs',
     title: 'Programs',
     entries: [
-      {
-        title: 'Campus Connect',
-        line: 'Courses, faculty training and club support for students and educators.',
-        href: '/university',
-      },
       {
         title: 'Grants & Funding',
         line: 'Grants, the Blizzard Fund, partner programs and the bug bounty.',

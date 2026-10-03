@@ -11,7 +11,7 @@ export function activeNavSection(pathname: string): string {
   if (pathname.startsWith('/explorer')) return '/explorer';
   if (pathname.startsWith('/stats')) return '/stats';
   // Ecosystem (trigger href '/ecosystem') covers the overview and every page in its menu
-  if (/^\/(ecosystem|events|hackathons|university|grants|audits|blog|guides|integrations)(\/|$)/.test(pathname)) {
+  if (/^\/(ecosystem|events|hackathons|grants|audits|blog|guides|integrations)(\/|$)/.test(pathname)) {
     return '/ecosystem';
   }
   if (pathname.startsWith('/chat')) return '/chat';

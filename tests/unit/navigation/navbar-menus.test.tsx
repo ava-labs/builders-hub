@@ -139,7 +139,6 @@ describe('active navbar section', () => {
     ['/events', '/ecosystem'],
     ['/grants', '/ecosystem'],
     ['/audits', '/ecosystem'],
-    ['/university', '/ecosystem'],
     ['/ecosystem-careers', ''],
     ['/chat', '/chat'],
     ['/', ''],
