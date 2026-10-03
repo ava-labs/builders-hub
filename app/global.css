@@ -1168,7 +1168,7 @@ nav li > a {
   color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
-/* Hover state for type: 'main' nav links (University, Blog) - direct <a> children, not wrapped in buttons */
+/* Hover state for type: 'main' nav links (Blog) - direct <a> children, not wrapped in buttons */
 /* v2: quiet squared hover — a whisper of surface, ink darkens, no shadow */
 nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
   background-color: rgba(0, 0, 0, 0.04) !important;
