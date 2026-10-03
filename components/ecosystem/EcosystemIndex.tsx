@@ -1,8 +1,9 @@
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import SheetBackdrop from '@/components/landing-v2/SheetBackdrop';
 import { HoverPrefetchLink } from '@/components/landing-v2/HoverPrefetchLink';
-import { MaskText, Reveal } from '@/components/landing-v2/SpecKit';
+import { Reveal } from '@/components/landing-v2/SpecKit';
 import type { EcosystemFigures } from '@/server/services/ecosystem';
+import EcosystemHero from './EcosystemHero';
 import { ECOSYSTEM_GROUPS, type EcosystemEntry } from './entries';
 
 /* ------------------------------------------------------------------ */
@@ -72,22 +73,7 @@ export default function EcosystemIndex({ figures }: { figures: EcosystemFigures 
     <div className="relative overflow-x-clip bg-white dark:bg-zinc-950">
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-14 md:px-6 md:pt-20 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
-        {/* a div, not a header: global.css pads every `header > div` for the navbar */}
-        <div>
-          <h1 className="v2-display text-[clamp(2.75rem,7vw,5.5rem)] text-zinc-900 dark:text-zinc-50">
-            <MaskText>
-              Ecosystem
-              <span aria-hidden className="text-[#E6212F]">
-                .
-              </span>
-            </MaskText>
-          </h1>
-          <Reveal delay={0.1}>
-            <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-              Events, programs, guides and tools for builders on Avalanche.
-            </p>
-          </Reveal>
-        </div>
+        <EcosystemHero />
 
         <section aria-label="Ecosystem overview" className="mt-14 md:mt-20">
           {ECOSYSTEM_GROUPS.map((group, i) => (
