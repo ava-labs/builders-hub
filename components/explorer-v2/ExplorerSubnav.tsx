@@ -177,7 +177,7 @@ function ChainSwitcher({
         className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
       >
         {entry.slug === "all-networks" ? (
-          /* the mark rides the theme, not the brand red — CSS fill beats the
+          /* the mark rides the theme, not the brand red: CSS fill beats the
              SVG's hardcoded presentation attributes */
           <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
         ) : entry.logo ? (
@@ -331,7 +331,7 @@ function NetworkControl({
   if (!chainSlug) {
     // A label, not a toggle: the network-scope aggregates are mainnet-only, so
     // there is nowhere to switch to. It still has to name the network actually
-    // being viewed — a single message is network-agnostic and can be a Fuji one.
+    // being viewed: a single message is network-agnostic and can be a Fuji one.
     return (
       <span className="self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
         {NETWORK_LABEL[network as PchainNetwork] ?? network}
@@ -419,7 +419,7 @@ export function ExplorerSubnav({
   const inert = useMemo(() => isUnindexedChain(network, chainSlug), [network, chainSlug]);
   const shut = useMemo(() => isPrivateChain(resolveCatalogChain(network, chainSlug)), [network, chainSlug]);
 
-  // the tab rail scrolls when the inventory outgrows the row — the edge
+  // the tab rail scrolls when the inventory outgrows the row: the edge
   // fades say so (a hard clip reads as "there is no ICM tab"). The mask
   // tracks scroll position, so each side only fades while more tabs
   // actually sit beyond it.
@@ -460,7 +460,7 @@ export function ExplorerSubnav({
 
   return (
     // sticky just below the global navbar (h-14 + banner), riding every
-    // shell: only this rail pins — the page header below scrolls away.
+    // shell: only this rail pins; the page header below scrolls away.
     // Negative margins bleed the surface across the shells' px-5/px-6 so
     // content never peeks past its edges; z-[35] clears the page-level
     // sticky bars (z-30) but stays UNDER the global navbar (#nd-nav, z-40)
