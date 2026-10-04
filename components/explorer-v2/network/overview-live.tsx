@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { MotionConfig } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
@@ -584,10 +585,15 @@ export function OverviewLiveBoards({
   // every chain failed: the boards bow out rather than sit empty
   if (settled && blocks.length === 0 && txs.length === 0) return null;
   const loading = !settled;
+  // a row enters about every second for as long as the page is open: with
+  // reduced motion it fades in where it lands, and the rows below it step
+  // down without sliding
   return (
-    <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <NetworkBlocksBoard blocks={blocks} loading={loading} />
-      <NetworkTxsBoard txs={txs} loading={loading} />
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <NetworkBlocksBoard blocks={blocks} loading={loading} />
+        <NetworkTxsBoard txs={txs} loading={loading} />
+      </div>
+    </MotionConfig>
   );
 }
