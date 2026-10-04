@@ -81,11 +81,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/e2e/package-lock.json
 
-      # The plan reads the code with the TypeScript compiler of the e2e package.
+      # The plan reads the code with the TypeScript compiler of the e2e package, and counts the tests with e2e list.
       - name: Install dependencies
         if: steps.access.outputs.testable == 'true'
         working-directory: tests/e2e
         run: npm ci
+
+      - name: Typecheck
+        if: steps.access.outputs.testable == 'true'
+        working-directory: tests/e2e
+        run: npx tsc --noEmit -p .
 
       - name: List the changed files
         if: steps.access.outputs.testable == 'true' && github.event_name == 'pull_request'
@@ -97,7 +102,8 @@ jobs:
             --jq '.[] | {filename, status, previous_filename}' > "$RUNNER_TEMP/changed-files.jsonl"
 
       # A PR gets the tests its changed files reach (tests/e2e/select/select.ts); every other event gets all of them.
-      # The step summary lists each changed file, the rule that placed it, and the tests it runs.
+      # The plan splits them into legs, one test job each; a big leg is split into shards. The step summary lists the
+      # legs, and each changed file with the rule that placed it and the tests it runs.
       - name: Plan
         id: plan
         if: steps.access.outputs.testable == 'true'
@@ -109,11 +115,16 @@ jobs:
         run: node select/plan.ts
 
   e2e:
-    name: E2E (desktop, phone, API)
+    name: E2E (${{ matrix.leg.name }})
     needs: plan
-    if: needs.plan.outputs.testable == 'true'
+    if: needs.plan.outputs.testable == 'true' && needs.plan.outputs.legs != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      # Each leg reports its own tests, so a failed leg does not stop the others.
+      fail-fast: false
+      matrix:
+        leg: ${{ fromJSON(needs.plan.outputs.legs) }}
     defaults:
       run:
         working-directory: tests/e2e
@@ -133,11 +144,9 @@ jobs:
 
       # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt.
       - name: Install Chromium
+        if: matrix.leg.browser
         timeout-minutes: 5
         run: npx playwright install chromium
-
-      - name: Typecheck
-        run: npx tsc --noEmit -p .
 
       # Vercel builds the deployment in parallel with the steps above. The GitHub deployment for the commit can appear
       # only when the build is done, so poll for it.
@@ -170,34 +179,24 @@ jobs:
           done
           echo "::error::No Vercel $environment deployment for $sha after 20 minutes"; exit 1
 
-      # Each leg of the plan is one `e2e run`. Every leg runs, also after a failed one.
       - name: Run tests
         env:
-          LEGS: ${{ needs.plan.outputs.legs }}
+          ARGS: ${{ toJSON(matrix.leg.args) }}
           E2E_BASE_URL: ${{ steps.target.outputs.url }}
           E2E_TELEMETRY_DISABLED: '1'
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           # Agent steps (tests/e2e/ai) use Claude. Without this secret they skip.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          mapfile -t legs < <(jq -c '.[]' <<< "$LEGS")
-          status=0
-          for leg in "${legs[@]}"; do
-            mapfile -t args < <(jq -r '.args[]' <<< "$leg")
-            echo "::group::$(jq -r .name <<< "$leg"): npx e2e run ${args[*]}"
-            npx e2e run "${args[@]}" || status=1
-            echo "::endgroup::"
-          done
-          exit "$status"
+          mapfile -t args < <(jq -r '.[]' <<< "$ARGS")
+          npx e2e run "${args[@]}"
 
       - name: Job summary
         if: always()
         env:
-          LEGS: ${{ needs.plan.outputs.legs }}
+          OUTPUT: ${{ matrix.leg.output }}
         run: |
-          for output in $(jq -r '.[].output' <<< "$LEGS"); do
-            if [ -f "$output/summary.md" ]; then cat "$output/summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
-          done
+          if [ -f "$OUTPUT/summary.md" ]; then cat "$OUTPUT/summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
 
       # Failure pages and screenshots for failed runs only; green runs need nothing. No traces: a trace records the
       # request headers, the Vercel bypass secret included, and anyone can download the artifacts of a public repo.
@@ -205,14 +204,12 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: e2e-report
+          name: e2e-report-${{ strategy.job-index }}
           path: |
-            tests/e2e/.e2e/*/report.json
-            tests/e2e/.e2e/*/junit.xml
-            tests/e2e/.e2e/*/failures
-            tests/e2e/.e2e/*/artifacts/**/*.png
-            tests/e2e/api/.e2e/report.json
-            tests/e2e/api/.e2e/failures
+            tests/e2e/${{ matrix.leg.output }}/report.json
+            tests/e2e/${{ matrix.leg.output }}/junit.xml
+            tests/e2e/${{ matrix.leg.output }}/failures
+            tests/e2e/${{ matrix.leg.output }}/artifacts/**/*.png
           retention-days: 7
           if-no-files-found: ignore
 
@@ -225,12 +222,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # A matrix job's result is success only when every leg succeeded. A plan with no leg skips the tests on purpose.
       - name: Check the jobs
         env:
           PLAN: ${{ needs.plan.result }}
           TESTS: ${{ needs.e2e.result }}
+          LEGS: ${{ needs.plan.outputs.legs }}
         run: |
-          if [ "$PLAN" = success ] && [ "$TESTS" = success ]; then
+          if [ "$PLAN" = success ] && { [ "$TESTS" = success ] || { [ "$TESTS" = skipped ] && [ "$LEGS" = '[]' ]; }; }; then
             echo "E2E passed."
           else
             echo "::error title=E2E result::The plan ended $PLAN and the tests ended $TESTS."

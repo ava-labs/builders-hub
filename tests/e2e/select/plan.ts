@@ -11,6 +11,7 @@
 //
 // Run it locally on a list of paths, one per line: `git diff --name-only origin/master | node select/plan.ts -`.
 
+import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { SMOKE_TAG, SMOKE_UNITS, SWEEP_TAG, SWEEP_UNITS, UNITS, unitPaths } from './rules.ts';
@@ -20,7 +21,7 @@ import { checkSuite, loadContext, select, type Change, type Selection } from './
 export interface Leg {
   /** The leg's name, in the job name and the summary. */
   name: string;
-  /** The selection arguments (paths, tags, target), which `e2e list` takes too. */
+  /** The selection arguments (paths, tags, target, shard), which `e2e list` takes too. */
   select: string[];
   /** The arguments of `npx e2e run`, from tests/e2e: the selection plus the workers and the output folder. */
   args: string[];
@@ -65,6 +66,36 @@ export function planFor(selection: Selection, { sweepsAtBothSizes = true }: Plan
 function browserLeg(name: string, select: string[]): Leg {
   const output = `.e2e/${name.replace(/\W+/g, '-')}`;
   return { name, select, args: [...select, '--workers', '4', '--output', output], output, browser: true };
+}
+
+// A job runs about this many tests (a test at one size) in 2 to 4 minutes with 4 workers. A bigger leg is split
+// into shards (`--shard i/n`), which run as parallel jobs. More jobs at once load the preview and the live APIs more.
+export const TESTS_PER_JOB = 200;
+export const MAX_SHARDS = 3;
+
+/** Splits the browser legs into shards by their test count, and drops a leg that selects no test. */
+export function shardLegs(legs: Leg[], countTests: (select: string[]) => number): Leg[] {
+  return legs.flatMap((leg) => {
+    if (!leg.browser) return [leg];
+    const count = countTests(leg.select);
+    const shards = Math.min(MAX_SHARDS, Math.ceil(count / TESTS_PER_JOB));
+    if (shards <= 1) return count ? [leg] : [];
+    return Array.from({ length: shards }, (_, i) =>
+      browserLeg(`${leg.name} ${i + 1}/${shards}`, [...leg.select, '--shard', `${i + 1}/${shards}`]),
+    );
+  });
+}
+
+// The number of tests (a test at one size) that a selection runs, from `e2e list`.
+function countTests(select: string[]): number {
+  const out = execFileSync('npx', ['e2e', 'list', ...select, '--pass-with-no-tests', '--reporter', 'json'], {
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
+    encoding: 'utf8',
+    env: { ...process.env, E2E_TELEMETRY_DISABLED: '1' },
+    maxBuffer: 64 << 20,
+  });
+  const pairs = (JSON.parse(out) as { pairs: { disposition: string }[] }).pairs;
+  return pairs.filter((pair) => pair.disposition === 'run').length;
 }
 
 export function summary(event: string, selection: Selection, legs: Leg[], note = ''): string {
@@ -144,7 +175,8 @@ function main(): void {
       selection = select(changes, context);
     }
   }
-  const legs = planFor(selection, { sweepsAtBothSizes: event === 'schedule' || event === 'workflow_dispatch' });
+  const planned = planFor(selection, { sweepsAtBothSizes: event === 'schedule' || event === 'workflow_dispatch' });
+  const legs = shardLegs(planned, countTests);
   const text = summary(event, selection, legs, note);
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `legs=${JSON.stringify(legs)}\nall=${selection.all}\n`);

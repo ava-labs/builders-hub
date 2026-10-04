@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { planFor } from '../../e2e/select/plan.ts';
+import { MAX_SHARDS, planFor, shardLegs } from '../../e2e/select/plan.ts';
 import { UNITS } from '../../e2e/select/rules.ts';
 import { checkSuite, loadContext, select, type Context } from '../../e2e/select/select.ts';
 
@@ -149,6 +149,27 @@ describe('planFor', () => {
     expect(docs.map((leg) => leg.name)).toEqual(['browser', 'smoke']);
     const console = planFor({ all: false, units: ['console', 'site'], reasons: [] }, { sweepsAtBothSizes: false });
     expect(console[1].args.slice(0, 1)).toEqual(['console/']);
+  });
+});
+
+describe('shardLegs', () => {
+  it('splits a big leg into parallel shards, keeps a small one, and drops an empty one', () => {
+    const legs = planFor(
+      { all: false, units: ['console', 'explorer', 'site', 'api'], reasons: [] },
+      { sweepsAtBothSizes: false },
+    );
+    const counts: Record<string, number> = { browser: 380, sweeps: 173, smoke: 0 };
+    const sharded = shardLegs(legs, (select) =>
+      select.includes('--tag') ? (select.includes('smoke') ? counts.smoke : counts.sweeps) : counts.browser,
+    );
+    expect(sharded.map((leg) => leg.name)).toEqual(['browser 1/2', 'browser 2/2', 'sweeps', 'api']);
+    expect(sharded[1].args).toEqual(expect.arrayContaining(['--shard', '2/2', '--output', '.e2e/browser-2-2']));
+    expect(new Set(sharded.map((leg) => leg.output)).size).toBe(sharded.length);
+  });
+
+  it('never runs more than the shard limit', () => {
+    const legs = shardLegs(planFor({ all: true, units: [...UNITS], reasons: [] }), () => 5000);
+    expect(legs.filter((leg) => leg.browser)).toHaveLength(MAX_SHARDS);
   });
 });
 
