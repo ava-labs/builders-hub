@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import axios from "axios";
+import { sendOtpErrorMessage } from "@/lib/auth/otp-errors";
 import { LoadingButton } from "../ui/loading-button";
 
 const formSchema = z.object({
@@ -53,7 +54,7 @@ function Formlogin({
       });
       setIsVerifying(true);
     } catch (error) {
-      formMethods.setError("email", { message: "Error sending OTP" });
+      formMethods.setError("email", { message: sendOtpErrorMessage(error, "Error sending OTP") });
     }
 
     setIsLoading(false);
