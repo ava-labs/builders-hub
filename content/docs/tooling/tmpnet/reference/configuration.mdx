@@ -197,7 +197,7 @@ The file holds the node's own flags, including its generated keys. `runtimeConfi
 }
 ```
 
-<Callout type="info" title="Dynamic Port Allocation">
+<Callout type="info" title="Port 0 lets the OS pick a free port">
 The `"http-port": "0"` and `"staking-port": "0"` values tell the OS to allocate available ports dynamically. The actual allocated ports are written to `process.json` by avalanchego at startup.
 </Callout>
 
@@ -219,7 +219,7 @@ This file is created by **avalanchego itself** (not tmpnetctl) when the node sta
 | `uri` | HTTP API endpoint with the dynamically allocated port |
 | `stakingAddress` | Staking/P2P address with the dynamically allocated port |
 
-<Callout type="warning" title="Manual Setups">
+<Callout type="warning" title="A node that you start by hand writes process.json too">
 If you run avalanchego manually (not via tmpnetctl), it writes this file to `[data-dir]/process.json` by default. Set `--process-context-file` only to write it to a different path.
 </Callout>
 
