@@ -162,53 +162,157 @@ describe('releaseOne', () => {
 describe('clockPace', () => {
   const EVERY = 5_000;
 
-  it('spreads a batch over the interval and a tenth', () => {
-    expect(clockPace(EVERY, 0, 0, 5)).toBe(1_100);
+  it('spreads the rows waiting until 0.9 of an interval after the last batch landed', () => {
+    expect(clockPace(EVERY, 0, 0, 0, 5)).toBe(900);
+  });
+
+  it('lets no row wait more than an interval after it landed, while batches keep landing', () => {
+    // the longest-waiting row landed at 0 and the last batch at 3 s: the five rows are out by 5 s, not 7 s
+    expect(clockPace(EVERY, 0, 3_000, 0, 5)).toBe(1_000);
   });
 
   it('gives the rows left the time left, and one row no more than an interval', () => {
-    expect(clockPace(EVERY, 0, 3_300, 2)).toBe(1_100);
-    expect(clockPace(EVERY, 10_000, 0, 1)).toBe(EVERY);
+    expect(clockPace(EVERY, 0, 0, 2_700, 2)).toBe(900);
+    expect(clockPace(EVERY, 10_000, 10_000, 0, 1)).toBe(EVERY);
   });
 
   it('lets a backlog catch up at the floor', () => {
     // the tape was held under the pointer past the next poll
-    expect(clockPace(EVERY, 0, 9_000, 30)).toBe(150);
+    expect(clockPace(EVERY, 0, 0, 9_000, 30)).toBe(150);
+  });
+});
+
+// The overview's boards: feeds read every 5 s, each chain's rows a read, merged on one board. The feeds trail their
+// chains by different amounts (the indexer: 8 to 22 s), so a slower chain's rows land older than the top row.
+describe('a clocked, merged tape', () => {
+  const EVERY = 5_000;
+  // as useTicker's WARM_MS: a batch waits this long before its first row
+  const WARM_MS = 180;
+  const VISIBLE = 11;
+  type Tx = { id: string; t: number };
+  const txNewer = (a: Tx, b: Tx) => b.t - a.t || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const lag = { ms: 30_000, at: (r: Tx) => r.t };
+
+  // Each chain makes a row every `gap` ms; its feed shows a row `trail` ms after it is made, and its read lands
+  // `lands` ms into each sweep (later in every third sweep). A read brings the chain's two newest rows since its
+  // last read, as the overview samples them.
+  const CHAINS = [
+    { name: 'c', gap: 900, trail: 9_000, lands: 150 },
+    { name: 'd', gap: 1_000, trail: 15_000, lands: 300 },
+    { name: 'g', gap: 2_300, trail: 13_000, lands: 600 },
+    { name: 'n', gap: 6_100, trail: 20_000, lands: 900 },
+  ];
+  function reads(sweeps: number, perRead = 2, chains = CHAINS) {
+    const out: { at: number; rows: Tx[] }[] = [];
+    const last = new Map<string, number>();
+    for (let s = 1; s <= sweeps; s++) {
+      for (const c of chains) {
+        const at = s * EVERY + c.lands + (s % 3 === 0 ? 700 : 0);
+        const upTo = at - c.trail;
+        const from = last.get(c.name) ?? upTo - EVERY;
+        last.set(c.name, upTo);
+        const made: Tx[] = [];
+        for (let k = Math.floor(from / c.gap) + 1; k * c.gap <= upTo; k++)
+          made.push({ id: `${c.name}${k}`, t: k * c.gap });
+        out.push({ at, rows: made.sort(txNewer).slice(0, perRead) });
+      }
+    }
+    return out.sort((a, b) => a.at - b.at);
+  }
+
+  // useTicker with `every` and `lag`, on a fake clock: a batch lands (admit, then plan the next release again), or
+  // the next row goes out (releaseOne, then plan the one after)
+  function play(batches: { at: number; rows: Tx[] }[]) {
+    let visible: Tx[] = [];
+    let queue: Tx[] = [];
+    let landed = new Map<string, number>();
+    let lastRelease = 0;
+    let lastBatch = 0;
+    let next: number | null = null;
+    const frames: { at: number; rows: Tx[] }[] = [];
+    const waits: number[] = [];
+    const arm = (now: number, fresh: boolean) => {
+      if (next !== null || !queue.length) return;
+      const first = Math.min(...queue.map((t) => landed.get(t.id)!));
+      next = Math.max(
+        now,
+        lastRelease + clockPace(EVERY, first, lastBatch, lastRelease, queue.length),
+        fresh ? now + WARM_MS : now,
+      );
+    };
+    for (let b = 0; b < batches.length || next !== null; ) {
+      if (next !== null && (b >= batches.length || next <= batches[b].at)) {
+        const now: number = next;
+        next = null;
+        const out = releaseOne(visible, queue, VISIBLE, txNewer, lag);
+        queue = out.queue;
+        if (out.visible) {
+          const fresh = out.visible.find((t) => !visible.includes(t))!;
+          waits.push(now - landed.get(fresh.id)!);
+          visible = out.visible;
+          lastRelease = now;
+          frames.push({ at: now, rows: visible.slice(0, VISIBLE - 1) });
+        }
+        arm(now, false);
+      } else {
+        const { at: now, rows } = batches[b++];
+        // as the hook: a read with no new rows changes nothing
+        if (!rows.length) continue;
+        const opening = !visible.length;
+        const placed = admit(visible, queue, rows, VISIBLE, txNewer, lag);
+        visible = placed.visible;
+        queue = placed.queue;
+        const was = landed;
+        landed = new Map(queue.map((t) => [t.id, was.get(t.id) ?? now]));
+        lastBatch = now;
+        if (opening) {
+          lastRelease = now;
+          continue;
+        }
+        next = null;
+        arm(now, true);
+      }
+    }
+    return { frames, waits };
+  }
+
+  const ordered = (rows: Tx[]) => rows.every((r, i) => i === 0 || rows[i - 1].t >= r.t);
+  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[(xs.length - 1) >> 1];
+
+  it('shows every frame in time order, though the slower feeds land older rows', () => {
+    const { frames } = play(reads(24));
+    expect(frames.length).toBeGreaterThan(100);
+    expect(frames.filter((f) => !ordered(f.rows))).toEqual([]);
+    // the slower chains' rows do go in under the top: the test would pass trivially otherwise
+    expect(frames.filter((f, i) => i > 0 && f.rows[0] === frames[i - 1].rows[0]).length).toBeGreaterThan(10);
   });
 
-  // The overview's feed: one batch per 5 s sweep, of 3 to 8 rows, landing up to 0.9 s late.
-  // Rows released at clockPace never stand still between sweeps.
-  it('keeps a tape of 5 s batches moving, with no pause over 2 s', () => {
-    const sizes = [5, 7, 3, 6, 8, 4, 6, 5, 7, 3, 8, 6];
-    const late = [0, 400, 900, 100, 0, 700, 200, 900, 0, 300, 600, 0];
-    const batches = sizes.map((n, i) => ({ at: i * EVERY + late[i], n }));
-    const released: number[] = [];
-    let waiting = 0;
-    let lastBatch = 0;
-    let lastRelease = 0;
-    let next = Infinity;
-    // each step takes the next event: a batch lands, or the next row is released
-    for (let b = 0; b < batches.length || waiting > 0; ) {
-      let landed = false;
-      if (b < batches.length && batches[b].at <= next) {
-        waiting += batches[b].n;
-        lastBatch = batches[b].at;
-        if (released.length === 0) lastRelease = lastBatch;
-        b += 1;
-        landed = true;
-      } else {
-        waiting -= 1;
-        released.push(next);
-        lastRelease = next;
-      }
-      // as the hook does, a batch that lands waits WARM_MS (180 ms) before its first row
-      const after = landed ? lastBatch + 180 : 0;
-      next = waiting > 0 ? Math.max(lastRelease + clockPace(EVERY, lastBatch, lastRelease, waiting), after) : Infinity;
-    }
-    const gaps = released.slice(1).map((t, i) => t - released[i]);
-    expect(released).toHaveLength(sizes.reduce((a, n) => a + n, 0));
+  it('keeps the tape moving: no pause over 2 s between rows', () => {
+    const { frames } = play(reads(24));
+    const gaps = frames.slice(1).map((f, i) => f.at - frames[i].at);
     expect(Math.max(...gaps)).toBeLessThanOrEqual(2_000);
-    // and a row waits about one interval at most after its batch lands
-    expect(released.at(-1)! - batches.at(-1)!.at).toBeLessThanOrEqual(EVERY * 1.1);
+  });
+
+  // The pace aims to have each row out an interval after it landed. A batch that lands just before holds the next
+  // row WARM_MS for its names, and rows due together go 150 ms apart, so a row can wait a little longer: 5.7 s at
+  // most here, and 5.5 s in replays of the live reads (6.1 s with the C-Chain's reads 8 s late).
+  it('lets no row wait much more than an interval, over ten minutes', () => {
+    const { waits } = play(reads(120));
+    expect(Math.max(...waits)).toBeLessThanOrEqual(EVERY + 1_000);
+    // and the wait does not grow: the last minute's median is the first minute's
+    const perMin = Math.round(waits.length / 10);
+    expect(Math.abs(median(waits.slice(-perMin)) - median(waits.slice(0, perMin)))).toBeLessThanOrEqual(250);
+  });
+
+  it('skips ahead, not behind, when the feed outruns the tape', () => {
+    // 4 chains of 10 rows a read: 40 rows each 5 s, more than the floor pace (150 ms) can play
+    const fast = CHAINS.map((c) => ({ ...c, gap: 100 }));
+    const { frames, waits } = play(reads(60, 10, fast));
+    const lagAt = (f: { at: number; rows: Tx[] }) => f.at - f.rows[0].t;
+    const firstMin = frames.filter((f) => f.at > 15_000 && f.at < 75_000).map(lagAt);
+    const lastMin = frames.filter((f) => f.at > 60 * EVERY - 60_000).map(lagAt);
+    expect(median(lastMin) - median(firstMin)).toBeLessThanOrEqual(1_000);
+    expect(Math.max(...waits)).toBeLessThanOrEqual(EVERY + 1_000);
+    expect(frames.filter((f) => !ordered(f.rows))).toEqual([]);
   });
 });

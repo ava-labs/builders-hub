@@ -389,13 +389,14 @@ function ViewAll({ href }: { href: string }) {
 
 const chainBase = (c: LiveChain) => `/explorer/mainnet/${c.slug}`;
 
-/* Both boards play the rows of each sweep over the sweep's interval, so a
-   row enters about every second instead of a clump of rows and then a
-   pause. The chains' feeds lag by different amounts: on 2026-10-03 the
-   indexer trailed the C-Chain by 11 s and the other chains by 17 to 22 s
+/* Both boards play the rows of each sweep over most of the sweep's
+   interval, so a row enters about every second instead of a clump of rows
+   and then a pause, and no row waits much more than the interval. The
+   chains' feeds lag by different amounts: on 2026-10-03 the indexer
+   trailed the C-Chain by 11 s and the other chains by 17 to 22 s
    (medians). So a row up to LAG_MS older than the top one still shows, at
-   its place by time (under the top row when it is older), and an older
-   one (a quiet chain's last block, minutes old) is let go. */
+   its place by time (under the top row when it is older), and an older one
+   (a quiet chain's last block, minutes old) is let go. */
 const LAG_MS = 30_000;
 const BLOCK_LAG: Lag<LiveBlock> = { ms: LAG_MS, at: (b) => b.at };
 const TX_LAG: Lag<LiveTx> = { ms: LAG_MS, at: (t) => t.timestamp * 1000 };

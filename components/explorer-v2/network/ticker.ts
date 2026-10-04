@@ -17,23 +17,28 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
    whichever lands first.
 
    A feed that polls on a clock (`every`) gets a pace from the clock
-   instead: each batch spreads evenly until a little after the next poll is
-   due, so the tape runs out about as the next batch lands and never stands
-   still between polls. A board merged from feeds that lag by different
-   amounts (`lag`) keeps a newcomer older than the top row, so the slowest
-   feed's rows are not let go: the queue holds its rows oldest first and
-   each goes in at its place by time, so the ages on the board only grow
-   down the list. Only a newcomer older than the top row by more than the
-   feeds' lag, or one that would land under a full window, is let go. */
+   instead: the rows that wait spread until a little before the next poll
+   lands, so the tape never stands still between polls, and none waits much
+   more than an interval after it landed, so the tape never falls behind the
+   feed. A board merged from feeds that lag by different amounts (`lag`)
+   keeps a newcomer older than the top row, so the slowest feed's rows are
+   not let go: the queue holds its rows oldest first and each goes in at its
+   place by time, so the ages on the board only grow down the list. Only a
+   newcomer older than the top row by more than the feeds' lag, or one that
+   would land under a full window, is let go. */
 
 /* the release pace stays between these */
 const MIN_MS = 150;
 const MAX_MS = 700;
 /* a fresh batch waits this long before its first row, so names can warm */
 const WARM_MS = 180;
-/* a clocked feed's queue runs out this share of an interval after the next
-   poll is due, so a poll that lands a little late finds the tape still moving */
-const SLACK = 0.1;
+/* a clocked feed's rows are all out this share of an interval after the last
+   batch landed. A poll's batches land within about a second, so at 0.9 the
+   tape runs until about the next poll lands. In replays of 13 min of the
+   overview's reads, 0.8 left the blocks board with no new row in 10% of its
+   seconds (0.9: none, at the median), and each 0.1 more added about 0.3 s to
+   the age of the newest row. */
+const SPREAD = 0.9;
 
 /** How far apart a merged board's feeds run: a newcomer up to `ms` older
  *  than the top row still shows. `at` is a row's time, epoch ms. */
@@ -113,11 +118,20 @@ export function releaseOne<T>(
 }
 
 /** A clocked feed's pace: the wait after the last row for the next one.
- *  The rows waiting share the time from the last release until a little
- *  after the next poll is due. One row never waits more than an interval,
- *  and a backlog (rows held under the pointer) catches up at the floor. */
-export function clockPace(every: number, lastBatch: number, lastRelease: number, waiting: number): number {
-  const left = lastBatch + every * (1 + SLACK) - lastRelease;
+ *  The rows waiting share the time from the last release until SPREAD of an
+ *  interval after the last batch landed, so they fill the time to the next
+ *  poll; but none waits more than an interval: they are all out an interval
+ *  after the longest-waiting one landed (`firstLanded`). One row never waits
+ *  more than an interval after the last, and a backlog (rows held under the
+ *  pointer) catches up at the floor. */
+export function clockPace(
+  every: number,
+  firstLanded: number,
+  lastBatch: number,
+  lastRelease: number,
+  waiting: number,
+): number {
+  const left = Math.min(firstLanded + every, lastBatch + every * SPREAD) - lastRelease;
   return Math.min(every, Math.max(MIN_MS, left / Math.max(1, waiting)));
 }
 
@@ -139,7 +153,8 @@ export function useTicker<T>(
      *  each poll); the ticker still keeps count of them, so turning it on
      *  carries on from the rows on screen */
     enabled?: boolean;
-    /** the feed's poll interval in ms: each batch spreads over it (see clockPace) */
+    /** the feed's poll interval in ms: the rows that wait spread until about
+     *  the next poll, and none waits much more than an interval (see clockPace) */
     every?: number;
     /** the rows come from feeds that run this far apart: each goes in at its
      *  place by time (see admit and releaseOne) */
@@ -156,6 +171,8 @@ export function useTicker<T>(
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastRelease = useRef(0);
   const lastArrive = useRef(0);
+  // a clocked feed's waiting rows, by key: when each landed
+  const landed = useRef(new Map<string, number>());
   // the feed's rate, items a second, smoothed over the last batches
   const rate = useRef(0);
   const onEnqueueRef = useRef(onEnqueue);
@@ -166,7 +183,11 @@ export function useTicker<T>(
   keyRef.current = key;
 
   const pace = () => {
-    if (every) return clockPace(every, lastArrive.current, lastRelease.current, queue.current.length);
+    if (every) {
+      const k = keyRef.current;
+      const first = Math.min(...queue.current.map((t) => landed.current.get(k(t)) ?? Date.now()));
+      return clockPace(every, first, lastArrive.current, lastRelease.current, queue.current.length);
+    }
     const r = Math.max(rate.current, 0.001);
     let p = 1000 / r;
     // a backlog past a couple of seconds' worth tightens the pace
@@ -236,6 +257,10 @@ export function useTicker<T>(
     const opening = !visibleRef.current.length;
     const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current, lag);
     queue.current = placed.queue;
+    if (every) {
+      const was = landed.current;
+      landed.current = new Map(placed.queue.map((t) => [k(t), was.get(k(t)) ?? now]));
+    }
     if (placed.visible.length !== visibleRef.current.length) {
       visibleRef.current = placed.visible;
       setVisible(placed.visible);
