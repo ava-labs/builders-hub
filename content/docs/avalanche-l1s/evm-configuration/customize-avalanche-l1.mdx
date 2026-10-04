@@ -21,7 +21,6 @@ an Avalanche L1 can customized by setting parameters for the following:
 
 - [Validator-only communication to create a private Avalanche L1](/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs#validatoronly-bool)
 - [Consensus](/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs#consensus-config)
-- [Gossip](/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs#gossip-configs)
 
 See [here](/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs) for more info.
 
@@ -30,7 +29,7 @@ Genesis
 
 Each blockchain has some genesis state when it's created. Each Virtual Machine defines the format and semantics of its genesis data.
 
-The default genesis Subnet-EVM provided below has some well defined parameters:
+The example Subnet-EVM genesis below has some well defined parameters. It is not the Subnet-EVM default. If a genesis has no `feeConfig`, Subnet-EVM uses a default fee config with a `gasLimit` of `8,000,000`.
 
 ```json
 {
@@ -88,15 +87,15 @@ You can use `eth_getChainConfig` RPC call to get the current chain config. See [
 
 #### Fee Config
 
-`gasLimit`: Sets the max amount of gas consumed per block. This restriction puts a cap on the amount of computation that can be done in a single block, which in turn sets a limit on the maximum gas usage allowed for a single transaction. For reference, C-Chain value is set to `15,000,000`.
+`gasLimit`: Sets the max amount of gas consumed per block. This restriction puts a cap on the amount of computation that can be done in a single block, which in turn sets a limit on the maximum gas usage allowed for a single transaction. The C-Chain does not use this fee config. Since Helicon, the C-Chain block gas limit is 20 times its validator-voted gas target per second (80,000,000 gas on Mainnet on 2026-10-03).
 
-`targetBlockRate`: Sets the target rate of block production in seconds. A target of 2 will target producing a block every 2 seconds. If the network starts producing blocks at a faster rate, it indicates that more blocks than anticipated are being issued to the network, resulting in an increase in base fees. For C-chain this value is set to `1`.
+`targetBlockRate`: Sets the target time between blocks, in seconds, that the block gas cost uses. Since Granite, the block gas cost is always 0, so this value has no effect on block production. The value must still be greater than 0. See the note below.
 
 `minBaseFee`: Sets a lower bound on the EIP-1559 base fee of a block. Since the block's base fee sets the minimum gas price for any transaction included in that block, this effectively sets a minimum gas price for any transaction.
 
 `targetGas`: Specifies the targeted amount of gas (including block gas cost) to consume within a rolling 10-seconds window. When the dynamic fee algorithm observes that network activity is above/below the `targetGas`, it increases/decreases the base fee proportionally to how far above/below the target actual network activity is. If the network starts producing blocks with gas cost higher than this, base fees are increased accordingly.
 
-`baseFeeChangeDenominator`: Divides the difference between actual and target utilization to determine how much to increase/decrease the base fee. A larger denominator indicates a slower changing, stickier base fee, while a lower denominator allows the base fee to adjust more quickly. For reference, the C-chain value is set to `36`. This value sets the base fee to increase or decrease by a factor of `1/36` of the parent block's base fee.
+`baseFeeChangeDenominator`: Divides the difference between actual and target utilization to determine how much to increase/decrease the base fee. A larger denominator indicates a slower changing, stickier base fee, while a lower denominator allows the base fee to adjust more quickly. For example, the C-Chain used the value `36` from Apricot Phase 5 until Fortuna (ACP-176), which removed this parameter from the C-Chain. This value sets the base fee to increase or decrease by a factor of `1/36` of the parent block's base fee.
 
 `minBlockGasCost`: Sets the minimum amount of gas to charge for the production of a block. This value is set to `0` in C-Chain.
 
@@ -109,7 +108,7 @@ If the block is produced at the target rate, the block gas cost will stay the sa
 If it is produced faster/slower, the block gas cost will be increased/decreased by the step value for each second faster/slower than the target block rate accordingly.
 
 <Callout title="Note">
-If the `blockGasCostStep` is set to a very large number, it effectively requires block production to go no faster than the `targetBlockRate`. For example, if a block is produced two seconds faster than the target block rate, the block gas cost will increase by `2 * blockGasCostStep`.
+Since Granite (AvalancheGo v1.14.0), the block gas cost is always 0. `minBlockGasCost`, `maxBlockGasCost`, `blockGasCostStep` and `targetBlockRate` do not affect block production, but the fee config still requires them. The ACP-226 minimum block delay controls the block rate. Validators vote on it with the `min-delay-target` chain config option (milliseconds). The initial delay is 2,000 ms. From AvalancheGo v1.15.0, the genesis chain config field `initialMinDelayMS` can set a lower initial delay for a new chain.
 </Callout>
 
 #### Custom Fee Recipients
@@ -146,7 +145,7 @@ The fields `nonce`, `timestamp`, `extraData`, `gasLimit`, `difficulty`, `mixHash
 
 Another example of a genesis file can be found in the [networks folder](https://github.com/ava-labs/public-chain-assets/blob/1951594346dcc91682bdd8929bcf8c1bf6a04c33/chains/11111/genesis.json). Please remove `airdropHash` and `airdropAmount` fields if you want to start with it.
 
-Here are a few examples on how a genesis file is used: [scripts/run.sh](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/scripts/run.sh#L99)
+For another example genesis file, see [`tests/genesis.json`](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/tests/genesis.json) in the Subnet-EVM code.
 
 ### Setting the Genesis Allocation
 
@@ -269,7 +268,7 @@ interface IAllowList {
 }
 ```
 
-`readAllowList(addr)` will return a uint256 with a value of 0, 1, or 2, corresponding to the roles `None`, `Enabled`, and `Admin` respectively.
+`readAllowList(addr)` returns a uint256 with the value 0, 1, 2 or 3. These values are the roles `None`, `Enabled`, `Admin` and `Manager`. The `Manager` role exists since Durango.
 
 `RoleSet` is an event that is emitted when a role is set for an address. It includes the role, the modified address, the sender as indexed parameters and the old role as non-indexed parameter. Events in precompiles are activated after Durango upgrade.
 
@@ -294,7 +293,7 @@ The `Stateful Precompile` contract powering the `ContractDeployerAllowList` adhe
 
 - If you attempt to add a `Enabled` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize1.png)
 - If you attempt to deploy a contract but you are not an `Admin` not a `Enabled`, you will see something like: ![deploy fail](/images/customize2.png)
-- If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a uint256 with a value of 0, 1, or 2, corresponding to the roles `None`, `Enabled`, and `Admin` respectively.
+- If you call `readAllowList(addr)`, you get the current role of `addr` as a uint256: 0 (`None`), 1 (`Enabled`), 2 (`Admin`) or 3 (`Manager`, since Durango).
 
 <Callout type="warn">
 If you remove all of the admins from the allow list, it will no longer be possible to update the allow list without modifying the Subnet-EVM to schedule a network upgrade.
@@ -363,7 +362,7 @@ This will allow only `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` to submit tran
 
 ### Minting Native Coins
 
-You can mint native(gas) coins with a precompiled contract. In order to activate this feature, you can provide `nativeMinterConfig` in genesis:
+You can mint native(gas) coins with a precompiled contract. In order to activate this feature, you can provide `contractNativeMinterConfig` in genesis:
 
 ```json
 {
@@ -507,7 +506,7 @@ FeeConfigManager precompile uses `IAllowList` interface directly, meaning that i
 In addition to the `AllowList` interface, the FeeConfigManager adds the following capabilities:
 
 - `getFeeConfig`: retrieves the current dynamic fee config
-- `getFeeConfigLastChangedAt`: retrieves the timestamp of the last block where the fee config was updated
+- `getFeeConfigLastChangedAt`: retrieves the number of the last block that changed the fee config
 - `setFeeConfig`: sets the dynamic fee config on chain (see [here](#fee-config) for details on the fee config parameters). This function can only be called by an `Admin`, `Manager` or `Enabled` address.
 - `FeeConfigChanged`: an event that is emitted when the fee config is updated. Topics include the sender, the old fee config, and the new fee config.
 
@@ -542,13 +541,13 @@ This will set the fee config to the values specified in the `initialFeeConfig` f
 ### Avalanche Warp Messaging
 
 <Callout type="warn">
-Currently Warp Precompile can only be activated in Mainnet after Durango occurs. Durango in Mainnet is set at 11 AM ET (4 PM UTC) on Wednesday, March 6th, 2024. If you plan to use Warp messaging in your own Subnet-EVM chain in Mainnet you should upgrade to AvalancheGo 1.11.11 or later and coordinate your precompile upgrade. Warp Config's "blockTimestamp" must be set after `1709740800`, Durango date (11 AM ET (4 PM UTC) on Wednesday, March 6th, 2024).
+The Warp precompile cannot activate before Durango. Durango activated on Mainnet on March 6, 2024 at 16:00 UTC (Unix timestamp `1709740800`) and on Fuji on February 13, 2024 at 16:00 UTC. To enable Warp with a precompile upgrade, set `blockTimestamp` to a future time and coordinate the upgrade with all validators. Since Helicon, Mainnet nodes must run AvalancheGo v1.15.0 or later, and the Subnet-EVM plugin must use the same plugin version as the node (46 for v1.15.0 and v1.15.1).
 </Callout>
 
 Contract Examples
 -----------------------------------------------------------------
 
-Subnet-EVM contains example contracts for precompiles under `/contracts`. It's a hardhat project with tests and tasks. For more information see [contract examples README](https://github.com/ava-labs/subnet-evm/tree/master/contracts#subnet-evm-contracts).
+The Solidity interfaces of the precompiles are in the AvalancheGo repository: [`IAllowList.sol`](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/allowlist/IAllowList.sol), and `nativeminter/INativeMinter.sol`, `feemanager/IFeeManager.sol`, `rewardmanager/IRewardManager.sol` and `warp/warpbindings/IWarpMessenger.sol` in [`graft/subnet-evm/precompile/contracts`](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm/precompile/contracts).
 
 Network Upgrades: Enable/Disable Precompiles
 ---------------------------------------------------------------------------------------------------------------------
@@ -653,7 +652,7 @@ Constantinople: 0 Petersburg: 0 Istanbul: 0, Muir Glacier: 0, Subnet EVM: 0, Fee
 “subnetEVMTimestamp\“:0}, PrecompileUpgrade: {}, UpgradeConfig: {\"precompileUpgrades\":[{\"feeManagerConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668950000}},{\"txAllowListConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668960000}},{\"feeManagerConfig\":{\"adminAddresses\":null,\"enabledAddresses\":null,\"blockTimestamp\":1668970000,\"disable\":true}}]}, Engine: Dummy Consensus Engine}"
 ```
 
-Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActivePrecompilesAt`](/docs/rpcs/subnet-evm#eth_getactiveprecompilesat) RPC method. The [`eth_getChainConfig`](/docs/rpcs/subnet-evm#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
+Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActiveRulesAt`](/docs/rpcs/subnet-evm#eth_getactiverulesat) RPC method. `eth_getActivePrecompilesAt` is deprecated. The [`eth_getChainConfig`](/docs/rpcs/subnet-evm#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
 
 That's it, your Avalanche L1 is all set and the desired upgrades will be activated at the indicated timestamp!
 
@@ -717,13 +716,13 @@ AvalancheGo Chain Configs
 
 As described in [this doc](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs), each blockchain of Avalanche L1s can have its own custom configuration. If an Avalanche L1's ChainID is `2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt`, the config file for this chain is located at `{chain-config-dir}/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/config.json`.
 
-For blockchains created by or forked from Subnet-EVM, most [C-Chain configs](/docs/nodes/chain-configs/primary-network/c-chain) are applicable except [Avalanche Specific APIs](/docs/nodes/chain-configs/primary-network/c-chain#enabling-avalanche-specific-apis).
+For blockchains created by or forked from Subnet-EVM, use the [Subnet-EVM config reference](/docs/nodes/chain-configs/avalanche-l1s/subnet-evm). Do not use the C-Chain config reference: since Helicon, the C-Chain runs a different VM with its own, smaller set of config keys.
 
 ### Priority Regossip
 
-A transaction is "regossiped" when the node does not find the transaction in a block after `priority-regossip-frequency` (defaults to `1m`). By default, up to 16 transactions (max 1 per address) are regossiped to validators per minute.
+The node regossips each transaction that it received through its own API and that is still in its mempool. It regossips every `regossip-frequency` (default `30s`) to `push-regossip-num-validators` validators (default 10) and `push-regossip-num-peers` other peers (default 0).
 
-Operators can use "priority regossip" to more aggressively "regossip" transactions for a set of important addresses (like bridge relayers). To do so, you'll need to update your [chain config](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs) with the following:
+`priority-regossip-addresses` is still a valid key. The node gives these addresses to the transaction pool as local accounts. The pool does not evict their queued transactions because of age, and it does not apply the minimum tip to them:
 
 ```json
 {
@@ -731,16 +730,7 @@ Operators can use "priority regossip" to more aggressively "regossip" transactio
 }
 ```
 
-By default, up to 32 transactions from priority addresses (max 16 per address) are regossipped to validators per second. You can override these defaults with the following config:
-
-```json
-{
-  "priority-regossip-frequency": "1s",
-  "priority-regossip-max-txs": 32,
-  "priority-regossip-addresses": ["<YOUR 0x-ADDRESS>"],
-  "priority-regossip-txs-per-address": 16
-}
-```
+Subnet-EVM v0.6.2 removed `priority-regossip-frequency`, `priority-regossip-max-txs` and `priority-regossip-txs-per-address`. The node ignores these keys.
 
 ### Fee Recipient
 
@@ -755,7 +745,7 @@ With `allowFeeRecipients` enabled, validators can specify their addresses to col
 ```
 
 <Callout type="warn">
-If `allowFeeRecipients` or `RewardManager` precompile is enabled on the Avalanche L1, but a validator doesn't specify a "feeRecipient", the fees will be burned in blocks it produces.
+If fee recipients are allowed (by `allowFeeRecipients` in the genesis, or by the RewardManager `allowFeeRecipients` function) and a validator does not set `feeRecipient`, the fees in the blocks it produces are burned. If the RewardManager sets a reward address, the fees go to that address and `feeRecipient` has no effect.
 </Callout>
 
 ### Archival Node Configuration
@@ -824,10 +814,10 @@ The following three state modifications are supported:
 - `code`: modifies the code stored in the specified account. The code must _only_ be the runtime portion of a code. The code must start with a `0x` prefix.
 
 <Callout type="warn">
-If modifying the code, _only_ the runtime portion of the bytecode should be provided in `upgrades.json`. Do not use the bytecode that would be used for deploying a new contract, as this includes the constructor code as well. Refer to your compiler's documentation for information on how to find the runtime portion of the contract you wish to modify.
+If modifying the code, _only_ the runtime portion of the bytecode should be provided in `upgrade.json`. Do not use the bytecode that would be used for deploying a new contract, as this includes the constructor code as well. Refer to your compiler's documentation for information on how to find the runtime portion of the contract you wish to modify.
 </Callout>
 
-The `upgrades.json` file shown below describes a network upgrade that will make the following state modifications at the first block after (or at) `March 8, 2023 1:30:00 AM GMT`:
+The `upgrade.json` file shown below describes a network upgrade that will make the following state modifications at the first block after (or at) `March 8, 2023 1:30:00 AM GMT`:
 
 - Sets the code for the account at `0x71562b71999873DB5b286dF957af199Ec94617F7`,
 - And adds `100` wei to the balance of the account at `0xb794f5ea0ba39494ce839613fffba74279579268`,
@@ -880,7 +870,7 @@ For instance, if you missed the Durango activation in Fuji (February 13th, 2024,
 }
 ```
 
-This reschedules the Durango activation to 2024-11-06 16:00:00 UTC (one month later than the actual activation). After preparing the upgrade.json, you need to update the chain directory with the new upgrade.json and restart your nodes. You should see logs similar to the following:
+This reschedules the Durango activation to 2024-04-06 16:00:00 UTC (one month later than the actual activation). After preparing the upgrade.json, you need to update the chain directory with the new upgrade.json and restart your nodes. You should see logs similar to the following:
 
 ```bash
 INFO [03-22|14:04:48.284] <fPypUHjNvJqBKXBx2LEoJ9u5b8rRxMtEhb4v2QEDQejEiTtMG Chain> github.com/ava-labs/subnet-evm/plugin/evm/vm.go:367: Applying network upgrade overrides overrides="{\"durangoTimestamp\":1712419200}"

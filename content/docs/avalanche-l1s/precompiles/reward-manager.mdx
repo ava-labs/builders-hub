@@ -27,15 +27,20 @@ You can activate this precompile in your genesis file:
       "blockTimestamp": 0,
       "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"],
       "initialRewardConfig": {
-        // Choose one of:
-        "allowFeeRecipients": true,  // Allow validators to collect fees
-        "rewardAddress": "0x...",    // Send fees to specific address
-        // Empty config = burn fees
+        "allowFeeRecipients": true
       }
     }
   }
 }
 ```
+
+Set `initialRewardConfig` to one of these values:
+
+- `{"allowFeeRecipients": true}`: block producers collect the fees.
+- `{"rewardAddress": "0x..."}`: all fees go to this address.
+- `{}`: the chain burns all fees.
+
+Do not set `allowFeeRecipients` to `true` and a `rewardAddress` together. The chain rejects that config.
 
 ## Reward Mechanisms
 
