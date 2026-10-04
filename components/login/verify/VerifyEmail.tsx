@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
+import { sendOtpErrorMessage } from "@/lib/auth/otp-errors";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useLoginModalState, triggerNewUserLogin, triggerLoginComplete } from "@/hooks/useLoginModal";
 import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
@@ -114,6 +115,11 @@ export function VerifyEmail({
             setMessage("This code has expired. Click below to get a new one.");
             setExpired(true);
             break;
+          case "TOO_MANY_ATTEMPTS":
+            setMessage(
+              "Too many incorrect codes. Try again later, or sign in with Google or GitHub."
+            );
+            break;
           case "OTP SENT":
             break;
           default:
@@ -200,7 +206,7 @@ export function VerifyEmail({
       setExpired(false);
       setSentTries(0);
     } catch (error) {
-      setMessage("Error sending OTP. Please try again.");
+      setMessage(sendOtpErrorMessage(error, "Error sending OTP. Please try again."));
     } finally {
       setIsResending(false);
     }
