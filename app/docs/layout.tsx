@@ -15,6 +15,7 @@ import './styles.css';
 import './book/tokens.css';
 import './book/sidebar.css';
 import './book/callout.css';
+import './book/code.css';
 import './book/colorkey.css';
 import './book/figure.css';
 
