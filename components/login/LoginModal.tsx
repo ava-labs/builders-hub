@@ -7,6 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { sendOtpErrorMessage } from "@/lib/auth/otp-errors";
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
 import { Input } from "../ui/input";
 import { LoadingButton } from "../ui/loading-button";
@@ -98,7 +99,7 @@ export function LoginModal() {
       });
       setIsVerifying(true);
     } catch (error) {
-      setError("email", { message: "Error sending OTP" });
+      setError("email", { message: sendOtpErrorMessage(error, "Error sending OTP") });
     }
   }
 
