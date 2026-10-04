@@ -15,6 +15,7 @@ import './styles.css';
 import './book/tokens.css';
 import './book/sidebar.css';
 import './book/callout.css';
+import './book/colorkey.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
   // Generate all filtered trees server-side

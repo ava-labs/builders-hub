@@ -13,6 +13,8 @@ import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import { sharedMDXComponents } from "@/components/mdx/shared-components";
 import { DocsCallout } from "@/components/docs-book/callout";
+import { ColorKeyToggle } from "@/components/docs-book/color-key-toggle";
+import { Term } from "@/components/docs-book/term";
 import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { Tabs } from "fumadocs-ui/components/tabs";
 import defaultComponents from "fumadocs-ui/mdx";
@@ -65,10 +67,14 @@ export default async function Page(props: {
           pagePath={`/${params.slug.join("/")}`}
           pageType="docs"
         />
+            <ColorKeyToggle />
             <BackToTop />
           </>
         ),
       }}
+      // Below 1280px the TOC rail is hidden, so the popover carries the color key too. Only with headings:
+      // a footer alone makes fumadocs show the popover bar on a page with no headings.
+      tableOfContentPopover={toc.length > 0 ? { footer: <ColorKeyToggle /> } : undefined}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
       {page.data.description && (
@@ -84,6 +90,7 @@ export default async function Page(props: {
             ...((await import("lucide-react")) as unknown as MDXComponents),
             ...sharedMDXComponents,
             Callout: DocsCallout,
+            Term,
             // Fix srcset -> srcSet for React 19 compatibility
             img: (props: any) => {
               const { srcset, ...imgProps } = props;
