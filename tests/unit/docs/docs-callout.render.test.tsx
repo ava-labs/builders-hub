@@ -65,16 +65,31 @@ describe('DocsCallout markup', () => {
     expect(tagWith(html, 'role="note"')).toContain('aria-label="Note"');
   });
 
-  it('draws the peak on a note and the slide on a warning, hidden from screen readers', () => {
-    const note = tagWith(callout({ art: true }), 'data-bk-art=');
+  // About three lines of text: enough to fill the space beside the art.
+  const long = 'The node keeps the state of every chain that it validates. '.repeat(4);
+
+  it('draws the peak on a note and the slide on a warning with enough text, hidden from screen readers', () => {
+    const note = tagWith(callout({}, long), 'data-bk-art=');
     expect(note).toContain('data-bk-art="peak"');
     expect(note).toContain('aria-hidden="true"');
-    const warning = tagWith(callout({ type: 'warn', art: true }), 'data-bk-art=');
+    const warning = tagWith(callout({ type: 'warn' }, long), 'data-bk-art=');
     expect(warning).toContain('data-bk-art="slide"');
     expect(warning).toContain('aria-hidden="true"');
+    expect(tagWith(callout({ type: 'error' }, long), 'data-bk-art=')).toContain('data-bk-art="slide"');
   });
 
-  it('draws no art when art is not set', () => {
-    expect(callout({})).not.toContain('data-bk-art');
+  it('draws no art on a short callout unless art is set', () => {
+    expect(callout({}, 'Run the node first.')).not.toContain('data-bk-art');
+    expect(callout({ art: true }, 'Run the node first.')).toContain('data-bk-art="peak"');
+  });
+
+  it('counts a lead as one line of text', () => {
+    const body = 'The node keeps the state of every chain that it validates. '.repeat(3);
+    expect(callout({}, body)).not.toContain('data-bk-art');
+    expect(callout({ title: 'Where does the state go?' }, body)).toContain('data-bk-art="peak"');
+  });
+
+  it('draws no art when art is false', () => {
+    expect(callout({ art: false }, long)).not.toContain('data-bk-art');
   });
 });

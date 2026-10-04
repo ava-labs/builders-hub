@@ -10,7 +10,7 @@ interface Mark {
   family: Family;
   label: string;
   Icon: LucideIcon;
-  /** The art that `art={true}` draws. */
+  /** The art that a callout with enough text draws. */
   art: CalloutArtKind;
 }
 
@@ -69,11 +69,22 @@ function openingText(node: ReactNode): string {
 /** "Info:", "Deprecated:" or "WARNING:" at the start of the body: one word and a colon. */
 const OPENING_LABEL = /^\s*([a-z]+)\s*:/i;
 
+/*
+ * The art is about three text lines high. A callout gets it only when its text fills those lines beside the art at
+ * desktop width (about 85 characters a line), so a one-line note does not get a block of empty space. A lead
+ * counts as one line.
+ */
+const ART_MIN_TEXT = 220;
+const LEAD_LINE = 85;
+
 export type DocsCalloutProps = Omit<ComponentProps<'div'>, 'title'> & {
   type?: CalloutType | 'note' | 'tip';
   title?: ReactNode;
   icon?: ReactNode;
-  /** A small engraving that floats left of the text. `true` picks the peak, or the slide for a warning. */
+  /**
+   * The engraving that floats left of the text: the peak, or the slide for a warning. By default only a callout
+   * with enough text gets it. `true` or a kind always draws it, and `false` never does.
+   */
   art?: boolean | CalloutArtKind;
 };
 
@@ -95,7 +106,8 @@ export function DocsCallout({ type, title, icon, art, children, ...props }: Docs
   // A title or an opening word that warns asks for the warning look, whatever the type says.
   const warnWord = ownLabel === 'warning' || ownLabel === 'caution' || ownLabel === 'danger';
   const mark = (warns || (!showLabel && warnWord)) && typed.family === 'note' ? WARNING : typed;
-  const artKind = art === true ? mark.art : art || null;
+  const fills = (lead !== null ? LEAD_LINE : 0) + textOf(children).length >= ART_MIN_TEXT;
+  const artKind = art === true || (art === undefined && fills) ? mark.art : art || null;
 
   return (
     // The label row is text, but a name on the note lets a screen reader say "Warning, note" on entry.

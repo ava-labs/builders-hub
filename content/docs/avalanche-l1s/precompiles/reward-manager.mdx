@@ -64,7 +64,7 @@ The Reward Manager has three fee routes. They are mutually exclusive.
    - All fees go to the blackhole address.
    - The total token supply falls over time.
 
-<Callout title="Where do burned fees go?" art>
+<Callout title="Where do burned fees go?">
 The precompile sends them to the blackhole address `0x0100000000000000000000000000000000000000`. No key controls this address, so nobody can spend the fees. A <Term role="pchain">validator</Term> on the validator route that sets no fee recipient also sends its fees there.
 </Callout>
 
@@ -90,7 +90,7 @@ interface IRewardManager {
 
 The Reward Manager precompile uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface) to restrict access to its functionality.
 
-<Callout type="warn" title="Who can change the fee route?" art>
+<Callout type="warn" title="Who can change the fee route?">
 Every address with the Enabled, Manager or Admin role on the precompile's AllowList can call `setRewardAddress`, `allowFeeRecipients` and `disableRewards`. One such key can send all future fees of the <Term role="evm">L1</Term> to its own address. Give these roles to a multisig, not to a single key.
 </Callout>
 
