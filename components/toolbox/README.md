@@ -13,7 +13,7 @@ The interactive Builder Console tooling — multi-step wizard flows for deployin
 - `lib/` — Internal utilities: `utils.ts` (cn helper), `github-url.ts`, `contract-deployment.ts`, `containerVersions.ts`
 - `providers/` — Root providers: `WalletProvider` (wraps Web3Provider + modals + wallet sync)
 - `services/` — External service wrappers (`balanceService.ts`)
-- `stores/` — Zustand stores: `walletStore`, `toolboxStore`, `createChainStore`, `l1ListStore`, `consoleBadgeNotificationStore`
+- `stores/` — Zustand stores: `walletStore`, `toolboxStore`, `createChainStore`, `l1ListStore`
 - `types/` — Internal TypeScript types for toolbox
 - `utils/` — Pure utilities: `json.ts`, `github-url.ts`
 

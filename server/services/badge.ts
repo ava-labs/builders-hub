@@ -7,7 +7,6 @@ export enum BadgeCategory {
   academy,
   project,
   requirement,
-  console,
 }
 
 export interface AssignBadgeBody {
@@ -18,7 +17,6 @@ export interface AssignBadgeBody {
   projectId?: string;
   requirementId?: string; // For social badges - specific requirement to fulfill
   badgesId?: string[];
-  consoleTrigger?: 'console_log' | 'faucet_claim' | 'node_registration';
 }
 
 export interface AssignBadgeResult {
