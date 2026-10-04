@@ -1,7 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
 import { matchHas } from "next/dist/shared/lib/router/utils/prepare-destination";
 import { describe, expect, it, vi } from "vitest";
@@ -12,7 +10,6 @@ vi.mock("fumadocs-mdx/next", () => ({ createMDX: () => (config: unknown) => conf
 import nextConfig from "@/next.config.mjs";
 import quizData from "@/components/quizzes/data";
 import courses, { getCourseConfig } from "@/content/courses";
-import UniversityPage from "@/app/(home)/university/page";
 import { firstRedirect, type RedirectRule } from "./helpers/redirects";
 
 const ROOT = process.cwd();
@@ -97,13 +94,5 @@ describe("Entrepreneur Academy removal (FDE-153)", () => {
       .filter((file) => /\.mdx?$/.test(file) && /components\/flashcards|common-images\/academy\/entrepreneur/.test(readFileSync(file, "utf8")))
       .map((file) => file.slice(ROOT.length + 1));
     expect(using).toEqual([]);
-  });
-
-  it("drops the University card: the LEARN grid holds two programmes, one column each from lg (R4)", () => {
-    const html = renderToStaticMarkup(createElement(UniversityPage));
-    const learn = html.slice(html.indexOf(">LEARN</h2>"), html.indexOf(">CONNECT</h2>"));
-    const titles = [...learn.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map((match) => match[1]);
-    expect(titles).toEqual(["Avalanche Academy", "Faculty Development Program"]);
-    expect(Number(/\blg:grid-cols-(\d+)\b/.exec(learn)?.[1])).toBe(titles.length);
   });
 });

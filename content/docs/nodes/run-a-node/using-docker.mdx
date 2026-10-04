@@ -26,13 +26,14 @@ docker run -d \
   -p 9650:9650 \
   -p 9651:9651 \
   -v ~/.avalanchego:/root/.avalanchego \
-  avaplatform/avalanchego:v1.14.1
+  avaplatform/avalanchego:v1.15.1 \
+  /avalanchego/build/avalanchego --http-host=0.0.0.0
 ```
 
 This will start an AvalancheGo node and begin syncing with the Avalanche network.
 
 <Callout type="warn">
-Replace `v1.14.1` with the latest release version from the [AvalancheGo releases page](https://github.com/ava-labs/avalanchego/releases).
+Replace `v1.15.1` with the latest release version from the [AvalancheGo releases page](https://github.com/ava-labs/avalanchego/releases). Helicon is active on Mainnet (since September 22, 2026) and on Fuji (since July 28, 2026). Nodes on these networks must run v1.15.0 or later.
 </Callout>
 
 ## What This Command Does
@@ -91,14 +92,15 @@ docker run -d \
   -p 9650:9650 \
   -p 9651:9651 \
   -v ~/.avalanchego:/root/.avalanchego \
-  avaplatform/avalanchego:<NEW_VERSION>
+  avaplatform/avalanchego:<NEW_VERSION> \
+  /avalanchego/build/avalanchego --http-host=0.0.0.0
 ```
 
 Your chain data is preserved in `~/.avalanchego` on the host, so the node will resume from where it left off.
 
 ## Pass Configuration Flags
 
-You can pass any [AvalancheGo configuration flags](/docs/nodes/configure/avalanchego-config-flags) directly after the image name:
+You can pass any [AvalancheGo configuration flags](/docs/nodes/configure/configs-flags). The image has no entrypoint, so put the binary path `/avalanchego/build/avalanchego` after the image name, then the flags:
 
 ```bash
 docker run -d \
@@ -106,7 +108,8 @@ docker run -d \
   -p 9650:9650 \
   -p 9651:9651 \
   -v ~/.avalanchego:/root/.avalanchego \
-  avaplatform/avalanchego:v1.14.1 \
+  avaplatform/avalanchego:v1.15.1 \
+  /avalanchego/build/avalanchego \
   --http-host=0.0.0.0 \
   --public-ip-resolution-service=opendns
 ```
@@ -121,7 +124,9 @@ docker run -d \
   -p 9650:9650 \
   -p 9651:9651 \
   -v ~/.avalanchego-fuji:/root/.avalanchego \
-  avaplatform/avalanchego:v1.14.1 \
+  avaplatform/avalanchego:v1.15.1 \
+  /avalanchego/build/avalanchego \
+  --http-host=0.0.0.0 \
   --network-id=fuji
 ```
 

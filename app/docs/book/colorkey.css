@@ -1,0 +1,75 @@
+/*
+ * Docs book skin: the color key. Every selector starts with [data-route-layout="docs"], so Academy and Blog keep
+ * their own look after a client navigation leaves this CSS loaded. Colors are --bk-* tokens only (tokens.css).
+ * A term (components/docs-book/term.tsx) or a part of a figure carries data-bk-role; the switch
+ * (components/docs-book/color-key-toggle.tsx) turns the key on and off.
+ */
+
+/* A term, or a part of a figure, takes the color of its role and nothing else. The term text names the role,
+   so the color is never the only carrier. With the key off, tokens.css sets each role to currentColor, and the
+   element takes the color of its parent. */
+[data-route-layout="docs"] [data-bk-role="pchain"] { color: var(--bk-role-pchain); }
+[data-route-layout="docs"] [data-bk-role="evm"] { color: var(--bk-role-evm); }
+[data-route-layout="docs"] [data-bk-role="icm"] { color: var(--bk-role-icm); }
+
+/* The color key switch (color-key-toggle.tsx). In the TOC rail it sits close under the page actions. */
+[data-route-layout="docs"] [data-bk-colorkey] {
+  margin-top: -4px;
+  padding-bottom: 16px;
+}
+
+/* In the TOC popover on smaller screens, the switch follows the last heading link. */
+[data-route-layout="docs"] #nd-tocnav [data-bk-colorkey] {
+  margin-top: 8px;
+  padding-bottom: 12px;
+}
+
+/* The shadcn focus ring is a faint 3px glow. A solid outline shows the focus on both themes. */
+[data-route-layout="docs"] [data-bk-colorkey] [role="switch"]:focus-visible {
+  outline: 2px solid var(--bk-blue);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* The On and Off word, and the key under the switch: small mono capitals in steel, which passes AA on the page,
+   the card and the popover. */
+[data-route-layout="docs"] [data-bk-colorkey-state],
+[data-route-layout="docs"] [data-bk-colorkey-list] {
+  font-family: var(--bk-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bk-steel);
+}
+
+/* The key: a shape, words and a color for each role, the same shapes as the figure legends. Only :not([hidden])
+   gets flex, so the hidden attribute still hides the key when the switch is off. */
+[data-route-layout="docs"] [data-bk-colorkey-list]:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  padding: 0 2px;
+  list-style: none;
+  line-height: 16px;
+}
+
+[data-route-layout="docs"] [data-bk-colorkey-list] li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+[data-route-layout="docs"] [data-bk-colorkey-swatch] {
+  flex: none;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
+}
+
+/* A hollow square for the P-Chain side and a filled square for the EVM side, as in the figure legends. */
+[data-route-layout="docs"] [data-bk-colorkey-swatch="pchain"] { border: 1.5px solid var(--bk-role-pchain); }
+[data-route-layout="docs"] [data-bk-colorkey-swatch="evm"] { background: var(--bk-role-evm); }

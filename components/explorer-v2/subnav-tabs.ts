@@ -4,8 +4,9 @@ import { L1Chain } from "@/types/stats";
 import { getExplorerChain } from "@/lib/pchain-explorer";
 
 /* The explorer subnav's section tabs (ExplorerSubnav.tsx draws them). The
-   network switch reads them too (network-switch.ts): a section is kept
-   across networks only where the other network has its tab. */
+   Mainnet/Fuji switch and the chain switch read them too (network-switch.ts):
+   a switch keeps a tab only where the target has it. A view below a tab that
+   only some chains serve also needs its entry in SERVED_ONLY_BY there. */
 
 /* The network scope's home: every ecosystem-wide facet hangs off it. */
 export const NETWORK_HOME = "/explorer/mainnet";

@@ -18,13 +18,14 @@ We will also add more test to cover functionalities of `sayHello()` and `setGree
 ```go
 // PrecompileTest is a test case for a precompile
 type PrecompileTest struct {
+	Name string
 	// Caller is the address of the precompile caller
 	Caller common.Address
 	// Input the raw input bytes to the precompile
 	Input []byte
 	// InputFn is a function that returns the raw input bytes to the precompile
 	// If specified, Input will be ignored.
-	InputFn func(t *testing.T) []byte
+	InputFn func(t testing.TB) []byte
 	// SuppliedGas is the amount of gas supplied to the precompile
 	SuppliedGas uint64
 	// ReadOnly is whether the precompile should be called in read only
@@ -36,26 +37,30 @@ type PrecompileTest struct {
 	// If nil, Configure will not be called.
 	Config precompileconfig.Config
 	// BeforeHook is called before the precompile is called.
-	BeforeHook func(t *testing.T, state contract.StateDB)
+	BeforeHook func(t testing.TB, state *extstate.StateDB)
+	// Predicates that the precompile should have access to.
+	Predicates []predicate.Predicate
+	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.
+	SetupBlockContext func(*contract.MockBlockContext)
 	// AfterHook is called after the precompile is called.
-	AfterHook func(t *testing.T, state contract.StateDB)
+	AfterHook func(t testing.TB, state *extstate.StateDB)
 	// ExpectedRes is the expected raw byte result returned by the precompile
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
-	ExpectedErr string
-	// BlockNumber is the block number to use for the precompile's block context
-	BlockNumber int64
+	ExpectedErr error
+	// ChainConfigFn returns the chain config to use for the precompile's block context
+	// If nil, the default chain config will be used.
+	ChainConfigFn func(*gomock.Controller) precompileconfig.ChainConfig
+	// Rules is the rules to use for the precompile's block context.
+	// If not set (zero-value), will be derived from ChainConfig.
+	Rules extras.AvalancheRules
 }
 ```
 
-Each test can populate the fields of the `PrecompileTest` struct to customize the test. This test uses an AllowList helper function `allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)` which can run all specified tests plus AllowList test suites. If you don't plan to use AllowList, you can directly run them as follows:
+Each test can populate the fields of the `PrecompileTest` struct to customize the test. This test uses an AllowList helper function `allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)` which can run all specified tests plus AllowList test suites. If you don't plan to use AllowList, you can directly run them as follows:
 
 ```go
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			test.Run(t, module, newStateDB(t))
-		})
-	}
+	precompiletest.RunPrecompileTests(t, Module, tests)
 ```
 
 ## Adding VM Tests (Optional)
@@ -68,7 +73,7 @@ For this Hello World example, we don't modify any Subnet-EVM rules, so we don't 
 
 ## Adding Solidity Test Contracts
 
-Let's add our test contract to `./contracts/contracts`. This smart contract lets us interact with our precompile! We cast the `HelloWorld` precompile address to the `IHelloWorld` interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, we will be redirected to the HelloWorld precompile address.
+Subnet-EVM no longer has a `contracts` directory. Each precompile keeps its Solidity test contract in a `bindings` directory, for example `precompile/contracts/feemanager/feemanagertest/bindings/FeeManagerTest.sol`. Add your test contract to `precompile/contracts/helloworld/helloworldtest/bindings`. In the snippet below, change the import to `import "precompile/contracts/helloworld/IHelloWorld.sol";`, and compile with `--base-path` set to the `graft/subnet-evm` directory. This smart contract lets us interact with our precompile! We cast the `HelloWorld` precompile address to the `IHelloWorld` interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, we will be redirected to the HelloWorld precompile address.
 
 The below code snippet can be copied and pasted into a new file called `ExampleHelloWorld.sol`:
 
@@ -99,7 +104,7 @@ Hello World Precompile is a different contract than ExampleHelloWorld and has a 
 
 Please note that this contract is simply a wrapper and is calling the precompile functions. The reason why we add another example smart contract is to have a simpler stateless tests.
 
-For the test contract we write our test in `./contracts/test/ExampleHelloWorldTest.sol`.
+Add a `compile.go` file to the same `bindings` directory. It runs `solc` and `abigen` through `go generate` to create Go bindings for the contract. See `precompile/contracts/feemanager/feemanagertest/bindings/compile.go` for an example. The DS-Test contract below is from the archived Subnet-EVM `v0.6.0` branch.
 <Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
 <Tab value="Subnet-EVM">
 ```solidity
@@ -145,7 +150,7 @@ contract ExampleHelloWorldTest is AllowListTest {
 ```
 </Tab>
 <Tab value="Precompile-EVM">
-For Precompile-EVM, you should import AllowListTest with `@avalabs/subnet-evm-contracts` NPM package:
+Precompile-EVM is archived, and the `@avalabs/subnet-evm-contracts` npm package is deprecated. Do not use this tab for new work:
 
 ```solidity
 //SPDX-License-Identifier: MIT
@@ -194,7 +199,7 @@ contract ExampleHelloWorldTest is AllowListTest {
 
 ## Adding DS-Test Case
 
-We can now trigger this test contract via `hardhat` tests. The test script uses Subnet-EVM's `test` framework test in `./contracts/test`. You can find more information about the test framework [here](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/contracts/test/utils.ts). We also can test the events emitted by the precompile. The test script looks like this:
+Subnet-EVM removed its Hardhat and npm test framework in December 2025. Write the test in Go: deploy the test contract with its generated binding on the simulated backend, then call its functions. See `precompile/contracts/feemanager/simulated_test.go` for an example. The Hardhat script below works only with the archived Subnet-EVM `v0.6.0` branch. You can find more information about the test framework [here](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/contracts/test/utils.ts). We also can test the events emitted by the precompile. The test script looks like this:
 
 <Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
 <Tab value="Subnet-EVM">

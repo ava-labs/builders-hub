@@ -13,7 +13,6 @@ import type { Requirement } from "@/types/badge";
 import { SparkleIcon } from "./icons";
 
 type AchievementGroup =
-  | "console"
   | "developer"
   | "blockchain"
   | "avalanche-l1"
@@ -29,9 +28,7 @@ export interface AchievementsCardBadge {
   imagePath: string;
   category: string;
   group: AchievementGroup;
-  tier: string | null;
   isUnlocked: boolean;
-  isSecret: boolean;
   awardedAt: string | null;
   requirements: Requirement[];
 }
@@ -44,7 +41,6 @@ interface Props {
 const CATEGORY_ACCENT: Record<string, string> = {
   hackathon: "pr-red",
   academy: "pr-gold",
-  console: "pr-indigo",
   social: "pr-green",
 };
 
@@ -52,15 +48,7 @@ function accentFor(category: string): string {
   return CATEGORY_ACCENT[category.toLowerCase()] ?? "pr-dark";
 }
 
-const CONSOLE_TIER_LABELS: Record<string, string> = {
-  "1": "Bronze",
-  "2": "Silver",
-  "3": "Gold",
-  "4": "Secret",
-};
-
 const GROUP_LABELS: Record<AchievementGroup, string> = {
-  console: "Console Badges",
   developer: "Avalanche Developer Academy",
   blockchain: "Blockchain Academy Badges",
   "avalanche-l1": "Avalanche L1 Academy Badges",
@@ -70,7 +58,6 @@ const GROUP_LABELS: Record<AchievementGroup, string> = {
 };
 
 const GROUP_ORDER: AchievementGroup[] = [
-  "console",
   "developer",
   "blockchain",
   "avalanche-l1",
@@ -91,10 +78,6 @@ function getGroupedBadges(badges: AchievementsCardBadge[]) {
   })).filter((section) => section.badges.length > 0);
 }
 
-function tierSortKey(tier: string | null): number {
-  return Number(tier ?? 0);
-}
-
 function BadgeTile({
   badge,
   onOpen,
@@ -102,7 +85,6 @@ function BadgeTile({
   badge: AchievementsCardBadge;
   onOpen: (badge: AchievementsCardBadge) => void;
 }) {
-  const secretLocked = badge.isSecret && !badge.isUnlocked;
   const requirementsDone = badge.requirements.filter((requirement) => requirement.unlocked).length;
   const requirementsTotal = badge.requirements.length;
   const progressLabel =
@@ -115,42 +97,32 @@ function BadgeTile({
   return (
     <button
       type="button"
-      onClick={() => {
-        // Secret-locked badges have nothing to reveal — keep the tile static.
-        if (secretLocked) return;
-        onOpen(badge);
-      }}
+      onClick={() => onOpen(badge)}
       className={`pr-badge ${accentFor(badge.category)} ${
         badge.isUnlocked ? "pr-unlocked" : "pr-locked"
       }`}
       style={{
-        cursor: secretLocked ? "default" : "pointer",
+        cursor: "pointer",
         font: "inherit",
         color: "inherit",
         background: "transparent",
         textAlign: "center",
       }}
-      title={secretLocked ? "Secret badge" : badge.description}
-      aria-label={
-        secretLocked
-          ? "Secret badge — keep building to reveal"
-          : `${badge.name} — ${badge.isUnlocked ? "unlocked" : "locked"}. Click to view requirements`
-      }
+      title={badge.description}
+      aria-label={`${badge.name}, ${badge.isUnlocked ? "unlocked" : "locked"}. Click to view requirements`}
     >
       <span
         className="pr-glyph"
         style={{ background: "var(--pr-g-200)" }}
       >
-        {secretLocked ? (
-          <span className="pr-badge__secret">?</span>
-        ) : badge.imagePath ? (
+        {badge.imagePath ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={badge.imagePath} alt="" width={96} height={96} />
         ) : (
           <SparkleIcon size={36} />
         )}
       </span>
-      <span className="pr-nm">{secretLocked ? "Secret badge" : badge.name}</span>
+      <span className="pr-nm">{badge.name}</span>
       <span className="pr-lvl">{progressLabel}</span>
     </button>
   );
@@ -329,35 +301,11 @@ export function AchievementsCard({ badges, loading = false }: Props) {
                   </span>
                 </header>
 
-                {section.group === "console" ? (
-                  <div className="pr-achievement-tiers">
-                    {[...new Set(section.badges.map((badge) => badge.tier ?? "0"))]
-                      .sort((a, b) => tierSortKey(a) - tierSortKey(b))
-                      .map((tier) => {
-                        const tierBadges = section.badges.filter(
-                          (badge) => (badge.tier ?? "0") === tier,
-                        );
-                        return (
-                          <div key={tier} className="pr-achievement-tier">
-                            <div className="pr-achievement-tier__label">
-                              {CONSOLE_TIER_LABELS[tier] ?? `Tier ${tier}`}
-                            </div>
-                            <div className="pr-badge-grid">
-                              {tierBadges.map((badge) => (
-                                <BadgeTile key={badge.id} badge={badge} onOpen={setActiveBadge} />
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                ) : (
-                  <div className="pr-badge-grid">
-                    {section.badges.map((badge) => (
-                      <BadgeTile key={badge.id} badge={badge} onOpen={setActiveBadge} />
-                    ))}
-                  </div>
-                )}
+                <div className="pr-badge-grid">
+                  {section.badges.map((badge) => (
+                    <BadgeTile key={badge.id} badge={badge} onOpen={setActiveBadge} />
+                  ))}
+                </div>
               </section>
             ))}
           </div>

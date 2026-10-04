@@ -17,11 +17,11 @@ avalanchego/
 ├── node/            # Node wiring and initialization
 ├── chains/          # Chain manager and handlers
 ├── snow/            # Consensus protocols and engines
-├── vms/             # Built-in VMs, proposerVM, rpcchainvm
+├── vms/             # Built-in VMs (saevm/cchain is the C-Chain VM), proposerVM, rpcchainvm
 ├── network/         # P2P stack
 ├── message/         # Message codecs
 ├── database/        # LevelDB/Pebble/memdb backends
-├── graft/           # Grafted Coreth (C-Chain EVM)
+├── graft/           # Grafted Coreth (pre-Helicon C-Chain), Subnet-EVM and shared EVM code
 ├── subnets/         # Subnet configs and validator utilities
 ├── staking/         # TLS/BLS staking keys and POP
 ├── upgrade/         # Network upgrade rules
@@ -167,7 +167,11 @@ The `Node` struct is the central coordinator. Here are its key responsibilities:
 // Register built-in VMs
 n.VMManager.RegisterFactory(ctx, constants.PlatformVMID, &platformvm.Factory{})
 n.VMManager.RegisterFactory(ctx, constants.AVMID, &avm.Factory{})
-n.VMManager.RegisterFactory(ctx, constants.EVMID, &coreth.Factory{})
+n.VMManager.RegisterFactory(ctx, constants.EVMID, &transitionvm.Factory{
+    PreFactory:     &coreth.Factory{}, // C-Chain blocks before Helicon
+    PostFactory:    &saevm.Factory{},  // C-Chain blocks after Helicon (Continuous Execution)
+    TransitionTime: n.Config.UpgradeConfig.HeliconTime.Add(-10 * time.Second),
+})
 ```
 
 ### Chain Creation
@@ -280,14 +284,14 @@ sequenceDiagram
     Client->>API: Submit transaction
     API->>VM: IssueTx(tx)
     VM->>VM: Validate tx
+    API-->>Client: Response (tx ID)
     VM->>Engine: Notify pending txs
     Engine->>VM: BuildBlock()
     VM-->>Engine: New block
     Engine->>Network: Broadcast block
     Network->>Engine: Receive votes
     Engine->>VM: Accept/Reject block
-    VM-->>API: Confirmation
-    API-->>Client: Response
+    Client->>API: Poll tx status or receipt
 `} />
 
 ## Health Checks

@@ -1,6 +1,17 @@
 import { prisma } from "@/prisma/prisma";
+import type { Prisma } from "@prisma/client";
 import { UserBadge, Requirement, Badge } from "@/types/badge";
 import { JsonValue } from "@prisma/client/runtime/library";
+
+// The Console no longer gives badges. Its badge rows stay in the database, so
+// every badge read skips them. The match is the one the profile used to group
+// console badges: the category, or an id that names the console, in any case.
+export const NOT_CONSOLE_BADGE = {
+  NOT: [
+    { category: { equals: "console", mode: "insensitive" } },
+    { id: { contains: "console", mode: "insensitive" } },
+  ],
+} satisfies Prisma.BadgeWhereInput;
 
 // Utility function to safely convert JSON metadata
 export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
@@ -21,6 +32,7 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
   const userBadges = await prisma.userBadge.findMany({
     where: {
       user_id: user_id,
+      badge: NOT_CONSOLE_BADGE,
     },
     include: {
       badge: true,

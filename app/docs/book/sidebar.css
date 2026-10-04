@@ -1,0 +1,160 @@
+/*
+ * Docs book skin: the sidebar, in the desktop column (#nd-sidebar) and in the phone drawer
+ * (#nd-sidebar-mobile, below 1024px). Every selector starts with [data-route-layout="docs"].
+ *
+ * As in sitp.ai, a red rail runs beside the part that holds the active page, and the active page
+ * reads red. The docs are not read in order, so the rows take no numbers (the Academy numbers its
+ * modules because a course has an order). components/docs-book/sidebar-active.tsx marks the part that
+ * holds the active page and its rows, and scrolls the active row into view.
+ *
+ * The list (fumadocs-ui components/layout/sidebar.js) is [data-radix-scroll-area-viewport] > div.
+ * Its children are separators (p), pages (a) and folders (div[data-state], a Radix Collapsible
+ * root). A folder holds its trigger (a button, or an a when the folder has an index page) and its
+ * content (div[id][data-state]), which holds the next level of pages and folders. A separator with
+ * a name starts a part; an empty separator is a spacer.
+ *
+ * Unlayered, so these rules win over the fumadocs utilities. !important appears only where
+ * app/global.css or app/docs/styles.css set the same property with !important, or where fumadocs
+ * sets a variable in an inline style.
+ */
+
+/* ---------- Geometry ---------- */
+
+/* Each folder level sets two values for its rows:
+   --sidebar-item-offset: the row indent. fumadocs sets it in an inline style, so !important.
+   --bk-rail-x: the folder's hairline, 10px left of its rows' titles.
+   Each level indents 14px more than the one above it. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div div[id][data-state] {
+  --sidebar-item-offset: 24px !important;
+  --bk-rail-x: 14px;
+}
+
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div div[id][data-state] div[id][data-state] {
+  --sidebar-item-offset: 38px !important;
+  --bk-rail-x: 28px;
+}
+
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div div[id][data-state] div[id][data-state] div[id][data-state] {
+  --sidebar-item-offset: 52px !important;
+  --bk-rail-x: 42px;
+}
+
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div div[id][data-state] div[id][data-state] div[id][data-state] div[id][data-state] {
+  --sidebar-item-offset: 66px !important;
+  --bk-rail-x: 56px;
+}
+
+/* ---------- Parts ---------- */
+
+/* A part heading: ink at weight 600. app/global.css centers every #nd-sidebar p with !important. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div > p:not(:empty) {
+  align-items: baseline !important;
+  font-weight: 600;
+  color: var(--bk-ink);
+}
+
+/* The part that holds the active page, as sitp.ai colors "I. Elements of Networks". The separators
+   are flat siblings of the rows, so CSS cannot find this part. sidebar-active.tsx sets the attribute. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div > p[data-bk-active-part] {
+  color: var(--bk-red-text);
+}
+
+/* ---------- Rows ---------- */
+
+/* No tint, no pill, no radius. Titles are steel (fumadocs' muted grey is under 4.5:1 on the light
+   ground), so the hover to ink shows. 5px above and below a 20px line gives a 30px row, near the
+   pitch of sitp.ai and the Academy lessons; the row stays above the 24px minimum target size. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div :is(a[data-active], button) {
+  align-items: baseline !important;
+  padding-block: 5px;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--bk-steel);
+}
+
+/* An icon or a chevron has no baseline. It sits on the first line of the title, as sitp.ai's chevrons
+   do: the line is 1lh tall and the icon 16px. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div :is(a[data-active], button) > svg {
+  align-self: flex-start;
+  margin-block-start: calc(0.5lh - 8px);
+}
+
+/* The active row: red text, weight 600. The rail of its part or folder marks it, so fumadocs' marker
+   goes. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div a[data-active="true"] {
+  color: var(--bk-red-text);
+  font-weight: 600;
+}
+
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div a[data-active]::before {
+  content: none;
+}
+
+/* Hover: the title turns ink. Color only, so no box moves. app/docs/styles.css gives the drawer rows
+   a grey hover tint with !important at (1,4,1); this selector is (1,4,2). */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div :is(a[data-active="false"], button):hover {
+  background-color: transparent !important;
+  color: var(--bk-ink);
+}
+
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div :is(a[data-active], button):focus-visible {
+  outline: 2px solid var(--bk-blue);
+  outline-offset: -2px;
+}
+
+/* ---------- Rails ---------- */
+
+/* Every rail is a border, not a background: forced colors mode (Windows High Contrast) removes
+   background colors but draws borders in the system text color. */
+
+/* The active part: one 2px rail of brand red beside all its rows, from the first to the last, as
+   sitp.ai marks the open part. sidebar-active.tsx marks the top-level rows of the part. Each row
+   draws its piece of the rail, and the rows touch, so the pieces make one line. The -2px margin puts
+   the rail in the list padding, so the titles of the active part stay in line with the other parts.
+   The rows of an open folder sit inside its row, so they are inside the rail. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div > [data-bk-in-part] {
+  margin-inline-start: -2px;
+  border-inline-start: 2px solid var(--bk-red-rule);
+}
+
+/* Forced colors give a link border the link color and a folder border the text color, so the rail
+   would change color from row to row. One system color keeps it one line. */
+@media (forced-colors: active) {
+  [data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div > [data-bk-in-part] {
+    border-inline-start-color: CanvasText;
+  }
+}
+
+/* A spacer (an empty separator) inside the part has fumadocs' 24px top margin, which would break the
+   rail. Padding of the same height keeps the layout and puts the border across the gap. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div > p[data-bk-in-part] {
+  display: flex;
+  margin-block-start: 0;
+  padding-block-start: 24px;
+}
+
+/* Each open folder draws a hairline along its rows. Each level has its own --bk-rail-x, so nested
+   rails do not overlap. This replaces fumadocs' rail, which only the top level has. Closed content
+   is hidden, so its rail goes with it. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div div[id][data-state]::before {
+  content: '';
+  position: absolute;
+  inset-block: 4px;
+  inset-inline-start: var(--bk-rail-x);
+  width: 0;
+  border-inline-start: 1px solid var(--bk-rule);
+  background: none;
+}
+
+/* A tree without parts, or a row before the first part: every folder on the active path draws 2px of
+   brand red. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div div[id][data-state]:has(a[data-active="true"])::before {
+  border-inline-start: 2px solid var(--bk-red-rule);
+}
+
+/* A folder on the active path inside a part: the part rail is the red line, so the folder draws a
+   darker hairline, not a second red line. A named separator before the folder is enough to find the
+   case, so this works before sidebar-active.tsx runs. */
+[data-route-layout="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div > p:not(:empty) ~ div[data-state] div[id][data-state]:has(a[data-active="true"])::before {
+  border-inline-start: 1px solid var(--bk-rule-2);
+}

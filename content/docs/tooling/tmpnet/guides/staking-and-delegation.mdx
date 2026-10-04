@@ -7,12 +7,14 @@ This guide covers testing P-Chain staking and delegation on the Primary Network,
 
 > This is a pattern guide. For a runnable example, see `tests/e2e/p/staking_rewards.go` in the avalanchego repo. Adapt the code there for your suite rather than copying these snippets verbatim.
 
+> tmpnet networks use the local staking defaults: minimum validator stake 2,000 AVAX, minimum delegator stake 25 AVAX, minimum delegation fee 2% (20,000 in millionths). Some snippets below use smaller stakes. To run them, set `min-validator-stake` and `min-delegator-stake` (in nAVAX) in `network.DefaultFlags`.
+
 **Where to put your tests:** keep tmpnet-based staking tests alongside your application code or in an existing test suite (e.g., `tests/e2e` in your repo). Avoid creating a new repo just for these; reuse your project’s test harness and helpers so fixtures, CI, and dependencies stay in one place.
 
 ## Overview
 
 P-Chain staking differs from L1 validator management:
-- **P-Chain**: AddValidatorTx / AddDelegatorTx on Primary Network
+- **P-Chain**: AddPermissionlessValidatorTx / AddPermissionlessDelegatorTx on the Primary Network (AddValidatorTx and AddDelegatorTx are rejected since Durango). Helicon adds AddAutoRenewedValidatorTx
 - **L1s**: Contract-based validator managers (see [L1 Validator Management](/docs/tooling/tmpnet/guides/validator-management-native-staking))
 
 This guide covers P-Chain patterns from avalanchego tests including:
@@ -43,8 +45,8 @@ import (
     "github.com/ava-labs/avalanchego/ids"
     "github.com/ava-labs/avalanchego/tests/fixture/e2e"
     "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
-    "github.com/ava-labs/avalanchego/units"
-    "github.com/ava-labs/avalanchego/vms/platformvm/txs"
+    "github.com/ava-labs/avalanchego/utils/units"
+    "github.com/ava-labs/avalanchego/vms/platformvm/platform" // v1.15.1+: SubnetValidator and Validator live here
     "github.com/ava-labs/avalanchego/wallet/subnet/primary"
     "github.com/onsi/ginkgo/v2"
     . "github.com/onsi/gomega"
@@ -117,7 +119,7 @@ var _ = ginkgo.Describe("[P-Chain Staking]", func() {
 
 ## Adding Primary Network Validators
 
-### AddValidatorTx Pattern
+### AddPermissionlessValidatorTx Pattern
 
 ```go
 func addPrimaryNetworkValidator(
@@ -141,21 +143,23 @@ func addPrimaryNetworkValidator(
     err = node.WaitForHealthy(ctx)
     Expect(err).NotTo(HaveOccurred())
 
-    // Calculate start and end times
-    startTime := time.Now().Add(1 * time.Minute)
-    endTime := startTime.Add(stakeDuration)
+    // Since Durango the P-Chain ignores Start: the validator starts when the tx is accepted.
+    endTime := time.Now().Add(stakeDuration)
 
-    // Issue AddValidatorTx
-    txID, err := pWallet.IssueAddPermissionlessValidatorTx(
-        &txs.SubnetValidator{
-            Validator: txs.Validator{
+    pop, err := node.GetProofOfPossession()
+    Expect(err).NotTo(HaveOccurred())
+
+    tx, err := pWallet.P().IssueAddPermissionlessValidatorTx(
+        &platform.SubnetValidator{
+            Validator: platform.Validator{
                 NodeID: node.NodeID,
-                Start:  uint64(startTime.Unix()),
                 End:    uint64(endTime.Unix()),
                 Wght:   stakeAmount,
             },
             Subnet: ids.Empty, // Primary Network
         },
+        pop,                             // BLS proof of possession
+        pWallet.P().Builder().Context().AVAXAssetID,
         &secp256k1fx.OutputOwners{
             Threshold: 1,
             Addrs:     []ids.ShortID{fundedKey.Address()},
@@ -164,11 +168,11 @@ func addPrimaryNetworkValidator(
             Threshold: 1,
             Addrs:     []ids.ShortID{fundedKey.Address()},
         },
-        10, // Delegation fee: 10%
+        100_000, // Delegation fee: 10% (shares are in millionths, minimum 20,000)
     )
     Expect(err).NotTo(HaveOccurred())
 
-    return node.NodeID, txID
+    return node.NodeID, tx.ID()
 }
 ```
 
@@ -181,7 +185,7 @@ func waitForValidatorActive(
     nodeID ids.NodeID,
 ) {
 
-    pClient := platform.NewClient(network.Nodes[0].URI)
+    pClient := platformvm.NewClient(network.Nodes[0].URI)
 
     Eventually(func() bool {
         validators, err := pClient.GetCurrentValidators(
@@ -201,7 +205,7 @@ func waitForValidatorActive(
 
 ## Delegation
 
-### AddDelegatorTx Pattern
+### AddPermissionlessDelegatorTx Pattern
 
 ```go
 func addDelegator(
@@ -215,19 +219,19 @@ func addDelegator(
     delegatorKey := network.PreFundedKeys[1]
     pWallet := createPChainWallet(ctx, network, delegatorKey)
 
-    startTime := time.Now().Add(1 * time.Minute)
-    endTime := startTime.Add(delegationDuration)
+    // Since Durango the P-Chain ignores Start: the delegation starts when the tx is accepted.
+    endTime := time.Now().Add(delegationDuration)
 
-    txID, err := pWallet.IssueAddPermissionlessDelegatorTx(
-        &txs.SubnetValidator{
-            Validator: txs.Validator{
+    tx, err := pWallet.P().IssueAddPermissionlessDelegatorTx(
+        &platform.SubnetValidator{
+            Validator: platform.Validator{
                 NodeID: validatorNodeID,
-                Start:  uint64(startTime.Unix()),
                 End:    uint64(endTime.Unix()),
                 Wght:   delegationAmount,
             },
-            Subnet: ids.Empty,
+            Subnet: ids.Empty, // Primary Network
         },
+        pWallet.P().Builder().Context().AVAXAssetID,
         &secp256k1fx.OutputOwners{
             Threshold: 1,
             Addrs:     []ids.ShortID{delegatorKey.Address()},
@@ -235,7 +239,7 @@ func addDelegator(
     )
     Expect(err).NotTo(HaveOccurred())
 
-    return txID
+    return tx.ID()
 }
 ```
 
@@ -278,8 +282,8 @@ ginkgo.It("should distribute validator rewards on completion",
 
 ### Delegation Rewards with Cortina Fork
 
-**Pre-Cortina**: Delegatee receives 25% immediately
-**Post-Cortina**: Delegatee rewards deferred until validator exits
+**Pre-Cortina validators**: the delegatee receives its delegation fee share when the delegation ends
+**Cortina and later**: the delegatee fee share accrues and is paid when the validator's staking period ends
 
 ```go
 ginkgo.It("should handle delegator rewards post-Cortina",
@@ -298,14 +302,14 @@ ginkgo.It("should handle delegator rewards post-Cortina",
         // Wait for delegation period to end
         waitForDelegationEnd(ctx, network, delegationID)
 
-        // Delegator receives 75% of rewards immediately (post-Cortina)
+        // Delegator receives its reward minus the validator's delegation fee share when the delegation ends
         delegatorFinal := getBalance(ctx, network, delegatorKey)
         delegatorReward := delegatorFinal - delegatorInitial - (1 * units.Avax)
 
         Expect(delegatorReward).To(BeNumerically(">", 0))
 
-        // Validator (delegatee) receives 25% when their validation period ends
-        // This is deferred until validator exits (post-Cortina behavior)
+        // Validator (delegatee) receives its delegation fee share of the reward.
+        // Post-Cortina, this is paid when the validator's staking period ends.
     })
 ```
 
@@ -326,12 +330,15 @@ ginkgo.It("should only reward validators with sufficient uptime",
         betaID, _ := addPrimaryNetworkValidator(ctx, network, 2*units.Avax, 48*time.Hour)
 
         // Keep alpha online, stop beta
-        betaNode := network.GetNode(betaID)
+        betaNode, getNodeErr := network.GetNode(betaID)
+        Expect(getNodeErr).NotTo(HaveOccurred())
         err := betaNode.Stop(ctx)
         Expect(err).NotTo(HaveOccurred())
 
         // Wait for validation periods
-        time.Sleep(48 * time.Hour) // In real tests, advance time
+        // tmpnet cannot advance chain time. Use short periods (for example 30s) and set
+        // min-stake-duration and helicon-min-stake-duration in network.DefaultFlags
+        // (tmpnet.UpgradeFlags sets 2s and 1s). Then wait for the periods to end.
 
         // Alpha gets rewards (good uptime)
         alphaBalance := getBalance(ctx, network, alphaKey)
@@ -370,7 +377,7 @@ ginkgo.It("should reject validator with insufficient stake",
         )
 
         Expect(err).To(HaveOccurred())
-        Expect(err.Error()).To(ContainSubstring("insufficient stake"))
+        Expect(err.Error()).To(ContainSubstring("weight of this validator is too low"))
     })
 ```
 
@@ -384,11 +391,11 @@ ginkgo.It("should handle maximum delegation correctly",
     func() {
         ctx := context.Background()
 
-        validatorStake := 2 * units.Avax
+        validatorStake := 2_000 * units.Avax
         nodeID, _ := addPrimaryNetworkValidator(ctx, network, validatorStake, 48*time.Hour)
 
-        // First delegator: 5x validator stake (maximum)
-        delegationID1 := addDelegator(ctx, network, nodeID, 5*validatorStake, 24*time.Hour)
+        // First delegator: 4x validator stake (the maximum: total weight is at most 5x the validator stake)
+        delegationID1 := addDelegator(ctx, network, nodeID, 4*validatorStake, 24*time.Hour)
         Expect(delegationID1).NotTo(BeEmpty())
 
         // Second delegator: Should fail (would exceed 5x limit)
@@ -410,13 +417,13 @@ func createPChainWallet(
 
     nodeURI := network.Nodes[0].URI
 
+    keychain := secp256k1fx.NewKeychain(key)
     wallet, err := primary.MakeWallet(
         ctx,
-        &primary.WalletConfig{
-            URI:          nodeURI,
-            AVAXKeychain: secp256k1fx.NewKeychain(key),
-            EthKeychain:  secp256k1fx.NewKeychain(),
-        },
+        nodeURI,
+        keychain,
+        keychain,
+        primary.WalletConfig{},
     )
     Expect(err).NotTo(HaveOccurred())
 
@@ -466,7 +473,7 @@ func getBalance(
 
 | Aspect | P-Chain | L1 Validators |
 |--------|---------|---------------|
-| Transaction Type | AddValidatorTx | Contract calls |
+| Transaction Type | AddPermissionlessValidatorTx or AddAutoRenewedValidatorTx | Contract calls |
 | Staking | AVAX on P-Chain | Native/ERC20 tokens on L1 |
 | Rewards | Protocol-level | Contract-managed |
 | Uptime | Tracked by P-Chain | Can use uptime proofs |

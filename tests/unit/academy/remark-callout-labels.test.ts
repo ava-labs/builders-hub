@@ -64,7 +64,8 @@ const callouts = (node: MdNode): MdNode[] => {
   return own.concat((node.children ?? []).flatMap(callouts));
 };
 
-describe('remarkCalloutLabels on content/academy', () => {
+// These tests parse each Academy MDX file that holds a Callout (100 files), so they get more than the 5 s default.
+describe('remarkCalloutLabels on content/academy', { timeout: 30_000 }, () => {
   it('marks every Callout in the Academy MDX files and labels no quote', () => {
     const parser = remark().use(remarkMdx);
     const marked = mdxFiles(ACADEMY)
@@ -79,7 +80,7 @@ describe('remarkCalloutLabels on content/academy', () => {
 
 // fumadocs' remarkStructure indexes every attribute of a Callout by default, and utils/update-index.ts
 // syncs that index to the site search; the marks must not reach it.
-describe('indexedMdxAttribute on content/academy', () => {
+describe('indexedMdxAttribute on content/academy', { timeout: 30_000 }, () => {
   it('keeps the marks out of the search index: every callout page indexes as it does without the plugin', () => {
     const changed = mdxFiles(ACADEMY).filter((file) => {
       const source = readFileSync(file, 'utf8');

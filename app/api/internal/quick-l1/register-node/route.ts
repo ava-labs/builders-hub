@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
 import { createDbNode, selectNewestNode } from '@/app/api/managed-testnet-nodes/service';
 import { jsonError, jsonOk, validateSubnetId } from '@/app/api/managed-testnet-nodes/utils';
-import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
-import type { AwardedConsoleBadge } from '@/server/services/consoleBadge/types';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { prisma } from '@/prisma/prisma';
 
@@ -17,8 +15,7 @@ import { prisma } from '@/prisma/prisma';
  * `POST /api/managed-testnet-nodes` would.
  *
  * The result is that Quick L1 deploys show up under the user's
- * "Managed nodes" page with the same TTL, the same RPC URL, and
- * award the same `node_registration` console badge.
+ * "Managed nodes" page with the same TTL and the same RPC URL.
  *
  * Auth model:
  *   - `x-quick-l1-secret` shared with the orchestrator. Constant-time
@@ -163,17 +160,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return jsonOk({ ok: true, status: 'already-registered' });
     }
 
-    // Award `node_registration` badge — same as the manual flow. Best
-    // effort; a badge-service hiccup must never fail the registration.
-    let awardedBadges: AwardedConsoleBadge[] = [];
-    try {
-      awardedBadges = await checkAndAwardConsoleBadges(body.userId, 'node_registration');
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('[register-node] badge award failed (non-fatal):', e);
-    }
-
-    return jsonOk({ ok: true, status: 'created', nodeId: created.id, awardedBadges });
+    return jsonOk({ ok: true, status: 'created', nodeId: created.id });
   } catch (e) {
     // Static client message — Prisma errors leak schema, query parameters,
     // and connection details. The full error is logged server-side via the

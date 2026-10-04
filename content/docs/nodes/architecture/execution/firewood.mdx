@@ -155,12 +155,12 @@ This enables:
 
 ```
 firewood/
-├── storage/        # Low-level storage primitives
-├── trie/           # Patricia trie implementation
-├── proposal/       # Transaction staging
-├── revision/       # Version management
-├── proof/          # Merkle proof generation
-└── ffi/            # Foreign function interface
+├── firewood/       # Database core: revisions, proposals, proofs
+├── storage/        # Node store, free lists, hashing
+├── ffi/            # Go bindings (CGo)
+├── fwdctl/         # Command-line tool
+├── triehash/       # Ethereum trie hash helpers
+└── benchmark/      # Benchmarks
 ```
 
 ### Free Space Management
@@ -211,7 +211,7 @@ The persistent trie structure ensures:
 
 ### Sequential Writes
 
-The persistent data structure enables sequential writes. New nodes are appended to the end of the file, filling free space sequentially:
+Firewood allocates space for a new node from the free list of the matching size. If no free slot fits, it appends the node at the end of the file:
 
 | State | Slot 1 | Slot 2 | Slot 3 | Slot 4 | Slot 5 |
 |-------|--------|--------|--------|--------|--------|
@@ -266,41 +266,29 @@ The `ethhash` feature has some performance overhead compared to the default conf
 | **Proof generation** | Requires reconstruction | Native support |
 | **Space efficiency** | Good after compaction | Configurable |
 
-### Optimal Configuration
+### Location in AvalancheGo
 
-For best performance:
-
-```bash
-# Run directly on block device (bypass filesystem)
-./firewood --device /dev/nvme0n1
-
-# Or use regular files (easier setup)
-./firewood --path /data/firewood.db
-```
-
-Running on block devices avoids filesystem overhead:
-- No block allocation delays
-- No fragmentation
-- No metadata management
-- Direct I/O to SSD
+Firewood stores its data in regular files. On the C-Chain, AvalancheGo puts the Firewood files in `{chain-data-dir}/{blockchainID}/firewood`. The default `chain-data-dir` is `$HOME/.avalanchego/chainData`.
 
 ## Metrics
 
 Firewood provides comprehensive Prometheus metrics:
 
 ```text
-# Database size
-firewood_db_size_bytes
+# Revisions held in memory, and the configured limit
+firewood_revisions_active
+firewood_revisions_limit
 
-# Read/write latency
-firewood_read_latency_seconds
-firewood_write_latency_seconds
+# Revisions written to disk
+firewood_commits_total
 
-# Revision count
-firewood_revision_count
+# Commit latency
+firewood_proposal_commit_duration_seconds
 
-# Free space
-firewood_free_space_bytes
+# Space reused from free lists, appended at the end of the file, and freed
+firewood_storage_bytes_reused_total
+firewood_storage_bytes_appended_total
+firewood_storage_bytes_freed_total
 ```
 
 See [METRICS.md](https://github.com/ava-labs/firewood/blob/main/METRICS.md) for the complete metrics reference.
@@ -311,43 +299,31 @@ Firewood includes `fwdctl` for database operations:
 
 ```bash
 # Create a new database
-fwdctl create --path /data/firewood.db
+fwdctl create --db /data/firewood --node-hash-algorithm merkle-db
 
-# Insert key-value pairs
-fwdctl put --path /data/firewood.db key1 value1
+# Insert a key-value pair
+fwdctl insert --db /data/firewood key1 value1
 
 # Query data
-fwdctl get --path /data/firewood.db key1
+fwdctl get --db /data/firewood key1
 
-# Generate proofs
-fwdctl prove --path /data/firewood.db key1
+# Show the root hash
+fwdctl root --db /data/firewood
 ```
 
 ## Integration with AvalancheGo
 
-Firewood integrates with AvalancheGo as an alternative to LevelDB/PebbleDB:
+Firewood stores the state trie of an EVM chain. It does not replace the node database. The node database (LevelDB or PebbleDB, set with `--db-type`) still stores blocks and other chain data. Select Firewood for each chain with the `state-scheme` option in the chain config.
 
 <Mermaid chart="
 flowchart TB
-    subgraph AvalancheGo
-        VM[Virtual Machine]
-        State[State Manager]
-    end
-
-    subgraph Storage [Storage Options]
-        LDB[(LevelDB)]
-        PDB[(PebbleDB)]
-        FW[(Firewood)]
-    end
-
-    VM --> State
-    State --> LDB
-    State --> PDB
-    State --> FW
+    VM[EVM chain] -->|blocks and chain data| NDB[(Node database: LevelDB or PebbleDB)]
+    VM -->|state with state-scheme hash| NDB
+    VM -->|state with state-scheme firewood| FW[(Firewood)]
 " />
 
-<Callout type="info">
-Firewood integration with AvalancheGo is under active development. Check the [firewood-go-ethhash](https://github.com/ava-labs/firewood-go-ethhash) repository for Go bindings.
+<Callout type="warn">
+Firewood is an EXPERIMENTAL state scheme. To use it on the C-Chain, set `"state-scheme": "firewood"` in `{chain-config-dir}/C/config.json`. A Firewood C-Chain node cannot state sync. On Mainnet and Fuji, also set `"state-sync-enabled": false`, or the node shuts down with a `FATAL` error. The node then bootstraps by executing every block from genesis. AvalancheGo uses the Go bindings from [firewood-go-ethhash](https://github.com/ava-labs/firewood-go-ethhash).
 </Callout>
 
 ## Related Resources

@@ -7,7 +7,6 @@ import {
   overviewStatsUrl,
   priceHistoryUrl,
   rosterOf,
-  txsFeed,
 } from '@/components/explorer-v2/network/network-reads';
 
 const row = (chainId: string, txCount: number | null, chainLogoURI = '') => ({ chainId, chainName: `Chain ${chainId}`, chainLogoURI, txCount });
@@ -39,15 +38,12 @@ describe('the overview boards roster', () => {
     expect(rosterOf([row('43114', 1, 'https://example.com/logo.png')])[0].logo).toBe('https://example.com/logo.png');
   });
 
-  it('names the reads each chain opens its boards with', () => {
+  it('names the one read each chain opens both boards with', () => {
     expect(boardReads([row('4337', 1), row('43114', 2)])).toEqual([
-      '/api/explorer/43114?blocksOnly=true',
-      '/api/evm/43114/txs?limit=6',
-      '/api/explorer/4337?blocksOnly=true',
-      '/api/evm/4337/txs?limit=6',
+      '/api/explorer/43114?blocksOnly=true&txs=3',
+      '/api/explorer/4337?blocksOnly=true&txs=3',
     ]);
-    expect(blocksFeed('43114', 96_000_000)).toBe('/api/explorer/43114?blocksOnly=true&lastFetchedBlock=96000000');
-    expect(txsFeed('43114', false)).toBe('/api/evm/43114/txs?limit=10');
+    expect(blocksFeed('43114', 96_000_000)).toBe('/api/explorer/43114?blocksOnly=true&txs=3&lastFetchedBlock=96000000');
   });
 });
 

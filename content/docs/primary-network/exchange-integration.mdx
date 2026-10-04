@@ -37,7 +37,7 @@ All configuration options and their default values are described [here](/docs/no
 
 You can supply configuration options on the command line, or use a config file,
 which can be easier to work with when supplying many options. You can specify
-the config file location with `—config-file=config.json`, where `config.json` is
+the config file location with `--config-file=config.json`, where `config.json` is
 a JSON file whose keys and values are option names and values.
 
 Individual chains, including the C-Chain, have their own configuration options
@@ -55,29 +55,16 @@ If you need Ethereum's [Archive
 Node](https://ethereum.org/en/developers/docs/nodes-and-clients/#archive-node)
 functionality, you need to disable C-Chain pruning, which has been enabled by
 default since AvalancheGo v1.4.10. To disable pruning, include
-`"pruning-enabled": false` in the C-Chain config file as shown below.
+`"pruning-enabled": false` in the C-Chain config file as shown below. Also set
+`"state-sync-enabled": false`. State sync is on by default, and a node that state
+syncs does not have the state of earlier blocks.
 </Callout>
 
 ```json
 {
-  "snowman-api-enabled": false,
-  "coreth-admin-api-enabled": false,
   "local-txs-enabled": true,
   "pruning-enabled": false,
-  "eth-apis": [
-    "internal-eth",
-    "internal-blockchain",
-    "internal-transaction",
-    "internal-tx-pool",
-    "internal-account",
-    "internal-personal",
-    "debug-tracer",
-    "web3",
-    "eth",
-    "eth-filter",
-    "admin",
-    "net"
-  ]
+  "state-sync-enabled": false
 }
 ```
 
@@ -87,9 +74,11 @@ Interacting with the C-Chain is identical to interacting with
 [`go-ethereum`](https://geth.ethereum.org/). You can find the reference material
 for C-Chain API [here](/docs/rpcs/c-chain).
 
-Please note that `personal_` namespace is turned off by default. To turn it on,
-you need to pass the appropriate command line switch to your node, like in the
-above config example.
+The C-Chain node does not serve the `personal_` and `admin_` namespaces, `eth_accounts` or
+`eth_coinbase`. The node holds no keys. Sign transactions in your own system and send them
+with `eth_sendRawTransaction`. By default, the node serves the `web3`, `net`, `txpool`,
+`price`, `chain`, `tx`, `subscription`, `avalanche` and `trace` API groups. To change the
+groups that the node serves, set `apis` in the C-Chain config file. Do not use `eth-apis`, which is deprecated.
 
 ## Integration Using Rosetta
 
@@ -115,9 +104,12 @@ can be found in the linked repository.
 
 ## Constructing Transactions
 
-Avalanche C-Chain transactions are identical to standard EVM transactions with 2 exceptions:
+Avalanche C-Chain transactions are standard EVM transactions, with these differences:
 
-- They must be signed with Avalanche's ChainID (43114).
+- Sign them with Avalanche's ChainID (43114).
+- Use a legacy, EIP-2930 or EIP-1559 transaction. The C-Chain does not accept blob (EIP-4844) or set-code (EIP-7702) transactions.
+- The C-Chain charges each transaction `max(gasUsed, ceil(gasLimit / 2))` gas. Do not set a gas limit more than 2 times the expected gas use. A 21,000 gas AVAX transfer with a 21,000 gas limit is not affected.
+- The mempool rejects a transaction whose gas limit is too small for its size, with the error `insufficient gas limit for tx size`. At a block gas limit of 80,000,000, a transaction needs about 51 gas per byte. AvalancheGo v1.15.1 and later include this minimum in `eth_estimateGas`.
 - The detailed dynamic gas fee can be found [here](/docs/rpcs/other/guides/txn-fees#c-chain-fees).
 
 For development purposes, Avalanche supports all the popular tooling for
@@ -134,12 +126,17 @@ You can use any standard way of ingesting on-chain data you use for Ethereum net
 
 ### Determining Finality
 
-Avalanche consensus provides fast and irreversible finality with ~1 second. To
-query the most up-to-date finalized block, query any value (that is block, balance,
-state, etc) with the `latest` parameter. If you query above the last finalized
-block (that is eth_blockNumber returns 10 and you query 11), an error will be
-thrown indicating that unfinalized data cannot be queried (as of
-`avalanchego@v1.3.2`).
+Avalanche consensus gives irreversible finality in about 1 second. A C-Chain transaction
+is final when consensus accepts its block. Snowman has no re-orgs, so you do not need to
+wait for more confirmations.
+
+After acceptance, the node executes the block. Receipts, logs and the post-execution
+state exist only after execution:
+
+- `latest` and `eth_blockNumber` return the last executed block. Read balances, state and logs at `latest`.
+- `eth_getBlockByNumber` with an explicit number also returns accepted blocks that are not executed yet. A number above the last accepted block returns `null`.
+- For a transaction in an accepted block, `eth_getTransactionReceipt` waits until the transaction executes. It returns `null` if the transaction is not in an accepted block.
+- `safe` and `finalized` return the last settled block, a few blocks behind `latest`. These tags do not mark finality: every accepted block is already final.
 
 ### (Optional) Custom Golang SDK
 
@@ -148,7 +145,7 @@ Golang, we recommend using our custom
 [`ethclient`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth/ethclient). The
 standard `go-ethereum` Ethereum client does not compute block hashes correctly
 (when you call `block.Hash()`) because it doesn't take into account the added
-[ExtDataHash](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/core/types/block.go#L98)
+[ExtDataHash](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/plugin/evm/customtypes/header_ext.go#L42)
 header field in Avalanche C-Chain blocks, which is used move AVAX between chains
 (X-Chain and P-Chain). You can read more about our multi-chain abstraction
 [here](/docs/primary-network) (out of scope for a

@@ -59,7 +59,8 @@ E2E_BASE_URL=http://localhost:3000 npm test
 | Check | Runs on | What it does |
 |---|---|---|
 | `.github/workflows/console-ci.yml` | PRs that touch the Console, contracts or `content/academy` | tsc, toolbox ESLint, folder and import rules, `scripts/check-console-design.sh`, `scripts/check-academy-embeds.mts` |
-| `.github/workflows/explorer-ci.yml` | PRs that touch the Explorer | tsc, Explorer ESLint, `vitest run tests/unit/explorer` |
+| `.github/workflows/explorer-ci.yml` | PRs that touch the Explorer | tsc, Explorer ESLint |
+| `.github/workflows/unit.yml` | Every PR, and each push to `master` | The whole Vitest suite (`npx vitest run`) |
 | `.github/workflows/e2e.yml` | Every PR, each push to `master`, and nightly | Browser tests (desktop and phone) and API tests. A PR runs the tests its changed files reach plus a smoke set (`tests/e2e/select`); `master` and the nightly run all of them |
 | `.github/workflows/e2e-explore.yml` | Nightly, or by hand | AI bug hunt: one `e2e explore` per charter in `tests/e2e/explore/charters.json`, on production. Findings go to the job summary |
 | `.github/workflows/commitlint.yml` | Every PR | Conventional Commits on every commit |
@@ -96,7 +97,7 @@ E2E_BASE_URL=http://localhost:3000 npm test
 
 ## Tests
 
-- **Unit:** Vitest, node environment, no DOM (`vitest.config.ts`). Put tests in `tests/unit/<area>/`. CI runs only `tests/unit/explorer` today.
+- **Unit:** Vitest, node environment, no DOM (`vitest.config.ts`). Put tests in `tests/unit/<area>/`. CI runs the whole suite on every PR (`unit.yml`).
 - **Browser and API:** `tests/e2e/`, with [tester-army/e2e](https://e2e.tester.army/docs). Details: `tests/e2e/README.md`.
   - Write every new browser or API test in `tests/e2e/` with tester-army/e2e. Do not add tests with `@playwright/test`, Cypress, Puppeteer or another runner, and do not add a second e2e folder. For page behavior that Vitest cannot test (it has no DOM), write a tester-army/e2e test.
   - Every browser test runs at a desktop and a phone size. Find elements by role and accessible name. Explorer data is live: assert structure, not values.
