@@ -20,12 +20,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
    instead: the rows that wait spread until a little before the next poll
    lands, so the tape never stands still between polls, and none waits more
    than an interval and a half after it landed, so the tape never falls
-   behind the feed. A board merged from feeds that lag by different amounts
-   (`lag`) keeps a newcomer older than the top row, so the slowest feed's
-   rows are not let go: the queue holds its rows oldest first and each goes
-   in at its place by time, so the ages on the board only grow down the
-   list. Only a newcomer older than the top row by more than the feeds'
-   lag, or one that would land under a full window, is let go. */
+   behind the feed. A board merged from feeds that answer at different
+   times (`merged`) keeps its queue in time order, oldest first: a newcomer
+   that lands after a newer one, but is still newer than the top row, goes
+   out in its turn rather than being let go. Every row still goes in at the
+   top, so the ages on the board only grow down the list. */
 
 /* the release pace stays between these */
 const MIN_MS = 150;
@@ -46,27 +45,19 @@ const SPREAD = 0.9;
    none. Rows that come every poll go out by SPREAD first. */
 const MAX_WAIT = 1.5;
 
-/** How far apart a merged board's feeds run: a newcomer up to `ms` older
- *  than the top row still shows. `at` is a row's time, epoch ms. */
-export interface Lag<T> {
-  ms: number;
-  at: (t: T) => number;
-}
-
 /** Where a batch of newcomers goes. An empty window paints them whole.
  *  Otherwise a newcomer newer than the top row and than every row waiting
  *  joins the queue (oldest first), one older than the last row fills in
  *  beneath it while the window is short, and one in between is let go.
- *  With `lag`, a newcomer that does not fill in beneath joins the queue at
- *  its place by time (oldest first), unless it is older than the top row by
- *  more than the lag or would land under a full window. */
+ *  `merged`: a newcomer newer than the top row joins the queue at its place
+ *  by time, newer than every row waiting or not. */
 export function admit<T>(
   visible: readonly T[],
   queue: readonly T[],
   fresh: readonly T[],
   visibleMax: number,
   newer: (a: T, b: T) => number,
-  lag?: Lag<T>,
+  merged = false,
 ): { visible: T[]; queue: T[] } {
   const sorted = [...fresh].sort(newer);
   if (!visible.length) return { visible: sorted.slice(0, visibleMax), queue: [...queue] };
@@ -75,12 +66,8 @@ export function admit<T>(
   const room = visibleMax - visible.length;
   const below = room > 0 ? sorted.filter((t) => newer(t, last) > 0).slice(0, room) : [];
   const shown = below.length ? [...visible, ...below] : [...visible];
-  if (lag) {
-    const oldest = lag.at(top) - lag.ms;
-    const floor = shown.length >= visibleMax ? shown[shown.length - 1] : undefined;
-    const join = sorted.filter(
-      (t) => !below.includes(t) && lag.at(t) >= oldest && (floor === undefined || newer(t, floor) < 0),
-    );
+  if (merged) {
+    const join = sorted.filter((t) => !below.includes(t) && newer(t, top) < 0);
     return { visible: shown, queue: [...queue, ...join].sort((a, b) => newer(b, a)) };
   }
   const tail = queue[queue.length - 1];
@@ -93,34 +80,17 @@ export function admit<T>(
   return { visible: shown, queue: next };
 }
 
-/** A row's place by time on a board, newest first: null when it would land
- *  under a full window */
-export function place<T>(visible: readonly T[], row: T, visibleMax: number, newer: (a: T, b: T) => number): T[] | null {
-  const i = visible.findIndex((v) => newer(row, v) < 0);
-  const at = i < 0 ? visible.length : i;
-  if (at >= visibleMax) return null;
-  return [...visible.slice(0, at), row, ...visible.slice(at, visibleMax - 1)];
-}
-
-/** The next row out of the queue (oldest first): the board and the queue
- *  after it. Far behind, the queue skips to its newest window rather than
- *  replay history. A row goes in at the top; with `lag`, at its place by
- *  time, and one that would land under the window (the window moved on
- *  while it waited) is let go. `visible` is null when no row shows. */
+/** The next row out of the queue (oldest first), in at the top: the board
+ *  and the queue after it. Far behind, the queue skips to its newest window
+ *  rather than replay history. `visible` is null when the queue is empty. */
 export function releaseOne<T>(
   visible: readonly T[],
   queue: readonly T[],
   visibleMax: number,
-  newer: (a: T, b: T) => number,
-  lag?: Lag<T>,
 ): { visible: T[] | null; queue: T[] } {
   const q = queue.length > visibleMax * 2 ? queue.slice(queue.length - visibleMax) : [...queue];
-  let shown: T[] | null = null;
-  while (!shown && q.length) {
-    const next = q.shift()!;
-    shown = lag ? place(visible, next, visibleMax, newer) : [next, ...visible].slice(0, visibleMax);
-  }
-  return { visible: shown, queue: q };
+  const next = q.shift();
+  return { visible: next === undefined ? null : [next, ...visible].slice(0, visibleMax), queue: q };
 }
 
 /** A clocked feed's pace: the wait after the last row for the next one.
@@ -162,12 +132,12 @@ export function useTicker<T>(
     /** the feed's poll interval in ms: the rows that wait spread until about
      *  the next poll, and none waits more than an interval and a half (see clockPace) */
     every?: number;
-    /** the rows come from feeds that run this far apart: each goes in at its
-     *  place by time (see admit and releaseOne) */
-    lag?: Lag<T>;
+    /** the rows come from feeds that answer at different times: the queue
+     *  keeps them in time order (see admit) */
+    merged?: boolean;
   },
 ): T[] {
-  const { key, newer, paused = false, onEnqueue, enabled = true, every, lag } = opts;
+  const { key, newer, paused = false, onEnqueue, enabled = true, every, merged } = opts;
   const [visible, setVisible] = useState<T[]>([]);
   const visibleRef = useRef<T[]>([]);
   // oldest first: the next to release is at the front
@@ -204,7 +174,7 @@ export function useTicker<T>(
   const release = () => {
     timer.current = null;
     if (pausedRef.current) return;
-    const out = releaseOne(visibleRef.current, queue.current, visibleMax, newerRef.current, lag);
+    const out = releaseOne(visibleRef.current, queue.current, visibleMax);
     queue.current = out.queue;
     if (!out.visible) return;
     lastRelease.current = Date.now();
@@ -261,7 +231,7 @@ export function useTicker<T>(
     onEnqueueRef.current?.(fresh);
     const now = Date.now();
     const opening = !visibleRef.current.length;
-    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current, lag);
+    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current, merged);
     queue.current = placed.queue;
     if (every) {
       const was = landed.current;

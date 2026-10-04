@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { Belt, GasBar, Height, MotionRow, Party, fmtAmount } from "@/components/explorer-v2/evm/LiveBoards";
-import { useTicker, type Lag } from "./ticker";
+import { useTicker } from "./ticker";
 import { methodLabel } from "@/components/explorer-v2/evm/bits";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
@@ -334,14 +334,10 @@ const chainBase = (c: LiveChain) => `/explorer/mainnet/${c.slug}`;
 /* Both boards play the rows of each sweep over most of the sweep's
    interval, so a row enters about every second instead of a clump of rows
    and then a pause, and no row waits more than an interval and a half. The
-   chains' reads trail them by different amounts (2 to 6 s at the median on
-   2026-10-04), so a row up to LAG_MS older than the top one still shows, at
-   its place by time (under the top row when it is older), and an older one
-   (a quiet chain's last block, minutes old) is let go. */
-const LAG_MS = 30_000;
-const BLOCK_LAG: Lag<LiveBlock> = { ms: LAG_MS, at: (b) => b.at };
-const TX_LAG: Lag<LiveTx> = { ms: LAG_MS, at: (t) => t.at };
-
+   chains' reads land at different times in a sweep, so the queue keeps
+   their rows in time order (`merged`). Every row goes in at the top: one
+   older than the top row when it lands (a slow read's) is let go, not
+   slotted in under it, so the board only ever moves down. */
 function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading: boolean }) {
   // the belt holds still under the pointer so a row can be clicked
   const [hover, setHover] = useState(false);
@@ -350,7 +346,7 @@ function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading:
     newer: blockNewer,
     paused: hover,
     every: POLL_MS,
-    lag: BLOCK_LAG,
+    merged: true,
   });
   const cols = "md:grid-cols-[minmax(0,8rem)_6.5rem_2.5rem_minmax(0,1fr)_2.5rem]";
   return (
@@ -416,7 +412,7 @@ function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) 
     newer: txNewer,
     paused: hover,
     every: POLL_MS,
-    lag: TX_LAG,
+    merged: true,
   });
   const method = useMethodLabels(rows);
   const cols =
