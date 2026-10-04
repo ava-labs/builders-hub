@@ -32,7 +32,7 @@ flowchart LR
     subgraph CE [Continuous Execution]
         P2[Proposed] --> A2[Accepted]
         A2 -->|async| E2[Executed]
-        E2 -->|delay| S2[Settled]
+        E2 -->|at least τ| S2[State root committed]
     end
 " />
 
@@ -40,6 +40,12 @@ This separation enables:
 - **Higher throughput**: Consensus and execution proceed in parallel
 - **Reduced latency**: Blocks are accepted faster
 - **Better resource utilization**: No context switching between consensus and execution
+
+Figure 1 shows the stops of one block, block N. Consensus accepts the block, and its transactions are final at that point. Then the EVM executes the block, and its receipts and logs exist. Later, the header of block N+k records a state root that includes block N. It is the state root after the last block that finished execution, on the [gas clock](/docs/primary-network/continuous-execution), at least τ before the time of block N+k. The delay τ (tau) is fixed: 5 seconds. The gap k is not fixed: it changes with the block rate and the load on the chain. Finality and the state root are two different things: τ has no effect on finality. The RPC block tags `safe` and `finalized` return the last block whose state root is committed (stop 3), not the last accepted block.
+
+<Figure id="block-lifecycle" caption="Block N under Continuous Execution: final when consensus accepts it, executed next, and its state root committed in block N+k, at least τ after execution on the gas clock.">
+  <BlockLifecycleFigure />
+</Figure>
 
 ### Optimized State Storage
 
