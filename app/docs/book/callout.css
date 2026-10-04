@@ -1,0 +1,83 @@
+/*
+ * Docs book skin: callouts (components/docs-book/callout.tsx). Every selector starts with
+ * [data-route-layout="docs"]. As in the book, a callout is a rule and text: no card, no fill, no
+ * radius, no shadow. The kind shows in the rule's color and in the label word, so color never
+ * carries the meaning alone. Unlayered, so these rules win over the prose plugin's :where() rules.
+ */
+
+[data-route-layout="docs"] [data-bk-callout] {
+  display: flow-root;
+  margin: 24px 0;
+  padding: 2px 0 2px 20px;
+  border-left: 3px solid var(--bk-blue);
+}
+
+[data-route-layout="docs"] [data-bk-callout="warning"] { border-left-color: var(--bk-red-rule); }
+
+/* The heaviest rule for the most serious kind. */
+[data-route-layout="docs"] [data-bk-callout="danger"] {
+  padding-left: 19px;
+  border-left: 4px solid var(--bk-red-rule);
+}
+
+/* ---------- Label row: the icon and the word ---------- */
+
+[data-route-layout="docs"] [data-bk-callout-label] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-family: var(--bk-sans);
+  /* Body size, as in the book: the label names the kind, so it must not read smaller than the lead. */
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--bk-blue);
+}
+
+[data-route-layout="docs"] [data-bk-callout="warning"] [data-bk-callout-label] { color: var(--bk-red-text); }
+
+/* Danger: the label is a band, white on the danger red (7.01:1), the same in light and dark. */
+[data-route-layout="docs"] [data-bk-callout="danger"] [data-bk-callout-label] {
+  width: fit-content;
+  padding: 1px 8px 1px 6px;
+  border-radius: 2px;
+  background: var(--bk-danger-band);
+  color: #fff;
+}
+
+[data-route-layout="docs"] [data-bk-callout-icon] {
+  display: inline-flex;
+  flex: none;
+}
+
+/* The icon prop can be any node, so the size goes on its svg. */
+[data-route-layout="docs"] [data-bk-callout-icon] svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Lead line and body ---------- */
+
+/* The lead is often a question. It is ink at the body size, right under the label row. */
+[data-route-layout="docs"] [data-bk-callout-lead] {
+  margin: 0 0 4px;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: inherit;
+  color: var(--bk-ink);
+}
+
+/* The body keeps the page's text size and color. The fumadocs callout body was smaller and grey,
+   and it failed AA. */
+[data-route-layout="docs"] [data-bk-callout-body] > :first-child { margin-top: 0; }
+[data-route-layout="docs"] [data-bk-callout-body] > :last-child { margin-bottom: 0; }
+
+/* A callout at the edge of a tab panel takes the panel's padding, as fumadocs' prose-no-margin does. */
+[data-route-layout="docs"] [role="tabpanel"] > [data-bk-callout]:first-child { margin-top: 0; }
+[data-route-layout="docs"] [role="tabpanel"] > [data-bk-callout]:last-child { margin-bottom: 0; }
+
+@media (max-width: 639px) {
+  [data-route-layout="docs"] [data-bk-callout] { padding-left: 16px; }
+  [data-route-layout="docs"] [data-bk-callout="danger"] { padding-left: 15px; }
+}

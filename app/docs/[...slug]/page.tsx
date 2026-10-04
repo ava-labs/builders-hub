@@ -12,7 +12,7 @@ import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import { sharedMDXComponents } from "@/components/mdx/shared-components";
-import { Callout } from "fumadocs-ui/components/callout";
+import { DocsCallout } from "@/components/docs-book/callout";
 import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { Tabs } from "fumadocs-ui/components/tabs";
 import defaultComponents from "fumadocs-ui/mdx";
@@ -83,6 +83,7 @@ export default async function Page(props: {
             })(),
             ...((await import("lucide-react")) as unknown as MDXComponents),
             ...sharedMDXComponents,
+            Callout: DocsCallout,
             // Fix srcset -> srcSet for React 19 compatibility
             img: (props: any) => {
               const { srcset, ...imgProps } = props;
@@ -134,7 +135,7 @@ export default async function Page(props: {
               }
             },
             blockquote: (props: ComponentProps<"blockquote">) => (
-              <Callout>{props.children}</Callout>
+              <DocsCallout>{props.children}</DocsCallout>
             ),
           }}
         />
