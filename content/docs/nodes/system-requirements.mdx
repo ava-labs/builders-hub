@@ -59,7 +59,7 @@ L1 validators run your own blockchain with custom parameters. Hardware requireme
 | **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 |
 
 <Callout>
-L1 validators sync the P-Chain to track validator sets and cross-chain messages. This adds minimal overhead to the requirements above.
+L1 validators must sync the P-Chain to track validator sets. By default, a node also syncs the X-Chain and the C-Chain. Set `--partial-sync-primary-network=true` to sync only the P-Chain. Without this flag, add the Primary Network requirements to the values above.
 </Callout>
 
 ---
@@ -87,7 +87,7 @@ Cloud instances have static IPs by default. Ensure your security group or firewa
 
 Residential connections typically have dynamic IPs. You'll need to:
 1. Configure port forwarding for port `9651` on your router
-2. Consider a dynamic DNS service if your IP changes frequently
+2. If your IP changes, set `--public-ip-resolution-service` (`opendns`, `ifconfigco` or `ifconfigme`). The node then checks its public IP every 5 minutes (`--public-ip-resolution-frequency`) and advertises the new IP. Peers connect to the advertised IP, not to a DNS name, so a dynamic DNS service has no effect.
 
 <Callout>
 A fully connected Avalanche node maintains thousands of live TCP connections. Under-powered home routers may struggle with this load, causing lag on other devices or node synchronization issues.
@@ -101,7 +101,7 @@ Set up monitoring and alerts to catch resource issues before they impact your va
 
 | Resource | Warning Threshold | Critical Threshold | Action Required |
 |----------|------------------|-------------------|-----------------|
-| **Disk Usage** | 80% | 90% | Run [offline pruning](/docs/nodes/maintain/reduce-disk-usage) or [state sync](/docs/nodes/maintain/chain-state-management) |
+| **Disk Usage** | 80% | 90% | Resync the node with [state sync](/docs/nodes/node-storage/periodic-state-sync) or add disk space. After Helicon, the C-Chain has no offline pruning. |
 | **CPU Usage** | 70% sustained | 90% sustained | Upgrade to higher-tier instance or optimize workload |
 | **Memory Usage** | 80% | 90% | Upgrade RAM or investigate memory leaks |
 | **Network Bandwidth** | 80% of capacity | 95% of capacity | Upgrade network tier or reduce other network traffic |

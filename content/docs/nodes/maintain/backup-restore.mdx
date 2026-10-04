@@ -41,9 +41,7 @@ If `staker.key` and `staker.crt` are removed from a node, which is restarted aft
 
 If the `signer.key` is regenerated, the node will lose its previous BLS identity, which includes its public key and proof of possession. This change means that the node's former identity on the network will no longer be recognized, affecting its ability to participate in the consensus mechanism as before. Consequently, the node may lose its established reputation and any associated staking rewards.
 
-<Callout type="warn">
-If you have users defined in the keystore of your node, then you need to back up and restore those as well. [Keystore API](/docs/rpcs/other) has methods that can be used to export and import user keys. Note that Keystore API is used by developers only and not intended for use in production nodes. If you don't know what a keystore API is and have not used it, you don't need to worry about it.
-</Callout>
+
 
 ### Backup
 
@@ -138,7 +136,7 @@ You should see your original NodeID and NodePOP (BLS key and BLS signature). Res
 Database
 -----------------------------------------------
 
-Normally, when starting a new node, you can just bootstrap from scratch. However, there are situations when you may prefer to reuse an existing database (ex: preserve keystore records, reduce sync time).
+Normally, when starting a new node, you can just bootstrap from scratch. However, there are situations when you may prefer to reuse an existing database (for example, to reduce the sync time).
 
 This tutorial will walk you through compressing your node's DB and moving it to another computer using `zip` and `scp`.
 
@@ -154,10 +152,10 @@ sudo systemctl stop avalanchego
 You must stop the Avalanche node before you back up the database otherwise data could become corrupted.
 </Callout>
 
-Once the node is stopped, you can `zip` the database directory to reduce the size of the backup and speed up the transfer using `scp`:
+Once the node is stopped, `zip` the `db` and `chainData` directories to reduce the size of the backup and speed up the transfer with `scp`. Since Helicon, the C-Chain keeps its execution results in `chainData`. L1s that run Subnet-EVM can also keep their chain database there:
 
 ```bash
-zip -r avalanche_db_backup.zip .avalanchego/db
+zip -r avalanche_db_backup.zip .avalanchego/db .avalanchego/chainData
 ```
 
 _Note: It may take > 30 minutes to zip the node's DB._
@@ -190,13 +188,14 @@ sudo systemctl stop avalanchego
 You must stop the Avalanche node before you restore the database otherwise data could become corrupted.
 </Callout>
 
-We're ready to restore the database. First, let's move the DB on the existing node (you can remove this old DB later if the restore was successful):
+You are ready to restore the database. First, move the `db` and `chainData` directories of the existing node. You can remove them later if the restore is successful:
 
 ```bash
 mv .avalanchego/db .avalanchego/db-old
+mv .avalanchego/chainData .avalanchego/chainData-old
 ```
 
-Next, we'll unzip the backup we moved from another node (this will place the unzipped files in `~/.avalanchego/db` when the command is run in the home directory):
+Next, unzip the backup that you moved from the other node. When you run the command in the home directory, it puts the files in `~/.avalanchego/db` and `~/.avalanchego/chainData`:
 
 ```bash
 unzip avalanche_db_backup.zip
@@ -243,7 +242,7 @@ You must stop the Avalanche node before you back up the database otherwise data 
 Then, on the destination machine, change to a directory where you would like to the put the database files, enter the following command:
 
 ```bash
-ssh -i /path/to/the/key.pem ubuntu@PUBLICIP 'tar czf - .avalanchego/db' | tar xvzf - -C .
+ssh -i /path/to/the/key.pem ubuntu@PUBLICIP 'tar czf - -C .avalanchego db chainData' | tar xvzf - -C .
 ```
 
 Make sure to replace the correct path to the key, and correct IP of the source machine. This will compress the database, but instead of writing it to a file it will pipe it over `ssh` directly to destination machine, where it will be decompressed and written to disk. The process can take a long time, make sure it completes before continuing.
@@ -251,8 +250,8 @@ Make sure to replace the correct path to the key, and correct IP of the source m
 After copying is done, all you need to do now is move the database to the correct location on the destination machine. Assuming there is a default AvalancheGo node installation, we remove the old database and replace it with the new one:
 
 ```bash
-rm -rf ~/.avalanchego/db
-mv db ~/.avalanchego/db
+rm -rf ~/.avalanchego/db ~/.avalanchego/chainData
+mv db chainData ~/.avalanchego/
 ```
 
 You can now start the node on the destination machine:

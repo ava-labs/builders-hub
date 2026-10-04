@@ -25,12 +25,12 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 ## Architecture at a Glance
 
 - **Networking**: Custom P2P stack with mutual TLS (staking certs), throttling, peer scoring, and subnet-aware gossip.
-- **Consensus engines**: Snowman/Snowman++ for all Primary Network chains (P/C/X post-Cortina). The legacy Avalanche DAG engine exists but is unused.
-- **VMs**: PlatformVM (P-Chain), Coreth (C-Chain), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
+- **Consensus engines**: Snowman/Snowman++ for all Primary Network chains (P/C/X post-Cortina). The legacy Avalanche DAG engine runs no consensus. It only bootstraps the X-Chain's pre-Cortina vertices and serves them to peers.
+- **VMs**: PlatformVM (P-Chain), the C-Chain VM (`vms/saevm/cchain`, which replaced Coreth at Helicon), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
 - **Chain manager**: Boots P/C/X, creates new chains on request, routes consensus messages.
 - **APIs**: HTTP/WS via `/ext/*`, with health/metrics, admin/info, and per-chain RPCs.
-- **Storage**: LevelDB (default), PebbleDB, or [Firewood](/docs/nodes/architecture/execution/firewood) (experimental), shared atomic UTXO memory for cross-chain transfers.
-- **Execution**: [Continuous Execution](/docs/nodes/architecture/execution/continuous-execution) (experimental) decouples consensus from execution for higher throughput.
+- **Storage**: LevelDB (default) or PebbleDB for the node database, plus shared atomic UTXO memory for cross-chain transfers. EVM chains can store their state in [Firewood](/docs/nodes/architecture/execution/firewood) (experimental, `state-scheme: firewood`).
+- **Execution**: [Continuous Execution](/docs/nodes/architecture/execution/continuous-execution) (ACP-194) runs on the C-Chain since the Helicon upgrade. Consensus accepts a block before the node executes it.
 
 ## Core Components
 
@@ -39,7 +39,7 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 | **Network Layer** | P2P networking for peer discovery, message routing, and validator communication |
 | **Chain Manager** | Orchestrates blockchain lifecycle, bootstrapping, and state synchronization |
 | **Consensus Engines** | Snowman/Snowman++ for all Primary Network chains and most L1s |
-| **Virtual Machines** | PlatformVM, Coreth, AVM, and custom VMs (native Go or `rpcchainvm`) |
+| **Virtual Machines** | PlatformVM, the C-Chain VM (`saevm`, Coreth before Helicon), AVM, and custom VMs (native Go or `rpcchainvm`) |
 | **API Server** | HTTP/HTTPS endpoints for interacting with the node |
 | **Database** | Persistent storage using LevelDB (default) or PebbleDB; shared atomic memory |
 
@@ -52,7 +52,7 @@ AvalancheGo validates three chains on the Primary Network:
     Manages validators, staking, subnets, and chain creation. Uses PlatformVM (Snowman++).
   </Card>
   <Card title="C-Chain (Contract)" href="/docs/primary-network">
-    EVM-compatible chain for smart contracts. Uses Coreth (grafted go-ethereum) with Snowman++.
+    EVM-compatible chain for smart contracts. Uses the SAE VM with Continuous Execution (Coreth before Helicon) and Snowman++.
   </Card>
   <Card title="X-Chain (Exchange)" href="/docs/primary-network">
     High-throughput asset transfers using UTXO model. Uses AVM with Snowman (linearized in Cortina).

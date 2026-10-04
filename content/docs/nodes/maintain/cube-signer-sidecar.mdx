@@ -131,7 +131,7 @@ Pull and run the official Docker image:
 ```bash
 docker run -d \
   --name cube-signer-sidecar \
-  -p 50051:50051 \
+  -p 127.0.0.1:50051:50051 \
   -v $(pwd)/token.json:/token.json \
   -e SIGNER_ENDPOINT=https://gamma.signer.cubist.dev \
   -e KEY_ID=Key#BlsAvaIcm_0x... \
@@ -241,7 +241,7 @@ Add the flag to the `ExecStart` line or add an environment variable:
 
 ```ini
 [Service]
-Environment="AVALANCHEGO_STAKING_RPC_SIGNER_ENDPOINT=127.0.0.1:50051"
+Environment="AVAGO_STAKING_RPC_SIGNER_ENDPOINT=127.0.0.1:50051"
 ```
 
 Then restart the service:
@@ -311,10 +311,10 @@ When using the CubeSigner sidecar, follow these security best practices:
 
 ### Token Management
 
-- **Restrict File Permissions**: Set `token.json` to read-only for the user running the sidecar:
+- **Restrict File Permissions**: Make `token.json` readable and writable only by the user that runs the sidecar. The sidecar rewrites this file when it refreshes the session. The Docker image runs as UID 1001:
   ```bash
   chmod 600 token.json
-  chown avalanchego:avalanchego token.json
+  chown <SIDECAR_USER> token.json
   ```
 - **Never Commit Tokens**: Add `token.json` to `.gitignore` to prevent accidental commits
 - **Rotate Regularly**: Generate new tokens periodically and update your configuration
@@ -324,7 +324,7 @@ When using the CubeSigner sidecar, follow these security best practices:
 
 - **Isolate the Sidecar**: Run the sidecar on the same machine as AvalancheGo or on a private network
 - **Firewall Rules**: Restrict access to port 50051 to only the AvalancheGo process
-- **TLS for Remote Connections**: The sidecar serves plaintext gRPC only; if you need TLS, place it behind a terminating reverse proxy or tunnel traffic over a private/secure network.
+- **TLS for Remote Connections**: AvalancheGo connects to the signer endpoint with plaintext gRPC only, and the sidecar serves plaintext gRPC only. Run the sidecar on the same host as AvalancheGo. If the sidecar must run on a different host, use an encrypted tunnel (for example SSH or WireGuard) whose local end is on the AvalancheGo host.
 
 ### Key Management
 
@@ -382,7 +382,7 @@ If someone gains access to your `token.json` file, they can sign messages on beh
 
 **Solution**:
 - Verify you're running AvalancheGo v1.13.4 or later: `avalanchego --version`
-- Remove any existing `signer.key` file (it conflicts with remote signing)
+- Remove `--staking-signer-key-file`, `--staking-signer-key-file-content` and `--staking-ephemeral-signer-enabled` from the node configuration. The node does not start if you set more than one signer option. Keep the `signer.key` file: the node does not read it while `--staking-rpc-signer-endpoint` is set
 - Check the sidecar is reachable before starting AvalancheGo
 
 ## Migration from Local BLS Keys

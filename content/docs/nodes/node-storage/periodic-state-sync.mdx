@@ -13,7 +13,7 @@ disk usage with zero downtime.
 | No bloom filter disk overhead | More complex multi-step process |
 
 <Callout>
-If you don't have access to a separate machine, you can also do a [state sync snapshot deletion](/docs/nodes/node-storage/state-sync-snapshot-deletion) instead.
+On the C-Chain, a fresh state sync is the only way to remove accumulated snapshots, because the C-Chain ignores the offline pruning options since Helicon. Subnet-EVM L1 chains still support offline pruning in their [chain config](/docs/nodes/chain-configs/avalanche-l1s/subnet-evm).
 </Callout>
 
 ### How It Works
@@ -94,7 +94,7 @@ curl -X POST --data '{
 
 Once the state sync has completed, stop both nodes to prepare for the identity transfer. The entire
 stop → transfer → restart process typically takes 5-15 minutes. Your validator will miss some blocks
-during this window, but won't be penalized as long as you're back online before your uptime drops below 80%.
+during this window, but won't lose rewards as long as your uptime over the whole validation period stays at or above the requirement. The requirement is 90% for a validation that started at or after the Helicon upgrade, and 80% for an earlier one.
 </Step>
 
 <Step>

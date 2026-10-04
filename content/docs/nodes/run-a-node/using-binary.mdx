@@ -17,7 +17,7 @@ Download the `avalanchego-macos-<VERSION>.zip` file and unzip using the below co
 unzip avalanchego-macos-<VERSION>.zip
 ```
 
-The resulting folder, `avalanchego-<VERSION>`, contains the binaries.
+The archive holds one file, `build/avalanchego`. The `unzip` command writes it to a `build` folder in the current directory. The macOS build is for Apple silicon (arm64).
 
 ### Linux (PCs or Cloud Providers)
 
@@ -27,7 +27,7 @@ Download the `avalanchego-linux-amd64-<VERSION>.tar.gz` file and unzip using the
 tar -xvf avalanchego-linux-amd64-<VERSION>.tar.gz
 ```
 
-The resulting folder, `avalanchego-<VERSION>-linux`, contains the binaries.
+The resulting folder, `avalanchego-<VERSION>`, contains the `avalanchego` binary.
 
 ### Linux (Arm64)
 
@@ -37,7 +37,7 @@ Download the `avalanchego-linux-arm64-<VERSION>.tar.gz` file and unzip using the
 tar -xvf avalanchego-linux-arm64-<VERSION>.tar.gz
 ```
 
-The resulting folder, `avalanchego-<VERSION>-linux`, contains the binaries.
+The resulting folder, `avalanchego-<VERSION>`, contains the `avalanchego` binary.
 
 ## Start the Node
 
@@ -50,13 +50,13 @@ To be able to make API calls to your node from other machines, include the argum
 For running a node on the Avalanche Mainnet:
 
 ```bash
-./avalanchego-<VERSION>/build/avalanchego
+./build/avalanchego
 ```
 
 For running a node on the Fuji Testnet:
 
 ```bash
-./avalanchego-<VERSION>/build/avalanchego --network-id=fuji
+./build/avalanchego --network-id=fuji
 ```
 
 ### Linux
@@ -64,13 +64,13 @@ For running a node on the Fuji Testnet:
 For running a node on the Avalanche Mainnet:
 
 ```bash
-./avalanchego-<VERSION>-linux/avalanchego
+./avalanchego-<VERSION>/avalanchego
 ```
 
 For running a node on the Fuji Testnet:
 
 ```bash
-./avalanchego-<VERSION>-linux/avalanchego --network-id=fuji
+./avalanchego-<VERSION>/avalanchego --network-id=fuji
 ```
 
 ## Bootstrapping
@@ -78,9 +78,9 @@ For running a node on the Fuji Testnet:
 A new node needs to catch up to the latest network state before it can participate in consensus and serve API calls. This process (called bootstrapping) currently takes several days for a new node connected to Mainnet, and a day or so for a new node connected to Fuji Testnet. When a given chain is done bootstrapping, it will print logs like this:
 
 ```bash
-[09-09|17:01:45.295] INFO <C Chain> snowman/transitive.go:392 consensus starting {"lastAcceptedBlock": "2qaFwDJtmCCbMKP4jRpJwH8EFws82Q2yC1HhWgAiy3tGrpGFeb"}
-[09-09|17:01:46.199] INFO <P Chain> snowman/transitive.go:392 consensus starting {"lastAcceptedBlock": "2ofmPJuWZbdroCPEMv6aHGvZ45oa8SBp2reEm9gNxvFjnfSGFP"}
-[09-09|17:01:51.628] INFO <X Chain> snowman/transitive.go:334 consensus starting {"lenFrontier": 1}
+[10-03|17:01:45.295] INFO <P Chain> snowman/engine.go:513 starting consensus {"lastAcceptedID": "<blockID>", "lastAcceptedHeight": <height>}
+[10-03|17:01:51.628] INFO <X Chain> snowman/engine.go:513 starting consensus {"lastAcceptedID": "<blockID>", "lastAcceptedHeight": <height>}
+[10-03|17:09:12.104] INFO <C Chain> snowman/engine.go:513 starting consensus {"lastAcceptedID": "<blockID>", "lastAcceptedHeight": <height>}
 ```
 
 ### Check Bootstrapping Progress

@@ -22,7 +22,7 @@ State sync is enabled by default for the C-Chain. For Avalanche L1s, you can con
 - **Avalanche L1 configuration**: See [Subnet-EVM
   Config](/docs/nodes/chain-configs/avalanche-l1s/subnet-evm#state-sync)
 
-To provide this feature, the all Avalanche nodes need to store state sync snapshots every 4000 blocks. This
+To provide this feature, nodes that use the default `hash` state scheme store a state sync snapshot every 4096 blocks (the `commit-interval`). This
 requires additional disk space. 
 
 ## State Types
@@ -35,7 +35,7 @@ Your node's storage requirements depend on which type of state you're maintainin
 | **Contents** | Current account balances, contract storage, code | Active state + state sync snapshots for serving peers | Complete state history at every block |
 | **Required for** | Validating, sending transactions, reading current state | Same as Active State, helps other nodes bootstrap | Historical queries at any block height, block explorers, analytics |
 | **Sync method** | State sync (fast, hours) | State sync, then grows over time | Full sync from genesis (slow, days) |
-| **Maintenance** | Periodic state sync snapshot deletion or resync recommended | Periodic pruning or resync recommended | None needed (intentional full history) |
+| **Maintenance** | Periodic resync (C-Chain); offline pruning or resync (Subnet-EVM L1s) | Periodic resync (C-Chain); offline pruning or resync (Subnet-EVM L1s) | None needed (intentional full history) |
 
 ![State Growth Visualization](/images/State_growth_visualization.png)
 
@@ -61,19 +61,18 @@ state. Freshly state-synced nodes will only have the active state.
 
 Nodes with the configuration `pruning-enabled: true` accumulate not the full historical state but
 only the active state and state sync snapshots over time after starting with active state. As blocks
-are processed, state sync snapshots are retained every 4000 blocks for serving other
+are processed, state sync snapshots are retained every 4096 blocks for serving other
 nodes that want to bootstrap via state sync. This causes disk usage to grow beyond the active state
 size. Most long-running validators operate in this state.
 
-<Callout title="Future Improvement: Firewood">
-[Firewood](https://github.com/ava-labs/firewood) is an upcoming database upgrade that will address the issue of state growing too large. This next-generation storage layer is designed to efficiently manage state growth and reduce disk space requirements for node operators.
+<Callout title="Firewood">
+[Firewood](/docs/nodes/architecture/execution/firewood) is an EXPERIMENTAL state scheme that reclaims the space of expired state without compaction. To use it on the C-Chain, set `"state-scheme": "firewood"` in the C-Chain config. A Firewood C-Chain node cannot state sync. On Mainnet and Fuji, also set `"state-sync-enabled": false`. The node then bootstraps by executing every block from genesis.
 </Callout>
 
 ### Active State with periodic snapshot deletion (green line)
 
 Nodes that manually perform some maintenance can reduce their storage requirements by deleting state
-sync snapshots. This can be achieved by periodically deteleting the state sync snapshots or
-replacing the node with a freshly-state-synced node.
+sync snapshots. On the C-Chain, replace the node with a freshly state-synced node (see [Periodic State Sync](/docs/nodes/node-storage/periodic-state-sync)). The C-Chain ignores the offline pruning options since Helicon. Subnet-EVM L1 chains still support offline pruning (`offline-pruning-enabled`).
 
 ## Monitoring Disk Usage
 
@@ -82,6 +81,9 @@ Track your node's disk usage over time to plan maintenance:
 ```bash
 # Check database size
 du -sh ~/.avalanchego/db
+
+# Check chain data size (C-Chain execution results and Firewood state)
+du -sh ~/.avalanchego/chainData
 
 # Check available disk space
 df -h /
@@ -96,7 +98,7 @@ Even with the same configuration, different types of state grow at different rat
 | Growth Type | Rate | Description |
 |-------------|------|-------------|
 | Archival state | ~500 GB/month | Complete history stored at every block |
-| Active state + snapshots | ~150-200 GB/month | Active state + Snapshots every 4000 blocks for serving peers |
+| Active state + snapshots | ~150-200 GB/month | Active state + Snapshots every 4096 blocks for serving peers |
 | Active state | Minimal or &lt;10 GB/month | Current blockchain state only (with pruning enabled) |
 
 <Callout title="Note">
@@ -109,15 +111,15 @@ Your node's final state depends on two factors: **how you bootstrap** and **whet
 
 | Bootstrap Method | Pruning Disabled | Pruning Enabled |
 |------------------|------------------|-----------------|
-| **State Sync** | Active + Snapshots (~1TB)  <br/> To get full archival state, you must <br/> do a **full sync from genesis**. | Active State only (~500GB) |
-| **Full Sync** | Full Archival (~13TB+) | N/A |
+| **State Sync** | Archival state from the sync height forward (grows at the archival rate) <br/> To get full archival state, you must <br/> do a **full sync from genesis**. | Active State (~500GB) at first, then Active + Snapshots as new blocks commit |
+| **Full Sync** | Full Archival (~13TB+) | Active + Snapshots (hash scheme). A Firewood node keeps only recent revisions. |
 
 
 ## Choosing Your Configuration
 
 | Use Case | Bootstrap | Pruning | Result | Disk Size |
 |----------|-----------|---------|--------|-----------|
-| Validator | State Sync | Periodic | Active state, minimal disk | ~500 GB |
+| Validator | State Sync | Enabled, plus periodic resync | Active state, minimal disk | ~500 GB |
 | Standard RPC | State Sync | Optional | Current state queries | ~500 GB - 1 TB |
 | Archival RPC | State Sync | Disabled | Full state after sync point | ~750 GB - 1 TB |
 | Block Explorer / Indexer | Full Sync | Disabled | Complete archival history | ~12.5 TB+ |

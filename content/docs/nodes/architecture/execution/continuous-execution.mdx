@@ -6,7 +6,7 @@ description: Learn how Continuous Execution (ACP-194) decouples consensus from e
 Continuous Execution (formerly known as Streaming Asynchronous Execution, or SAE) is a fundamental architectural change that decouples consensus from execution. By allowing these two critical processes to run concurrently, AvalancheGo can achieve significantly higher throughput without sacrificing security guarantees.
 
 <Callout>
-**Specification**: Continuous Execution is defined in [ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution). The reference implementation is [StreVM](https://github.com/ava-labs/strevm).
+**Specification**: Continuous Execution is defined in [ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution). The reference implementation is [`vms/saevm`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm) in AvalancheGo. Continuous Execution became active on the C-Chain with the Helicon upgrade: on Fuji on July 28, 2026, and on Mainnet on September 22, 2026, both at 15:00 UTC. It does not run on Subnet-EVM L1s.
 </Callout>
 
 ## Summary
@@ -150,7 +150,7 @@ $$
 \omega_Q := 2 \cdot \omega_B
 $$
 
-Blocks that would exceed this queue size are considered invalid.
+A block is invalid if the queue already holds more than $\omega_Q$ gas when the block is enqueued. The new block itself can take the queue above $\omega_Q$.
 
 ## Performance Implications
 
@@ -212,17 +212,12 @@ These features are not yet implemented but require Continuous Execution as a pre
 
 ## Implementation
 
-### StreVM
+### saevm
 
-[StreVM](https://github.com/ava-labs/strevm) is the reference implementation of Continuous Execution for EVM blocks:
+The reference implementation of Continuous Execution is [`vms/saevm`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm) in AvalancheGo. The C-Chain VM, [`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain), is built on it. The StreVM repository is archived, and its code moved to AvalancheGo.
 
-```bash
-# StreVM is under active development
-git clone https://github.com/ava-labs/strevm
-```
-
-<Callout type="warn">
-StreVM is under active development. There are currently no guarantees about the stability of its Go APIs.
+<Callout type="info">
+Continuous Execution runs only on the C-Chain. It became active with the Helicon upgrade: on Fuji on July 28, 2026 at 15:00 UTC, and on Mainnet on September 22, 2026 at 15:00 UTC. Subnet-EVM L1s still execute blocks synchronously.
 </Callout>
 
 ### Integration with AvalancheGo
@@ -237,7 +232,7 @@ flowchart TB
         Queue[Execution Queue]
         Executor[Block Executor]
         VM[Virtual Machine]
-        DB[(Firewood)]
+        DB[(State database)]
     end
 
     Network --> Consensus
@@ -262,5 +257,5 @@ flowchart TB
 ### External Links
 
 - [ACP-194 Specification](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution)
-- [StreVM Repository](https://github.com/ava-labs/strevm)
+- [saevm in AvalancheGo](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm)
 - [ACP-194 Discussion](https://github.com/avalanche-foundation/ACPs/discussions/196)
