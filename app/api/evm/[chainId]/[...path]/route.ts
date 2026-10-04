@@ -24,10 +24,15 @@ const FAST_CHAINS = new Set(["43114"]);
 const IMMUTABLE_CACHE_CONTROL =
   "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
-function cacheControlFor(resource: string, chainId: string): string {
+function cacheControlFor(resource: string, chainId: string, query: URLSearchParams): string {
   if (resource.startsWith("tx/") || resource.startsWith("block/")) {
     return IMMUTABLE_CACHE_CONTROL;
   }
+  // The newest transactions are polled every 5 s (the All Networks boards,
+  // a chain's live list). With stale-while-revalidate each poll got the copy
+  // the poll before had asked for, 3 to 5 s old: one poll behind. A page of
+  // older ones (`before`) keeps the longer cache.
+  if (resource === "txs" && !query.has("before")) return FAST_CACHE_CONTROL;
   return FAST_CHAINS.has(chainId) ? FAST_CACHE_CONTROL : CACHE_CONTROL;
 }
 
@@ -68,7 +73,7 @@ export async function GET(
       body,
       softStatus(req, res.status, {
         "content-type": res.headers.get("content-type") ?? "application/json",
-        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId) } : {}),
+        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId, req.nextUrl.searchParams) } : {}),
       }),
     );
   } catch (err) {
