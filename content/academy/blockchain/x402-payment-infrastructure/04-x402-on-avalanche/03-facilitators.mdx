@@ -16,14 +16,14 @@ Avalanche supports multiple x402 facilitators, each with different strengths and
 
 ### Overview
 
-Thirdweb provides enterprise-grade x402 infrastructure with comprehensive SDKs and built-in support for gasless transactions using EIP-7702.
+Thirdweb provides enterprise-grade x402 infrastructure with comprehensive SDKs and built-in support for gasless transactions (EIP-7702 on chains that support it). The Avalanche C-Chain does not accept EIP-7702 (set-code) transactions, so x402 payments on the C-Chain use ERC-3009 or ERC-2612 signatures.
 
 **Official Documentation**: [portal.thirdweb.com/payments/x402/facilitator](https://portal.thirdweb.com/payments/x402/facilitator)
 
 ### Key Features
 
 - **Multi-Chain Support**: Works on EVM chains including Avalanche C-Chain
-- **Gasless Transactions**: EIP-7702 protocol for cost-free user submissions
+- **Gasless Transactions**: EIP-7702 on chains that support it. The Avalanche C-Chain does not accept EIP-7702 transactions.
 - **Framework Integration**: x402-hono, x402-next, x402-express middlewares
 - **Dashboard Tracking**: Monitor transactions through thirdweb project dashboard
 - **Payment Verification**: Automatic signature validation and on-chain settlement
@@ -372,7 +372,7 @@ let res = client.get("https://example.com/protected").send().await?;
 ### Pricing
 
 - **Open Source**: Free (Apache-2.0 license)
-- **Self-Hosted**: Only gas costs (~$0.001/tx on Avalanche)
+- **Self-Hosted**: Only gas costs (about 0.00043 AVAX per payment on the Avalanche C-Chain at the October 2026 gas price)
 - **Support**: Community-driven
 
 ---
@@ -411,6 +411,6 @@ let res = client.get("https://example.com/protected").send().await?;
 
 Avalanche supports four major x402 facilitators: **Thirdweb x402** (enterprise), **PayAI** (AI agents), **Ultravioleta DAO** (gasless payments), and **x402-rs** (high-performance). Each offers different deployment models, features, and optimizations. Choose based on your specific needs—or use multiple facilitators to give users flexibility.
 
-**All facilitators leverage Avalanche's sub-second finality and low fees (~$0.001) to make micropayments economically viable.**
+**All facilitators leverage Avalanche's sub-second finality and low fees (about 0.00043 AVAX per payment) to make micropayments economically viable.**
 
 For the latest information, pricing, and features, always consult the official documentation linked above.

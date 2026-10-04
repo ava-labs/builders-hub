@@ -53,7 +53,7 @@ In practice, production deployments use significantly more validators to ensure 
 
 ### Minimum Uptime for Node Rewards
 
-For **Primary Network** validators, published mainnet parameters currently document an **uptime requirement of 80%** over the staking period to remain eligible for staking rewards (see the [rewards formula](https://build.avax.network/docs/primary-network/validate/rewards-formula) docs). **[ACP-267](https://docs.avax.network/docs/acps/267-uptime-requirement-increase)** proposes raising that threshold to **90%**; requirements can change with network upgrades, so always confirm the live value in current Avalanche documentation before advising operators.
+For **Primary Network** validators, the uptime requirement is **90%** over the staking period for validations that start at or after the Helicon upgrade (Mainnet activation: September 22, 2026, 15:00 UTC). **[ACP-267](https://docs.avax.network/docs/acps/267-uptime-requirement-increase)** set this value. Validations that started before Helicon keep the **80%** requirement, and a delegator's reward follows the requirement of its validator (see the [rewards formula](https://build.avax.network/docs/primary-network/validate/rewards-formula) docs). Requirements can change with network upgrades, so confirm the live value in current Avalanche documentation before you advise operators.
 
 Validators that fall below the applicable uptime threshold receive no rewards for that period. They are not slashed (their stake is not taken), but they forfeit income.
 
@@ -127,7 +127,7 @@ Use cases: enterprise chains where only known participants may interact, KYC-gat
 
 ### `feeManagerConfig`
 
-Controls **dynamic fee configuration** at runtime. Once enabled, authorized addresses can adjust fee parameters (base fee, block gas limit, target block rate) without redeploying the chain. This allows fee management to respond to changing network conditions or business requirements.
+Controls **dynamic fee configuration** at runtime. Once enabled, authorized addresses can adjust fee parameters (minimum base fee, gas target, block gas limit) without redeploying the chain. The fee config still has `targetBlockRate` and the block gas cost fields, but they have no effect since the Granite upgrade, because ACP-226 now controls the minimum block delay. This allows fee management to respond to changing network conditions or business requirements.
 
 Without `feeManagerConfig`, fee parameters are fixed at genesis and can only change through a hard fork. With it, a governance contract can vote to adjust fees and execute the change in a single transaction.
 
@@ -218,7 +218,7 @@ Each of these networks benefits from the same underlying idea: **full control ov
 ## Key Takeaways
 
 - Avalanche L1s are sovereign blockchains with their own validator sets and consensus. They differ from L2s, which depend on a parent chain for security and finality.
-- A node is a computer running AvalancheGo; a Primary Network validator must satisfy the network’s published uptime requirement (see current docs; **80%** in listed mainnet parameters, with **ACP-267** proposing **90%**) to earn rewards.
+- A node is a computer running AvalancheGo; a Primary Network validator must satisfy the network’s published uptime requirement (**90%** for validations that start at or after the Helicon upgrade, set by **ACP-267**; **80%** for earlier validations) to earn rewards.
 - For production deployments, at least 5 validators are strongly recommended to run a resilient custom L1.
 - The admin/manager/enabled role hierarchy separates governance authority from operational authority, following the principle of least privilege.
 - AWM is the native cross-chain messaging primitive; it uses BLS aggregate signatures from validators to verify messages without a centralized bridge.

@@ -12,7 +12,7 @@ Delegators can remove their delegation to retrieve their staked tokens and claim
 
 ### Phase 1: Initiation (L1)
 
-The delegator calls [`initiateDelegatorRemoval(delegationID)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/PoSValidatorManager.sol) on the Staking Manager contract.
+The delegator calls [`initiateDelegatorRemoval(delegationID, includeUptimeProof, messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol) on the Staking Manager contract.
 
 Under the hood, the contract:
 - Verifies the caller is the delegation owner
@@ -38,10 +38,10 @@ The weight update is signed and submitted to the P-Chain as a `SetL1ValidatorWei
 
 ### Phase 3: Completion (L1)
 
-Call [`completeDelegatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/PoSValidatorManager.sol) with the P-Chain's signed response:
+Call [`completeDelegatorRemoval(delegationID, messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol) with the P-Chain's signed response:
 
 - Verifies the Warp message and nonce correspondence
-- Calculates delegation rewards based on uptime
+- Uses the delegation reward that `initiateDelegatorRemoval` calculated. It does not calculate the reward again.
 - Deducts the **delegation fee** (paid to the validator)
 - **Returns the delegated tokens** to the delegator
 - **Distributes delegation rewards** (minus the fee)
@@ -52,7 +52,7 @@ Call [`completeDelegatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-
 
 When a delegation is removed, the reward calculation takes into account:
 
-1. **Uptime** - Higher validator uptime = higher rewards
+1. **Uptime** - With `ExampleRewardCalculator`, the delegation gets no reward if the validator's uptime is below 80%. At 80% or more, uptime does not change the reward.
 2. **Delegation fee** - The validator's configured fee percentage is deducted from delegation rewards
 3. **Staking duration** - Longer staking = more accumulated rewards
 
@@ -68,7 +68,7 @@ The validator's share (delegation fee) is not sent immediately — it accumulate
 If a validator initiates removal while delegations are still active:
 
 - **Pending delegations** may or may not be completable depending on whether the P-Chain processed the delegation weight change before the validator removal
-- **Active delegations** must be removed before the validator removal can be completed
+- **Active delegations** cannot start removal while the validator removal is pending. After `completeValidatorRemoval`, call `initiateDelegatorRemoval`: it ends the delegation at once, with rewards up to the validator's end time
 - The contract handles the ordering carefully to ensure no funds are lost
 
 ## Appendix: Delegation Removal Flow
@@ -106,7 +106,7 @@ sequenceDiagram
 
     StakingManager->>StakingManager: Verify Warp message + nonce match
 
-    StakingManager->>StakingManager: Calculate rewards based on uptime
+    StakingManager->>StakingManager: Load reward stored at initiation
 
     StakingManager->>StakingManager: Deduct delegation fee for validator
 

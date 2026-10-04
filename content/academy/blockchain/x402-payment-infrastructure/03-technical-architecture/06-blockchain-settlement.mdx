@@ -18,17 +18,16 @@ Every payment is publicly verifiable:
 
 ```javascript
 // Anyone can verify a payment
-const tx = await avalancheClient.getTransaction(
-  "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a"
-);
+const receipt = await avalancheClient.getTransactionReceipt({
+  hash: "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a"
+});
+const block = await avalancheClient.getBlock({ blockNumber: receipt.blockNumber });
 
 console.log({
-  from: tx.from,           // Payer address
-  to: tx.to,               // Recipient address
-  value: tx.value,         // Amount paid
-  blockNumber: tx.blockNumber,
-  timestamp: tx.timestamp,
-  status: tx.status        // Success/failure
+  status: receipt.status,           // "success" or "reverted"
+  blockNumber: receipt.blockNumber,
+  timestamp: block.timestamp,       // Block time in seconds
+  logs: receipt.logs                // The USDC Transfer log holds the payer, recipient and amount
 });
 ```
 
@@ -118,10 +117,11 @@ This transparency eliminates the need to trust payment processors.
 
 x402 payments on Avalanche use EIP-3009's gasless payment model, where the **facilitator sponsors the gas** rather than the payer. This removes the friction of users needing AVAX to pay gas fees.
 
-Typical transaction costs (based on current network conditions - January 2025):
-- **Gas used**: ~77,000 gas units (`transferWithAuthorization`)
-- **Gas price**: ~0.575 nAVAX per gas unit (current)
-- **Total cost**: ~\$0.001 USD (with AVAX at $20)
+Typical transaction costs on the C-Chain (Mainnet, October 2026):
+- **Gas used**: about 86,000 gas units (`transferWithAuthorization`)
+- **Gas price**: about 5 nAVAX per gas unit. Validators vote on the minimum gas price (ACP-283), so this value can change. Read the current value with `eth_gasPrice`.
+- **Total cost**: about 0.00043 AVAX (about \$0.0047 with AVAX at \$11)
+- **Gas limit**: the C-Chain charges at least half of the gas limit (ACP-194). Set a gas limit close to the expected gas use.
 
 **Who pays gas?**
 - In x402, the **facilitator pays gas fees** when submitting the transaction
@@ -133,13 +133,13 @@ Typical transaction costs (based on current network conditions - January 2025):
 | Aspect | Traditional Payments | x402 on Avalanche |
 |--------|---------------------|-------------------|
 | Settlement Time | 2-7 days | ~1 second |
-| Transaction Fees | 2.9% + \$0.30 | ~\$0.001 gas (facilitator-paid) |
+| Transaction Fees | 2.9% + \$0.30 | about 0.00043 AVAX gas (facilitator-paid) |
 | Chargebacks | Possible | Impossible |
 | Transparency | Opaque | Fully transparent |
 | Verification | Trust processor | Cryptographic proof |
 | Finality | Delayed | Instant |
 
-**Key Advantage**: For micropayments, x402's flat ~\$0.001 gas cost is dramatically better than traditional payment processing's 2.9% + \$0.30 per transaction.
+**Key Advantage**: For micropayments, x402's gas cost of about 0.00043 AVAX per payment is dramatically better than traditional payment processing's 2.9% + \$0.30 per transaction.
 
 ## Multi-Chain Settlement Timing
 
