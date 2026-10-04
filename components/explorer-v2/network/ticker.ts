@@ -293,6 +293,9 @@ export function useTicker<T>(
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
+      // a Fast Refresh runs the effects again on the same refs: a stale id
+      // would keep arm() from ever planning a release again
+      timer.current = null;
     },
     [],
   );
