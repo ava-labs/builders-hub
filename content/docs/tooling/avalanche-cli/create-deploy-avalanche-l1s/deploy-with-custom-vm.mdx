@@ -12,16 +12,16 @@ Instead of building a custom VM from scratch, this tutorial starts with forking 
 
 ### Clone Subnet-EVM
 
-First off, clone the Subnet-EVM repository into a directory of your choosing.
+First off, clone the AvalancheGo repository into a directory of your choosing. Subnet-EVM is in its `graft/subnet-evm` directory. Check out the tag of the AvalancheGo release that your node runs (for example `v1.15.1`). The plugin and the node must use the same RPCChainVM protocol version.
 
 ```bash
-git clone https://github.com/ava-labs/subnet-evm.git
+git clone --branch v1.15.1 https://github.com/ava-labs/avalanchego.git
 ```
 
 <Callout title="Note">
 The repository cloning method used is HTTPS, but SSH can be used too:
 
-`git clone git@github.com:ava-labs/subnet-evm.git`
+`git clone --branch v1.15.1 git@github.com:ava-labs/avalanchego.git`
 
 You can find more about SSH and how to use it [here](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/about-ssh).
 </Callout>
@@ -30,7 +30,7 @@ You can find more about SSH and how to use it [here](https://docs.github.com/en/
 
 To prove you're running your custom binary and not the stock Subnet-EVM included with Avalanche-CLI, you need to modify the Subnet-EVM binary by making a minor change.
 
-Navigate to the directory you cloned Subnet-EVM into and generate a new commit:
+Navigate to the `graft/subnet-evm` directory of your AvalancheGo clone and generate a new commit:
 
 ```bash
 git commit -a --allow-empty -m "custom vm commit"
@@ -336,22 +336,22 @@ The command returns a list of all the VMs your local node is currently running a
 {
   "jsonrpc": "2.0",
   "result": {
-    "version": "avalanche/1.10.8",
+    "version": "avalanchego/1.15.1",
     "databaseVersion": "v1.4.5",
-    "rpcProtocolVersion": "27",
-    "gitCommit": "e70a17d9d988b5067f3ef5c4a057f15ae1271ac4",
+    "rpcProtocolVersion": "46",
+    "gitCommit": "fdb2c1b9b02ef357b5867d5ababb6acc83837a01",
     "vmVersions": {
-      "avm": "v1.10.8",
-      "evm": "v0.12.5",
-      "platform": "v1.10.8",
-      "qDMnZ895HKpRXA2wEvujJew8nNFEkvcrH5frCR9T1Suk1sREe": "v0.5.4@c0fe6506a40da466285f37dd0d3c044f494cce32"
+      "avm": "avalanchego/1.15.1",
+      "evm": "v1.15.1",
+      "platform": "avalanchego/1.15.1",
+      "qDMnZ895HKpRXA2wEvujJew8nNFEkvcrH5frCR9T1Suk1sREe": "v1.15.1"
     }
   },
   "id": 1
 }
 ```
 
-Your results may be slightly different, but you can see that in addition to the X-Chain's `avm`, the C-Chain's `evm`, and the P-Chain's `platform` VM, the node is running the custom VM with commit `c0fe6506a40da466285f37dd0d3c044f494cce32`.
+Your results may be slightly different, but you can see that in addition to the X-Chain's `avm`, the C-Chain's `evm`, and the P-Chain's `platform` VM, the node lists the custom VM under its VM ID. A Subnet-EVM binary built from AvalancheGo reports the AvalancheGo version (for example `v1.15.1`), not the git commit.
 
 ### Check a Balance
 

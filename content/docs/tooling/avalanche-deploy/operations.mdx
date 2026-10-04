@@ -90,11 +90,13 @@ The playbook:
 Perform a zero-downtime rolling upgrade to a new AvalancheGo version:
 
 ```bash
-make upgrade VERSION=1.14.1
+# The role pins release checksums in ansible/roles/avalanchego/defaults/main.yml.
+# Add the v1.15.1 checksums to avalanchego_checksums first, or the upgrade stops with "No SHA256 checksum known".
+make upgrade VERSION=1.15.1
 ```
 
 <Callout type="info">
-Subnet-EVM is bundled with AvalancheGo v1.12.0+ and updates automatically with each AvalancheGo upgrade. No separate plugin management is needed.
+Subnet-EVM is a separate plugin. It is not part of the AvalancheGo binary or of the AvalancheGo release tarball. Since v1.14.2, each AvalancheGo release also publishes a Subnet-EVM build with the same version (`subnet-evm-linux-<arch>-<tag>.tar.gz`). The plugin must use the same RPCChainVM protocol version as the node (46 for v1.15.0 and v1.15.1), or the L1 chain does not start. `make upgrade` installs the Subnet-EVM version in `avalanchego_subnet_evm_version` (`ansible/roles/avalanchego/defaults/main.yml`). On Mainnet, this defaults to v0.8.0 (protocol 44). Before you upgrade L1 nodes, set it to the same release as AvalancheGo and add its checksums to `avalanchego_subnet_evm_checksums`.
 </Callout>
 
 The upgrade playbook follows the same rolling pattern as restarts: one node at a time with health checks between each upgrade.

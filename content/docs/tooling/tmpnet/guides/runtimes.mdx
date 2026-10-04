@@ -48,7 +48,7 @@ When you create a network using the Local Process Runtime, tmpnet performs the f
 2. **Network Directory Creation** - Creates `~/.tmpnet/networks/[timestamp]/` with subdirectories for each node
 3. **Node Configuration** - Generates node-specific config files with dynamic port allocation
 4. **Process Spawning** - Launches each node via `exec.Command(avalancheGoPath, "--config-file", flagsPath)`
-5. **Health Monitoring** - Polls `GET /ext/health/liveness` until all nodes are ready
+5. **Health Monitoring** - Calls `health.health` on `/ext/health` until all nodes report healthy
 
 Each node maintains its state in a dedicated directory structure:
 
@@ -65,7 +65,8 @@ Each node maintains its state in a dedicated directory structure:
 │   ├── db/               # Node database
 │   ├── logs/main.log     # Node logs
 │   └── plugins/          # VM plugins
-└── latest -> [timestamp] # Symlink to most recent
+
+~/.tmpnet/networks/latest -> [timestamp]/  # Symlink created only by tmpnetctl start-network
 ```
 
 Dynamic port allocation is critical for running multiple networks simultaneously. When you set API ports to `"0"`, the operating system assigns available ports automatically, preventing conflicts.
@@ -90,7 +91,7 @@ type ProcessRuntimeConfig struct {
 | Field | Required | Description |
 |-------|----------|-------------|
 | `AvalancheGoPath` | Yes | Absolute path to the `avalanchego` binary executable |
-| `PluginDir` | No | Directory containing VM plugin binaries (defaults to `~/.avalanchego/plugins`) |
+| `PluginDir` | No | Directory containing VM plugin binaries. If empty, each node uses `[node data dir]/plugins`. The `--plugin-dir` flag defaults to `~/.avalanchego/plugins` |
 | `ReuseDynamicPorts` | No | Reuse the same API port when restarting nodes (default: `false`) |
 
 <Callout type="warning">
@@ -143,10 +144,9 @@ func main() {
     // Bootstrap the network
     if err := tmpnet.BootstrapNewNetwork(
         ctx,
-        os.Stdout,
+        logging.NoLog{}, // any logging.Logger (github.com/ava-labs/avalanchego/utils/logging)
         network,
-        "",  // Use default network directory
-        "",  // Use AvalancheGoPath from config
+        "", // Use the default root network directory (~/.tmpnet/networks)
     ); err != nil {
         log.Fatal(err)
     }
@@ -190,14 +190,16 @@ The Kubernetes runtime implements tmpnet's network abstraction using native Kube
 
 <Mermaid chart={`flowchart TB
     subgraph K8s["Kubernetes Cluster"]
-        subgraph SS["StatefulSet: tmpnet-network"]
-            subgraph Pod0["Pod: node-0"]
+        subgraph SS0["StatefulSet: [network-uuid]-[node-id-prefix-A]"]
+            subgraph Pod0["Pod: ...-0"]
                 AVA0["avalanchego"]
-                PVC0[("PVC-0")]
+                PVC0[("PVC")]
             end
-            subgraph Pod1["Pod: node-1"]
+        end
+        subgraph SS1["StatefulSet: [network-uuid]-[node-id-prefix-B]"]
+            subgraph Pod1["Pod: ...-0"]
                 AVA1["avalanchego"]
-                PVC1[("PVC-1")]
+                PVC1[("PVC")]
             end
         end
         SVC["Ingress/Service"]
@@ -213,7 +215,7 @@ The Kubernetes runtime implements tmpnet's network abstraction using native Kube
 
 **Key Components:**
 
-- **StatefulSet**: Provides stable network identity and ordered deployment
+- **StatefulSet**: One for each node, with one replica. The name is the network UUID plus the first 8 characters of the node ID after `NodeID-`, in lower case
 - **PersistentVolumeClaims**: Store blockchain data, surviving pod restarts
 - **Services**: Enable pod-to-pod DNS resolution
 - **Ingress**: Routes external traffic to node API endpoints
@@ -225,7 +227,7 @@ Before using the Kubernetes runtime:
 1. **Kubernetes Cluster**: KIND (recommended for local), Minikube, or cloud provider (GKE, EKS, AKS)
 2. **kubectl CLI**: Configured with cluster access
 3. **Container Registry Access**: For pulling `avaplatform/avalanchego` images
-4. **RBAC Permissions**: Create/manage StatefulSets, Services, Ingress, PVCs
+4. **RBAC Permissions**: Create and manage StatefulSets, Services, Ingresses and PVCs. Create and patch Traefik Middleware objects, and list EndpointSlices. `tests/fixture/tmpnet/yaml/tmpnet-rbac.yaml` in the avalanchego repo grants these permissions in the `tmpnet` namespace. A cluster not started with `tmpnetctl start-kind-cluster` also needs Traefik, its Middleware CRD and the `traefik` IngressClass
 
 ```bash
 # Verify kubectl is configured
@@ -241,7 +243,7 @@ type KubeRuntimeConfig struct {
     ConfigContext          string  // kubeconfig context to use
     Namespace              string  // target namespace
     Image                  string  // avalanchego container image
-    VolumeSizeGB           int     // PVC size in GB (minimum 2)
+    VolumeSizeGB           uint    // PVC size in GB (minimum 2)
     UseExclusiveScheduling bool    // one pod per k8s node
     SchedulingLabelKey     string  // anti-affinity label key
     SchedulingLabelValue   string  // anti-affinity label value
@@ -252,9 +254,9 @@ type KubeRuntimeConfig struct {
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `ConfigContext` | Kubeconfig context | `"kind-tmpnet"` |
+| `ConfigContext` | Kubeconfig context | `"kind-kind"` (or `"kind-kind-tmpnet"`, limited to the `tmpnet` namespace) |
 | `Namespace` | Kubernetes namespace | `"tmpnet-test"` |
-| `Image` | Container image with tag | `"avaplatform/avalanchego:v1.11.0"` |
+| `Image` | Container image with tag | `"avaplatform/avalanchego:v1.15.1"` |
 | `VolumeSizeGB` | PVC size per node | `10` |
 | `UseExclusiveScheduling` | One pod per k8s node | `true` |
 | `IngressHost` | External access hostname | `"localhost:30791"` |
@@ -272,9 +274,10 @@ Exclusive scheduling requires at least as many Kubernetes nodes as tmpnet nodes 
 ./scripts/start_kind_cluster.sh
 
 # Creates:
-# - KIND cluster named "tmpnet"
-# - Ingress controller with NodePort
-# - Port forwarding on localhost:30791
+# - KIND cluster named "kind" (kubeconfig context "kind-kind")
+# - Namespace "tmpnet" and context "kind-kind-tmpnet" for the tmpnet service account
+# - Traefik ingress controller on NodePort 30791
+# - Port mapping to localhost:30791
 ```
 
 **2. Create Network**
@@ -298,7 +301,7 @@ func main() {
     network := &tmpnet.Network{
         DefaultRuntimeConfig: tmpnet.NodeRuntimeConfig{
             Kube: &tmpnet.KubeRuntimeConfig{
-                ConfigContext: "kind-tmpnet",
+                ConfigContext: "kind-kind",
                 Namespace:     "tmpnet-demo",
                 Image:         "avaplatform/avalanchego:latest",
                 VolumeSizeGB:  5,
@@ -308,7 +311,7 @@ func main() {
         Nodes: tmpnet.NewNodesOrPanic(5),
     }
 
-    if err := tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, "", ""); err != nil {
+    if err := tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, network, ""); err != nil {
         log.Fatal(err)
     }
     defer network.Stop(ctx)
@@ -324,7 +327,7 @@ func main() {
 kubectl get pods -n tmpnet-demo
 
 # Access node API
-curl http://localhost:30791/ext/health
+curl http://localhost:30791/networks/<network-uuid>/<node-id>/ext/health
 ```
 
 ### Advantages
@@ -401,16 +404,15 @@ var _ = ginkgo.Describe("[Cross-Runtime Tests]", func() {
         nodeURI := env.GetRandomNodeURI()
 
         // All operations work identically regardless of runtime
-        client := jsonrpc.NewClient(nodeURI)
-        health, err := client.Health(context.Background())
+        _, err := health.NewClient(nodeURI.URI).Health(context.Background(), nil) // github.com/ava-labs/avalanchego/api/health
         Expect(err).NotTo(HaveOccurred())
     })
 })
 ```
 
 Runtime selection is controlled by:
-- CLI flags: `--use-kubernetes=true`
-- Environment variables: `E2E_USE_KUBERNETES=true`
+- CLI flag: `--runtime=kube` (default `process`)
+- Kube settings: `--kube-namespace`, `--kube-image`, `--kube-volume-size`, `--kubeconfig` and `--kubeconfig-context`
 - Test configuration defaults
 
 ### Bootstrap Monitor for Continuous Testing
@@ -442,7 +444,7 @@ StatefulSet: bootstrap-monitor
 
 ### Monitoring Integration
 
-Both runtimes integrate with Prometheus and Promtail using file-based service discovery:
+The process runtime uses file-based service discovery for Prometheus and Promtail. For the kube runtime, `tmpnetctl start-kind-cluster` (with the collector flags) deploys collectors in the `ci-monitoring` namespace that discover pods through Kubernetes annotations. Process runtime service discovery files:
 
 ```
 ~/.tmpnet/prometheus/file_sd_configs/
@@ -454,11 +456,15 @@ Both runtimes integrate with Prometheus and Promtail using file-based service di
 ```bash
 # Prometheus
 export PROMETHEUS_URL="https://prometheus.example.com"
+export PROMETHEUS_PUSH_URL="https://prometheus.example.com/api/v1/push"
 export PROMETHEUS_USERNAME="user"
 export PROMETHEUS_PASSWORD="pass"
 
 # Loki (logs)
 export LOKI_URL="https://loki.example.com"
+export LOKI_PUSH_URL="https://loki.example.com/loki/api/v1/push"
+export LOKI_USERNAME="user"
+export LOKI_PASSWORD="pass"
 
 # Grafana
 export GRAFANA_URI="https://grafana.example.com/d/tmpnet"
@@ -469,7 +475,8 @@ After starting a network, tmpnet emits a Grafana dashboard link:
 ```bash
 tmpnetctl start-network
 # Output includes:
-# Grafana: https://grafana.example.com/d/tmpnet?var-network_uuid=abc-123
+# The log output includes:
+# metrics and logs available via grafana (collectors must be running) {"url": "https://grafana.example.com/d/tmpnet?&var-filter=network_uuid%7C%3D%7Cabc-123&..."}
 ```
 
 ---
@@ -495,10 +502,14 @@ kubectl get events -n tmpnet --sort-by='.lastTimestamp'
 **Both - Health Check Failures:**
 ```bash
 # Check if node is still bootstrapping (requires jq: brew install jq)
-curl -s http://localhost:9650/ext/info | jq '.result.isBootstrapped'
+# tmpnet nodes use dynamic ports. Read the node URI from node.URI or [node dir]/process.json.
+# For the kube runtime, use http://localhost:30791/networks/<network-uuid>/<node-id>.
+curl -s -X POST -H 'content-type:application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"info.isBootstrapped","params":{"chain":"P"}}' \
+  <node-uri>/ext/info | jq '.result.isBootstrapped'
 
 # Alternative without jq:
-curl -s http://localhost:9650/ext/health
+curl -s <node-uri>/ext/health
 ```
 
 ---

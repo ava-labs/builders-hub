@@ -20,7 +20,14 @@ type Network struct {
     UUID string
 
     // Genesis configuration for the network
-    Genesis *genesis.Genesis
+    Genesis *genesis.UnparsedConfig
+
+    // Network ID. If zero, the genesis sets it (88888 for a generated genesis)
+    NetworkID uint32
+
+    // Configuration for the Primary Network and its chains (P, X, C)
+    PrimarySubnetConfig ConfigMap
+    PrimaryChainConfigs map[string]ConfigMap
 
     // Collection of nodes in the network
     Nodes []*Node
@@ -44,7 +51,7 @@ type Network struct {
 
 ### Default Flags
 
-Common default flags for networks:
+Example flags that you can set for all nodes. tmpnet already applies its own defaults (`DefaultTmpnetFlags`): `network-peer-list-pull-gossip-frequency=250ms`, `network-max-reconnect-delay=1s`, `health-check-frequency=2s`, `api-admin-enabled=true`, `index-enabled=true`, and `0` for both disk-space percentage checks. A node or network value overrides a tmpnet default:
 
 ```go
 network.DefaultFlags = tmpnet.FlagsMap{
@@ -54,18 +61,19 @@ network.DefaultFlags = tmpnet.FlagsMap{
     "log-format":        "auto",      // auto, plain, colors, json
 
     // Network
-    "network-id":                    "local",
+    // Do not set "network-id". tmpnet sets it to the genesis network ID (88888 by default).
     "network-max-reconnect-delay":   "1s",
     "public-ip":                     "127.0.0.1",
     "public-ip-resolution-service":  "",
 
     // Staking
-    "staking-enabled":               "true",
-    "staking-tls-cert-file":         "", // Auto-generated
-    "staking-tls-key-file":          "", // Auto-generated
+    "sybil-protection-enabled":      "true",
+    // tmpnet generates each node's TLS and BLS keys and passes them as
+    // staking-tls-cert-file-content, staking-tls-key-file-content and
+    // staking-signer-key-file-content. Do not set the file flags.
 
     // API
-    "http-host":                     "",
+    "http-host":                     "127.0.0.1", // tmpnet default for the process runtime
     "http-port":                     "0", // Dynamic port
     "staking-port":                  "0", // Dynamic port
 
@@ -85,8 +93,7 @@ Network configuration is stored at `[network-dir]/config.json`:
   "owner": "test-owner",
   "uuid": "abc-123-def-456",
   "defaultFlags": {
-    "log-level": "info",
-    "network-id": "local"
+    "log-level": "info"
   },
   "defaultRuntimeConfig": {
     "process": {
@@ -94,8 +101,7 @@ Network configuration is stored at `[network-dir]/config.json`:
       "pluginDir": "/path/to/plugins"
     }
   },
-  "preFundedKeys": ["PrivateKey-..."],
-  "subnets": []
+  "preFundedKeys": ["PrivateKey-..."]
 }
 ```
 
@@ -120,7 +126,10 @@ type Node struct {
     URI string
 
     // Staking address for P2P (set at runtime)
-    StakingAddress string
+    StakingAddress netip.AddrPort
+
+    // Data directory (defaults to [network-dir]/[node-id])
+    DataDir string
 
     // Whether this is a temporary/ephemeral node
     IsEphemeral bool
@@ -141,26 +150,50 @@ node.Flags = tmpnet.FlagsMap{
 
 ### Node Configuration Files
 
-**Runtime Config** (`[node-dir]/config.json`):
+**Node Config** (`[node-dir]/config.json`):
 ```json
 {
-  "process": {
-    "avalancheGoPath": "/path/to/avalanchego",
-    "pluginDir": "/path/to/plugins"
+  "flags": {
+    "staking-signer-key-file-content": "...",
+    "staking-tls-cert-file-content": "...",
+    "staking-tls-key-file-content": "..."
+  },
+  "runtimeConfig": {
+    "process": {
+      "avalancheGoPath": "/path/to/avalanchego",
+      "pluginDir": "/path/to/plugins"
+    }
   }
 }
 ```
 
-**Flags** (`[node-dir]/flags.json`):
+The file holds the node's own flags, including its generated keys. `runtimeConfig` is present only when the node does not use the network default, and `isEphemeral` only when it is true.
+
+**Flags** (`[node-dir]/flags.json`), written by tmpnet each time the node starts (process runtime):
 ```json
 {
-  "log-level": "info",
-  "http-host": "",
-  "http-port": "0",
-  "staking-port": "0",
-  "network-id": "local",
+  "api-admin-enabled": "true",
+  "bootstrap-ids": "NodeID-...",
+  "bootstrap-ips": "127.0.0.1:56396",
+  "chain-config-content": "...",
+  "data-dir": "/home/user/.tmpnet/networks/20240312-143052.123456/NodeID-...",
   "genesis-file-content": "...",
-  "track-subnets": ""
+  "health-check-frequency": "2s",
+  "http-host": "127.0.0.1",
+  "http-port": "0",
+  "index-enabled": "true",
+  "network-id": "88888",
+  "network-max-reconnect-delay": "1s",
+  "network-peer-list-pull-gossip-frequency": "250ms",
+  "plugin-dir": "/home/user/.avalanchego/plugins",
+  "public-ip": "127.0.0.1",
+  "staking-host": "127.0.0.1",
+  "staking-port": "0",
+  "staking-signer-key-file-content": "...",
+  "staking-tls-cert-file-content": "...",
+  "staking-tls-key-file-content": "...",
+  "system-tracker-disk-required-available-space-percentage": "0",
+  "system-tracker-disk-warning-available-space-percentage": "0"
 }
 ```
 
@@ -170,7 +203,7 @@ The `"http-port": "0"` and `"staking-port": "0"` values tell the OS to allocate 
 
 **Process Info** (`[node-dir]/process.json`):
 
-This file is created by **avalanchego itself** (not tmpnetctl) when the node starts. Tmpnet passes the `--process-context-file` flag to avalanchego, which writes the runtime information to this file.
+This file is created by **avalanchego itself** (not tmpnetctl) when the node starts. tmpnet sets `--data-dir` to the node directory, and avalanchego writes this file to the default `--process-context-file` path, `[data-dir]/process.json`. avalanchego deletes the file when the node stops.
 
 ```json
 {
@@ -187,7 +220,7 @@ This file is created by **avalanchego itself** (not tmpnetctl) when the node sta
 | `stakingAddress` | Staking/P2P address with the dynamically allocated port |
 
 <Callout type="warning" title="Manual Setups">
-If you're running avalanchego manually (not via tmpnetctl), you must pass `--process-context-file=/path/to/process.json` for this file to be created. Without this flag, there's no way to discover which ports were allocated.
+If you run avalanchego manually (not via tmpnetctl), it writes this file to `[data-dir]/process.json` by default. Set `--process-context-file` only to write it to a different path.
 </Callout>
 
 ## Runtime Configuration
@@ -241,7 +274,7 @@ type KubeRuntimeConfig struct {
     Image string
 
     // Persistent volume size in GB
-    VolumeSizeGB int
+    VolumeSizeGB uint // Minimum 2
 
     // Use exclusive scheduling (one pod per k8s node)
     UseExclusiveScheduling bool
@@ -302,7 +335,7 @@ logLevel := flags["log-level"]
 - `http-allowed-hosts` - Allowed hosts for API
 
 **Staking:**
-- `staking-enabled` - Enable staking
+- `sybil-protection-enabled` - Enable sybil protection (staking)
 - `staking-port` - Staking port (0 for dynamic)
 - `staking-tls-cert-file` - TLS certificate path
 - `staking-tls-key-file` - TLS key path
@@ -318,7 +351,7 @@ logLevel := flags["log-level"]
 **Advanced:**
 - `proposervm-use-current-height` - Use current height in proposervm
 - `throttler-inbound-validator-alloc-size` - Validator bandwidth allocation
-- `consensus-on-accept-gossip-validator-size` - Gossip size
+- `network-peer-list-pull-gossip-frequency` - Peer list gossip frequency (tmpnet default `250ms`)
 
 ## Subnet Configuration
 
@@ -349,22 +382,19 @@ type Subnet struct {
 
 ```go
 subnet.Config = tmpnet.ConfigMap{
-    // Block proposal delay
-    "proposerMinBlockDelay": 0,
-
     // Historical blocks to keep
     "proposerNumHistoricalBlocks": 50000,
 
-    // Consensus parameters
-    "consensusParameters": map[string]interface{}{
+    // Consensus parameters (snowParameters replaces the deprecated consensusParameters)
+    "snowParameters": map[string]interface{}{
         "k":                     20,
-        "alpha":                 15,
-        "betaVirtuous":          15,
-        "betaRogue":             20,
+        "alphaPreference":       15,
+        "alphaConfidence":       15,
+        "beta":                  20,
         "concurrentRepolls":     4,
         "optimalProcessing":     10,
         "maxOutstandingItems":   256,
-        "maxItemProcessingTime": 120000,
+        "maxItemProcessingTime": 30000000000, // nanoseconds (30s)
     },
 }
 ```
@@ -375,13 +405,14 @@ Stored at `[network-dir]/subnets/[subnet-name].json`:
 
 ```json
 {
-  "name": "my-subnet",
-  "subnetId": "2bRCr6B4MiEfSjidDwxDpdCyviwnfUVqB2HGwhm947w9YYqb7r",
-  "validatorIds": ["NodeID-..."],
-  "config": {
-    "proposerMinBlockDelay": 0
+  "Name": "my-subnet",
+  "Config": {
+    "proposerNumHistoricalBlocks": 50000
   },
-  "chains": [...]
+  "SubnetID": "2bRCr6B4MiEfSjidDwxDpdCyviwnfUVqB2HGwhm947w9YYqb7r",
+  "OwningKey": "PrivateKey-...",
+  "ValidatorIDs": ["NodeID-..."],
+  "Chains": [...]
 }
 ```
 
@@ -425,7 +456,7 @@ chain := &tmpnet.Chain{
         "priorityRegossipFrequency": 1000000000
     }`,
     PreFundedKey: testKey,
-    VersionArgs:  []string{"--version"},
+    VersionArgs:  []string{"--version-json"}, // The VM must print JSON with an "rpcchainvm" field
 }
 ```
 
@@ -453,9 +484,7 @@ Complete directory layout for a tmpnet network:
             ├── config.json              # Runtime configuration
             ├── flags.json               # Node flags
             ├── process.json             # Process info
-            ├── staking.crt              # Staking certificate
-            ├── staking.key              # Staking key
-            ├── signer.key               # BLS signing key
+            ├── chainData/               # Chain data
             ├── logs/
             │   └── main.log
             ├── db/                      # Node database
@@ -485,17 +514,19 @@ tmpnet uses these environment variables:
 
 ## Configuration Precedence
 
-Configuration is applied in this order (later overrides earlier):
+A flag value comes from the first source that sets it:
 
-1. **tmpnet defaults** - Built-in defaults
+1. **Node-specific** - `node.Flags`
 2. **Network defaults** - `network.DefaultFlags`
-3. **Node-specific** - `node.Flags`
-4. **Runtime-generated** - Bootstrap IPs/IDs, genesis content, etc.
+3. **tmpnet defaults** - `DefaultTmpnetFlags()`
+4. **Generated values** - `network-id`, `bootstrap-ips`, `bootstrap-ids`, `genesis-file-content`, `subnet-config-content` and `chain-config-content`. For the process runtime, also `data-dir`, `plugin-dir`, the ports and the hosts. tmpnet sets these only when no other source sets them.
+
+The kube runtime is an exception: it always sets `data-dir` to `/data` and `http-host` to `0.0.0.0`.
 
 Example:
 
 ```go
-// 1. tmpnet default: log-level = "info"
+// 1. avalanchego default: log-level = "info" (tmpnet does not set log-level)
 // 2. Network default:
 network.DefaultFlags["log-level"] = "debug"
 

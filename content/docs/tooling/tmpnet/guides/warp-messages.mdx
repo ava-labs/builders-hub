@@ -139,20 +139,24 @@ func ConstructSignedWarpMessage(
 ### In Predicate Transactions
 
 ```go
-// Create transaction with Warp message
-tx := predicateutils.NewPredicateTx(
-    l1.EVMChainID,
-    nonce,
-    &contractAddress,
-    gasLimit,
-    gasFeeCap,
-    gasTipCap,
-    big.NewInt(0),
-    callData,
-    types.AccessList{},
-    warp.ContractAddress,      // Predicate address
-    signedMessage.Bytes(),      // Warp message
-)
+// Put the signed Warp message in the access list as a predicate.
+// predicate is github.com/ava-labs/avalanchego/vms/evm/predicate.
+tx := types.NewTx(&types.DynamicFeeTx{
+    ChainID:   l1.EVMChainID,
+    Nonce:     nonce,
+    To:        &contractAddress,
+    Gas:       gasLimit,
+    GasFeeCap: gasFeeCap,
+    GasTipCap: gasTipCap,
+    Value:     big.NewInt(0),
+    Data:      callData,
+    AccessList: types.AccessList{
+        {
+            Address:     warp.ContractAddress, // Predicate address
+            StorageKeys: predicate.New(signedMessage.Bytes()), // Warp message
+        },
+    },
+})
 ```
 
 ## Best Practices

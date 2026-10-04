@@ -65,7 +65,7 @@ flowchart TB
 
 | Type | APIs | Pruning | State-Sync | Use Case |
 |------|------|---------|------------|----------|
-| Archive | Full (incl. `debug_*`, `trace_*`) | Disabled | Disabled | Block explorer, debugging, historical queries |
+| Archive | Full (incl. `debug_*` tracing methods such as `debug_traceTransaction`) | Disabled | Disabled | Block explorer, debugging, historical queries |
 | Pruned | Standard (`eth`, `net`, `web3`) | Enabled | Enabled | Transaction submission, latest state queries |
 
 <Callout type="info">
@@ -136,7 +136,7 @@ make status    # Wait for "P:OK" on all nodes
 
 This runs playbook `l1/deploy-nodes.yml`, which:
 - Installs AvalancheGo on all nodes
-- Starts syncing with the Primary Network using `partial-sync-primary-network: true` (syncs only P-Chain headers — much faster than a full sync)
+- Starts syncing with the Primary Network using `partial-sync-primary-network: true` (the node syncs only the P-Chain and does not run the X-Chain or the C-Chain, so the sync is much faster than a full sync)
 - Collects NodeIDs and saves them to `ansible/node_ids.txt`
 - Backs up initial staking keys to S3 (if configured)
 

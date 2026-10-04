@@ -82,7 +82,7 @@ var _ = ginkgo.BeforeSuite(func() {
     )
     defer cancel()
 
-    runtimeCfg, err := e2eFlags.NodeRuntimeConfig() // validates AVALANCHEGO_PATH/AVAGO_PLUGIN_DIR or CLI flags
+    runtimeCfg, err := e2eFlags.NodeRuntimeConfig() // requires --avalanchego-path or AVALANCHEGO_PATH; --plugin-dir or AVAGO_PLUGIN_DIR is optional
     Expect(err).NotTo(HaveOccurred())
 
     // Create network configuration
@@ -118,7 +118,7 @@ var _ = ginkgo.AfterSuite(func() {
 - `BeforeSuite` runs once before all tests in the suite
 - `AfterSuite` ensures cleanup even if tests fail
 - Use generous timeouts for network bootstrap (5+ minutes)
-- `e2eFlags` enables network reuse (explained below)
+- `e2eFlags` supplies the runtime config and the root network directory. The reuse flags (`--reuse-network`, `--network-dir`) take effect only if the suite creates its network with `e2e.NewTestEnvironment`. A direct `tmpnet.BootstrapNewNetwork` call ignores them.
 
 ### 3. Write Your First Test
 
@@ -131,7 +131,7 @@ var _ = ginkgo.Describe("[Basic Tests]", func() {
             Expect(network.Nodes).To(HaveLen(5))
 
             for _, node := range network.Nodes {
-                Expect(node.IsHealthy()).To(BeTrue())
+                Expect(node.IsHealthy(context.Background())).To(BeTrue())
             }
         })
 
@@ -188,13 +188,13 @@ Network bootstrap is slow (2-5 minutes). Reuse networks across test runs:
 
 ```bash
 RUN_E2E=1 ginkgo -v
-# Creates network in ~/.tmpnet/networks/[timestamp]
+# Creates network in ~/.tmpnet/networks/[timestamp]-[owner]
 ```
 
-The network directory will be printed:
+The suite above passes `logging.NoLog{}`, so tmpnet logs nothing. Pass a real `logging.Logger` to see the path: tmpnet logs `started network` with the `networkDir` and `uuid` fields. The `network.Dir` field also holds the path, for example:
 
 ```
-Network created at: /home/user/.tmpnet/networks/20250312-143052.123456
+/home/user/.tmpnet/networks/20250312-143052.123456-my-test-network
 ```
 
 ### Subsequent Runs: Reuse Network
@@ -228,12 +228,14 @@ import (
     "flag"
     "math/big"
     "os"
+    "slices"
     "testing"
     "time"
 
     "github.com/ava-labs/avalanchego/ids"
     "github.com/ava-labs/avalanchego/tests/fixture/e2e"
     "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/constants"
     "github.com/ava-labs/avalanchego/utils/logging"
     "github.com/ethereum/go-ethereum/crypto"
     "github.com/ethereum/go-ethereum/ethclient"
@@ -289,17 +291,17 @@ var _ = ginkgo.BeforeSuite(func() {
         Subnets: []*tmpnet.Subnet{
             {
                 Name: "L1-A",
-                ValidatorIDs: tmpnet.NodesToIDs(nodes[:2]),
+                ValidatorIDs: tmpnet.NodesToIDs(nodes[:2]...),
                 Chains: []*tmpnet.Chain{{
-                    VMID:   constants.EVMID,
+                    VMID:   constants.SubnetEVMID, // Subnet-EVM; constants.EVMID is the C-Chain VM
                     Config: `{"log-level": "info"}`,
                 }},
             },
             {
                 Name: "L1-B",
-                ValidatorIDs: tmpnet.NodesToIDs(nodes[2:]),
+                ValidatorIDs: tmpnet.NodesToIDs(nodes[2:]...),
                 Chains: []*tmpnet.Chain{{
-                    VMID:   constants.EVMID,
+                    VMID:   constants.SubnetEVMID, // Subnet-EVM; constants.EVMID is the C-Chain VM
                     Config: `{"log-level": "info"}`,
                 }},
             },
@@ -326,22 +328,26 @@ var _ = ginkgo.AfterSuite(func() {
     }
 })
 
-> For runnable code, supply real genesis bytes/config for each chain (see `tests/contracts/lib/icm-contracts/lib/subnet-evm/tests/utils/tmpnet.go` in icm-services for a working helper).
+// For runnable code, supply real genesis bytes and chain config for each chain.
+// NewTmpnetSubnet in avalanchego graft/subnet-evm/tests/utils/tmpnet.go is a working helper.
 
 // Helper to extract L1 info
 func getL1Info(subnet *tmpnet.Subnet, name string) L1TestInfo {
     chain := subnet.Chains[0]
 
-    rpcClient, err := ethclient.Dial(chain.Nodes[0].URI + "/ext/bc/" + chain.ChainID.String() + "/rpc")
+    // tmpnet.Chain has no node list. Collect the URIs of the nodes that validate the subnet.
+    var nodeURIs []string
+    for _, node := range network.Nodes {
+        if slices.Contains(subnet.ValidatorIDs, node.NodeID) {
+            nodeURIs = append(nodeURIs, node.URI)
+        }
+    }
+
+    rpcClient, err := ethclient.Dial(nodeURIs[0] + "/ext/bc/" + chain.ChainID.String() + "/rpc")
     Expect(err).NotTo(HaveOccurred())
 
     evmChainID, err := rpcClient.ChainID(context.Background())
     Expect(err).NotTo(HaveOccurred())
-
-    var nodeURIs []string
-    for _, node := range chain.Nodes {
-        nodeURIs = append(nodeURIs, node.URI)
-    }
 
     return L1TestInfo{
         SubnetID:     subnet.SubnetID,
@@ -377,7 +383,8 @@ var _ = ginkgo.Describe("[Funded Keys]", func() {
         // Get address
         address := crypto.PubkeyToAddress(ecdsaKey.PublicKey)
 
-        // Check balance on C-Chain
+        // Check balance on L1-A. tmpnet funds PreFundedKeys only on the X-Chain, P-Chain and C-Chain,
+        // so the L1-A genesis must also allocate funds to this address.
         balance, err := l1A.RPCClient.BalanceAt(
             context.Background(),
             address,
@@ -439,8 +446,8 @@ ginkgo.It("test name",
 
 ```go
 // Good: Poll with Eventually
-Eventually(func() bool {
-    return node.IsHealthy()
+Eventually(func() (bool, error) {
+    return node.IsHealthy(context.Background())
 }, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
 
 // Avoid: Fixed sleep
@@ -475,11 +482,12 @@ Manually stop the network if a test fails to inspect logs:
 # Run test
 RUN_E2E=1 ginkgo -v
 
-# If test fails, network stays running
+# The AfterSuite above stops the network, also after a failure.
+# To keep it, remove that Stop call or use e2e.NewTestEnvironment with --reuse-network.
 # Inspect logs in network directory
 
 # Stop when done debugging
-tmpnet stop --dir=/path/to/network
+tmpnetctl stop-network --network-dir=/path/to/network
 ```
 
 ## Common Patterns
@@ -497,14 +505,16 @@ for _, uri := range uris {
 
 ```go
 for _, node := range network.Nodes {
-    Expect(node.IsHealthy()).To(BeTrue())
+    Expect(node.IsHealthy(context.Background())).To(BeTrue())
 }
 ```
 
 ### Wait for Node Health
 
 ```go
-err := node.WaitForHealthy(context.Background())
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute) // WaitForHealthy needs a deadline
+defer cancel()
+err := node.WaitForHealthy(ctx)
 Expect(err).NotTo(HaveOccurred())
 ```
 

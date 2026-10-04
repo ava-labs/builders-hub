@@ -58,7 +58,7 @@ flowchart TB
 
 | Aspect | L1 Deployment | Primary Network |
 |--------|---------------|-----------------|
-| Chain sync | Partial P-Chain headers only | Full P/X/C chain data |
+| Chain sync | P-Chain only (partial sync) | Full P/X/C chain data |
 | Instance type | c6a.xlarge (general compute) | i7i.xlarge (NVMe-optimized) |
 | Storage | EBS gp3 volumes | 937GB local NVMe |
 | Bootstrap time | Minutes (partial sync) | 2–4 hours (state-sync) |
@@ -141,7 +141,7 @@ Staking keys are uploaded to S3 with KMS encryption. The validator instances hav
 
 ## Staking Key Management
 
-Staking keys are the cryptographic identity of your validator. Losing them means losing your NodeID and any associated staking position.
+Staking keys are the cryptographic identity of your validator. If you lose them, you lose your NodeID, and the node cannot validate. The P-Chain still returns the staked AVAX when the staking period ends. If the uptime of the validator is below the requirement, the validator gets no reward for that period.
 
 ```bash
 # Backup all validator keys to S3
@@ -246,7 +246,7 @@ Edit `terraform/primary-network/aws/terraform.tfvars`:
 | `ssh_public_key` | — | SSH public key for node access |
 | `ssh_private_key_file` | — | Path to SSH private key |
 
-Node runtime configuration is at `configs/primary-network/node/primary-validator-node-config.json`, which includes `state-sync-enabled: true` and `state-sync-min-blocks: 100000` for faster initial bootstrap.
+Node runtime configuration is at `configs/primary-network/node/primary-validator-node-config.json`. This file also sets `state-sync-enabled` and `state-sync-min-blocks`. These are C-Chain config keys, not node flags, so AvalancheGo ignores them in the node config file. You do not need them: the C-Chain state-syncs a new node by default (`state-sync-enabled` defaults to `true` after Helicon), and the C-Chain ignores `state-sync-min-blocks` after Helicon.
 
 ## Next Steps
 

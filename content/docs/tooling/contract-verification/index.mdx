@@ -83,7 +83,7 @@ Use `customChains`. The `apiKey` value is required by the plugin but ignored by 
 ```ts title="hardhat.config.ts"
 const config: HardhatUserConfig = {
   networks: {
-    myL1: { url: "https://my-l1-rpc.example/ext/bc/C/rpc", accounts: [PRIVATE_KEY] },
+    myL1: { url: "https://my-l1-rpc.example/ext/bc/<blockchainID>/rpc", accounts: [PRIVATE_KEY] },
   },
   etherscan: {
     apiKey: { myL1: "builder-hub" },
