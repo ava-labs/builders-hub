@@ -16,6 +16,7 @@ import { DocsCallout } from "@/components/docs-book/callout";
 import { ColorKeyToggle } from "@/components/docs-book/color-key-toggle";
 import { Figure } from "@/components/docs-book/figure";
 import { RewardRoutesFigure } from "@/components/docs-book/reward-routes-figure";
+import { docsFigures } from "@/components/docs-book/figures";
 import { Term } from "@/components/docs-book/term";
 import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { Tabs } from "fumadocs-ui/components/tabs";
@@ -95,6 +96,7 @@ export default async function Page(props: {
             Figure,
             Term,
             RewardRoutesFigure,
+            ...docsFigures,
             // Fix srcset -> srcSet for React 19 compatibility
             img: (props: any) => {
               const { srcset, ...imgProps } = props;
