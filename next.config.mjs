@@ -22,6 +22,12 @@ const config = {
   reactStrictMode: true,
   // AGENTS.md holds the agent instructions, so next dev must not write its own AGENTS.md or CLAUDE.md.
   agentRules: false,
+  experimental: {
+    // The fumadocs-mdx loader names only source.config.ts as a dependency, so a restored
+    // Turbopack build cache can keep old MDX output after a remark plugin or package change.
+    // The Vercel build cache still restores node_modules and the incremental type check.
+    turbopackFileSystemCacheForBuild: false,
+  },
   serverExternalPackages: [
     'ts-morph',
     'typescript',
