@@ -434,12 +434,12 @@ body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-
   overflow-x: auto !important;
 }
 
-/* Specifically handle tables which are the main culprit for overflow */
+/* Tables fill the column. A wide table scrolls inside the overflow-auto div that fumadocs puts around it. Do not
+   make the table a block: its rows then form an inner table that only fits its content, inside the full-width
+   border. */
 body[data-layout="docs"] article table,
 body[data-layout="docs"] .prose table {
-  display: block !important;
-  overflow-x: auto !important;
-  max-width: 100% !important;
+  width: 100%;
 }
 
 /* Handle code blocks that might overflow */
