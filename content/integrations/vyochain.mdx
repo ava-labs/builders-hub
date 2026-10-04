@@ -1,0 +1,57 @@
+---
+title: VYOChain
+category: Blockchain as a Service
+available: ["VYO smartchain", "VYO nftchain"]
+description: "VYOChain is a multi-chain ecosystem of Avalanche L1s, coordinated by a hub chain we call our L0, with VYO as the native gas token on every chain."
+logo: /images/vyochain.png
+developer: VALYGO Labs LLC
+website: https://vyochain.com/
+documentation: https://vyochain.com/
+---
+
+## Overview
+
+VYOChain is a full multi-chain ecosystem built on Avalanche. Every chain in it is an Avalanche L1 that we built and operate ourselves, and VYO is the native gas token on all of them.
+
+We call the setup an L0 because of the hub. VYOChain (chain ID 1771) sits at the center as the compliance authority and coordinates the chains around it. It's operator-only. Around the hub, each chain has one job:
+
+- **smartchain (7771777)**: The public chain for payments, swaps, bridging and domains.
+- **nftchain (7773777)**: Identity tokens and the NFT marketplace.
+
+Two more chains are on the roadmap: a regulated chain for real-world assets and governance, and a banking chain for ISO 20022 payments and stablecoins. VYO moves between all of them over ICTT, and we run our own ICM relayer to carry the messages.
+
+## Features
+
+- **Hub-and-spoke design**: One compliance hub coordinates several purpose-built L1s, so regulated activity and public activity don't share a chain.
+- **Native VYO everywhere**: VYO is the gas token on every chain, with a fixed supply of 100M and 18 decimals.
+- **Cross-chain transfers**: VYO moves between chains through ICTT, with NativeTokenHome on the hub and NativeTokenRemote on each spoke.
+- **On-chain identity**: Verified users can mint their KYC status as a soulbound token (VALYGO Verified Identity) on nftchain.
+- **VYOSwap DEX**: A Uniswap V2-style exchange on smartchain with VYO/USDC and VYO/USDT pairs.
+- **VYO Domains**: Register .vyo names or run your own TLD on smartchain.
+- **Multisig control**: Admin rights on every chain sit with Safe multisigs, not with single keys.
+- **Public explorers**: Each public chain has its own Blockscout explorer.
+
+## Network Details
+
+| Network | Chain ID | Explorer |
+|---|---|---|
+| smartchain | 7771777 | [vyoscan.com](https://vyoscan.com) |
+| nftchain | 7773777 | [nft.vyoscan.com](https://nft.vyoscan.com) |
+
+smartchain RPC: `https://rpc-gw-1.vyoscan.com/ext/bc/2t51dXsuxUvd9teY9TKEJmgxmxMk3CRF88UYTA4HQgjeYZqzSX/rpc`
+
+## Use Cases
+
+- **Payments**: valygo.com, our crypto and fiat payment platform, runs on VYOChain.
+- **Identity-gated apps**: Check a wallet's VALYGO Verified Identity token before letting it into a regulated flow.
+- **Trading**: Swap VYO against USDC and USDT on VYOSwap.
+- **Naming**: Give wallets readable .vyo names, or launch a TLD of your own.
+- **Building**: Deploy contracts on smartchain or nftchain, the same way you would on any EVM chain.
+
+## Documentation
+
+For more on the ecosystem, visit [vyochain.com](https://vyochain.com/).
+
+## Conclusion
+
+VYOChain uses Avalanche L1s to keep compliance, public activity and identity on separate chains, while VYO moves freely between them. The hub ties it all together, which is why we think of it as our L0.
