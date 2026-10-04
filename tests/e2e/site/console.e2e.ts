@@ -2,7 +2,7 @@ import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { openAsReturningVisitor } from './helpers';
 
-test('console opens on its dashboard', async ({ app, screen, browser }) => {
+test('console opens on its dashboard', { tags: ['smoke'] }, async ({ app, screen, browser }) => {
   await openAsReturningVisitor(app, browser, '/console');
   await expect(browser).toHaveTitle('Console | Avalanche Builder Hub');
   await expect(screen.getByRole('heading', 'Avalanche Builder Console', { level: 1 })).toBeAttached();

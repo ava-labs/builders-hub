@@ -2,7 +2,7 @@ import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { NAVIGATION, docsSidebar, openDocsPage } from './docs-page';
 
-test('docs home opens the primary network page', async ({ app, screen, browser }) => {
+test('docs home opens the primary network page', { tags: ['smoke'] }, async ({ app, screen, browser }) => {
   await app.open('/docs');
   await expect(browser).toHaveURL('/docs/primary-network');
   await expect(browser).toHaveTitle('Primary Network | Avalanche Builder Hub');

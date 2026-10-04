@@ -29,7 +29,9 @@ const MENU_ITEMS = [
 ];
 
 for (const { menu, item, path, title } of MENU_ITEMS) {
-  test(`${menu} menu opens ${path}`, { timeout: TWO_ROUTE_TIMEOUT }, async ({ app, screen, browser }) => {
+  // One menu item is in the smoke set (tests/e2e/select): the navbar is on every page.
+  const tags = menu === 'Developers' ? ['smoke'] : [];
+  test(`${menu} menu opens ${path}`, { timeout: TWO_ROUTE_TIMEOUT, tags }, async ({ app, screen, browser }) => {
     await openAsReturningVisitor(app, browser, '/grants');
     const links = await openSiteMenu(screen, browser, menu);
     await links.getByRole('link', item).tap();

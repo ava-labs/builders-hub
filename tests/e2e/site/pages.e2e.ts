@@ -1,7 +1,7 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 
-test('grants page opens with its heading', async ({ app, screen, browser }) => {
+test('grants page opens with its heading', { tags: ['smoke'] }, async ({ app, screen, browser }) => {
   await app.open('/grants');
   await expect(browser).toHaveTitle('Grants | Avalanche Builder Hub');
   await expect(screen.getByRole('heading', 'Grants', { level: 1 })).toBeVisible();
@@ -13,7 +13,7 @@ test('events page opens with its heading', async ({ app, screen, browser }) => {
   await expect(screen.getByRole('heading', 'Events', { level: 1 })).toBeVisible();
 });
 
-test('guides redirect to the blog list', async ({ screen, browser }) => {
+test('guides redirect to the blog list', { tags: ['smoke'] }, async ({ screen, browser }) => {
   // app.open waits for the load event, which waits for every post image. A dev server makes those slowly.
   await browser.goto('/guides', { waitUntil: 'domcontentloaded' });
   await expect(browser).toHaveURL('/blog');

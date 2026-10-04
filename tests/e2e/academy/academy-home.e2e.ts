@@ -7,7 +7,7 @@ import { desktopOnly } from '../lib/skip';
 const PARTS = ['L1 Development', 'Interoperability', 'VM Customization', 'Applications'];
 const STAGES = ['Foundations', 'Core', 'Advanced'];
 
-test('academy home shows the overview of the courses', async ({ app, screen, browser }) => {
+test('academy home shows the overview of the courses', { tags: ['smoke'] }, async ({ app, screen, browser }) => {
   await app.open('/academy');
   await expect(browser).toHaveTitle('Avalanche Academy | Avalanche Builder Hub');
   await expect(screen.getByRole('heading', 'Avalanche Academy.', { level: 1 })).toBeVisible();
