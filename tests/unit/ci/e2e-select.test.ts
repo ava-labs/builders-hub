@@ -130,8 +130,9 @@ describe('select', () => {
     }
   });
 
-  it('runs the site tests for the ecosystem page, which site/ opens by name', () => {
+  it('runs the site tests for the ecosystem page, which site/ opens by name, and for its link targets', () => {
     expect(unitsFor('app/(home)/ecosystem/page.tsx').units).toEqual(expect.arrayContaining(['site', 'routes']));
+    expect(unitsFor('app/(home)/audits/page.tsx', 'removed').units).toContain('site');
   });
 });
 

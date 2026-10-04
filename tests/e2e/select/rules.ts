@@ -79,8 +79,9 @@ export const GROUPS = {
 } satisfies Record<string, Group>;
 export type GroupName = keyof typeof GROUPS;
 
-// The site pages that site/ and ai/ open by name. The routes sweep opens every other site page.
-const SITE_CORE = ['/grants', '/events', '/solutions', '/validator-alerts', '/guides', '/ecosystem'];
+// The site pages that site/ and ai/ open by name. The routes sweep opens every other site page. site/ecosystem.e2e.ts
+// fetches every link of the ecosystem page, /audits included, so a removed or moved link target runs it.
+const SITE_CORE = ['/grants', '/events', '/solutions', '/validator-alerts', '/guides', '/ecosystem', '/audits'];
 // site/ and ai/ open the sign-up and login pages, and webview/ opens them in in-app browsers.
 const AUTH_PAGES = ['/signup', '/login'];
 const TEXT_ROUTES = ['/llms.txt', '/llms-full.txt', '/mcp-manifest', '/static.json', '/install'];
