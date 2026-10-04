@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /* Teleporter's fees are read a calendar month at a time (lib/icm-clickhouse.ts): the stats API's one-window read
    times out past about a month. Each fake month holds two days, the 1st and the 15th. */
@@ -36,6 +36,12 @@ const load = async () => {
   vi.resetModules();
   return import('@/lib/icm-clickhouse');
 };
+
+// The first import of lib/icm-clickhouse loads viem, viem/chains and @x402 (0.6 s alone, 3 s and more under load).
+// vi.resetModules() keeps those packages, so this hook pays for them once, outside the 5 s limit of a test.
+beforeAll(async () => {
+  await load();
+}, 30_000);
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
