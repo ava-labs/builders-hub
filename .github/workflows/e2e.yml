@@ -243,11 +243,11 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # The one check to require. Skipped when the plan found the PR untestable (fork or Dependabot); GitHub counts a
-  # skipped check as passed.
+  # The one check to require. It also fails when the test location check failed. Skipped when the plan found the PR
+  # untestable (fork or Dependabot); GitHub counts a skipped check as passed.
   result:
     name: E2E result
-    needs: [plan, e2e]
+    needs: [location, plan, e2e]
     if: always() && needs.plan.outputs.testable != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -255,10 +255,15 @@ jobs:
       # A matrix job's result is success only when every leg succeeded. A plan with no leg skips the tests on purpose.
       - name: Check the jobs
         env:
+          LOCATION: ${{ needs.location.result }}
           PLAN: ${{ needs.plan.result }}
           TESTS: ${{ needs.e2e.result }}
           LEGS: ${{ needs.plan.outputs.legs }}
         run: |
+          if [ "$LOCATION" != success ]; then
+            echo "::error title=E2E result::The test location check ended $LOCATION."
+            exit 1
+          fi
           if [ "$PLAN" = success ] && { [ "$TESTS" = success ] || { [ "$TESTS" = skipped ] && [ "$LEGS" = '[]' ]; }; }; then
             echo "E2E passed."
           else

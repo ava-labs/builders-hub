@@ -127,7 +127,7 @@ The `phone` target sets the size and an iPhone user agent. It does not emulate t
 
 A test job stops at once when the bypass secret does not open the deployment (a redirect to the Vercel login), so a wrong secret does not hold a runner until the timeout.
 
-The check to require on `master` is `E2E result`. A fork or Dependabot PR gets no bypass secret, so its tests skip and `E2E result` shows Skipped.
+The check to require on `master` is `E2E result`. It also fails when the test location check (`scripts/check-e2e-location.sh`) fails. A fork or Dependabot PR gets no bypass secret, so its tests skip and `E2E result` shows Skipped.
 
 ## Test selection
 
