@@ -19,21 +19,23 @@ const url = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 // A preview also shows the Vercel Toolbar, a round button at the right edge of the screen. It covers the page in
 // screenshots, and an agent.assert reads it as part of the site. x-vercel-skip-toolbar turns it off.
 const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-const headers = bypass ? { 'x-vercel-protection-bypass': bypass, 'x-vercel-skip-toolbar': '1' } : undefined;
+export const headers = bypass ? { 'x-vercel-protection-bypass': bypass, 'x-vercel-skip-toolbar': '1' } : undefined;
 
 // One identity for every preview URL, so the replay cache keys stay stable.
-const app = { url, identity: 'builders-hub' };
+export const app = { url, identity: 'builders-hub' };
 
 // The engine emulates a phone by size and user agent only: no touch and no device scale factor.
+export const PHONE_VIEWPORT = { width: 390, height: 844 };
 const PHONE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 
 export default {
   // API tests have their own config (api/e2e.config.ts), so they run once and not at each size.
-  tests: ['**/*.e2e.ts', '!api/**'],
+  // In-app browser tests have their own targets (webview/e2e.config.ts).
+  tests: ['**/*.e2e.ts', '!api/**', '!webview/**'],
   targets: [
     { name: 'desktop', engine: web({ viewport: { width: 1440, height: 900 }, headers }), app },
-    { name: 'phone', engine: web({ viewport: { width: 390, height: 844 }, userAgent: PHONE_UA, headers }), app },
+    { name: 'phone', engine: web({ viewport: PHONE_VIEWPORT, userAgent: PHONE_UA, headers }), app },
   ],
   // A dev server compiles each route on its first visit, which can take 30 s or more.
   timeout: 180_000,
