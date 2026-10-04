@@ -166,9 +166,9 @@ describe('clockPace', () => {
     expect(clockPace(EVERY, 0, 0, 0, 5)).toBe(900);
   });
 
-  it('lets no row wait more than an interval after it landed, while batches keep landing', () => {
-    // the longest-waiting row landed at 0 and the last batch at 3 s: the five rows are out by 5 s, not 7 s
-    expect(clockPace(EVERY, 0, 3_000, 0, 5)).toBe(1_000);
+  it('lets no row wait more than an interval and a half after it landed, while batches keep landing', () => {
+    // the longest-waiting row landed at 0 and the last batch at 5 s: the five rows are out by 7.5 s, not 9.5 s
+    expect(clockPace(EVERY, 0, 5_000, 0, 5)).toBe(1_500);
   });
 
   it('gives the rows left the time left, and one row no more than an interval', () => {
@@ -293,12 +293,13 @@ describe('a clocked, merged tape', () => {
     expect(Math.max(...gaps)).toBeLessThanOrEqual(2_000);
   });
 
-  // The pace aims to have each row out an interval after it landed. A batch that lands just before holds the next
-  // row WARM_MS for its names, and rows due together go 150 ms apart, so a row can wait a little longer: 5.7 s at
-  // most here, and 5.5 s in replays of the live reads (6.1 s with the C-Chain's reads 8 s late).
-  it('lets no row wait much more than an interval, over ten minutes', () => {
+  // The pace has each row out 0.9 of an interval after the last batch, and never more than an interval and a half
+  // after it landed. A batch that lands just before holds the next row WARM_MS for its names, and rows due together
+  // go 150 ms apart, so a row can wait a little longer: 6.9 s at most here, 5.9 s in replays of the live reads, and
+  // 7.5 s with the C-Chain's reads 8 s late.
+  it('lets no row wait more than about an interval and a half, over ten minutes', () => {
     const { waits } = play(reads(120));
-    expect(Math.max(...waits)).toBeLessThanOrEqual(EVERY + 1_000);
+    expect(Math.max(...waits)).toBeLessThanOrEqual(EVERY * 1.5 + 1_000);
     // and the wait does not grow: the last minute's median is the first minute's
     const perMin = Math.round(waits.length / 10);
     expect(Math.abs(median(waits.slice(-perMin)) - median(waits.slice(0, perMin)))).toBeLessThanOrEqual(250);

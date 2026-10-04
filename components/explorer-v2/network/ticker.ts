@@ -18,14 +18,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
    A feed that polls on a clock (`every`) gets a pace from the clock
    instead: the rows that wait spread until a little before the next poll
-   lands, so the tape never stands still between polls, and none waits much
-   more than an interval after it landed, so the tape never falls behind the
-   feed. A board merged from feeds that lag by different amounts (`lag`)
-   keeps a newcomer older than the top row, so the slowest feed's rows are
-   not let go: the queue holds its rows oldest first and each goes in at its
-   place by time, so the ages on the board only grow down the list. Only a
-   newcomer older than the top row by more than the feeds' lag, or one that
-   would land under a full window, is let go. */
+   lands, so the tape never stands still between polls, and none waits more
+   than an interval and a half after it landed, so the tape never falls
+   behind the feed. A board merged from feeds that lag by different amounts
+   (`lag`) keeps a newcomer older than the top row, so the slowest feed's
+   rows are not let go: the queue holds its rows oldest first and each goes
+   in at its place by time, so the ages on the board only grow down the
+   list. Only a newcomer older than the top row by more than the feeds'
+   lag, or one that would land under a full window, is let go. */
 
 /* the release pace stays between these */
 const MIN_MS = 150;
@@ -39,6 +39,12 @@ const WARM_MS = 180;
    seconds (0.9: none, at the median), and each 0.1 more added about 0.3 s to
    the age of the newest row. */
 const SPREAD = 0.9;
+/* and none waits more than this many intervals after it landed. A chain
+   whose reads answer late (8 s) brings its rows every other poll, in bursts:
+   at 1 interval those bursts ran out early and the transactions board stood
+   still more than 3 times a minute in 5 of 54 replayed minutes; at 1.5, in
+   none. Rows that come every poll go out by SPREAD first. */
+const MAX_WAIT = 1.5;
 
 /** How far apart a merged board's feeds run: a newcomer up to `ms` older
  *  than the top row still shows. `at` is a row's time, epoch ms. */
@@ -120,10 +126,10 @@ export function releaseOne<T>(
 /** A clocked feed's pace: the wait after the last row for the next one.
  *  The rows waiting share the time from the last release until SPREAD of an
  *  interval after the last batch landed, so they fill the time to the next
- *  poll; but none waits more than an interval: they are all out an interval
- *  after the longest-waiting one landed (`firstLanded`). One row never waits
- *  more than an interval after the last, and a backlog (rows held under the
- *  pointer) catches up at the floor. */
+ *  poll; but none waits more than MAX_WAIT intervals: they are all out by
+ *  then after the longest-waiting one landed (`firstLanded`). One row never
+ *  waits more than an interval after the last, and a backlog (rows held
+ *  under the pointer) catches up at the floor. */
 export function clockPace(
   every: number,
   firstLanded: number,
@@ -131,7 +137,7 @@ export function clockPace(
   lastRelease: number,
   waiting: number,
 ): number {
-  const left = Math.min(firstLanded + every, lastBatch + every * SPREAD) - lastRelease;
+  const left = Math.min(firstLanded + every * MAX_WAIT, lastBatch + every * SPREAD) - lastRelease;
   return Math.min(every, Math.max(MIN_MS, left / Math.max(1, waiting)));
 }
 
@@ -154,7 +160,7 @@ export function useTicker<T>(
      *  carries on from the rows on screen */
     enabled?: boolean;
     /** the feed's poll interval in ms: the rows that wait spread until about
-     *  the next poll, and none waits much more than an interval (see clockPace) */
+     *  the next poll, and none waits more than an interval and a half (see clockPace) */
     every?: number;
     /** the rows come from feeds that run this far apart: each goes in at its
      *  place by time (see admit and releaseOne) */
