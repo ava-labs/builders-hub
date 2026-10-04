@@ -18,20 +18,21 @@ import { DATA, OVERVIEW_BLOCK_ROW } from './explorer-page';
 // A board that stops fails: each board must add 12 rows in the minute (one a read), and no gap can be longer than
 // 10 s (two reads). With the tape a minute had 52 to 78 rows a board and no gap over 3.1 s.
 //
-// Current and in order. Thresholds, from replays of 13 min of recorded reads on 2026-10-04 (54 windows of 60 s,
-// each also with the C-Chain's block reads 8 s late), first through the tape that played rows in the order they
-// came, then through the tape that puts each row in at its place by time:
+// Current, at the top and in order. Both boards read each chain's RPC: its new blocks, and the newest transactions
+// in them. Thresholds, from replays of 13 min of recorded reads on 2026-10-04 (54 windows of 60 s, each also with the
+// C-Chain's block reads 8 s late), and from 6 min of the boards on a local production build:
+// - Top. A row that goes in under a row already on the board fails. When each row went in at its place by time, the
+//   rows of the slower feeds went in under the top row: 20% of the transaction rows (then from the indexer) and 9% of
+//   the block rows, so the top of the board looked frozen. Every row now goes in at the top, so no row may fail.
 // - Order. A frame fails when a row's Age is more than 1 s above the Age of the row below it. Ages are whole
 //   seconds, so rows in the same second tie, and ties pass. Rows in arrival order failed in 37 to 84 frames of
-//   every minute, by 1 to 27 s; rows placed by time failed in none. So no frame may fail.
-// - Lag. The Age of the top row, at each new row, is the board's lag. Blocks come from each chain's RPC: the lag
-//   peaked at 7 to 9.6 s a minute in time order, and at 12 to 26 s in arrival order, so the limit is 12 s.
-//   Transactions come from the indexer, which trails the chains by 8 to 22 s: the lag peaked at 17 to 30 s in time
-//   order and at 26 to 54 s in arrival order, so the limit is 35 s.
+//   every minute, by 1 to 27 s; rows in time order failed in none. So no frame may fail.
+// - Lag. The Age of the top row, at each new row, is the board's lag. It peaked at 8 to 9 s on both boards (6 s at
+//   the median). Rows in arrival order peaked at 12 to 26 s, and the indexer's transactions at 17 to 31 s. So the
+//   limit is 12 s.
 // - Trend. The median lag of the window's last 20 s, less that of its first 20 s. A queue that falls behind the feed
 //   grows it: one that plays a row a second while 1.33 come (the blocks board's rate) grows it by about 13 s. It was
-//   -1.1 to 1.3 s on the blocks board and -5.2 to 8.5 s on the transactions board, where the indexer's lag swings,
-//   so the limits are 3 s and 12 s.
+//   -1.4 to 1.4 s in the replays and -0.2 to 0.3 s on the local build, so the limit is 3 s.
 
 // The opening read paints whole, and the chains that answer late join it. The count starts after that.
 const WARM_UP_MS = 10_000;
@@ -43,9 +44,11 @@ const MAX_GAP_MS = 10_000;
 // the rows a board shows; its belt holds one more for the slide-out
 const SHOWN = 10;
 const ORDER_SLACK_S = 1;
+const MAX_LAG_S = 12;
+const MAX_TREND_S = 3;
 const BOARDS = [
-  { label: 'Latest Blocks', link: '/block/', floorMs: 2_000, maxLagS: 12, maxTrendS: 3 },
-  { label: 'Latest Transactions', link: '/tx/', floorMs: 3_000, maxLagS: 35, maxTrendS: 12 },
+  { label: 'Latest Blocks', link: '/block/', floorMs: 2_000 },
+  { label: 'Latest Transactions', link: '/tx/', floorMs: 3_000 },
 ];
 // Longer than a read's interval (5 s), shorter than the page's read timeout (10 s)
 const SLOW_READ_MS = 8_000;
@@ -66,8 +69,9 @@ async function openOverview(app: App, screen: Screen): Promise<void> {
   await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
 }
 
-// One new row on a board: when it entered, and the Age texts of the rows on screen then, top first
-type Frame = { at: number; ages: string[] };
+// One new row on a board: when it entered, the Age texts of the rows on screen then (top first), and how many of the
+// rows already on the board were above it
+type Frame = { at: number; ages: string[]; under: number };
 
 // A role query reads the page once. To time the rows, a recorder in the page notes each row link the first time it
 // appears. A row is one link per block or transaction, so the slide-out row and a redraw do not count again. Each
@@ -125,11 +129,13 @@ async function expectLiveBoards(browser: Browser): Promise<void> {
           if (![...now.keys()].some((href) => !seen.has(href))) return;
           const at = performance.now();
           const ages = [...now.values()].slice(0, shown).map((a) => ageOf(rowOf(a)));
-          for (const href of now.keys()) {
-            if (seen.has(href)) continue;
+          const order = [...now.keys()];
+          const old = new Set(order.filter((href) => seen.has(href)));
+          order.forEach((href, i) => {
+            if (old.has(href)) return;
             seen.add(href);
-            frames.push({ at, ages });
-          }
+            frames.push({ at, ages, under: order.slice(0, i).filter((h) => old.has(h)).length });
+          });
         }).observe(board, { childList: true, subtree: true });
       }
       return performance.now();
@@ -148,7 +154,7 @@ async function expectLiveBoards(browser: Browser): Promise<void> {
   const stalled = stalls.filter(([t]) => t >= start && t < end + 1_000).map(([, ms]) => ms);
   const page = `(page stalls over 0.5 s in the window: ${stalled.length ? stalled.join(' ') : 'none'})`;
   // Soft checks, so a failure reports both boards
-  for (const { label, floorMs, maxLagS, maxTrendS } of BOARDS) {
+  for (const { label, floorMs } of BOARDS) {
     const added = frames[label].filter((f) => f.at >= start && f.at < end);
     const times = added.map((f) => f.at);
     expect.soft(times.length, `${label}: rows added in ${WINDOW_MS / 1000} s`).toBeGreaterThanOrEqual(MIN_ROWS);
@@ -163,6 +169,10 @@ async function expectLiveBoards(browser: Browser): Promise<void> {
       .toBeLessThanOrEqual(MAX_PAUSES);
     expect.soft(Math.max(...gaps), `${label}: longest gap ${seen}`).toBeLessThanOrEqual(MAX_GAP_MS);
 
+    const under = added.filter((f) => f.under > 0);
+    expect
+      .soft(under.length, `${label}: rows that went in under a row on the board (first: ${under[0]?.under} rows above)`)
+      .toBe(0);
     const ages = added.map((f) => f.ages.map(ageSeconds));
     const unread = added.filter((f, i) => f.ages.length === 0 || ages[i].some(Number.isNaN));
     expect.soft(unread.length, `${label}: frames with an Age that does not read (${unread[0]?.ages})`).toBe(0);
@@ -179,14 +189,14 @@ async function expectLiveBoards(browser: Browser): Promise<void> {
     const lags = `(top row's Age at each new row: ${lag.map((l) => l.s).join(' ')})`;
     expect
       .soft(Math.max(...lag.map((l) => l.s)), `${label}: the most the top row lagged ${lags}`)
-      .toBeLessThanOrEqual(maxLagS);
+      .toBeLessThanOrEqual(MAX_LAG_S);
     const first = lag.filter((l) => l.at < start + WINDOW_MS / 3).map((l) => l.s);
     const last = lag.filter((l) => l.at >= end - WINDOW_MS / 3).map((l) => l.s);
     // a board with no row in a third already fails the pause and gap checks
     if (first.length && last.length) {
       expect
         .soft(median(last) - median(first), `${label}: the lag's growth over the window ${lags}`)
-        .toBeLessThanOrEqual(maxTrendS);
+        .toBeLessThanOrEqual(MAX_TREND_S);
     }
   }
 }
@@ -201,8 +211,8 @@ test(
 );
 
 // A slow chain must hold back only its own rows. The C-Chain is always on the boards (it is the busiest chain), and
-// its block reads answer late here. Before the steady tape, each read of every chain waited for the slowest chain.
-// Its late rows go in at their place by time, under the other chains' newer rows, so the boards stay current.
+// its reads answer late here. Before the steady tape, each read of every chain waited for the slowest chain. A late
+// read's rows go in at the top when they are newer than the top row, and are let go when they are not.
 test(
   'overview boards keep their pace and order while one chain answers slowly',
   { timeout: 300_000 },
