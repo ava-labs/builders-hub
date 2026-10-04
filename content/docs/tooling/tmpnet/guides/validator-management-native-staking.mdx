@@ -5,7 +5,7 @@ description: Test complete validator lifecycle with native token staking on Aval
 
 This guide covers testing native token staking validators on L1s, including the complete lifecycle: registration, delegation, rewards, and removal.
 
-> Pattern guide only. These examples follow the staking helpers in `icm-services` (see `tests/contracts/lib/icm-contracts/tests/network` for runnable code). They rely on shared utilities for contract bindings, Warp signatures, and tmpnet setup.
+> Pattern guide only. These examples follow the staking helpers in `icm-services` (see `icm-contracts/tests/network` and `icm-contracts/tests/flows/validator-manager` for runnable code). They rely on shared utilities for contract bindings, Warp signatures, and tmpnet setup.
 
 ## Overview
 
@@ -39,8 +39,8 @@ import (
     "github.com/ava-labs/avalanchego/ids"
     "github.com/ava-labs/avalanchego/tests/fixture/e2e"
     "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
-    "github.com/ava-labs/avalanchego/units"
-    nativestaking "github.com/ava-labs/icm-contracts/abi-bindings/go/validator-manager/NativeTokenStakingManager"
+    "github.com/ava-labs/avalanchego/utils/units"
+    nativestaking "github.com/ava-labs/icm-services/abi-bindings/go/validator-manager/NativeTokenStakingManager"
     "github.com/ethereum/go-ethereum/common"
     "github.com/ethereum/go-ethereum/crypto"
     "github.com/onsi/ginkgo/v2"
@@ -77,7 +77,7 @@ var _ = ginkgo.BeforeSuite(func() {
     // Create network and convert L1 to native staking
     network, l1Info, stakingManagerAddress = setupNativeStakingL1(ctx)
 
-    fundedKey = network.PreFundedKeys[0]
+    fundedKey = network.PreFundedKeys[0].ToECDSA() // PreFundedKeys are *secp256k1.PrivateKey
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -228,38 +228,40 @@ func initializeValidatorRegistration(
 
     // Prepare node PoP (Proof of Possession)
     nodeID := node.NodeID
-    blsPublicKey := node.BlsPublicKey
-    expiry := uint64(time.Now().Add(24 * time.Hour).Unix())
+    pop, err := node.GetProofOfPossession()
+    Expect(err).NotTo(HaveOccurred())
+    blsPublicKey := pop.PublicKey[:]
+    // The validator manager sets the registration expiry (block time plus 1 day).
+    // The P-Chain rejects an expiry in the past or more than 24 hours ahead.
 
     // Create transaction with staked native tokens
     opts, err := bind.NewKeyedTransactorWithChainID(senderKey, l1.EVMChainID)
     Expect(err).NotTo(HaveOccurred())
 
-    // Send native tokens as stake
-    opts.Value = new(big.Int).SetUint64(stakeAmount)
+    // Send native tokens as stake. units.Avax is 1e9 (nAVAX), but EVM values
+    // use 18 decimals, so multiply by 1e9 to get wei.
+    opts.Value = new(big.Int).Mul(new(big.Int).SetUint64(stakeAmount), big.NewInt(1e9))
 
-    // Call initializeValidatorRegistration
-    tx, err := stakingManager.InitializeValidatorRegistration(
+    // P-Chain owner addresses are Hash160(SHA256(compressed public key)).
+    // The EVM address of the same key is different. Do not use crypto.PubkeyToAddress here.
+    // secp256k1 is github.com/ava-labs/avalanchego/utils/crypto/secp256k1.
+    pChainKey, err := secp256k1.ToPrivateKey(crypto.FromECDSA(senderKey))
+    Expect(err).NotTo(HaveOccurred())
+    pChainOwner := nativestaking.PChainOwner{
+        Threshold: 1,
+        Addresses: []common.Address{common.Address(pChainKey.Address())},
+    }
+
+    // Call initiateValidatorRegistration (icm-services validator manager)
+    tx, err := stakingManager.InitiateValidatorRegistration(
         opts,
-        nativestaking.ValidatorRegistrationInput{
-            NodeID:             nodeID.Bytes(),
-            BlsPublicKey:       blsPublicKey,
-            RegistrationExpiry: expiry,
-            RemainingBalanceOwner: nativestaking.PChainOwner{
-                Threshold: 1,
-                Addresses: []common.Address{
-                    crypto.PubkeyToAddress(senderKey.PublicKey),
-                },
-            },
-            DisableOwner: nativestaking.PChainOwner{
-                Threshold: 1,
-                Addresses: []common.Address{
-                    crypto.PubkeyToAddress(senderKey.PublicKey),
-                },
-            },
-        },
-        uint16(20), // Delegation fee: 20%
-        uint64(1),  // Min stake duration: 1 second
+        nodeID.Bytes(),
+        blsPublicKey,
+        pChainOwner,  // Remaining balance owner
+        pChainOwner,  // Disable owner
+        uint16(2000), // Delegation fee: 2000 basis points (20%)
+        uint64(1),    // Min stake duration in seconds
+        crypto.PubkeyToAddress(senderKey.PublicKey), // Reward recipient
     )
     Expect(err).NotTo(HaveOccurred())
 
@@ -282,25 +284,23 @@ func registerOnPChain(
     senderKey *ecdsa.PrivateKey,
 ) {
 
-    // Get P-Chain wallet
-    pWallet := network.GetPChainWallet(senderKey)
+    // Get a P-Chain wallet (for example with primary.MakeWallet).
+    // tmpnet.Network has no GetPChainWallet method.
+    pWallet := newPChainWallet(ctx, network, senderKey)
 
-    // Issue RegisterL1ValidatorTx
-    txID, err := pWallet.IssueRegisterL1ValidatorTx(
-        stakeAmount,
-        node.NodePoP.ProofOfPossession,
+    pop, err := node.GetProofOfPossession()
+    Expect(err).NotTo(HaveOccurred())
+
+    // Issue RegisterL1ValidatorTx. The first argument is the P-Chain balance
+    // that pays the continuous validator fee. It is not the stake: the stake
+    // stays locked in the staking manager on the L1.
+    // The wallet waits until the P-Chain accepts the tx.
+    _, err = pWallet.IssueRegisterL1ValidatorTx(
+        units.Avax, // P-Chain fee balance (1 AVAX)
+        pop.ProofOfPossession,
         warpMessage,
     )
     Expect(err).NotTo(HaveOccurred())
-
-    // Wait for P-Chain acceptance
-    Eventually(func() bool {
-        status, err := pWallet.GetTxStatus(ctx, txID)
-        if err != nil {
-            return false
-        }
-        return status == status.Committed
-    }, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
 }
 ```
 
@@ -423,7 +423,8 @@ func initializeDelegation(
     )
 
     opts, _ := bind.NewKeyedTransactorWithChainID(delegatorKey, l1.EVMChainID)
-    opts.Value = new(big.Int).SetUint64(delegationAmount)
+    // units.Avax is 1e9 (nAVAX). EVM values use 18 decimals: multiply by 1e9 to get wei.
+    opts.Value = new(big.Int).Mul(new(big.Int).SetUint64(delegationAmount), big.NewInt(1e9))
 
     tx, err := stakingManager.InitializeDelegatorRegistration(
         opts,
@@ -465,7 +466,8 @@ func removeDelegator(
         delegatorKey,
     )
 
-    // Step 2: Complete end delegation with uptime proof
+    // Step 2: Complete end delegation with the P-Chain acknowledgement of the new weight.
+    // (Submit the uptime proof in step 1, when you initiate the removal.)
     completeEndDelegation(
         ctx,
         network,
@@ -514,7 +516,9 @@ func removeValidator(
         senderKey,
     )
 
-    // Step 2: Complete with uptime proof from P-Chain
+    // Step 2: Remove the validator on the P-Chain (SetL1ValidatorWeightTx with weight 0).
+    // Then complete with the P-Chain acknowledgement. The P-Chain does not track
+    // L1 validator uptime: submit the uptime proof (signed by the L1 validators) in step 1.
     completeEndValidationWithUptime(
         ctx,
         network,
@@ -539,12 +543,16 @@ func completeEndValidationWithUptime(
     senderKey *ecdsa.PrivateKey,
 ) {
 
-    // Create L1ValidatorWeightMessage with uptime
-    unsignedMessage := createL1ValidatorWeightMessage(
+    // L1ValidatorWeightMessage has no uptime field, and the P-Chain does not
+    // track L1 validator uptime. The uptime proof is a ValidatorUptime message
+    // (validationID, total uptime in seconds) that the L1 validators sign.
+    // Submit it when you initiate the removal.
+    //
+    // After SetL1ValidatorWeightTx with weight 0, the P-Chain signs an
+    // L1ValidatorRegistrationMessage with registered=false.
+    unsignedMessage := createL1ValidatorRegistrationMessage(
         validationID,
-        0, // nonce
-        0, // weight (removal)
-        uptimePercentage,
+        false, // the validator is removed
     )
 
     // Sign with P-Chain validators
@@ -555,9 +563,11 @@ func completeEndValidationWithUptime(
     )
     defer aggregator.Shutdown()
 
+    // For registered=false, the P-Chain needs a justification: the
+    // RegisterL1Validator message that created the validator.
     signedMessage, err := aggregator.CreateSignedMessage(
         unsignedMessage,
-        nil,
+        registrationJustification,
         constants.PrimaryNetworkID,
         67,
     )
@@ -648,7 +658,7 @@ ginkgo.It("should reject expired registration",
 
         validatorInput := nativestaking.ValidatorRegistrationInput{
             NodeID:             node.NodeID.Bytes(),
-            BlsPublicKey:       node.BlsPublicKey,
+            BlsPublicKey:       mustGetPoP(node).PublicKey[:], // mustGetPoP wraps node.GetProofOfPossession()
             RegistrationExpiry: expiry,
             // ... other fields
         }
@@ -666,11 +676,13 @@ ginkgo.It("should reject expired registration",
         validationID, warpMessage := extractRegistrationInfo(receipt)
 
         // Try to register on P-Chain - should fail due to expiry
-        pWallet := network.GetPChainWallet(fundedKey)
+        pWallet := newPChainWallet(ctx, network, fundedKey)
+        pop, err := node.GetProofOfPossession()
+        Expect(err).NotTo(HaveOccurred())
 
-        _, err := pWallet.IssueRegisterL1ValidatorTx(
-            100*units.Avax,
-            node.NodePoP.ProofOfPossession,
+        _, err = pWallet.IssueRegisterL1ValidatorTx(
+            units.Avax, // P-Chain fee balance, not the stake
+            pop.ProofOfPossession,
             warpMessage,
         )
 

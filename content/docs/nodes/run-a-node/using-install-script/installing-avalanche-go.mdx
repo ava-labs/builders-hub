@@ -24,15 +24,13 @@ AvalancheGo installer
 ---------------------
 Preparing environment...
 Found arm64 architecture...
-Looking for the latest arm64 build...
-Will attempt to download:
- https://github.com/ava-labs/avalanchego/releases/download/v1.1.1/avalanchego-linux-arm64-v1.1.1.tar.gz
-avalanchego-linux-arm64-v1.1.1.tar.gz 100%[=========================================================================>]  29.83M  75.8MB/s    in 0.4s
-2020-12-28 14:57:47 URL:https://github-production-release-asset-2e65be.s3.amazonaws.com/246387644/f4d27b00-4161-11eb-8fb2-156a992fd2c8?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20201228%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20201228T145747Z&X-Amz-Expires=300&X-Amz-Signature=ea838877f39ae940a37a076137c4c2689494c7e683cb95a5a4714c062e6ba018&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=246387644&response-content-disposition=attachment%3B%20filename%3Davalanchego-linux-arm64-v1.1.1.tar.gz&response-content-type=application%2Foctet-stream [31283052/31283052] -> "avalanchego-linux-arm64-v1.1.1.tar.gz" [1]
+Looking for arm64 version latest...
+Node version found.
+Attempting to download:
+ https://github.com/ava-labs/avalanchego/releases/download/v1.15.1/avalanchego-linux-arm64-v1.15.1.tar.gz
 Unpacking node files...
-avalanchego-v1.1.1/plugins/
-avalanchego-v1.1.1/plugins/evm
-avalanchego-v1.1.1/avalanchego
+avalanchego-v1.15.1/
+avalanchego-v1.15.1/avalanchego
 Node files unpacked into /home/ubuntu/avalanche-node
 ```
 </Accordion>
@@ -124,7 +122,7 @@ Main PID: 2142 (avalanchego)
 Tasks: 8 (limit: 4495)
 Memory: 223.0M
 CGroup: /system.slice/avalanchego.service
-└─2142 /home/ubuntu/avalanche-node/avalanchego --public-ip-resolution-service=opendns --http-host=
+└─2142 /home/ubuntu/avalanche-node/avalanchego --config-file=/home/ubuntu/.avalanchego/configs/node.json
 
 Jan 05 10:38:45 ip-172-31-30-64 avalanchego[2142]: INFO [01-05|10:38:45] <P Chain> avalanchego/vms/platformvm/vm.go#322: initializing last accepted block as 2FUFPVPxbTpKNn39moGSzsmGroYES4NZRdw3mJgNvMkMiMHJ9e
 Jan 05 10:38:45 ip-172-31-30-64 avalanchego[2142]: INFO [01-05|10:38:45] <P Chain> avalanchego/snow/engine/snowman/transitive.go#58: initializing consensus engine
@@ -142,19 +140,13 @@ Jan 05 10:39:11 ip-172-31-30-64 avalanchego[2142]: INFO [01-05|10:39:11] <P Chai
 
 Note the `active (running)` which indicates the service is running OK. You may need to press `q` to return to the command prompt.
 
-To find out your NodeID, which is used to identify your node to the network, run the following command:
+To find your NodeID, which identifies your node to the network, call `info.getNodeID` on the node:
 
 ```bash
-sudo journalctl -u avalanchego | grep "NodeID"
+curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
 ```
 
-It will produce output like:
-
-```bash
-Jan 05 10:38:38 ip-172-31-30-64 avalanchego[2142]: INFO [01-05|10:38:38] avalanchego/node/node.go#428: Set node's ID to 6seStrauyCnVV7NEVwRbfaT9B6EnXEzfY
-```
-
-Prepend `NodeID-` to the value to get, for example, `NodeID-6seStrauyCnVV7NEVwRbfaT9B6EnXEzfY`. Store that; it will be needed for staking or looking up your node.
+The `nodeID` field of the result already has the `NodeID-` prefix, for example `NodeID-6seStrauyCnVV7NEVwRbfaT9B6EnXEzfY`. Store this value. You need it to stake and to look up your node. The node also writes the NodeID in the `initializing node` log line at startup.
 
 Your node should be in the process of bootstrapping now. You can monitor the progress by issuing the following command:
 

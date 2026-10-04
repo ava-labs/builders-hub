@@ -7,6 +7,7 @@ import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { Board, HashChip, SectionHeader, SpecLine, SpecSheet } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { formatNumber } from "@/components/explorer-v2/format";
 import { parseDateString } from "@/components/stats/chart-axis-utils";
 import { BurnHistory, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
 import { SupplyModel } from "./token-model";
@@ -221,11 +222,16 @@ export function NetworkToken() {
   };
   const price = data?.price ?? 0;
   const burned = data ? n(data.totalPBurned) + n(data.totalCBurned) + n(data.totalXBurned) : 0;
-  // the cap less every burn
-  const totalSupply = TOKEN_CAP - burned;
+  // the Data API's figure: genesis plus its staking rewards figure, minus burns
+  const totalSupply = n(data?.totalSupply);
+  // the cap minus burns: rewards mint from 720M minus the P-Chain's supply counter, and no burn lowers that counter,
+  // so the supply stays below this figure
+  const maxSupply = TOKEN_CAP - burned;
   const circulating = n(data?.circulatingSupply);
   const pctOf = (v: number, of: number) => (of > 0 ? `${((v / of) * 100).toFixed(1)}%` : undefined);
   const fig = (v: number) => (data ? avax(v) : loading ? null : "—");
+  // the record's supply rows in whole AVAX, so they add up as printed
+  const whole = (v: number) => formatNumber(Math.round(v));
   const windowNote = clock === "day" ? "7 days" : clock === "all" ? `${RANGE_LABEL.year}, longest window` : RANGE_LABEL[clock];
 
   return (
@@ -321,20 +327,29 @@ export function NetworkToken() {
                 <SpecLine label="WAVAX">
                   <HashChip value={WAVAX} href={`/explorer/mainnet/c-chain/address/${WAVAX}`} len={12} />
                 </SpecLine>
-                <SpecLine label="Supply Cap">{TOKEN_CAP.toLocaleString("en-US")} AVAX</SpecLine>
+                <SpecLine label="Supply Cap">
+                  {TOKEN_CAP.toLocaleString("en-US")} AVAX <span className="text-zinc-400 dark:text-zinc-500">· fixed; minting never passes it</span>
+                </SpecLine>
                 {data && (
                   <>
+                    {/* the supply as a sum, top to bottom: minted, less burned, is the total; the cap less burned bounds it */}
+                    <SpecLine label="Genesis Unlock">
+                      {whole(n(data.genesisUnlock))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· minted at launch, {pctOf(n(data.genesisUnlock), TOKEN_CAP)} of cap</span>
+                    </SpecLine>
+                    <SpecLine label="Staking Rewards">
+                      {whole(n(data.totalRewards))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· minted since launch</span>
+                    </SpecLine>
+                    <SpecLine label="Burned">
+                      {whole(burned)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· fees on the P-, C- and X-Chains; burned AVAX still counts against the cap, so it is never minted again</span>
+                    </SpecLine>
                     <SpecLine label="Total Supply">
-                      {avax(totalSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(totalSupply, TOKEN_CAP)} of cap, the cap less every burn</span>
+                      {whole(totalSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· minted minus burned: the AVAX that exists now, {pctOf(totalSupply, TOKEN_CAP)} of cap</span>
+                    </SpecLine>
+                    <SpecLine label="Max Supply">
+                      {whole(maxSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· the cap minus burned; the total supply stays below it</span>
                     </SpecLine>
                     <SpecLine label="Locked">
                       {avax(n(data.totalLocked))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.totalLocked), circulating)} of circulating</span>
-                    </SpecLine>
-                    <SpecLine label="Staking Rewards">
-                      {avax(n(data.totalRewards))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· issued, all time</span>
-                    </SpecLine>
-                    <SpecLine label="Genesis Unlock">
-                      {avax(n(data.genesisUnlock))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.genesisUnlock), TOKEN_CAP)} of cap</span>
                     </SpecLine>
                     <SpecLine label="L1 Validator Fees">
                       {avax(n(data.l1ValidatorFees))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· paid, all time</span>

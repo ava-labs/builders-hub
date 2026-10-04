@@ -40,7 +40,7 @@ Enter the NodeID of the node you want to add as a blockchain validator.
 ```
 
 <Callout>
-You can find the NodeID in the node's configuration file or the console when first started with avalanchego.
+To get the NodeID, call the [`info.getNodeID`](/docs/rpcs/other/info-rpc#infogetnodeid) API on the node. The node also logs its NodeID at startup, in the `initializing node` message.
 An example of a NodeID is `NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg`
 </Callout>
 
@@ -55,7 +55,7 @@ Check https://build.avax.network/docs/rpcs/other/info-rpc#infogetnodeid for inst
 ```
 
 <Callout>
-You can find the BLS public key in the node's configuration file or the console when first started with avalanchego.
+To get the BLS public key, call the `info.getNodeID` API on the node and read `nodePOP.publicKey`. The node also logs `nodePOP` at startup, in the `initializing node` message.
 </Callout>
 
 #### Enter BLS Proof of Possession
@@ -67,12 +67,12 @@ Enter the proof of possession of the node's BLS
 ```
 
 <Callout>
-You can find the BLS proof of possession in the node's configuration file or the console when first started with avalanchego.
+To get the BLS proof of possession, call the `info.getNodeID` API on the node and read `nodePOP.proofOfPossession`. The node also logs `nodePOP` at startup, in the `initializing node` message.
 </Callout>
 
 #### Enter AVAX Balance
 
-This balance will be used to pay the P-Chain continuous staking fee.
+This balance pays the P-Chain continuous fee for this L1 validator (ACP-77). The balance is not stake. On Fuji and Mainnet, the minimum fee is 512 nAVAX per second (about 1.33 AVAX for 30 days). When the balance runs out, the validator becomes inactive.
 
 ```bash
 ✗ What balance would you like to assign to the validator (in AVAX)?: 

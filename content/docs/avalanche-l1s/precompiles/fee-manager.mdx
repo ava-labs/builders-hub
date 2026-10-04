@@ -7,9 +7,9 @@ description: Configure dynamic fee parameters and gas costs for your Avalanche L
 
 The Fee Manager allows you to configure the parameters of the dynamic fee algorithm on-chain. This gives you control over:
 
-- Gas limits and target block rates
+- The block gas limit
 - Base fee parameters
-- Block gas cost parameters
+- The target block rate and the block gas cost parameters. These have no effect since Granite.
 
 | Property | Value |
 |----------|-------|
@@ -114,9 +114,9 @@ The FeeManager precompile uses the [AllowList interface](/docs/avalanche-l1s/pre
 In addition to the AllowList interface, the FeeManager adds the following capabilities:
 
 - `getFeeConfig`: retrieves the current dynamic fee config
-- `getFeeConfigLastChangedAt`: retrieves the timestamp of the last block where the fee config was updated
+- `getFeeConfigLastChangedAt`: retrieves the number of the last block where the fee config was updated
 - `setFeeConfig`: sets the dynamic fee config on chain. This function can only be called by an Admin, Manager or Enabled address.
-- `FeeConfigChanged`: an event that is emitted when the fee config is updated. Topics include the sender, the old fee config, and the new fee config.
+- `FeeConfigChanged`: an event that is emitted when the fee config is updated. The `sender` is an indexed topic. The old and new fee configs are in the event data.
 
 You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/rpcs/subnet-evm#eth_feeconfig).
 

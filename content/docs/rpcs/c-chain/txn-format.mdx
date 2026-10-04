@@ -1,9 +1,11 @@
 ---
 title: Transaction Format
+description: "How AvalancheGo serializes C-Chain atomic transactions (imports and exports)."
 ---
 
-This page is meant to be the single source of truth for how we serialize atomic
-transactions in `Coreth`. This document uses the [primitive serialization](/docs/rpcs/other/standards/serialization-primitives) format for packing and
+This page is meant to be the single source of truth for how the C-Chain serializes atomic
+transactions (imports and exports). The format did not change at the Helicon upgrade: Coreth
+used it before Helicon, and the C-Chain VM in `vms/saevm/cchain` uses it after Helicon. This document uses the [primitive serialization](/docs/rpcs/other/standards/serialization-primitives) format for packing and
 [secp256k1](/docs/rpcs/other/standards/cryptographic-primitives#cryptography-in-the-avalanche-virtual-machine)
 for cryptographic user identification.
 
@@ -549,7 +551,7 @@ Let's make an EVM Output:
     // typeID:
     0x00, 0x00, 0x00, 0x01,
     // networkID:
-    0x00, 0x00, 0x00, 0x04,
+    0x00, 0x00, 0x30, 0x39,
     // blockchainID:
     0x91, 0x06, 0x0e, 0xab, 0xfb, 0x5a, 0x57, 0x17,
     0x20, 0x10, 0x9b, 0x58, 0x96, 0xe5, 0xff, 0x00,
@@ -594,8 +596,8 @@ ImportTx is a transaction to import funds to Coreth from another chain.
 
 ### What ImportTx Contains
 
-An ImportTx contains an `typeID`, `networkID`, `blockchainID`,
-`destinationChain`, `importedInputs`, and `Outs`.
+An ImportTx contains a `typeID`, `networkID`, `blockchainID`,
+`sourceChain`, `importedInputs`, and `Outs`.
 
 - **`typeID`** is an int that the type for an ImportTx. The typeID for an `ImportTx` is 0.
 - **`networkID`** is an int that defines which Avalanche network this
@@ -657,7 +659,7 @@ Let's make an ImportTx:
     // typeID:
     0x00, 0x00, 0x00, 0x00,
     // networkID:
-    0x00, 0x00, 0x00, 0x04,
+    0x00, 0x00, 0x30, 0x39,
     // blockchainID:
     0x91, 0x06, 0x0e, 0xab, 0xfb, 0x5a, 0x57, 0x17,
     0x20, 0x10, 0x9b, 0x58, 0x96, 0xe5, 0xff, 0x00,

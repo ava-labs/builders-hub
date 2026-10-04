@@ -35,7 +35,7 @@ While both Avalanche and Base offer fast finality suitable for x402 payments, Av
 - **Base**: Probabilistic finality [~2 seconds](https://docs.base.org/base-chain/network-information/transaction-finality#under-0-001-probability-of-a-reorg)
 
 **Gas Costs**:
-- **Avalanche**: ~$0.001 for `transferWithAuthorization` (based on current gas prices of 0.575 nAVAX)
+- **Avalanche**: about 0.00043 AVAX for `transferWithAuthorization` (about 86,000 gas at the October 2026 Mainnet gas price of 5 nAVAX)
 - **Base**: ~$0.01-0.10 depending on L1 gas prices (variable)
 
 For mission-critical x402 applications requiring guaranteed fast settlement and consistent costs, **Avalanche is a strong option**.
@@ -51,11 +51,11 @@ Avalanche C-Chain maintains extremely low gas costs, making micropayments econom
 ```javascript
 // $0.01 payment cost analysis
 
-Avalanche C-Chain:
+Avalanche C-Chain (gas price 5 nAVAX, AVAX at $11):
 ├── Payment value: $0.01
-├── Gas fee: ~$0.001
-├── Total cost: $0.011
-└── Overhead: 10% ✓
+├── Gas fee: ~$0.0047 (about 0.00043 AVAX)
+├── Total cost: $0.0147
+└── Overhead: ~47%
 
 Base:
 ├── Payment value: $0.01
@@ -78,13 +78,13 @@ Traditional Payment (Stripe):
 ├── Net to merchant: -$0.29029
 └── Result: 3,003% loss ✗
 
-Avalanche x402:
+Avalanche x402 (gas price 5 nAVAX, AVAX at $11):
 ├── API request value: $0.01
-├── Gas fee: $0.001
+├── Gas fee: $0.0047 (about 0.00043 AVAX)
 ├── Facilitator fee: $0.00003 (0.3%)
-├── Total fees: $0.00103
-├── Net to merchant: $0.00897
-└── Result: 10.3% overhead ✓
+├── Total fees: $0.00473
+├── Net to merchant: $0.00527
+└── Result: 47.3% overhead
 ```
 
 Only on low-fee chains like Avalanche are micropayments practical.
@@ -93,7 +93,7 @@ Only on low-fee chains like Avalanche are micropayments practical.
 
 ## High Throughput
 
-Avalanche C-Chain provides high throughput, enabling x402 to handle large-scale deployments without network congestion. This means consistent fee levels (no gas price spikes) and scalability for AI agent economies with millions of daily payments.
+At the October 2026 gas target, the Avalanche C-Chain processes up to about 8,000,000 gas per second. This is about 90 USDC payments per second, or several million payments per day. Validators vote on the gas target (ACP-176), so capacity can grow. The base fee is dynamic: when use stays above the gas target, the base fee rises, and at full use it doubles about every 60 seconds.
 
 ## EVM Compatibility
 
@@ -176,7 +176,7 @@ Avalanche provides a free testnet for development:
 ```javascript
 {
   averageConfirmation: "1.8s",
-  averageGasCost: "$0.001",
+  averageGasCost: "0.00043 AVAX",
   uptime: "99.99%",
   facilitatorLatency: "~200ms"
 }
@@ -203,12 +203,12 @@ Avalanche provides a free testnet for development:
 
 Revenue per request: $0.01
 Costs:
-├── Gas fee: $0.001
+├── Gas fee: $0.0047 (about 0.00043 AVAX, AVAX at $11)
 ├── Facilitator fee: $0.00003 (0.3%)
 ├── Infrastructure: $0.0001
-└── Total costs: $0.00113
+└── Total costs: $0.00483
 
-Profit margin: $0.00887 (88.7%) ✓
+Profit margin: $0.00517 (51.7%)
 ```
 
 On Avalanche, micropayment business models are sustainable.
@@ -217,7 +217,7 @@ On Avalanche, micropayment business models are sustainable.
 
 ## Summary
 
-Avalanche C-Chain is ideal for x402 because of its \~1-second finality, ultra-low fees (~\$0.001), high throughput, EVM compatibility, and native USDC support. These characteristics make micropayments economically viable and enable the AI agent economy that x402 envisions. With dedicated facilitators and comprehensive tooling, Avalanche provides a strong foundation for x402 payment infrastructure.
+Avalanche C-Chain is ideal for x402 because of its \~1-second finality, low fees (about 0.00043 AVAX per payment), high throughput, EVM compatibility, and native USDC support. These characteristics make micropayments economically viable and enable the AI agent economy that x402 envisions. With dedicated facilitators and comprehensive tooling, Avalanche provides a strong foundation for x402 payment infrastructure.
 
 ## Next Steps
 

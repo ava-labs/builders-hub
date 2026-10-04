@@ -1,6 +1,7 @@
 import type { Browser } from '@e2e-dev/web';
 import { expect, type App, type Locator, type Screen } from 'e2e';
 import { isPhoneLayout } from '../lib/skip';
+import { answerFirstVisitPrompts } from '../lib/visitor';
 
 // A dev server compiles a route on its first visit, and again after a code change.
 // Under load a client navigation to such a route can take this long. A built site needs a few seconds.
@@ -9,9 +10,8 @@ export const NAVIGATION_TIMEOUT = 150_000;
 // The test timeout for a test that opens a page and then navigates to a second route.
 export const TWO_ROUTE_TIMEOUT = 240_000;
 
-// A first visit shows the privacy banner, and a first Console visit can show a welcome dialog.
-// A returning visitor has answered both. Write those answers to localStorage, then open the page.
-// All URLs of the site share one localStorage. A small static file loads fast, so write the answers there.
+// Opens a page as a returning visitor, who has answered the privacy banner and the Console welcome dialog
+// (lib/visitor.ts). A small static file loads fast, so write the answers there, then open the page.
 // Set answeredConsoleWelcome to false for a visitor who has answered the privacy banner only.
 export async function openAsReturningVisitor(
   app: App,
@@ -20,16 +20,7 @@ export async function openAsReturningVisitor(
   { answeredConsoleWelcome = true } = {},
 ): Promise<void> {
   await app.open('/small-logo.png');
-  await browser.evaluate((welcome) => {
-    localStorage.setItem('cookie_consent', 'no');
-    if (welcome) {
-      localStorage.setItem(
-        'console-onboarding-tour',
-        JSON.stringify({ state: { hasCompletedTour: true, hasSeenWelcome: true }, version: 0 }),
-      );
-    }
-    return null;
-  }, answeredConsoleWelcome);
+  await answerFirstVisitPrompts(browser, { answeredConsoleWelcome });
   await app.open(path);
 }
 

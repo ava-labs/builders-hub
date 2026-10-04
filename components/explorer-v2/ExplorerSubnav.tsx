@@ -15,13 +15,12 @@ import { isPrivateChain } from "@/components/explorer-v2/network/private";
 import { ExplorerRangeControl, useRangeConsumersPresent } from "@/components/explorer-v2/time-range";
 import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
 import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
-import { NETWORK_HOME, buildTabs, type Tab } from "@/components/explorer-v2/subnav-tabs";
-import { networkSwitchTarget } from "@/components/explorer-v2/network-switch";
+import { buildTabs, type Tab } from "@/components/explorer-v2/subnav-tabs";
+import { chainSwitchTarget, switchTarget } from "@/components/explorer-v2/network-switch";
 import {
   NETWORK_LABEL,
   getExplorerChain,
   hasRealChainLogo,
-  isPchainNetwork,
   type PchainNetwork,
 } from "@/lib/pchain-explorer";
 
@@ -50,7 +49,6 @@ type SwitcherEntry = {
   slug: string;
   name: string;
   logo?: string;
-  href: string;
 };
 
 interface ExplorerSubnavProps {
@@ -67,20 +65,23 @@ interface ExplorerSubnavProps {
   className?: string;
 }
 
-/* Chain switcher — the dropdown that holds the whole ecosystem. The two
+/* Chain switcher: the dropdown that holds the whole ecosystem. The two
    system chains are pinned; the L1 list is validated against the P-Chain
    (a chain appears only if its subnet has stake-backed validators right
-   now), fetched lazily the first time the menu opens. */
+   now), fetched lazily the first time the menu opens. A row keeps the
+   reader's tab where its chain has it (chainSwitchTarget). */
 function ChainSwitcher({
   network,
   chainSlug,
   chainName,
   chainLogoURI,
+  pathname,
 }: {
   network: string;
   chainSlug?: string;
   chainName?: string;
   chainLogoURI?: string;
+  pathname: string;
 }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
@@ -107,26 +108,11 @@ function ChainSwitcher({
     };
   }, [open]);
 
-  const pchainNetwork = isPchainNetwork(network) ? network : "mainnet";
   const pinned: SwitcherEntry[] = [
-    {
-      slug: "all-networks",
-      name: "All Networks",
-      href: NETWORK_HOME,
-    },
-    {
-      slug: "c-chain",
-      name: "C-Chain",
-      logo: cChain?.chainLogoURI,
-      href: "/explorer/mainnet/c-chain",
-    },
-    { slug: "p-chain", name: "P-Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
-    {
-      slug: "x-chain",
-      name: "X-Chain",
-      logo: XCHAIN_LOGO,
-      href: `/explorer/${pchainNetwork}/x-chain`,
-    },
+    { slug: "all-networks", name: "All Networks" },
+    { slug: "c-chain", name: "C-Chain", logo: cChain?.chainLogoURI },
+    { slug: "p-chain", name: "P-Chain", logo: PCHAIN_LOGO },
+    { slug: "x-chain", name: "X-Chain", logo: XCHAIN_LOGO },
   ];
 
   const l1s = useMemo<SwitcherEntry[] | null>(() => {
@@ -148,7 +134,6 @@ function ChainSwitcher({
         slug: c.slug,
         name: c.chainName,
         logo: c.chainLogoURI,
-        href: `/explorer/mainnet/${c.slug}`,
       }));
     }
 
@@ -167,7 +152,6 @@ function ChainSwitcher({
       slug: c.slug,
       name: c.chainName,
       logo: c.chainLogoURI,
-      href: `/explorer/mainnet/${c.slug}`,
     }));
   }, [liveValidators, feedFailed, indexedChainIds]);
 
@@ -177,17 +161,23 @@ function ChainSwitcher({
   const l1sShown = l1s?.filter(matches);
 
   const row = (entry: SwitcherEntry) => {
-    // no chain slug = the network scope, whose row is "All Networks"
-    const current = entry.slug === (chainSlug ?? "all-networks");
+    const href = chainSwitchTarget(pathname, chainSlug, network, entry.slug === "all-networks" ? undefined : entry.slug);
+    // the row of the chain on screen (on Fuji, Beam's row too) links to this page; a tap keeps the
+    // page as it is, query string included, and only closes the menu
+    const current = href === pathname;
     return (
       <Link
         key={entry.slug}
-        href={entry.href}
-        onClick={() => setOpen(false)}
+        href={href}
+        aria-current={current ? "page" : undefined}
+        onClick={(e) => {
+          if (current) e.preventDefault();
+          setOpen(false);
+        }}
         className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
       >
         {entry.slug === "all-networks" ? (
-          /* the mark rides the theme, not the brand red — CSS fill beats the
+          /* the mark rides the theme, not the brand red: CSS fill beats the
              SVG's hardcoded presentation attributes */
           <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
         ) : entry.logo ? (
@@ -211,7 +201,7 @@ function ChainSwitcher({
     <div ref={rootRef} className="relative flex shrink-0 items-stretch">
       <button
         type="button"
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {
           setOpen((v) => !v);
@@ -241,7 +231,10 @@ function ChainSwitcher({
       {open && (
         // z-50 within the subnav's own stacking context (the z-[35] rail):
         // only needs to clear siblings inside the rail, not the page
-        <div className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div
+          role="dialog"
+          aria-label="Switch chain"
+          className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="relative border-b border-zinc-100 dark:border-zinc-900">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -318,7 +311,7 @@ function NetworkControl({
           return (
             <Link
               key={n}
-              href={networkSwitchTarget(n, chainSlug, pathname)}
+              href={switchTarget(pathname, chainSlug, n, chainSlug)}
               // the current network is named to assistive tech too, not by colour alone
               aria-current={active ? "page" : undefined}
               className={cn(
@@ -338,7 +331,7 @@ function NetworkControl({
   if (!chainSlug) {
     // A label, not a toggle: the network-scope aggregates are mainnet-only, so
     // there is nowhere to switch to. It still has to name the network actually
-    // being viewed — a single message is network-agnostic and can be a Fuji one.
+    // being viewed: a single message is network-agnostic and can be a Fuji one.
     return (
       <span className="self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
         {NETWORK_LABEL[network as PchainNetwork] ?? network}
@@ -367,7 +360,7 @@ function NetworkControl({
         {segments.map((seg) => (
           <Link
             key={seg.label}
-            href={networkSwitchTarget(seg.network, seg.slug, pathname)}
+            href={switchTarget(pathname, chainSlug, seg.network, seg.slug)}
             aria-current={seg.active ? "page" : undefined}
             className={cn(
               "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
@@ -426,7 +419,7 @@ export function ExplorerSubnav({
   const inert = useMemo(() => isUnindexedChain(network, chainSlug), [network, chainSlug]);
   const shut = useMemo(() => isPrivateChain(resolveCatalogChain(network, chainSlug)), [network, chainSlug]);
 
-  // the tab rail scrolls when the inventory outgrows the row — the edge
+  // the tab rail scrolls when the inventory outgrows the row: the edge
   // fades say so (a hard clip reads as "there is no ICM tab"). The mask
   // tracks scroll position, so each side only fades while more tabs
   // actually sit beyond it.
@@ -467,7 +460,7 @@ export function ExplorerSubnav({
 
   return (
     // sticky just below the global navbar (h-14 + banner), riding every
-    // shell: only this rail pins — the page header below scrolls away.
+    // shell: only this rail pins; the page header below scrolls away.
     // Negative margins bleed the surface across the shells' px-5/px-6 so
     // content never peeks past its edges; z-[35] clears the page-level
     // sticky bars (z-30) but stays UNDER the global navbar (#nd-nav, z-40)
@@ -484,7 +477,13 @@ export function ExplorerSubnav({
       )}
     >
       <div className="flex min-w-0 items-stretch gap-x-2.5 max-sm:w-full sm:gap-x-4 md:gap-x-5">
-        <ChainSwitcher network={network} chainSlug={chainSlug} chainName={chainName} chainLogoURI={chainLogoURI} />
+        <ChainSwitcher
+          network={network}
+          chainSlug={chainSlug}
+          chainName={chainName}
+          chainLogoURI={chainLogoURI}
+          pathname={pathname}
+        />
         {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />}
         {tabs.length > 0 && (
           <nav

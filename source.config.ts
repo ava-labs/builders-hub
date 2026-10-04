@@ -7,12 +7,13 @@ import {
   metaSchema,
   type DefaultMDXOptions,
 } from 'fumadocs-mdx/config';
-import remarkMath from 'remark-math';
+import { remarkPlugins } from './lib/mdx-remark-plugins';
 import rehypeKatex from 'rehype-katex';
 import { z } from 'zod';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { transformerTwoslash } from 'fumadocs-twoslash';
 import { indexedMdxAttribute, remarkCalloutLabels } from './lib/academy/remark-callout-labels';
+import { transformerShellPrompt } from './lib/docs-book/shell-prompt';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -54,9 +55,13 @@ const mdxOptions = {
           }
         },
       },
+      // Marks shell command lines for the "$ " prompt that app/docs/book/code.css draws. It adds
+      // only a class, so collections without that CSS render as before. It runs after the notation
+      // transformers above, so it reads the lines that the reader sees (lib/docs-book/shell-prompt.ts).
+      transformerShellPrompt(),
     ],
   },
-  remarkPlugins: [remarkMath],
+  remarkPlugins,
   rehypePlugins: (v) => [rehypeKatex, ...v],
 } satisfies DefaultMDXOptions;
 
@@ -88,7 +93,7 @@ export const course = defineCollections({
   // out of the search index built from structuredData.
   mdxOptions: getDefaultMDXOptions({
     ...mdxOptions,
-    remarkPlugins: [remarkMath, remarkCalloutLabels],
+    remarkPlugins: [...remarkPlugins, remarkCalloutLabels],
     remarkStructureOptions: { allowedMdxAttributes: indexedMdxAttribute },
   }),
   schema: frontmatterSchema.extend({

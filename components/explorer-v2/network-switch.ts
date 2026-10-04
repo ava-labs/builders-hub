@@ -1,25 +1,74 @@
-import { buildTabs } from "@/components/explorer-v2/subnav-tabs";
+import { NETWORK_HOME, buildTabs } from "@/components/explorer-v2/subnav-tabs";
+import { TESTNET_COUNTERPART, wantsTestnet } from "@/lib/explorer-catalog";
+import { getExplorerChain } from "@/lib/pchain-explorer";
 
-/* Where the Mainnet/Fuji switch lands. Crossing networks keeps the page
-   when the other network has its tab (blocks, gas/base-fee,
-   validators/l1s). An entity page (a block, tx, address or node) lands on
-   its tab's list, because its id means nothing on the other network. A
-   section the other network has no tab for lands on the chain home. */
-export function networkSwitchTarget(network: string, slug: string, pathname: string): string {
-  const base = `/explorer/${network}/${slug}`;
-  // the path below /explorer/<network>/<chain>; the chain's slug can differ per network (beam, beam-l1)
-  const rest = pathname.split("/").filter(Boolean).slice(3);
-  if (rest.length === 0) return base;
-  const tabs = buildTabs(network, slug);
-  const path = `${base}/${rest.join("/")}`;
-  const tab = tabs.find((t) => t.isActive(path));
-  if (tab) {
-    // a block page lights the Blocks tab, but only a list path is the same page on both networks
-    if (tab.href !== `${base}/${rest[0]}`) return tab.href;
-    // a board belongs to one network (a shared board's link redirects back to it), so land on the boards list
-    return path.startsWith(`${base}/query/boards/`) ? `${base}/query/boards` : path;
-  }
-  // Fuji has no Staking or L1s tab: those Fuji routes redirect to the validators list, so go there
-  if (rest[0] === "staking" || rest[0] === "l1s") return tabs.find((t) => t.href === `${base}/validators`)?.href ?? base;
-  return base;
+/* Where a switch lands. The Mainnet/Fuji switch (a chain to its counterpart)
+   and the chain switch (one chain to another, or to the network scope) share
+   these rules:
+   - The same page where the target serves it: a tab's list, or a view below
+     it (gas/base-fee, query/boards). SAME_PAGE names a page with two paths.
+   - An entity page (a block, tx, address or node) lands on its tab's list,
+     because its id means nothing on the target. A board lands on the boards
+     list, because a board belongs to one scope.
+   - A tab the target does not have, or a page that lights no tab (genesis,
+     an X-Chain asset), lands on the target's home. Staking and L1s land on
+     Validators, where Fuji's Staking and L1s routes redirect.
+   - A switch to the scope the reader is on links to the page itself. */
+
+/* Views below a tab's list that only some targets serve. Elsewhere their URL
+   is a 404 or a redirect, so the switch lands on the tab's list. */
+const SERVED_ONLY_BY: Record<string, (network: string, chain: string | undefined) => boolean> = {
+  "txs/atomic": (_network, chain) => chain === "c-chain",
+  // the P-Chain and X-Chain have no ICM view
+  "txs/icm": (_network, chain) => chain !== undefined && !getExplorerChain(chain),
+  "validators/staking": (network, chain) => network === "mainnet" && chain === "c-chain",
+  "validators/l1s": (_network, chain) => chain === "p-chain",
+  // the network scope's Query has no boards
+  "query/boards": (_network, chain) => chain !== undefined,
+};
+
+/* One page under two paths: the Primary Network's staking economy is the
+   P-Chain's Staking tab and a view of the C-Chain's Validators tab. */
+const SAME_PAGE: [string, string][] = [["staking", "validators/staking"]];
+
+const under = (path: string, head: string) => path === head || path.startsWith(`${head}/`);
+
+function scopeBase(network: string, chain: string | undefined): string {
+  return chain ? `/explorer/${network}/${chain}` : NETWORK_HOME;
+}
+
+/** The target of a switch from `pathname` (on `fromChain`, or the network scope) to `chain` on `network`. */
+export function switchTarget(pathname: string, fromChain: string | undefined, network: string, chain: string | undefined): string {
+  const parts = pathname.split("/").filter(Boolean);
+  const fromNetwork = parts[1] ?? network;
+  const fromBase = scopeBase(fromNetwork, fromChain);
+  const base = scopeBase(network, chain);
+  // the row of the page the reader is on links to that page
+  if (base === fromBase) return pathname;
+  // the path below the scope; the URL's chain segment can differ from the chain's slug (beam for beam-l1 on Fuji)
+  const rest = parts.slice(fromChain ? 3 : 2).join("/");
+  if (!rest) return base;
+  const tab = buildTabs(fromNetwork, fromChain).find((t) => t.isActive(`${fromBase}/${rest}`));
+  if (!tab) return base;
+  const section = tab.href.slice(fromBase.length + 1);
+  // a block page lights the Blocks tab but sits beside its list, not below it; a board belongs to one scope
+  const page = section && under(rest, section) ? rest.replace(/^query\/boards\/.+/, "query/boards") : section;
+  const aliases = SAME_PAGE.flatMap((pair) =>
+    pair.flatMap((from, i) => (under(page, from) ? [pair[1 - i] + page.slice(from.length)] : [])),
+  );
+  const fallback = section === "staking" || section === "l1s" ? ["validators"] : [];
+
+  const tabs = buildTabs(network, chain);
+  const served = (path: string) =>
+    tabs.some((t) => t.href === `${base}/${path.split("/")[0]}`) &&
+    Object.entries(SERVED_ONLY_BY).every(([view, serves]) => !under(path, view) || serves(network, chain));
+  const landing = [page, ...aliases, section, ...fallback].find((path) => path && served(path));
+  return landing ? `${base}/${landing}` : base;
+}
+
+/** The chain switch keeps the network where the chain runs on it: the C-, P- and X-Chain run on both, and an L1
+ *  runs on Fuji under its counterpart's slug (beam-l1 for beam). Any other L1, and the network scope, are mainnet's. */
+export function chainSwitchTarget(pathname: string, fromChain: string | undefined, network: string, chain: string | undefined): string {
+  const fujiSlug = chain && wantsTestnet(network) ? (getExplorerChain(chain) ? chain : TESTNET_COUNTERPART[chain]) : undefined;
+  return fujiSlug ? switchTarget(pathname, fromChain, network, fujiSlug) : switchTarget(pathname, fromChain, "mainnet", chain);
 }

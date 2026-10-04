@@ -1,7 +1,7 @@
 ---
 title: Flow of a Single Blockchain
+description: How a consensus message moves through an AvalancheGo node, from the Network through the Router, the Handler and the Consensus Engine, and back out through the Sender.
 ---
-![](/images/flow1.png)
 
 Intro
 -----------------------------------------
@@ -10,7 +10,11 @@ The Avalanche network consists of 3 built-in blockchains: X-Chain, C-Chain, and 
 
 A node in the Avalanche network can either be a validator or a non-validator. A validator stakes AVAX tokens and participates in consensus to earn rewards. A non-validator does not participate in consensus or have any AVAX staked but can be used as an API server. Both validators and non-validators need to have their own copy of the chain and need to know the current state of the network. At the time of writing, there are ~1200 validators and ~1800 non-validators.
 
-Each blockchain on Avalanche has several components: the virtual machine, database, consensus engine, sender, and handler. These components help the chain run smoothly. Blockchains also interact with the P2P layer and the chain router to send and receive messages.
+Each blockchain on Avalanche has several components: the virtual machine, database, consensus engine, sender, and handler. These components help the chain run smoothly. Blockchains also interact with the P2P layer and the chain router to send and receive messages (Figure 1).
+
+<Figure id="message-path" caption="The path of a poll in AvalancheGo. A peer sends a PushQuery to the node. The PushQuery goes in through the Network, the Router, the Handler and the Consensus Engine. The node answers with Chits, which go out through the Sender and the Network.">
+  <MessagePathFigure />
+</Figure>
 
 Peer-to-Peer (P2P)
 -----------------------------------------------------------------

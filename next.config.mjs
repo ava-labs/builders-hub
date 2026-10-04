@@ -22,6 +22,16 @@ const config = {
   reactStrictMode: true,
   // AGENTS.md holds the agent instructions, so next dev must not write its own AGENTS.md or CLAUDE.md.
   agentRules: false,
+  experimental: {
+    // The fumadocs-mdx loader names only source.config.ts as a dependency, so a restored
+    // Turbopack build cache can keep old MDX output after a remark plugin or package change.
+    // The Vercel build cache still restores node_modules and the incremental type check.
+    turbopackFileSystemCacheForBuild: false,
+  },
+  // scripts/build-with-typecheck.mjs runs tsc beside next build and sets this flag.
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_NEXT_TYPECHECK === '1',
+  },
   serverExternalPackages: [
     'ts-morph',
     'typescript',
@@ -2334,6 +2344,23 @@ const config = {
       // matches the bare track url.
       {
         source: "/academy/entrepreneur/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Campus Connect was removed: its pages for students and educators send visitors to the
+      // Academy, the nearest student content. `:path*` also matches the bare url.
+      {
+        source: "/university/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/students/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/student-launchpad/:path*",
         destination: "/academy",
         permanent: true,
       },

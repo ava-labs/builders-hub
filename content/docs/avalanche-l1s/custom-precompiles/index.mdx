@@ -7,7 +7,7 @@ description: In this tutorial, we are going to walk through how we can generate 
 
 ### Precompiled Contracts
 
-Ethereum uses precompiles to efficiently implement cryptographic primitives within the EVM instead of re-implementing the same primitives in Solidity. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
+Ethereum uses precompiles to efficiently implement cryptographic primitives within the EVM instead of re-implementing the same primitives in Solidity. The Berlin release includes these precompiles: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation. Subnet-EVM also activates the KZG point evaluation precompile (`0x0a`) at Etna and the P256Verify precompile (`0x0000000000000000000000000000000000000100`) at Granite.
 
 We can see these [precompile](https://github.com/ethereum/go-ethereum/blob/v1.11.1/core/vm/contracts.go#L82) mappings from address to function here in the Ethereum VM:
 
@@ -80,7 +80,7 @@ When a precompile is called, the EVM checks if the input address is a precompile
 
 ### Stateful Precompiled Contracts
 
-A stateful precompile builds on a precompile in that it adds state access. Stateful precompiles are not available in the default EVM, and are specific to Avalanche EVMs such as [Coreth](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) and [Subnet-EVM](https://github.com/ava-labs/subnet-evm).
+A stateful precompile builds on a precompile in that it adds state access. Stateful precompiles are not available in the default EVM, and are specific to Avalanche EVMs such as [Coreth](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) and [Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm).
 
 A stateful precompile follows this [interface](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/contract/interfaces.go#L17-L20):
 
@@ -88,7 +88,7 @@ A stateful precompile follows this [interface](https://github.com/ava-labs/subne
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
 type StatefulPrecompiledContract interface {
 	// Run executes the precompiled contract.
-	Run(accessibleState PrecompileAccessibleState,
+	Run(accessibleState AccessibleState,
 	caller common.Address,
 	addr  common.Address,
 	input []byte,
@@ -98,13 +98,13 @@ type StatefulPrecompiledContract interface {
 }
 ```
 
-A stateful precompile injects state access through the `PrecompileAccessibleState` interface to provide access to the EVM state including the ability to modify balances and read/write storage.
+A stateful precompile injects state access through the `AccessibleState` interface to provide access to the EVM state including the ability to modify balances and read/write storage.
 
 This way we can provide even more customization of the EVM through Stateful Precompiles than we can with the original precompile interface!
 
 ### AllowList
 
-The AllowList enables a precompile to enforce permissions on addresses. The AllowList is not a contract itself, but a helper structure to provide a control mechanism for wrapping contracts. It provides an `AllowListConfig` to the precompile so that it can take an initial configuration from genesis/upgrade. It also provides functions to set/read the permissions. In this tutorial, we used `IAllowList` interface to provide permission control to the `HelloWorld` precompile. `IAllowList` is defined in Subnet-EVM under [`./contracts/contracts/interfaces/IAllowList.sol`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/contracts/contracts/interfaces/IAllowList.sol). The interface is as follows:
+The AllowList enables a precompile to enforce permissions on addresses. The AllowList is not a contract itself, but a helper structure to provide a control mechanism for wrapping contracts. It provides an `AllowListConfig` to the precompile so that it can take an initial configuration from genesis/upgrade. It also provides functions to set/read the permissions. In this tutorial, we used `IAllowList` interface to provide permission control to the `HelloWorld` precompile. `IAllowList` is defined in Subnet-EVM under [`./precompile/allowlist/IAllowList.sol`](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/allowlist/IAllowList.sol). The interface is as follows:
 
 ```go
 //SPDX-License-Identifier: MIT

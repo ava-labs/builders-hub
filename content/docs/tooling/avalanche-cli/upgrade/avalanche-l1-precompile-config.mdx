@@ -312,7 +312,7 @@ If not, you would not find the `Fuji` entry here.
 This scenario assumes that you are running the `fuji` validator on the same machine which is running Avalanche-CLI.
 </Callout>
 
-If this is the case, the tool tries to install the upgrade file at the expected destination. If you use default paths, it tries to install at `$HOME/.avalanchego/chains/`, creating the chain id directory, so that the file finally ends up at `$HOME/.avalanchego/chains/<chain-id>/upgrade.json`.
+If this is the case, the tool tries to install the upgrade file. By default, the tool writes the file to `$HOME/.avalanchego/chains/<blockchain-id>/upgrade.json`. This path is not the AvalancheGo default. By default, AvalancheGo reads chain config and upgrade files from `$HOME/.avalanchego/configs/chains/<blockchain-id>/` (flag `--chain-config-dir`). For a node that uses the default paths, set `--avalanchego-chain-config-dir $HOME/.avalanchego/configs/chains`. Restart the node after you install the file, because AvalancheGo reads chain upgrade files only at startup.
 
 If you are _not_ using default paths, you can configure the path by providing the flag `--avalanchego-chain-config-dir` to the tool. For example:
 

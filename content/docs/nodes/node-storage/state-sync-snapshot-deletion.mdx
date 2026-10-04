@@ -5,6 +5,10 @@ description: Options for reducing disk usage on non-archival nodes through offli
 
 Removes accumulated state sync snapshots while keeping your database intact.
 
+<Callout type="warn">
+Since Helicon, the C-Chain ignores the offline pruning options. On a Subnet-EVM L1, use offline pruning. On the C-Chain, do a [fresh state sync](/docs/nodes/node-storage/periodic-state-sync). Where the steps below say "C-Chain", use your L1. The L1 config file is `<blockchainID>/config.json` in `~/.avalanchego/configs/chains`.
+</Callout>
+
 | Pros | Cons |
 |------|------|
 | Only need a single node | Need to stop the node |
@@ -17,9 +21,11 @@ last pruning. A node pruned regularly may complete quickly, while one never prun
 significantly longer. If you don't prune regularly, consider doing a [fresh state sync](/docs/nodes/node-storage/periodic-state-sync) instead.
 </Callout>
 
-![State Growth Visualization](/images/State_growth_visualization.png)
+<Figure id="disk-growth" caption="Disk use over time for each type of state on a Subnet-EVM L1. A snapshot is the state that the node writes to disk every commit-interval (4096 blocks). Other nodes can state sync only from every fourth snapshot (state-sync-commit-interval, 16384 blocks). Each deletion is one offline pruning run: it deletes the snapshots and keeps the active state. The chart is a schematic and is not to scale.">
+  <DiskGrowthFigure />
+</Figure>
 
-The green line shows a node performing periodic offline pruning. Each black vertical drop represents a pruning event: the node's state drops from "Active + Snapshots" back to just "Active State". Frequent pruning is recommended: it keeps disk usage low and each pruning operation completes faster since there are fewer snapshots to remove.
+The sawtooth line in Figure 1 shows a node that runs offline pruning at regular intervals. Between two runs, the node keeps more snapshots, so its disk use rises at the rate of the dashed line. Each vertical drop, marked "deletion" on the time axis, is one offline pruning run. At each drop, the node deletes the snapshots, and its disk use goes back down to the Active State line. Prune frequently: disk use stays low, and each run takes less time because it has fewer snapshots to delete.
 
 ### How Offline Pruning Works
 

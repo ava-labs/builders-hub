@@ -37,7 +37,7 @@ Deploy the `ExampleRewardCalculator` contract that will determine how staking re
 
 ### Initialize Staking Manager
 
-Call the `initialize` function with `PoSValidatorManagerSettings` to configure staking parameters (minimum stake, duration, delegation fees, etc.).
+Call the `initialize` function with `StakingManagerSettings` to configure staking parameters (minimum stake, duration, delegation fees, and others).
 
 [Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/05-initialize-staking-manager)
 
@@ -55,7 +55,7 @@ Add the Staking Manager address as an **Enabled** address on the Native Minter p
 
 ### Transfer Ownership
 
-Transfer ownership of the Reward Manager precompile to the Staking Manager so it can distribute rewards to validators and delegators.
+Transfer ownership of the Validator Manager contract to the Staking Manager. The Staking Manager can then add and remove validators when users stake and unstake.
 
 [Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/07-transfer-ownership)
 
