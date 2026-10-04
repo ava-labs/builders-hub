@@ -38,20 +38,22 @@ const start = Date.now();
 const seconds = (from) => `${((Date.now() - from) / 1000).toFixed(1)}s`;
 const log = (message) => console.log(`[typecheck] ${message}`);
 
-// The cgroup peak covers every process of the build. The sampled value is the fallback.
+// The cgroup peak also counts the page cache, which the kernel frees before it kills a
+// process. The sampled value (total minus available memory) is what the build really holds.
 let sampledPeak = 0;
-const sampler = setInterval(() => {
-  sampledPeak = Math.max(sampledPeak, os.totalmem() - os.freemem());
-}, 2000).unref();
+const sample = () => (sampledPeak = Math.max(sampledPeak, os.totalmem() - os.freemem()));
+const sampler = setInterval(sample, 1000).unref();
 function memoryReport() {
   const gb = (bytes) => (bytes / 2 ** 30).toFixed(1);
-  sampledPeak = Math.max(sampledPeak, os.totalmem() - os.freemem());
+  sample();
+  let report = `memory in use peak ${gb(sampledPeak)} GB of ${gb(os.totalmem())} GB`;
   for (const file of ['/sys/fs/cgroup/memory.peak', '/sys/fs/cgroup/memory/memory.max_usage_in_bytes']) {
     try {
-      return `cgroup peak ${gb(Number(fs.readFileSync(file, 'utf8')))} GB of ${gb(os.totalmem())} GB`;
+      report += `, cgroup peak with page cache ${gb(Number(fs.readFileSync(file, 'utf8')))} GB`;
+      break;
     } catch {}
   }
-  return `sampled peak ${gb(sampledPeak)} GB of ${gb(os.totalmem())} GB`;
+  return report;
 }
 
 // Each child leads its own process group, so a kill also stops its workers. When a
