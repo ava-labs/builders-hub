@@ -12,6 +12,7 @@ import { LayoutWrapper } from '@/app/layout-wrapper.client';
 import 'fumadocs-twoslash/twoslash.css';
 import './critical.css';
 import './styles.css';
+import './book/tokens.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
   // Generate all filtered trees server-side
