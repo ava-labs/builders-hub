@@ -142,11 +142,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt.
+      # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt. The engine launches Chromium
+      # headless with no channel, which runs the headless shell, so the full browser (187 MB) is not needed.
       - name: Install Chromium
         if: matrix.leg.browser
         timeout-minutes: 5
-        run: npx playwright install chromium
+        run: npx playwright install chromium --only-shell
 
       # Vercel builds the deployment in parallel with the steps above. The GitHub deployment for the commit can appear
       # only when the build is done, so poll for it.
