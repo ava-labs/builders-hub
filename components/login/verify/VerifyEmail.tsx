@@ -114,6 +114,11 @@ export function VerifyEmail({
             setMessage("This code has expired. Click below to get a new one.");
             setExpired(true);
             break;
+          case "TOO_MANY_ATTEMPTS":
+            setMessage(
+              "Too many incorrect codes. Try again later, or sign in with Google or GitHub."
+            );
+            break;
           case "OTP SENT":
             break;
           default:
