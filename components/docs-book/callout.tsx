@@ -1,6 +1,7 @@
 import type { CalloutType } from 'fumadocs-ui/components/callout';
 import { Info, Lightbulb, OctagonAlert, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { isValidElement, type ComponentProps, type ReactNode } from 'react';
+import { CalloutArt, type CalloutArtKind } from '@/components/docs-book/callout-art';
 import { opensWithLabelWord, resolveCalloutKind } from '@/lib/academy/callout-label';
 
 type Family = 'note' | 'warning' | 'danger';
@@ -9,12 +10,14 @@ interface Mark {
   family: Family;
   label: string;
   Icon: LucideIcon;
+  /** The art that `art={true}` draws. */
+  art: CalloutArtKind;
 }
 
-const NOTE: Mark = { family: 'note', label: 'Note', Icon: Info };
-const TIP: Mark = { family: 'note', label: 'Tip', Icon: Lightbulb };
-const WARNING: Mark = { family: 'warning', label: 'Warning', Icon: TriangleAlert };
-const DANGER: Mark = { family: 'danger', label: 'Danger', Icon: OctagonAlert };
+const NOTE: Mark = { family: 'note', label: 'Note', Icon: Info, art: 'peak' };
+const TIP: Mark = { family: 'note', label: 'Tip', Icon: Lightbulb, art: 'peak' };
+const WARNING: Mark = { family: 'warning', label: 'Warning', Icon: TriangleAlert, art: 'slide' };
+const DANGER: Mark = { family: 'danger', label: 'Danger', Icon: OctagonAlert, art: 'slide' };
 
 /** The family, label and icon of a callout type. */
 function markOf(type: string | undefined): Mark {
@@ -70,13 +73,15 @@ export type DocsCalloutProps = Omit<ComponentProps<'div'>, 'title'> & {
   type?: CalloutType | 'note' | 'tip';
   title?: ReactNode;
   icon?: ReactNode;
+  /** A small engraving that floats left of the text. `true` picks the peak, or the slide for a warning. */
+  art?: boolean | CalloutArtKind;
 };
 
 /**
  * Docs callout in the book style: a colored rule on the left, a label row (icon and word), an optional
  * lead line, then the body at the page's own text size and color. callout.css holds the look.
  */
-export function DocsCallout({ type, title, icon, children, ...props }: DocsCalloutProps) {
+export function DocsCallout({ type, title, icon, art, children, ...props }: DocsCalloutProps) {
   const labelFromTitle = titleLabel(title);
   // Five pages write <Callout title="Caution"> with no type. The word asks for the warning look.
   const warns = labelFromTitle === 'Caution' || labelFromTitle === 'Warning';
@@ -90,6 +95,7 @@ export function DocsCallout({ type, title, icon, children, ...props }: DocsCallo
   // A title or an opening word that warns asks for the warning look, whatever the type says.
   const warnWord = ownLabel === 'warning' || ownLabel === 'caution' || ownLabel === 'danger';
   const mark = (warns || (!showLabel && warnWord)) && typed.family === 'note' ? WARNING : typed;
+  const artKind = art === true ? mark.art : art || null;
 
   return (
     // The label row is text, but a name on the note lets a screen reader say "Warning, note" on entry.
@@ -102,6 +108,7 @@ export function DocsCallout({ type, title, icon, children, ...props }: DocsCallo
           {labelFromTitle ?? mark.label}
         </p>
       )}
+      {artKind && <CalloutArt kind={artKind} data-bk-callout-art="" />}
       {lead !== null && <p data-bk-callout-lead="">{lead}</p>}
       <div data-bk-callout-body="">{children}</div>
     </div>

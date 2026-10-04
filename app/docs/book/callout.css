@@ -6,6 +6,7 @@
  */
 
 [data-route-layout="docs"] [data-bk-callout] {
+  /* flow-root holds the floated art inside the rule. */
   display: flow-root;
   margin: 24px 0;
   padding: 2px 0 2px 20px;
@@ -57,6 +58,30 @@
   height: 16px;
 }
 
+/* ---------- Art: an engraving that the text wraps around ---------- */
+
+[data-route-layout="docs"] [data-bk-callout-art] {
+  float: left;
+  display: block;
+  /* The plate is wide, so it gets more width than the book's owl to reach about two and a half lines. */
+  width: 136px;
+  aspect-ratio: 480 / 255;
+  margin: 2px 18px 6px 0;
+  /* The plate is an ink mask: the lines take this color, so one file reads on light and dark. */
+  background-color: var(--bk-ink);
+  -webkit-mask: url('/docs-book/peak.png') center / contain no-repeat;
+  mask: url('/docs-book/peak.png') center / contain no-repeat;
+}
+
+[data-route-layout="docs"] [data-bk-callout-art][data-bk-art="slide"] {
+  aspect-ratio: 480 / 272;
+  -webkit-mask-image: url('/docs-book/avalanche.png');
+  mask-image: url('/docs-book/avalanche.png');
+}
+
+/* On a dark ground the plate reads as a negative; steel keeps it from glaring next to the text. */
+.dark [data-route-layout="docs"] [data-bk-callout-art] { background-color: var(--bk-steel); }
+
 /* ---------- Lead line and body ---------- */
 
 /* The lead is often a question. It is ink at the body size, right under the label row. */
@@ -73,6 +98,9 @@
 [data-route-layout="docs"] [data-bk-callout-body] > :first-child { margin-top: 0; }
 [data-route-layout="docs"] [data-bk-callout-body] > :last-child { margin-bottom: 0; }
 
+/* A list beside the art becomes its own box, so its markers do not run under the art. */
+[data-route-layout="docs"] [data-bk-callout]:has(> [data-bk-callout-art]) [data-bk-callout-body] :is(ul, ol) { display: flow-root; }
+
 /* A callout at the edge of a tab panel takes the panel's padding, as fumadocs' prose-no-margin does. */
 [data-route-layout="docs"] [role="tabpanel"] > [data-bk-callout]:first-child { margin-top: 0; }
 [data-route-layout="docs"] [role="tabpanel"] > [data-bk-callout]:last-child { margin-bottom: 0; }
@@ -80,4 +108,9 @@
 @media (max-width: 639px) {
   [data-route-layout="docs"] [data-bk-callout] { padding-left: 16px; }
   [data-route-layout="docs"] [data-bk-callout="danger"] { padding-left: 15px; }
+
+  [data-route-layout="docs"] [data-bk-callout-art] {
+    width: 96px;
+    margin-right: 14px;
+  }
 }
