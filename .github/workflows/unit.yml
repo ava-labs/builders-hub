@@ -1,0 +1,45 @@
+name: Unit tests
+
+# The whole Vitest suite (tests/unit and the test files beside the code) on every PR, stacked PRs included, and on
+# every push to master. It needs no secrets and no network, so it runs on fork PRs too. The master runs also save a
+# yarn cache that a new PR can restore.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unit-${{ github.ref }}
+  # A newer push to a PR replaces its run. Each master commit keeps its own result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  vitest:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # tests/unit/explorer/size-ceilings.test.ts compares the explorer size ceilings with master's.
+      - name: Fetch master
+        run: git fetch --no-tags --depth=1 origin +refs/heads/master:refs/remotes/origin/master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      # The postinstall generates the Prisma client. 21 test files load it for its types and enums.
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Vitest
+        run: npx vitest run
