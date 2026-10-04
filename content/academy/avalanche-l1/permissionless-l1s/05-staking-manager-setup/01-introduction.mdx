@@ -9,7 +9,7 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 
 When discussing the [Validator Manager Contract structure](/academy/permissioned-l1s/02-proof-of-authority/03-validator-manager-contract) for **Permissioned L1s** we only saw part of the overall strucure. In the mermaid diagram below you can see an expanded view of it, with three new contracts:
 
-- **PoSValidatorManager**
+- **StakingManager**
 - **ERC20TokenStakingManager**
 - **NativeTokenStakingManager**
 
@@ -21,42 +21,42 @@ When discussing the [Validator Manager Contract structure](/academy/permissioned
         ...
     }
     class ValidatorManager {
-        <<abstract>>
         ...
     }
-    class PoSValidatorManager {
+    class StakingManager {
         <<abstract>>
-        initializeEndValidation()
+        initiateValidatorRemoval()
+        completeValidatorRemoval()
         completeDelegatorRegistration()
-        initializeEndDelegation()
-        completeEndDelegation()
+        initiateDelegatorRemoval()
+        completeDelegatorRemoval()
     }
     class ERC20TokenStakingManager {
-        initializeValidatorRegistration()
-        initializeDelegatorRegistration()
+        initiateValidatorRegistration()
+        initiateDelegatorRegistration()
     }
     class NativeTokenStakingManager {
-        initializeValidatorRegistration() payable
-        initializeDelegatorRegistration() payable
+        initiateValidatorRegistration() payable
+        initiateDelegatorRegistration() payable
     }
 
     ACP99Manager <|-- ValidatorManager
-    ValidatorManager <|-- PoSValidatorManager
-    PoSValidatorManager <|-- ERC20TokenStakingManager
-    PoSValidatorManager <|-- NativeTokenStakingManager
+    ValidatorManager --o StakingManager : owner
+    StakingManager <|-- ERC20TokenStakingManager
+    StakingManager <|-- NativeTokenStakingManager
 `} />
   </div>
 </div>
 
 Check out the complete diagram and code implementation on [github](https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/validator-manager).
 
-## PoSValidatorManager
+## StakingManager
 
-Proof-of-Stake Validator management is provided by the abstract contract `PoSValidatorManager`, which has two concrete implementations: `NativeTokenStakingManager` and `ERC20TokenStakingManager`. 
+Proof-of-Stake Validator management is provided by the abstract contract `StakingManager`, which has two concrete implementations: `NativeTokenStakingManager` and `ERC20TokenStakingManager`. 
 
-This abstract contract extends `ValidatorManager` by adding functions for permissionless validator registration and removal based on staked tokens. In addition to basic Validator management, `PoSValidatorManager` supports uptime-based Validation rewards, as well as Delegation to a Validator.
+This abstract contract does not extend `ValidatorManager`. It becomes the owner of a `ValidatorManager` contract and calls it to register and remove validators based on staked tokens. `StakingManager` also supports uptime-based validation rewards and delegation to a validator.
 
-The choice between `NativeTokenStakingManager` and `ERC20TokenStakingManager` depends on what type of token you want validators to stake—the L1's native token or a separate ERC20 token.
+The choice between `NativeTokenStakingManager` and `ERC20TokenStakingManager` depends on what type of token you want validators to stake: the L1's native token or a separate ERC20 token.
 
 ## NativeTokenStakingManager
 

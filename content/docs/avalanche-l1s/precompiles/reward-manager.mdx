@@ -5,11 +5,15 @@ description: Control how transaction fees are distributed or burned on your Aval
 
 ## Overview
 
-The Reward Manager allows you to control how transaction fees are handled in your network. You can:
+The Reward Manager precompile controls where the transaction fees of your <Term role="evm">L1</Term> go. It has three fee routes, and only one route is active at a time (Figure 1):
 
-- Send fees to a specific address (e.g., treasury)
-- Allow validators to collect fees
-- Burn fees entirely
+- Send all fees to one reward address, for example a treasury.
+- Let each <Term role="pchain">validator</Term> collect the fees of the blocks that it builds.
+- Burn all fees.
+
+<Figure id="fee-routes" caption="The Reward Manager sends the fees of each block on one of three routes. The hatched band shows the default route, burn.">
+  <RewardRoutesFigure />
+</Figure>
 
 | Property | Value |
 |----------|-------|
@@ -18,43 +22,51 @@ The Reward Manager allows you to control how transaction fees are handled in you
 
 ## Configuration
 
-You can activate this precompile in your genesis file:
+Activate the precompile in your genesis file. Set one fee route in `initialRewardConfig`:
 
-```json
+```jsonc title="genesis.json"
 {
   "config": {
     "rewardManagerConfig": {
       "blockTimestamp": 0,
       "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"],
       "initialRewardConfig": {
-        // Choose one of:
-        "allowFeeRecipients": true,  // Allow validators to collect fees
-        "rewardAddress": "0x...",    // Send fees to specific address
-        // Empty config = burn fees
+        "allowFeeRecipients": true // validators collect the fees
+        // Or: "rewardAddress": "0x..." to send the fees to one address.
+        // Or: an empty object {} to burn the fees.
       }
     }
   }
 }
 ```
 
-## Reward Mechanisms
+Do not set `allowFeeRecipients` to `true` and a `rewardAddress` together. The chain rejects that config.
 
-The Reward Manager supports three mutually exclusive mechanisms:
+<Callout title="Note">
+If the precompile is not active, the chain config field `allowFeeRecipients` selects the route. Set it to `true` for the validator route. Leave it unset to burn the fees.
+</Callout>
 
-1. **Validator Fee Collection** (`allowFeeRecipients`)
-   - Validators can specify their own fee recipient addresses
-   - Fees go to the block producer's chosen address
-   - Good for incentivizing network participation
+## Fee routes
 
-2. **Fixed Reward Address** (`rewardAddress`)
-   - All fees go to a single specified address
-   - Can be a contract or EOA
-   - Useful for treasury or DAO-controlled fee collection
+The Reward Manager has three fee routes. They are mutually exclusive.
 
-3. **Fee Burning** (default)
-   - All transaction fees are burned
-   - Reduces total token supply over time
-   - Similar to Ethereum's EIP-1559
+1. **Validator fee recipients** (`allowFeeRecipients`)
+   - Each <Term role="pchain">validator</Term> sets a fee recipient in the chain config of its node (`feeRecipient`).
+   - The fees of a block go to the fee recipient of the validator that built the block.
+   - Use this route to pay validators for their work.
+
+2. **Reward address** (`rewardAddress`)
+   - All fees go to one address on the <Term role="evm">L1</Term>.
+   - The address can be a contract or an externally owned account.
+   - Use this route for a treasury or a DAO.
+
+3. **Burn** (the default, or `disableRewards`)
+   - All fees go to the blackhole address.
+   - The total token supply falls over time.
+
+<Callout title="Where do burned fees go?">
+The precompile sends them to the blackhole address `0x0100000000000000000000000000000000000000`. No key controls this address, so nobody can spend the fees. A <Term role="pchain">validator</Term> on the validator route that sets no fee recipient also sends its fees there.
+</Callout>
 
 ## Interface
 
@@ -77,6 +89,10 @@ interface IRewardManager {
 ```
 
 The Reward Manager precompile uses the [AllowList interface](/docs/avalanche-l1s/precompiles/allowlist-interface) to restrict access to its functionality.
+
+<Callout type="warn" title="Who can change the fee route?">
+Every address with the Enabled, Manager or Admin role on the precompile's AllowList can call `setRewardAddress`, `allowFeeRecipients` and `disableRewards`. One such key can send all future fees of the <Term role="evm">L1</Term> to its own address. Give these roles to a multisig, not to a single key.
+</Callout>
 
 ## Best Practices
 

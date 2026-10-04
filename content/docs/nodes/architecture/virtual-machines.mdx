@@ -69,7 +69,7 @@ type ChainVM interface {
     SetPreference(ctx context.Context, blkID ids.ID) error
     LastAccepted(ctx context.Context) (ids.ID, error)
 
-    // Optional: height-indexed access
+    // Height-indexed access (required)
     GetBlockIDAtHeight(ctx context.Context, height uint64) (ids.ID, error)
 }
 ```
@@ -110,7 +110,7 @@ Blocks are the fundamental unit of consensus ([source](https://github.com/ava-la
 
 ```go title="snow/consensus/snowman/block.go"
 type Block interface {
-    // ID(), Accept(), Reject(), Status() come from snow.Decidable
+    // ID(), Accept(), Reject() come from snow.Decidable
     snow.Decidable
 
     // Identity
@@ -185,20 +185,23 @@ type VM struct {
 
 | Transaction | Purpose | Era |
 |-------------|---------|-----|
-| `AddValidatorTx` | Add a Primary Network validator | Apricot |
-| `AddDelegatorTx` | Delegate stake to a validator | Apricot |
+| `AddValidatorTx` | Add a Primary Network validator (rejected since Durango) | Apricot |
+| `AddDelegatorTx` | Delegate stake to a validator (rejected since Durango) | Apricot |
 | `CreateSubnetTx` | Create a new subnet | Apricot |
 | `CreateChainTx` | Launch a blockchain on a subnet | Apricot |
 | `ImportTx` / `ExportTx` | Cross-chain asset transfers | Apricot |
-| `AddPermissionlessValidatorTx` | Add validator to permissionless subnet | Banff |
-| `AddPermissionlessDelegatorTx` | Delegate to permissionless validator | Banff |
-| `TransformSubnetTx` | Convert subnet to permissionless | Banff |
+| `AddPermissionlessValidatorTx` | Add a Primary Network validator (or a validator of a subnet made permissionless with `TransformSubnetTx`) | Banff |
+| `AddPermissionlessDelegatorTx` | Delegate stake to a Primary Network validator (or to a validator of such a subnet) | Banff |
+| `TransformSubnetTx` | Make a subnet permissionless (rejected since Etna) | Banff |
 | `TransferSubnetOwnershipTx` | Transfer subnet ownership | Durango |
 | `ConvertSubnetToL1Tx` | Convert subnet to Avalanche L1 | Etna |
 | `RegisterL1ValidatorTx` | Register validator on L1 | Etna |
 | `SetL1ValidatorWeightTx` | Set L1 validator weight | Etna |
 | `IncreaseL1ValidatorBalanceTx` | Add balance to L1 validator | Etna |
 | `DisableL1ValidatorTx` | Disable an L1 validator | Etna |
+| `AddAutoRenewedValidatorTx` | Add a Primary Network validator that restakes each cycle (ACP-236) | Helicon |
+| `SetAutoRenewedValidatorConfigTx` | Change or stop an auto-renewed validator | Helicon |
+| `RewardAutoRenewedValidatorTx` | End a cycle and pay or restake rewards (issued by the block builder) | Helicon |
 
 <Callout type="info">
 The **Etna upgrade** introduced 5 new transaction types for managing Avalanche L1s. These enable converting subnets to sovereign L1s with their own validator management.
@@ -242,9 +245,11 @@ type VM struct {
 | `ImportTx` | Import from other chains |
 | `ExportTx` | Export to other chains |
 
-### Coreth (C-Chain)
+### C-Chain VM (Continuous Execution and Coreth)
 
-Coreth is the EVM implementation for the C-Chain:
+Since the Helicon upgrade (Mainnet 2026-09-22 15:00 UTC), the C-Chain runs the Continuous Execution VM ([`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain)), which implements ACP-194 Continuous Execution. The node registers a TransitionVM ([`vms/transitionvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/transitionvm)) for the C-Chain: Coreth executes the blocks before Helicon, and SAE executes the blocks after it.
+
+Coreth is the EVM implementation that ran the C-Chain before Helicon:
 
 <Callout>
 Coreth is **grafted** into the AvalancheGo repository at `graft/coreth/`. The standalone [`ava-labs/coreth`](https://github.com/ava-labs/coreth) repository has been archived and is now read-only. All active development occurs within the AvalancheGo monorepo.
@@ -253,7 +258,7 @@ Coreth is **grafted** into the AvalancheGo repository at `graft/coreth/`. The st
 **Features:**
 - Full Ethereum Virtual Machine compatibility
 - Supports Solidity smart contracts
-- Web3 JSON-RPC API (`eth`, `personal`, `txpool`, `debug` namespaces)
+- Web3 JSON-RPC API (`eth`, `net`, `web3`, `txpool` and the `debug_trace*` methods). Helicon removed the `personal`, `admin` and `warp` namespaces from the C-Chain.
 - EIP-1559 dynamic fees
 - Atomic transactions with other Avalanche chains (via shared memory)
 - Support for Ethereum upgrades through Cancun
@@ -276,8 +281,8 @@ type VM struct {
 ```
 
 **How it Works:**
-1. Stake-weighted proposers are sampled for each height.
-2. Each proposer has a 5s slot (up to 6 slots) counted from the parent timestamp.
+1. The wrapper divides the time after the parent timestamp into 5-second slots, and samples one stake-weighted proposer for each slot.
+2. The number of slots has no limit: the pre-Durango limit of 6 slots no longer applies.
 3. Only the active proposer can build during its slot; missed slots pass to the next sampled validator. Eligibility never opens beyond the validator set at the parent's embedded P-Chain height (the pre-Durango any-node fallback is gone); see [ProposerVM](/docs/nodes/architecture/proposervm).
 4. The wrapper enforces proposer signatures/timestamps before issuing to consensus.
 
@@ -372,7 +377,10 @@ func (n *Node) initVMs() error {
     n.VMManager.RegisterFactory(ctx, constants.AVMID,
         &avm.Factory{})
     n.VMManager.RegisterFactory(ctx, constants.EVMID,
-        &coreth.Factory{})
+        &transitionvm.Factory{
+            PreFactory:  &coreth.Factory{}, // C-Chain before Helicon
+            PostFactory: &saevm.Factory{},  // C-Chain after Helicon (SAE)
+        })
 
     // Plugin VMs are discovered from the plugins directory
     // (default: ~/.avalanchego/plugins/)
@@ -391,8 +399,7 @@ Each chain can have custom VM configuration:
 ```json title="~/.avalanchego/configs/chains/{chainID}/config.json"
 {
   "pruning-enabled": true,
-  "state-sync-enabled": true,
-  "eth-apis": ["eth", "eth-filter", "net", "web3"]
+  "state-sync-enabled": true
 }
 ```
 

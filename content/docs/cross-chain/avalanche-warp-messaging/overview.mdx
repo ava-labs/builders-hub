@@ -16,17 +16,19 @@ Use cases for ICM may include but is not limited to:
 Elements of Cross-Avalanche L1 Communication
 -----------------------------------------------------------------------------------------------------------
 
-The communication consists of the following four steps:
+The communication consists of four steps: signing, aggregation, delivery and verification. Figure 1 shows signing, aggregation and verification.
 
-![image showing four steps of cross-Avalanche L1 communication: Signing, aggregation, Delivery and Verification](/images/warp1.png)
+<Figure id="warp-signatures" caption="Validators of the origin L1 sign one Warp message. A signature aggregator, for example a relayer, aggregates the signatures into one BLS signature. The destination L1 accepts the message only if the signers hold 67% or more of the stake weight, the default quorum.">
+  <WarpSignaturesFigure />
+</Figure>
 
 ### Signing Messages on the Origin Avalanche L1
 
 ICM is a low-level messaging protocol. Any type of data encoded in an array of bytes can be included in the message sent to another Avalanche L1. ICM uses the [BLS signature scheme](https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html), which allows message recipients to verify the authenticity of these messages. Therefore, every validator on the Avalanche network holds a BLS key pair, consisting of a private key for signing messages and a public key that others can use to verify the signature.
 
-### Signature Aggregation on the Origin Avalanche L1
+### Off-Chain Signature Aggregation
 
-If the validator set of an Avalanche L1 is very large, this would result in the Avalanche L1's validators sending many signatures between them. One of the powerful features of BLS is the ability to aggregate many signatures of different signers in a single multi-signature. Therefore, validators of one Avalanche L1 can now individually sign a message and these signatures are then aggregated into a short multi-signature that can be quickly verified.
+BLS can aggregate the signatures of many signers into one multi-signature. This aggregation happens off chain: no block records it. A signature aggregator, for example a relayer, requests a signature from the validators of the origin L1. It aggregates the signatures into one BLS signature and records the signers in a bit set (Figure 1). The VM sets the aggregation method, for example VM-to-VM messages or an off-chain relayer. The destination L1 then verifies one short signature, not one signature for each validator.
 
 ### Delivery of Messages to the Destination Avalanche L1
 
@@ -38,11 +40,11 @@ It is up to the Avalanche L1s and their users to determine how they want to tran
 
 When an Avalanche L1 wants to process another Avalanche L1's message, it will look up both BLS Public Keys and stake of the origin Avalanche L1. The authenticity of the message can be verified using these public keys and the signature.
 
-The combined weight of the validators that must be part of the BLS multi-signature to be considered valid can be set according to the individual requirements of each Avalanche L1-to-Avalanche L1 communication. Avalanche L1 A may accept messages from Avalanche L1 B that are signed by at least 70% of stake. Messages from Avalanche L1 C are only accepted if they have been signed by validators that account for 90% of the stake.
+The destination L1 sets the quorum: the part of the stake weight of the origin L1 that must sign a message. On Subnet-EVM, the quorum is `quorumNumerator` in the `warpConfig` of the Warp precompile, out of 100. The default is 67, and a value of 0 also means 67. The minimum is 33 and the maximum is 100. The C-Chain uses the default, 67. One value applies to the messages from all origin L1s. For example, L1 A sets `quorumNumerator` to 70. Then L1 A accepts a message from L1 B only if validators with 70% or more of the stake weight of L1 B signed it. For a message from the C-Chain or the X-Chain, the destination L1 uses its own validator set, unless `requirePrimaryNetworkSigners` in its `warpConfig` is true. The P-Chain uses a fixed quorum of 67/100 for the Warp messages in `RegisterL1ValidatorTx` and `SetL1ValidatorWeightTx`.
 
-Since both the public keys and stake weights of all validators are recorded on the primary network's P-chain, they are readily accessible to any virtual machine run by the validators. Therefore, the Avalanche L1s do not need to communicate with each other about changes in their respective sets of validators, but can simply rely on the latest information on the P-Chain. Therefore, ICM introduces no additional trust assumption other than that the validators of the origin Avalanche L1 are participating honestly.
+Since both the public keys and stake weights of all validators are recorded on the primary network's P-Chain, they are readily accessible to any virtual machine run by the validators. Therefore, the Avalanche L1s do not need to communicate with each other about changes in their respective sets of validators. Each L1 reads the validator set of the origin L1 from the P-Chain, at the P-Chain height in the ProposerVM header of its block. Therefore, ICM introduces no additional trust assumption other than that the validators of the origin Avalanche L1 are participating honestly.
 
 Reference Implementation
 -------------------------------------------------------------------------------
 
-A Proof-of-Concept VM called [XSVM](https://github.com/ava-labs/xsvm) was created to demonstrate the power of ICM. XSVM enables simple ICM transfers between any two Avalanche L1s if run out-of-the-box.
+[XSVM](https://github.com/ava-labs/avalanchego/tree/master/vms/example/xsvm) is a proof-of-concept VM in the AvalancheGo repository. It shows how a VM uses ICM. XSVM transfers assets between any two Avalanche L1s that run it.

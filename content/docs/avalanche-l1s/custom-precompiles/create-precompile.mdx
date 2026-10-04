@@ -7,30 +7,27 @@ First, we must create the Solidity interface that we want our precompile to impl
 
 The `sayHello()` function is a `view` function, meaning it does not modify the state of the precompile and returns a string result. The `setGreeting()` function is a state changer function, meaning it modifies the state of the precompile. The `HelloWorld` interface inherits `IAllowList` interface to use the allow list functionality.
 
-For this tutorial, we will be working in a new branch in Subnet-EVM/Precompile-EVM repo.
+For this tutorial, we will be working in a new branch of the AvalancheGo repository, in the `graft/subnet-evm` directory.
 
 <Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
 <Tab value="Subnet-EVM">
 ```bash
-cd $GOPATH/src/github.com/ava-labs/subnet-evm
+cd $GOPATH/src/github.com/ava-labs/avalanchego/graft/subnet-evm
+mkdir -p precompile/contracts/helloworld
 ```
 
-We will start off in this directory `./contracts/`:
+Subnet-EVM keeps the Solidity interface of each precompile next to its Go package, for example `precompile/contracts/feemanager/IFeeManager.sol`.
 
-```bash
-cd contracts/
-```
+Create a new file called `precompile/contracts/helloworld/IHelloWorld.sol` and copy and paste the below code:
 
-Create a new file called `IHelloWorld.sol` and copy and paste the below code:
-
-```solidity title="contracts/IHelloWorld.sol"
+```solidity title="precompile/contracts/helloworld/IHelloWorld.sol"
 // (c) 2022-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.8.0;
-import "./IAllowList.sol";
+import "precompile/allowlist/IAllowList.sol";
 
 interface IHelloWorld is IAllowList {
   event GreetingChanged(
@@ -49,13 +46,13 @@ interface IHelloWorld is IAllowList {
 
 Now we have an interface that our precompile can implement! Let's create an [ABI](https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#contract-abi-specification) of our Solidity interface.
 
-In the same directory, let's run:
+From the `graft/subnet-evm` directory, run the native `solc` compiler:
 
 ```bash
-solc --abi ./contracts/interfaces/IHelloWorld.sol -o ./abis
+solc --abi --base-path . -o ./precompile/contracts/helloworld ./precompile/contracts/helloworld/IHelloWorld.sol
 ```
 
-This generates the ABI code under `./abis/contracts_interfaces_IHelloWorld_sol_IHelloWorld.abi`.
+This generates the ABI file `./precompile/contracts/helloworld/IHelloWorld.abi`. `solc` also writes `IAllowList.abi` for the imported interface. You do not need that file.
 
 ```
 [
@@ -189,19 +186,12 @@ Note: The ABI must have named outputs in order to generate the precompile templa
 
 Now that we have an ABI for the precompile gen tool to interact with, we can run the following command to generate our HelloWorld precompile files!
 
-Let's go back to the root of the repository and run the PrecompileGen script helper:
+Stay in the `graft/subnet-evm` directory. Subnet-EVM no longer has a `generate_precompile.sh` script. Run the `precompilegen` tool with `go run`:
 
 ```bash
-cd ..
-```
-
-Both of these Subnet-EVM and Precompile-EVM have the same `generate_precompile.sh` script. The one in Precompile-EVM installs the script from Subnet-EVM and runs it.
-
-```bash
-./scripts/generate_precompile.sh --help
+go run ./cmd/precompilegen --help
 
 # output
-Using branch: precompile-tutorial
 NAME:
 precompilegen - subnet-evm precompile generator tool
 
@@ -249,7 +239,9 @@ We will start off in this directory `./contracts/`:
 cd contracts/
 ```
 
-For Precompile-EVM interfaces and other contracts in Subnet-EVM can be accessible through `@avalabs/subnet-evm-contracts` package. This is already added to the `package.json` file. You can install it by running `npm install`. In order to import `IAllowList` interface, you can use the following import statement:
+<Callout type="warn">
+Precompile-EVM is archived and deprecated, and the `@avalabs/subnet-evm-contracts` npm package is deprecated. Use the Subnet-EVM tab.
+</Callout>
 
 ```solidity
 import "@avalabs/subnet-evm-contracts/contracts/interfaces/IAllowList.sol";
@@ -479,7 +471,7 @@ Now let's generate the precompile template files!
 In Subnet-EVM precompile implementations reside under the `./precompile/contracts` directory. Let's generate our precompile template in the `./precompile/contracts/helloworld` directory, where `helloworld` is the name of the Go package we want to generate the precompile into.
 
 ```bash
-./scripts/generate_precompile.sh --abi ./contracts/abis/contracts_interfaces_IHelloWorld_sol_IHelloWorld.abi --type HelloWorld --pkg helloworld
+go run ./cmd/precompilegen --abi ./precompile/contracts/helloworld/IHelloWorld.abi --type HelloWorld --pkg helloworld
 ```
 
 This generates a precompile template files `contract.go`, `contract.abi`, `config.go`, `module.go`, `event.go` and `README.md` files. `README.md` explains general guidelines for precompile development. You should carefully read this file before modifying the precompile template.

@@ -10,14 +10,14 @@ If you experience any issues running your node, here are common errors and their
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `failed to connect to bootstrap nodes` | • No internet access<br/>• NodeID already in use<br/>• Old instance still running<br/>• Firewall blocking outbound connections | • Check internet connection<br/>• Ensure only one node instance is running<br/>• Verify firewall allows outbound connections<br/>• Confirm staking port (9651) is configured |
-| `subnets not bootstrapped` | • Node still syncing with network<br/>• Health checks called too early<br/>• Network connectivity issues | • Wait for bootstrap to complete (can take hours)<br/>• Monitor `/api/health` endpoint<br/>• Ensure stable network connection<br/>• Check logs for progress |
+| `subnets not bootstrapped` | • Node still syncing with network<br/>• Health checks called too early<br/>• Network connectivity issues | • Wait for bootstrap to complete (can take hours)<br/>• Monitor the `/ext/health` endpoint<br/>• Ensure stable network connection<br/>• Check logs for progress |
 | `db contains invalid genesis hash` | • Database from different network<br/>• Database corruption<br/>• Incompatible database | • Delete database and resync from scratch<br/>• Verify correct network connection<br/>• Check `--network-id` flag matches database |
 
 ## Network and Connectivity Errors
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `cannot query unfinalized data` | • Not connected to other validators<br/>• Wrong public IP configured<br/>• Port 9651 closed/blocked<br/>• Insufficient validator connections | • Configure public IP with `--public-ip`<br/>• Open port 9651 to internet<br/>• Allow inbound connections in firewall<br/>• Set up port forwarding if behind NAT<br/>• Verify peers: `curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.peers"}' -H 'content-type:application/json;' http://127.0.0.1:9650/ext/info` |
+| `cannot query unfinalized data` | • The request names a block above the node's last accepted block, and `allow-unfinalized-queries` is off (Subnet-EVM chains)<br/>• The node is behind the network: not connected to validators, wrong public IP, or port 9651 closed<br/>• After Helicon, the C-Chain does not return this error. For a block above the last accepted block, a block query returns `null` and a state query returns the error `block not found: not accepted yet` | • Configure public IP with `--public-ip`<br/>• Open port 9651 to internet<br/>• Allow inbound connections in firewall<br/>• Set up port forwarding if behind NAT<br/>• Verify peers: `curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.peers"}' -H 'content-type:application/json;' http://127.0.0.1:9650/ext/info` |
 | `primary network validator has no inbound connections` | • Firewall blocking inbound traffic<br/>• NAT/router not configured<br/>• Wrong public IP advertised<br/>• ISP blocking connections | • Configure port forwarding for 9651<br/>• Verify firewall allows inbound<br/>• Check public IP: `curl ifconfig.me`<br/>• Test port with online checkers<br/>• Use VPS if ISP blocks ports |
 | `not connected to enough stake` | • Insufficient validator connections<br/>• Network partitioning<br/>• Node isolated from network<br/>• Bootstrap incomplete | • Check network connectivity<br/>• Verify firewall rules<br/>• Wait for more connections<br/>• Synchronize system time (NTP) |
 | `throttled` (Code: -4) | • Too many connection attempts<br/>• Rate limiting by peers<br/>• Network congestion | • Wait before retrying<br/>• Check for connection loops<br/>• Reduce connection rate |
@@ -27,8 +27,8 @@ If you experience any issues running your node, here are common errors and their
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `closed` | • Database accessed after shutdown<br/>• Ungraceful termination<br/>• Connection lost | • Restart the node<br/>• Check for disk errors or full disk<br/>• Verify database files not corrupted |
-| `blockdb: unrecoverable corruption detected` | • Ungraceful shutdown (power loss, kill -9)<br/>• Disk errors during writes<br/>• Hardware failure | • Delete database and resync<br/>• Run SMART diagnostics on disk<br/>• Ensure 10+ GiB free space<br/>• Use UPS for power protection<br/>• Maintain regular backups |
-| Disk space warnings | • Usage exceeds threshold<br/>• Database growth without cleanup<br/>• Log accumulation | • Keep at least 10 GiB free (20+ GiB recommended)<br/>• Monitor disk usage regularly<br/>• Clean up old logs<br/>• Set up low-space alerts |
+| `blockdb: unrecoverable corruption detected` | • Ungraceful shutdown (power loss, kill -9)<br/>• Disk errors during writes<br/>• Hardware failure | • Delete database and resync<br/>• Run SMART diagnostics on disk<br/>• Keep more than 10% of the disk free<br/>• Use UPS for power protection<br/>• Maintain regular backups |
+| Disk space warnings | • Usage exceeds threshold<br/>• Database growth without cleanup<br/>• Log accumulation | • Keep more than 10% of the disk free. By default, the node reports unhealthy below 10% free space and shuts down below 3%<br/>• Monitor disk usage regularly<br/>• Clean up old logs<br/>• Set up low-space alerts |
 | `blockdb: invalid block height` | • Database corruption<br/>• Querying non-existent block<br/>• Index corruption | • Verify block height is valid<br/>• Resync if corrupted<br/>• Check database integrity |
 
 ## Configuration Errors
@@ -41,14 +41,13 @@ If you experience any issues running your node, here are common errors and their
 | `delegation fee must be in the range [0, 1,000,000]` | • Invalid delegation fee | • Set fee between 0 and 1,000,000 |
 | `min stake duration must be > 0` | • Invalid stake duration<br/>• Min > max duration | • Set min duration > 0 and < max |
 | `sybil protection disabled on public network` | • Disabling protection on mainnet/testnet<br/>• Security misconfiguration | • Only disable on private networks<br/>• Verify network configuration<br/>• Remove override for public networks |
-| `plugin dir is not a directory` | • Path points to file not directory<br/>• Directory doesn't exist<br/>• Permission issues | • Create plugin directory<br/>• Verify path points to directory<br/>• Check read/execute permissions |
+| `plugin dir is not a directory` | • `--plugin-dir` points to a file, not a directory | • Set `--plugin-dir` to a directory<br/>• If you set `--plugin-dir`, create the directory first. A missing directory gives the error `plugin dir "<path>" not found` |
 
 ## Resource and Capacity Errors
 
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `insufficient funds` | • Insufficient balance for fees<br/>• Transaction exceeds balance<br/>• Gas estimation too low | • Ensure sufficient balance<br/>• Account for transaction fees<br/>• Verify balance before submitting |
-| `insufficient gas capacity to build block` | • Mempool exceeds block gas limit<br/>• Complex transactions<br/>• Network congestion | • Wait for congestion to clear<br/>• Break into smaller transactions<br/>• Increase gas limits if possible |
 | `insufficient history to generate proof` | • Partial sync mode<br/>• Pruned historical data<br/>• Incomplete state sync | • Use full sync for complete history<br/>• Wait for state sync to finish<br/>• Use archival node for historical data |
 
 ## Validator and Consensus Errors
@@ -56,23 +55,23 @@ If you experience any issues running your node, here are common errors and their
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `not a validator` (Code: -3) | • Validator-only operation on non-validator<br/>• Stake expired or not active<br/>• Not registered as validator | • Verify registration status<br/>• Check stake is active<br/>• Wait for validation period<br/>• Use correct API for node type |
-| `unknown validator` | • Not in current validator set<br/>• NodeID mismatch<br/>• Validator expired/removed | • Verify validator is active<br/>• Check end time hasn't passed<br/>• Confirm correct NodeID<br/>• Query validator set |
+| `unknown validator` | • A Warp message signature sets a signer bit for an index that is not in the source chain's validator set at the P-Chain height that the verifier uses<br/>• The signature was aggregated against a different validator set | • Aggregate the signature again from the current validator set of the source chain<br/>• Check the source chain and the P-Chain height that the verifier uses |
 
 ## Version and Upgrade Errors
 
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `unknown network upgrade detected` | • Outdated node version<br/>• Network upgrade scheduled/active<br/>• Incompatible protocol | • **Update immediately** to latest version<br/>• Monitor upgrade announcements<br/>• Enable automatic updates<br/>• Check version: `avalanchego --version` |
-| `unknown network upgrade - update as soon as possible` | • Network upgrade approaching<br/>• Node version outdated | • Update within the day<br/>• Check GitHub releases<br/>• Plan for maintenance window |
-| `imminent network upgrade - update immediately` | • Network upgrade imminent (within hour) | • **Critical: Update immediately**<br/>• Risk of network disconnection |
+| `unknown network upgrade detected - update as soon as possible` | • Network upgrade approaching<br/>• Node version outdated | • Update within the day<br/>• Check GitHub releases<br/>• Plan for maintenance window |
+| `imminent network upgrade detected - update immediately` | • Network upgrade imminent (within hour) | • **Critical: Update immediately**<br/>• Risk of network disconnection |
 | `invalid upgrade configuration` | • Upgrade times not chronological<br/>• Conflicting schedules<br/>• Invalid precompile config | • Review upgrade config files<br/>• Ensure sequential timing<br/>• Validate precompile settings<br/>• Consult upgrade documentation |
 
 ## API and RPC Errors
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| Health check: `not yet run` | • Node still initializing<br/>• Bootstrap incomplete<br/>• Subnet sync in progress<br/>• Network issues | • Wait for initialization<br/>• Monitor `/api/health` for updates<br/>• Check individual health checks<br/>• Ensure subnets are synced |
-| `timed out` (Code: -1) | • Request exceeded timeout<br/>• Node overloaded<br/>• Network latency | • Increase timeout settings<br/>• Check resource usage (CPU/memory/disk)<br/>• Reduce request complexity<br/>• Use retry with exponential backoff |
+| Health check: `not yet run` | • Node still initializing<br/>• Bootstrap incomplete<br/>• Subnet sync in progress<br/>• Network issues | • Wait for initialization<br/>• Monitor `/ext/health` for updates<br/>• Check individual health checks<br/>• Ensure subnets are synced |
+| `timed out` (Code: -1) | • A peer did not answer a peer-to-peer request (AppRequest) in time. This is not an HTTP API error<br/>• The peer is overloaded or offline<br/>• Network latency | • Check that the node has enough peers (`info.peers`)<br/>• Check resource usage (CPU/memory/disk)<br/>• Retry with exponential backoff |
 | Invalid content-type | • Wrong Content-Type header<br/>• Missing header | • Add `Content-Type: application/json`<br/>• Verify API client config<br/>• Example: `curl -H 'content-type:application/json;' ...` |
 
 ## State Sync Errors
@@ -90,9 +89,9 @@ If you experience any issues running your node, here are common errors and their
 
 | Metric | Threshold | How to Check |
 |--------|-----------|--------------|
-| **Disk Space** | Keep 10+ GiB free (20+ GiB recommended) | `df -h` |
+| **Disk Space** | Keep more than 10% free (by default, unhealthy below 10% and shutdown below 3%) | `df -h` |
 | **Network Connectivity** | Inbound/outbound connections active | Check firewall, use port scanners |
-| **Bootstrap Status** | Should be `bootstrapped` | `/api/health` |
+| **Bootstrap Status** | Should be `bootstrapped` | `/ext/health/readiness` |
 | **Validator Connections** | Connected to sufficient stake | `/ext/info` API, check peer count |
 | **Database Health** | No corruption warnings in logs | Monitor `~/.avalanchego/logs/` |
 | **Node Version** | Current with latest release | `avalanchego --version` |

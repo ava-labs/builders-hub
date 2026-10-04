@@ -25,3 +25,9 @@ export async function expectActiveTab(screen: Screen, browser: Browser, label: s
   // A wrong isActive rule can mark two tabs. The role query cannot filter by aria-current, so a CSS selector counts them.
   await expect(browser.locator('nav[aria-label="Explorer sections"] [aria-current="page"]')).toHaveCount(1);
 }
+
+// The full URL with this exact path. A query string may follow, because a page can keep its own state there.
+export function pathPattern(path: string): RegExp {
+  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^https?://[^/]+${escaped}(\\?[^#]*)?$`);
+}

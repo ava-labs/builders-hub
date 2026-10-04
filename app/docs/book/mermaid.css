@@ -1,0 +1,74 @@
+/*
+ * Docs book skin: Mermaid diagrams. Every selector starts with [data-route-layout="docs"], so Academy and Blog charts
+ * keep Mermaid's own look after a client navigation leaves this CSS loaded. The renderer
+ * (components/content-design/mermaid.tsx) gives Mermaid's base theme the --bk-* colors and the page's sans. This
+ * file sets what Mermaid has no variable for. Mermaid measures each label with this file applied, so a font set
+ * here cannot clip a label.
+ */
+
+/* The chart sits on the page as a figure does. Mermaid sets the drawing to the column width, at most its natural
+   width (--bk-mermaid-width, set by the renderer). Labels and loop tags are 14px, group titles 12px.
+   - A column of 640px or more: a chart that fits at 75% of its natural width or more shrinks to fit. A wider chart
+     keeps its natural width and scrolls sideways. The min-width is a step: (75% of the natural width - the column)
+     times 1000, clamped to 0 or the natural width.
+   - A narrower column: a chart keeps its natural width and scrolls sideways, so no text is smaller than 12px. */
+[data-route-layout="docs"] [data-mermaid] {
+  container-type: inline-size;
+  margin: 32px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* A chart narrower than the column stands in its center. A wider chart has no free space, so it starts at the left
+   edge and scrolls. */
+[data-route-layout="docs"] [data-mermaid] > svg {
+  display: block;
+  margin-inline: auto;
+  min-width: clamp(
+    0px,
+    (var(--bk-mermaid-width, 0) * 0.75px - 100cqw) * 1000,
+    var(--bk-mermaid-width, 0) * 1px
+  );
+}
+
+@container (max-width: 639px) {
+  [data-route-layout="docs"] [data-mermaid] > svg { min-width: calc(var(--bk-mermaid-width, 0) * 1px); }
+}
+
+/* Hairlines stay 1px at every scale. */
+[data-route-layout="docs"] [data-mermaid] svg :is(path, rect, line, circle, ellipse, polygon) {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Group titles read as figure captions: small mono capitals in steel. */
+[data-route-layout="docs"] [data-mermaid] .cluster-label :is(span, p) {
+  font-family: var(--bk-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* A group title sits on the lines that cross it, as an edge label does (the renderer paints the titles last). The
+   title box has the fill of its group (--bk-title-bg, set by the renderer), so an author's fill on the group stays
+   under the title. The top 2px stay clear, so the title does not cover the border of its group. */
+[data-route-layout="docs"] [data-mermaid] .bk-cluster-titles foreignObject > div {
+  background: linear-gradient(transparent 2px, var(--bk-title-bg, var(--bk-mermaid-paper)) 2px);
+}
+
+/* A label on a line keeps a small gap to the line on each side. The paragraph carries the page color, so the line
+   stops at the gap. */
+[data-route-layout="docs"] [data-mermaid] span.edgeLabel > p { padding: 1px 6px; }
+
+/* Sequence diagrams: Mermaid draws messages at 1.5px and lifelines and loop frames at 2px. Mermaid scopes those
+   rules to the id of the drawing, and an id outranks any list of classes, so only !important sets the hairline.
+   An author cannot style these lines, so nothing of the author's is lost. */
+[data-route-layout="docs"] [data-mermaid] :is(.messageLine0, .messageLine1, .loopLine, .actor-line, .innerArc) {
+  stroke-width: 1px !important;
+}
+
+/* The "loop", "alt" and "opt" tags: capitals, as the group titles. Mermaid sets the font and the size of a tag in
+   its style attribute (the page's sans at 14px), so only the case and the spacing come from here. */
+[data-route-layout="docs"] [data-mermaid] :is(.labelText, .labelText > tspan) {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

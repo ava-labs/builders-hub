@@ -16,7 +16,7 @@ Avalanche nodes are essential elements for running your Avalanche L1 in producti
 
 ### Server OS
 
-Although AvalancheGo can run on a MacOS or a Windows computer, we strongly recommend running nodes on computers running Linux as they are designed specifically for server loads and all the tools and utilities needed for administering a server are native to Linux.
+AvalancheGo v1.13.3 and later do not support Windows. On Windows, use Windows Subsystem for Linux (WSL). Although AvalancheGo can run on macOS, we strongly recommend running nodes on computers running Linux as they are designed specifically for server loads and all the tools and utilities needed for administering a server are native to Linux.
 
 ### Hardware Specification
 
@@ -25,10 +25,10 @@ For running AvalancheGo as a validator on the Primary Network the recommended co
 - CPU: Equivalent of 8 AWS vCPU
 - RAM: 16 GiB
 - Storage: 1 TiB with at least 3000 IOPS
-- OS: Ubuntu 20.04
+- OS: Ubuntu 22.04 or 24.04, or macOS 12 or later
 - Network: Reliable IPv4 or IPv6 network connection, with an open public port
 
-That is the configuration sufficient for running a Primary Network node. Any resource requirements for your Avalanche L1 come on top of this, so you should not go below this configuration, but may need to step up the specification if you expect your Avalanche L1 to handle a significant amount of transactions.
+That is the configuration sufficient for running a Primary Network node. A node that also validates the Primary Network needs this configuration plus the resources of your Avalanche L1. A node that only validates L1s can run with `--partial-sync-primary-network`, which syncs only the P-Chain of the Primary Network, so it needs fewer resources. Step up the specification if you expect your Avalanche L1 to handle a significant amount of transactions.
 
 Be sure to set up monitoring of resource consumption for your nodes because resource exhaustion may cause your node to slow down or even halt, which may severely impact your Avalanche L1 negatively.
 
@@ -70,7 +70,7 @@ Once you set up the server and install AvalancheGo on them, nodes will need to b
 
 #### State Sync
 
-If the nodes you will be running as validators don't need to have the full transaction history, then you can use [state sync](/docs/nodes/chain-configs/primary-network/c-chain#state-sync-enabled). With this flag enabled, instead of replaying the whole history to get to the current state, nodes simply download only the current state from other network peers, shortening the bootstrap process from multiple days to a couple of hours. If the nodes will be used for Avalanche L1 validation exclusively, you can use the state sync without any issues. Currently, state sync is only available for the C-Chain, but since the bulk of the transactions on the platform happen there it still has a significant impact on the speed of bootstrapping.
+If the nodes you will be running as validators don't need to have the full transaction history, then you can use [state sync](/docs/nodes/chain-configs/primary-network/c-chain#state-sync-enabled). With this flag enabled, instead of replaying the whole history to get to the current state, nodes simply download only the current state from other network peers, shortening the bootstrap process from multiple days to a couple of hours. A new node uses C-Chain state sync by default, because the C-Chain `state-sync-enabled` option defaults to `true`. Subnet-EVM L1 chains also support state sync. The Subnet-EVM default is `false`, so set `state-sync-enabled` to `true` in the L1 chain config. If a node only validates L1s, set `--partial-sync-primary-network` to `true`. The node then syncs only the P-Chain of the Primary Network.
 
 #### Database Copy
 
@@ -104,12 +104,7 @@ Running nodes as Avalanche L1 validators warrants some additional considerations
 
 ### Joining an Avalanche L1
 
-For a node to join an Avalanche L1, there are two prerequisites:
-
-- Primary Network validation
-- Avalanche L1 tracking
-
-Primary Network validation means that a node cannot join an Avalanche L1 as a validator before becoming a validator on the Primary Network itself. So, after you add the node to the validator set on the Primary Network, node can join an Avalanche L1. Of course, this is valid only for Avalanche L1 validators, if you need a non-validating Avalanche L1 node, then the node doesn't need to be a validator at all.
+For a node to validate an Avalanche L1, the node must track the L1. The node does not have to validate the Primary Network. Since the Etna upgrade (ACP-77), an L1 validator must sync the P-Chain, but it does not have to sync the C-Chain or the X-Chain. It pays a continuous fee and does not stake 2,000 AVAX. Set `--partial-sync-primary-network` to `true` on a node that only validates L1s. Only a chain that is not converted to an L1 still requires its validators to validate the Primary Network.
 
 To have a node start syncing the Avalanche L1, you need to add the `--track-subnets` command line option, or `track-subnets` key to the node config file (found at `.avalanchego/configs/node.json` for installer-script created nodes). A single node can sync multiple Layer 1s, so you can add them as a comma-separated list of Avalanche L1 IDs (SubnetID).
 
@@ -125,22 +120,20 @@ An example of a node config syncing two Avalanche L1s:
 
 But that is not all. Besides tracking the SubnetID, the node also needs to have the plugin that contains the VM instance the blockchain in the Avalanche L1 will run. You should have already been through that on Testnet and Fuji, but for a refresher, you can refer to [this tutorial](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
 
-So, name the VM plugin binary as the `VMID` of the Avalanche L1 chain and place it in the `plugins` directory where the node binary is (for installer-script created nodes that would be `~/avalanche-node/plugins/`).
+So, name the VM plugin binary as the `VMID` of the Avalanche L1 chain and place it in the node's plugin directory. The default plugin directory (`--plugin-dir`) is `~/.avalanchego/plugins/`, also for nodes that the installer script set up.
 
 ### Avalanche L1 Bootstrapping
 
 After you have tracked the Avalanche L1 and placed the VM binary in the correct directory, your node is ready to start syncing with the Avalanche L1. Restart the node and monitor the log output. You should notice something similar to:
 
 ```bash
-Jul 30 18:26:31 node-fuji avalanchego[1728308]: [07-30|18:26:31.422] INFO chains/manager.go:262 creating chain:
-Jul 30 18:26:31 node-fuji avalanchego[1728308]:     ID: 2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt
-Jul 30 18:26:31 node-fuji avalanchego[1728308]:     VMID:srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+Jul 30 18:26:31 node-fuji avalanchego[1728308]: [07-30|18:26:31.422] INFO chains/manager.go:379 creating chain {"subnetID": "<subnetID>", "chainID": "2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt", "vmID": "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"}
 ```
 
 That means the node has detected the Avalanche L1, and is attempting to initialize it and start bootstrapping the Avalanche L1. It might take some time (if there are already transactions on the Avalanche L1), and eventually it will finish the bootstrap with a message like:
 
 ```bash
-Jul 30 18:27:21 node-fuji avalanchego[1728308]: [07-30|18:27:21.055] INFO <2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt Chain> snowman/transitive.go:333 consensus starting with J5wjmotMCrM2DKxeBTBPfwgCPpvsjtuqWNozLog2TomTjSuGK as the last accepted block
+Jul 30 18:27:21 node-fuji avalanchego[1728308]: [07-30|18:27:21.055] INFO <2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt Chain> snowman/engine.go:513 starting consensus {"lastAcceptedID": "J5wjmotMCrM2DKxeBTBPfwgCPpvsjtuqWNozLog2TomTjSuGK", "lastAcceptedHeight": <height>}
 ```
 
 That means the node has successfully bootstrapped the Avalanche L1 and is now in sync. If the node is one of the validators, it will start validating any transactions that get posted to the Avalanche L1.
@@ -155,9 +148,9 @@ For an even more thorough (and pretty!) insight into how the node and the Avalan
 
 ### Managing Validation
 
-On Avalanche all validations are limited in time and can range from two weeks up to one year. Furthermore, Avalanche L1 validations are always a subset of the Primary Network validation period (must be shorter or the same). That means that periodically your validators will expire and you will need to submit a new validation transaction for both the Primary Network and your Avalanche L1.
+L1 validators have no end time. An L1 validator stays in the validator set until the validator manager sets its weight to 0. The validator stays active while its P-Chain balance pays the continuous fee (512 nAVAX per second at the minimum price). L1 validators do not have to validate the Primary Network. If a node also validates the Primary Network, that validation lasts from 48 hours to one year on Mainnet, unless you use an auto-renewed validator (ACP-236).
 
-Unless managed properly and in a timely manner, that can be disruptive for your Avalanche L1 (if all validators expire at the same time your Avalanche L1 will halt). To avoid that, keep notes on when a particular validation is set to expire and be ready to renew it as soon as possible. Also, when initially setting up the nodes, make sure to stagger the validator expiry so they don't all expire on the same date. Setting end dates at least a day apart is a good practice, as well as setting reminders for each expiry.
+If the balances of many validators run out at the same time, those validators become inactive and your Avalanche L1 can halt. Check the balance of each validator with `platform.getL1Validator`. Top up a balance with an `IncreaseL1ValidatorBalanceTx` before it runs out. Anyone can top up a balance.
 
 Conclusion
 ---------------------------------------------------

@@ -3,17 +3,17 @@ title: Periodic State Sync
 description: Instructions for performing a periodic state sync.
 ---
 
-By bootstrapping a new node via state sync and transfering your validator identity you can reduce
-disk usage with zero downtime.
+By bootstrapping a new node via state sync and transferring your validator identity, you can reduce
+disk usage with a short downtime (usually 5 to 15 minutes).
 
 | Pros | Cons |
 |------|------|
-| No downtime for validator | Needs separate machine to bootstrap |
+| Short downtime for validator (usually 5 to 15 minutes) | Needs separate machine to bootstrap |
 | Fresh, clean database | Network bandwidth for sync |
 | No bloom filter disk overhead | More complex multi-step process |
 
 <Callout>
-If you don't have access to a separate machine, you can also do a [state sync snapshot deletion](/docs/nodes/node-storage/state-sync-snapshot-deletion) instead.
+On the C-Chain, a fresh state sync is the only way to remove accumulated snapshots, because the C-Chain ignores the offline pruning options since Helicon. Subnet-EVM L1 chains still support offline pruning in their [chain config](/docs/nodes/chain-configs/avalanche-l1s/subnet-evm).
 </Callout>
 
 ### How It Works
@@ -27,12 +27,17 @@ Your validator identity consists of three key files in `~/.avalanchego/staking/`
 
 These files define your validator identity. The Node ID shown on the P-Chain is cryptographically derived from `staker.crt`, so copying these files transfers your complete validator identity.
 
-![Node Replacement Process](/images/State_sync_new_node.png)
+The old node validates while a new node state syncs. Then you stop both nodes, copy the staking keys to the new node, and start it. The new node validates with the same Node ID and a fresh database (Figure 1).
 
-The diagram shows the process: stop the old node, let a new node state sync, then transfer the
-staking keys to continue validating with a fresh database.
+<Figure id="resync-timeline" caption="The steps of a periodic state sync, numbered as on this page. The hatched band shows the staking keys. They stay on the old node until both nodes stop, then move to the new node. The time line is not to scale: the state sync takes hours, and steps 5 to 9 usually take 5 to 15 minutes.">
+  <ResyncTimelineFigure />
+</Figure>
 
-![Frequent Pruning Pattern](/images/State_sync_frequent_pruning.png)
+After a state sync, the node keeps a snapshot every 4096 blocks again, so its disk use grows. Repeat the process at intervals to keep the disk use near the active state (Figure 2).
+
+<Figure id="resync-disk" caption="Disk use over time of a node that does a periodic state sync. Each state sync removes the snapshots, and the disk use drops to the active state. The first state sync comes after a long time, so it removes the most snapshots. The hatch shows the snapshots. The chart is a schematic and is not to scale.">
+  <ResyncDiskFigure />
+</Figure>
 
 ### Step-by-Step Process
 
@@ -94,7 +99,7 @@ curl -X POST --data '{
 
 Once the state sync has completed, stop both nodes to prepare for the identity transfer. The entire
 stop → transfer → restart process typically takes 5-15 minutes. Your validator will miss some blocks
-during this window, but won't be penalized as long as you're back online before your uptime drops below 80%.
+during this window, but won't lose rewards as long as your uptime over the whole validation period stays at or above the requirement. The requirement is 90% for a validation that started at or after the Helicon upgrade, and 80% for an earlier one.
 </Step>
 
 <Step>

@@ -3,7 +3,7 @@ title: With Multisig Auth
 description: Learn how to create an Avalanche L1 with a multisig authorization.
 ---
 
-Avalanche L1 creators can control critical Avalanche L1 operations with a N of M multisig. This multisig must be setup at deployment time and can't be edited afterward. Multisigs can are available on both the Fuji Testnet and Mainnet.
+Avalanche L1 creators can control critical Avalanche L1 operations with a N of M multisig. You set this multisig when you deploy the Avalanche L1. To change it later, the current control keys sign a `TransferSubnetOwnershipTx`, which the P-Chain accepts since the Durango upgrade. Multisigs can are available on both the Fuji Testnet and Mainnet.
 
 To setup your multisig, you need to know the P-Chain address of each key holder and what you want your signing threshold to be.
 
@@ -168,7 +168,7 @@ If the user has the correct address but doesn't have sufficient balance to pay f
 ✔ P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g
 Your Avalanche L1 auth keys for chain creation: [P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g]
 *** Please sign Avalanche L1 creation hash on the ledger device ***
-Error: insufficient funds: provided UTXOs need 1000000000 more units of asset "rgNLkDPpANwqg3pHC4o9aGJmf2YU4GgTVUMRKAdnKodihkqgr"
+Error: insufficient funds: provided UTXOs needed 10278 more nAVAX ("FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z")
 exit status 1
 ```
 
@@ -300,7 +300,7 @@ Your Avalanche L1 successfully deployed with a multisig.
 Add Validators Using the Multisig
 -------------------------------------------------------------------------------------------------
 
-The `addValidator` command also requires use of the multisig. Before starting, make sure to connect, unlock, and run the Avalanche Ledger app.
+This section applies only to a chain that is not converted to an L1. After `ConvertSubnetToL1Tx`, the P-Chain rejects `AddSubnetValidatorTx`, so the control keys cannot add validators. To add a validator to an L1, use the validator manager, as shown in [Add a Validator](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet#add-a-validator). For a chain that is not converted, the `addValidator` command requires the multisig. Before starting, make sure to connect, unlock, and run the Avalanche Ledger app.
 
 ```bash
 avalanche blockchain addValidator testblockchain
@@ -344,7 +344,7 @@ Your subnet auth keys for add validator TX creation: [P-avax1kdzq569g2c9urm9887c
 Take a look at [Add a Validator](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet#add-a-validator) for additional help issuing this transaction.
 
 <Callout title="Note">
-If setting up a multisig, don't select your validator start time to be in one minute. Finishing the signing process takes significantly longer when using a multisig.
+Since the Durango upgrade, the P-Chain ignores the start time in the transaction. The validation starts when the P-Chain accepts the transaction and ends at the end time. Collect all signatures before the remaining time is shorter than the minimum staking duration (14 days on Mainnet).
 </Callout>
 
 ```bash

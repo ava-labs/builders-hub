@@ -92,10 +92,8 @@ export interface ProfileBadgeSummary {
   description: string;
   imagePath: string;
   category: string;
-  group: "console" | "developer" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
-  tier: string | null;
+  group: "developer" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
   isUnlocked: boolean;
-  isSecret: boolean;
   awardedAt: string | null;
   requirements: Requirement[];
 }
@@ -127,10 +125,10 @@ export async function getUserBadgesForProfile(
     getRewardBoard(userId),
   ]);
 
-  // Return every badge that exists in the DB. The board groups them by
-  // whatever signal we can extract (id prefix or category), and anything we
-  // can't recognize ends up in the "Other Badges" section instead of being
-  // hidden — so a misnamed seed never disappears from the UI again.
+  // Return every badge in the DB except the console badges, which getAllBadges
+  // leaves out. The board groups them by id prefix, and anything we can't
+  // recognize ends up in the "Other Badges" section instead of being hidden,
+  // so a misnamed seed never disappears from the UI again.
   // The one exception: a retired badge shows only to the users who earned it.
   return badges
     .map((badge) => resolveProfileBadge(badge, userBadges))
@@ -138,8 +136,6 @@ export async function getUserBadgesForProfile(
     .sort((a, b) => {
       const groupDelta = groupOrder(a.group) - groupOrder(b.group);
       if (groupDelta !== 0) return groupDelta;
-      const tierDelta = Number(a.tier ?? 0) - Number(b.tier ?? 0);
-      if (tierDelta !== 0) return tierDelta;
       return badgeCourseOrder(a.badgeId) - badgeCourseOrder(b.badgeId);
     });
 }
@@ -163,9 +159,7 @@ function resolveProfileBadge(
     imagePath: badge.image_path,
     category: badge.category,
     group: getBadgeGroup(badge),
-    tier: getConsoleTier(badge),
     isUnlocked: userBadge ? hasNoRequirements || allRequirementsCompleted : false,
-    isSecret: getConsoleTier(badge) === "4",
     awardedAt: userBadge?.awarded_at?.toISOString() ?? null,
     requirements,
   };
@@ -173,10 +167,6 @@ function resolveProfileBadge(
 
 function getBadgeGroup(badge: Badge): ProfileBadgeSummary["group"] {
   const id = badge.id.toLowerCase();
-  const category = badge.category?.toLowerCase() ?? "";
-  // Console badges may be seeded with auto-generated UUIDs (no "console" in
-  // the id), so check the category column too.
-  if (id.includes("console") || category === "console") return "console";
   if (id.includes("hackathon")) return "hackathon";
   // The unified Avalanche Developer Academy uses ids like `1devAcademy-*`.
   if (id.includes("devacademy")) return "developer";
@@ -188,17 +178,6 @@ function getBadgeGroup(badge: Badge): ProfileBadgeSummary["group"] {
   return "unknown";
 }
 
-function getConsoleTier(badge: Badge): string | null {
-  if (getBadgeGroup(badge) !== "console") return null;
-  const idMatch = badge.id.toLowerCase().match(/(\d+)tier/);
-  if (idMatch) return idMatch[1];
-  // UUID-id console badges encode the tier in the image filename, e.g.
-  // ".../Tier1_FirstKill.png". Pull it from there so the tier sections render.
-  const pathMatch = badge.image_path?.match(/Tier(\d+)/i);
-  if (pathMatch) return pathMatch[1];
-  return "0";
-}
-
 function badgeCourseOrder(id: string): number {
   const match = id.match(/-(\d+)/);
   return match ? Number(match[1]) : 999;
@@ -206,8 +185,6 @@ function badgeCourseOrder(id: string): number {
 
 function groupOrder(group: ProfileBadgeSummary["group"]): number {
   switch (group) {
-    case "console":
-      return 0;
     case "developer":
       return 1;
     case "blockchain":
@@ -240,7 +217,9 @@ export async function getProfileEngagement(
     };
   }
 
-  const [projectMemberships, hackathonMemberships, consoleBadgeCount] =
+  // A user has used the console once it holds a console log entry, a faucet
+  // claim or a node registration for them.
+  const [projectMemberships, hackathonMemberships, consoleLog, faucetClaim, nodeRegistration] =
     await Promise.all([
       prisma.member.count({
         where: { user_id: userId, status: MemberStatus.CONFIRMED },
@@ -252,19 +231,15 @@ export async function getProfileEngagement(
           project: { hackaton_id: { not: null } },
         },
       }),
-      prisma.userBadge.count({
-        where: {
-          user_id: userId,
-          status: 1,
-          badge: { category: "console" },
-        },
-      }),
+      prisma.consoleLog.findFirst({ where: { user_id: userId }, select: { id: true } }),
+      prisma.faucetClaim.findFirst({ where: { user_id: userId }, select: { id: true } }),
+      prisma.nodeRegistration.findFirst({ where: { user_id: userId }, select: { id: true } }),
     ]);
 
   return {
     hasProject: projectMemberships > 0,
     hasHackathonParticipation: hackathonMemberships > 0,
-    hasUsedConsole: consoleBadgeCount > 0,
+    hasUsedConsole: Boolean(consoleLog || faucetClaim || nodeRegistration),
   };
 }
 

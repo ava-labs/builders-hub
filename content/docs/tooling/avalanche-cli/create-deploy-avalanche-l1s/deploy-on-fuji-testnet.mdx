@@ -27,7 +27,7 @@ Virtual Machine
 
 Avalanche can run multiple blockchains. Each blockchain is an instance of a [Virtual Machine](/docs/primary-network/virtual-machines), much like an object in an object-oriented language is an instance of a class. That's, the VM defines the behavior of the blockchain.
 
-[Subnet-EVM](https://github.com/ava-labs/subnet-evm) is the VM that defines the Avalanche L1 Contract Chains. Subnet-EVM is a simplified version of [Avalanche C-Chain](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth).
+[Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm) is the VM that defines the Avalanche L1 Contract Chains. Subnet-EVM is a simplified version of [Coreth](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth), the VM that ran the C-Chain before the Helicon upgrade.
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client features.
 
@@ -399,7 +399,7 @@ Now, enter the amount of AVAX that you would like to allocate to the new validat
 
 The validator's balance is used to pay for continuous fee to the P-Chain. When this Balance reaches 0, the validator will be considered inactive and will no longer participate in validating the L1.
 
-1 AVAX should last the validator about a month.
+At the minimum fee of 512 nAVAX per second, 1 AVAX pays for about 22 days. The fee goes up when more than 10,000 L1 validators are active.
 
 ```bash
 What balance would you like to assign to the validator (in AVAX)?: 1

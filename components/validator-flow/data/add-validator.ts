@@ -104,7 +104,7 @@ export const addValidatorFlow: FlowDefinition = {
           symptom:
             'connectedWeight: 0 while totalWeight is nonzero; "failed to collect a threshold of signatures".',
           cause:
-            "On validators-only L1s the validators accept peer connections only from allowlisted NodeIDs. The aggregator's own NodeID is not in allowedNodes, so no validator answers it.",
+            "On validators-only L1s the validators drop this L1's messages from nodes that are not L1 validators and are not in allowedNodes. The aggregator's own NodeID is not in allowedNodes, so no validator answers it.",
           fix: "Add the aggregator's NodeID to the allowedNodes configuration of the L1 validators (your infra provider can do this), then retry.",
         },
       ],
@@ -114,7 +114,7 @@ export const addValidatorFlow: FlowDefinition = {
       title: "Submit RegisterL1ValidatorTx to the P-Chain",
       railLabel: "P-CHAIN TX",
       summary:
-        "The aggregated, signed message goes into a P-Chain RegisterL1ValidatorTx. When it is accepted, the P-Chain assigns a validationID and the validator starts consuming its continuous fee balance.",
+        "The aggregated, signed message goes into a P-Chain RegisterL1ValidatorTx. When it is accepted, the P-Chain records the validator under its validationID (the SHA-256 hash of the RegisterL1ValidatorMessage), and the validator starts to pay the continuous fee from its balance.",
       activeActors: ["aggregator", "pchain"],
       travel: {
         from: "aggregator",
@@ -218,7 +218,7 @@ export const addValidatorFlow: FlowDefinition = {
         notes: [
           "The calldata above is completeValidatorRegistration(uint32) with message index 0: selector 0xa3a65e48 plus the zero-encoded argument.",
           "The Warp precompile lives at 0x0200000000000000000000000000000000000005; the predicate is packed into the access list entry for that address.",
-          "requirePrimaryNetworkSigners does not apply here: P-Chain-sourced messages are exempt in Subnet-EVM v0.8.0 and later, so the L1 validator set verifies this message.",
+          "requirePrimaryNetworkSigners does not apply here: P-Chain-sourced messages are always exempt, so the L1 validator set verifies this message.",
           "Verify the result afterwards in the console's verify-validator-set step.",
         ],
       },

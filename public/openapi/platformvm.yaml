@@ -254,7 +254,8 @@ paths:
                       type: string
                       enum:
                         - hex
-                        - json
+                        - hexc
+                        - hexnc
                       description: Encoding format
                   required:
                     - addresses
@@ -1088,7 +1089,8 @@ paths:
                       type: string
                       enum:
                         - hex
-                        - json
+                        - hexc
+                        - hexnc
                       description: Encoding format
                   required:
                     - tx
@@ -1518,7 +1520,8 @@ paths:
                       type: string
                       enum:
                         - hex
-                        - json
+                        - hexc
+                        - hexnc
                       description: Encoding format
                   required:
                     - txID
@@ -1915,9 +1918,26 @@ paths:
                     type: object
                     description: Method result
                     properties:
-                      maxGas:
+                      weights:
+                        type: array
+                        items:
+                          type: integer
+                        description: Weights that merge the fee dimensions (bandwidth, DB read, DB write, compute) into one gas value
+                      maxCapacity:
                         type: integer
-                        description: Maximum gas limit
+                        description: Maximum gas that the chain can store for later use
+                      maxPerSecond:
+                        type: integer
+                        description: Maximum gas that the chain can use per second
+                      targetPerSecond:
+                        type: integer
+                        description: Target gas use per second
+                      minPrice:
+                        type: integer
+                        description: Minimum gas price in nAVAX
+                      excessConversionConstant:
+                        type: integer
+                        description: Constant that converts excess gas to a gas price
                   id:
                     type: integer
                     example: 1
@@ -2053,12 +2073,18 @@ paths:
                     type: object
                     description: Method result
                     properties:
+                      capacity:
+                        type: integer
+                        description: Maximum number of active L1 validators
+                      target:
+                        type: integer
+                        description: Target number of active L1 validators
                       minPrice:
                         type: integer
-                        description: Minimum gas price
-                      maxPrice:
+                        description: Minimum fee per active L1 validator per second, in nAVAX
+                      excessConversionConstant:
                         type: integer
-                        description: Maximum gas price
+                        description: Constant that converts excess to a fee price
                   id:
                     type: integer
                     example: 1
@@ -2731,8 +2757,11 @@ components:
       type: object
       properties:
         height:
-          type: integer
-          description: Block height
+          oneOf:
+            - type: integer
+            - type: string
+          description: P-Chain height, or the string proposed for the proposed height of this node
+          example: proposed
         subnetID:
           type: string
           description: Avalanche ID in cb58 format
@@ -2742,35 +2771,47 @@ components:
         - subnetID
     GetValidatorsAtReply:
       type: object
-      properties:
-        Validators:
-          type: object
-          additionalProperties: true
-          description: Map of ids.NodeID to *validators.GetValidatorOutput
-      required:
-        - Validators
+      description: Map from node ID to the BLS public key and weight of that validator. The result has no validators wrapper.
+      additionalProperties:
+        type: object
+        properties:
+          publicKey:
+            type: string
+            nullable: true
+            description: Compressed BLS public key, hex encoded with 0x prefix. Null if the validator has no BLS key.
+          weight:
+            type: string
+            description: Validator weight, unsigned 64-bit integer as string
     GetFeeStateReply:
       type: object
       properties:
+        capacity:
+          type: integer
+          description: Gas capacity that is available now
+        excess:
+          type: integer
+          description: Gas excess above the target
         price:
-          type: string
-          description: Gas price as string
+          type: integer
+          description: Gas price in nAVAX
         timestamp:
           type: string
           format: date-time
           description: ISO 8601 timestamp
       required:
+        - capacity
+        - excess
         - price
         - timestamp
     GetValidatorFeeStateReply:
       type: object
       properties:
         excess:
-          type: string
-          description: Gas amount as string
+          type: integer
+          description: Excess above the target number of L1 validators
         price:
-          type: string
-          description: Gas price as string
+          type: integer
+          description: Fee per active L1 validator per second, in nAVAX
         timestamp:
           type: string
           format: date-time

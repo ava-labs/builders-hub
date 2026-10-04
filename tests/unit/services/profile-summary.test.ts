@@ -1,19 +1,35 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BadgeAwardStatus } from "@/types/badge";
 
-const { badgeFindMany, userBadgeFindMany } = vi.hoisted(() => ({
+const {
+  badgeFindMany,
+  userBadgeFindMany,
+  memberCount,
+  consoleLogFindFirst,
+  faucetClaimFindFirst,
+  nodeRegistrationFindFirst,
+} = vi.hoisted(() => ({
   badgeFindMany: vi.fn(),
   userBadgeFindMany: vi.fn(),
+  memberCount: vi.fn(),
+  consoleLogFindFirst: vi.fn(),
+  faucetClaimFindFirst: vi.fn(),
+  nodeRegistrationFindFirst: vi.fn(),
 }));
 
 vi.mock("@/prisma/prisma", () => ({
   prisma: {
     badge: { findMany: badgeFindMany },
     userBadge: { findMany: userBadgeFindMany },
+    member: { count: memberCount },
+    consoleLog: { findFirst: consoleLogFindFirst },
+    faucetClaim: { findFirst: faucetClaimFindFirst },
+    nodeRegistration: { findFirst: nodeRegistrationFindFirst },
   },
 }));
 
-import { getUserBadgesForProfile } from "@/server/services/profile-summary";
+import { getProfileEngagement, getUserBadgesForProfile } from "@/server/services/profile-summary";
+import { NOT_CONSOLE_BADGE } from "@/server/services/rewardBoard";
 
 const course = (courseId: string) => ({
   id: `${courseId}-complete`,
@@ -67,6 +83,10 @@ const shownIds = async () => (await getUserBadgesForProfile("u1")).map((summary)
 beforeEach(() => {
   badgeFindMany.mockReset();
   userBadgeFindMany.mockReset();
+  memberCount.mockReset().mockResolvedValue(0);
+  consoleLogFindFirst.mockReset().mockResolvedValue(null);
+  faucetClaimFindFirst.mockReset().mockResolvedValue(null);
+  nodeRegistrationFindFirst.mockReset().mockResolvedValue(null);
 });
 
 describe("getUserBadgesForProfile: badges of removed courses (FDE-154)", () => {
@@ -132,5 +152,34 @@ describe("getUserBadgesForProfile: badges of the removed Entrepreneur Academy (F
     userBadgeFindMany.mockResolvedValue([started(ENTREPRENEUR_GRADUATE, 2), started(GRADUATE, 2)]);
     const summaries = await getUserBadgesForProfile("u1");
     expect(summaries.map((summary) => [summary.badgeId, summary.isUnlocked])).toEqual([[GRADUATE.id, false]]);
+  });
+});
+
+describe("getUserBadgesForProfile: console badges were removed", () => {
+  it("reads the badges and the user's badges without the stored console rows", async () => {
+    given([X402], []);
+    await getUserBadgesForProfile("u1");
+    expect(badgeFindMany).toHaveBeenCalledWith({ where: NOT_CONSOLE_BADGE });
+    expect(userBadgeFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { user_id: "u1", badge: NOT_CONSOLE_BADGE } }),
+    );
+  });
+});
+
+describe("getProfileEngagement: the 'Use the console' step", () => {
+  it.each([
+    ["a console log entry", consoleLogFindFirst],
+    ["a faucet claim", faucetClaimFindFirst],
+    ["a node registration", nodeRegistrationFindFirst],
+  ])("counts %s as console use", async (_, findFirst) => {
+    findFirst.mockResolvedValue({ id: "row" });
+    expect((await getProfileEngagement("u1")).hasUsedConsole).toBe(true);
+    expect(findFirst).toHaveBeenCalledWith({ where: { user_id: "u1" }, select: { id: true } });
+  });
+
+  it("is not done for a user with no console activity, and reads no badge", async () => {
+    expect((await getProfileEngagement("u1")).hasUsedConsole).toBe(false);
+    expect(badgeFindMany).not.toHaveBeenCalled();
+    expect(userBadgeFindMany).not.toHaveBeenCalled();
   });
 });
