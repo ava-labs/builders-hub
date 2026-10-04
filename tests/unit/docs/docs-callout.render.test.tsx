@@ -6,7 +6,8 @@ import { DocsCallout, type DocsCalloutProps } from '@/components/docs-book/callo
 const callout = (props: Omit<DocsCalloutProps, 'children'>, children: ReactNode = 'Keep the key safe.') =>
   renderToStaticMarkup(createElement(DocsCallout, props, children));
 /** The word in the label row, or null when the callout has no label row. */
-const label = (html: string) => /<p data-bk-callout-label="">.*?<\/span>([^<]*)<\/p>/.exec(html)?.[1] ?? null;
+const label = (html: string) =>
+  /<p data-bk-callout-label=""><span data-bk-callout-mark="">.*?<\/span>([^<]*)<\/span><\/p>/.exec(html)?.[1] ?? null;
 /** The family (data-bk-callout) on the root element. */
 const family = (html: string) => /^<div [^>]*data-bk-callout="([^"]*)"/.exec(html)?.[1];
 /** The opening tag of the element that carries `marker`. */

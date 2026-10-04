@@ -114,10 +114,12 @@ export function DocsCallout({ type, title, icon, art, children, ...props }: Docs
     <div role="note" aria-label={labelFromTitle ?? mark.label} {...props} data-bk-callout={mark.family}>
       {showLabel && (
         <p data-bk-callout-label="">
-          <span data-bk-callout-icon="" aria-hidden="true">
-            {icon ?? <mark.Icon />}
+          <span data-bk-callout-mark="">
+            <span data-bk-callout-icon="" aria-hidden="true">
+              {icon ?? <mark.Icon />}
+            </span>
+            {labelFromTitle ?? mark.label}
           </span>
-          {labelFromTitle ?? mark.label}
         </p>
       )}
       {artKind && <CalloutArt kind={artKind} data-bk-callout-art="" />}

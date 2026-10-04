@@ -6,6 +6,9 @@
  */
 
 [data-route-layout="docs"] [data-bk-callout] {
+  /* The plate and the gap after it. The label column of a callout with art has the same width. */
+  --bk-art-w: 136px;
+  --bk-art-gap: 18px;
   /* flow-root holds the floated art inside the rule. */
   display: flow-root;
   margin: 24px 0;
@@ -26,7 +29,6 @@
 [data-route-layout="docs"] [data-bk-callout-label] {
   display: flex;
   align-items: center;
-  gap: 6px;
   margin: 0 0 8px;
   font-family: var(--bk-sans);
   /* Body size, as in the book: the label names the kind, so it must not read smaller than the lead. */
@@ -36,11 +38,18 @@
   color: var(--bk-blue);
 }
 
+/* The icon and the word. */
+[data-route-layout="docs"] [data-bk-callout-mark] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 [data-route-layout="docs"] [data-bk-callout="warning"] [data-bk-callout-label] { color: var(--bk-red-text); }
 
 /* Danger: the label is a band, white on the danger red (7.01:1), the same in light and dark. */
-[data-route-layout="docs"] [data-bk-callout="danger"] [data-bk-callout-label] {
-  width: fit-content;
+[data-route-layout="docs"] [data-bk-callout="danger"] [data-bk-callout-mark] {
   padding: 1px 8px 1px 6px;
   border-radius: 2px;
   background: var(--bk-danger-band);
@@ -64,9 +73,9 @@
   float: left;
   display: block;
   /* The plate is wide, so it gets more width than the book's owl to reach about two and a half lines. */
-  width: 136px;
+  width: var(--bk-art-w);
   aspect-ratio: 480 / 255;
-  margin: 2px 18px 6px 0;
+  margin: 2px var(--bk-art-gap) 6px 0;
   /* The plate is an ink mask: the lines take this color, so one file reads on light and dark. */
   background-color: var(--bk-ink);
   -webkit-mask: url('/docs-book/peak.png') center / contain no-repeat;
@@ -81,6 +90,26 @@
 
 /* On a dark ground the plate reads as a negative; steel keeps it from glaring next to the text. */
 .dark [data-route-layout="docs"] [data-bk-callout-art] { background-color: var(--bk-steel); }
+
+/*
+ * With art, the label and the plate make a left column. The label floats in a box as wide as the plate, so the
+ * lead takes the label's row. The plate clears below the label, so the first body line starts level with the
+ * plate. The label row is one line of the page text (1lh), the same height as the lead's first line.
+ */
+[data-route-layout="docs"] [data-bk-callout]:has(> [data-bk-callout-art]) > [data-bk-callout-label] {
+  float: left;
+  clear: left;
+  width: var(--bk-art-w);
+  height: 1lh;
+  margin: 0 var(--bk-art-gap) 0 0;
+  line-height: inherit;
+}
+
+[data-route-layout="docs"] [data-bk-callout]:has(> [data-bk-callout-label]) > [data-bk-callout-art] {
+  clear: left;
+  /* The same space as under the lead, so the plate and the body start on one line. */
+  margin-top: 4px;
+}
 
 /* ---------- Lead line and body ---------- */
 
@@ -109,8 +138,8 @@
   [data-route-layout="docs"] [data-bk-callout] { padding-left: 16px; }
   [data-route-layout="docs"] [data-bk-callout="danger"] { padding-left: 15px; }
 
-  [data-route-layout="docs"] [data-bk-callout-art] {
-    width: 96px;
-    margin-right: 14px;
+  [data-route-layout="docs"] [data-bk-callout] {
+    --bk-art-w: 96px;
+    --bk-art-gap: 14px;
   }
 }
