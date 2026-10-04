@@ -30,15 +30,17 @@ If a sufficient majority of the validators sampled reply with the same preferred
 
 In the future, this node will reply with the transaction preferred by the majority.
 
-The node repeats this sampling process until the validators queried reply with the same answer for a sufficient number of consecutive rounds.
+The node repeats this sampling process until the validators queried reply with the same answer for a sufficient number of consecutive rounds (Figure 1).
 
 - The number of validators required to be considered a "sufficient majority" is referred to as "α" (_alpha_).
 - The number of consecutive rounds required to reach consensus, a.k.a. the "Confidence Threshold," is referred to as "β" (_beta_).
 - Both α and β are configurable.
 
-When a transaction has no conflicts, finalization happens very quickly. When conflicts exist, honest validators quickly cluster around conflicting transactions, entering a positive feedback loop until all correct validators prefer that transaction. This leads to the acceptance of non-conflicting transactions and the rejection of conflicting transactions.
+<Figure id="subsampling" caption="A node polls k validators in a loop. k is the sample size. AvalancheGo splits α into alphaPreference and alphaConfidence. The confidence is the number of successful polls in a row for one block. The hatched band shows successful polls. Each successful poll for the same block adds 1 to the confidence, and at β (beta) the node accepts the block (a set of transactions). A successful poll for a different block sets the confidence to 1. The empty path shows a failed poll, which sets the confidence to 0. The values are the AvalancheGo defaults.">
+  <SubsamplingFigure />
+</Figure>
 
-![How Snowman Consensus Works](/images/avalanche-consensus1.png)
+When a transaction has no conflicts, finalization happens very quickly. When conflicts exist, honest validators quickly cluster around conflicting transactions, entering a positive feedback loop until all correct validators prefer that transaction. This leads to the acceptance of non-conflicting transactions and the rejection of conflicting transactions.
 
 Snowman Consensus guarantees that if any honest validator accepts a transaction, all honest validators will come to the same conclusion.
 
@@ -100,7 +102,7 @@ In our example, there is a binary choice between pizza or barbecue, but Snowball
 
 The liveness and safety thresholds are parameterizable. As the quorum size, α, increases, the safety threshold increases, and the liveness threshold decreases. This means the network can tolerate more byzantine (deliberately incorrect, malicious) nodes and remain safe, meaning all nodes will eventually agree whether something is accepted or rejected. The liveness threshold is the number of malicious participants that can be tolerated before the protocol is unable to make progress.
 
-These values are node defaults. They are small compared with the number of nodes on the Avalanche Network. The sample size, _k_, is `20`. So when a node asks a group of nodes their opinion, it only queries `20` nodes out of the whole network. The quorum size, α, is `15`. So if `15` or more nodes give the same response, that response is adopted as the querying node's preference. (AvalancheGo splits α into `alphaPreference` and `alphaConfidence`. Both default to `15`.) The decision threshold, β, is `20`. A node decides on choice after receiving `20` consecutive quorum (α majority) responses.
+These values are node defaults. They are small compared with the number of nodes on the Avalanche Network. The sample size, _k_, is `20`. So when a node asks a group of nodes their opinion, it only queries `20` nodes out of the whole network. The quorum size, α, is `15`. So if `15` or more nodes give the same response, that response is adopted as the querying node's preference. (AvalancheGo splits α into `alphaPreference` and `alphaConfidence`. Both default to `15`.) The decision threshold, β, is `20`. A node decides on choice after receiving `20` consecutive quorum (α majority) responses (Figure 1).
 
 Snowball is very scalable as the number of nodes on the network, _n_, increases. Regardless of the number of participants in the network, the number of consensus messages sent remains the same because in a given query, a node only queries `20` nodes, even if there are thousands of nodes in the network.
 

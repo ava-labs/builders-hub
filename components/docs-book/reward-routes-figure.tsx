@@ -1,4 +1,16 @@
 import type { TermRole } from '@/components/docs-book/term';
+import {
+  bend,
+  FlowArt,
+  FlowLabel,
+  FlowSvg,
+  Fork,
+  HatchPattern,
+  type Box,
+  type MarkerKind,
+  type Point,
+  type Track,
+} from '@/components/docs-book/flow';
 
 /*
  * Figure for the Reward Manager page, drawn as a flow diagram. The fees of each block are a band of constant
@@ -9,7 +21,7 @@ import type { TermRole } from '@/components/docs-book/term';
  * blackhole address 0x0100...0000, which is the default.
  *
  * Two drawings of the same content: a wide one (720 units) for a container of 660px or more, and a tall one
- * (340 units) for phones. Each keeps its smallest text (12 units) at 11px or more on screen. flow.css shows one of
+ * (340 units) for phones. Each keeps its smallest text (12 units) at 11px or more on screen. figure.css shows one of
  * them with a container query.
  *
  * Every color comes from the docs tokens through currentColor. The colored parts sit in elements with
@@ -17,8 +29,6 @@ import type { TermRole } from '@/components/docs-book/term';
  * shape and a word: a hollow square is a validator setting, a filled square or bar is a contract or an account on
  * the L1, and a crossed square is the burn route.
  */
-
-type MarkerKind = 'setting' | 'account' | 'burn';
 
 interface Route {
   role?: TermRole;
@@ -63,25 +73,6 @@ const LABEL =
   'fixed address on the L1, a contract or an account. Channel 3, disableRewards, the default: the blackhole ' +
   'address 0x0100…0000, so nobody can spend the fees. In the drawing the fees fill channel 3, the default.';
 
-type Point = readonly [number, number];
-
-/* A piece of a channel center line: a straight run, or an arc that turns by an angle (degrees, positive is
-   clockwise on screen, because y points down). */
-type Seg = { line: number } | { arc: number; turn: number };
-
-interface Track {
-  from: Point;
-  heading: number;
-  segs: readonly Seg[];
-}
-
-interface Box {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
 interface Layout {
   name: 'wide' | 'stacked';
   w: number;
@@ -96,82 +87,6 @@ interface Layout {
   labels: readonly Point[];
   source: Point;
   precompile: { x: number; y: number; anchor: 'start' | 'end' };
-}
-
-const rad = (deg: number) => (deg * Math.PI) / 180;
-const round = (n: number) => Math.round(n * 100) / 100;
-const fmt = ([x, y]: Point) => `${round(x)} ${round(y)}`;
-
-/* The point at distance d to the right of a heading. With y down, the right of east is south. */
-function side([x, y]: Point, heading: number, d: number): Point {
-  const a = rad(heading);
-  return [x - d * Math.sin(a), y + d * Math.cos(a)];
-}
-
-interface Piece {
-  to: Point;
-  arc?: { r: number; sweep: 0 | 1 };
-}
-
-/*
- * Follow a center line and give the line at distance d to its right. Each arc of the offset line has the same
- * center as the arc of the center line, so the band keeps the same width through every bend. That is why the
- * channels are lines and arcs, and not Bezier curves.
- */
-function walk(t: Track, d: number): { start: Point; pieces: Piece[] } {
-  let p = t.from;
-  let h = t.heading;
-  const pieces: Piece[] = [];
-  for (const s of t.segs) {
-    if ('line' in s) {
-      p = [p[0] + s.line * Math.cos(rad(h)), p[1] + s.line * Math.sin(rad(h))];
-      pieces.push({ to: side(p, h, d) });
-    } else {
-      const sign = Math.sign(s.turn);
-      const center = side(p, h, sign * s.arc);
-      h += s.turn;
-      p = side(center, h, -sign * s.arc);
-      pieces.push({ to: side(p, h, d), arc: { r: s.arc - sign * d, sweep: s.turn > 0 ? 1 : 0 } });
-    }
-  }
-  return { start: side(t.from, t.heading, d), pieces };
-}
-
-function draw(pieces: readonly Piece[]): string {
-  return pieces
-    .map((p) => (p.arc ? ` A${round(p.arc.r)} ${round(p.arc.r)} 0 0 ${p.arc.sweep} ${fmt(p.to)}` : ` L${fmt(p.to)}`))
-    .join('');
-}
-
-/*
- * The outline of a channel: along the left edge, across the end, and back along the right edge. The start stays
- * open, because the channel starts at the precompile, or because the fees come in from outside the drawing.
- * With close, the same path is a closed shape for the hatch and for the masks.
- */
-function outline(t: Track, half: number, close = false): string {
-  const left = walk(t, -half);
-  const right = walk(t, half);
-  const back = right.pieces
-    .map((p, i) => {
-      const to = i === 0 ? right.start : right.pieces[i - 1].to;
-      return p.arc ? ` A${round(p.arc.r)} ${round(p.arc.r)} 0 0 ${1 - p.arc.sweep} ${fmt(to)}` : ` L${fmt(to)}`;
-    })
-    .reverse()
-    .join('');
-  const end = right.pieces[right.pieces.length - 1].to;
-  return `M${fmt(left.start)}${draw(left.pieces)} L${fmt(end)}${back}${close ? ' Z' : ''}`;
-}
-
-/* An S bend: two arcs that move the channel sideways by `shift` over a run of `run`, and keep its heading. A
-   positive shift goes to the right of the heading. */
-function bend(shift: number, run: number): Seg[] {
-  const turn = 2 * Math.atan(Math.abs(shift) / run);
-  const r = run / (2 * Math.sin(turn));
-  const deg = (Math.sign(shift) * turn * 180) / Math.PI;
-  return [
-    { arc: r, turn: deg },
-    { arc: r, turn: -deg },
-  ];
 }
 
 /*
@@ -260,134 +175,16 @@ const STACKED: Layout = {
   precompile: { x: 40, y: S_JUNCTION + 4, anchor: 'start' },
 };
 
-const MARK = 10;
-
-function Marker({ kind, x, y }: { kind: MarkerKind; x: number; y: number }) {
-  if (kind === 'account') return <rect x={x} y={y} width={MARK} height={MARK} fill="currentColor" />;
-  // Inset the outline by half its stroke, so that all three markers fill the same square.
-  const box = (
-    <rect
-      x={x + 0.75}
-      y={y + 0.75}
-      width={MARK - 1.5}
-      height={MARK - 1.5}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-    />
-  );
-  if (kind === 'setting') return box;
-  return (
-    <g>
-      {box}
-      <path d={`M${x + 3} ${y + 3} l4 4 m0 -4 l-4 4`} fill="none" stroke="currentColor" strokeWidth={1.25} />
-    </g>
-  );
-}
-
-/* Set each address in a line in the code face, as in the prose. */
-function Words({ text }: { text: string }) {
-  return text.split(/(0x[0-9a-f]+…[0-9a-f]+)/i).map((part, i) =>
-    i % 2 ? (
-      <tspan key={part} className="bk-flow-code">
-        {part}
-      </tspan>
-    ) : (
-      part
-    ),
-  );
-}
-
-/* A route label: the marker and the name level with the channel, then the config key and two short lines. */
-function RouteLabel({ route, at: [x, cy] }: { route: Route; at: Point }) {
-  const base = cy + 5;
-  const name = (
-    <g>
-      <Marker kind={route.marker} x={x} y={base - MARK} />
-      <text className="bk-flow-name" x={x + MARK + 8} y={base}>
-        {route.name}
-        {route.tag && (
-          <tspan className="bk-flow-tag" dx={10}>
-            {route.tag}
-          </tspan>
-        )}
-      </text>
-    </g>
-  );
-  return (
-    <g>
-      {route.role ? <g data-bk-role={route.role}>{name}</g> : name}
-      <text className="bk-fig-code bk-fig-ink2" x={x} y={base + 20}>
-        {route.config}
-      </text>
-      {route.lines.map((line, j) => (
-        <text key={line} className="bk-fig-sans bk-fig-ink2" x={x} y={base + 40 + j * 17}>
-          <Words text={line} />
-        </text>
-      ))}
-    </g>
-  );
-}
-
 function Drawing({ layout: l }: { layout: Layout }) {
   const id = `bk-flow-${l.name}`;
-  const active = l.tracks[ACTIVE];
-  const centre = walk(active, 0).pieces;
-  const end = centre[centre.length - 1].to;
-  // Inset the mask shapes a little, so that a hairline on the shared edge at the root stays visible.
-  const inner = l.tracks.map((t) => outline(t, l.half - 0.6, true));
-
   return (
-    <svg data-layout={l.name} viewBox={`0 0 ${l.w} ${l.h}`} role="img" aria-label={LABEL}>
+    <FlowSvg layout={l.name} size={[l.w, l.h]} label={LABEL}>
       <defs>
-        {/* Fine diagonal hatching for the band, as in an engraving. The pattern scales with the drawing. */}
-        <pattern
-          id={`${id}-hatch`}
-          patternUnits="userSpaceOnUse"
-          width={3.5}
-          height={3.5}
-          patternTransform="rotate(45)"
-        >
-          <line className="bk-fig-ink2" x1={1.75} y1={0} x2={1.75} y2={3.5} stroke="currentColor" strokeWidth={0.75} />
-        </pattern>
-        {/* Each empty channel hides its edges inside the other two channels, so the fork shows one clean outline
-            and not three crossed ones. White and black here are mask values, not colors on screen. */}
-        {l.tracks.map((_, i) =>
-          i === ACTIVE ? null : (
-            <mask
-              key={i}
-              id={`${id}-mask-${i}`}
-              maskUnits="userSpaceOnUse"
-              x={-20}
-              y={-20}
-              width={l.w + 40}
-              height={l.h + 40}
-            >
-              <rect x={-20} y={-20} width={l.w + 40} height={l.h + 40} fill="white" />
-              {inner.map((d, j) => (j === i ? null : <path key={j} d={d} fill="black" />))}
-            </mask>
-          ),
-        )}
+        <HatchPattern id={`${id}-hatch`} />
       </defs>
 
-      {/* The empty channels: steel hairlines, the same width as the band. */}
-      {l.tracks.map((t, i) =>
-        i === ACTIVE ? null : (
-          <path
-            key={i}
-            className="bk-fig-steel"
-            d={outline(t, l.half)}
-            mask={`url(#${id}-mask-${i})`}
-            fill="none"
-            stroke="currentColor"
-          />
-        ),
-      )}
-
-      {/* The fees: one hatched band from the edge of the drawing to the active destination. */}
-      <path d={outline(active, l.half, true)} fill={`url(#${id}-hatch)`} />
-      <path d={outline(active, l.half)} fill="none" stroke="currentColor" />
-      <rect x={end[0]} y={end[1] - l.half - 4} width={3} height={2 * l.half + 8} fill="currentColor" />
+      {/* Three channels from the precompile. The fees fill the active one, from the edge of the drawing. */}
+      <Fork id={id} tracks={l.tracks} half={l.half} active={ACTIVE} hatch={`${id}-hatch`} size={[l.w, l.h]} />
 
       {/* The precompile: a contract on the L1, so a filled bar in the EVM color across the band. */}
       <g data-bk-role="evm">
@@ -413,18 +210,27 @@ function Drawing({ layout: l }: { layout: Layout }) {
       </text>
 
       {ROUTES.map((route, i) => (
-        <RouteLabel key={route.name} route={route} at={l.labels[i]} />
+        <FlowLabel
+          key={route.name}
+          at={l.labels[i]}
+          name={route.name}
+          tag={route.tag}
+          marker={route.marker}
+          role={route.role}
+          code={route.config}
+          lines={route.lines}
+        />
       ))}
-    </svg>
+    </FlowSvg>
   );
 }
 
 /** Figure for the Reward Manager page: the fees flow on one of three channels. */
 export function RewardRoutesFigure() {
   return (
-    <div data-bk-figure-art="reward-routes">
+    <FlowArt name="reward-routes">
       <Drawing layout={WIDE} />
       <Drawing layout={STACKED} />
-    </div>
+    </FlowArt>
   );
 }

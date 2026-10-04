@@ -9,7 +9,7 @@ description: Learn how to verify a smart contract using Hardhat.
   Last reviewed: December 2025
 */}
 
-<Callout type="warn" title="Solidity Compiler EVM Version">
+<Callout type="warn" title="Set evmVersion to cancun">
 Avalanche C-Chain and Subnet-EVM currently support the **Cancun** EVM version and do not yet support newer hardforks like **Pectra**. Since Solidity v0.8.30 changed its default target to Pectra, you must explicitly set `evmVersion` to `cancun` in your Hardhat config.
 
 See the [sample configuration](#verifying-with-hardhat-verify) below which includes the required `evmVersion: "cancun"` setting.

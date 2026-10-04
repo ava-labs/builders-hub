@@ -245,9 +245,9 @@ type VM struct {
 | `ImportTx` | Import from other chains |
 | `ExportTx` | Export to other chains |
 
-### C-Chain VM (SAE and Coreth)
+### C-Chain VM (Continuous Execution and Coreth)
 
-Since the Helicon upgrade (Mainnet 2026-09-22 15:00 UTC), the C-Chain runs the SAE VM ([`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain)), which implements ACP-194 Continuous Execution. The node registers a TransitionVM ([`vms/transitionvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/transitionvm)) for the C-Chain: Coreth executes the blocks before Helicon, and SAE executes the blocks after it.
+Since the Helicon upgrade (Mainnet 2026-09-22 15:00 UTC), the C-Chain runs the Continuous Execution VM ([`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain)), which implements ACP-194 Continuous Execution. The node registers a TransitionVM ([`vms/transitionvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/transitionvm)) for the C-Chain: Coreth executes the blocks before Helicon, and SAE executes the blocks after it.
 
 Coreth is the EVM implementation that ran the C-Chain before Helicon:
 

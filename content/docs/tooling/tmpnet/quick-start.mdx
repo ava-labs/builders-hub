@@ -116,7 +116,7 @@ NodeID-BTtC98RhLA5mbctKczZQC2Rt6N9DziM4c/    # Node 2 directory
 
 Each node exposes API endpoints on dynamically allocated ports. When tmpnet starts a node with `--http-port=0`, the OS assigns an available port. AvalancheGo then writes the actual allocated port to `process.json` in its data directory (the default path of `--process-context-file`).
 
-<Callout type="info" title="How process.json is created">
+<Callout type="info" title="Who writes process.json?">
 The `process.json` file is created by **avalanchego itself**, not by tmpnetctl. tmpnet starts each node with `--config-file=[node-dir]/flags.json`. That file sets:
 - `--http-port=0` and `--staking-port=0` for dynamic port allocation
 - `--data-dir=[node-dir]`, so avalanchego writes runtime info to its default path, `[node-dir]/process.json`
@@ -282,7 +282,7 @@ Every tmpnet network includes the well-known EWOQ test key, pre-funded with AVAX
 export PRIVATE_KEY="56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
 ```
 
-<Callout type="warning" title="Test Key Only">
+<Callout type="warning" title="Use the EWOQ key only on a local network">
 The EWOQ key is publicly known. Never use it on Fuji or Mainnet. Use it only for local development.
 </Callout>
 
@@ -331,7 +331,7 @@ local = "http://127.0.0.1:56395/ext/bc/C/rpc"
 # No explorer for local networks
 ```
 
-<Callout type="info" title="Dynamic Ports">
+<Callout type="info" title="The RPC port can change when you restart">
 Remember that tmpnet uses dynamic ports. If you restart your network, the port may change. Always re-export `RPC_URL` after restarting.
 </Callout>
 

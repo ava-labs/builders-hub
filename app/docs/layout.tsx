@@ -18,6 +18,7 @@ import './book/callout.css';
 import './book/code.css';
 import './book/colorkey.css';
 import './book/figure.css';
+import './book/mermaid.css';
 import './book/print.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
