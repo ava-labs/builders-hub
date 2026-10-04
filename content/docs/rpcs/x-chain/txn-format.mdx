@@ -138,7 +138,7 @@ Let's make a transferable input:
     TxID      <- 0xf1e1d1c1b1a191817161514131211101f0e0d0c0b0a090807060504030201000
     UTXOIndex <- 0x00000005
     AssetID   <- 0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
-    Input     <- 0x0000000500000000075bcd15000000020000000700000003
+    Input     <- 0x0000000500000000075bcd15000000020000000300000007
 ]
 =
 [
@@ -224,7 +224,7 @@ Let's make a transferable operation:
             UTXOIndex:5
         }
     ]
-    Op     <- 0x0000000d0000000200000003000000070000303900000003431100000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
+    Op     <- 0x0000000d0000000200000003000000070000303900000003431100000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
 ]
 =
 [
@@ -246,7 +246,8 @@ Let's make a transferable operation:
     0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x02,
     0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x07,
     0x00, 0x00, 0x30, 0x39, 0x00, 0x00, 0x00, 0x03,
-    0x43, 0x11, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+    0x43, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0xd4, 0x31, 0x00, 0x00, 0x00, 0x01, 0x00,
     0x00, 0x00, 0x02, 0x51, 0x02, 0x5c, 0x61, 0xfb,
     0xcf, 0xc0, 0x78, 0xf6, 0x93, 0x34, 0xf8, 0x34,
     0xbe, 0x6d, 0xd2, 0x6d, 0x55, 0xa9, 0x55, 0xc3,
@@ -258,7 +259,7 @@ Let's make a transferable operation:
 
 ## Outputs
 
-Outputs have four possible types:
+The X-Chain has six output types. The Property Fx defines two of them: `MintOutput` (TypeID `0x0000000f`) and `OwnedOutput` (TypeID `0x00000010`). This page describes the other four:
 [`SECP256K1TransferOutput`](/docs/rpcs/x-chain/txn-format#secp256k1-transfer-output),
 [`SECP256K1MintOutput`](/docs/rpcs/x-chain/txn-format#secp256k1-mint-output),
 [`NFTTransferOutput`](/docs/rpcs/x-chain/txn-format#nft-transfer-output) and
@@ -728,7 +729,7 @@ Let's make a payment input with:
 
 ## Operations
 
-Operations have three possible types: `SECP256K1MintOperation`, `NFTMintOp`, and `NFTTransferOp`.
+Operations have five possible types. This page describes three of them: `SECP256K1MintOperation`, `NFTMintOp`, and `NFTTransferOp`. The Property Fx defines the other two: `MintOperation` (TypeID `0x00000011`) and `BurnOperation` (TypeID `0x00000012`).
 
 ## SECP256K1 Mint Operation
 
@@ -747,8 +748,9 @@ A secp256k1 Mint operation contains a `TypeID`, `AddressIndices`, `MintOutput`, 
   addresses that can spend the UTXO. Each int represents the index in this
   address array that will sign this transaction. The array must be sorted low to
   high.
-- **`MintOutput`** is a [SECP256K1 Mint output](/docs/rpcs/x-chain/txn-format#secp256k1-mint-output).
-- **`TransferOutput`** is a [SECP256K1 Transfer output](/docs/rpcs/x-chain/txn-format#secp256k1-transfer-output).
+- **`MintOutput`** is a [SECP256K1 Mint output](/docs/rpcs/x-chain/txn-format#secp256k1-mint-output) without its `TypeID`.
+- **`TransferOutput`** is a [SECP256K1 Transfer output](/docs/rpcs/x-chain/txn-format#secp256k1-transfer-output) without its `TypeID`.
+  The operation fixes the types of these two fields, so the codec writes no `TypeID` for them.
 
 ### Gantt SECP256K1 Mint Operation Specification
 
@@ -795,8 +797,8 @@ operation with:
 [
     TypeID <- 0x00000008
     AddressIndices <- [0x00000003, 0x00000007]
-    MintOutput <- 0x00000006000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c89
-    TransferOutput <- 0x000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
+    MintOutput <- 0x000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
+    TransferOutput <- 0x0000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
 ]
 =
 [
@@ -808,25 +810,23 @@ operation with:
     0x00, 0x00, 0x00, 0x03,
     // address_indices[1]:
     0x00, 0x00, 0x00, 0x07,
-    // mint output
-    0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0xd4, 0x31, 0x00, 0x00, 0x00, 0x01,
-    0x00, 0x00, 0x00, 0x02, 0x51, 0x02, 0x5c, 0x61,
-    0xfb, 0xcf, 0xc0, 0x78, 0xf6, 0x93, 0x34, 0xf8,
-    0x34, 0xbe, 0x6d, 0xd2, 0x6d, 0x55, 0xa9, 0x55,
-    0xc3, 0x34, 0x41, 0x28, 0xe0, 0x60, 0x12, 0x8e,
-    0xde, 0x35, 0x23, 0xa2, 0x4a, 0x46, 0x1c, 0x89,
-    0x43, 0xab, 0x08, 0x59,
-    // transfer output
-    0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x30, 0x39, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0xd4, 0x31, 0x00, 0x00, 0x00, 0x01,
-    0x00, 0x00, 0x00, 0x02, 0x51, 0x02, 0x5c, 0x61,
-    0xfb, 0xcf, 0xc0, 0x78, 0xf6, 0x93, 0x34, 0xf8,
-    0x34, 0xbe, 0x6d, 0xd2, 0x6d, 0x55, 0xa9, 0x55,
-    0xc3, 0x34, 0x41, 0x28, 0xe0, 0x60, 0x12, 0x8e,
-    0xde, 0x35, 0x23, 0xa2, 0x4a, 0x46, 0x1c, 0x89,
-    0x43, 0xab, 0x08, 0x59,
+    // mint output (no type ID):
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x31,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
+    0x51, 0x02, 0x5c, 0x61, 0xfb, 0xcf, 0xc0, 0x78,
+    0xf6, 0x93, 0x34, 0xf8, 0x34, 0xbe, 0x6d, 0xd2,
+    0x6d, 0x55, 0xa9, 0x55, 0xc3, 0x34, 0x41, 0x28,
+    0xe0, 0x60, 0x12, 0x8e, 0xde, 0x35, 0x23, 0xa2,
+    0x4a, 0x46, 0x1c, 0x89, 0x43, 0xab, 0x08, 0x59,
+    // transfer output (no type ID):
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x39,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x31,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
+    0x51, 0x02, 0x5c, 0x61, 0xfb, 0xcf, 0xc0, 0x78,
+    0xf6, 0x93, 0x34, 0xf8, 0x34, 0xbe, 0x6d, 0xd2,
+    0x6d, 0x55, 0xa9, 0x55, 0xc3, 0x34, 0x41, 0x28,
+    0xe0, 0x60, 0x12, 0x8e, 0xde, 0x35, 0x23, 0xa2,
+    0x4a, 0x46, 0x1c, 0x89, 0x43, 0xab, 0x08, 0x59,
 ]
 ```
 
@@ -980,7 +980,7 @@ An NFT transfer operation contains a `TypeID`, `AddressIndices` and an untyped `
 +-----------------+------------+------------------------------------+
 | addresses       : [][20]byte |      4 + 20 * len(addresses) bytes |
 +-----------------+------------+------------------------------------+
-                               |                  36 + len(payload) |
+                               |                  32 + len(payload) |
                                |        + 4 * len(address_indices)  |
                                |        + 20 * len(addresses) bytes |
                                +------------------------------------+
@@ -1006,27 +1006,27 @@ Let's make an NFT transfer operation with:
 
 - **`TypeID`**: `13`
 - **`AddressIndices`**:
-- `0x00000007`
 - `0x00000003`
+- `0x00000007`
 - **`GroupID`**: `12345`
 - **`Payload`**: `0x431100`
 - **`Locktime`**: `54321`
 - **`Threshold`**: `1`
 - **`Addresses`**:
-- `0xc3344128e060128ede3523a24a461c8943ab0859`
 - `0x51025c61fbcfc078f69334f834be6dd26d55a955`
+- `0xc3344128e060128ede3523a24a461c8943ab0859`
 
 ```text
 [
     TypeID         <- 0x0000000d
     AddressIndices <- [
-        0x00000007,
         0x00000003,
+        0x00000007,
     ]
     GroupID        <- 0x00003039
     Payload        <- 0x431100
     Locktime       <- 0x000000000000d431
-    Threshold      <- 00000001
+    Threshold      <- 0x00000001
     Addresses      <- [
         0x51025c61fbcfc078f69334f834be6dd26d55a955,
         0xc3344128e060128ede3523a24a461c8943ab0859,
@@ -1039,9 +1039,9 @@ Let's make an NFT transfer operation with:
     // number of address indices:
     0x00, 0x00, 0x00, 0x02,
     // address index 0:
-    0x00, 0x00, 0x00, 0x07,
-    // address index 1:
     0x00, 0x00, 0x00, 0x03,
+    // address index 1:
+    0x00, 0x00, 0x00, 0x07,
     // groupID:
     0x00, 0x00, 0x30, 0x39,
     // length of payload:
@@ -1137,7 +1137,7 @@ Let's make an initial state:
 
 ## Credentials
 
-Credentials have two possible types: `SECP256K1Credential`, and `NFTCredential`.
+Credentials have three possible types: `SECP256K1Credential`, `NFTCredential`, and the Property Fx `Credential` (TypeID `0x00000013`).
 Each credential is paired with an Input or Operation. The order of the
 credentials match the order of the inputs or operations.
 
@@ -1227,13 +1227,14 @@ different TypeID. The TypeID for an NFT credential is `0x0000000e`.
 ## Unsigned Transactions
 
 Unsigned transactions contain the full content of a transaction with only the
-signatures missing. Unsigned transactions have four possible types:
+signatures missing. Unsigned transactions have five possible types:
+[`BaseTx`](/docs/rpcs/x-chain/txn-format#what-base-tx-contains) (TypeID `0x00000000`),
 [`CreateAssetTx`](/docs/rpcs/x-chain/txn-format#what-unsigned-create-asset-tx-contains),
 [`OperationTx`](/docs/rpcs/x-chain/txn-format#what-unsigned-operation-tx-contains),
 [`ImportTx`](/docs/rpcs/x-chain/txn-format#what-unsigned-import-tx-contains),
 and
 [`ExportTx`](/docs/rpcs/x-chain/txn-format#what-unsigned-export-tx-contains).
-They all embed
+The other four types embed
 [`BaseTx`](/docs/rpcs/x-chain/txn-format#what-base-tx-contains), which
 contains common fields and operations.
 
@@ -1301,7 +1302,7 @@ Let's make an base TX that uses the inputs and outputs from the previous example
 
 - **`TypeID`**: `0`
 - **`NetworkID`**: `4`
-- **`BlockchainID`**: `0xffffffffeeeeeeeeddddddddcccccccbbbbbbbbaaaaaaaa9999999988888888`
+- **`BlockchainID`**: `0xffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa9999999988888888`
 - **`Outputs`**:
   - `"Example Transferable Output as defined above"`
 - **`Inputs`**:
@@ -1312,12 +1313,12 @@ Let's make an base TX that uses the inputs and outputs from the previous example
 [
     TypeID       <- 0x00000000
     NetworkID    <- 0x00000004
-    BlockchainID <- 0xffffffffeeeeeeeeddddddddcccccccbbbbbbbbaaaaaaaa9999999988888888
+    BlockchainID <- 0xffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa9999999988888888
     Outputs      <- [
         0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
     ]
     Inputs       <- [
-        0xf1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd15000000020000000700000003
+        0xf1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd15000000020000000300000007
     ]
     Memo <- 0x00010203
 ]
@@ -1361,8 +1362,8 @@ Let's make an base TX that uses the inputs and outputs from the previous example
     0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
     0x1c, 0x1d, 0x1e, 0x1f, 0x00, 0x00, 0x00, 0x05,
     0x00, 0x00, 0x00, 0x00, 0x07, 0x5b, 0xcd, 0x15,
-    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x07,
-    0x00, 0x00, 0x00, 0x03,
+    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+    0x00, 0x00, 0x00, 0x07,
     // Memo length:
     0x00, 0x00, 0x00, 0x04,
     // Memo:
@@ -1380,12 +1381,12 @@ An unsigned create asset TX contains a `BaseTx`, `Name`, `Symbol`,
 - **`BaseTx`**
 - **`Name`** is a human readable string that defines the name of the asset this
   transaction will create. The name is not guaranteed to be unique. The name
-  must consist of only printable ASCII characters and must be no longer than 128
-  characters.
+  must have 1 to 128 characters. Each character must be an ASCII letter, an
+  ASCII digit, or a space. The name must not start or end with a space.
 - **`Symbol`** is a human readable string that defines the symbol of the asset
   this transaction will create. The symbol is not guaranteed to be unique. The
-  symbol must consist of only printable ASCII characters and must be no longer
-  than 4 characters.
+  symbol must have 1 to 4 characters. Each character must be an upper case
+  ASCII letter.
 - **`Denomination`** is a byte that defines the divisibility of the asset this
   transaction will create. For example, the AVAX token is divisible into
   billionths. Therefore, the denomination of the AVAX token is 9. The
@@ -1438,7 +1439,7 @@ Let's make an unsigned base TX that uses the inputs and outputs from the previou
 
 ```text
 [
-    BaseTx        <- 0x0000000100000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000007000000030000000400010203
+    BaseTx        <- 0x0000000100000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000003000000070000000400010203
     Name          <- 0x0010566f6c6174696c69747920496e646578
     Symbol        <- 0x0003564958
     Denomination  <- 0x02
@@ -1478,9 +1479,9 @@ Let's make an unsigned base TX that uses the inputs and outputs from the previou
     0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
     0x1c, 0x1d, 0x1e, 0x1f, 0x00, 0x00, 0x00, 0x05,
     0x00, 0x00, 0x00, 0x00, 0x07, 0x5b, 0xcd, 0x15,
-    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x07,
-    0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
-    0x00, 0x01, 0x02, 0x03
+    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+    0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x04,
+    0x00, 0x01, 0x02, 0x03,
     // name:
     0x00, 0x10, 0x56, 0x6f, 0x6c, 0x61, 0x74, 0x69,
     0x6c, 0x69, 0x74, 0x79, 0x20, 0x49, 0x6e, 0x64,
@@ -1546,9 +1547,9 @@ Let's make an unsigned operation TX that uses the inputs and outputs from the pr
 
 ```text
 [
-    BaseTx <- 0x0000000200000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000007000000030000000400010203
+    BaseTx <- 0x0000000200000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000003000000070000000400010203
     Ops <- [
-        0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a090807060504030201000000000050000000d0000000200000003000000070000303900000003431100000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859,
+        0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a090807060504030201000000000050000000d0000000200000003000000070000303900000003431100000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859,
     ]
 ]
 =
@@ -1583,9 +1584,9 @@ Let's make an unsigned operation TX that uses the inputs and outputs from the pr
     0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
     0x1c, 0x1d, 0x1e, 0x1f, 0x00, 0x00, 0x00, 0x05,
     0x00, 0x00, 0x00, 0x00, 0x07, 0x5b, 0xcd, 0x15,
-    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x07,
-    0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
-    0x00, 0x01, 0x02, 0x03
+    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+    0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x04,
+    0x00, 0x01, 0x02, 0x03,
     // number of operations:
     0x00, 0x00, 0x00, 0x01,
     // transfer operation:
@@ -1601,7 +1602,8 @@ Let's make an unsigned operation TX that uses the inputs and outputs from the pr
     0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x02,
     0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x07,
     0x00, 0x00, 0x30, 0x39, 0x00, 0x00, 0x00, 0x03,
-    0x43, 0x11, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+    0x43, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0xd4, 0x31, 0x00, 0x00, 0x00, 0x01, 0x00,
     0x00, 0x00, 0x02, 0x51, 0x02, 0x5c, 0x61, 0xfb,
     0xcf, 0xc0, 0x78, 0xf6, 0x93, 0x34, 0xf8, 0x34,
     0xbe, 0x6d, 0xd2, 0x6d, 0x55, 0xa9, 0x55, 0xc3,
@@ -1655,7 +1657,7 @@ Let's make an unsigned import TX that uses the inputs from the previous examples
 
 ```text
 [
-    BaseTx        <- 0x0000000300000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000007000000030000000400010203
+    BaseTx        <- 0x0000000300000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000003000000070000000400010203
     SourceChain <- 0x0000000000000000000000000000000000000000000000000000000000000000
     Ins <- [
         f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd15000000020000000300000007,
@@ -1693,9 +1695,9 @@ Let's make an unsigned import TX that uses the inputs from the previous examples
     0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
     0x1c, 0x1d, 0x1e, 0x1f, 0x00, 0x00, 0x00, 0x05,
     0x00, 0x00, 0x00, 0x00, 0x07, 0x5b, 0xcd, 0x15,
-    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x07,
-    0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
-    0x00, 0x01, 0x02, 0x03
+    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+    0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x04,
+    0x00, 0x01, 0x02, 0x03,
     // source chain:
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1766,7 +1768,7 @@ Let's make an unsigned export TX that uses the outputs from the previous example
 
 ```text
 [
-    BaseTx           <- 0x0000000400000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000007000000030000000400010203
+    BaseTx           <- 0x0000000400000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000003000000070000000400010203
     DestinationChain <- 0x0000000000000000000000000000000000000000000000000000000000000000
     Outs <- [
         000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859,
@@ -1804,9 +1806,9 @@ Let's make an unsigned export TX that uses the outputs from the previous example
     0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
     0x1c, 0x1d, 0x1e, 0x1f, 0x00, 0x00, 0x00, 0x05,
     0x00, 0x00, 0x00, 0x00, 0x07, 0x5b, 0xcd, 0x15,
-    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x07,
-    0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
-    0x00, 0x01, 0x02, 0x03
+    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+    0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x04,
+    0x00, 0x01, 0x02, 0x03,
     // destination_chain:
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1856,7 +1858,8 @@ A signed transaction contains a `CodecID`, `UnsignedTx`, and `Credentials`.
 +---------------------+--------------+------------------------------------------------+
 | credentials         : []Credential |                    4 + size(credentials) bytes |
 +---------------------+--------------+------------------------------------------------+
-                                     | 6 + size(unsigned_tx) + len(credentials) bytes |
+                                     |                          6 + size(unsigned_tx) |
+                                     |                      + size(credentials) bytes |
                                      +------------------------------------------------+
 ```
 
@@ -1876,13 +1879,13 @@ Let's make a signed transaction that uses the unsigned transaction and
 credentials from the previous examples.
 
 - **`CodecID`**: `0`
-- **`UnsignedTx`**: `0x0000000100000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000007000000030000000400010203`
+- **`UnsignedTx`**: `0x0000000000000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000003000000070000000400010203`
 - **`Credentials`** `0x0000000900000002000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1e1d1f202122232425262728292a2b2c2e2d2f303132333435363738393a3b3c3d3e3f00404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5e5d5f606162636465666768696a6b6c6e6d6f707172737475767778797a7b7c7d7e7f00`
 
 ```text
 [
     CodecID     <- 0x0000
-    UnsignedTx  <- 0x0000000100000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000007000000030000000400010203
+    UnsignedTx  <- 0x0000000000000004ffffffffeeeeeeeeddddddddccccccccbbbbbbbbaaaaaaaa999999998888888800000001000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab085900000001f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000200000003000000070000000400010203
     Credentials <- [
         0x0000000900000002000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1e1d1f202122232425262728292a2b2c2e2d2f303132333435363738393a3b3c3d3e3f00404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5e5d5f606162636465666768696a6b6c6e6d6f707172737475767778797a7b7c7d7e7f00,
     ]
@@ -1892,7 +1895,7 @@ credentials from the previous examples.
     // Codec ID
     0x00, 0x00,
     // unsigned transaction:
-    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04,
     0xff, 0xff, 0xff, 0xff, 0xee, 0xee, 0xee, 0xee,
     0xdd, 0xdd, 0xdd, 0xdd, 0xcc, 0xcc, 0xcc, 0xcc,
     0xbb, 0xbb, 0xbb, 0xbb, 0xaa, 0xaa, 0xaa, 0xaa,
@@ -1921,8 +1924,8 @@ credentials from the previous examples.
     0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
     0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00,
     0x07, 0x5b, 0xcd, 0x15, 0x00, 0x00, 0x00, 0x02,
-    0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x03,
-    0x00, 0x00, 0x00, 0x04, 0x00, 0x01, 0x02, 0x03
+    0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x07,
+    0x00, 0x00, 0x00, 0x04, 0x00, 0x01, 0x02, 0x03,
     // number of credentials:
     0x00, 0x00, 0x00, 0x01,
     // credential[0]:
@@ -2001,9 +2004,9 @@ Let's make a UTXO with a SECP Mint Output:
 
 - **`CodecID`**: `0`
 - **`TxID`**: `0x47c92ed62d18e3cccda512f60a0d5b1e939b6ab73fb2d011e5e306e79bd0448f`
-- **`UTXOIndex`**: `0` = `0x00000001`
+- **`UTXOIndex`**: `1` = `0x00000001`
 - **`AssetID`**: `0x47c92ed62d18e3cccda512f60a0d5b1e939b6ab73fb2d011e5e306e79bd0448f`
-- **`Output`**: `0x00000006000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c6276aa2a`
+- **`Output`**: `0x00000006000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c`
 
 ```text
 [
@@ -2011,7 +2014,7 @@ Let's make a UTXO with a SECP Mint Output:
     TxID      <- 0x47c92ed62d18e3cccda512f60a0d5b1e939b6ab73fb2d011e5e306e79bd0448f
     UTXOIndex <- 0x00000001
     AssetID   <- 0x47c92ed62d18e3cccda512f60a0d5b1e939b6ab73fb2d011e5e306e79bd0448f
-    Output    <- 00000006000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c6276aa2a
+    Output    <- 00000006000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c
 ]
 =
 [
@@ -2035,14 +2038,13 @@ Let's make a UTXO with a SECP Mint Output:
     0x00, 0x00, 0x00, 0x01, 0x3c, 0xb7, 0xd3, 0x84,
     0x2e, 0x8c, 0xee, 0x6a, 0x0e, 0xbd, 0x09, 0xf1,
     0xfe, 0x88, 0x4f, 0x68, 0x61, 0xe1, 0xb2, 0x9c,
-    0x62, 0x76, 0xaa, 0x2a,
 ]
 ```
 
 Let's make a UTXO with a SECP Transfer Output from the signed transaction created above:
 
 - **`CodecID`**: `0`
-- **`TxID`**: `0xf966750f438867c3c9828ddcdbe660e21ccdbb36a9276958f011ba472f75d4e7`
+- **`TxID`**: `0x84be8bb8149257ac40e3d97d5dd9af56c9eb0cdad41a2cb935924e6b8f4b31b6`
 - **`UTXOIndex`**: `0` = `0x00000000`
 - **`AssetID`**: `0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f`
 - **`Output`**: `"Example SECP256K1 Transferable Output as defined above"`
@@ -2050,7 +2052,7 @@ Let's make a UTXO with a SECP Transfer Output from the signed transaction create
 ```text
 [
     CodecID   <- 0x0000
-    TxID      <- 0xf966750f438867c3c9828ddcdbe660e21ccdbb36a9276958f011ba472f75d4e7
+    TxID      <- 0x84be8bb8149257ac40e3d97d5dd9af56c9eb0cdad41a2cb935924e6b8f4b31b6
     UTXOIndex <- 0x00000000
     AssetID   <- 0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
     Output    <-     0x000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
@@ -2060,10 +2062,10 @@ Let's make a UTXO with a SECP Transfer Output from the signed transaction create
     // codecID:
     0x00, 0x00,
     // txID:
-    0xf9, 0x66, 0x75, 0x0f, 0x43, 0x88, 0x67, 0xc3,
-    0xc9, 0x82, 0x8d, 0xdc, 0xdb, 0xe6, 0x60, 0xe2,
-    0x1c, 0xcd, 0xbb, 0x36, 0xa9, 0x27, 0x69, 0x58,
-    0xf0, 0x11, 0xba, 0x47, 0x2f, 0x75, 0xd4, 0xe7,
+    0x84, 0xbe, 0x8b, 0xb8, 0x14, 0x92, 0x57, 0xac,
+    0x40, 0xe3, 0xd9, 0x7d, 0x5d, 0xd9, 0xaf, 0x56,
+    0xc9, 0xeb, 0x0c, 0xda, 0xd4, 0x1a, 0x2c, 0xb9,
+    0x35, 0x92, 0x4e, 0x6b, 0x8f, 0x4b, 0x31, 0xb6,
     // utxo index:
     0x00, 0x00, 0x00, 0x00,
     // assetID:
@@ -2075,12 +2077,12 @@ Let's make a UTXO with a SECP Transfer Output from the signed transaction create
     0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x30, 0x39, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0xd4, 0x31, 0x00, 0x00, 0x00, 0x01,
-    0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x02, 0x03,
-    0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
-    0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13,
-    0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
-    0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23,
-    0x24, 0x25, 0x26, 0x27,
+    0x00, 0x00, 0x00, 0x02, 0x51, 0x02, 0x5c, 0x61,
+    0xfb, 0xcf, 0xc0, 0x78, 0xf6, 0x93, 0x34, 0xf8,
+    0x34, 0xbe, 0x6d, 0xd2, 0x6d, 0x55, 0xa9, 0x55,
+    0xc3, 0x34, 0x41, 0x28, 0xe0, 0x60, 0x12, 0x8e,
+    0xde, 0x35, 0x23, 0xa2, 0x4a, 0x46, 0x1c, 0x89,
+    0x43, 0xab, 0x08, 0x59,
 ]
 ```
 
@@ -2088,9 +2090,9 @@ Let's make a UTXO with an NFT Mint Output:
 
 - **`CodecID`**: `0`
 - **`TxID`**: `0x03c686efe8d80c519f356929f6da945f7ff90378f0044bb0e1a5d6c1ad06bae7`
-- **`UTXOIndex`**: `0` = `0x00000001`
+- **`UTXOIndex`**: `1` = `0x00000001`
 - **`AssetID`**: `0x03c686efe8d80c519f356929f6da945f7ff90378f0044bb0e1a5d6c1ad06bae7`
-- **`Output`**: `0x0000000a00000000000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c6276aa2a`
+- **`Output`**: `0x0000000a00000000000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c`
 
 ```text
 [
@@ -2098,7 +2100,7 @@ Let's make a UTXO with an NFT Mint Output:
     TxID      <- 0x03c686efe8d80c519f356929f6da945f7ff90378f0044bb0e1a5d6c1ad06bae7
     UTXOIndex <- 0x00000001
     AssetID   <- 0x03c686efe8d80c519f356929f6da945f7ff90378f0044bb0e1a5d6c1ad06bae7
-    Output    <- 0000000a00000000000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c6276aa2a
+    Output    <- 0000000a00000000000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c
 ]
 =
 [
@@ -2122,7 +2124,7 @@ Let's make a UTXO with an NFT Mint Output:
     0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
     0x3c, 0xb7, 0xd3, 0x84, 0x2e, 0x8c, 0xee, 0x6a,
     0x0e, 0xbd, 0x09, 0xf1, 0xfe, 0x88, 0x4f, 0x68,
-    0x61, 0xe1, 0xb2, 0x9c, 0x62, 0x76, 0xaa, 0x2a,
+    0x61, 0xe1, 0xb2, 0x9c,
 ]
 ```
 
@@ -2130,9 +2132,9 @@ Let's make a UTXO with an NFT Transfer Output:
 
 - **`CodecID`**: `0`
 - **`TxID`**: `0xa68f794a7de7bdfc5db7ba5b73654304731dd586bbf4a6d7b05be6e49de2f936`
-- **`UTXOIndex`**: `0` = `0x00000001`
+- **`UTXOIndex`**: `1` = `0x00000001`
 - **`AssetID`**: `0x03c686efe8d80c519f356929f6da945f7ff90378f0044bb0e1a5d6c1ad06bae7`
-- **`Output`**: `0x0000000b000000000000000b4e4654205061796c6f6164000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c6276aa2a`
+- **`Output`**: `0x0000000b000000000000000b4e4654205061796c6f6164000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c`
 
 ```text
 [
@@ -2140,7 +2142,7 @@ Let's make a UTXO with an NFT Transfer Output:
     TxID      <- 0xa68f794a7de7bdfc5db7ba5b73654304731dd586bbf4a6d7b05be6e49de2f936
     UTXOIndex <- 0x00000001
     AssetID   <- 0x03c686efe8d80c519f356929f6da945f7ff90378f0044bb0e1a5d6c1ad06bae7
-    Output    <- 0000000b000000000000000b4e4654205061796c6f6164000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c6276aa2a
+    Output    <- 0000000b000000000000000b4e4654205061796c6f6164000000000000000000000001000000013cb7d3842e8cee6a0ebd09f1fe884f6861e1b29c
 ]
 =
 [
@@ -2166,7 +2168,7 @@ Let's make a UTXO with an NFT Transfer Output:
     0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x3c,
     0xb7, 0xd3, 0x84, 0x2e, 0x8c, 0xee, 0x6a, 0x0e,
     0xbd, 0x09, 0xf1, 0xfe, 0x88, 0x4f, 0x68, 0x61,
-    0xe1, 0xb2, 0x9c, 0x62, 0x76, 0xaa, 0x2a,
+    0xe1, 0xb2, 0x9c,
 ]
 ```
 
@@ -2187,25 +2189,22 @@ An instance of a GenesisAsset contains an `Alias`, `NetworkID`, `BlockchainID`,
 - **`BlockchainID`** is the ID (32-byte array) that defines which blockchain
   this transaction was issued to. This is used for replay attack prevention for
   transactions that could potentially be valid across network or blockchain.
-- **`Outputs`** is an array of [transferable output objects](/docs/rpcs/x-chain/txn-format#transferable-output). Outputs must
-  be sorted lexicographically by their serialized representation. The total
-  quantity of the assets created in these outputs must be less than or equal to
-  the total quantity of each asset consumed in the inputs minus the transaction
-  fee.
+- **`Outputs`** is an array of [transferable output objects](/docs/rpcs/x-chain/txn-format#transferable-output). For a genesis
+  asset, this array must be empty. If a genesis asset has outputs, the X-Chain
+  does not start. Put the genesis UTXOs of the asset in **`InitialStates`**.
 - **`Inputs`** is an array of [transferable input objects](/docs/rpcs/x-chain/txn-format#transferable-input). Inputs must be
   sorted and unique. Inputs are sorted first lexicographically by their
   **`TxID`** and then by the **`UTXOIndex`** from low to high. If there are
   inputs that have the same **`TxID`** and **`UTXOIndex`**, then the transaction
   is invalid as this would result in a double spend.
 - **`Memo`** is a memo field that contains arbitrary bytes, up to 256 bytes.
-- **`Name`** is a human readable string that defines the name of the asset this
-  transaction will create. The name is not guaranteed to be unique. The name
-  must consist of only printable ASCII characters and must be no longer than 128
-  characters.
-- **`Symbol`** is a human readable string that defines the symbol of the asset
-  this transaction will create. The symbol is not guaranteed to be unique. The
-  symbol must consist of only printable ASCII characters and must be no longer
-  than 4 characters.
+- **`Name`** is a human readable string that defines the name of the asset.
+  The name is not guaranteed to be unique.
+- **`Symbol`** is a human readable string that defines the symbol of the asset.
+  The symbol is not guaranteed to be unique.
+  The X-Chain does not check the name and symbol of a genesis asset. After
+  genesis, a `CreateAssetTx` must follow the name and symbol rules in
+  [Unsigned CreateAssetTx](/docs/rpcs/x-chain/txn-format#what-unsigned-create-asset-tx-contains).
 - **`Denomination`** is a byte that defines the divisibility of the asset this
   transaction will create. For example, the AVAX token is divisible into
   billionths. Therefore, the denomination of the AVAX token is 9. The
@@ -2268,10 +2267,10 @@ Let's make a GenesisAsset:
 - **`BlockchainID`**: `0x0000000000000000000000000000000000000000000000000000000000000000`
 - **`Outputs`**: \[\]
 - **`Inputs`**: \[\]
-- **`Memo`**: `2Zc54v4ek37TEwu4LiV3j41PUMRd6acDDU3ZCVSxE7X`
-- **`Name`**: `asset1`
+- **`Memo`**: `from snowflake to avalanche` (CB58: `2Zc54v4ek37TEwu4LiV3j41PUMRd6acDDU3ZCVSxE7X`)
+- **`Name`**: `myFixedCapAsset`
 - **`Symbol`**: `MFCA`
-- **`Denomination`**: `1`
+- **`Denomination`**: `7`
 - **`InitialStates`**:
 - `"Example Initial State as defined above"`
 
@@ -2282,10 +2281,10 @@ Let's make a GenesisAsset:
     BlockchainID  <- 0x0000000000000000000000000000000000000000000000000000000000000000
     Outputs       <- []
     Inputs        <- []
-    Memo          <- 0x66x726f6d20736e6f77666c616b6520746f206176616c616e636865
-    Name          <- 0x617373657431
-    Symbol        <- 0x66x726f6d20736e6f77666c616b6520746f206176616c616e636865
-    Denomination  <- 0x66x726f6d20736e6f77666c616b6520746f206176616c616e636865
+    Memo          <- 0x66726f6d20736e6f77666c616b6520746f206176616c616e636865
+    Name          <- 0x6d7946697865644361704173736574
+    Symbol        <- 0x4d464341
+    Denomination  <- 0x07
     InitialStates <- [
         0x0000000000000001000000070000000000003039000000000000d431000000010000000251025c61fbcfc078f69334f834be6dd26d55a955c3344128e060128ede3523a24a461c8943ab0859
     ]

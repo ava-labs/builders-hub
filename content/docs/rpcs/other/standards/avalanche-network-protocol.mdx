@@ -5,7 +5,7 @@ title: Avalanche Network Protocol
 Overview
 -----------------------------------------------
 
-Avalanche network defines the core communication format between Avalanche nodes. It uses the [primitive serialization](/docs/rpcs/other/standards/serialization-primitives) format for payload packing.
+The Avalanche network protocol defines the messages that Avalanche nodes send to each other. Since v1.9.0 (Banff), nodes encode every message with Protocol Buffers (proto3). The schema is `proto/p2p/p2p.proto` in the AvalancheGo repository. The VM of each chain defines the bytes of the containers inside the messages. P-Chain and X-Chain containers use the [primitive serialization](/docs/rpcs/other/standards/serialization-primitives) format.
 
 `"Containers"` are mentioned extensively in the description. A Container is simply a generic term for blocks.
 
@@ -14,26 +14,59 @@ This document describes the protocol for peer-to-peer communication using Protoc
 Message
 ---------------------------------------------
 
-The `Message` proto message is the main container for all peer-to-peer communication. It uses the `oneof` construct to represent different message types. The supported compression algorithms include Gzip and Zstd.
+The `Message` proto message is the main container for all peer-to-peer communication. It uses the `oneof` construct to represent different message types. The only supported compression algorithm is zstd. AvalancheGo v1.10.18 stopped gzip compression, and v1.11.3 removed the gzip field. Field 1 is now reserved.
 
 ```
 message Message {
+  reserved 1; // Until E upgrade is activated.
+  reserved 37; // Next unused field number.
   oneof message {
-    bytes compressed_gzip = 1;
     bytes compressed_zstd = 2;
-    // ... (other compression algorithms can be added)
+    // Fields lower than 10 are reserved for other compression algorithms.
+
+    // Network messages:
     Ping ping = 11;
     Pong pong = 12;
-    Version version = 13;
+    Handshake handshake = 13;
+    GetPeerList get_peer_list = 35;
     PeerList peer_list = 14;
-    // ... (other message types)
+
+    // State-sync messages:
+    GetStateSummaryFrontier get_state_summary_frontier = 15;
+    StateSummaryFrontier state_summary_frontier = 16;
+    GetAcceptedStateSummary get_accepted_state_summary = 17;
+    AcceptedStateSummary accepted_state_summary = 18;
+
+    // Bootstrapping messages:
+    GetAcceptedFrontier get_accepted_frontier = 19;
+    AcceptedFrontier accepted_frontier = 20;
+    GetAccepted get_accepted = 21;
+    Accepted accepted = 22;
+    GetAncestors get_ancestors = 23;
+    Ancestors ancestors = 24;
+
+    // Consensus messages:
+    Get get = 25;
+    Put put = 26;
+    PushQuery push_query = 27;
+    PullQuery pull_query = 28;
+    Chits chits = 29;
+
+    // App messages:
+    AppRequest app_request = 30;
+    AppResponse app_response = 31;
+    AppGossip app_gossip = 32;
+    AppError app_error = 34;
+
+    // Simplex messages:
+    Simplex simplex = 36;
   }
 }
 ```
 
 ### Compression
 
-The `compressed_gzip` and `compressed_zstd` fields are used for Gzip and Zstd compression, respectively, of the encapsulated message. These fields are set only if the message type supports compression.
+The `compressed_zstd` field holds the zstd-compressed bytes of a `Message`. The `oneof` field of that inner `Message` is one of the message types, not a compressed field. The sender sets this field only if the message type supports compression.
 
 Network Messages
 ---------------------------------------------------------------
@@ -45,49 +78,61 @@ The `Ping` message reports a peer's perceived uptime percentage.
 ```
 message Ping {
   uint32 uptime = 1;
-  repeated SubnetUptime subnet_uptimes = 2;
+  reserved 2; // Until Etna upgrade is activated.
 }
 ```
 
 - `uptime`: Uptime percentage on the primary network \[0, 100\].
-- `subnet_uptimes`: Uptime percentages on Avalanche L1s.
+
+AvalancheGo v1.11.12 removed the L1 uptimes (field 2) from `Ping`.
 
 ### Pong
 
-The `Pong` message is sent in response to a `Ping` with the perceived uptime of the peer.
+The `Pong` message is sent in response to a `Ping`. It has no fields. AvalancheGo v1.11.5 removed its uptime fields, because `Ping` carries the uptime.
 
 ```
 message Pong {
-  uint32 uptime = 1; // Deprecated: uptime is now sent in Ping
-  repeated SubnetUptime subnet_uptimes = 2; // Deprecated: uptime is now sent in Ping
+  reserved 1, 2; // Until E upgrade is activated.
 }
 ```
 
-### Version
+### Handshake
 
-The `Version` message is the first outbound message sent to a peer during the p2p handshake.
+The `Handshake` message is the first outbound message sent to a peer when a connection is established. The peer must respond with a `PeerList` message. Peers drop connections to peers with incompatible versions. AvalancheGo v1.10.18 renamed this message from `Version` to `Handshake`.
 
 ```
-message Version {
+message Handshake {
   uint32 network_id = 1;
   uint64 my_time = 2;
   bytes ip_addr = 3;
   uint32 ip_port = 4;
-  string my_version = 5;
-  uint64 my_version_time = 6;
-  bytes sig = 7;
+  uint64 upgrade_time = 5;
+  uint64 ip_signing_time = 6;
+  bytes ip_node_id_sig = 7;
   repeated bytes tracked_subnets = 8;
+  Client client = 9;
+  repeated uint32 supported_acps = 10;
+  repeated uint32 objected_acps = 11;
+  BloomFilter known_peers = 12;
+  bytes ip_bls_sig = 13;
+  bool all_subnets = 14;
 }
 ```
 
-- `network_id`: Network identifier (e.g., local, testnet, Mainnet).
-- `my_time`: Unix timestamp when the `Version` message was created.
+- `network_id`: Network identifier (for example local, testnet or Mainnet).
+- `my_time`: Unix timestamp when the `Handshake` message was created.
 - `ip_addr`: IP address of the peer.
 - `ip_port`: IP port of the peer.
-- `my_version`: Avalanche client version.
-- `my_version_time`: Timestamp of the IP.
-- `sig`: Signature of the peer IP port pair at a provided timestamp.
-- `tracked_subnets`: Avalanche L1s the peer is tracking.
+- `upgrade_time`: Unix timestamp (in seconds) of the most recently scheduled network upgrade. It can be a past upgrade or a future upgrade.
+- `ip_signing_time`: Timestamp of the IP.
+- `ip_node_id_sig`: Signature of the IP and port pair at `ip_signing_time`, made with the TLS key.
+- `tracked_subnets`: IDs of the L1s that the peer tracks.
+- `client`: Client name (for example `avalanchego`) and its major, minor and patch version.
+- `supported_acps`: ACPs that the peer supports.
+- `objected_acps`: ACPs that the peer objects to.
+- `known_peers`: Bloom filter, with a random salt, of the peers that the sender knows.
+- `ip_bls_sig`: Signature of the IP and port pair at `ip_signing_time`, made with the BLS key.
+- `all_subnets`: Confirms that the peer tracks all L1s. The other peer sends the IPs of validators that the peer does not track only when this value is true.
 
 ### PeerList
 
@@ -101,18 +146,19 @@ message PeerList {
 
 - `claimed_ip_ports`: List of claimed IP and port pairs.
 
-### PeerListAck
+### GetPeerList
 
-The `PeerListAck` message is sent in response to `PeerList` to acknowledge the subset of peers that the peer will attempt to connect to.
+The `GetPeerList` message contains a bloom filter of the validator IPs that the sender knows. A peer responds to it only after the handshake is complete. The response is a `PeerList` message with the validators that are not in the bloom filter. AvalancheGo v1.10.18 replaced `PeerListAck` with `GetPeerList`.
 
 ```
-message PeerListAck {
-  reserved 1; // deprecated; used to be tx_ids
-  repeated PeerAck peer_acks = 2;
+message GetPeerList {
+  BloomFilter known_peers = 1;
+  bool all_subnets = 2;
 }
 ```
 
-- `peer_acks`: List of acknowledged peers.
+- `known_peers`: Bloom filter, with a random salt, of the validator IPs that the sender knows.
+- `all_subnets`: Confirms that the sender tracks all L1s.
 
 State-Sync Messages
 ---------------------------------------------------------------------
@@ -192,17 +238,16 @@ The `GetAcceptedFrontier` message requests the accepted frontier from a peer.
 
 ```
 message GetAcceptedFrontier {
+  reserved 4;
   bytes chain_id = 1;
   uint32 request_id = 2;
   uint64 deadline = 3;
-  EngineType engine_type = 4;
 }
 ```
 
 - `chain_id`: Chain being requested from.
 - `request_id`: Unique identifier for this request.
 - `deadline`: Timeout (ns) for this request.
-- `engine_type`: Consensus type the remote peer should use to handle this message.
 
 ### AcceptedFrontier
 
@@ -210,7 +255,6 @@ The `AcceptedFrontier` message contains the remote peer's last accepted frontier
 
 ```
 message AcceptedFrontier {
-  reserved 4; // Until Cortina upgrade is activated
   bytes chain_id = 1;
   uint32 request_id = 2;
   bytes container_id = 3;
@@ -227,22 +271,18 @@ The `GetAccepted` message sends a request with the sender's accepted frontier to
 
 ```
 message GetAccepted {
+  reserved 5;
   bytes chain_id = 1;
   uint32 request_id = 2;
   uint64 deadline = 3;
   repeated bytes container_ids = 4;
-  EngineType engine_type = 5;
 }
 ```
 
 - `chain_id`: Chain being requested from.
 - `request_id`: Unique identifier for this message.
 - `deadline`: Timeout (ns) for this request.
-- `container_ids`: The
-
-sender's accepted frontier.
-
-- `engine_type`: Consensus type to handle this message.
+- `container_ids`: The sender's accepted frontier.
 
 ### Accepted
 
@@ -250,7 +290,6 @@ The `Accepted` message is sent in response to `GetAccepted`.
 
 ```
 message Accepted {
-  reserved 4; // Until Cortina upgrade is activated
   bytes chain_id = 1;
   uint32 request_id = 2;
   repeated bytes container_ids = 3;
@@ -287,7 +326,6 @@ The `Ancestors` message is sent in response to `GetAncestors`.
 
 ```
 message Ancestors {
-  reserved 4; // Until Cortina upgrade is activated
   bytes chain_id = 1;
   uint32 request_id = 2;
   repeated bytes containers = 3;
@@ -307,11 +345,11 @@ The `Get` message requests a container from a remote peer.
 
 ```
 message Get {
+  reserved 5;
   bytes chain_id = 1;
   uint32 request_id = 2;
   uint64 deadline = 3;
   bytes container_id = 4;
-  EngineType engine_type = 5;
 }
 ```
 
@@ -319,7 +357,6 @@ message Get {
 - `request_id`: Unique identifier for this request.
 - `deadline`: Timeout (ns) for this request.
 - `container_id`: Container being requested.
-- `engine_type`: Consensus type to handle this message.
 
 ### Put
 
@@ -330,14 +367,12 @@ message Put {
   bytes chain_id = 1;
   uint32 request_id = 2;
   bytes container = 3;
-  EngineType engine_type = 4;
 }
 ```
 
 - `chain_id`: Chain being responded from.
 - `request_id`: Request ID of the original `Get` request.
 - `container`: Requested container.
-- `engine_type`: Consensus type to handle this message.
 
 ### PushQuery
 
@@ -345,11 +380,11 @@ The `PushQuery` message requests the preferences of a remote peer given a contai
 
 ```
 message PushQuery {
+  reserved 5;
   bytes chain_id = 1;
   uint32 request_id = 2;
   uint64 deadline = 3;
   bytes container = 4;
-  EngineType engine_type = 5;
   uint64 requested_height = 6;
 }
 ```
@@ -358,7 +393,6 @@ message PushQuery {
 - `request_id`: Unique identifier for this request.
 - `deadline`: Timeout (ns) for this request.
 - `container`: Container being gossiped.
-- `engine_type`: Consensus type to handle this message.
 - `requested_height`: Requesting peer's last accepted height.
 
 ### PullQuery
@@ -367,11 +401,11 @@ The `PullQuery` message requests the preferences of a remote peer given a contai
 
 ```
 message PullQuery {
+  reserved 5;
   bytes chain_id = 1;
   uint32 request_id = 2;
   uint64 deadline = 3;
   bytes container_id = 4;
-  EngineType engine_type = 5;
   uint64 requested_height = 6;
 }
 ```
@@ -380,7 +414,6 @@ message PullQuery {
 - `request_id`: Unique identifier for this request.
 - `deadline`: Timeout (ns) for this request.
 - `container_id`: Container id being gossiped.
-- `engine_type`: Consensus type to handle this message.
 - `requested_height`: Requesting peer's last accepted height.
 
 ### Chits
@@ -394,6 +427,7 @@ message Chits {
   bytes preferred_id = 3;
   bytes accepted_id = 4;
   bytes preferred_id_at_height = 5;
+  uint64 accepted_height = 6;
 }
 ```
 
@@ -402,6 +436,7 @@ message Chits {
 - `preferred_id`: Currently preferred block.
 - `accepted_id`: Last accepted block.
 - `preferred_id_at_height`: Currently preferred block at the requested height.
+- `accepted_height`: Height of the last accepted block.
 
 Application Messages
 -----------------------------------------------------------------------
@@ -439,6 +474,24 @@ message AppResponse {
 - `chain_id`: Chain being responded from.
 - `request_id`: Request ID of the original `AppRequest`.
 - `app_bytes`: Response body.
+
+### AppError
+
+The `AppError` message is a VM-defined error sent in response to `AppRequest`. A peer must respond to an `AppRequest` with an `AppResponse` or an `AppError`.
+
+```
+message AppError {
+  bytes chain_id = 1;
+  uint32 request_id = 2;
+  sint32 error_code = 3;
+  string error_message = 4;
+}
+```
+
+- `chain_id`: Chain the message is for.
+- `request_id`: Request ID of the original `AppRequest`.
+- `error_code`: VM-defined error code. VMs can define error codes greater than 0.
+- `error_message`: VM-defined error message.
 
 ### AppGossip
 

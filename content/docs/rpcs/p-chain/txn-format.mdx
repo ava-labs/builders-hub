@@ -77,7 +77,7 @@ Transferable outputs wrap an output with an asset ID.
 A transferable output contains an `AssetID` and an `Output`.
 
 - **`AssetID`** is a 32-byte array that defines which asset this output
-  references. The only valid `AssetID` is the AVAX `AssetID`.
+  references. Since Banff, P-Chain outputs can hold assets other than AVAX. Fees are paid in AVAX, and Primary Network stake must be AVAX.
 - **`Output`** is an output, as defined below. For example, this can be a SECP256K1 transfer output.
 
 ### Gantt Transferable Output Specification
@@ -141,7 +141,7 @@ A transferable input contains a `TxID`, `UTXOIndex` `AssetID` and an `Input`.
 - **`TxID`** is a 32-byte array that defines which transaction this input is consuming an output from.
 - **`UTXOIndex`** is an int that defines which utxo this input is consuming the specified transaction.
 - **`AssetID`** is a 32-byte array that defines which asset this input
-  references. The only valid `AssetID` is the AVAX `AssetID`.
+  references. Since Banff, P-Chain inputs can consume assets other than AVAX. Fees are paid in AVAX.
 - **`Input`** is a transferable input object.
 
 ### Gantt Transferable Input Specification
@@ -210,13 +210,13 @@ Let's make a transferable input:
 
 ## Outputs
 
-Outputs have two possible type: `SECP256K1TransferOutput`, `SECP256K1OutputOwners`.
+Outputs have two possible types: `SECP256K1TransferOutput` and `StakeableLockOut`. `SECP256K1OutputOwners` is not an output. Transactions use it to name an owner, for example of rewards, of an L1 or of a validator authority.
 
 ## SECP256K1 Transfer Output
 
 A [secp256k1](/docs/rpcs/other/standards/cryptographic-primitives#secp256k1-addresses) transfer output
 allows for sending a quantity of an asset to a collection of addresses after a
-specified Unix time. The only valid asset is AVAX.
+specified Unix time. Since Banff, the asset can be AVAX or another asset.
 
 ### What SECP256K1 Transfer Output Contains
 
@@ -387,7 +387,7 @@ Let's make a secp256k1 output owners output with:
 
 ## Inputs
 
-Inputs have one possible type: `SECP256K1TransferInput`.
+Inputs have two possible types: `SECP256K1TransferInput` and `StakeableLockIn`.
 
 ## SECP256K1 Transfer Input
 
@@ -461,9 +461,15 @@ Let's make a payment input with:
 ## Unsigned Transactions
 
 Unsigned transactions contain the full content of a transaction with only the
-signatures missing. Unsigned transactions have six possible types:
-`AddValidatorTx`, `AddSubnetValidatorTx`, `AddDelegatorTx`, `CreateSubnetTx`,
-`ImportTx`, and `ExportTx`. They embed `BaseTx`, which contains common fields
+signatures missing. The P-Chain codec registers these transaction types (type ID in parentheses):
+
+- Apricot: `AddValidatorTx` (12), `AddSubnetValidatorTx` (13), `AddDelegatorTx` (14), `CreateChainTx` (15), `CreateSubnetTx` (16), `ImportTx` (17), `ExportTx` (18), `AdvanceTimeTx` (19), `RewardValidatorTx` (20)
+- Banff: `RemoveSubnetValidatorTx` (23), `TransformSubnetTx` (24), `AddPermissionlessValidatorTx` (25), `AddPermissionlessDelegatorTx` (26)
+- Durango: `TransferSubnetOwnershipTx` (33), `BaseTx` (34)
+- Etna: `ConvertSubnetToL1Tx` (35), `RegisterL1ValidatorTx` (36), `SetL1ValidatorWeightTx` (37), `IncreaseL1ValidatorBalanceTx` (38), `DisableL1ValidatorTx` (39)
+- Helicon: `AddAutoRenewedValidatorTx` (40), `SetAutoRenewedValidatorConfigTx` (41), `RewardAutoRenewedValidatorTx` (42)
+
+The P-Chain rejects `AdvanceTimeTx` since Banff, `AddValidatorTx` and `AddDelegatorTx` since Durango, and `TransformSubnetTx` since Etna. Block builders create `RewardValidatorTx` and `RewardAutoRenewedValidatorTx`. Wallets do not issue them. Most transactions embed `BaseTx`, which contains common fields
 and operations.
 
 ## Unsigned BaseTx
@@ -472,7 +478,7 @@ and operations.
 
 A base TX contains a `TypeID`, `NetworkID`, `BlockchainID`, `Outputs`, `Inputs`, and `Memo`.
 
-- **`TypeID`** is the ID for this type. It is `0x00000000`.
+- **`TypeID`** is the type ID of the transaction that embeds this base TX, for example `0x0000000c` for `AddValidatorTx`. A standalone `BaseTx`, which moves funds on the P-Chain, has type ID 34 (`0x00000022`). The P-Chain accepts it since Durango.
 - **`NetworkID`** is an int that defines which network this transaction is meant
   to be issued to. This value is meant to support transaction routing and is not
   designed for replay attack prevention.
@@ -489,7 +495,7 @@ A base TX contains a `TypeID`, `NetworkID`, `BlockchainID`, `Outputs`, `Inputs`,
   then by the **`UTXOIndex`** from low to high. If there are inputs that have
   the same **`TxID`** and **`UTXOIndex`**, then the transaction is invalid as
   this would result in a double spend.
-- **`Memo`** Memo field contains arbitrary bytes, up to 256 bytes.
+- **`Memo`** is a variable-length byte array. Since Durango, the P-Chain rejects a transaction whose memo is not empty. Before Durango, the memo could hold up to 256 bytes.
 
 ### Gantt Base TX Specification
 
@@ -528,7 +534,7 @@ message BaseTx {
 
 Let's make a base TX that uses the inputs and outputs from the previous examples:
 
-- **`TypeID`**: `0`
+- **`TypeID`**: `34`
 - **`NetworkID`**: `12345`
 - **`BlockchainID`**: `0x000000000000000000000000000000000000000000000000000000000000000`
 - **`Outputs`**:
@@ -538,7 +544,7 @@ Let's make a base TX that uses the inputs and outputs from the previous examples
 
 ```text
 [
-    TypeID       <- 0x00000000
+    TypeID       <- 0x00000022
     NetworkID    <- 0x00003039
     BlockchainID <- 0x000000000000000000000000000000000000000000000000000000000000000
     Outputs      <- [
@@ -551,7 +557,7 @@ Let's make a base TX that uses the inputs and outputs from the previous examples
 =
 [
     // type_id:
-    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x22,
     // networkID:
     0x00, 0x00, 0x30, 0x39,
     // blockchainID:
@@ -593,6 +599,8 @@ Let's make a base TX that uses the inputs and outputs from the previous examples
 ```
 
 ## Unsigned Add Validator TX
+
+> **Note:** The P-Chain rejects this transaction type since the Durango upgrade (ACP-62). To add a Primary Network validator, use `AddPermissionlessValidatorTx` or `AddAutoRenewedValidatorTx`.
 
 ### What Unsigned Add Validator TX Contains
 
@@ -844,8 +852,8 @@ An unsigned add permissionless validator TX contains a `BaseTx`, `Validator`,
 - **`StakeOuts`** An array of Transferable Outputs. Where to send staked tokens when done validating.
 - **`ValidatorRewardsOwner`** Where to send validation rewards when done validating.
 - **`DelegatorRewardsOwner`** Where to send delegation rewards when done validating.
-- **`DelegationShares`** a short which is the fee this validator charges
-  delegators as a percentage, times 10,000 For example, if this validator has
+- **`DelegationShares`** an int (4 bytes) which is the fee this validator charges
+  delegators as a percentage, times 10,000. For example, if this validator has
   DelegationShares=300,000 then they take 30% of rewards from delegators.
 
 ### Gantt Unsigned Add Permissionless Validator TX Specification
@@ -858,7 +866,7 @@ An unsigned add permissionless validator TX contains a `BaseTx`, `Validator`,
 +---------------+----------------------+------------------------------------------------+
 | subnet_id     : [32]byte             |                                       32 bytes |
 +---------------+----------------------+------------------------------------------------+
-| signer        : Signer               |                                      144 bytes |
+| signer        : Signer               |                                      148 bytes |
 +---------------+----------------------+------------------------------------------------+
 | stake_outs    : []TransferOut        |                     4 + size(stake_outs) bytes |
 +---------------+----------------------+------------------------------------------------+
@@ -1208,18 +1216,18 @@ for this type is 24 or `0x00000018`.
   - Restrictions:
     - Must be `>=` [MinValidatorStake]
     - Must be `<=` [MaximumSupply]
-- **`MinStakeDuration`** is a short which is the minimum number of seconds a staker can stake for.
+- **`MinStakeDuration`** is an int (4 bytes) which is the minimum number of seconds a staker can stake for.
   - Restrictions
     - Must be `>` 0
-- **`MaxStakeDuration`** is a short which is the maximum number of seconds a staker can stake for.
+- **`MaxStakeDuration`** is an int (4 bytes) which is the maximum number of seconds a staker can stake for.
   - Restrictions
     - Must be `>=` [MinStakeDuration]
     - Must be `<=` [GlobalMaxStakeDuration]
-- **`MinDelegationFee`** is a short is the minimum percentage a validator must
+- **`MinDelegationFee`** is an int (4 bytes) which is the minimum percentage a validator must
   charge a delegator for delegating.
   - Restrictions
     - Must be `<=` [`reward.PercentDenominator`]
-- **`MinDelegatorStake`** is a short which is the minimum amount of funds required to become a delegator.
+- **`MinDelegatorStake`** is a long (8 bytes) which is the minimum amount of funds required to become a delegator.
   - Restrictions
     - Must be `>` 0
 - **`MaxValidatorWeightFactor`** is a byte which is the factor which calculates
@@ -1227,7 +1235,7 @@ for this type is 24 or `0x00000018`.
   effectively disables delegation.
   - Restrictions
     - Must be `>` 0
-- **`UptimeRequirement`** is a short which is the minimum percentage a validator
+- **`UptimeRequirement`** is an int (4 bytes) which is the minimum percentage a validator
   must be online and responsive to receive a reward.
   - Restrictions
     - Must be `<=` [`reward.PercentDenominator`]
@@ -1292,7 +1300,7 @@ message TransformSubnetTx {
     uint32 min_stake_duration = 10;  // 04 bytes
     uint32 max_stake_duration = 11;  // 04 bytes
     uint32 min_delegation_fee = 12;  // 04 bytes
-    uint32 min_delegator_stake = 13; // 08 bytes
+    uint64 min_delegator_stake = 13; // 08 bytes
     byte max_validator_weight_factor = 14; // 01 byte
     uint32 uptime_requirement = 15; // 04 bytes
     SubnetAuth subnet_auth = 16;    // 04 bytes + len(sig_indices)
@@ -1558,6 +1566,8 @@ Let's make an unsigned add Avalanche L1 validator TX that uses the inputs and ou
 ```
 
 ## Unsigned Add Delegator TX
+
+> **Note:** The P-Chain rejects this transaction type since the Durango upgrade (ACP-62). To delegate to a Primary Network validator, use `AddPermissionlessDelegatorTx`.
 
 ### What Unsigned Add Delegator TX Contains
 
@@ -2234,8 +2244,7 @@ A signed transaction contains a `CodecID`, `UnsignedTx`, and `Credentials`.
 
 - **`CodecID`** The only current valid codec id is `00 00`.
 - **`UnsignedTx`** is an unsigned transaction, as described above.
-- **`Credentials`** is an array of credentials. Each credential will be paired
-  with the input in the same index at this credential.
+- **`Credentials`** is an array of credentials. Credential i signs input i. A transaction that also has an authorization field (`SubnetAuth`, `DisableAuth` or `Auth`) puts the credential for that authorization last.
 
 ### Gantt Signed Transaction Specification
 
@@ -2441,11 +2450,14 @@ fund StakeableLockOuts with the same address until its lock time has passed.
 
 A StakeableLockIn contains a `TypeID`, `Locktime` and `TransferableIn`.
 
-- **`TypeID`** is the ID for this output type. It is `0x00000015`.
+- **`TypeID`** is the ID for this input type. It is `0x00000015`.
 - **`Locktime`** is a long that contains the Unix timestamp before which the
   input can be consumed only to stake. The Unix timestamp is specific to the
   second.
-- **`TransferableIn`** is a transferable input object.
+- **`TransferableIn`** is the inner input, for example a SECP256K1 Transfer
+  Input with its own type ID. It has no `TxID`, `UTXOIndex` or `AssetID`. A
+  StakeableLockIn is the `Input` of a Transferable Input, so the `TxID`,
+  `UTXOIndex` and `AssetID` come before the StakeableLockIn type ID.
 
 ### Gantt StakeableLockIn Specification
 
@@ -2455,7 +2467,7 @@ A StakeableLockIn contains a `TypeID`, `Locktime` and `TransferableIn`.
 +-----------------+-------------------+--------------------------------+
 | locktime        : long              |                        8 bytes |
 +-----------------+-------------------+--------------------------------+
-| transferable_in : TransferableInput |          size(transferable_in) |
+| transferable_in : Input             |    size(transferable_in) bytes |
 +-----------------+-------------------+--------------------------------+
                                     | 12 + size(transferable_in) bytes |
                                     +----------------------------------+
@@ -2465,9 +2477,9 @@ A StakeableLockIn contains a `TypeID`, `Locktime` and `TransferableIn`.
 
 ```text
 message StakeableLockIn {
-    uint32 type_id = 1;                    // 04 bytes
-    uint64 locktime = 2;                   // 08 bytes
-    TransferableInput transferable_in = 3; // size(transferable_in)
+    uint32 type_id = 1;        // 04 bytes
+    uint64 locktime = 2;       // 08 bytes
+    Input transferable_in = 3; // size(transferable_in)
 }
 ```
 
@@ -2477,15 +2489,13 @@ Let's make a StakeableLockIn with:
 
 - **`TypeID`**: 21
 - **`Locktime`**: 54321
-- **`TransferableIn`**: "Example SECP256K1 Transfer Input as defined above"
+- **`TransferableIn`**: a SECP256K1 Transfer Input with amount 123456789 and address indices \[0\]
 
 ```text
 [
-    TypeID    <- 0x00000015
-    Locktime  <- 0x000000000000d431
-    TransferableIn <- [
-        f1e1d1c1b1a191817161514131211101f0e0d0c0b0a09080706050403020100000000005000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000500000000075bcd150000000100000000,
-    ]
+    TypeID         <- 0x00000015
+    Locktime       <- 0x000000000000d431
+    TransferableIn <- 0x0000000500000000075bcd150000000100000000
 ]
 =
 [
@@ -2493,18 +2503,10 @@ Let's make a StakeableLockIn with:
     0x00, 0x00, 0x00, 0x15,
     // locktime:
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x31,
-    // transferable_in
-    0xf1, 0xe1, 0xd1, 0xc1, 0xb1, 0xa1, 0x91, 0x81,
-    0x71, 0x61, 0x51, 0x41, 0x31, 0x21, 0x11, 0x01,
-    0xf0, 0xe0, 0xd0, 0xc0, 0xb0, 0xa0, 0x90, 0x80,
-    0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10, 0x00,
+    // transferable_in (SECP256K1 Transfer Input):
     0x00, 0x00, 0x00, 0x05,
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-    0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-    0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00,
-    0x07, 0x5b, 0xcd, 0x15, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x07, 0x5b, 0xcd, 0x15,
+    0x00, 0x00, 0x00, 0x01,
     0x00, 0x00, 0x00, 0x00,
 ]
 ```
@@ -2521,7 +2523,10 @@ A StakeableLockOut contains a `TypeID`, `Locktime` and `TransferableOut`.
 - **`Locktime`** is a long that contains the Unix timestamp before which the
   output can be consumed only to stake. The Unix timestamp is specific to the
   second.
-- **`transferableout`**: "Example SECP256K1 Transfer Output as defined above"
+- **`TransferableOut`** is the inner output, for example a SECP256K1 Transfer
+  Output with its own type ID. It has no `AssetID`. A StakeableLockOut is the
+  `Output` of a Transferable Output, so the `AssetID` comes before the
+  StakeableLockOut type ID.
 
 ### Gantt StakeableLockOut Specification
 
@@ -2531,7 +2536,7 @@ A StakeableLockOut contains a `TypeID`, `Locktime` and `TransferableOut`.
 +------------------+--------------------+--------------------------------+
 | locktime         : long               |                        8 bytes |
 +------------------+--------------------+--------------------------------+
-| transferable_out : TransferableOutput |         size(transferable_out) |
+| transferable_out : Output             |         size(transferable_out) |
 +------------------+--------------------+--------------------------------+
                                      | 12 + size(transferable_out) bytes |
                                      +-----------------------------------+
@@ -2543,7 +2548,7 @@ A StakeableLockOut contains a `TypeID`, `Locktime` and `TransferableOut`.
 message StakeableLockOut {
     uint32 type_id = 1;                      // 04 bytes
     uint64 locktime = 2;                     // 08 bytes
-    TransferableOutput transferable_out = 3; // size(transferable_out)
+    Output transferable_out = 3;             // size(transferable_out)
 }
 ```
 
@@ -2694,9 +2699,9 @@ Let's make a validator:
 ```text
 [
     NodeID  <- 0xaa18d3991cf637aa6c162f5e95cf163f69cd8291
-    Start   <- 0x61ef3d98
-    End     <- 0x620303df
-    Wght    <- 0x14
+    Start   <- 0x0000000061ef3d98
+    End     <- 0x00000000620303df
+    Wght    <- 0x0000000000000014
 ]
 
 =
@@ -2706,11 +2711,11 @@ Let's make a validator:
   0xaa, 0x6c, 0x16, 0x2f, 0x5e, 0x95, 0xcf,
   0x16, 0x3f, 0x69, 0xcd, 0x82, 0x91,
   // start
-  0x61, 0xef, 0x3d, 0x98,
+  0x00, 0x00, 0x00, 0x00, 0x61, 0xef, 0x3d, 0x98,
   // end
-  0x62, 0x03, 0x03, 0xdf,
+  0x00, 0x00, 0x00, 0x00, 0x62, 0x03, 0x03, 0xdf,
   // wght
-  0x14,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14,
 ]
 ```
 
@@ -2869,9 +2874,9 @@ An unsigned register L1 validator TX contains a `BaseTx`, `Balance`, `Signer` an
 +------------+------------------+----------------------------------+
 | signer     : [96]byte         |                         96 bytes |
 +------------+------------------+----------------------------------+
-| message    : WarpMessage      |             size(message) bytes |
+| message    : []byte           |         4 + size(message) bytes |
 +------------+------------------+----------------------------------+
-| 104 + size(base_tx) + size(message) bytes                       |
+| 108 + size(base_tx) + size(message) bytes                       |
 +------------------------------------------------------------------+
 ```
 
@@ -2901,9 +2906,9 @@ An unsigned set L1 validator weight TX contains a `BaseTx` and `Message`. The `T
 +------------+------------------+----------------------------------+
 | base_tx    : BaseTx           |              size(base_tx) bytes |
 +------------+------------------+----------------------------------+
-| message    : WarpMessage      |             size(message) bytes |
+| message    : []byte           |         4 + size(message) bytes |
 +------------+------------------+----------------------------------+
-| size(base_tx) + size(message) bytes                             |
+| 4 + size(base_tx) + size(message) bytes                         |
 +------------------------------------------------------------------+
 ```
 

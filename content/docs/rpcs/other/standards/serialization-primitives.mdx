@@ -2,7 +2,7 @@
 title: Serialization Primitives
 ---
 
-Avalanche uses a simple, uniform, and elegant representation for all internal data. This document describes how primitive types are encoded on the Avalanche platform. Transactions are encoded in terms of these basic primitive types.
+AvalancheGo uses one simple binary format for P-Chain and X-Chain data, such as transactions, blocks and UTXOs. It also uses this format for C-Chain atomic (import and export) transactions, ProposerVM block headers and Warp messages. This document describes how this format encodes primitive types. Transactions are encoded in terms of these primitive types. Other data uses other formats. For example, P2P messages use Protocol Buffers, and C-Chain EVM blocks and transactions use RLP.
 
 Byte
 ---------------------------------------
@@ -63,7 +63,7 @@ Results in:
 IP Addresses
 -------------------------------------------------------
 
-IP addresses are represented as 16-byte IPv6 format, with the port appended into the message payload as a Short. IPv4 addresses are padded with 12 bytes of leading 0x00s.
+IP addresses are represented in the 16-byte IPv6 format, with the port appended as a Short. An IPv4 address uses the IPv4-mapped IPv6 form: 10 bytes of 0x00, then 2 bytes of 0xff, then the 4 bytes of the IPv4 address. AvalancheGo uses this format in the bytes that a node signs to claim its IP. P2P messages carry the IP as a protobuf `bytes` field instead.
 
 IPv4 example:
 
