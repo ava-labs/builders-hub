@@ -221,16 +221,6 @@ jobs:
           mapfile -t args < <(jq -r '.[]' <<< "$ARGS")
           npx e2e run "${args[@]}"
 
-      # In-app browser tests run on their own targets, an Instagram and a LinkedIn user agent (webview/e2e.config.ts).
-      # They run when the tests above fail too.
-      - name: Run in-app browser tests
-        if: success() || (failure() && steps.target.outcome == 'success')
-        env:
-          E2E_BASE_URL: ${{ steps.target.outputs.url }}
-          E2E_TELEMETRY_DISABLED: '1'
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: npx e2e run --config webview/e2e.config.ts
-
       - name: Job summary
         if: always()
         env:

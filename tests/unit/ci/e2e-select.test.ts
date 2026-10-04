@@ -78,6 +78,9 @@ describe('select', () => {
     expect(unitsFor('tests/e2e/ai/journey-docs.e2e.ts').units).toEqual(['ai:docs']);
     expect(unitsFor('tests/e2e/ai/site-navigation.e2e.ts').units).toEqual(['ai:docs', 'ai:explorer', 'ai:site']);
     expect(unitsFor('tests/e2e/api/mcp-chain-stats.e2e.ts').units).toEqual(['api']);
+    expect(unitsFor('tests/e2e/webview/login-warning.e2e.ts').units).toEqual(['webview']);
+    expect(unitsFor('tests/e2e/webview/e2e.config.ts').units).toEqual(['webview']);
+    expect(unitsFor('tests/e2e/ai/visual-signup.e2e.ts').units).toEqual(['ai:site']);
     expect(unitsFor('tests/e2e/console/console-sweep.ts').units).toEqual(['console']);
     expect(unitsFor('tests/e2e/lib/skip.ts').units.length).toBeGreaterThan(3);
   });
@@ -120,6 +123,16 @@ describe('select', () => {
   it('runs the API tests for the MCP route', () => {
     expect(unitsFor('app/api/mcp/route.ts').units).toContain('api');
   });
+
+  it('runs the sign-up and login tests, in the in-app browsers too, for the auth pages', () => {
+    for (const page of ['app/(home)/signup/page.tsx', 'app/(home)/login/page.tsx']) {
+      expect(unitsFor(page).units, page).toEqual(expect.arrayContaining(['site', 'routes', 'ai:site', 'webview']));
+    }
+  });
+
+  it('runs the site tests for the ecosystem page, which site/ opens by name', () => {
+    expect(unitsFor('app/(home)/ecosystem/page.tsx').units).toEqual(expect.arrayContaining(['site', 'routes']));
+  });
 });
 
 describe('planFor', () => {
@@ -135,14 +148,25 @@ describe('planFor', () => {
     expect(planFor({ all: false, units: [], reasons: [] }).map((leg) => leg.name)).toEqual(['smoke']);
   });
 
-  it('runs every browser test and the API tests for everything', () => {
+  it('runs every browser test, the API tests and the in-app browser tests for everything', () => {
     const legs = planFor({ all: true, units: [...UNITS], reasons: [] });
-    expect(legs.map((leg) => leg.name)).toEqual(['browser', 'api']);
+    expect(legs.map((leg) => leg.name)).toEqual(['browser', 'api', 'webview']);
+  });
+
+  it('runs the in-app browser tests with their own config, in a browser', () => {
+    const legs = planFor({ all: false, units: ['webview'], reasons: [] });
+    expect(legs.map((leg) => leg.name)).toEqual(['smoke', 'webview']);
+    expect(legs[1]).toMatchObject({
+      args: ['--config', 'webview/e2e.config.ts'],
+      output: 'webview/.e2e',
+      browser: true,
+      shardable: false,
+    });
   });
 
   it('runs the sweeps at the desktop size only when asked', () => {
     const all = planFor({ all: true, units: [...UNITS], reasons: [] }, { sweepsAtBothSizes: false });
-    expect(all.map((leg) => leg.name)).toEqual(['browser', 'sweeps', 'api']);
+    expect(all.map((leg) => leg.name)).toEqual(['browser', 'sweeps', 'api', 'webview']);
     expect(all[0].args).toEqual(expect.arrayContaining(['--exclude-tag', 'sweep']));
     expect(all[1].args).toEqual(expect.arrayContaining(['--tag', 'sweep', '--target', 'desktop']));
     const docs = planFor({ all: false, units: ['docs'], reasons: [] }, { sweepsAtBothSizes: false });
@@ -167,9 +191,10 @@ describe('shardLegs', () => {
     expect(new Set(sharded.map((leg) => leg.output)).size).toBe(sharded.length);
   });
 
-  it('never runs more than the shard limit', () => {
+  it('never runs more than the shard limit, and never splits a unit with its own config', () => {
     const legs = shardLegs(planFor({ all: true, units: [...UNITS], reasons: [] }), () => 5000);
-    expect(legs.filter((leg) => leg.browser)).toHaveLength(MAX_SHARDS);
+    expect(legs.filter((leg) => leg.shardable)).toHaveLength(MAX_SHARDS);
+    expect(legs.filter((leg) => !leg.shardable).map((leg) => leg.name)).toEqual(['api', 'webview']);
   });
 });
 

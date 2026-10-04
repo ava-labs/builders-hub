@@ -106,6 +106,7 @@ function place(file: string, removed: boolean, { graph, tests }: Context): Reaso
     const own = unitsOfTestFile(path);
     if (own.length) return reason('a test file', own);
     if (path === 'api/e2e.config.ts') return reason('the API test config', ['api']);
+    if (path === 'webview/e2e.config.ts') return reason('the in-app browser test config', ['webview']);
     const users = tests.get(path);
     if (users?.size) return reason('a test helper', sorted(users));
     if (removed) return reason('a removed test helper: the files that imported it changed too', []);

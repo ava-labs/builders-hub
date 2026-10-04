@@ -11,6 +11,7 @@ export const UNITS = [
   'routes',
   'site',
   'api',
+  'webview',
   'ai:academy',
   'ai:console',
   'ai:docs',
@@ -34,12 +35,16 @@ export const AI_FILES: Record<string, readonly string[]> = {
     'site-navigation',
     'visual-explorer',
   ],
-  'ai:site': ['journey-site', 'site-navigation', 'visual-home', 'visual-phone-menu'],
+  'ai:site': ['journey-site', 'site-navigation', 'visual-home', 'visual-phone-menu', 'visual-signup'],
 };
 
-// The arguments of `e2e run` that select a unit. The API tests have their own config, so they are not a path.
+// The units whose tests have their own config: the API tests (api/e2e.config.ts), and the in-app browser tests
+// (webview/e2e.config.ts), which have their own targets. Each runs as one leg of its own (plan.ts).
+export const OWN_CONFIG_UNITS: readonly Unit[] = ['api', 'webview'];
+
+// The arguments of `e2e run` that select a unit. A unit with its own config is not a path.
 export function unitPaths(unit: Unit): string[] {
-  if (unit === 'api') return [];
+  if (OWN_CONFIG_UNITS.includes(unit)) return [];
   if (unit.startsWith('ai:')) return (AI_FILES[unit] ?? []).map((name) => `ai/${name}.e2e.ts`);
   return [`${unit}/`];
 }
@@ -60,6 +65,7 @@ export const GROUPS = {
   blog: { label: 'blog pages', units: ['routes', 'site'] },
   integrations: { label: 'integrations pages', units: ['routes', 'site', 'ai:site'] },
   home: { label: 'the home page', units: ['site', 'routes', 'ai:site'] },
+  auth: { label: 'the sign-up and login pages', units: ['site', 'routes', 'ai:site', 'webview'] },
   stats: { label: 'stats pages', units: ['routes'] },
   'site-core': { label: 'the site pages that site/ opens', units: ['site', 'routes', 'ai:site'] },
   'site-pages': { label: 'other site pages', units: ['routes'] },
@@ -74,7 +80,9 @@ export const GROUPS = {
 export type GroupName = keyof typeof GROUPS;
 
 // The site pages that site/ and ai/ open by name. The routes sweep opens every other site page.
-const SITE_CORE = ['/grants', '/events', '/solutions', '/validator-alerts', '/guides'];
+const SITE_CORE = ['/grants', '/events', '/solutions', '/validator-alerts', '/guides', '/ecosystem'];
+// site/ and ai/ open the sign-up and login pages, and webview/ opens them in in-app browsers.
+const AUTH_PAGES = ['/signup', '/login'];
 const TEXT_ROUTES = ['/llms.txt', '/llms-full.txt', '/mcp-manifest', '/static.json', '/install'];
 
 // The group of a route file of app/, from its URL. `file` tells the Academy and docs front doors in the (home)
@@ -94,6 +102,7 @@ export function groupOfUrl(url: string, file: string): GroupName {
   if (under('/api')) return 'api-other';
   if (TEXT_ROUTES.some(under)) return 'text-routes';
   if (url === '/') return 'home';
+  if (AUTH_PAGES.some(under)) return 'auth';
   if (under('/stats')) return 'stats';
   if (SITE_CORE.includes(url)) return 'site-core';
   return 'site-pages';

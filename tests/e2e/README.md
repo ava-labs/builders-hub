@@ -137,7 +137,7 @@ A PR runs the tests that its changed files can break, not the whole suite. The p
 - A file that no page or test reads (docs, unit tests, lint config, other workflows) runs no test.
 - A code file runs the tests of the pages that import it, directly or through other files. `select/graph.ts` builds the import graph from the route files of `app/` and the MDX files of `content/`.
 - A content file runs the tests of its collection. A file of `public/` runs the tests of the pages that name its URL.
-- A file of `tests/e2e` runs its own folder, or the folders whose tests import it.
+- A file of `tests/e2e` runs its own folder, or the folders whose tests import it. The API tests (`api/`) and the in-app browser tests (`webview/`) have their own configs, and each runs as one leg.
 - A file that no page reaches in the graph runs every test, because the graph cannot see every way a file is used.
 - Every PR also runs the smoke set (tag `smoke`): the home page, the navbar, and one page per area.
 - Every push to `master` and every night run the whole suite, so a test that a PR skipped runs within a day.

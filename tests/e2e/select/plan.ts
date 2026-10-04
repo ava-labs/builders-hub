@@ -14,7 +14,7 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { SMOKE_TAG, SMOKE_UNITS, SWEEP_TAG, SWEEP_UNITS, UNITS, unitPaths } from './rules.ts';
+import { OWN_CONFIG_UNITS, SMOKE_TAG, SMOKE_UNITS, SWEEP_TAG, SWEEP_UNITS, UNITS, unitPaths } from './rules.ts';
 import { checkSuite, loadContext, select, type Change, type Selection } from './select.ts';
 
 // A leg is one `e2e run` of the plan.
@@ -29,10 +29,12 @@ export interface Leg {
   output: string;
   /** False for the API tests, which need no browser. */
   browser: boolean;
+  /** A browser leg that can be split into shards. A unit with its own config runs as one small leg. */
+  shardable: boolean;
 }
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
-const BROWSER_UNITS = UNITS.filter((unit) => unit !== 'api');
+const BROWSER_UNITS = UNITS.filter((unit) => !OWN_CONFIG_UNITS.includes(unit));
 
 export interface PlanOptions {
   /** Run the sweeps (tag sweep) at both sizes. Off for a PR and a master push: the nightly run covers the phone size. */
@@ -56,16 +58,23 @@ export function planFor(selection: Selection, { sweepsAtBothSizes = true }: Plan
   if (rest.length) {
     legs.push(browserLeg('smoke', ['--tag', SMOKE_TAG, '--pass-with-no-tests', ...rest.flatMap(unitPaths)]));
   }
-  if (selection.units.includes('api')) {
-    const select = ['--config', 'api/e2e.config.ts'];
-    legs.push({ name: 'api', select, args: select, output: 'api/.e2e', browser: false });
+  for (const unit of OWN_CONFIG_UNITS.filter((unit) => selection.units.includes(unit))) {
+    const select = ['--config', `${unit}/e2e.config.ts`];
+    legs.push({ name: unit, select, args: select, output: `${unit}/.e2e`, browser: unit !== 'api', shardable: false });
   }
   return legs;
 }
 
 function browserLeg(name: string, select: string[]): Leg {
   const output = `.e2e/${name.replace(/\W+/g, '-')}`;
-  return { name, select, args: [...select, '--workers', '4', '--output', output], output, browser: true };
+  return {
+    name,
+    select,
+    args: [...select, '--workers', '4', '--output', output],
+    output,
+    browser: true,
+    shardable: true,
+  };
 }
 
 // A job runs about this many tests (a test at one size) in 2 to 4 minutes with 4 workers. A bigger leg is split
@@ -76,7 +85,7 @@ export const MAX_SHARDS = 3;
 /** Splits the browser legs into shards by their test count, and drops a leg that selects no test. */
 export function shardLegs(legs: Leg[], countTests: (select: string[]) => number): Leg[] {
   return legs.flatMap((leg) => {
-    if (!leg.browser) return [leg];
+    if (!leg.shardable) return [leg];
     const count = countTests(leg.select);
     const shards = Math.min(MAX_SHARDS, Math.ceil(count / TESTS_PER_JOB));
     if (shards <= 1) return count ? [leg] : [];
