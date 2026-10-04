@@ -38,7 +38,7 @@ export function priceHistoryUrl(days: number): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* The overview's live boards: their chains and each chain's two feeds  */
+/* The overview's live boards: their chains and each chain's feed      */
 
 export interface LiveChain {
   /** EVM chain id, the API route key */
@@ -49,12 +49,11 @@ export interface LiveChain {
   symbol: string;
 }
 
-/** a chain's blocks from its RPC, headers only; after `last` when given */
+/** a chain's blocks from its RPC, headers only, after `last` when given,
+ *  with their newest 3 transactions: the most a chain adds to the opening
+ *  board */
 export const blocksFeed = (chainId: string, last?: number) =>
-  `/api/explorer/${chainId}?blocksOnly=true${last ? `&lastFetchedBlock=${last}` : ""}`;
-
-/** a chain's latest transactions from the indexer: a few to open on, more to keep up */
-export const txsFeed = (chainId: string, first: boolean) => `/api/evm/${chainId}/txs?limit=${first ? 6 : 10}`;
+  `/api/explorer/${chainId}?blocksOnly=true&txs=3${last ? `&lastFetchedBlock=${last}` : ""}`;
 
 /* one chain's row in the overview feed, as far as the roster reads it */
 export interface RosterRow {
@@ -92,5 +91,5 @@ export function rosterOf(rows: RosterRow[]): LiveChain[] {
 
 /** the reads the boards open with, for the chains an overview feed names */
 export function boardReads(rows: RosterRow[]): string[] {
-  return rosterOf(rows).flatMap((c) => [blocksFeed(c.chainId), txsFeed(c.chainId, true)]);
+  return rosterOf(rows).map((c) => blocksFeed(c.chainId));
 }

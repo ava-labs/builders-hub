@@ -28,10 +28,10 @@ function cacheControlFor(resource: string, chainId: string, query: URLSearchPara
   if (resource.startsWith("tx/") || resource.startsWith("block/")) {
     return IMMUTABLE_CACHE_CONTROL;
   }
-  // The newest transactions are polled every 5 s (the All Networks boards,
-  // a chain's live list). With stale-while-revalidate each poll got the copy
-  // the poll before had asked for, 3 to 5 s old: one poll behind. A page of
-  // older ones (`before`) keeps the longer cache.
+  // The newest transactions are polled every 5 s (a chain's home and its
+  // live list). With stale-while-revalidate each poll got the copy the poll
+  // before had asked for, 3 to 5 s old: one poll behind. A page of older
+  // ones (`before`) keeps the longer cache.
   if (resource === "txs" && !query.has("before")) return FAST_CACHE_CONTROL;
   return FAST_CHAINS.has(chainId) ? FAST_CACHE_CONTROL : CACHE_CONTROL;
 }
