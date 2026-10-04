@@ -13,6 +13,7 @@ import 'fumadocs-twoslash/twoslash.css';
 import './critical.css';
 import './styles.css';
 import './book/tokens.css';
+import './book/sidebar.css';
 import './book/callout.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
