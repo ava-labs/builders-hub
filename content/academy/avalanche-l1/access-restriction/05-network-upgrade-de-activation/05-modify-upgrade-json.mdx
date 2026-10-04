@@ -31,7 +31,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
   <Step>
     ### Step 1: Choose future timestamps
 
-    In the validator container, compute two timestamps a few minutes in the future (they must be strictly increasing):
+    In the validator container, compute two timestamps a few minutes in the future. Each entry must have a timestamp equal to or later than the entry before it:
 
     ```bash
     NOW=$(date +%s)

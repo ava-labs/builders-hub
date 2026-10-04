@@ -12,19 +12,23 @@ Geth (or [go-ethereum](https://github.com/ethereum/go-ethereum)) is the official
 
 ## Coreth
 
-[Coreth](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) is a fork of Geth maintained by Ava Labs. It implements the EVM for the C-Chain and has been adapted to work with Avalanche Consensus.
+[Coreth](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) is a fork of Geth maintained by Ava Labs. It ran the C-Chain EVM with Avalanche Consensus until the Helicon upgrade (Fuji: 2026-07-28 15:00 UTC, Mainnet: 2026-09-22 15:00 UTC). Since Helicon, the C-Chain runs the SAE VM (Streaming Asynchronous Execution, ACP-194) at `vms/saevm/cchain`. Coreth executes only the blocks from before Helicon.
 
 ## Subnet-EVM
 
-[Subnet-EVM](https://github.com/ava-labs/subnet-evm) is a fork of Coreth designed to facilitate launching customized EVM-based blockchains on an Avalanche L1. It differs from Coreth in the following ways:
+[Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm) is a fork of Coreth designed to facilitate launching customized EVM-based blockchains on an Avalanche L1. It differs from Coreth in the following ways:
 
 - **Configurable Fees and Gas Limits**: Customizable fees and gas limits can be set in the genesis file.
-- **Unified Subnet-EVM Hardfork**: All Avalanche hardforks are merged into a single "Subnet-EVM" hardfork.
+- **Network Upgrades**: Subnet-EVM activates all Avalanche upgrades before Apricot Phase 6 together, with one "Subnet-EVM" upgrade (`subnetEVMTimestamp`). Each later upgrade (Durango, Etna, Fortuna, Granite, Helicon) has its own timestamp.
 - **Atomic Transactions and Shared Memory Removed**: Support for atomic transactions and shared memory has been removed.
 - **Multicoin Contracts and State Removed**: Multicoin contracts and state tracking are no longer supported.
 
 ## Precompile-EVM
 
-Precompile-EVM allows precompiles to be registered with Subnet-EVM without needing to fork the Subnet-EVM codebase. This simplifies common customizations to Subnet-EVM, making them more accessible and easier to maintain. It also streamlines updates for Subnet-EVM.
+Precompile-EVM let you register precompiles with Subnet-EVM without a fork of the Subnet-EVM codebase.
+
+<Callout type="warn" title="Precompile-EVM is archived">
+Ava Labs archived the Precompile-EVM repository on 2026-10-02. It gets no more releases. Its last release (v0.4.0) builds a plugin with plugin version 44. An AvalancheGo node runs only plugins with its own plugin version: v1.15.0 and v1.15.1 use plugin version 46. Since Helicon, Fuji and Mainnet nodes must run v1.15.0 or later. This course uses the `avalanche-academy-start` branch, which builds with AvalancheGo v1.11.11 and Subnet-EVM v0.6.10 (plugin version 37). You can run its plugin on a local network, but not on a Fuji or Mainnet node. The current Subnet-EVM code and its `precompilegen` tool are in AvalancheGo at `graft/subnet-evm`.
+</Callout>
 
 <Quiz quizId="3042"/>

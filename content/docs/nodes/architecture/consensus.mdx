@@ -270,7 +270,7 @@ func (e *Engine) Chits(ctx context.Context, nodeID ids.NodeID, requestID uint32,
 
 ## Snowman++ (ProposerVM)
 
-Snowman++ adds **soft proposer windows** on top of Snowman to pace block production. It is implemented by wrapping a ChainVM in the [ProposerVM](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm) and is enabled on the P-Chain and C-Chain.
+Snowman++ adds **soft proposer windows** on top of Snowman to pace block production. It is implemented by wrapping a ChainVM in the [ProposerVM](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm) and is enabled on every chain: the P-Chain, the X-Chain, the C-Chain and every L1 chain.
 
 ```go title="vms/proposervm/vm.go"
 // ProposerVM wraps a ChainVM to add proposer selection
@@ -283,8 +283,8 @@ type VM struct {
 ```
 
 **How it works:**
-1. Validators are sampled (by stake) to form a proposer list for the next block.
-2. Each proposer gets a 5s window; up to 6 windows are scheduled from the parent timestamp.
+1. The wrapper divides the time after the parent block's timestamp into 5-second slots.
+2. For each slot, it samples one proposer by stake. The number of slots has no limit: the pre-Durango limit of 6 windows no longer applies.
 3. Within their window, only the designated proposer can build a valid block.
 4. If a proposer misses its window, the schedule moves to the next sampled validator in 5-second slots. Only validators in the set at the parent block's embedded P-Chain height are ever eligible: the pre-Durango fallback that opened production to any node after the final window no longer exists.
 
@@ -333,7 +333,7 @@ type Parameters struct {
 | **MaxItemProcessingTime** | 30s | Health threshold for a single item |
 
 <Callout type="warning">
-These parameters are network-wide and cannot be changed for individual nodes. Modifying them would cause consensus failures.
+These values are node defaults, not network-wide constants. Each node reads them from its own flags (`--snow-sample-size`, `--snow-quorum-size`, `--snow-commit-threshold` and others). An L1 config file can set them for that L1 with `snowParameters`. A change affects only this node. Do not change them unless you understand the effect on safety and liveness.
 </Callout>
 
 ## Security Properties

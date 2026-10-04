@@ -27,7 +27,7 @@ Subnet-EVM supports doing this via **network upgrades** using an `upgrade.json` 
 - **Network upgrades** change how blocks are processed. All validators must upgrade consistently, or the chain can halt or fall out of sync.
 - **Upgrade file location**: `{chain-config-dir}/{blockchainID}/upgrade.json`
 - **Timestamps must be in the future** (relative to the chain head). Past timestamps will cause the node to fail on startup.
-- **Upgrade lists are append-only** — you can only add new entries, not modify or remove existing ones.
+- **Activated upgrades cannot change**: after an upgrade activates, you cannot modify or remove its entry. You can still change or remove an entry that has not activated, and you can add new entries with future timestamps.
 - **Disabling a precompile** prevents all calls and clears its storage, allowing it to be re-enabled later with fresh configuration.
 
 <Quiz quizId="3014"/>

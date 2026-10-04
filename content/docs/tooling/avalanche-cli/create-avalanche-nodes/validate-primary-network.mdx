@@ -26,7 +26,7 @@ To have all nodes in cluster `clusterName` be Primary Network Validators, run:
 avalanche node validate primary <clusterName>
 ```
 
-The nodes will start validating the Primary Network 20 seconds after the command is run.
+The nodes start to validate the Primary Network when the P-Chain accepts their validator transactions. Since the Durango upgrade, the P-Chain ignores the start time in the transaction.
 
 The wizard will ask us how we want to pay for the transaction fee. Choose `Use stored key` for Fuji:
 
@@ -52,4 +52,4 @@ Next, choose how long the node will be validating for:
     Custom
 ```
 
-Once all the inputs are completed you will see transaction IDs indicating that all the nodes in the cluster will be Primary Network Validators once the start time has elapsed.
+Once all the inputs are completed you will see transaction IDs indicating that all the nodes in the cluster are Primary Network Validators. Each validation starts when the P-Chain accepts its transaction.

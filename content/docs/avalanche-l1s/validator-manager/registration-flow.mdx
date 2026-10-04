@@ -38,7 +38,7 @@ The interactive explainer above is the narration; this table is the quick refere
 | --- | --- | --- | --- |
 | 01 | Initiate registration on the L1 | Operator, ValidatorManager | EVM tx: `initiateValidatorRegistration` emits the L1-sourced Warp message |
 | 02 | Validators sign the L1 message | Validator set, aggregator | BLS signatures to 67% of total weight |
-| 03 | Submit RegisterL1ValidatorTx | Aggregator, P-Chain | P-Chain tx; the P-Chain assigns a `validationID` |
+| 03 | Submit RegisterL1ValidatorTx | Aggregator, P-Chain | P-Chain tx; the P-Chain records the validator under its `validationID` (the SHA-256 hash of the registration message from step 01) |
 | 04 | The P-Chain acknowledges | P-Chain | Nothing: the registration becomes a P-Chain fact |
 | 05 | Validators sign the P-Chain message | Validator set, aggregator, P-Chain | BLS signatures over the P-Chain-sourced message |
 | 06 | Complete registration on the L1 | Aggregator, ValidatorManager, operator | The signed message rides the completion tx's access list |
@@ -52,7 +52,7 @@ Every failure below is real: each one has occurred in production support cases.
 
 **Symptom:** the aggregator reports `connectedWeight: 0` while `totalWeight` is nonzero, and aggregation fails with "failed to collect a threshold of signatures".
 
-**Cause:** on validators-only L1s, validators accept peer connections only from allowlisted NodeIDs. The aggregator's own NodeID is not in the `allowedNodes` configuration, so no validator answers it.
+**Cause:** on validators-only L1s (`validatorOnly: true`), validators drop this L1's messages from nodes that are not L1 validators and are not in `allowedNodes`. The aggregator's own NodeID is not in the `allowedNodes` configuration, so no validator answers it.
 
 **Fix:** have the aggregator's NodeID added to the validators' `allowedNodes` configuration (your infrastructure provider can do this), then retry.
 
@@ -87,7 +87,7 @@ Every failure below is real: each one has occurred in production support cases.
 </Accordions>
 
 <Callout title="requirePrimaryNetworkSigners">
-Some L1s set `requirePrimaryNetworkSigners` in their Warp configuration, which normally routes message verification to the primary network validator set. P-Chain-sourced messages are exempt in Subnet-EVM v0.8.0 and later, so validator registration completion is verified by the L1's own validator set either way.
+Some L1s set `requirePrimaryNetworkSigners` in their Warp configuration. This option makes the L1 verify C-Chain and X-Chain messages against the Primary Network validator set. It never applies to P-Chain-sourced messages: Subnet-EVM always verifies them against the L1's own validator set. So the registration completion message needs signatures from the L1's own validators in both cases.
 </Callout>
 
 ## Appendix: anatomy of the completion message

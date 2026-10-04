@@ -5,7 +5,7 @@ description: Verify smart contracts on any Avalanche L1 from Hardhat, Foundry, o
 
 Verifying a contract publishes the source code that produced the bytecode already deployed on chain. Once verified, the contract's source and ABI appear on its explorer page, and every call and event against that address decodes by name instead of showing raw selectors.
 
-Builder Hub runs its own verifier, so this works on **any Avalanche L1 in the chain catalog with a public RPC** — not just the C-Chain. Sourcify only knows the Primary Network, which is why most L1 contracts could never be verified before.
+Builder Hub runs its own verifier, so this works on **any Avalanche <Term role="evm">L1</Term> in the chain catalog with a public RPC**, not only on the <Term role="evm">C-Chain</Term>. Sourcify only knows the Primary Network, which is why most L1 contracts could never be verified before.
 
 ## What you need
 
@@ -18,12 +18,12 @@ You almost certainly already have one:
 | Hardhat | `artifacts/build-info/*.json` after `npx hardhat compile` |
 | Foundry | `out/build-info/*.json` after `forge build --build-info` |
 
-Either file can be uploaded as-is. Build tools add their own keys to the input — Foundry writes `allowPaths`, `basePath` and `includePaths` — and those are stripped before compiling, since solc rejects an input carrying keys it doesn't define.
+Either file can be uploaded as-is. Build tools add their own keys to the input (Foundry writes `allowPaths`, `basePath` and `includePaths`). Those keys are stripped before compiling, since solc rejects an input carrying keys it doesn't define.
 
 Flattened single-file sources are not accepted. They were always a workaround for tooling that couldn't produce Standard JSON, and every current tool can.
 
-<Callout type="info">
-Compilation settings must match the deployment exactly — the same compiler version, the same optimizer setting and run count, the same EVM version. A single differing flag produces different bytecode and the verification will fail.
+<Callout type="info" title="Do your settings match the deployment?">
+Use the same compiler version, the same optimizer setting and run count, and the same EVM version as the deployment. A single differing flag produces different bytecode and the verification will fail.
 </Callout>
 
 ## From the explorer
@@ -83,7 +83,7 @@ Use `customChains`. The `apiKey` value is required by the plugin but ignored by 
 ```ts title="hardhat.config.ts"
 const config: HardhatUserConfig = {
   networks: {
-    myL1: { url: "https://my-l1-rpc.example/ext/bc/C/rpc", accounts: [PRIVATE_KEY] },
+    myL1: { url: "https://my-l1-rpc.example/ext/bc/<blockchainID>/rpc", accounts: [PRIVATE_KEY] },
   },
   etherscan: {
     apiKey: { myL1: "builder-hub" },
@@ -102,9 +102,9 @@ const config: HardhatUserConfig = {
 };
 ```
 
-The network name has to be identical in `networks`, `apiKey`, and `customChains` — the plugin matches them by string.
+The network name has to be identical in `networks`, `apiKey`, and `customChains`. The plugin matches them by string.
 
-<Callout type="warn">
+<Callout type="warn" title="Hardhat 2 cannot use the Sourcify route">
 Hardhat 2's Sourcify client speaks the retired v1 API, which Builder Hub does not implement. On Hardhat 2, use the `customChains` route above and leave `sourcify.enabled` off.
 </Callout>
 
@@ -137,8 +137,8 @@ forge verify-contract \
 
 A verification comes back at one of two levels, and the difference is worth understanding:
 
-- **Exact match** — the recompiled bytecode is byte-identical to what is deployed, including the metadata hash at the end. The source you submitted is exactly the source that was compiled.
-- **Match** — the code is identical but the metadata hash differs. The contract behaves exactly as the source says; something outside the executable code changed, such as a comment or a file path. This is normal and trustworthy.
+- **Exact match**: the recompiled bytecode is byte-identical to what is deployed, including the metadata hash at the end. The source you submitted is exactly the source that was compiled.
+- **Match**: the code is identical but the metadata hash differs. The contract behaves exactly as the source says; something outside the executable code changed, such as a comment or a file path. This is normal and trustworthy.
 
 Anything less is not a match and is rejected. Library addresses and immutable values are normalized before comparing, since those are legitimately written after compilation.
 
@@ -158,7 +158,7 @@ The most common cause by far is optimizer settings. Check that `settings.optimiz
 
 Lookups consult Builder Hub's own verifications first and the public [Sourcify](https://sourcify.dev) archive second, so a contract verified in either place renders here. That fallback is why C-Chain contracts verified on sourcify.dev already show source in this explorer.
 
-Verifications performed here are also published back to Sourcify for chains it supports, which in practice means the Primary Network — Sourcify does not accept chains absent from its own list, and almost no Avalanche L1 is on it. Publishing is best-effort and happens after your verification is already recorded, so an outage or rejection upstream never affects the result you were given.
+Verifications performed here are also published back to Sourcify for chains it supports, which in practice means the Primary Network. Sourcify does not accept chains absent from its own list, and almost no Avalanche L1 is on it. Publishing is best-effort and happens after your verification is already recorded, so an outage or rejection upstream never affects the result you were given.
 
 For an L1, Builder Hub is the only place the verification exists. That is the whole reason this verifier exists.
 

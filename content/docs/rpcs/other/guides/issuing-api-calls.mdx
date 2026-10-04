@@ -33,6 +33,10 @@ Each API's documentation specifies what endpoint path a user should make calls t
 
 In general, they are formatted like:
 
+```
+/ext/[api-name]
+```
+
 So for the Admin API, the endpoint path is `/ext/admin`, for the Info API it is `/ext/info` and so on. Note that some APIs have additional path components, most notably the chain RPC endpoints which includes the Avalanche L1 chain RPCs. We'll go over those in detail in the next section.
 
 So, in combining the base URL and the endpoint path we get the complete URL for making RPC calls. For example, to make a local RPC call on the Info API, the full URL would be:
@@ -48,9 +52,19 @@ Besides the APIs that are local to the node, like Admin or Metrics APIs, nodes a
 
 In general, chain endpoints are formatted as:
 
+```
+/ext/bc/[blockchainID]
+```
+
 ### Primary Network Endpoints
 
 The Primary Network consists of three chains: X, P and C chain. As those chains are present on every node, there are also convenient aliases defined that can be used instead of the full blockchainIDs. So, the endpoints look like:
+
+```
+/ext/bc/X
+/ext/bc/P
+/ext/bc/C/rpc
+```
 
 ### C-Chain and Subnet-EVM Endpoints
 
@@ -59,6 +73,10 @@ C-Chain and many Avalanche L1s run a version of the EthereumVM (EVM). EVM expose
 #### JSON-RPC EVM Endpoints
 
 To interact with C-Chain EVM via the JSON-RPC use the endpoint:
+
+```
+/ext/bc/C/rpc
+```
 
 To interact with Avalanche L1 instances of the EVM via the JSON-RPC endpoint:
 
@@ -69,20 +87,28 @@ To interact with Avalanche L1 instances of the EVM via the JSON-RPC endpoint:
 where `blockchainID` is the ID of the blockchain running the EVM. So for example, the RPC URL for the DFK Network (an Avalanche L1 that runs the DeFi Kingdoms:Crystalvale game) running on a local node would be:
 
 ```
-http://127.0.0.1/ext/bc/q2aTwKuyzgs8pynF7UXBZCU7DejbZbZ6EUyHr3JQzYgwNPUPi/rpc
+http://127.0.0.1:9650/ext/bc/q2aTwKuyzgs8pynF7UXBZCU7DejbZbZ6EUyHr3JQzYgwNPUPi/rpc
 ```
 
 Or for the Echo Avalanche L1 on the Fuji testnet:
 
 ```
-http://127.0.0.1/ext/bc/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/rpc
+http://127.0.0.1:9650/ext/bc/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/rpc
 ```
 
 #### Websocket EVM Endpoints
 
 To interact with C-Chain via the websocket endpoint, use:
 
+```
+/ext/bc/C/ws
+```
+
 To interact with other instances of the EVM via the websocket endpoint:
+
+```
+/ext/bc/[blockchainID]/ws
+```
 
 where `blockchainID` is the ID of the blockchain running the EVM. For example, to interact with the C-Chain's Ethereum APIs via websocket on localhost you can use:
 
@@ -103,7 +129,7 @@ Making a JSON RPC Request
 
 Most of the built-in APIs use the [JSON RPC 2.0](https://www.jsonrpc.org/specification) format to describe their requests and responses. Such APIs include the Platform API and the X-Chain API.
 
-Suppose we want to call the `getTxStatus` method of the [X-Chain API](/docs/rpcs/x-chain). The X-Chain API documentation tells us that the endpoint for this API is `/ext/bc/X`.
+Suppose we want to call the `getTxStatus` method of the [X-Chain API](/docs/rpcs/x-chain). This method is deprecated since AvalancheGo v1.10.0 and returns only `Accepted` or `Unknown`. This guide uses it only because it is a short example. In new code, use `avm.getTx`. The X-Chain API documentation tells us that the endpoint for this API is `/ext/bc/X`.
 
 That means that the endpoint we send our API call to is:
 
@@ -146,7 +172,7 @@ If the call is successful, the response will look like this:
 {
   "jsonrpc": "2.0",
   "result": {
-    "Status": "Accepted"
+    "status": "Accepted"
   },
   "id": 1
 }
@@ -165,7 +191,7 @@ Such a response would look like:
 {
     "jsonrpc": "2.0",
     "error": {
-        "code": -32600,
+        "code": -32000,
         "message": "[Some error message here]",
         "data": [Object with additional information about the error]
     },

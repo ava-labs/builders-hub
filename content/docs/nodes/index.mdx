@@ -9,7 +9,7 @@ AvalancheGo nodes relay transactions/blocks, expose APIs, and (when staked) part
 
 | Role | Purpose | Consensus Participation |
 |------|---------|-------------------------|
-| **Validator** | Stakes on the P-Chain, validates the Primary Network and any Subnets/L1s it joins | Yes (polled for Snowman/Snowman++) |
+| **Validator** | A Primary Network validator stakes AVAX on the P-Chain and validates the P-Chain, C-Chain and X-Chain. An L1 validator registers on the P-Chain, pays a continuous fee and does not need to validate the Primary Network. | Yes (polled for Snowman/Snowman++) |
 | **Non-validating** | Tracks chains, serves APIs, used for infra and indexing | No (not polled) |
 
 All nodes: connect via P2P with staking certs, track P/C/X, bootstrap or state-sync chains, and serve APIs if enabled.
@@ -28,7 +28,7 @@ Choose per-chain via chain configs.
 
 | Network | Requirements |
 |---------|--------------|
-| **Primary Network** | Stake **2,000 AVAX** on the P-Chain; validation period **14–365 days**; meet uptime to earn rewards; must validate P-Chain, C-Chain, X-Chain |
+| **Primary Network** | Stake **2,000 AVAX** on the P-Chain; validation period **48 hours to 365 days** on Mainnet (since Helicon); meet uptime to earn rewards; must validate P-Chain, C-Chain, X-Chain |
 | **Avalanche L1s** | Validators pay **1.33 AVAX/month** (burned) to the P-Chain for validation slots; each L1 sets its own validation/staking rules beyond that. |
 
 <Callout type="info">

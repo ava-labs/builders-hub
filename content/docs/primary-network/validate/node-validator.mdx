@@ -93,15 +93,10 @@ with information like the amount staked, staking time, and more.
 
 ![Staking Overview](/images/node-validator.png)
 
-Calling
-[`platform.getPendingValidators`](/docs/rpcs/p-chain#platformgetpendingvalidators)
-verifies that your transaction was accepted. Note that this API call should be
-made before your node's validation start time, otherwise, the return will not
-include your node's id as it is no longer pending.
-
-You can also call
+Call
 [`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators)
-to check that your node's id is included in the response.
+to verify that your transaction was accepted. Since Durango, a validation starts
+when the P-Chain accepts the transaction, so your node's ID is in the response at once.
 
 That's it!
 
@@ -145,7 +140,7 @@ You can also use a **Ledger hardware wallet** instead of a stored key. Pass `--l
 
 ### Add Validator
 
-**Fuji Testnet — manual BLS:**
+**Fuji Testnet (manual BLS):**
 
 ```bash
 platform-cli validator add-permissionless \
@@ -159,7 +154,7 @@ platform-cli validator add-permissionless \
   --network fuji
 ```
 
-**Fuji Testnet — auto-fetch BLS from running node:**
+**Fuji Testnet (auto-fetch BLS from running node):**
 
 ```bash
 platform-cli validator add-permissionless \
@@ -208,7 +203,7 @@ platform-cli validator add-permissionless \
 | `--delegation-fee` | Percentage retained by validator (min `0.02` = 2%) |
 | `--bls-public-key` | BLS public key from node |
 | `--bls-pop` | BLS proof of possession from node |
-| `--node-endpoint` | Alternative to manual BLS — fetches credentials from running node |
+| `--node-endpoint` | Alternative to manual BLS: fetches credentials from running node |
 | `--reward-address` | Optional: specify a different reward address |
 | `--network` | `fuji`, `mainnet`, or `local` |
 | `--key-name` | Name of the stored key to sign the transaction with |
@@ -217,11 +212,9 @@ For the full flag reference, see the [platform-cli staking docs](/docs/tooling/p
 
 ### Verify Validator Status
 
-Use the same verification steps as the Core extension section: call
-[`platform.getPendingValidators`](/docs/rpcs/p-chain#platformgetpendingvalidators)
-before the validation start time, or
+Use the same verification step as the Core extension section: call
 [`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators)
-once the validation period has started. See the [Info RPC docs](/docs/rpcs/other/info-rpc) for additional node status methods.
+and check that your node ID is in the response. See the [Info RPC docs](/docs/rpcs/other/info-rpc) for additional node status methods.
 
 ## Add a Validator with Avalanche SDK
 

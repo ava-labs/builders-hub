@@ -1,12 +1,13 @@
 ---
 title: Cryptographic Primitives
+description: "The cryptography that Avalanche uses at the network and blockchain layers."
 ---
 
 Avalanche uses a variety of cryptographic primitives for its different functions. This file summarizes the type and kind of cryptography used at the network and blockchain layers.
 
 ## Cryptography in the Network Layer
 
-Avalanche uses Transport Layer Security, TLS, to protect node-to-node communications from eavesdroppers. TLS combines the practicality of public-key cryptography with the efficiency of symmetric-key cryptography. This has resulted in TLS becoming the standard for internet communication. Whereas most classical consensus protocols employ public-key cryptography to prove receipt of messages to third parties, the novel Snow\* consensus family does not require such proofs. This enables Avalanche to employ TLS in authenticating stakers and eliminates the need for costly public-key cryptography for signing network messages.
+Avalanche uses Transport Layer Security, TLS, to protect node-to-node communications from eavesdroppers. TLS combines the practicality of public-key cryptography with the efficiency of symmetric-key cryptography. This has resulted in TLS becoming the standard for internet communication. Whereas most classical consensus protocols employ public-key cryptography to prove receipt of messages to third parties, the novel Snow\* consensus family does not require such proofs. This enables Avalanche to use TLS to authenticate stakers, so nodes do not sign each consensus query or vote. Nodes still sign some data. A node signs the IP and port that it claims with its TLS key and with its BLS key. The expected block proposer signs its ProposerVM blocks with its TLS staking key. Validators sign Warp messages with their BLS keys.
 
 ### TLS Certificates
 
@@ -30,7 +31,7 @@ Avalanche is not prescriptive about addressing schemes, choosing to instead leav
 
 The addressing scheme of the X-Chain and the P-Chain relies on secp256k1. Avalanche follows a similar approach as Bitcoin and hashes the ECDSA public key. The 33-byte compressed representation of the public key is hashed with sha256 **once**. The result is then hashed with ripemd160 to yield a 20-byte address.
 
-Avalanche uses the convention `chainID-address` to specify which chain an address exists on. `chainID` may be replaced with an alias of the chain. When transmitting information through external applications, the CB58 convention is required.
+Avalanche uses the convention `chainID-address` to specify which chain an address exists on. `chainID` may be replaced with an alias of the chain. APIs and wallets show X-Chain and P-Chain addresses in the Bech32 format that the next section describes. IDs, such as transaction IDs and blockchain IDs, use CB58.
 
 ### Bech32
 
@@ -68,10 +69,11 @@ Depending on the `networkID`, the encoded addresses will have a distinctive HRP 
 - 3 - X-`denali`19rknw8l0grnfunjrzwxlxync6zrlu33yhc357h
 - 4 - X-`everest`19rknw8l0grnfunjrzwxlxync6zrlu33yn44wty
 - 5 - X-`fuji`19rknw8l0grnfunjrzwxlxync6zrlu33yxqzg0h
+- 10 - X-`testing`19rknw8l0grnfunjrzwxlxync6zrlu33y80p9qc
 - 1337 - X-`custom`19rknw8l0grnfunjrzwxlxync6zrlu33yeg5dya
 - 12345 - X-`local`19rknw8l0grnfunjrzwxlxync6zrlu33ynpm3qq
 
-Here's the mapping of `networkID` to bech32 HRP.
+Here's the mapping of `networkID` to bech32 HRP. AvalancheGo has no map entry for 0 or 1337. These network IDs, and every other network ID that is not in the map, use the fallback HRP `custom`.
 
 ```
   0: "custom",
@@ -80,6 +82,7 @@ Here's the mapping of `networkID` to bech32 HRP.
   3: "denali",
   4: "everest",
   5: "fuji",
+  10: "testing",
   1337: "custom",
   12345: "local"
 ```
@@ -130,13 +133,15 @@ The prefix is simply the string `\x1AAvalanche Signed Message:\n`, where `0x1A` 
 
 ```
 +---------------+-----------+------------------------------+
+| prefixLength  : byte      |                       1 byte |
++---------------+-----------+------------------------------+
 | prefix        : [26]byte  |                     26 bytes |
 +---------------+-----------+------------------------------+
 | messageLength : int       |                      4 bytes |
 +---------------+-----------+------------------------------+
 | message       : []byte    |          size(message) bytes |
 +---------------+-----------+------------------------------+
-                            |       26 + 4 + size(message) |
+                            |   1 + 26 + 4 + size(message) |
                             +------------------------------+
 ```
 
@@ -165,7 +170,7 @@ A full guide on how to sign messages with Core web can be found [here](https://s
 
 ## Cryptography in Ethereum Virtual Machine
 
-Avalanche nodes support the full Ethereum Virtual Machine (EVM) and precisely duplicate all of the cryptographic constructs used in Ethereum. This includes the Keccak hash function and the other mechanisms used for cryptographic security in the EVM.
+The C-Chain and Subnet-EVM L1s run the Ethereum Virtual Machine (EVM) with the Cancun rules, which are active since the Etna upgrade. They use the Ethereum cryptography of that release: Keccak-256 hashing, secp256k1 ECDSA transaction signatures and the Cancun precompiles at addresses 0x01 to 0x0a. They do not have the BLS12-381 precompiles that Ethereum added in its Prague upgrade (EIP-2537). Since Granite (ACP-204), they also have the secp256r1 signature verification precompile (P256Verify) at 0x0000000000000000000000000000000000000100.
 
 ## Cryptography in Other Virtual Machines
 

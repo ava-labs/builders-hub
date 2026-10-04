@@ -32,9 +32,9 @@ This decoupling between the application and consensus layer allows developers to
 
 ## Installing a VM
 
-VMs are supplied as binaries to a node running `AvalancheGo`. These binaries must be named the VM's assigned **VMID**. A VMID is a 32-byte hash encoded in CB58 that is generated when you build your VM.
+VMs are supplied as binaries to a node running `AvalancheGo`. Name each binary with the VM's **VMID** or with an alias of that VMID. A VMID is a 32-byte value that the VM developer chooses, encoded in CB58. By convention, it is the VM name padded with zero bytes. For example, `subnetevm` gives `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`.
 
-In order to install a VM, its binary must be installed in the `AvalancheGo` plugin path. See [here](/docs/nodes/configure/configs-flags#--plugin-dir-string) for more details. Multiple VMs can be installed in this location.
+To install a VM, put its binary in the AvalancheGo plugin directory. The default is `~/.avalanchego/plugins`. To use a different directory, set [`--plugin-dir`](/docs/nodes/configure/configs-flags#plugins). Multiple VMs can be installed in this location.
 
 Each VM runs as a separate process from AvalancheGo and communicates with `AvalancheGo` using gRPC calls. This functionality is enabled by **RPCChainVM**, a special VM which wraps around other VM implementations and bridges the VM and AvalancheGo, establishing a standardized communication protocol between them.
 
@@ -51,7 +51,7 @@ Users can interact with a blockchain and its VM through handlers exposed by the 
 VMs expose two types of handlers to serve responses for incoming requests:
 
 - **Blockchain Handlers**: Referred to as handlers, these expose APIs to interact with a blockchain instantiated by a VM. The API endpoint will be different for each chain. The endpoint for a handler is `/ext/bc/[chainID]`.
-- **VM Handlers**: Referred to as static handlers, these expose APIs to interact with the VM directly. One example API would be to parse genesis data to instantiate a new blockchain. The endpoint for a static handler is `/ext/vm/[vmID]`.
+- **VM Handlers**: Also called static handlers. AvalancheGo v1.10.18 removed them, so a VM cannot serve APIs at `/ext/vm/[vmID]`. Serve all APIs through blockchain handlers.
 
 For any readers familiar with object-oriented programming, static and non-static handlers on a VM are analogous to static and non-static methods on a class. Blockchain handlers can be thought of as methods on an object, whereas VM handlers can be thought of as static methods on a class.
 
@@ -61,7 +61,7 @@ The `vm.Factory` interface is implemented to create new VM instances from which 
 
 ```go
 // Returning a new VM instance from VM's factory
-func (f *Factory) New(*snow.Context) (interface{}, error) { return &vm.VM{}, nil }
+func (f *Factory) New(logging.Logger) (interface{}, error) { return &vm.VM{}, nil }
 ```
 
 ### Initializing a VM to Create a Blockchain
@@ -72,15 +72,17 @@ This might involve setting up its database, mempool, genesis state, or anything 
 
 ```go
 if err := vm.Initialize(
+    context.TODO(),
     ctx.Context,
-    vmDBManager,
+    vmDB,
     genesisData,
     chainConfig.Upgrade,
     chainConfig.Config,
-    msgChan,
     fxs,
-    sender,
-);
+    messageSender,
+); err != nil {
+    return nil, err
+}
 ```
 
 You can refer to the [implementation](https://github.com/ava-labs/timestampvm/blob/main/timestampvm/vm.go#L75) of `vm.initialize` in the TimestampVM repository.
@@ -98,10 +100,10 @@ For more information, see [here](https://github.com/ava-labs/avalanchego/blob/ma
 ```go title="snow/engine/snowman/block/vm.go"
 // ChainVM defines the required functionality of a Snowman VM.
 //
-// A Snowman VM is responsible for defining the representation of the state,
-// the representation of operations in that state, the application of operations
+// A Snowman VM is responsible for defining the representation of state,
+// the representation of operations on that state, the application of operations
 // on that state, and the creation of the operations. Consensus will decide on
-// if the operation is executed and the order operations are executed.
+// if the operation is executed and the order operations are executed in.
 //
 // For example, suppose we have a VM that tracks an increasing number that
 // is agreed upon by the network.
@@ -112,6 +114,7 @@ For more information, see [here](https://github.com/ava-labs/avalanchego/blob/ma
 // Consensus will ensure the network agrees on the number at every block height.
 type ChainVM interface {
 	common.VM
+
 	Getter
 	Parser
 
@@ -119,28 +122,42 @@ type ChainVM interface {
 	//
 	// If the VM doesn't want to issue a new block, an error should be
 	// returned.
-	BuildBlock() (snowman.Block, error)
+	BuildBlock(context.Context) (snowman.Block, error)
 
 	// Notify the VM of the currently preferred block.
 	//
 	// This should always be a block that has no children known to consensus.
-	SetPreference(ids.ID) error
+	SetPreference(ctx context.Context, blkID ids.ID) error
 
 	// LastAccepted returns the ID of the last accepted block.
 	//
 	// If no blocks have been accepted by consensus yet, it is assumed there is
 	// a definitionally accepted block, the Genesis block, that will be
 	// returned.
-	LastAccepted() (ids.ID, error)
+	LastAccepted(context.Context) (ids.ID, error)
+
+	// GetBlockIDAtHeight returns:
+	// - The ID of the block that was accepted with [height].
+	// - database.ErrNotFound if the [height] index is unknown.
+	//
+	// Note: A returned value of [database.ErrNotFound] typically means that the
+	//       underlying VM was state synced and does not have access to the
+	//       blockID at [height].
+	GetBlockIDAtHeight(ctx context.Context, height uint64) (ids.ID, error)
 }
 
 // Getter defines the functionality for fetching a block by its ID.
 type Getter interface {
 	// Attempt to load a block.
 	//
-	// If the block does not exist, an error should be returned.
+	// If the block does not exist, database.ErrNotFound should be returned.
 	//
-	GetBlock(ids.ID) (snowman.Block, error)
+	// It is expected that blocks that have been successfully verified should be
+	// returned correctly. It is also expected that blocks that have been
+	// accepted by the consensus engine should be able to be fetched. It is not
+	// required for blocks that have been rejected by the consensus engine to be
+	// able to be fetched.
+	GetBlock(ctx context.Context, blkID ids.ID) (snowman.Block, error)
 }
 
 // Parser defines the functionality for fetching a block by its bytes.
@@ -149,7 +166,9 @@ type Parser interface {
 	//
 	// The block should be represented by the full byte array, without extra
 	// bytes.
-	ParseBlock([]byte) (snowman.Block, error)
+	//
+	// It is expected for all historical blocks to be parseable.
+	ParseBlock(ctx context.Context, blockBytes []byte) (snowman.Block, error)
 }
 ```
 
@@ -160,25 +179,26 @@ type Parser interface {
 ```go title="snow/engine/common/vm.go"
 // VM describes the interface that all consensus VMs must implement
 type VM interface {
-    // Contains handlers for VM-to-VM specific messages
 	AppHandler
 
 	// Returns nil if the VM is healthy.
 	// Periodically called and reported via the node's Health API.
-	health.Checkable
+	health.Checker
 
 	// Connector represents a handler that is called on connection connect/disconnect
 	validators.Connector
 
 	// Initialize this VM.
-	// [ctx]: Metadata about this VM.
-	//     [ctx.networkID]: The ID of the network this VM's chain is running on.
-	//     [ctx.chainID]: The unique ID of the chain this VM is running on.
-	//     [ctx.Log]: Used to log messages
-	//     [ctx.NodeID]: The unique staker ID of this node.
-	//     [ctx.Lock]: A Read/Write lock shared by this VM and the consensus
-	//                 engine that manages this VM. The write lock is held
-	//                 whenever code in the consensus engine calls the VM.
+	// [chainCtx]: Metadata about this VM.
+	//     [chainCtx.networkID]: The ID of the network this VM's chain is
+	//                           running on.
+	//     [chainCtx.chainID]: The unique ID of the chain this VM is running on.
+	//     [chainCtx.Log]: Used to log messages
+	//     [chainCtx.NodeID]: The unique staker ID of this node.
+	//     [chainCtx.Lock]: A Read/Write lock shared by this VM and the
+	//                      consensus engine that manages this VM. The write
+	//                      lock is held whenever code in the consensus engine
+	//                      calls the VM.
 	// [dbManager]: The manager of the database this VM will persist data to.
 	// [genesisBytes]: The byte-encoding of the genesis information of this
 	//                 VM. The VM uses it to initialize its state. For
@@ -186,44 +206,26 @@ type VM interface {
 	//                 system, `genesisBytes` would probably contain a genesis
 	//                 transaction that gives coins to some accounts, and this
 	//                 transaction would be in the genesis block.
-	// [toEngine]: The channel used to send messages to the consensus engine.
 	// [fxs]: Feature extensions that attach to this VM.
 	Initialize(
-		ctx *snow.Context,
-		dbManager manager.Manager,
+		ctx context.Context,
+		chainCtx *snow.Context,
+		db database.Database,
 		genesisBytes []byte,
 		upgradeBytes []byte,
 		configBytes []byte,
-		toEngine chan<- Message,
 		fxs []*Fx,
 		appSender AppSender,
 	) error
 
-	// Bootstrapping is called when the node is starting to bootstrap this chain.
-	Bootstrapping() error
-
-	// Bootstrapped is called when the node is done bootstrapping this chain.
-	Bootstrapped() error
+	// SetState communicates to VM its next state it starts
+	SetState(ctx context.Context, state snow.State) error
 
 	// Shutdown is called when the node is shutting down.
-	Shutdown() error
+	Shutdown(context.Context) error
 
-	// Version returns the version of the VM this node is running.
-	Version() (string, error)
-
-	// Creates the HTTP handlers for custom VM network calls.
-	//
-	// This exposes handlers that the outside world can use to communicate with
-	// a static reference to the VM. Each handler has the path:
-	// [Address of node]/ext/VM/[VM ID]/[extension]
-	//
-	// Returns a mapping from [extension]s to HTTP handlers.
-	//
-	// Each extension can specify how locking is managed for convenience.
-	//
-	// For example, it might make sense to have an extension for creating
-	// genesis bytes this VM can interpret.
-	CreateStaticHandlers() (map[string]*HTTPHandler, error)
+	// Version returns the version of the VM.
+	Version(context.Context) (string, error)
 
 	// Creates the HTTP handlers for custom chain network calls.
 	//
@@ -233,12 +235,18 @@ type VM interface {
 	//
 	// Returns a mapping from [extension]s to HTTP handlers.
 	//
-	// Each extension can specify how locking is managed for convenience.
-	//
 	// For example, if this VM implements an account-based payments system,
 	// it have an extension called `accounts`, where clients could get
 	// information about their accounts.
-	CreateHandlers() (map[string]*HTTPHandler, error)
+	CreateHandlers(context.Context) (map[string]http.Handler, error)
+
+	// NewHTTPHandler returns the handler to register into the avalanchego http
+	// server. The server.HTTPHeaderRoute header must be specified with this VM's
+	// corresponding chain id by clients to route requests to this handler.
+	NewHTTPHandler(ctx context.Context) (http.Handler, error)
+
+	// WaitForEvent blocks until either the given context is cancelled, or a message is returned.
+	WaitForEvent(ctx context.Context) (Message, error)
 }
 ```
 
@@ -258,34 +266,43 @@ The `snowman.Block` interface It define the functionality a block must implement
 // If the status of the block is Accepted or Rejected; Parent, Verify, Accept,
 // and Reject will never be called.
 type Block interface {
-    choices.Decidable
+	snow.Decidable
 
-    // Parent returns the ID of this block's parent.
-    Parent() ids.ID
+	// Parent returns the ID of this block's parent.
+	Parent() ids.ID
 
-    // Verify that the state transition this block would make if accepted is
-    // valid. If the state transition is invalid, a non-nil error should be
-    // returned.
-    //
-    // It is guaranteed that the Parent has been successfully verified.
-    Verify() error
+	// Verify that the state transition this block would make if accepted is
+	// valid. If the state transition is invalid, a non-nil error should be
+	// returned.
+	//
+	// It is guaranteed that the Parent has been successfully verified.
+	//
+	// If nil is returned, it is guaranteed that either Accept or Reject will be
+	// called on this block, unless the VM is shut down.
+	Verify(context.Context) error
 
-    // Bytes returns the binary representation of this block.
-    //
-    // This is used for sending blocks to peers. The bytes should be able to be
-    // parsed into the same block on another node.
-    Bytes() []byte
+	// Bytes returns the binary representation of this block.
+	//
+	// This is used for sending blocks to peers. The bytes should be able to be
+	// parsed into the same block on another node.
+	Bytes() []byte
 
-    // Height returns the height of this block in the chain.
-    Height() uint64
+	// Height returns the height of this block in the chain.
+	Height() uint64
+
+	// Time this block was proposed at. This value should be consistent across
+	// all nodes. If this block hasn't been successfully verified, any value can
+	// be returned. If this block is the last accepted block, the timestamp must
+	// be returned correctly. Otherwise, accepted blocks can return any value.
+	Timestamp() time.Time
 }
 ```
 
-### `choices.Decidable`
+### `snow.Decidable`
 
-This interface is a superset of every decidable object, such as transactions, blocks, and vertices. For more information, you can see the full file [here](https://github.com/ava-labs/avalanchego/blob/master/snow/choices/decidable.go).
+`snowman.Block` embeds this interface. For more information, see the full file [here](https://github.com/ava-labs/avalanchego/blob/master/snow/decidable.go).
 
-```go title="snow/choices/decidable.go"
+```go title="snow/decidable.go"
 // Decidable represents element that can be decided.
 //
 // Decidable objects are typically thought of as either transactions, blocks, or
@@ -301,20 +318,11 @@ type Decidable interface {
 	// Accept this element.
 	//
 	// This element will be accepted by every correct node in the network.
-	Accept() error
+	Accept(context.Context) error
 
 	// Reject this element.
 	//
 	// This element will not be accepted by any correct node in the network.
-	Reject() error
-
-	// Status returns this element's current status.
-	//
-	// If Accept has been called on an element with this ID, Accepted should be
-	// returned. Similarly, if Reject has been called on an element with this
-	// ID, Rejected should be returned. If the contents of this element are
-	// unknown, then Unknown should be returned. Otherwise, Processing should be
-	// returned.
-	Status() Status
+	Reject(context.Context) error
 }
 ```
