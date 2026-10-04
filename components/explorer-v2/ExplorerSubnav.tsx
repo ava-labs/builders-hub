@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
@@ -12,7 +12,7 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { isPrivateChain } from "@/components/explorer-v2/network/private";
-import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
+import { ExplorerRangeControl, useRangeConsumersPresent } from "@/components/explorer-v2/time-range";
 import { NavbarSlot } from "@/components/explorer-v2/navbar-slot";
 import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
 import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
@@ -102,6 +102,7 @@ function ChainSwitcher({
   const [filter, setFilter] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const label = (chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks";
+  const captionId = useId();
 
   // a network switch in the menu changes the page: close the menu with it
   useEffect(() => {
@@ -224,6 +225,7 @@ function ChainSwitcher({
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-describedby={inNavbar && caption ? captionId : undefined}
         onClick={() => {
           setOpen((v) => !v);
           setFilter("");
@@ -242,14 +244,15 @@ function ChainSwitcher({
           )
         )}
         {inNavbar ? (
-          // the network rides under the name; the menu names it to assistive tech, so the button's name stays the chain
+          // the network rides under the name: it describes the button rather than naming it, so the button's
+          // name stays the chain and assistive tech still reads the network
           <span className="flex min-w-0 flex-col leading-tight">
-            {/* tighter than the rail's label, so ALL NETWORKS fits beside the logo on a 360 px phone */}
-            <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-900 dark:text-zinc-100">
+            {/* tighter than the rail's label, so ALL NETWORKS fits beside the logo from a 320 px phone */}
+            <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-900 max-[359px]:text-[9px] max-[359px]:tracking-normal dark:text-zinc-100">
               {label}
             </span>
             {caption && (
-              <span aria-hidden className="truncate font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+              <span id={captionId} aria-hidden className="truncate font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
                 {caption}
               </span>
             )}
@@ -270,7 +273,13 @@ function ChainSwitcher({
           aria-label="Switch chain"
           className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           {networkRow && (
-            <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-900">
+            // a tap on either network closes the menu, the current one too, which changes no page
+            <div
+              onClick={(e) => {
+                if ((e.target as Element).closest("a")) setOpen(false);
+              }}
+              className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-900"
+            >
               <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
                 Network
               </span>
@@ -488,6 +497,8 @@ export function ExplorerSubnav({
     };
   }, [measureRail, tabs]);
   const onRailScroll = measureRail;
+  // phones: with no clock the right group holds nothing, so it leaves the rail and takes no gap from the tabs
+  const clock = useRangeConsumersPresent();
   const railMask = useMemo(() => {
     if (!rail.left && !rail.right) return undefined;
     const mask = `linear-gradient(to right, ${
@@ -599,7 +610,7 @@ export function ExplorerSubnav({
           </nav>
         )}
       </div>
-      <div className="flex shrink-0 items-stretch gap-x-3">
+      <div className={cn("flex shrink-0 items-stretch gap-x-3", !clock && "max-sm:hidden")}>
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
         <ExplorerRangeControl className={rangeClassName} />

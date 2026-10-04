@@ -13,7 +13,8 @@ import { createPortal } from "react-dom";
    :last-child rules (global.css) still find the menu viewport. It is a span
    styled inline: global.css pads and widens every div under the header, and
    fumadocs sizes every child of it with classes, which inline styles beat. */
-const PHONE = "(max-width: 639px)";
+// the width Tailwind's max-sm hides the rail switcher at, fractions included (zoom, 125% scaling)
+const PHONE = "(width < 40rem)";
 // the logo is centered: the slot ends before it, at half the width less the logo's half and a gap
 const SLOT_STYLE =
   "position:absolute;top:0;bottom:0;left:1rem;z-index:10;display:flex;align-items:center;margin:0;padding:0;max-width:calc(50% - 2.75rem)";

@@ -22,7 +22,7 @@ export function sectionTabs(screen: Screen): Locator {
 // Below 640 px (Tailwind sm) the chain switcher sits in the site navbar, and its menu holds the Mainnet/Fuji
 // switch (components/explorer-v2/navbar-slot.tsx). Wider screens show the switch at the right end of the tab rail.
 async function switcherInNavbar(browser: Browser): Promise<boolean> {
-  return browser.evaluate(() => window.matchMedia('(max-width: 639px)').matches);
+  return browser.evaluate(() => window.matchMedia('(width < 40rem)').matches);
 }
 
 // The span at the left edge of the site navbar that holds the phone chain switcher.
