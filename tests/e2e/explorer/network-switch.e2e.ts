@@ -1,9 +1,9 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
-import { NAVIGATION, expectActiveTab } from './explorer-page';
+import { NAVIGATION, expectActiveTab, pathPattern } from './explorer-page';
 
 // Rule: the Mainnet/Fuji switch keeps the tab the user is on.
-// The switch targets come from networkSwitchTarget in components/explorer-v2/network-switch.ts.
+// The switch targets come from switchTarget in components/explorer-v2/network-switch.ts.
 // tests/unit/explorer/network-switch.test.ts checks the same table without a browser.
 
 interface SwitchCase {
@@ -56,12 +56,6 @@ const CASES: SwitchCase[] = [
   { from: '/explorer/fuji/p-chain/validators', fromTab: 'Validators', to: 'Mainnet', expected: '/explorer/mainnet/p-chain/validators', toTab: 'Validators' },
   { from: '/explorer/fuji/x-chain/txs', fromTab: 'Transactions', to: 'Mainnet', expected: '/explorer/mainnet/x-chain/txs', toTab: 'Transactions' },
 ];
-
-// The full URL with this exact path. A query string may follow, because a page can keep its own state there.
-function pathPattern(path: string): RegExp {
-  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`^https?://[^/]+${escaped}(\\?[^#]*)?$`);
-}
 
 for (const c of CASES) {
   test(`${c.to} switch from ${c.from} lands on ${c.expected}`, async ({ app, screen, browser }) => {

@@ -17,7 +17,7 @@ test('explorer c-chain overview is laid out without clipped or overlapping conte
   await waitForStillScreen(browser);
   // At 1440 px every tab and the whole placeholder fit, so a cut there is a fault. Excuse them on the phone only.
   const phoneNormal = [
-    // components/explorer-v2/ExplorerSubnav.tsx:495: the tab row scrolls sideways (overflow-x: auto).
+    // components/explorer-v2/ExplorerSubnav.tsx:494: the tab row scrolls sideways (overflow-x: auto).
     'The row of section tabs scrolls sideways, so a tab at its right end can be cut on purpose.',
     'A search box placeholder can end at the edge of its box.',
   ];
