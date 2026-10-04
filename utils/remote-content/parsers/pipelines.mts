@@ -347,6 +347,13 @@ export const fixUnicodeMathSymbols: TransformFunction = (content) => {
 
 
 // Pipelines
+// The AvalancheGo and subnet-evm docs carry no emoji. RGI_Emoji also covers keycaps and flags, and leaves out text
+// symbols such as the trademark sign, the same rule as tests/unit/academy/sidebar-emoji.test.ts. One space after an
+// emoji goes with it, so "⚠️ **Warning**" becomes "**Warning**". A line break after an emoji stays.
+const EMOJI = new RegExp('\\p{RGI_Emoji} ?', 'gv');
+
+export const removeEmoji: TransformFunction = (content) => content.replace(EMOJI, '');
+
 export const basePipeline: TransformFunction[] = [
   addFrontmatter,
   removeFirstHeading,
@@ -360,6 +367,7 @@ export const defaultPipeline: TransformFunction[] = [
 ];
 
 export const primaryNetworkPipeline: TransformFunction[] = [
+  removeEmoji,
   mdxifyStyleTags,
   fixCodeBlockLanguage,
   ...defaultPipeline,
@@ -378,7 +386,14 @@ export const sdksPipeline: TransformFunction[] = [
   ...defaultPipeline,
 ];
 
+// The RPC pages come from the AvalancheGo repository.
+export const apisPipeline: TransformFunction[] = [
+  removeEmoji,
+  ...defaultPipeline,
+];
+
 export const avalancheL1sPipeline: TransformFunction[] = [
+  removeEmoji,
   convertMermaidBlocks,
   ...defaultPipeline,
 ];

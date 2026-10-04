@@ -1,8 +1,8 @@
-import { createParser, defaultPipeline, primaryNetworkPipeline, crossChainPipeline, sdksPipeline, acpsPipeline, avalancheL1sPipeline } from './pipelines.mts';
+import { createParser, apisPipeline, primaryNetworkPipeline, crossChainPipeline, sdksPipeline, acpsPipeline, avalancheL1sPipeline } from './pipelines.mts';
 import type { SectionParser } from '../shared.mts';
 
 export const primaryNetworkParser: SectionParser = createParser(primaryNetworkPipeline);
-export const apisParser: SectionParser = createParser(defaultPipeline);
+export const apisParser: SectionParser = createParser(apisPipeline);
 export const sdksParser: SectionParser = createParser(sdksPipeline);
 export const acpsParser: SectionParser = createParser(acpsPipeline);
 export const crossChainParser: SectionParser = createParser(crossChainPipeline);
