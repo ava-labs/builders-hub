@@ -2347,6 +2347,23 @@ const config = {
         destination: "/academy",
         permanent: true,
       },
+      // Campus Connect was removed: its pages for students and educators send visitors to the
+      // Academy, the nearest student content. `:path*` also matches the bare url.
+      {
+        source: "/university/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/students/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/student-launchpad/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
       // Academy consolidation (FDE-155): the Avalanche L1 and Blockchain landings merged into /academy. Exact
       // paths only, so the course urls below them stay. No ?path rule may point here: Next passes the query on,
       // so /academy would loop.
