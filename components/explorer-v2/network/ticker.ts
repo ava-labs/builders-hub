@@ -14,29 +14,69 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
    it. The first batch paints whole, and while the window is short a
    newcomer older than its last row fills in beneath it: a board fed by two
    sources (the indexer's page and the stream's first blocks) opens full
-   whichever lands first. */
+   whichever lands first.
+
+   A feed that polls on a clock (`every`) gets a pace from the clock
+   instead: the rows that wait spread until a little before the next poll
+   lands, so the tape never stands still between polls, and none waits much
+   more than an interval after it landed, so the tape never falls behind the
+   feed. A board merged from feeds that lag by different amounts (`lag`)
+   keeps a newcomer older than the top row, so the slowest feed's rows are
+   not let go: the queue holds its rows oldest first and each goes in at its
+   place by time, so the ages on the board only grow down the list. Only a
+   newcomer older than the top row by more than the feeds' lag, or one that
+   would land under a full window, is let go. */
 
 /* the release pace stays between these */
 const MIN_MS = 150;
 const MAX_MS = 700;
 /* a fresh batch waits this long before its first row, so names can warm */
 const WARM_MS = 180;
+/* a clocked feed's rows are all out this share of an interval after the last
+   batch landed. A poll's batches land within about a second, so at 0.9 the
+   tape runs until about the next poll lands. In replays of 13 min of the
+   overview's reads, 0.8 left the blocks board with no new row in 10% of its
+   seconds (0.9: none, at the median), and each 0.1 more added about 0.3 s to
+   the age of the newest row. */
+const SPREAD = 0.9;
+
+/** How far apart a merged board's feeds run: a newcomer up to `ms` older
+ *  than the top row still shows. `at` is a row's time, epoch ms. */
+export interface Lag<T> {
+  ms: number;
+  at: (t: T) => number;
+}
 
 /** Where a batch of newcomers goes. An empty window paints them whole.
  *  Otherwise a newcomer newer than the top row and than every row waiting
  *  joins the queue (oldest first), one older than the last row fills in
- *  beneath it while the window is short, and one in between is let go. */
+ *  beneath it while the window is short, and one in between is let go.
+ *  With `lag`, a newcomer that does not fill in beneath joins the queue at
+ *  its place by time (oldest first), unless it is older than the top row by
+ *  more than the lag or would land under a full window. */
 export function admit<T>(
   visible: readonly T[],
   queue: readonly T[],
   fresh: readonly T[],
   visibleMax: number,
   newer: (a: T, b: T) => number,
+  lag?: Lag<T>,
 ): { visible: T[]; queue: T[] } {
   const sorted = [...fresh].sort(newer);
   if (!visible.length) return { visible: sorted.slice(0, visibleMax), queue: [...queue] };
   const top = visible[0];
   const last = visible[visible.length - 1];
+  const room = visibleMax - visible.length;
+  const below = room > 0 ? sorted.filter((t) => newer(t, last) > 0).slice(0, room) : [];
+  const shown = below.length ? [...visible, ...below] : [...visible];
+  if (lag) {
+    const oldest = lag.at(top) - lag.ms;
+    const floor = shown.length >= visibleMax ? shown[shown.length - 1] : undefined;
+    const join = sorted.filter(
+      (t) => !below.includes(t) && lag.at(t) >= oldest && (floor === undefined || newer(t, floor) < 0),
+    );
+    return { visible: shown, queue: [...queue, ...join].sort((a, b) => newer(b, a)) };
+  }
   const tail = queue[queue.length - 1];
   const next = [...queue];
   for (const t of [...sorted].reverse()) {
@@ -44,9 +84,55 @@ export function admit<T>(
     if (tail !== undefined && newer(t, tail) >= 0) continue;
     next.push(t);
   }
-  const room = visibleMax - visible.length;
-  const below = room > 0 ? sorted.filter((t) => newer(t, last) > 0).slice(0, room) : [];
-  return { visible: below.length ? [...visible, ...below] : [...visible], queue: next };
+  return { visible: shown, queue: next };
+}
+
+/** A row's place by time on a board, newest first: null when it would land
+ *  under a full window */
+export function place<T>(visible: readonly T[], row: T, visibleMax: number, newer: (a: T, b: T) => number): T[] | null {
+  const i = visible.findIndex((v) => newer(row, v) < 0);
+  const at = i < 0 ? visible.length : i;
+  if (at >= visibleMax) return null;
+  return [...visible.slice(0, at), row, ...visible.slice(at, visibleMax - 1)];
+}
+
+/** The next row out of the queue (oldest first): the board and the queue
+ *  after it. Far behind, the queue skips to its newest window rather than
+ *  replay history. A row goes in at the top; with `lag`, at its place by
+ *  time, and one that would land under the window (the window moved on
+ *  while it waited) is let go. `visible` is null when no row shows. */
+export function releaseOne<T>(
+  visible: readonly T[],
+  queue: readonly T[],
+  visibleMax: number,
+  newer: (a: T, b: T) => number,
+  lag?: Lag<T>,
+): { visible: T[] | null; queue: T[] } {
+  const q = queue.length > visibleMax * 2 ? queue.slice(queue.length - visibleMax) : [...queue];
+  let shown: T[] | null = null;
+  while (!shown && q.length) {
+    const next = q.shift()!;
+    shown = lag ? place(visible, next, visibleMax, newer) : [next, ...visible].slice(0, visibleMax);
+  }
+  return { visible: shown, queue: q };
+}
+
+/** A clocked feed's pace: the wait after the last row for the next one.
+ *  The rows waiting share the time from the last release until SPREAD of an
+ *  interval after the last batch landed, so they fill the time to the next
+ *  poll; but none waits more than an interval: they are all out an interval
+ *  after the longest-waiting one landed (`firstLanded`). One row never waits
+ *  more than an interval after the last, and a backlog (rows held under the
+ *  pointer) catches up at the floor. */
+export function clockPace(
+  every: number,
+  firstLanded: number,
+  lastBatch: number,
+  lastRelease: number,
+  waiting: number,
+): number {
+  const left = Math.min(firstLanded + every, lastBatch + every * SPREAD) - lastRelease;
+  return Math.min(every, Math.max(MIN_MS, left / Math.max(1, waiting)));
 }
 
 /** `incoming` is newest first and keeps each row's object between
@@ -67,9 +153,15 @@ export function useTicker<T>(
      *  each poll); the ticker still keeps count of them, so turning it on
      *  carries on from the rows on screen */
     enabled?: boolean;
+    /** the feed's poll interval in ms: the rows that wait spread until about
+     *  the next poll, and none waits much more than an interval (see clockPace) */
+    every?: number;
+    /** the rows come from feeds that run this far apart: each goes in at its
+     *  place by time (see admit and releaseOne) */
+    lag?: Lag<T>;
   },
 ): T[] {
-  const { key, newer, paused = false, onEnqueue, enabled = true } = opts;
+  const { key, newer, paused = false, onEnqueue, enabled = true, every, lag } = opts;
   const [visible, setVisible] = useState<T[]>([]);
   const visibleRef = useRef<T[]>([]);
   // oldest first: the next to release is at the front
@@ -79,6 +171,8 @@ export function useTicker<T>(
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastRelease = useRef(0);
   const lastArrive = useRef(0);
+  // a clocked feed's waiting rows, by key: when each landed
+  const landed = useRef(new Map<string, number>());
   // the feed's rate, items a second, smoothed over the last batches
   const rate = useRef(0);
   const onEnqueueRef = useRef(onEnqueue);
@@ -89,6 +183,11 @@ export function useTicker<T>(
   keyRef.current = key;
 
   const pace = () => {
+    if (every) {
+      const k = keyRef.current;
+      const first = Math.min(...queue.current.map((t) => landed.current.get(k(t)) ?? Date.now()));
+      return clockPace(every, first, lastArrive.current, lastRelease.current, queue.current.length);
+    }
     const r = Math.max(rate.current, 0.001);
     let p = 1000 / r;
     // a backlog past a couple of seconds' worth tightens the pace
@@ -99,14 +198,12 @@ export function useTicker<T>(
   const release = () => {
     timer.current = null;
     if (pausedRef.current) return;
-    const q = queue.current;
-    // far behind: skip to the newest window rather than replay history
-    if (q.length > visibleMax * 2) q.splice(0, q.length - visibleMax);
-    const next = q.shift();
-    if (next === undefined) return;
+    const out = releaseOne(visibleRef.current, queue.current, visibleMax, newerRef.current, lag);
+    queue.current = out.queue;
+    if (!out.visible) return;
     lastRelease.current = Date.now();
-    visibleRef.current = [next, ...visibleRef.current].slice(0, visibleMax);
-    setVisible(visibleRef.current);
+    visibleRef.current = out.visible;
+    setVisible(out.visible);
     arm(false);
   };
 
@@ -158,8 +255,12 @@ export function useTicker<T>(
     onEnqueueRef.current?.(fresh);
     const now = Date.now();
     const opening = !visibleRef.current.length;
-    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current);
+    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current, lag);
     queue.current = placed.queue;
+    if (every) {
+      const was = landed.current;
+      landed.current = new Map(placed.queue.map((t) => [k(t), was.get(k(t)) ?? now]));
+    }
     if (placed.visible.length !== visibleRef.current.length) {
       visibleRef.current = placed.visible;
       setVisible(placed.visible);
@@ -174,6 +275,11 @@ export function useTicker<T>(
     lastArrive.current = now;
     const inst = fresh.length / dt;
     rate.current = rate.current ? 0.35 * inst + 0.65 * rate.current : inst;
+    // a clocked feed's batch changes the pace of the rows still waiting: plan the next release again
+    if (every && timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     arm(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incoming, visibleMax, enabled]);
@@ -187,6 +293,9 @@ export function useTicker<T>(
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
+      // a Fast Refresh runs the effects again on the same refs: a stale id
+      // would keep arm() from ever planning a release again
+      timer.current = null;
     },
     [],
   );
