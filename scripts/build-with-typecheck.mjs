@@ -110,6 +110,11 @@ function startTsc() {
   return true;
 }
 
+// turbopackFileSystemCacheForBuild is off in next.config.mjs, so no build reads this folder.
+// Older Vercel caches still carry it (about 1.15 GB of 1.66 GB), and Vercel restores and
+// uploads it again on every build until something deletes it.
+fs.rmSync(path.join('.next', 'cache', 'turbopack'), { recursive: true, force: true });
+
 const next = launch('next build', [nextBin, 'build'], { ...process.env, SKIP_NEXT_TYPECHECK: '1' }, 'pipe');
 const seen = new Set();
 let rest = '';
