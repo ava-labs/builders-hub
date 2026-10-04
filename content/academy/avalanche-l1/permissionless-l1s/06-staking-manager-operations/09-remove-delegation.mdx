@@ -61,7 +61,7 @@ delegatorReward = totalReward * (1 - delegationFeeBips / 10000)
 validatorFee = totalReward * (delegationFeeBips / 10000)
 ```
 
-The validator's share (delegation fee) is not sent immediately — it accumulates and must be claimed separately via `claimDelegationFees`.
+The validator's share (delegation fee) is not sent immediately. It accumulates and must be claimed separately via `claimDelegationFees`.
 
 ## Edge Case: Validator Removal During Delegation
 

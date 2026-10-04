@@ -31,7 +31,7 @@ console.log({
 });
 ```
 
-No need to trust a payment processor—the blockchain is the source of truth.
+No need to trust a payment processor: the blockchain is the source of truth.
 
 ### Immutability
 
@@ -69,17 +69,17 @@ The facilitator receives the signed EIP-712 authorization from the client. This 
 - The authorization is within its validity window (`validAfter` to `validBefore`)
 - The nonce hasn't been used before (replay protection)
 
-This verification is trustless—the signature cryptographically guarantees user consent.
+This verification is trustless: the signature cryptographically guarantees user consent.
 
 ### Phase 2: Blockchain Submission
 
-The facilitator calls the USDC contract's `transferWithAuthorization` function with the signed authorization. This **gasless payment method** (EIP-3009 standard) allows the facilitator to submit the transaction on behalf of the user. The user doesn't pay gas fees or submit any blockchain transactions—they only provide a signature.
+The facilitator calls the USDC contract's `transferWithAuthorization` function with the signed authorization. This **gasless payment method** (EIP-3009 standard) allows the facilitator to submit the transaction on behalf of the user. The user doesn't pay gas fees or submit any blockchain transactions. They only provide a signature.
 
 The USDC contract verifies the signature on-chain and executes the transfer if valid. This ensures the payment cannot be tampered with after the user signs.
 
 ### Phase 3: Confirmation and Finality
 
-On Avalanche, the transaction is included in a block and reaches finality in approximately **1 second**. Once finalized, the transaction cannot be reversed—the payment is permanent and immutable.
+On Avalanche, the transaction is included in a block and reaches finality in approximately **1 second**. Once finalized, the transaction cannot be reversed. The payment is permanent and immutable.
 
 The facilitator receives the transaction hash from the blockchain and returns it to the merchant. The USDC balances are permanently updated on-chain, and the payment is complete.
 
@@ -89,7 +89,7 @@ The facilitator receives the transaction hash from the blockchain and returns it
 
 ## Payment Verification
 
-Facilitators verify payments by querying the blockchain to ensure the transaction matches the expected payment details. This verification is trustless—anyone can independently confirm the payment by checking the blockchain.
+Facilitators verify payments by querying the blockchain to ensure the transaction matches the expected payment details. This verification is trustless: anyone can independently confirm the payment by checking the blockchain.
 
 ### USDC Transfer Events
 
@@ -125,7 +125,7 @@ Typical transaction costs on the C-Chain (Mainnet, October 2026):
 
 **Who pays gas?**
 - In x402, the **facilitator pays gas fees** when submitting the transaction
-- The user only signs the authorization—no blockchain transaction needed from their side
+- The user only signs the authorization (no blockchain transaction needed from their side)
 - This enables truly gasless payments for end users
 
 ### Cost Comparison

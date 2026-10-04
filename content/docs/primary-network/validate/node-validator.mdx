@@ -140,7 +140,7 @@ You can also use a **Ledger hardware wallet** instead of a stored key. Pass `--l
 
 ### Add Validator
 
-**Fuji Testnet — manual BLS:**
+**Fuji Testnet (manual BLS):**
 
 ```bash
 platform-cli validator add-permissionless \
@@ -154,7 +154,7 @@ platform-cli validator add-permissionless \
   --network fuji
 ```
 
-**Fuji Testnet — auto-fetch BLS from running node:**
+**Fuji Testnet (auto-fetch BLS from running node):**
 
 ```bash
 platform-cli validator add-permissionless \
@@ -203,7 +203,7 @@ platform-cli validator add-permissionless \
 | `--delegation-fee` | Percentage retained by validator (min `0.02` = 2%) |
 | `--bls-public-key` | BLS public key from node |
 | `--bls-pop` | BLS proof of possession from node |
-| `--node-endpoint` | Alternative to manual BLS — fetches credentials from running node |
+| `--node-endpoint` | Alternative to manual BLS: fetches credentials from running node |
 | `--reward-address` | Optional: specify a different reward address |
 | `--network` | `fuji`, `mainnet`, or `local` |
 | `--key-name` | Name of the stored key to sign the transaction with |

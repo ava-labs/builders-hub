@@ -5,7 +5,7 @@ description: Choose between local process and Kubernetes runtimes for tmpnet tes
 
 Runtimes in tmpnet provide the execution environment for your test network nodes. The `NodeRuntime` interface abstracts the complexity of managing node processes, allowing you to focus on testing your blockchain application rather than infrastructure details.
 
-At its core, tmpnet's runtime system defines how and where nodes run. The `NodeRuntime` interface provides a consistent API for starting nodes, managing their lifecycle, and interacting with their endpoints—regardless of whether nodes run as local processes or Kubernetes pods. This abstraction means you write your test setup once and can switch runtimes based on your testing needs.
+At its core, tmpnet's runtime system defines how and where nodes run. The `NodeRuntime` interface provides a consistent API for starting nodes, managing their lifecycle, and interacting with their endpoints, regardless of whether nodes run as local processes or Kubernetes pods. This abstraction means you write your test setup once and can switch runtimes based on your testing needs.
 
 ```go
 // The NodeRuntime interface abstracts execution environment

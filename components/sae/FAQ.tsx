@@ -70,27 +70,27 @@ export function FAQ({ colors }: { colors: Colors }) {
   const faqItems: FAQItem[] = [
     {
       question: "Is finality slower with Continuous Execution?",
-      answer: "No — it's technically instant. As soon as consensus accepts a transaction, finality is locked. The key insight: ordering determines the truth, execution reveals it. We have finality the moment a block is accepted — we just won't know the outcome until execution completes. Consensus determines what will happen; execution shows us what happened."
+      answer: "No. It's technically instant. As soon as consensus accepts a transaction, finality is locked. The key insight: ordering determines the truth, execution reveals it. We have finality the moment a block is accepted. We just won't know the outcome until execution completes. Consensus determines what will happen; execution shows us what happened."
     },
     {
       question: "What problem does Continuous Execution solve?",
-      answer: "Traditional blockchains bottleneck because consensus waits for execution. Continuous Execution will run them in parallel — consensus will accept transactions into a queue while execution drains it independently. More throughput, lower latency."
+      answer: "Traditional blockchains bottleneck because consensus waits for execution. Continuous Execution will run them in parallel: consensus will accept transactions into a queue while execution drains it independently. More throughput, lower latency."
     },
     {
       question: "What will consensus verify in Continuous Execution?",
-      answer: "Consensus will verify you can pay for the worst-case cost — gas limit × maximum possible gas price — without running the VM. In synchronous execution, validators execute every transaction to verify it. With Continuous Execution, they will only check signatures, nonces, and that senders can afford the maximum fee. Lightweight validation, same security."
+      answer: "Consensus will verify you can pay for the worst-case cost (gas limit × maximum possible gas price) without running the VM. In synchronous execution, validators execute every transaction to verify it. With Continuous Execution, they will only check signatures, nonces, and that senders can afford the maximum fee. Lightweight validation, same security."
     },
     {
       question: "How will transaction ordering work?",
-      answer: "Order will be locked at consensus, before execution. Once a block is accepted, transaction sequence will be final. Execution will process them in that order. If Alice's swap is ordered before Bob's, Alice executes first — regardless of when execution actually runs."
+      answer: "Order will be locked at consensus, before execution. Once a block is accepted, transaction sequence will be final. Execution will process them in that order. If Alice's swap is ordered before Bob's, Alice executes first, regardless of when execution actually runs."
     },
     {
       question: "How will a swap or DeFi transaction work in Continuous Execution?",
-      answer: "Same as before, just faster. Your swap will be ordered by consensus, queued, then executed. You'll get the receipt immediately after execution — not after settlement. The 5-second settlement delay won't affect your experience; your tokens will move as soon as execution completes."
+      answer: "Same as before, just faster. Your swap will be ordered by consensus, queued, then executed. You'll get the receipt immediately after execution, not after settlement. The 5-second settlement delay won't affect your experience; your tokens will move as soon as execution completes."
     },
     {
       question: "How will Continuous Execution prevent malicious actors?",
-      answer: "Worst-case fee validation. Attackers won't be able to spam the queue with high gas-limit transactions that use minimal gas — you'll be charged at least half your gas limit. The maximum queue DoS impact will be ~12% fee inflation. If you can't afford the worst-case cost, your transaction will be rejected before it enters the queue."
+      answer: "Worst-case fee validation. Attackers won't be able to spam the queue with high gas-limit transactions that use minimal gas. You'll be charged at least half your gas limit. The maximum queue DoS impact will be ~12% fee inflation. If you can't afford the worst-case cost, your transaction will be rejected before it enters the queue."
     },
     {
       question: "What will the gas limits be?",
@@ -98,15 +98,15 @@ export function FAQ({ colors }: { colors: Colors }) {
     },
     {
       question: "Can transactions still fail?",
-      answer: "Yes. Continuous Execution will guarantee execution and payment — not success. Reverts, out-of-gas, and contract errors will still happen. The difference: you'll know the outcome faster."
+      answer: "Yes. Continuous Execution will guarantee execution and payment, not success. Reverts, out-of-gas, and contract errors will still happen. The difference: you'll know the outcome faster."
     },
     {
       question: "How fast will users see transaction results?",
-      answer: "Results will stream immediately after execution. Users won't wait for settlement — receipts will arrive as soon as transactions run. A later block settles the results at least 5 seconds after execution. Settlement records the state root. It does not change finality, which happens when consensus accepts the block."
+      answer: "Results will stream immediately after execution. Users won't wait for settlement. Receipts will arrive as soon as transactions run. A later block settles the results at least 5 seconds after execution. Settlement records the state root. It does not change finality, which happens when consensus accepts the block."
     },
     {
       question: "Will I need to change how I build?",
-      answer: "For most applications, no. Your contracts will work the same. The improvement is infrastructure-level — faster block acceptance, saturated execution, instant receipts. Some RPC results changed: 'latest' is the last executed block, 'safe' and 'finalized' are the last settled block, and the header baseFeePerGas and gasUsed are worst-case values. A transaction is charged at least half of its gas limit."
+      answer: "For most applications, no. Your contracts will work the same. The improvement is infrastructure-level: faster block acceptance, saturated execution, instant receipts. Some RPC results changed: 'latest' is the last executed block, 'safe' and 'finalized' are the last settled block, and the header baseFeePerGas and gasUsed are worst-case values. A transaction is charged at least half of its gas limit."
     },
     {
       question: "What future capabilities does this unlock?",

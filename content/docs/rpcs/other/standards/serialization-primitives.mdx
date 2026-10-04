@@ -1,5 +1,6 @@
 ---
 title: Serialization Primitives
+description: "How AvalancheGo encodes primitive types in its binary format."
 ---
 
 AvalancheGo uses one simple binary format for P-Chain and X-Chain data, such as transactions, blocks and UTXOs. It also uses this format for C-Chain atomic (import and export) transactions, ProposerVM block headers and Warp messages. This document describes how this format encodes primitive types. Transactions are encoded in terms of these primitive types. Other data uses other formats. For example, P2P messages use Protocol Buffers, and C-Chain EVM blocks and transactions use RLP.

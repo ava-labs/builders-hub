@@ -18,11 +18,11 @@ The `alloc` section seeds balances and deploys bytecode at fixed addresses befor
 
 - **BLOCKCHAIN_DEPLOYER_ADDRESS** - Subnet Owner Balance: `0xd3c21bcecceda1000000` wei = 1,000,000 native tokens (1e6 × 1e18) useful for funded deployer/faucet account
 
-- **TransparentUpgradeableProxy** *(0xfacade00...00)* — Proxy bytecode that delegates calls to an implementation and is controlled by an admin. Storage slots (EIP‑1967) predefined in the contract:
+- **TransparentUpgradeableProxy** *(0xfacade00...00)*: Proxy bytecode that delegates calls to an implementation and is controlled by an admin. Storage slots (EIP‑1967) predefined in the contract:
     - `0x3608…bbc` (implementation): `0x1212121212121212121212121212121212121212` (placeholder implementation address)
     - `0xb531…103` (admin): `0xdad0000000000000000000000000000000000000` (the Proxy Admin address below).
 
-- **Proxy Admin** *(0xdad00...00)* — Owns and manages upgrades of the proxy at `0xfacade…`
+- **Proxy Admin** *(0xdad00...00)*: Owns and manages upgrades of the proxy at `0xfacade…`
 
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
   <img src="/common-images/permissioned-l1s/VMCGenesis.png" alt="VMC Proxy Deployment" style={{ width: '60%', height: 'auto' }} />
@@ -56,7 +56,7 @@ While we could deploy the full Validator Manager directly in genesis, it would c
 
 The proxy pattern enables updating the Validator Manager implementation if bugs are discovered. After conversion, you cannot change the Validator Manager chain ID and address that `ConvertSubnetToL1Tx` stored on the P-Chain, because the P-Chain rejects a second conversion. A proxy at this fixed address is the only way to update the implementation without a full network upgrade.
 
-The proxy will later be upgraded to point to the actual VMC implementation after conversion—more on this in the [Validator Manager Deployment](/academy/permissioned-l1s/04-validator-manager-deployment/01-vmc-deployment-intro) section.
+The proxy will later be upgraded to point to the actual VMC implementation after conversion (more on this in the [Validator Manager Deployment](/academy/permissioned-l1s/04-validator-manager-deployment/01-vmc-deployment-intro) section).
 
 ### Appendix: Predeployed Contracts Structure
 

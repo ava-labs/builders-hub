@@ -75,11 +75,11 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "How does Firewood handle state growth?",
-    answer: "Firewood uses a malloc-like free space manager with 23 predefined area sizes (16 bytes to 16MB). When revisions expire, their unique nodes are returned to per-size free lists. This inline reclamation keeps disk usage bounded without compaction. Early engineering measurements put an archival C-Chain node at roughly 3 TB on Firewood versus ~16 TB on LevelDB — around 5× smaller.",
+    answer: "Firewood uses a malloc-like free space manager with 23 predefined area sizes (16 bytes to 16MB). When revisions expire, their unique nodes are returned to per-size free lists. This inline reclamation keeps disk usage bounded without compaction. Early engineering measurements put an archival C-Chain node at roughly 3 TB on Firewood versus ~16 TB on LevelDB (around 5× smaller).",
   },
   {
     question: "What about crash recovery?",
-    answer: "Firewood guarantees recoverability by not referencing new nodes in a new revision before they are flushed to disk, and by carefully managing the free list during creation and expiration of revisions. On crash, Firewood recovers from the last fully persisted revision — no WAL replay or log reconstruction needed.",
+    answer: "Firewood guarantees recoverability by not referencing new nodes in a new revision before they are flushed to disk, and by carefully managing the free list during creation and expiration of revisions. On crash, Firewood recovers from the last fully persisted revision, with no WAL replay or log reconstruction needed.",
   },
   {
     question: "Can I switch an existing node from LevelDB to Firewood?",

@@ -16,7 +16,7 @@ The process follows the same three-phase pattern as the permissioned L1 flow but
 
 The validator calls [`initiateValidatorRegistration`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract.
 
-For `NativeTokenStakingManager`, this is a `payable` function — the validator sends native tokens as `msg.value`:
+For `NativeTokenStakingManager`, this is a `payable` function. The validator sends native tokens as `msg.value`:
 
 ```solidity
 function initiateValidatorRegistration(

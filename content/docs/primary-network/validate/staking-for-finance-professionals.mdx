@@ -109,7 +109,7 @@ If your AVAX is on the C-Chain (common for exchange withdrawals and DeFi), trans
 ## Steps for Validating
 
 <Callout type="info" title="Prerequisites">
-You should have a node selected and prepared before creating a staking transaction—either one you're operating yourself or one provided by a contracted node provider.
+You should have a node selected and prepared before creating a staking transaction: either one you're operating yourself or one provided by a contracted node provider.
 </Callout>
 
 ### Validation Transaction Parameters
@@ -207,7 +207,7 @@ Rewards are automatically distributed at the end of the staking period, and prin
 |-----------|--------|-------------|------|
 | **Gross Validator Rewards** | Calculated by protocol | Validator Rewards Address | End of validator's staking period |
 | **Delegation Fee Rewards** | Gross Delegation Rewards × Delegation Fee Rate | Delegation Fee Address | Batched at end of validator's staking period |
-| **Net Validator Revenue** | Gross Validator Rewards + Delegation Fee Rewards | — | — |
+| **Net Validator Revenue** | Gross Validator Rewards + Delegation Fee Rewards | N/A | N/A |
 
 Validator principal returns to the original principal address immediately at the end of the staking period.
 
@@ -215,7 +215,7 @@ Validator principal returns to the original principal address immediately at the
 
 | Component | Amount | Destination | When |
 |-----------|--------|-------------|------|
-| **Gross Delegator Rewards** | Calculated by protocol | — | — |
+| **Gross Delegator Rewards** | Calculated by protocol | N/A | N/A |
 | **Delegation Fee** | Gross Rewards × Delegation Fee Rate | Validator's Fee Address | End of validator's staking period |
 | **Net Delegator Revenue** | Gross Rewards − Delegation Fee | Delegator Rewards Address | End of **delegator's** staking period |
 

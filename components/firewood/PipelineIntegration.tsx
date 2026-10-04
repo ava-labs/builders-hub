@@ -175,7 +175,7 @@ export function PipelineIntegration({ colors }: { colors: Colors }) {
                     </span>
                   </div>
 
-                  {/* Callouts for Firewood stage — show on animation or hover */}
+                  {/* Callouts for Firewood stage: show on animation or hover */}
                   <AnimatePresence>
                     {stage.isFirewood && (showCallouts || isFirewoodHovered) && (
                       <motion.div

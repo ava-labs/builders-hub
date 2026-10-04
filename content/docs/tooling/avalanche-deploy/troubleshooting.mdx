@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Common issues and solutions for Avalanche Deploy — SSH connectivity, node sync, L1 creation, RPC access, genesis configuration, snapshots, migration, and add-on debugging.
+description: Common issues and solutions for Avalanche Deploy (SSH connectivity, node sync, L1 creation, RPC access, genesis configuration, snapshots, migration, and add-on debugging).
 ---
 
 ## Connection Issues
@@ -51,7 +51,7 @@ ssh ubuntu@<node-ip> "curl -s localhost:9650/ext/health"
 
 **Symptom**: Chain creation fails with an illegal name character error.
 
-**Solution**: Chain names must be alphanumeric only — no hyphens, underscores, or special characters:
+**Solution**: Chain names must be alphanumeric only (no hyphens, underscores, or special characters):
 
 ```bash
 # Incorrect

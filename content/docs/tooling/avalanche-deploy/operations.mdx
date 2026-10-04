@@ -1,6 +1,6 @@
 ---
 title: Operations and Maintenance
-description: Day-2 operations for Avalanche infrastructure — AvalancheGo upgrades, monitoring, health checks, staking key backup, database snapshots, and rolling restarts.
+description: Day-2 operations for Avalanche infrastructure (AvalancheGo upgrades, monitoring, health checks, staking key backup, database snapshots, and rolling restarts).
 ---
 
 This guide covers ongoing operations for infrastructure deployed with `avalanche-deploy`. Commands are available for both **Terraform + Ansible** and **Kubernetes** deployment paths.
@@ -112,7 +112,7 @@ The upgrade playbook follows the same rolling pattern as restarts: one node at a
 make backup-keys CLOUD=aws
 ```
 
-Keys are encrypted with AWS KMS. Validator instances access the S3 bucket via IAM role — no credentials stored on disk.
+Keys are encrypted with AWS KMS. Validator instances access the S3 bucket via IAM role (no credentials stored on disk).
 </Tab>
 <Tab value="Kubernetes">
 ```bash

@@ -56,7 +56,7 @@ Proof-of-Stake Validator management is provided by the abstract contract `Stakin
 
 This abstract contract does not extend `ValidatorManager`. It becomes the owner of a `ValidatorManager` contract and calls it to register and remove validators based on staked tokens. `StakingManager` also supports uptime-based validation rewards and delegation to a validator.
 
-The choice between `NativeTokenStakingManager` and `ERC20TokenStakingManager` depends on what type of token you want validators to stake—the L1's native token or a separate ERC20 token.
+The choice between `NativeTokenStakingManager` and `ERC20TokenStakingManager` depends on what type of token you want validators to stake: the L1's native token or a separate ERC20 token.
 
 ## NativeTokenStakingManager
 
