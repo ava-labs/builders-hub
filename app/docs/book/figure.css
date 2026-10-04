@@ -1,0 +1,151 @@
+/*
+ * Docs book skin: numbered figures and their art. Every selector starts with [data-route-layout="docs"], so
+ * Academy and Blog keep their own look after a client navigation leaves this CSS loaded. Colors are --bk-* tokens
+ * only (tokens.css). The role colors of a figure's parts come from colorkey.css.
+ */
+
+/* ---------- Figure ---------- */
+
+/* Figures count from 1 on each page. Code blocks are <figure> elements too, so only data-bk-figure counts. */
+[data-route-layout="docs"] #nd-page article { counter-reset: bk-figure; }
+
+/* No box: the art sits on the page, as in a book. The scroll margin keeps a linked figure clear of the fixed
+   navbar and subnav, the same stop as the headings (styles.css). */
+[data-route-layout="docs"] #nd-page [data-bk-figure] {
+  counter-increment: bk-figure;
+  margin: 32px 0;
+  padding: 0;
+  border: 0;
+  scroll-margin-top: calc(var(--fd-banner-height, 0px) + 7rem);
+}
+
+/* Phones and tablets also have the TOC bar under the subnav. */
+@media (max-width: 1023px) {
+  [data-route-layout="docs"] #nd-page [data-bk-figure] { scroll-margin-top: calc(var(--fd-banner-height, 0px) + 9.5rem); }
+}
+
+/* Prose gives an image or a paragraph its own margins. The figure sets the space, so the art starts and ends flush. */
+[data-route-layout="docs"] #nd-page [data-bk-figure-body] > :first-child { margin-top: 0; }
+[data-route-layout="docs"] #nd-page [data-bk-figure-body] > :last-child { margin-bottom: 0; }
+
+/* The caption: "FIGURE n" in small mono capitals, then the sentence. On phones the sentence wraps under the
+   number to keep the full width. */
+[data-route-layout="docs"] #nd-page [data-bk-figure] > figcaption {
+  /* As wide as the widest drawing, so the caption lines up with the art and does not run past it. */
+  max-width: 720px;
+  margin: 14px 0 0;
+  font-family: var(--bk-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  text-align: left;
+  color: var(--bk-ink-2);
+}
+
+[data-route-layout="docs"] #nd-page [data-bk-figure] > figcaption::before {
+  content: 'Figure ' counter(bk-figure);
+  margin-right: 12px;
+  font-family: var(--bk-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--bk-steel);
+}
+
+/* Wider screens: a hanging caption, so each line of the sentence starts at the same edge. */
+@media (min-width: 640px) {
+  [data-route-layout="docs"] #nd-page [data-bk-figure] > figcaption {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+
+  [data-route-layout="docs"] #nd-page [data-bk-figure] > figcaption::before {
+    flex: none;
+    margin-right: 0;
+  }
+}
+
+/* ---------- Figure art: the drafting sheet ---------- */
+
+/* SVG art takes the full column. The container query below picks the drawing for the width of the column,
+   not of the window, so the sidebar and TOC widths do not matter. */
+[data-route-layout="docs"] [data-bk-figure-art] { container-type: inline-size; }
+
+[data-route-layout="docs"] [data-bk-figure-art] svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  color: var(--bk-ink);
+  font-family: var(--bk-mono);
+}
+
+/* Hairlines stay 1px at every scale. */
+[data-route-layout="docs"] [data-bk-figure-art] svg * { vector-effect: non-scaling-stroke; }
+
+[data-route-layout="docs"] [data-bk-figure-art] svg text { fill: currentColor; }
+
+/* Type in user units. The wide drawing (720 units) shows only from 660px, so 12 units stay at 11px or more on
+   screen. */
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-caps {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--bk-steel);
+}
+
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-code { font-size: 12px; }
+
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-sans {
+  font-family: var(--bk-sans);
+  font-size: 13.5px;
+}
+
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-ink2 { color: var(--bk-ink-2); }
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-steel { color: var(--bk-steel); }
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-rule { color: var(--bk-rule); }
+[data-route-layout="docs"] [data-bk-figure-art] .bk-fig-rule2 { color: var(--bk-rule-2); }
+
+/* ---------- Reward routes (reward-routes-figure.tsx): a flow diagram ---------- */
+
+/* The tall drawing by default, the wide one when the column has room for it. Each drawing stops at about its
+   width in units, so its text has the same size in both drawings and stays smaller than the body text. */
+[data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="wide"] { display: none; max-width: 720px; }
+[data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="stacked"] { max-width: 358px; }
+
+@container (min-width: 660px) {
+  [data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="wide"] { display: block; }
+  [data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="stacked"] { display: none; }
+}
+
+/* Names in the display face, as the page headings: the drawing reads as part of the book, not as a UI. */
+[data-route-layout="docs"] [data-bk-figure-art] .bk-flow-name {
+  font-family: var(--bk-display);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+/* The "default" word after a name: quieter than the name, in the reading face. */
+[data-route-layout="docs"] [data-bk-figure-art] .bk-flow-tag {
+  font-family: var(--bk-sans);
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--bk-steel);
+}
+
+/* The hatch lines scale with the drawing. A non-scaling stroke in a pattern tile draws at the wrong width. */
+[data-route-layout="docs"] [data-bk-figure-art] pattern * { vector-effect: none; }
+
+/* An address inside a line of prose: the code face, a step smaller, as inline code. */
+[data-route-layout="docs"] [data-bk-figure-art] .bk-flow-code {
+  font-family: var(--bk-mono);
+  font-size: 12px;
+}

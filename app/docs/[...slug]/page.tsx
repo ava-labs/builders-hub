@@ -14,6 +14,8 @@ import { createMetadata } from "@/utils/metadata";
 import { sharedMDXComponents } from "@/components/mdx/shared-components";
 import { DocsCallout } from "@/components/docs-book/callout";
 import { ColorKeyToggle } from "@/components/docs-book/color-key-toggle";
+import { Figure } from "@/components/docs-book/figure";
+import { RewardRoutesFigure } from "@/components/docs-book/reward-routes-figure";
 import { Term } from "@/components/docs-book/term";
 import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { Tabs } from "fumadocs-ui/components/tabs";
@@ -90,7 +92,9 @@ export default async function Page(props: {
             ...((await import("lucide-react")) as unknown as MDXComponents),
             ...sharedMDXComponents,
             Callout: DocsCallout,
+            Figure,
             Term,
+            RewardRoutesFigure,
             // Fix srcset -> srcSet for React 19 compatibility
             img: (props: any) => {
               const { srcset, ...imgProps } = props;
