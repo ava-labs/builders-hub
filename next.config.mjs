@@ -28,6 +28,10 @@ const config = {
     // The Vercel build cache still restores node_modules and the incremental type check.
     turbopackFileSystemCacheForBuild: false,
   },
+  // scripts/build-with-typecheck.mjs runs tsc beside next build and sets this flag.
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_NEXT_TYPECHECK === '1',
+  },
   serverExternalPackages: [
     'ts-morph',
     'typescript',
