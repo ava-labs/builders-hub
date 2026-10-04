@@ -115,7 +115,7 @@ export function SupplyBoard({ circulating, staked, locked, burned }: { circulati
     { key: "staked", label: "Staked", value: staked, tone: "bg-zinc-800 dark:bg-zinc-200", href: "/explorer/mainnet/p-chain/staking" },
     { key: "locked", label: "Locked", value: locked, tone: "bg-zinc-500 dark:bg-zinc-500" },
     { key: "liquid", label: "Liquid", value: Math.max(0, circulating - staked - locked), tone: "bg-[#A2AFB2]" },
-    { key: "unissued", label: "Not yet issued", value: Math.max(0, supply - circulating), tone: "bg-[#A2AFB2]/35" },
+    { key: "unissued", label: "Not yet minted", value: Math.max(0, supply - circulating), tone: "bg-[#A2AFB2]/35" },
     { key: "burned", label: "Burned", value: burned, tone: "bg-[#E6212F]" },
   ];
   return (
@@ -140,7 +140,7 @@ export function IssuedBoard({ genesis, rewards, circulating, burned }: { genesis
   ];
   return (
     <ChartBoard
-      label="Issued"
+      label="Minted"
       action={
         <span className="font-mono text-[10px] tabular-nums tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
           {avax(issued)} = {avax(circulating)} circulating + {avax(burned)} burned
