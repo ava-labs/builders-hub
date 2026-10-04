@@ -31,6 +31,7 @@ const SECTION_TAGLINES: Record<string, string> = {
   solutions: 'INTEROP · PERFORMANCE · PRIVACY · COMPLIANCE',
   showcase: 'PROJECTS FROM THE COMMUNITY',
   audits: 'AVA LABS AUDIT PROGRAM · FREE FOR BUILDERS',
+  ecosystem: 'EVENTS · PROGRAMS · GUIDES · TOOLS',
   tools: 'DEVELOPER TOOLS',
 };
 

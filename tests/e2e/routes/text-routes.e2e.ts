@@ -1,5 +1,5 @@
-import { describe, expect, test, type App } from 'e2e';
-import { appFetch, baseUrl } from '../api/app-fetch';
+import { describe, expect, test } from 'e2e';
+import { appFetch, redirectOf } from '../api/app-fetch';
 import { knownBug } from '../lib/skip';
 import { findRedirectRoutes, findTextRoutes } from './route-list';
 
@@ -29,21 +29,6 @@ function isJson(text: string): boolean {
   } catch {
     return false;
   }
-}
-
-// Requests a path without following a redirect and returns the status and the Location path.
-// appFetch fails on a redirect, so this sends its own request, with the same bypass header rule as appFetch.
-async function redirectOf(app: App, path: string): Promise<{ status: number; location: string }> {
-  const base = baseUrl(app);
-  const headers = new Headers();
-  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-  if (secret) headers.set('x-vercel-protection-bypass', secret);
-  const res = await fetch(new URL(path, base), { headers, redirect: 'manual' });
-  const location = res.headers.get('location');
-  if (!location) return { status: res.status, location: '' };
-  const target = new URL(location, base);
-  // A redirect to another host is a failure: show the full URL.
-  return { status: res.status, location: target.origin === base.origin ? target.pathname : target.href };
 }
 
 describe('site text routes answer with content', { tags: ['sweep'] }, () => {

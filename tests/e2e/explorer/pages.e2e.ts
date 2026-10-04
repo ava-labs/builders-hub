@@ -20,7 +20,7 @@ async function expectOverview(screen: Screen): Promise<void> {
   await expect(screen.getByRole('link', OVERVIEW_TX_ROW).first()).toBeVisible(DATA);
 }
 
-test('explorer front door opens the mainnet overview', async ({ app, screen, browser }) => {
+test('explorer front door opens the mainnet overview', { tags: ['smoke'] }, async ({ app, screen, browser }) => {
   await app.open('/explorer');
   await expect(browser).toHaveURL('/explorer/mainnet');
   await expect(browser).toHaveTitle(/All Networks/);

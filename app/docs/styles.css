@@ -307,7 +307,7 @@ header + * {
 /* XL screens: TOC sidebar (286px) is visible.
    Let fumadocs handle #nd-page width via max-w-(--fd-page-width) and
    pe-(--fd-toc-width). The TOC is position:fixed and calculates its
-   insetInlineEnd based on --fd-page-width being centered — overriding
+   insetInlineEnd based on --fd-page-width being centered. Overriding
    max-width to 100% breaks that coordination and causes overlap. */
 @media (min-width: 1280px) {
   body[data-layout="docs"] #nd-page,
@@ -415,7 +415,7 @@ body[data-layout="docs"] #nd-sidebar nav {
 }
 
 /* Mobile: Constrain article width but allow overflow for step numbers */
-/* Individual elements (tables, pre) handle their own horizontal scrolling */
+/* Code blocks (pre) scroll by themselves. A table scrolls inside the div that fumadocs puts around it. */
 @media (max-width: 1023px) {
   body[data-layout="docs"] article,
   body[data-layout="docs"] #nd-page {
@@ -435,8 +435,9 @@ body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-
 }
 
 /* Tables fill the column. A wide table scrolls inside the overflow-auto div that fumadocs puts around it. Do not
-   make the table a block: its rows then form an inner table that only fits its content, inside the full-width
-   border. */
+   make a table a block on any docs page, full-width and API pages too. A block table keeps the full-width frame,
+   but its rows form an inner table only as wide as their content. tests/unit/docs/table-css.test.ts and
+   tests/e2e/docs/tables.e2e.ts check this. */
 body[data-layout="docs"] article table,
 body[data-layout="docs"] .prose table {
   width: 100%;
@@ -578,7 +579,7 @@ aside[aria-label*="On this page" i] > div:first-child,
     word-wrap: break-word !important;
   }
 
-  /* Mobile: Constrain wide content (images, tables, code) to viewport */
+  /* Mobile: Constrain wide content (images, code) to viewport. Tables follow the table rule above. */
   body[data-layout="docs"] [class*="-api-playground"] img,
   body[data-layout="docs"] article[data-full="true"] img {
     max-width: 100% !important;
@@ -587,13 +588,6 @@ aside[aria-label*="On this page" i] > div:first-child,
 
   body[data-layout="docs"] [class*="-api-playground"] pre,
   body[data-layout="docs"] article[data-full="true"] pre {
-    max-width: 100% !important;
-    overflow-x: auto !important;
-  }
-
-  body[data-layout="docs"] [class*="-api-playground"] table,
-  body[data-layout="docs"] article[data-full="true"] table {
-    display: block !important;
     max-width: 100% !important;
     overflow-x: auto !important;
   }
@@ -683,14 +677,6 @@ aside[aria-label*="On this page" i] > div:first-child,
   body[data-layout="docs"] [class*="-api-playground"] > *,
   body[data-layout="docs"] article[data-full="true"] > * {
     max-width: 100% !important;
-  }
-
-  /* Ensure tables within API playground have proper overflow handling */
-  body[data-layout="docs"] [class*="-api-playground"] table,
-  body[data-layout="docs"] article[data-full="true"] table {
-    display: block !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
   }
 }
 

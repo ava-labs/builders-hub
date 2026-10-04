@@ -61,7 +61,7 @@ E2E_BASE_URL=http://localhost:3000 npm test
 | `.github/workflows/console-ci.yml` | PRs that touch the Console, contracts or `content/academy` | tsc, toolbox ESLint, folder and import rules, `scripts/check-console-design.sh`, `scripts/check-academy-embeds.mts` |
 | `.github/workflows/explorer-ci.yml` | PRs that touch the Explorer | tsc, Explorer ESLint |
 | `.github/workflows/unit.yml` | Every PR, and each push to `master` | The whole Vitest suite (`npx vitest run`) |
-| `.github/workflows/e2e.yml` | Every PR to `master` | Browser tests (desktop and phone) and API tests against the PR's Vercel preview |
+| `.github/workflows/e2e.yml` | Every PR, each push to `master`, and nightly | Browser tests (desktop, phone and in-app browsers) and API tests. A PR runs the tests its changed files reach plus a smoke set (`tests/e2e/select`); `master` and the nightly run all of them |
 | `.github/workflows/e2e-explore.yml` | Nightly, or by hand | AI bug hunt: one `e2e explore` per charter in `tests/e2e/explore/charters.json`, on production. Findings go to the job summary |
 | `.github/workflows/commitlint.yml` | Every PR | Conventional Commits on every commit |
 | `.husky/pre-commit` (lint-staged) | Each local commit | Prettier and ESLint on the toolbox, the design check on the Console, ESLint on other files that a block covers, then `tsc --noEmit` |
@@ -84,6 +84,8 @@ E2E_BASE_URL=http://localhost:3000 npm test
 - Do not call `createPublicClient` in the toolbox. Use `usePublicClientForChain`, `makePublicClientForChain` or `useChainPublicClient`.
 - Folder names under `components/toolbox/console` are kebab-case, and so are the MDX import paths to them.
 
+**E2E** (`scripts/check-e2e-location.sh`, every PR, forks too): browser and API tests go in `tests/e2e/`. A root `e2e/` folder, or an import of `@playwright/test` or `playwright/test`, fails CI.
+
 **Commits** (`commitlint.config.js`): `type(scope): subject`. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. The subject starts in lower case and has no full stop. The header has at most 100 characters.
 
 **Formatting** (`.prettierrc`): single quotes, semicolons, trailing commas, width 120. lint-staged applies it to the toolbox.
@@ -103,8 +105,11 @@ E2E_BASE_URL=http://localhost:3000 npm test
   - Every browser test runs at a desktop and a phone size. Find elements by role and accessible name. Explorer data is live: assert structure, not values.
   - A test for a bug the site still has calls `knownBug()` and is skipped until the fix lands. `E2E_KNOWN_BUGS=1` runs it.
   - API tests (`tests/e2e/api/`) have their own config and run once, with no browser.
+  - In-app browser tests (`tests/e2e/webview/`) have their own config: a phone with an Instagram or a LinkedIn user agent.
+  - A test that signs in or signs up calls `fakeAuth()` from `tests/e2e/lib/fake-auth.ts` before it opens the page, so no test creates an account or sends an email.
   - Agent tests (`tests/e2e/ai/`) need `ANTHROPIC_API_KEY` and skip without it (`needsModel()`). Journeys (`agent.act`, then a locator check), visual checks (`agent.assert` with `vision: true`, tag `visual`) and data checks (`agent.extract`, then `expect`). Commit new entries in `tests/e2e/.e2e/cache/` with the test.
   - Sweeps (every embedded Academy tool, every Console tool route, every site route) carry the `sweep` tag.
+  - A PR runs only the tests its changed files reach (`tests/e2e/README.md`, "Test selection"). When you add a test folder, a file in `ai/`, or a test helper that reads a repo file, update `tests/e2e/select/rules.ts`.
 - Console wallet flows have no browser tests yet. The framework cannot inject the wallet shim before page load.
 
 ## Generated files

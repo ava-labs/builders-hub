@@ -2,7 +2,7 @@ import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { NAVIGATION_TIMEOUT, TWO_ROUTE_TIMEOUT } from './helpers';
 
-test('home page shows the site title and hero heading', async ({ app, screen, browser }) => {
+test('home page shows the site title and hero heading', { tags: ['smoke'] }, async ({ app, screen, browser }) => {
   await app.open('/');
   await expect(browser).toHaveTitle('Avalanche Builder Hub');
   // The last word of the heading changes every few seconds. Match the shape of the sentence.

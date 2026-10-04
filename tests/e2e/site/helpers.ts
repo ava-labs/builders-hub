@@ -13,14 +13,21 @@ export const TWO_ROUTE_TIMEOUT = 240_000;
 // Opens a page as a returning visitor, who has answered the privacy banner and the Console welcome dialog
 // (lib/visitor.ts). A small static file loads fast, so write the answers there, then open the page.
 // Set answeredConsoleWelcome to false for a visitor who has answered the privacy banner only.
+// Set theme for a visitor who picked a theme before. The site's theme script reads it before the first paint.
 export async function openAsReturningVisitor(
   app: App,
   browser: Browser,
   path: string,
-  { answeredConsoleWelcome = true } = {},
+  { answeredConsoleWelcome = true, theme }: { answeredConsoleWelcome?: boolean; theme?: 'light' | 'dark' } = {},
 ): Promise<void> {
   await app.open('/small-logo.png');
   await answerFirstVisitPrompts(browser, { answeredConsoleWelcome });
+  if (theme) {
+    await browser.evaluate((picked) => {
+      localStorage.setItem('theme', picked);
+      return null;
+    }, theme);
+  }
   await app.open(path);
 }
 

@@ -983,11 +983,11 @@ nav button {
   color: rgb(212 212 216); /* zinc-300 */
 }
 
-/* Normalize trigger geometry: menu triggers WITH a url nest an <a> that
-   picks up the global `nav a` padding, while url-less triggers (Ecosystem)
-   render plain text with only the button's 0.1rem padding — making its
-   hover block smaller and its label sit off-line. Let the button carry the
-   padding in both cases and strip it from the nested anchor. */
+/* Normalize trigger geometry: a trigger that nests an <a> (a menu url, or a
+   Link as its text) picks up the global `nav a` padding, while a plain-text
+   trigger has only the button's 0.1rem padding, so its hover block is smaller
+   and its label sits off-line. Let the button carry the padding in both cases
+   and strip it from the nested anchor. */
 #nd-nav nav > ul li > button {
   padding: 0.36rem 0.5rem !important;
 }

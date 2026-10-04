@@ -1,6 +1,6 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
-import { phoneOnly } from '../lib/skip';
+import { isPhoneLayout, phoneOnly } from '../lib/skip';
 import { NAVIGATION_TIMEOUT, TWO_ROUTE_TIMEOUT, openAsReturningVisitor, openSiteMenu } from './helpers';
 
 // One item of each top menu, and the page it must open.
@@ -29,7 +29,9 @@ const MENU_ITEMS = [
 ];
 
 for (const { menu, item, path, title } of MENU_ITEMS) {
-  test(`${menu} menu opens ${path}`, { timeout: TWO_ROUTE_TIMEOUT }, async ({ app, screen, browser }) => {
+  // One menu item is in the smoke set (tests/e2e/select): the navbar is on every page.
+  const tags = menu === 'Developers' ? ['smoke'] : [];
+  test(`${menu} menu opens ${path}`, { timeout: TWO_ROUTE_TIMEOUT, tags }, async ({ app, screen, browser }) => {
     await openAsReturningVisitor(app, browser, '/grants');
     const links = await openSiteMenu(screen, browser, menu);
     await links.getByRole('link', item).tap();
@@ -38,6 +40,17 @@ for (const { menu, item, path, title } of MENU_ITEMS) {
     await expect(browser).toHaveTitle(title);
   });
 }
+
+// Desktop: the Ecosystem trigger is itself a link. Phone: the Ecosystem header in the menu sheet is a link.
+test('Ecosystem opens the ecosystem overview', { timeout: TWO_ROUTE_TIMEOUT }, async ({ app, screen, browser }) => {
+  await openAsReturningVisitor(app, browser, '/grants');
+  const area = (await isPhoneLayout(browser))
+    ? await openSiteMenu(screen, browser, 'Ecosystem')
+    : browser.locator('#nd-nav');
+  await area.getByRole('link', 'Ecosystem').tap();
+  await expect(browser).toHaveURL('/ecosystem', { timeout: NAVIGATION_TIMEOUT });
+  await expect(browser).toHaveTitle('Ecosystem | Avalanche Builder Hub');
+});
 
 test('privacy banner leaves the end of the phone menu tappable', async ({ app, screen, browser }) => {
   await app.open('/grants');
