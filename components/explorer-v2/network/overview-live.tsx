@@ -209,11 +209,21 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
     // every fresh block feeds its chain's run, so the reading is real
     // throughput, not what the board chooses to show
     const covers = new Map<string, Cover>();
+    let lastRates = new Map<string, number>();
 
     const reportRates = () => {
       if (!onRates) return;
       const now = chainClock(covers, Date.now());
-      onRates(coverRates(covers, now));
+      const rates = coverRates(covers, now);
+      // a chain whose read is still out keeps its last rate: its run waits
+      // for the read, the chain did not go quiet
+      for (const id of busy) {
+        const was = lastRates.get(id);
+        if (was === undefined) rates.delete(id);
+        else rates.set(id, was);
+      }
+      lastRates = rates;
+      onRates(rates);
       for (const c of covers.values()) c.blocks = c.blocks.filter((b) => b.at >= now - RATE_WINDOW_MS);
     };
 
@@ -222,6 +232,8 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       if ((failures.get(id) ?? 0) >= MAX_FAILURES) return [];
       if (!first && (nextSweep.get(id) ?? 0) > sweepN) return [];
       const last = lastBlock.get(id);
+      // the backoff counts from the sweep that asked: sweeps go on while a read is out
+      const asked = sweepN;
       try {
         const data = await readFeed<{ blocks?: ApiBlock[] }>(blocksFeed(id, last), first && !last);
         const fresh = toLiveBlocks(chain, data.blocks ?? []);
@@ -232,13 +244,13 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
           if (run) covers.set(id, run);
           lastBlock.set(id, Math.max(...fresh.map((b) => b.height)));
           idle.set(id, 0);
-          nextSweep.set(id, sweepN + 1);
+          nextSweep.set(id, asked + 1);
           const withTxs = fresh.filter((b) => b.txCount > 0).map((b) => b.height);
           if (withTxs.length > 0) wantTx.set(id, Math.max(wantTx.get(id) ?? 0, ...withTxs));
         } else {
           const n = Math.min(MAX_BACKOFF, (idle.get(id) ?? 0) + 1);
           idle.set(id, n);
-          nextSweep.set(id, sweepN + n);
+          nextSweep.set(id, asked + n);
         }
         return fresh;
       } catch {
@@ -320,7 +332,9 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       );
       clearTimeout(wait);
       if (cancelled) return;
-      setSettled(true);
+      // only the first sweep settles the boards: a later one can end at once,
+      // every chain still busy with the first sweep's reads
+      if (first) setSettled(true);
       reportRates();
       if (first) open();
     }
