@@ -114,4 +114,27 @@ The `phone` target sets the size and an iPhone user agent. It does not emulate t
 
 ## CI
 
-[`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml) runs on each pull request to `master`. It waits for the Vercel preview of the PR's head commit, then runs the browser tests with 4 workers and the API tests once. The agent tests run only when the repo has an `ANTHROPIC_API_KEY` secret. The nightly bug hunt is a separate workflow (see "Nightly bug hunt"). The job summary shows the results. A failed run uploads `.e2e/` (traces and failure pages) as an artifact.
+[`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml) runs on each pull request, on each push to `master`, and every night. A PR tests the Vercel preview of its head commit, a push to `master` the production deployment of its commit, and the nightly run build.avax.network. The job runs the browser tests with 4 workers and the API tests once. The agent tests run only when the repo has an `ANTHROPIC_API_KEY` secret. The nightly bug hunt is a separate workflow (see "Nightly bug hunt"). The job summary shows the results. A failed run uploads the report, the failure pages and the screenshots as an artifact. It does not upload traces: a trace records the request headers, the Vercel bypass secret included, and the artifacts of a public repo are public. To get a trace, run the failed test locally.
+
+The check to require on `master` is `E2E result`. A fork or Dependabot PR gets no bypass secret, so its tests skip and `E2E result` shows Skipped.
+
+## Test selection
+
+A PR runs the tests that its changed files can break, not the whole suite. The plan job picks them with `select/`, and its job summary lists each changed file, the rule that placed it, and the tests it runs.
+
+- A shared file (dependencies, config, the workflow, this package's config, `select/`) runs every test.
+- A file that no page or test reads (docs, unit tests, lint config, other workflows) runs no test.
+- A code file runs the tests of the pages that import it, directly or through other files. `select/graph.ts` builds the import graph from the route files of `app/` and the MDX files of `content/`.
+- A content file runs the tests of its collection. A file of `public/` runs the tests of the pages that name its URL.
+- A file of `tests/e2e` runs its own folder, or the folders whose tests import it.
+- A file that no page reaches in the graph runs every test, because the graph cannot see every way a file is used.
+- Every PR also runs the smoke set (tag `smoke`): the home page, the navbar, and one page per area.
+- Every push to `master` and every night run the whole suite, so a test that a PR skipped runs within a day.
+
+To see what a change runs, from `tests/e2e` (Node 24):
+
+```bash
+git diff --name-only origin/master | node select/plan.ts -
+```
+
+When you add a test folder, a file in `ai/`, or a test helper that reads a repo file, update `select/rules.ts`. The plan job fails until the lists match the suite (`checkSuite` in `select/select.ts`), and `tests/unit/ci/e2e-select.test.ts` runs the same check.

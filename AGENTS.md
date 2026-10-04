@@ -60,7 +60,7 @@ E2E_BASE_URL=http://localhost:3000 npm test
 |---|---|---|
 | `.github/workflows/console-ci.yml` | PRs that touch the Console, contracts or `content/academy` | tsc, toolbox ESLint, folder and import rules, `scripts/check-console-design.sh`, `scripts/check-academy-embeds.mts` |
 | `.github/workflows/explorer-ci.yml` | PRs that touch the Explorer | tsc, Explorer ESLint, `vitest run tests/unit/explorer` |
-| `.github/workflows/e2e.yml` | Every PR to `master` | Browser tests (desktop and phone) and API tests against the PR's Vercel preview |
+| `.github/workflows/e2e.yml` | Every PR, each push to `master`, and nightly | Browser tests (desktop and phone) and API tests. A PR runs the tests its changed files reach plus a smoke set (`tests/e2e/select`); `master` and the nightly run all of them |
 | `.github/workflows/e2e-explore.yml` | Nightly, or by hand | AI bug hunt: one `e2e explore` per charter in `tests/e2e/explore/charters.json`, on production. Findings go to the job summary |
 | `.github/workflows/commitlint.yml` | Every PR | Conventional Commits on every commit |
 | `.husky/pre-commit` (lint-staged) | Each local commit | Prettier and ESLint on the toolbox, the design check on the Console, ESLint on other files that a block covers, then `tsc --noEmit` |
@@ -104,6 +104,7 @@ E2E_BASE_URL=http://localhost:3000 npm test
   - API tests (`tests/e2e/api/`) have their own config and run once, with no browser.
   - Agent tests (`tests/e2e/ai/`) need `ANTHROPIC_API_KEY` and skip without it (`needsModel()`). Journeys (`agent.act`, then a locator check), visual checks (`agent.assert` with `vision: true`, tag `visual`) and data checks (`agent.extract`, then `expect`). Commit new entries in `tests/e2e/.e2e/cache/` with the test.
   - Sweeps (every embedded Academy tool, every Console tool route, every site route) carry the `sweep` tag.
+  - A PR runs only the tests its changed files reach (`tests/e2e/README.md`, "Test selection"). When you add a test folder, a file in `ai/`, or a test helper that reads a repo file, update `tests/e2e/select/rules.ts`.
 - Console wallet flows have no browser tests yet. The framework cannot inject the wallet shim before page load.
 
 ## Generated files
