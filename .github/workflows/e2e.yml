@@ -180,6 +180,21 @@ jobs:
           done
           echo "::error::No Vercel $environment deployment for $sha after 20 minutes"; exit 1
 
+      # A deployment that the bypass secret does not open answers with a redirect to the Vercel login. Every test would
+      # then wait for the page until the job times out (two Dependabot runs held a runner 40 minutes each), so stop.
+      - name: Check that the bypass opens the target
+        env:
+          URL: ${{ steps.target.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          redirect=$(curl -s -o /dev/null --max-time 60 -w '%{redirect_url}' \
+            -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$URL/")
+          case "$redirect" in
+            *vercel.com/sso*|*vercel.com/login*)
+              echo "::error::$URL sends the tests to the Vercel login: VERCEL_AUTOMATION_BYPASS_SECRET does not open it."
+              exit 1 ;;
+          esac
+
       - name: Run tests
         env:
           ARGS: ${{ toJSON(matrix.leg.args) }}

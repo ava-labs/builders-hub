@@ -116,6 +116,8 @@ The `phone` target sets the size and an iPhone user agent. It does not emulate t
 
 [`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml) runs on each pull request, on each push to `master`, and every night. A PR tests the Vercel preview of its head commit, a push to `master` the production deployment of its commit, and the nightly run build.avax.network. The plan job splits the tests into legs, one job each: the browser tests, the sweeps, the smoke set and the API tests. A leg of more than 200 tests runs as up to 3 parallel shards. Each browser job runs 4 workers. The agent tests run only when the repo has an `ANTHROPIC_API_KEY` secret. The nightly bug hunt is a separate workflow (see "Nightly bug hunt"). The job summary shows the results. A failed run uploads the report, the failure pages and the screenshots as an artifact. It does not upload traces: a trace records the request headers, the Vercel bypass secret included, and the artifacts of a public repo are public. To get a trace, run the failed test locally.
 
+A test job stops at once when the bypass secret does not open the deployment (a redirect to the Vercel login), so a wrong secret does not hold a runner until the timeout.
+
 The check to require on `master` is `E2E result`. A fork or Dependabot PR gets no bypass secret, so its tests skip and `E2E result` shows Skipped.
 
 ## Test selection
