@@ -20,9 +20,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
    instead: each batch spreads evenly until a little after the next poll is
    due, so the tape runs out about as the next batch lands and never stands
    still between polls. A board merged from feeds that lag by different
-   amounts (`lag`) keeps a newcomer older than the top row, in the order it
-   came, so the slowest feed's rows are not let go; only one older than the
-   top row by more than the feeds' lag is. */
+   amounts (`lag`) keeps a newcomer older than the top row, so the slowest
+   feed's rows are not let go: the queue holds its rows oldest first and
+   each goes in at its place by time, so the ages on the board only grow
+   down the list. Only a newcomer older than the top row by more than the
+   feeds' lag, or one that would land under a full window, is let go. */
 
 /* the release pace stays between these */
 const MIN_MS = 150;
@@ -44,9 +46,9 @@ export interface Lag<T> {
  *  Otherwise a newcomer newer than the top row and than every row waiting
  *  joins the queue (oldest first), one older than the last row fills in
  *  beneath it while the window is short, and one in between is let go.
- *  With `lag`, a newcomer that does not fill in beneath joins the queue,
- *  oldest first, after the rows already waiting, unless it is older than
- *  the top row by more than the lag. */
+ *  With `lag`, a newcomer that does not fill in beneath joins the queue at
+ *  its place by time (oldest first), unless it is older than the top row by
+ *  more than the lag or would land under a full window. */
 export function admit<T>(
   visible: readonly T[],
   queue: readonly T[],
@@ -64,8 +66,11 @@ export function admit<T>(
   const shown = below.length ? [...visible, ...below] : [...visible];
   if (lag) {
     const oldest = lag.at(top) - lag.ms;
-    const join = sorted.filter((t) => !below.includes(t) && lag.at(t) >= oldest);
-    return { visible: shown, queue: [...queue, ...join.reverse()] };
+    const floor = shown.length >= visibleMax ? shown[shown.length - 1] : undefined;
+    const join = sorted.filter(
+      (t) => !below.includes(t) && lag.at(t) >= oldest && (floor === undefined || newer(t, floor) < 0),
+    );
+    return { visible: shown, queue: [...queue, ...join].sort((a, b) => newer(b, a)) };
   }
   const tail = queue[queue.length - 1];
   const next = [...queue];
@@ -75,6 +80,36 @@ export function admit<T>(
     next.push(t);
   }
   return { visible: shown, queue: next };
+}
+
+/** A row's place by time on a board, newest first: null when it would land
+ *  under a full window */
+export function place<T>(visible: readonly T[], row: T, visibleMax: number, newer: (a: T, b: T) => number): T[] | null {
+  const i = visible.findIndex((v) => newer(row, v) < 0);
+  const at = i < 0 ? visible.length : i;
+  if (at >= visibleMax) return null;
+  return [...visible.slice(0, at), row, ...visible.slice(at, visibleMax - 1)];
+}
+
+/** The next row out of the queue (oldest first): the board and the queue
+ *  after it. Far behind, the queue skips to its newest window rather than
+ *  replay history. A row goes in at the top; with `lag`, at its place by
+ *  time, and one that would land under the window (the window moved on
+ *  while it waited) is let go. `visible` is null when no row shows. */
+export function releaseOne<T>(
+  visible: readonly T[],
+  queue: readonly T[],
+  visibleMax: number,
+  newer: (a: T, b: T) => number,
+  lag?: Lag<T>,
+): { visible: T[] | null; queue: T[] } {
+  const q = queue.length > visibleMax * 2 ? queue.slice(queue.length - visibleMax) : [...queue];
+  let shown: T[] | null = null;
+  while (!shown && q.length) {
+    const next = q.shift()!;
+    shown = lag ? place(visible, next, visibleMax, newer) : [next, ...visible].slice(0, visibleMax);
+  }
+  return { visible: shown, queue: q };
 }
 
 /** A clocked feed's pace: the wait after the last row for the next one.
@@ -106,7 +141,8 @@ export function useTicker<T>(
     enabled?: boolean;
     /** the feed's poll interval in ms: each batch spreads over it (see clockPace) */
     every?: number;
-    /** the rows come from feeds that run this far apart (see admit) */
+    /** the rows come from feeds that run this far apart: each goes in at its
+     *  place by time (see admit and releaseOne) */
     lag?: Lag<T>;
   },
 ): T[] {
@@ -141,14 +177,12 @@ export function useTicker<T>(
   const release = () => {
     timer.current = null;
     if (pausedRef.current) return;
-    const q = queue.current;
-    // far behind: skip to the newest window rather than replay history
-    if (q.length > visibleMax * 2) q.splice(0, q.length - visibleMax);
-    const next = q.shift();
-    if (next === undefined) return;
+    const out = releaseOne(visibleRef.current, queue.current, visibleMax, newerRef.current, lag);
+    queue.current = out.queue;
+    if (!out.visible) return;
     lastRelease.current = Date.now();
-    visibleRef.current = [next, ...visibleRef.current].slice(0, visibleMax);
-    setVisible(visibleRef.current);
+    visibleRef.current = out.visible;
+    setVisible(out.visible);
     arm(false);
   };
 

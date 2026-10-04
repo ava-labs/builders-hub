@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { admit, clockPace } from '@/components/explorer-v2/network/ticker';
+import { admit, clockPace, place, releaseOne } from '@/components/explorer-v2/network/ticker';
 
 // a row is its block and its place in the block; newer is the higher block, then the lower index
 type Row = { block: number; index: number };
@@ -61,17 +61,23 @@ describe('admit, with a lag', () => {
   // a row's time: one block a second
   const lag = { ms: 3_000, at: (r: Row) => r.block * 1_000 };
 
-  it('queues a newcomer older than the top row, within the lag, after the rows waiting', () => {
-    // 9.0 comes from a feed that runs behind: older than the top row, still kept
+  it('queues a newcomer older than the top row, within the lag, at its place by time', () => {
+    // 9.0 comes from a feed that runs behind: older than the top row, still kept, and first out
     const { visible, queue } = admit([row(10), row(8)], [row(11)], [row(12), row(9)], 2, newer, lag);
     expect(blocks(visible)).toEqual(['10.0', '8.0']);
-    expect(blocks(queue)).toEqual(['11.0', '9.0', '12.0']);
+    expect(blocks(queue)).toEqual(['9.0', '11.0', '12.0']);
   });
 
   it('lets a newcomer go when it is older than the top row by more than the lag', () => {
     // 6.0 is 4 s behind the top row: a quiet chain's last block, not news
     const { queue } = admit([row(10), row(9)], [], [row(11), row(6)], 2, newer, lag);
     expect(blocks(queue)).toEqual(['11.0']);
+  });
+
+  it('lets a newcomer go when it would land under a full window', () => {
+    // 8.0 is within the lag, but older than every row on a full board: it would never show
+    const { queue } = admit([row(10), row(9)], [], [row(8), row(9, 1)], 2, newer, lag);
+    expect(blocks(queue)).toEqual([]);
   });
 
   it('still paints the first batch whole', () => {
@@ -92,6 +98,64 @@ describe('admit, with a lag', () => {
     );
     expect(blocks(visible)).toEqual(['20.0', '18.0', '17.0', '16.0']);
     expect(blocks(queue)).toEqual(['19.0', '21.0']);
+  });
+});
+
+describe('place', () => {
+  const board = [row(10), row(8), row(6)];
+
+  it('puts a row newer than the top at the top', () => {
+    expect(blocks(place(board, row(11), 3, newer)!)).toEqual(['11.0', '10.0', '8.0']);
+  });
+
+  it('puts an older row in at its place by time, and the last row slides out', () => {
+    expect(blocks(place(board, row(9), 3, newer)!)).toEqual(['10.0', '9.0', '8.0']);
+    expect(blocks(place(board, row(7), 4, newer)!)).toEqual(['10.0', '8.0', '7.0', '6.0']);
+  });
+
+  it('puts a row of the same time under the row already there', () => {
+    expect(blocks(place(board, row(8, 0), 4, newer)!)).toEqual(['10.0', '8.0', '8.0', '6.0']);
+  });
+
+  it('gives null for a row that would land under a full window', () => {
+    expect(place(board, row(5), 3, newer)).toBeNull();
+    expect(blocks(place(board, row(5), 4, newer)!)).toEqual(['10.0', '8.0', '6.0', '5.0']);
+  });
+});
+
+describe('releaseOne', () => {
+  const lag = { ms: 30_000, at: (r: Row) => r.block * 1_000 };
+
+  it('puts the next row in at the top, without a lag', () => {
+    const out = releaseOne([row(10), row(9)], [row(8), row(11)], 2, newer);
+    expect(blocks(out.visible!)).toEqual(['8.0', '10.0']);
+    expect(blocks(out.queue)).toEqual(['11.0']);
+  });
+
+  it('puts the next row in at its place by time, with a lag', () => {
+    const out = releaseOne([row(10), row(8)], [row(9), row(11)], 3, newer, lag);
+    expect(blocks(out.visible!)).toEqual(['10.0', '9.0', '8.0']);
+    expect(blocks(out.queue)).toEqual(['11.0']);
+  });
+
+  it('lets a row go that the window has moved past, and shows the next', () => {
+    const out = releaseOne([row(10), row(9)], [row(7), row(11)], 2, newer, lag);
+    expect(blocks(out.visible!)).toEqual(['11.0', '10.0']);
+    expect(out.queue).toEqual([]);
+  });
+
+  it('gives null when no row waiting would show', () => {
+    const out = releaseOne([row(10), row(9)], [row(7), row(8)], 2, newer, lag);
+    expect(out.visible).toBeNull();
+    expect(out.queue).toEqual([]);
+  });
+
+  it('skips to the newest window when far behind', () => {
+    const queue = Array.from({ length: 7 }, (_, i) => row(11 + i));
+    const out = releaseOne([row(10), row(9)], queue, 2, newer, lag);
+    // more than twice the window waits: the oldest go, the newest window stays
+    expect(blocks(out.visible!)).toEqual(['16.0', '10.0']);
+    expect(blocks(out.queue)).toEqual(['17.0']);
   });
 });
 
