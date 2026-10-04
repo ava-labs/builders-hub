@@ -243,12 +243,12 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # The one check to require. It also fails when the test location check failed. Skipped when the plan found the PR
-  # untestable (fork or Dependabot); GitHub counts a skipped check as passed.
+  # The one check to require. It fails when the test location check failed, on every PR. A PR that the plan found
+  # untestable (fork or Dependabot) then passes with a notice: its tests run on the master push after the merge.
   result:
     name: E2E result
     needs: [location, plan, e2e]
-    if: always() && needs.plan.outputs.testable != 'false'
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -256,6 +256,7 @@ jobs:
       - name: Check the jobs
         env:
           LOCATION: ${{ needs.location.result }}
+          TESTABLE: ${{ needs.plan.outputs.testable }}
           PLAN: ${{ needs.plan.result }}
           TESTS: ${{ needs.e2e.result }}
           LEGS: ${{ needs.plan.outputs.legs }}
@@ -263,6 +264,10 @@ jobs:
           if [ "$LOCATION" != success ]; then
             echo "::error title=E2E result::The test location check ended $LOCATION."
             exit 1
+          fi
+          if [ "$PLAN" = success ] && [ "$TESTABLE" = false ]; then
+            echo "::notice title=E2E result::No test ran: a fork or Dependabot PR gets no bypass secret."
+            exit 0
           fi
           if [ "$PLAN" = success ] && { [ "$TESTS" = success ] || { [ "$TESTS" = skipped ] && [ "$LEGS" = '[]' ]; }; }; then
             echo "E2E passed."
