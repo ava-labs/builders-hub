@@ -5,6 +5,7 @@ import { describe, test, type Browser } from '@e2e-dev/web';
 import { expect, type Screen } from 'e2e';
 import { CONSOLE_TOOL_MOUNTED } from '../lib/console-tool';
 import { knownBug } from '../lib/skip';
+import { answerFirstVisitPrompts } from '../lib/visitor';
 import { listConsoleRoutes, pageFolderOf, REGISTRY_FILE, type ConsoleRoute } from './console-routes';
 
 // The runner runs one file at a time on each worker. The routes are split over SHARDS files
@@ -71,6 +72,10 @@ async function openRoute(browser: Browser, path: string): Promise<void> {
 }
 
 async function checkRoute(route: ConsoleRoute, screen: Screen, browser: Browser): Promise<void> {
+  // Visit as a returning visitor. On a first visit the Console welcome dialog opens 800 ms after the page mounts and
+  // hides the page, so a heading check that runs after it opens finds no heading.
+  await openRoute(browser, '/small-logo.png');
+  await answerFirstVisitPrompts(browser);
   await openRoute(browser, route.route);
 
   // The status of the document response, as the browser received it. After a redirect it is the status of the last hop.
