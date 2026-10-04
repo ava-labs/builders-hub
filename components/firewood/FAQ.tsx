@@ -83,7 +83,7 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "Can I switch an existing node from LevelDB to Firewood?",
-    answer: "Switching requires a full resync of the node with Firewood configured as the database backend.",
+    answer: "Switching needs a new C-Chain database. Firewood replaces only the state store: LevelDB or PebbleDB still holds blocks. Set state-scheme to firewood in the C-Chain config. A Firewood C-Chain node cannot state sync, so on Mainnet and Fuji also set state-sync-enabled to false. The node then executes every block from genesis.",
   },
   {
     question: "How does parallel Merkle hashing work?",

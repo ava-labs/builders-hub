@@ -84,7 +84,7 @@ while not decided:
       consecutiveSuccesses = 1
   else:
     consecutiveSuccesses = 0
-  if consecutiveSuccesses > β:
+  if consecutiveSuccesses >= β:
     decide(preference)
 ```
 
@@ -100,7 +100,7 @@ In our example, there is a binary choice between pizza or barbecue, but Snowball
 
 The liveness and safety thresholds are parameterizable. As the quorum size, α, increases, the safety threshold increases, and the liveness threshold decreases. This means the network can tolerate more byzantine (deliberately incorrect, malicious) nodes and remain safe, meaning all nodes will eventually agree whether something is accepted or rejected. The liveness threshold is the number of malicious participants that can be tolerated before the protocol is unable to make progress.
 
-These values, which are constants, are quite small on the Avalanche Network. The sample size, _k_, is `20`. So when a node asks a group of nodes their opinion, it only queries `20` nodes out of the whole network. The quorum size, α, is `14`. So if `14` or more nodes give the same response, that response is adopted as the querying node's preference. The decision threshold, β, is `20`. A node decides on choice after receiving `20` consecutive quorum (α majority) responses.
+These values are node defaults. They are small compared with the number of nodes on the Avalanche Network. The sample size, _k_, is `20`. So when a node asks a group of nodes their opinion, it only queries `20` nodes out of the whole network. The quorum size, α, is `15`. So if `15` or more nodes give the same response, that response is adopted as the querying node's preference. (AvalancheGo splits α into `alphaPreference` and `alphaConfidence`. Both default to `15`.) The decision threshold, β, is `20`. A node decides on choice after receiving `20` consecutive quorum (α majority) responses.
 
 Snowball is very scalable as the number of nodes on the network, _n_, increases. Regardless of the number of participants in the network, the number of consensus messages sent remains the same because in a given query, a node only queries `20` nodes, even if there are thousands of nodes in the network.
 

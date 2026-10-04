@@ -94,7 +94,7 @@ export function FAQ({ colors }: { colors: Colors }) {
     },
     {
       question: "What will the gas limits be?",
-      answer: "Maximum block size will be R × τ × λ (gas rate × settlement delay × charge ratio). With R = 30M gas/sec, τ = 5s, and λ = 2, that's 300M gas per block. Queue will be capped at 2× block size. These bounds will prevent DoS while allowing bursty throughput."
+      answer: "Maximum block size will be R × τ × λ (gas rate × settlement delay × charge ratio). R is 2 × the gas target, which validators vote on. With a Mainnet target of 4M gas/sec (October 2026), R = 8M gas/sec, τ = 5s and λ = 2 give 80M gas per block. Queue will be capped at 2× block size. These bounds will prevent DoS while allowing bursty throughput."
     },
     {
       question: "Can transactions still fail?",
@@ -102,11 +102,11 @@ export function FAQ({ colors }: { colors: Colors }) {
     },
     {
       question: "How fast will users see transaction results?",
-      answer: "Results will stream immediately after execution. Users won't wait for settlement — receipts will arrive as soon as transactions run. Settlement will be recorded 5 seconds later for finality."
+      answer: "Results will stream immediately after execution. Users won't wait for settlement — receipts will arrive as soon as transactions run. A later block settles the results at least 5 seconds after execution. Settlement records the state root. It does not change finality, which happens when consensus accepts the block."
     },
     {
       question: "Will I need to change how I build?",
-      answer: "For most applications, no. Your contracts will work the same. The improvement is infrastructure-level — faster block acceptance, saturated execution, instant receipts. Same APIs, better performance."
+      answer: "For most applications, no. Your contracts will work the same. The improvement is infrastructure-level — faster block acceptance, saturated execution, instant receipts. Some RPC results changed: 'latest' is the last executed block, 'safe' and 'finalized' are the last settled block, and the header baseFeePerGas and gasUsed are worst-case values. A transaction is charged at least half of its gas limit."
     },
     {
       question: "What future capabilities does this unlock?",

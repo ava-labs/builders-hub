@@ -9,7 +9,7 @@ A comprehensive guide to Avalanche staking designed for financial professionals 
 
 ## Executive Summary
 
-Staking on Avalanche allows token holders to earn rewards by participating in network security. Unlike traditional investments, staked tokens remain under your custody but are time-locked for a predetermined period (2 weeks to 1 year). At the end of the staking period, your original principal is returned along with earned rewards.
+Staking on Avalanche allows token holders to earn rewards by participating in network security. Unlike traditional investments, staked tokens remain under your custody but are time-locked for a predetermined period (on Mainnet, 48 hours to 1 year for validators and 2 weeks to 1 year for delegators). At the end of the staking period, your original principal is returned along with earned rewards.
 
 <Callout type="error" title="Critical Risk Considerations">
 **Before staking, understand these key risks:**
@@ -42,7 +42,7 @@ On Avalanche, there are two types of staking:
 | **Category** | Advanced | User-Friendly |
 | **Minimum Capital** | 2,000 AVAX | 25 AVAX |
 | **Maximum Stake** | 3,000,000 AVAX | Dependent on validator's available capacity |
-| **Hardware Required** | Yes (8-core CPU, 16GB RAM, 1TB SSD) | No |
+| **Hardware Required** | Yes (8 vCPU, 16 GiB RAM, 1 TiB local NVMe SSD) | No |
 | **Technical Knowledge** | High (Linux, networking, DevOps) | None required |
 | **Operational Burden** | Monitoring and maintenance of infrastructure | Zero operational burden |
 | **Providers** | Can contract node providers to manage infrastructure externally | Select from public marketplace through most staking apps |
@@ -50,7 +50,7 @@ On Avalanche, there are two types of staking:
 | **Revenue Stream** | Own validator rewards + delegation fees from delegators | Own delegation rewards minus delegation fee |
 | **Operational Costs** | Infrastructure cost of maintaining nodes | N/A (validator's responsibility) |
 | **Fees** | Trivial transaction fee at onset | Transaction fee + delegation fee to validator |
-| **Uptime Requirements** | Must maintain >80% uptime for rewards | N/A (validator's responsibility) |
+| **Uptime Requirements** | Must maintain at least 90% uptime for rewards (80% for validations that started before Helicon) | N/A (validator's responsibility) |
 | **Liquidity** | Locked during staking period | Locked during staking period |
 
 ---
@@ -95,7 +95,7 @@ Staking occurs on the **P-Chain** (Platform Chain), not the C-Chain. If your AVA
 
 If your AVAX is on the C-Chain (common for exchange withdrawals and DeFi), transfer it to the P-Chain before staking.
 
-**Fees:** Each transaction costs approximately 0.001 AVAX. Total transfer cost: ~0.002 AVAX.
+**Fees:** Each transaction pays a small dynamic fee. At normal network load, the total for both transactions is well below 0.001 AVAX.
 
 | Step | Transaction Type | Chain | What It Does |
 |------|------------------|-------|--------------|
@@ -123,8 +123,8 @@ Create a staking transaction by providing the following:
 | **Node BLS Proof of Possession** | 96-byte hex signature proving control of the private key | `0x969d9ffbe8d00ed83b...` |
 | **Stake Amount** | Amount of AVAX to stake (minimum 2,000 AVAX) | `2,500 AVAX` |
 | **Delegation Fee %** | Fee charged to delegators (must be 2%–100%) | `2.0%` |
-| **Start Time** | When staking begins (usually immediately upon transaction) | `2026-02-01 00:00:00 UTC` |
-| **End Time** | When staking ends (2 weeks to 1 year from start) | `2026-08-01 00:00:00 UTC` |
+| **Start Time** | Set by the P-Chain: staking begins when the P-Chain accepts the transaction. You do not choose it. | Time of acceptance |
+| **End Time** | When staking ends (48 hours to 1 year from start on Mainnet) | `2026-08-01 00:00:00 UTC` |
 | **Stake Return Address** | Where original principal returns | `P-avax1abc123...` |
 | **Validator Rewards Address** | Where validator rewards are sent | `P-avax1abc123...` |
 | **Delegation Fee Address** | Where delegation fees are sent | `P-avax1abc123...` |
@@ -132,7 +132,7 @@ Create a staking transaction by providing the following:
 ### After Submitting the Transaction
 
 - Once the transaction completes, the node is considered **active** until the maturity date
-- The node must maintain **greater than 80% uptime** to receive rewards
+- The node must maintain **at least 90% uptime** to receive rewards (80% for validations that started before Helicon)
 - Once active, others may delegate to the node
 - Delegators can stake to your validator up until the last two weeks of your validation period
 
@@ -141,7 +141,9 @@ Create a staking transaction by providing the following:
 Validators can accept delegations up to a calculated capacity:
 
 ```
-Validator Delegation Capacity = ((3,000,000 AVAX - (5 × Validator Stake Amount)) - Validator Stake Amount) - Active Delegation Stake
+Validator Delegation Capacity = min(5 × Validator Stake Amount, 3,000,000 AVAX) - Validator Stake Amount - Peak Delegation Stake
+
+Peak Delegation Stake = the highest total of delegations to the validator at any time in the new delegation's period
 ```
 
 ---
@@ -154,7 +156,7 @@ You can only delegate to a node that already has an active validation stake. Del
 - **Delegation period** must end before the validator's staking period ends
 
 <Callout type="warn" title="Validator Selection Risk">
-When you delegate, your rewards depend on the validator's uptime. If it falls below 80% during the staking period, you risk receiving zero rewards.
+When you delegate, your rewards depend on the validator's uptime. If the validator's uptime falls below the requirement (90% for validations that started at or after Helicon, 80% for older ones), you risk receiving zero rewards.
 
 Choose a validator you're familiar with or one that has trustworthy indicators such as healthy uptime and a history of successful validation periods.
 </Callout>
@@ -165,7 +167,7 @@ Choose a validator you're familiar with or one that has trustworthy indicators s
 |-----------|-------------|---------|
 | **Node ID** | Unique identifier of the validator you're delegating to | `NodeID-A1B2C3D4E5F6...` |
 | **Stake Amount** | Amount to delegate (min 25 AVAX, max set by validator capacity) | `30 AVAX` |
-| **Start Time** | When staking begins (usually immediately) | `2026-02-01 00:00:00 UTC` |
+| **Start Time** | Set by the P-Chain: staking begins when the P-Chain accepts the transaction. You do not choose it. | Time of acceptance |
 | **End Time** | When staking ends (must be before validator's end time) | `2026-08-01 00:00:00 UTC` |
 | **Stake Return Address** | Where original principal returns | `P-avax1abc123...` |
 | **Delegator Rewards Address** | Where rewards are sent (minus delegation fee) | `P-avax1abc123...` |
@@ -191,7 +193,7 @@ Rewards are **NOT** distributed incrementally during the staking period. Instead
 
 - Protocol calculates potential rewards based on stake amount and duration
 - Actual reward is determined **ONLY** at the end of the period
-- Reward depends on validator meeting 80% uptime threshold
+- Reward depends on the validator meeting the uptime requirement (90% for validations that started at or after Helicon, 80% for older ones)
 - No "accrued but not yet received" rewards exist during the period
 </Callout>
 
@@ -229,8 +231,8 @@ For detailed technical implementation support, refer to the [How to Stake](/docs
 
 ## Auto-Renewed Staking (ACP-236)
 
-<Callout type="info" title="Live on Fuji, scheduled on Mainnet">
-[ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking) activated on Fuji with the Helicon upgrade on July 28, 2026 at 15:00 UTC. Mainnet activation is scheduled for September 22, 2026 at 15:00 UTC (11:00 AM ET).
+<Callout type="info" title="Live on Mainnet and Fuji">
+[ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking) activated with the Helicon upgrade on Fuji on July 28, 2026 at 15:00 UTC and on Mainnet on September 22, 2026 at 15:00 UTC (11:00 AM ET).
 </Callout>
 
 ### What Is Auto-Renewed Staking?

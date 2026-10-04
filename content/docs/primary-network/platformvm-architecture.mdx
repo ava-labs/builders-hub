@@ -6,14 +6,14 @@ description: How the P-Chain manages validators, staking, and Avalanche L1 creat
 PlatformVM (P-Chain) runs on Snowman++ and controls validators, staking rewards, Subnet/L1 membership, and chain creation. Source lives in [`vms/platformvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm) and its block/tx types in [`vms/platformvm/platform`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm/platform), where [`codec.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/platform/codec.go) registers every type in the order that determines its wire `TypeID`.
 
 At a glance:
-- Snowman++ engine drives PlatformVM block production; mempool feeds Standard/Proposal/Atomic blocks.
+- Snowman++ engine drives PlatformVM block production; mempool feeds Standard and Proposal blocks.
 - Validator registry, Subnet/L1 membership, warp signing, and atomic UTXOs are persisted in the node database.
 - P-Chain APIs expose validator state, Subnet/chain creation, staking ops, and block fetch.
 
 <Callout type="info">
-**Helicon activates on Mainnet on September 22, 2026.**
+**Helicon activated on Mainnet on September 22, 2026 at 15:00 UTC.**
 
-Helicon does not deprecate or disable any existing transaction type. Current validators and delegators continue to work unchanged. It adds auto-renewed staking as an option and lowers the minimum Primary Network staking duration from two weeks to 48 hours. See [Helicon Upgrade](/docs/primary-network/helicon-upgrade).
+Helicon does not deprecate or disable any existing transaction type. Current validators and delegators continue to work unchanged. It adds auto-renewed staking as an option and lowers the minimum Primary Network validator staking duration on Mainnet from two weeks to 48 hours. The delegator minimum stays two weeks. See [Helicon Upgrade](/docs/primary-network/helicon-upgrade).
 </Callout>
 
 ## Responsibilities
@@ -26,8 +26,8 @@ Helicon does not deprecate or disable any existing transaction type. Current val
 ## Consensus & Blocks
 
 - Uses **Snowman++** via the [ProposerVM](/docs/nodes/architecture/proposervm) (stake-sampled single-proposer slots; no post-Durango open-building fallback).
-- Blocks are built by [`vms/platformvm/block/builder`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm/block/builder); block types include **Standard**, **Proposal** (with **Commit/Abort** options), and **Atomic** blocks.
-- State sync is supported for faster bootstrap; bootstrapping peers can be overridden via `CustomBeacons` in the P-Chain `ChainParameters`.
+- Blocks are built by [`vms/platformvm/block/builder`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm/block/builder); the builder makes **Standard** and **Proposal** blocks, and a Proposal block has **Commit/Abort** options. **Atomic** blocks are invalid since Apricot Phase 5: import and export transactions go in Standard blocks.
+- The P-Chain does not support state sync: a new node bootstraps the full P-Chain. The node sets the P-Chain bootstrap peers (`CustomBeacons` in its `ChainParameters`) from `--bootstrap-ids` and `--bootstrap-ips`. If you set neither flag, the node samples the default bootstrappers of the network.
 
 ## Key Transaction Types
 
@@ -35,7 +35,7 @@ Helicon does not deprecate or disable any existing transaction type. Current val
 |-------------|---------|
 | `AddValidatorTx`, `AddDelegatorTx` | **Disabled since Durango** ([ACP-62](/docs/acps/62-disable-addvalidatortx-and-adddelegatortx)). Issuing one is rejected outright, with `ErrAddValidatorTxPostDurango` / `ErrAddDelegatorTxPostDurango`. Use `AddPermissionlessValidatorTx` / `AddPermissionlessDelegatorTx` instead. The type IDs (`0x0c`, `0x0e`) stay registered so nodes can replay pre-Durango history |
 | `AddSubnetValidatorTx` | Add a validator to a Subnet (validator must also be on Primary). Permanently disabled on a Subnet once it has been converted with `ConvertSubnetToL1Tx` |
-| `AddPermissionlessValidatorTx` / `AddPermissionlessDelegatorTx` | Validate or delegate on the Primary Network or on a permissionless Subnet; this is the current path for both |
+| `AddPermissionlessValidatorTx` / `AddPermissionlessDelegatorTx` | Validate or delegate on the Primary Network. This is the current path for delegators and for fixed-term validators. They also work on a legacy permissionless Subnet, but `TransformSubnetTx` is rejected since Etna, so no new one can be created |
 | `RemoveSubnetValidatorTx` | Remove a validator from a permissioned Subnet |
 | `CreateSubnetTx` | Create a new Subnet and owner controls |
 | `CreateChainTx` | Launch a new blockchain (VM + genesis) on a Subnet |
@@ -60,21 +60,21 @@ Helicon does not deprecate or disable any existing transaction type. Current val
 
 ## Configuration
 
-Default chain config location:
+The P-Chain reads its config from the file below. The P-Chain has no state sync and no pruning option. For every key, see the [P-Chain config reference](/docs/nodes/chain-configs/primary-network/p-chain).
 
 ```json title="~/.avalanchego/configs/chains/P/config.json"
 {
-  "state-sync-enabled": true,
-  "pruning-enabled": true
+  "checksums-enabled": false,
+  "block-cache-size": 67108864
 }
 ```
 
-- Subnet and chain aliases can be set in `~/.avalanchego/configs/chains/aliases.json`.
+- Chain aliases can be set in `~/.avalanchego/configs/chains/aliases.json` (`--chain-aliases-file`). This file maps blockchain IDs to aliases.
 - Upgrade rules and Subnet parameters are read from the chain config and network upgrade settings (`upgrade/`).
 - Minimum staking durations can be overridden with `--min-stake-duration` (delegators, and validators before Helicon) and `--helicon-min-stake-duration` (validators from Helicon onwards). Both are read **only on custom networks**: on Mainnet and Fuji the node ignores them and uses the genesis values. Development networks commonly shorten them so validator lifecycle tests do not have to wait hours.
 
 ## Developer Tips
 
 - When testing new Subnets/VMs, pass `CreateChainTx` genesis bytes and VM IDs via `platform.issueTx`.
-- For permissionless Subnets, ensure the Subnet's config enables the relevant validator/delegator transactions before issuing them.
+- No new permissionless (elastic) Subnet can be created: the P-Chain rejects `TransformSubnetTx` since Etna. To run a permissionless L1, convert the Subnet with `ConvertSubnetToL1Tx` and manage validators through the L1's validator manager.
 - Use `platform.getBlock` to inspect Proposal/Commit/Abort flow if debugging staking or Subnet/L1 updates.

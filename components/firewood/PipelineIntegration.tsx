@@ -14,7 +14,7 @@ const STAGES: Stage[] = [
   { id: "consensus", label: "Consensus", isFirewood: false },
   { id: "queue", label: "Execution Queue", isFirewood: false },
   { id: "executor", label: "Block Executor", isFirewood: false },
-  { id: "strevm", label: "StreVM", isFirewood: false },
+  { id: "saevm", label: "SAE VM", isFirewood: false },
   { id: "firewood", label: "Firewood", isFirewood: true },
   { id: "disk", label: "Disk", isFirewood: false },
 ]
@@ -104,7 +104,7 @@ export function PipelineIntegration({ colors }: { colors: Colors }) {
         Where Firewood fits.
       </h3>
       <p className={`text-xs ${colors.textMuted} font-mono mb-6`}>
-        Firewood is the storage layer for StreVM, Avalanche&apos;s Continuous Execution engine.
+        Firewood is an optional, experimental state store for the C-Chain Continuous Execution VM (vms/saevm). The default state scheme is hash.
       </p>
 
       {/* Pipeline diagram */}

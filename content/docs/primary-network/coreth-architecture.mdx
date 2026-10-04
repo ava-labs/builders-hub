@@ -1,30 +1,30 @@
 ---
 title: Coreth Architecture
-description: How the C-Chain EVM (Coreth) runs inside AvalancheGo, including consensus, execution, and cross-chain transfers.
+description: How the C-Chain runs inside AvalancheGo. Coreth executed blocks before the Helicon upgrade, and the Continuous Execution VM executes them after it.
 ---
 
-Coreth is the EVM implementation that powers the C-Chain. It is shipped with AvalancheGo under [`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) and wrapped by Snowman++ ([`vms/proposervm`](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm)) for block production.
+Coreth is the EVM implementation that ran the C-Chain until the Helicon upgrade (Fuji July 28, 2026 and Mainnet September 22, 2026, both at 15:00 UTC). Since Helicon, the C-Chain runs the Continuous Execution VM ([`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain)). AvalancheGo swaps the VM in-process 10 seconds before the Helicon time. Coreth executed all blocks up to and including the transition block. It is shipped with AvalancheGo under [`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) and wrapped by Snowman++ ([`vms/proposervm`](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm)) for block production.
 
 At a glance:
-- Snowman++ engine calls into Coreth’s block builder and execution pipeline.
-- Coreth executes EVM bytecode, maintains state (trie over Pebble/LevelDB), and exposes JSON-RPC/WS.
+- Snowman++ calls into the C-Chain VM to build and verify blocks. Since Helicon, consensus accepts a block before the VM executes it.
+- Since Helicon, the Continuous Execution VM executes EVM bytecode, maintains state and serves JSON-RPC and WebSocket. Coreth did this before Helicon.
 - Atomic import/export uses shared UTXO memory and writes to the node database.
 
 ## Consensus & Block Production
 
 - Runs **Snowman++** via the [ProposerVM wrapper](/docs/nodes/architecture/proposervm); a stake-weighted proposer list gates each 5s slot, and since Durango there is no fallback that opens building to anyone.
-- Blocks are built by Coreth's block builder ([`graft/coreth/plugin/evm/block_builder.go`](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/plugin/evm/block_builder.go)), which applies EIP-1559 base fee rules and proposer-specific metadata.
+- Since Helicon, the Continuous Execution VM builds blocks ([`vms/saevm/sae/block_builder.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/saevm/sae/block_builder.go)). It includes a transaction only if the sender can pay its worst-case cost. The header `baseFeePerGas` is a worst-case upper bound. Before Helicon, Coreth's block builder ([`graft/coreth/plugin/evm/block_builder.go`](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/plugin/evm/block_builder.go)) built blocks.
 - Chain ID: Mainnet `43114`, Fuji `43113`. JSON-RPC is exposed at `/ext/bc/C/rpc` with optional WebSocket at `/ext/bc/C/ws`.
 
 ## Execution Pipeline
 
-- **Execution**: Standard go-ethereum VM with Avalanche-specific patches (fee handling, atomic tx support, bootstrapping/state sync) in [`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth).
+- **Execution**: Since Helicon, consensus accepts a block first, and an executor then runs it from a FIFO queue ([`vms/saevm`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm)). A later block records the results (settlement). Before Helicon, Coreth ([`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth)) executed blocks synchronously.
 - **State**: Uses PebbleDB/LevelDB via AvalancheGo's database interface; state pruning and state-sync are configurable.
-- **APIs**: Supports `eth`, `net`, `web3`, `debug` (optional), `txpool` (optional) namespaces. Enable/disable via chain config.
+- **APIs**: The `apis` chain config key selects the RPC method groups. By default the node serves `web3`, `net`, `txpool`, `price`, `chain`, `tx`, `subscription`, `avalanche` and `trace` (`debug_trace*`). `db` and `profile` are off by default. v1.15.0 removed the `admin`, `personal` and `warp` namespaces.
 
 ## Cross-Chain (Atomic) Transfers
 
-- Coreth supports **atomic import/export** to the X-Chain and P-Chain using shared UTXO memory ([`graft/coreth/plugin/evm/atomic`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth/plugin/evm/atomic)).
+- The C-Chain supports **atomic import/export** to the X-Chain and P-Chain using shared UTXO memory. Since Helicon, [`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain) defines these transactions. Their shared-memory writes apply after the block that contains them executes.
 - Exports lock AVAX into an atomic UTXO set; imports consume those UTXOs to credit balance on the destination chain.
 - Wallet helpers and SDKs build these atomic txs against the C-Chain RPC; on-chain they show up as `ImportTx`/`ExportTx` wrapping atomic inputs/outputs.
 
@@ -34,20 +34,20 @@ Chain-specific config lives at:
 
 ```json title="~/.avalanchego/configs/chains/C/config.json"
 {
-  "eth-apis": ["eth", "net", "web3", "eth-filter"],
+  "apis": ["web3", "net", "price", "chain", "tx", "subscription", "avalanche"],
   "pruning-enabled": true,
   "state-sync-enabled": true
 }
 ```
 
 Key knobs:
-- `eth-apis`: List of RPC namespaces to serve.
+- `apis`: List of RPC method groups to serve. The node does not serve groups that you do not list. `eth-apis` is deprecated, and the next release removes it.
 - `pruning-enabled`: Enable state trie pruning.
 - `state-sync-enabled`: Allow state sync bootstrap instead of full replay.
-- P-chain fee recipient and other advanced options are also supported; see [`graft/coreth/plugin/evm/config.go`](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/plugin/evm/config.go).
+- For all C-Chain options and defaults, see the [C-Chain config reference](https://github.com/ava-labs/avalanchego/blob/master/vms/saevm/cchain/config.md).
 
 ## Developer Tips
 
 - Use **chain configs** to toggle RPC namespaces instead of patching code.
 - When running local devnets, use `--chain-config-content` to pass base64 configs inline.
-- For cross-chain AVAX moves, call the P-Chain/X-Chain import/export endpoints; Coreth handles the atomic mempool internally.
+- For cross-chain AVAX moves, build and sign the export and import transactions in the client, for example with the AvalancheGo wallet or an SDK. Then issue them with `avax.issueTx`, `platform.issueTx` or `avm.issueTx`. The C-Chain runs a separate mempool for these transactions.

@@ -9,7 +9,7 @@ Developers can use the same VM to create multiple blockchains, each of which fol
 
 All Avalanche validators of the **Avalanche Primary Network** are required to run three VMs:
 
-- **Coreth**: Defines the Contract Chain (C-Chain); supports smart contract functionality and is EVM-compatible.
+- **C-Chain VM (SAE)**: Defines the Contract Chain (C-Chain); supports smart contract functionality and is EVM-compatible. Before the Helicon upgrade (Mainnet 2026-09-22), Coreth ran the C-Chain.
 - **Platform VM**: Defines the Platform Chain (P-Chain); supports operations on staking and Avalanche L1s.
 - **Avalanche VM**: Defines the Exchange Chain (X-Chain); supports operations on Avalanche Native Tokens.
 
@@ -53,10 +53,10 @@ The choice depends on your needs. Subnet-EVM provides a quick start with Ethereu
   <Card
     href="https://github.com/ava-labs/avalanchego/tree/master/graft/coreth"
     title="Coreth"
-    description="An implementation of EVM that powers the Avalanche C-Chain and supports Solidity smart contracts"
+    description="The EVM implementation that ran the Avalanche C-Chain before the Helicon upgrade. A node that executes the C-Chain from genesis still uses it for the pre-Helicon blocks."
   />
   <Card
-    href="https://github.com/ava-labs/subnet-evm"
+    href="https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm"
     title="Subnet-EVM"
     description="An implementation of EVM that can be deployed to a custom Avalanche L1"
   />
