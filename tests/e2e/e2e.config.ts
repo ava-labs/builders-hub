@@ -16,10 +16,9 @@ const url = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
 // Vercel previews are behind SSO. The bypass header opens them, and the engine sends it only to the app's site.
 // Without the secret no header is set, because headers also turn off the HTTP cache and service workers.
-// A preview also shows the Vercel Toolbar, a round button at the right edge of the screen. It covers the page in
-// screenshots, and an agent.assert reads it as part of the site. x-vercel-skip-toolbar turns it off.
+// lib/visitor.ts hides the Vercel Toolbar of a preview.
 const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-export const headers = bypass ? { 'x-vercel-protection-bypass': bypass, 'x-vercel-skip-toolbar': '1' } : undefined;
+export const headers = bypass ? { 'x-vercel-protection-bypass': bypass } : undefined;
 
 // One identity for every preview URL, so the replay cache keys stay stable.
 export const app = { url, identity: 'builders-hub' };
