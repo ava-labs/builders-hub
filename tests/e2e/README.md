@@ -14,7 +14,7 @@ This folder has its own `package.json` and `package-lock.json`. The framework ne
 
 ## Run the tests
 
-1. Start the site: `yarn dev` in the repo root. Note the port.
+1. Start the site: `yarn dev` in the repo root. Note the port. Run `yarn build:remote` once before: some tests (for example `docs/tables.e2e.ts`) open docs pages that it writes.
 2. Install this package once:
 
    ```bash
