@@ -112,16 +112,16 @@
 [data-route-layout="docs"] [data-bk-figure-art] .bk-fig-rule { color: var(--bk-rule); }
 [data-route-layout="docs"] [data-bk-figure-art] .bk-fig-rule2 { color: var(--bk-rule-2); }
 
-/* ---------- Reward routes (reward-routes-figure.tsx): a flow diagram ---------- */
+/* ---------- Flow figures (components/docs-book/flow) ---------- */
 
-/* The tall drawing by default, the wide one when the column has room for it. Each drawing stops at about its
+/* The stacked drawing by default, the wide one when the column has room for it. Each drawing stops at about its
    width in units, so its text has the same size in both drawings and stays smaller than the body text. */
-[data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="wide"] { display: none; max-width: 720px; }
-[data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="stacked"] { max-width: 358px; }
+[data-route-layout="docs"] [data-bk-flow] svg[data-layout="wide"] { display: none; max-width: 720px; }
+[data-route-layout="docs"] [data-bk-flow] svg[data-layout="stacked"] { max-width: 358px; }
 
 @container (min-width: 660px) {
-  [data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="wide"] { display: block; }
-  [data-route-layout="docs"] [data-bk-figure-art="reward-routes"] svg[data-layout="stacked"] { display: none; }
+  [data-route-layout="docs"] [data-bk-flow] svg[data-layout="wide"] { display: block; }
+  [data-route-layout="docs"] [data-bk-flow] svg[data-layout="stacked"] { display: none; }
 }
 
 /* Names in the display face, as the page headings: the drawing reads as part of the book, not as a UI. */
