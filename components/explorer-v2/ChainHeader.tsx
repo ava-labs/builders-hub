@@ -75,3 +75,4 @@ export function ChainHeader({
     </div>
   );
 }
+// E2E selection check: an Explorer-only change.
