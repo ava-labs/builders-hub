@@ -81,8 +81,9 @@ describe('warmReads', () => {
     );
     vi.stubGlobal('fetch', fetch);
     warmReads('/explorer/mainnet');
-    await vi.waitFor(() => expect(fetch.mock.calls.map(([url]) => url)).toContain('/api/evm/43114/txs?limit=6'));
-    expect(fetch.mock.calls.map(([url]) => url)).toContain('/api/explorer/43114?blocksOnly=true');
+    await vi.waitFor(() =>
+      expect(fetch.mock.calls.map(([url]) => url)).toContain('/api/explorer/43114?blocksOnly=true&txs=3'),
+    );
     expect(fetch.mock.calls.every(([, init]) => init?.priority === 'low')).toBe(true);
   });
 });
