@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
@@ -12,7 +12,8 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { isPrivateChain } from "@/components/explorer-v2/network/private";
-import { ExplorerRangeControl, useRangeConsumersPresent } from "@/components/explorer-v2/time-range";
+import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
+import { NavbarSlot } from "@/components/explorer-v2/navbar-slot";
 import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
 import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
 import { buildTabs, type Tab } from "@/components/explorer-v2/subnav-tabs";
@@ -27,7 +28,9 @@ import {
 /* ------------------------------------------------------------------ */
 /* The explorer's subnav rail, shared by every shell (P-Chain, per-L1,  */
 /* directory): a chain switcher on the left, section tabs with a red    */
-/* active bar in the middle, the network at the right edge. This is     */
+/* active bar in the middle, the network at the right edge. Below 640   */
+/* px the switcher moves into the site navbar (NavbarSlot), with the    */
+/* network in its menu, and the rail keeps the tabs and the clock. This is */
 /* the one element that makes the explorer navigable as a single app    */
 /* rather than a set of pages that happen to share a URL prefix.        */
 /* ------------------------------------------------------------------ */
@@ -69,23 +72,41 @@ interface ExplorerSubnavProps {
    system chains are pinned; the L1 list is validated against the P-Chain
    (a chain appears only if its subnet has stake-backed validators right
    now), fetched lazily the first time the menu opens. A row keeps the
-   reader's tab where its chain has it (chainSwitchTarget). */
+   reader's tab where its chain has it (chainSwitchTarget). In the phone
+   navbar (inNavbar) the button names the chain with the network under it,
+   and the menu leads with the network control (networkRow). */
 function ChainSwitcher({
   network,
   chainSlug,
   chainName,
   chainLogoURI,
   pathname,
+  inNavbar = false,
+  caption,
+  networkRow,
+  className,
 }: {
   network: string;
   chainSlug?: string;
   chainName?: string;
   chainLogoURI?: string;
   pathname: string;
+  inNavbar?: boolean;
+  /** the network, under the chain name in the phone navbar */
+  caption?: string;
+  /** the network control, at the top of the menu in the phone navbar */
+  networkRow?: ReactNode;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
+  const label = (chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks";
+
+  // a network switch in the menu changes the page: close the menu with it
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   // validate lazily, on first open (the shared feed dedupes the request)
   const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts("mainnet", open);
@@ -198,7 +219,7 @@ function ChainSwitcher({
   };
 
   return (
-    <div ref={rootRef} className="relative flex shrink-0 items-stretch">
+    <div ref={rootRef} className={cn("relative flex shrink-0 items-stretch", inNavbar && "min-w-0 shrink", className)}>
       <button
         type="button"
         aria-haspopup="dialog"
@@ -207,7 +228,7 @@ function ChainSwitcher({
           setOpen((v) => !v);
           setFilter("");
         }}
-        className="group flex items-center gap-2.5 pr-1 text-left"
+        className={cn("group flex items-center text-left", inNavbar ? "min-w-0 gap-1.5 py-2 pr-0.5" : "gap-2.5 pr-1")}
       >
         {!chainSlug ? (
           <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
@@ -220,11 +241,24 @@ function ChainSwitcher({
             />
           )
         )}
-        {/* below sm the name would starve the section tabs: the mark and
-            chevron carry the switcher, and the name stays for screen readers */}
-        <span className="truncate max-sm:sr-only font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:block sm:max-w-40 md:max-w-56 dark:text-zinc-100">
-          {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks"}
-        </span>
+        {inNavbar ? (
+          // the network rides under the name; the menu names it to assistive tech, so the button's name stays the chain
+          <span className="flex min-w-0 flex-col leading-tight">
+            {/* tighter than the rail's label, so ALL NETWORKS fits beside the logo on a 360 px phone */}
+            <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-900 dark:text-zinc-100">
+              {label}
+            </span>
+            {caption && (
+              <span aria-hidden className="truncate font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+                {caption}
+              </span>
+            )}
+          </span>
+        ) : (
+          <span className="block truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:max-w-40 md:max-w-56 dark:text-zinc-100">
+            {label}
+          </span>
+        )}
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
       </button>
 
@@ -235,6 +269,14 @@ function ChainSwitcher({
           role="dialog"
           aria-label="Switch chain"
           className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          {networkRow && (
+            <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-900">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                Network
+              </span>
+              {networkRow}
+            </div>
+          )}
           <div className="relative border-b border-zinc-100 dark:border-zinc-900">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -242,7 +284,8 @@ function ChainSwitcher({
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Filter chains"
               spellCheck={false}
-              autoFocus
+              // on a phone the keyboard would cover the list the reader came to tap
+              autoFocus={!inNavbar}
               className="w-full bg-transparent py-2.5 pl-10 pr-4 font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
             />
           </div>
@@ -445,11 +488,6 @@ export function ExplorerSubnav({
     };
   }, [measureRail, tabs]);
   const onRailScroll = measureRail;
-  // phones: the clock and the network leave the pinned rail for a strip under it, which scrolls with the page.
-  // The strip stands from the first render wherever the network control does, so nothing moves when the clock
-  // appears; with neither, there is no strip, and the rail keeps the page's spacing.
-  const clock = useRangeConsumersPresent();
-  const strip = !hideNetwork || clock;
   const railMask = useMemo(() => {
     if (!rail.left && !rail.right) return undefined;
     const mask = `linear-gradient(to right, ${
@@ -465,26 +503,38 @@ export function ExplorerSubnav({
     // content never peeks past its edges; z-[35] clears the page-level
     // sticky bars (z-30) but stays UNDER the global navbar (#nd-nav, z-40)
     // so its dropdown menus paint over this rail, not behind it.
-    // Below sm only the switcher and the tabs pin: the clock and the network
-    // sit in a strip under the rail (after it, below), which takes the
-    // page's spacing from the rail there.
+    // Below sm the chain switcher sits in the site navbar, with the network
+    // in its menu: the rail keeps the tabs, which scroll, and the clock,
+    // which stays at the right edge.
     <>
+    <NavbarSlot>
+      <ChainSwitcher
+        inNavbar
+        network={network}
+        chainSlug={chainSlug}
+        chainName={chainName}
+        chainLogoURI={chainLogoURI}
+        pathname={pathname}
+        caption={hideNetwork ? undefined : (NETWORK_LABEL[network as PchainNetwork] ?? network)}
+        networkRow={hideNetwork ? undefined : <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
+      />
+    </NavbarSlot>
     <div data-explorer-subnav
       className={cn(
-        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex flex-wrap items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
+        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex flex-wrap items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] max-sm:flex-nowrap md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
         className,
-        strip && "max-sm:mb-0",
       )}
     >
-      <div className="flex min-w-0 items-stretch gap-x-2.5 max-sm:w-full sm:gap-x-4 md:gap-x-5">
+      <div className="flex min-w-0 items-stretch gap-x-2.5 max-sm:flex-1 sm:gap-x-4 md:gap-x-5">
         <ChainSwitcher
+          className="max-sm:hidden"
           network={network}
           chainSlug={chainSlug}
           chainName={chainName}
           chainLogoURI={chainLogoURI}
           pathname={pathname}
         />
-        {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />}
+        {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 max-sm:hidden dark:bg-zinc-800" />}
         {tabs.length > 0 && (
           <nav
             ref={railRef}
@@ -549,19 +599,17 @@ export function ExplorerSubnav({
           </nav>
         )}
       </div>
-      <div className="hidden shrink-0 items-stretch gap-x-3 sm:flex">
+      <div className="flex shrink-0 items-stretch gap-x-3">
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
         <ExplorerRangeControl className={rangeClassName} />
-        {!hideNetwork && <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
+        {!hideNetwork && (
+          <div className="flex max-sm:hidden">
+            <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />
+          </div>
+        )}
       </div>
     </div>
-    {strip && (
-      <div className={cn("-mx-5 flex items-center justify-between gap-x-2 px-5 py-1.5 empty:hidden sm:hidden", className)}>
-        <ExplorerRangeControl className={rangeClassName} />
-        {!hideNetwork && <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
-      </div>
-    )}
     </>
   );
 }
