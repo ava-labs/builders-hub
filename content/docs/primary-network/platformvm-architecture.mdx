@@ -18,10 +18,14 @@ Helicon does not deprecate or disable any existing transaction type. Current val
 
 ## Responsibilities
 
-- **Validator registry & staking**: Tracks Primary Network validators and delegators, uptime, staking rewards, and validator fees. Starting with Helicon a validation can be auto-renewed per cycle rather than expiring at a fixed end time, see [Helicon Upgrade](/docs/primary-network/helicon-upgrade).
+- **Validator registry & staking**: Tracks Primary Network validators and delegators, uptime, staking rewards, and validator fees. Since Helicon, a validation can renew at the end of each cycle and has no fixed end time (Figure 1). See [Helicon Upgrade](/docs/primary-network/helicon-upgrade).
 - **Subnet/L1 orchestration**: Creates Subnets and chains (`CreateSubnetTx`, `CreateChainTx`), converts Subnets into L1s (`ConvertSubnetToL1Tx`), and maintains Subnet and L1 validator sets (including permissionless add/remove and warp-authorized L1 validator changes).
 - **Warp messaging**: Signs warp messages for cross-chain communication on Avalanche L1s.
 - **Atomic transfers**: Handles import/export of AVAX to/from other chains via shared memory.
+
+<Figure id="staking-cycle" caption="An auto-renewed validator stakes one cycle at a time. At each cycle end, the P-Chain restakes a share of the reward and starts the next cycle, or the validator exits. The hatched bands show a renewal.">
+  <StakingCycleFigure />
+</Figure>
 
 ## Consensus & Blocks
 

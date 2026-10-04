@@ -37,9 +37,13 @@ Your node's storage requirements depend on which type of state you're maintainin
 | **Sync method** | State sync (fast, hours) | State sync, then grows over time | Full sync from genesis (slow, days) |
 | **Maintenance** | Periodic resync (C-Chain); offline pruning or resync (Subnet-EVM L1s) | Periodic resync (C-Chain); offline pruning or resync (Subnet-EVM L1s) | None needed (intentional full history) |
 
-![State Growth Visualization](/images/State_growth_visualization.png)
+Each type of state uses disk at a different rate over time (Figure 1).
 
-### Archival State (gray line)
+<Figure id="disk-growth" caption="Disk use over time for each type of state. The hatch shows the state sync snapshots, and each deletion removes them. On the C-Chain, a deletion is a fresh state sync. The chart is a schematic and is not to scale.">
+  <DiskGrowthFigure />
+</Figure>
+
+### Archival State
 
 The **archival state** includes the complete history of all state changes since genesis. This allows
 querying historical state at any block height (e.g., "What was this account's balance at block
@@ -50,14 +54,14 @@ specialized analytics applications. Their disk usage will grow fastest over time
 Most validators and RPC nodes only need **active state**. Archive nodes are specialized infrastructure for historical data access.
 </Callout>
 
-### Active State (black line)
+### Active State
 
 The **active state** represents the current state of the blockchain: all account balances, contract
 storage, and code as of the latest block. This is what your node needs to validate new transactions
 and participate in consensus. When you bootstrap with state sync, you start with just the active
 state. Freshly state-synced nodes will only have the active state.
 
-### Active State with State Sync Snapshots (red line)
+### Active State with State Sync Snapshots
 
 Nodes with the configuration `pruning-enabled: true` accumulate not the full historical state but
 only the active state and state sync snapshots over time after starting with active state. As blocks
@@ -69,7 +73,7 @@ size. Most long-running validators operate in this state.
 [Firewood](/docs/nodes/architecture/execution/firewood) is an EXPERIMENTAL state scheme that reclaims the space of expired state without compaction. To use it on the C-Chain, set `"state-scheme": "firewood"` in the C-Chain config. A Firewood C-Chain node cannot state sync. On Mainnet and Fuji, also set `"state-sync-enabled": false`. The node then bootstraps by executing every block from genesis.
 </Callout>
 
-### Active State with periodic snapshot deletion (green line)
+### Active State with periodic snapshot deletion
 
 Nodes that manually perform some maintenance can reduce their storage requirements by deleting state
 sync snapshots. On the C-Chain, replace the node with a freshly state-synced node (see [Periodic State Sync](/docs/nodes/node-storage/periodic-state-sync)). The C-Chain ignores the offline pruning options since Helicon. Subnet-EVM L1 chains still support offline pruning (`offline-pruning-enabled`).

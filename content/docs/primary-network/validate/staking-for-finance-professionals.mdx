@@ -11,9 +11,7 @@ A comprehensive guide to Avalanche staking designed for financial professionals 
 
 Staking on Avalanche allows token holders to earn rewards by participating in network security. Unlike traditional investments, staked tokens remain under your custody but are time-locked for a predetermined period (on Mainnet, 48 hours to 1 year for validators and 2 weeks to 1 year for delegators). At the end of the staking period, your original principal is returned along with earned rewards.
 
-<Callout type="error" title="Critical Risk Considerations">
-**Before staking, understand these key risks:**
-
+<Callout type="error" title="Know these risks before you stake">
 - **No Slashing** - Avalanche does NOT have slashing. Your staked principal is never at risk of being taken by the protocol or validators, regardless of validator performance. The worst-case scenario is earning zero rewards, not losing your principal.
 
 - **Assets Are Locked** - Once assets are staked, they must remain staked until the end of the staking period. You set the maturity date, but your assets are completely illiquid until that date.
@@ -59,7 +57,7 @@ On Avalanche, there are two types of staking:
 
 Before staking (for either validating or delegating), you need to prepare the following.
 
-<Callout type="info" title="Non-Custodial Design">
+<Callout type="info" title="You keep your private keys">
 At every stage, you retain ownership of your private keys. The validator never has access to your funds for either form of staking. The time-lock is enforced by the Avalanche protocol, not by any third party.
 
 **Note:** If you are using a third-party intermediary, you're subject to their restrictions and functions.
@@ -87,7 +85,7 @@ All addresses below are P-Chain addresses:
 
 ### P-Chain vs. C-Chain
 
-<Callout type="warn" title="Important: Staking Requires P-Chain">
+<Callout type="warn" title="Staking happens on the P-Chain, not the C-Chain">
 Staking occurs on the **P-Chain** (Platform Chain), not the C-Chain. If your AVAX is on the C-Chain (used for DeFi/smart contracts), you must first transfer it to the P-Chain.
 </Callout>
 
@@ -108,7 +106,7 @@ If your AVAX is on the C-Chain (common for exchange withdrawals and DeFi), trans
 
 ## Steps for Validating
 
-<Callout type="info" title="Prerequisites">
+<Callout type="info" title="Select a node before you stake">
 You should have a node selected and prepared before creating a staking transaction: either one you're operating yourself or one provided by a contracted node provider.
 </Callout>
 
@@ -155,7 +153,7 @@ You can only delegate to a node that already has an active validation stake. Del
 - **Maximum delegation amount** depends on validator capacity
 - **Delegation period** must end before the validator's staking period ends
 
-<Callout type="warn" title="Validator Selection Risk">
+<Callout type="warn" title="Your rewards depend on the uptime of the validator">
 When you delegate, your rewards depend on the validator's uptime. If the validator's uptime falls below the requirement (90% for validations that started at or after Helicon, 80% for older ones), you risk receiving zero rewards.
 
 Choose a validator you're familiar with or one that has trustworthy indicators such as healthy uptime and a history of successful validation periods.
@@ -188,7 +186,7 @@ Public explorer tools also provide monitoring:
 
 ## Rewards Distribution
 
-<Callout type="info" title="Rewards Timing">
+<Callout type="info" title="You get the reward only at the end of the period">
 Rewards are **NOT** distributed incrementally during the staking period. Instead:
 
 - Protocol calculates potential rewards based on stake amount and duration
@@ -297,6 +295,6 @@ Only the address set as the validator authority when the validator was created c
 
 ### Impact on Delegators
 
-<Callout type="warn" title="No Auto-Renewed Delegation">
+<Callout type="warn" title="Delegations do not auto-renew">
 ACP-236 applies to **validators only**. Delegators cannot auto-renew, because there is no guarantee a validator will continue beyond its current cycle. Delegation constraints are unchanged: your delegation period must fit within the validator's current cycle.
 </Callout>

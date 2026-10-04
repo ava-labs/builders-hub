@@ -3,7 +3,11 @@ title: Coreth Architecture
 description: How the C-Chain runs inside AvalancheGo. Coreth executed blocks before the Helicon upgrade, and the Continuous Execution VM executes them after it.
 ---
 
-Coreth is the EVM implementation that ran the C-Chain until the Helicon upgrade (Fuji July 28, 2026 and Mainnet September 22, 2026, both at 15:00 UTC). Since Helicon, the C-Chain runs the Continuous Execution VM ([`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain)). AvalancheGo swaps the VM in-process 10 seconds before the Helicon time. Coreth executed all blocks up to and including the transition block. It is shipped with AvalancheGo under [`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) and wrapped by Snowman++ ([`vms/proposervm`](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm)) for block production.
+Coreth is the EVM implementation that ran the C-Chain until the Helicon upgrade (Fuji July 28, 2026 and Mainnet September 22, 2026, both at 15:00 UTC). Since Helicon, the C-Chain runs the Continuous Execution VM ([`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain)). TransitionVM ([`vms/transitionvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/transitionvm)) switches the VM inside the AvalancheGo process (Figure 1). Coreth executes all blocks up to and including the transition block: the first block with a timestamp at or after the transition time, 10 seconds before the Helicon time. It is shipped with AvalancheGo under [`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth) and wrapped by Snowman++ ([`vms/proposervm`](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm)) for block production.
+
+<Figure id="cchain-vm-switch" caption="TransitionVM sends the C-Chain blocks to one of two VMs in the same AvalancheGo process. The hatched band shows the VM that executes them since Helicon.">
+  <CChainVmSwitchFigure />
+</Figure>
 
 At a glance:
 - Snowman++ calls into the C-Chain VM to build and verify blocks. Since Helicon, consensus accepts a block before the VM executes it.

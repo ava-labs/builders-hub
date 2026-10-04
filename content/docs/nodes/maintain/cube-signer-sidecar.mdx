@@ -116,7 +116,7 @@ cs token create --role-id <ROLE_ID> > token.json
 
 This creates a JSON file containing authentication credentials. Keep this file secure.
 
-<Callout type="error" title="Security Warning">
+<Callout type="error" title="Keep token.json secret">
 The `token.json` file grants access to your BLS signing key. Store it securely with restricted file permissions (`chmod 600 token.json`) and never commit it to version control. The sidecar refreshes this file automatically, so it must remain writable by the process.
 </Callout>
 
@@ -395,7 +395,7 @@ Generate a new BLS key in CubeSigner and update your validator registration. Thi
 
 ### Option 2: Import Existing Key (Production Validators)
 
-<Callout type="error" title="Contact CubeSigner Support">
+<Callout type="error" title="Contact CubeSigner support to import a BLS key">
 Importing existing BLS keys into CubeSigner requires coordination with the CubeSigner team. This is typically only done for production validators with active stake. Contact [CubeSigner support](https://cubist.dev/contact) for assistance.
 </Callout>
 
