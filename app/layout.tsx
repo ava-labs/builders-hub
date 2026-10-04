@@ -86,3 +86,4 @@ export default function Layout({ children }: { children: ReactNode }) {
     </html>
   );
 }
+// E2E selection check: a shared change.
