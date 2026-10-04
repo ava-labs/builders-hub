@@ -7,7 +7,7 @@ import {
   metaSchema,
   type DefaultMDXOptions,
 } from 'fumadocs-mdx/config';
-import remarkMath from 'remark-math';
+import { remarkPlugins } from './lib/mdx-remark-plugins';
 import rehypeKatex from 'rehype-katex';
 import { z } from 'zod';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
@@ -56,7 +56,7 @@ const mdxOptions = {
       },
     ],
   },
-  remarkPlugins: [remarkMath],
+  remarkPlugins,
   rehypePlugins: (v) => [rehypeKatex, ...v],
 } satisfies DefaultMDXOptions;
 
@@ -88,7 +88,7 @@ export const course = defineCollections({
   // out of the search index built from structuredData.
   mdxOptions: getDefaultMDXOptions({
     ...mdxOptions,
-    remarkPlugins: [remarkMath, remarkCalloutLabels],
+    remarkPlugins: [...remarkPlugins, remarkCalloutLabels],
     remarkStructureOptions: { allowedMdxAttributes: indexedMdxAttribute },
   }),
   schema: frontmatterSchema.extend({
