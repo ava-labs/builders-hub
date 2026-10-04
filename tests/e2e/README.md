@@ -130,6 +130,7 @@ A PR runs the tests that its changed files can break, not the whole suite. The p
 - A file that no page reaches in the graph runs every test, because the graph cannot see every way a file is used.
 - Every PR also runs the smoke set (tag `smoke`): the home page, the navbar, and one page per area.
 - Every push to `master` and every night run the whole suite, so a test that a PR skipped runs within a day.
+- A PR and a push to `master` run the sweeps (tag `sweep`) at the desktop size only. The nightly run runs them at both sizes. The sweeps check that each page opens; they read no layout.
 
 To see what a change runs, from `tests/e2e` (Node 24):
 

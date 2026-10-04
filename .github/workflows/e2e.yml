@@ -2,8 +2,9 @@ name: E2E
 
 # Browser tests in tests/e2e (tester-army/e2e) at a desktop and a phone size, and the API tests in tests/e2e/api.
 # A PR runs the tests that its changed files can break, plus a smoke set (tests/e2e/select picks them). Every push to
-# master and every night run the whole suite, so a test that a PR skipped runs within a day. Console wallet flows
-# have no tests until the framework can inject the wallet shim before page load (tester-army/e2e#696).
+# master and every night run the whole suite, so a test that a PR skipped runs within a day. A PR and a master push
+# run the sweeps (every page opens) at the desktop size only; the nightly run runs them at both sizes. Console wallet
+# flows have no tests until the framework can inject the wallet shim before page load (tester-army/e2e#696).
 #
 # Targets: a PR tests the Vercel preview of its head commit, a master push the production deployment of its commit,
 # and the nightly run build.avax.network.

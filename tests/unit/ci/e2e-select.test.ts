@@ -139,6 +139,17 @@ describe('planFor', () => {
     const legs = planFor({ all: true, units: [...UNITS], reasons: [] });
     expect(legs.map((leg) => leg.name)).toEqual(['browser', 'api']);
   });
+
+  it('runs the sweeps at the desktop size only when asked', () => {
+    const all = planFor({ all: true, units: [...UNITS], reasons: [] }, { sweepsAtBothSizes: false });
+    expect(all.map((leg) => leg.name)).toEqual(['browser', 'sweeps', 'api']);
+    expect(all[0].args).toEqual(expect.arrayContaining(['--exclude-tag', 'sweep']));
+    expect(all[1].args).toEqual(expect.arrayContaining(['--tag', 'sweep', '--target', 'desktop']));
+    const docs = planFor({ all: false, units: ['docs'], reasons: [] }, { sweepsAtBothSizes: false });
+    expect(docs.map((leg) => leg.name)).toEqual(['browser', 'smoke']);
+    const console = planFor({ all: false, units: ['console', 'site'], reasons: [] }, { sweepsAtBothSizes: false });
+    expect(console[1].args.slice(0, 1)).toEqual(['console/']);
+  });
 });
 
 // The hand-kept lists must match the suite and the code. The plan job runs the same check and fails on a problem.

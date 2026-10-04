@@ -13,14 +13,14 @@
 
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { SMOKE_TAG, SMOKE_UNITS, UNITS, unitPaths } from './rules.ts';
+import { SMOKE_TAG, SMOKE_UNITS, SWEEP_TAG, SWEEP_UNITS, UNITS, unitPaths } from './rules.ts';
 import { checkSuite, loadContext, select, type Change, type Selection } from './select.ts';
 
 // A leg is one `e2e run` of the plan.
 export interface Leg {
   /** The leg's name, in the job name and the summary. */
   name: string;
-  /** The selection arguments (paths and tags), which `e2e list` takes too. */
+  /** The selection arguments (paths, tags, target), which `e2e list` takes too. */
   select: string[];
   /** The arguments of `npx e2e run`, from tests/e2e: the selection plus the workers and the output folder. */
   args: string[];
@@ -33,12 +33,24 @@ export interface Leg {
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const BROWSER_UNITS = UNITS.filter((unit) => unit !== 'api');
 
-export function planFor(selection: Selection): Leg[] {
+export interface PlanOptions {
+  /** Run the sweeps (tag sweep) at both sizes. Off for a PR and a master push: the nightly run covers the phone size. */
+  sweepsAtBothSizes?: boolean;
+}
+
+export function planFor(selection: Selection, { sweepsAtBothSizes = true }: PlanOptions = {}): Leg[] {
   const legs: Leg[] = [];
   const picked = selection.all ? BROWSER_UNITS : BROWSER_UNITS.filter((unit) => selection.units.includes(unit));
   // The whole suite needs no path: the config finds every test.
   const paths = selection.all ? [] : [...new Set(picked.flatMap(unitPaths))];
-  if (picked.length) legs.push(browserLeg('browser', paths));
+  const sweeps = picked.filter((unit) => SWEEP_UNITS.includes(unit));
+  if (picked.length && (sweepsAtBothSizes || !sweeps.length)) {
+    legs.push(browserLeg('browser', paths));
+  } else if (picked.length) {
+    legs.push(browserLeg('browser', [...paths, '--exclude-tag', SWEEP_TAG, '--pass-with-no-tests']));
+    const sweepPaths = selection.all ? [] : sweeps.flatMap(unitPaths);
+    legs.push(browserLeg('sweeps', [...sweepPaths, '--tag', SWEEP_TAG, '--target', 'desktop']));
+  }
   const rest = selection.all ? [] : SMOKE_UNITS.filter((unit) => !selection.units.includes(unit));
   if (rest.length) {
     legs.push(browserLeg('smoke', ['--tag', SMOKE_TAG, '--pass-with-no-tests', ...rest.flatMap(unitPaths)]));
@@ -56,6 +68,9 @@ function browserLeg(name: string, select: string[]): Leg {
 }
 
 export function summary(event: string, selection: Selection, legs: Leg[], note = ''): string {
+  const sizes = legs.some((leg) => leg.name.startsWith('sweeps'))
+    ? `The sweeps (tag \`${SWEEP_TAG}\`) run at the desktop size only. The nightly run runs them at both sizes.`
+    : '';
   const lines = ['## E2E plan', ''];
   if (selection.all) {
     lines.push(
@@ -74,6 +89,7 @@ export function summary(event: string, selection: Selection, legs: Leg[], note =
       'The full suite runs on every push to master and every night, so a test this PR skips runs within a day.',
     );
   }
+  if (sizes) lines.push('', sizes);
   if (note) lines.push('', note);
   lines.push('', '| Leg | `e2e run` arguments |', '|---|---|');
   for (const leg of legs) lines.push(`| ${leg.name} | \`${leg.args.join(' ')}\` |`);
@@ -128,7 +144,7 @@ function main(): void {
       selection = select(changes, context);
     }
   }
-  const legs = planFor(selection);
+  const legs = planFor(selection, { sweepsAtBothSizes: event === 'schedule' || event === 'workflow_dispatch' });
   const text = summary(event, selection, legs, note);
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `legs=${JSON.stringify(legs)}\nall=${selection.all}\n`);
