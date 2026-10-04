@@ -110,7 +110,8 @@ jobs:
             if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; fi
           done
 
-      # Traces and failure pages for failed runs only; green runs need nothing.
+      # Failure pages and screenshots for failed runs only; green runs need nothing. No traces: a trace records the
+      # request headers, the Vercel bypass secret included, and anyone can download the artifacts of a public repo.
       - name: Upload artifacts
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -120,7 +121,7 @@ jobs:
             tests/e2e/.e2e/report.json
             tests/e2e/.e2e/junit.xml
             tests/e2e/.e2e/failures
-            tests/e2e/.e2e/artifacts
+            tests/e2e/.e2e/artifacts/**/*.png
             tests/e2e/api/.e2e/report.json
             tests/e2e/api/.e2e/failures
           retention-days: 7
