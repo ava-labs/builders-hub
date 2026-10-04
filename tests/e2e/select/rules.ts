@@ -29,6 +29,7 @@ export const AI_FILES: Record<string, readonly string[]> = {
     'data-explorer',
     'explorer-transaction',
     'journey-explorer',
+    'journey-explorer-chain-switch',
     'journey-explorer-fuji',
     'site-navigation',
     'visual-explorer',
