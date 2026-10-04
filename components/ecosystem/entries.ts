@@ -1,7 +1,8 @@
 /**
  * The /ecosystem overview: every item of the navbar's Ecosystem menu, in the
- * desktop menu's three columns (events, programs, guides and tools). Titles,
- * badges and external flags match the menu items;
+ * desktop menu's three columns (events, programs, guides and tools). The phone
+ * menu links a few of these entries under shorter titles, with the same badges
+ * and external flags, and its card opens this page;
  * tests/unit/navigation/ecosystem-page.test.ts holds the lists together.
  */
 
