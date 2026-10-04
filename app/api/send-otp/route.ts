@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendOTP } from '@/server/services/login';
 import { normalizeEmail } from '@/lib/utils';
+import { isValidEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   // A cross-site form can post text/plain without a CORS preflight, and
@@ -25,7 +26,20 @@ export async function POST(request: NextRequest) {
 
     // Must match the verify side (authOptions), which looks up the token
     // with normalizeEmail: lowercase alone misses stray whitespace.
-    const result = await sendOTP(normalizeEmail(email));
+    const normalizedEmail = normalizeEmail(email);
+
+    // The address becomes the account's identity, and SendGrid reads a
+    // name-and-address string such as 'a@b.example <c@d.example>' as a
+    // display name plus the address in brackets. Without this check, a code
+    // sent to an address the caller owns signs them in under another string.
+    if (!isValidEmail(normalizedEmail)) {
+      return NextResponse.json(
+        { error: 'Enter a valid email address.' },
+        { status: 400 }
+      );
+    }
+
+    const result = await sendOTP(normalizedEmail);
 
     if (result.status === 'limited') {
       const minutes = Math.ceil(result.retryAfterSeconds / 60);

@@ -11,6 +11,7 @@ import { badgeAssignmentService } from '@/server/services/badgeAssignmentService
 import { BadgeCategory } from '@/server/services/badge';
 import type { User as PrismaUser } from '@prisma/client';
 import { normalizeEmail } from '@/lib/utils';
+import { isValidEmail } from '@/lib/email';
 import { tryAdvisoryLock } from '@/lib/db/advisoryLock';
 
 
@@ -182,6 +183,9 @@ export const AuthOptions: NextAuthOptions = {
         }
 
         const normalizedEmail = normalizeEmail(email);
+        // send-otp mails only valid addresses. Refuse any other identity here
+        // too, including one whose code was mailed before that check existed.
+        if (!isValidEmail(normalizedEmail)) throw new Error('INVALID');
         let result: VerifyOTPResult;
         try {
           result = await verifyOTP(normalizedEmail, otp);
