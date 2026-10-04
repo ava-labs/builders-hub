@@ -19,6 +19,28 @@ export function sectionTabs(screen: Screen): Locator {
   return screen.getByRole('navigation', 'Explorer sections');
 }
 
+// Below 640 px (Tailwind sm) the chain switcher sits in the site navbar, and its menu holds the Mainnet/Fuji
+// switch (components/explorer-v2/navbar-slot.tsx). Wider screens show the switch at the right end of the tab rail.
+async function switcherInNavbar(browser: Browser): Promise<boolean> {
+  return browser.evaluate(() => window.matchMedia('(max-width: 639px)').matches);
+}
+
+// The span at the left edge of the site navbar that holds the phone chain switcher.
+export function navbarSlot(browser: Browser): Locator {
+  return browser.locator('[data-explorer-navbar-slot]');
+}
+
+// Returns the area that holds the Mainnet/Fuji switch: the page on wider screens, and on phones the chain
+// switcher menu, which this opens. The navbar switcher mounts only after hydration, so a tap on it works.
+export async function networkSwitch(screen: Screen, browser: Browser): Promise<Screen> {
+  if (!(await switcherInNavbar(browser))) return screen;
+  // The closed menu has no buttons, so the trigger is the only button in the slot.
+  const trigger = navbarSlot(browser).getByRole('button');
+  await trigger.tap();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  return screen.getByRole('dialog', 'Switch chain');
+}
+
 // The tab with this label is the current page, and no other tab is current.
 export async function expectActiveTab(screen: Screen, browser: Browser, label: string): Promise<void> {
   await expect(sectionTabs(screen).getByRole('link', label)).toHaveAttribute('aria-current', 'page');

@@ -1,6 +1,6 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
-import { NAVIGATION, expectActiveTab, pathPattern } from './explorer-page';
+import { NAVIGATION, expectActiveTab, networkSwitch, pathPattern } from './explorer-page';
 
 // Rule: the Mainnet/Fuji switch keeps the tab the user is on.
 // The switch targets come from switchTarget in components/explorer-v2/network-switch.ts.
@@ -62,14 +62,16 @@ for (const c of CASES) {
     await app.open(c.from);
     await expectActiveTab(screen, browser, c.fromTab);
 
-    // The phone layout moves the switch to a strip under the tab rail. The hidden copy is not in the role tree.
-    await screen.getByRole('link', c.to).tap();
+    // The phone layout moves the switch into the chain switcher menu in the site navbar. The hidden copy in the
+    // tab rail is not in the role tree.
+    await (await networkSwitch(screen, browser)).getByRole('link', c.to).tap();
 
     await expect(browser).toHaveURL(pathPattern(c.expected), NAVIGATION);
     await expectActiveTab(screen, browser, c.toTab);
     // The segment of the current network says so to assistive tech, not by colour alone.
-    await expect(screen.getByRole('link', c.to)).toHaveAttribute('aria-current', 'page');
-    await expect(screen.getByRole('link', c.to === 'Fuji' ? 'Mainnet' : 'Fuji')).not.toHaveAttribute('aria-current');
+    const after = await networkSwitch(screen, browser);
+    await expect(after.getByRole('link', c.to)).toHaveAttribute('aria-current', 'page');
+    await expect(after.getByRole('link', c.to === 'Fuji' ? 'Mainnet' : 'Fuji')).not.toHaveAttribute('aria-current');
   });
 }
 
@@ -77,7 +79,9 @@ for (const c of CASES) {
 test('network home names Mainnet and shows no switch', async ({ app, screen, browser }) => {
   await app.open('/explorer/mainnet');
   await expectActiveTab(screen, browser, 'Explorer');
-  await expect(screen.getByText('Mainnet', { visible: true })).toBeVisible();
+  // On a phone the label is in the chain switcher menu. The network under the switcher's name is aria-hidden.
+  const area = await networkSwitch(screen, browser);
+  await expect(area.getByText('Mainnet', { visible: true })).toBeVisible();
   await expect(screen.getByRole('link', 'Fuji')).toHaveCount(0);
   await expect(screen.getByRole('link', 'Mainnet')).toHaveCount(0);
 });
