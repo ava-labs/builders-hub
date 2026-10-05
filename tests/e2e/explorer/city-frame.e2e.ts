@@ -125,7 +125,10 @@ for (const size of SIZES) {
 
     // A chain: its live pane opens at the right. The sidebar and the pane share their top and bottom edges, the
     // strip stays centred, and the news button steps aside.
-    await screen.getByRole('button', /^C-Chain \d/).tap();
+    // The row comes in with the city's data, which a cold preview serves slowly.
+    const cchain = screen.getByRole('complementary', 'Chains').getByRole('button', /^C-Chain/);
+    await expect(cchain).toBeVisible(DATA);
+    await cchain.tap();
     await expect(screen.getByRole('button', 'Close the live view')).toBeVisible(DATA);
     await expect.poll(() => edgeGap(browser)).toBeLessThanOrEqual(1);
     await expect.poll(() => stripOffset(browser)).toBeLessThanOrEqual(1);
