@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Component, memo, startTransition, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -28,6 +27,7 @@ import { RouteView, type RouteEnd } from "@/components/explorer-v2/network/route
 import { Glyph } from "@/components/explorer-v2/evm/query/Glyph";
 import { EXAMPLES, PCHAIN_EXAMPLES, type Glyph as GlyphKind } from "@/lib/explorer-query/examples";
 import { NewsFeed } from "@/components/explorer-v2/network/news-feed";
+import { FRAME, FigureStrip, HEAD_ROW, LIVE_W, PANE, PANEL_W, STRIP_FIT, SidebarHead } from "@/components/explorer-v2/network/city-frame";
 import { AskWindow, askChainsOf, queryHref, routeFor, useAskWidth, type AskThread } from "@/components/explorer-v2/network/ask-window";
 import { PCHAIN_LOGO, PCHAIN_PICK } from "@/components/explorer-v2/network/city-model";
 import type { PchainPulse } from "@/components/explorer-v2/network/pchain-pulse";
@@ -1547,10 +1547,11 @@ export function CityApp({
   // the list is built only where it shows: a chain or a district in the panel builds none of its rows
   const directory = () => (
     <div className="pb-2">
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-100 bg-white/95 py-2 pl-4 pr-12 backdrop-blur dark:border-zinc-900 dark:bg-zinc-950/95">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-100 bg-white/95 px-4 py-2 backdrop-blur dark:border-zinc-900 dark:bg-zinc-950/95">
         {netTabs}
         <span className="flex-1" />
-        {net === "mainnet" && sortControl}
+        {/* Fuji has no sort: its height stays, so the row stands as tall on both networks */}
+        {net === "mainnet" ? sortControl : <span aria-hidden className="h-7" />}
       </div>
       {/* the cuts: each lights the chains it names in the city, and cuts the list to them */}
       {net === "mainnet" && <div className="px-4 pt-3">{cutChipsOf(false)}</div>}
@@ -1807,7 +1808,7 @@ export function CityApp({
   const usd = (v: number) => `$${fmtCompact(v)}`;
   const change = market?.change24h ?? null;
   // AVAX leads the strip, its price and its market cap; they open the token's page
-  const marketCells = (phone: boolean, narrow: boolean) => [
+  const marketCells = (phone: boolean) => [
     hudFigure(
       "AVAX",
       market ? `$${market.price.toFixed(2)}` : "—",
@@ -1823,13 +1824,13 @@ export function CityApp({
       undefined,
       "/explorer/mainnet/token",
     ),
-    hudFigure("Market cap", market?.marketCap ? usd(market.marketCap) : "—", market ? `FDV ${usd(market.price * AVAX_CAP)}` : "fully diluted —", phone, narrow ? "hidden 2xl:flex" : "max-xl:group-data-[panel]/strip:hidden", "/explorer/mainnet/token"),
+    hudFigure("Market cap", market?.marketCap ? usd(market.marketCap) : "—", market ? `FDV ${usd(market.price * AVAX_CAP)}` : "fully diluted —", phone, STRIP_FIT.marketCap, "/explorer/mainnet/token"),
   ];
-  // beside the open panel on a narrow screen, the strip keeps AVAX and the day's traffic
-  const hud = (phone = false, narrow = false) => [
-    ...marketCells(phone, narrow),
-    hudFigure("Chains", figures.chains.toLocaleString("en-US"), `${figures.districts} districts`, phone, narrow ? "hidden xl:flex" : "max-xl:group-data-[panel]/strip:hidden"),
-    hudFigure("Validators", fmtCompact(figures.validators), figures.onShare === null ? "versions unknown" : `${figures.onShare.toFixed(0)}% on ${target}+`, phone, narrow ? "hidden xl:flex" : "max-xl:group-data-[panel]/strip:hidden"),
+  // with less room at the city's foot, the strip drops the market cap, then the chains and the validators (STRIP_FIT); a phone keeps all six
+  const hud = (phone = false) => [
+    ...marketCells(phone),
+    hudFigure("Chains", figures.chains.toLocaleString("en-US"), `${figures.districts} districts`, phone, STRIP_FIT.chains),
+    hudFigure("Validators", fmtCompact(figures.validators), figures.onShare === null ? "versions unknown" : `${figures.onShare.toFixed(0)}% on ${target}+`, phone, STRIP_FIT.validators),
     hudFigure(
       `ICM · ${windowShort}`,
       fmtCompact(figures.icm),
@@ -1841,11 +1842,9 @@ export function CityApp({
     ),
     hudFigure(`Tx · ${windowShort}`, figures.tx === null ? "—" : fmtCompact(figures.tx), `across ${figures.active} chains`, phone),
   ];
-  // the large screen's strip, beside the panel and without it, built again only when its figures change
+  // the large screen's strip, built again only when its figures change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stripWide = useMemo(() => hud(false, false), [market, figures, target, windowShort, windowLabel]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stripNarrow = useMemo(() => hud(false, true), [market, figures, target, windowShort, windowLabel]);
+  const strip = useMemo(() => hud(), [market, figures, target, windowShort, windowLabel]);
 
   /* the city's callbacks stay the same objects, and its room the same object while its numbers hold, so the city renders
      again only when what it draws changes */
@@ -2031,8 +2030,6 @@ export function CityApp({
   /* ---------------------------------------------------------------- */
   /* large screens: the city, and its panels over it                   */
   /* ---------------------------------------------------------------- */
-  const PANEL_W = 372;
-  const LIVE_W = 344;
   // the panel stands while the list is asked for, or while a chain or a district is open
   // without WebGL 2 the list stands open: it is the way to the chains while the city cannot
   // the P-Chain picked (its wing downtown) opens its own view in the panel, and its newest txs at the right
@@ -2078,19 +2075,21 @@ export function CityApp({
   const rightW = ask ? askW : paneOpen ? LIVE_W : 0;
   // the search's box: 34rem at most, centred on the window, its left edge held between the card's edge and what stands at the
   // right: the open pane, else the key (hidden while the panel is open)
-  const searchRight = rightW ? `${rightW + 32}px` : "32px";
-  const searchW = `min(34rem, calc(100% - ${PANEL_W + 32}px - ${searchRight}))`;
-  const searchBox = { left: `clamp(${PANEL_W + 32}px, calc(50% - ${searchW} / 2), calc(100% - ${searchRight} - ${searchW}))`, width: searchW };
+  const searchLeft = `calc(${PANEL_W}px + 2 * var(--frame))`;
+  const searchRight = `calc(${rightW}px + 2 * var(--frame))`;
+  const searchW = `min(34rem, calc(100% - ${searchLeft} - ${searchRight}))`;
+  const searchBox = { left: `clamp(${searchLeft}, calc(50% - ${searchW} / 2), calc(100% - ${searchRight} - ${searchW}))`, width: searchW };
   // the camera keeps the city under the search and its chips, and clear of the panels
   const room: Inset = { left: showPanel ? PANEL_W + 28 : 20, right: rightW ? rightW + 28 : 20, top: 112, bottom: 92 };
   const was = insetWas.current;
   const inset = was && was.left === room.left && was.right === room.right ? was : (insetWas.current = room);
+  // clip, not hidden: a hidden box still scrolls, and a focus or a click on a card that is sliding in scrolled the whole frame sideways
   // the sky under the canvas, matched to the city's first frame (its haze by rows, the sun's or the moon's glow at the upper left), so the canvas fades in on itself
   return (
     <div
       ref={appRef}
       data-city-app
-      className="relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]"
+      className={`${FRAME} relative h-full w-full overflow-clip bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]`}
     >
       <RouterRef into={router} />
       {(() => {
@@ -2129,66 +2128,34 @@ export function CityApp({
         );
       })()}
 
-      {/* the panel: the list, a district or a chain, shut until one is asked for; the sky's disc keeps clear of it (data-city-chrome), as of the other cards */}
+      {/* the sidebar's head (city-frame.tsx): the list's door and the toggle to the 2D explorer, two cards in the corner,
+          and the sidebar's head row while it is open */}
+      <SidebarHead
+        open={showPanel}
+        count={dimmed && cityHits ? `${cityHits.length} of ${cityRows.length}` : String(cityRows.length)}
+        explorer={explorer2d}
+        onDoor={() => (showPanel ? shut() : setPanelOpen(true))}
+      />
+
+      {/* the sidebar: the list, a district or a chain, shut until one is asked for; the sky's disc keeps clear of it (data-city-chrome), as of the other cards */}
       <aside
+        id="city-sidebar"
+        aria-label="Chains"
         data-city-chrome
         inert={!showPanel || undefined}
         aria-hidden={!showPanel}
-        className={cn(
-          "absolute bottom-4 left-4 top-[calc(4.25rem+var(--under,0px))] z-20 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/[0.94] shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] backdrop-blur-xl transition-[transform,opacity] duration-300 ease-out dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]",
-          showPanel ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-6 opacity-0",
-        )}
+        className={cn(PANE, "left-(--frame)", showPanel ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-6 opacity-0")}
         style={{ width: PANEL_W }}
       >
-        <button
-          type="button"
-          onClick={shut}
-          aria-label="Close the panel"
-          title="Close the panel"
-          className="absolute right-2.5 top-2.5 z-20 flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div aria-hidden className={HEAD_ROW} />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: webgl ? keyH : undefined }}>
           {routeOpen && route ? routeView(route) : selectedRow ? (shownRow && shown ? chainView(shownRow) : chainView(selectedRow, false, true)) : pchainOpen ? pchainView() : focus && net === "mainnet" ? districtView(focus) : listed || showPanel ? directory() : null}
         </div>
       </aside>
 
-      {/* two cards over the city's top left, the panel opening under them: the list's door, and the toggle between the city
-          and the 2D explorer (the chain switcher lives on the 2D explorer's rail). Divs, not a nav: the site's navbar rules
-          (nav > div, nav button) would pad and underline them */}
-      <div className="absolute left-4 top-[calc(1rem+var(--under,0px))] z-30 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => (showPanel ? shut() : setPanelOpen(true))}
-          aria-expanded={showPanel}
-          title={showPanel ? "Close the list" : "Open the list"}
-          data-city-chrome
-          className="flex h-11 items-center gap-2 rounded-2xl border border-zinc-200/90 bg-white/[0.94] pl-3.5 pr-4 text-[13px] font-medium text-zinc-800 shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl transition-colors hover:text-zinc-950 dark:border-zinc-800/90 dark:bg-zinc-950/[0.9] dark:text-zinc-100 dark:hover:text-white"
-        >
-          {showPanel ? <PanelLeftClose className="h-4 w-4 text-zinc-500 dark:text-zinc-400" /> : <PanelLeftOpen className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />}
-          Chains
-          <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{dimmed && cityHits ? `${cityHits.length} of ${cityRows.length}` : cityRows.length}</span>
-        </button>
-        <div
-          role="group"
-          aria-label="Explorer view"
-          data-city-chrome
-          className="flex h-11 items-stretch gap-0.5 rounded-2xl border border-zinc-200/90 bg-white/[0.94] p-1 text-[13px] font-medium shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]"
-        >
-          {/* Explorer first, City second: the same order as the 2D subnav's toggle */}
-          <Link href={explorer2d} transitionTypes={VIEW_SWITCH} className="flex items-center rounded-xl px-3 text-zinc-500 transition-colors hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100">
-            Explorer
-          </Link>
-          <span aria-current="page" className="flex items-center rounded-xl bg-zinc-100 px-3 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50">
-            City
-          </span>
-        </div>
-      </div>
-
       {/* the search, fixed over the city's top and centred on the window: it moves only as far as the section card at the
           left and the open pane at the right would need; its chips under it */}
-      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center transition-[left,width] duration-300 ease-out" style={searchBox}>
+      <div className="pointer-events-none absolute top-[calc(var(--frame)+var(--under,0px))] z-30 flex justify-center transition-[left,width] duration-300 ease-out" style={searchBox}>
         <div data-city-chrome className="pointer-events-auto flex w-full max-w-[34rem] flex-col items-center gap-2">
           <div className="relative w-full">
             {searchField}
@@ -2198,16 +2165,13 @@ export function CityApp({
         </div>
       </div>
 
-      {/* the open chain's live view, at the right; the site's chat button keeps the corner under it */}
+      {/* the open chain's live view, at the right, from the frame's top to its bottom as the sidebar: the news steps out of its corner */}
       <aside
         data-city-chrome
         inert={!paneOpen || undefined}
         aria-hidden={!paneOpen}
         aria-label={liveTarget ? `${liveTarget.name}, live` : pchainOpen ? "P-Chain, live" : undefined}
-        className={cn(
-          "absolute bottom-[5.5rem] right-4 top-[calc(1rem+var(--under,0px))] z-20 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/[0.94] shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] backdrop-blur-xl transition-[transform,opacity] duration-300 ease-out dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]",
-          paneOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-6 opacity-0",
-        )}
+        className={cn(PANE, "right-(--frame)", paneOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-6 opacity-0")}
         style={{ width: LIVE_W }}
       >
         {liveTarget && shown && !ask && <ChainLive key={liveTarget.chainId} chain={liveTarget} armed={landed} onTip={tipOf(liveTarget.chainId)} onClose={() => setShutFor(selected)} />}
@@ -2216,16 +2180,13 @@ export function CityApp({
         )}
       </aside>
 
-      {/* a question's answer, at the right over the city; the site's chat button keeps the corner under it */}
+      {/* a question's answer, at the right over the city, as tall as the live view */}
       <aside
         data-city-chrome
         inert={!ask || undefined}
         aria-hidden={!ask}
         aria-label={shownAsk ? `Answer: ${shownAsk.q}` : undefined}
-        className={cn(
-          "absolute bottom-[5.5rem] right-4 top-[calc(1rem+var(--under,0px))] z-20 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/[0.94] shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] backdrop-blur-xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]",
-          ask ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-6 opacity-0",
-        )}
+        className={cn(PANE, "right-(--frame)", ask ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-6 opacity-0")}
         style={{ width: askW }}
       >
         {shownAsk &&
@@ -2257,27 +2218,21 @@ export function CityApp({
       </aside>
 
       {/* the key, in the bottom left corner from xl; with the panel open it is the panel's foot, widening into the panel
-          over the panel's own slide (city-key.tsx). An answer or a live pane at the right leaves the figures no room beside it */}
-      {webgl && (showPanel || (!ask && !paneOpen)) && (
-        <div data-city-hud className="absolute bottom-4 left-4 z-30 hidden transition-[width] duration-300 ease-out xl:block" style={{ width: showPanel ? PANEL_W : KEY_W }}>
+          over the panel's own slide (city-key.tsx) */}
+      {webgl && (
+        <div data-city-hud className="absolute bottom-(--frame) left-(--frame) z-30 hidden transition-[width] duration-300 ease-out xl:block" style={{ width: showPanel ? PANEL_W : KEY_W }}>
           {mapKey}
         </div>
       )}
 
-      {/* the news, in the corner the site's chat button keeps on other pages; the chat button stands down here */}
-      <NewsFeed className="absolute bottom-4 right-4 z-30" />
+      {/* the news, in the corner the site's chat button keeps on other pages (the chat button stands down here); a pane at
+          the right takes the corner while it is open */}
+      <NewsFeed away={rightW > 0} className="absolute bottom-(--frame) right-(--frame) z-30" />
 
-      {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button.
-          The strip stays centred on the window, and where it would reach what stands in the bottom left (the key from xl, its
-          320 px and 16 px each side, or the open panel) it moves right just far enough, half its width being the 50% of its
-          own translate: opening the panel moves it only on a window too narrow for both. Beside the panel it stays whole from
-          xl, and below xl drops the cells the narrow strip drops; an answer or a live pane at the right takes the narrow
-          strip. A panel and an answer both open leave the city too narrow for them */}
-      <div data-panel={showPanel || undefined} className={cn("group/strip pointer-events-none absolute bottom-4 z-10 flex items-end justify-center [--key-clear:0px] xl:[--key-clear:352px]", showPanel && ask && "hidden")} style={{ left: 88, right: rightW ? rightW + 32 : 88 }}>
-        <div style={{ transform: `translateX(max(0px, calc(${showPanel ? `${PANEL_W + 32}px` : webgl && !ask && !paneOpen ? "var(--key-clear)" : "0px"} - ${(88 - (rightW ? rightW + 32 : 88)) / 2}px - 50vw + 50%)))` }} className="pointer-events-auto flex transition-transform duration-300 ease-out divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
-          {ask || paneOpen ? stripNarrow : stripWide}
-        </div>
-      </div>
+      {/* the figures, centred on the window at the city's foot whatever is open (city-frame.tsx) */}
+      <FigureStrip sidebar={showPanel} legend={webgl} right={rightW}>
+        {strip}
+      </FigureStrip>
     </div>
   );
 }

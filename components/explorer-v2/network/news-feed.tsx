@@ -5,12 +5,15 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Newspaper, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { EASE, GLASS } from "@/components/explorer-v2/network/city-frame";
 
 /* The city's corner, where the site's chat button stands on other pages:
    the newest posts from the Avalanche blog and the Builder Hub. Shut, a
    round button with a dot while a post is new to the reader; under the
    pointer, the newest headline beside it; open, the latest eight, each a
-   door out. /api/news reads both and keeps them for half an hour */
+   door out. A pane at the right takes the corner (away): the button fades
+   out and back, and its list shuts with it. /api/news reads both and keeps
+   them for half an hour */
 
 interface NewsItem {
   title: string;
@@ -23,8 +26,6 @@ interface NewsItem {
 const SEEN_KEY = "city-news-seen";
 /** a post this recent, not yet opened here, marks the button */
 const FRESH_MS = 3 * 86_400_000;
-const GLASS =
-  "border border-zinc-200/90 bg-white/[0.94] shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]";
 
 function whenOf(iso: string): string {
   const days = Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
@@ -57,7 +58,7 @@ function Byline({ item }: { item: NewsItem }) {
   );
 }
 
-export function NewsFeed({ className }: { className?: string }) {
+export function NewsFeed({ className, away = false }: { className?: string; away?: boolean }) {
   const [items, setItems] = useState<NewsItem[] | null>(null);
   const [open, setOpen] = useState(false);
   const [peek, setPeek] = useState(false);
@@ -95,6 +96,11 @@ export function NewsFeed({ className }: { className?: string }) {
     };
   }, [open]);
 
+  // stepping away shuts the list and the headline, so neither comes back with the button
+  if (away && (open || peek)) {
+    setOpen(false);
+    setPeek(false);
+  }
   if (!items?.length) return null;
   const top = items[0];
   const fresh = seen !== top.href && Date.now() - Date.parse(top.date) < FRESH_MS;
@@ -108,7 +114,18 @@ export function NewsFeed({ className }: { className?: string }) {
   };
 
   return (
-    <div ref={card} className={cn("pointer-events-auto", className)}>
+    <div
+      ref={card}
+      inert={away || undefined}
+      aria-hidden={away || undefined}
+      className={cn(
+        // visibility flips after the fade, so a button away is out of the tab order and the accessibility tree; it comes back once the pane has gone
+        "pointer-events-auto transition-[opacity,translate,visibility] duration-300",
+        EASE,
+        away ? "pointer-events-none invisible translate-y-2 opacity-0 duration-200" : "delay-150 motion-reduce:delay-0",
+        className,
+      )}
+    >
       {open ? (
         <div role="dialog" aria-label="News" className={cn("w-[340px] overflow-hidden rounded-2xl animate-[bh-fade_160ms_ease-out]", GLASS)}>
           <div className="flex items-center justify-between border-b border-zinc-100 py-2 pl-4 pr-2 dark:border-zinc-900">
