@@ -93,28 +93,29 @@ It allows you to specify percentages up to 4 digital positions. To denominate yo
 For reference we list below the Primary Network parameters on Mainnet:
 
 - `AssetID = Avax`
-- `InitialSupply = 240_000_000 Avax`
+- `InitialSupply ≈ 360_000_000 Avax` (exactly `359_999_999.99999021 Avax`, the sum of the Mainnet genesis allocations). This is only the supply at genesis. The reward formula uses $Supply$, the current supply at the start of each staking period, which grows as rewards are minted. You can query it with [`platform.getCurrentSupply`](/docs/rpcs/p-chain#platformgetcurrentsupply).
 - `MaximumSupply = 720_000_000 Avax`.
 - `MinConsumptionRate = 0.10 * reward.PercentDenominator`.
 - `MaxConsumptionRate = 0.12 * reward.PercentDenominator`.
 - `Minting Period = 365 * 24 * time.Hour`.
 - `MinValidatorStake = 2_000 Avax`.
 - `MaxValidatorStake = 3_000_000 Avax`.
-- `MinStakeDuration = 2 * 7 * 24 * time.Hour`.
+- `MinStakeDuration = 2 * 7 * 24 * time.Hour`. Since Helicon this applies to delegators only.
+- `HeliconMinStakeDuration = 48 * time.Hour`. The minimum staking duration for Primary Network validators since Helicon.
 - `MaxStakeDuration = 365 * 24 * time.Hour`.
 - `MinDelegationFee = 20000`, that is `2%`.
 - `MinDelegatorStake = 25 Avax`.
 - `MaxValidatorWeightFactor = 5`. This is a platformVM parameter rather than a genesis one, so it's shared across networks.
 - `UptimeRequirement = 0.8`, that is `80%`.
 
-<Callout type="info" title="Three of these parameters change with the Helicon upgrade">
-The Helicon upgrade is active on Fuji as of July 28, 2026 at 15:00 UTC and is scheduled on Mainnet for September 22, 2026 at 15:00 UTC. The values above are the Mainnet values in effect until then. Three of them change once Helicon activates on a network:
+<Callout type="info" title="Three of these parameters changed with the Helicon upgrade">
+The Helicon upgrade activated on Fuji on July 28, 2026 at 15:00 UTC and on Mainnet on September 22, 2026 at 15:00 UTC. The values above are the genesis parameters. Three of them are adjusted for stakes that start at or after activation:
 
 - **`MinConsumptionRate` drops from `0.10` to `0.075`** ([ACP-285](/docs/acps/285-reduce-minimum-consumption-rate)). The change is not applied at once: it ramps linearly over the 90 days following activation, and the rate used for a staking period is the one in effect at that period's **start time**. A stake that starts 45 days after activation therefore uses roughly `0.0875`.
-- **The effective uptime requirement rises from `80%` to `90%`** ([ACP-267](/docs/acps/267-uptime-requirement-increase)). This one is not a genesis parameter: `UptimeRequirement` above stays `0.8`, and the `90%` threshold is applied when deciding reward eligibility for any Primary Network validation whose **start time** is at or after Helicon activation. Validations that started earlier are still judged against `80%`, and Avalanche L1 validators keep the requirement set by their own subnet transformation.
-- **`MinStakeDuration` drops to `48 hours` for Primary Network validators** ([ACP-273](/docs/acps/273-reduce-minimum-staking-duration)). Delegators are unaffected and keep the `2 week` minimum. On Fuji the validator minimum is now `12 hours`.
+- **The effective uptime requirement rises from `80%` to `90%`** ([ACP-267](/docs/acps/267-uptime-requirement-increase)). This one is not a genesis parameter: `UptimeRequirement` above stays `0.8`, and the `90%` threshold is applied when deciding reward eligibility for any Primary Network validation whose **start time** is at or after Helicon activation. Validations that started earlier are still judged against `80%`, and validators of a Subnet transformed with `TransformSubnetTx` keep the requirement set in that transformation.
+- **The validator minimum staking duration drops to `48 hours`** (`HeliconMinStakeDuration`, [ACP-273](/docs/acps/273-reduce-minimum-staking-duration)). Delegators are unaffected and keep the `2 week` `MinStakeDuration`. On Fuji the validator minimum is `12 hours`.
 
-All three are already in effect on Fuji, so reward figures computed from the Mainnet values above will not match Fuji results.
+All three are in effect on both Fuji and Mainnet. Reward figures for stakes that started before activation use the pre-Helicon values.
 </Callout>
 
 ### Interactive Graph
