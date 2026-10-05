@@ -4,20 +4,16 @@ import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { toast as sonnerToast } from "sonner";
-import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import {
-  GITHUB_ACCOUNT_PATTERN,
-  LINKEDIN_ACCOUNT_PATTERN,
-  TELEGRAM_ACCOUNT_PATTERN,
-  X_ACCOUNT_PATTERN,
-} from "@/lib/profile/socialAccountValidation";
+import { LINKEDIN_ACCOUNT_PATTERN, TELEGRAM_ACCOUNT_PATTERN } from "@/lib/profile/socialAccountValidation";
 
 export const profileSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  // optional: a new user with no name can still save other fields. save()
+  // keeps a stored name from being cleared.
+  name: z.string().trim().optional(),
   username: z.string().optional(),
-  bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
-  email: z.email("Invalid email").optional(),
+  bio: z.string().max(250, "Enter a bio of 250 characters or fewer.").optional(),
+  email: z.email("Enter a valid email address.").optional(),
   image: z.string().optional(),
   country: z.string().optional(),
   is_student: z.boolean().optional().default(false),
@@ -31,44 +27,65 @@ export const profileSchema = z.object({
   student_institution: z.string().optional(),
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github_account: z
-    .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"), z.literal("")])
-    .optional()
-    .default(""),
-  x_account: z
-    .union([z.string().regex(X_ACCOUNT_PATTERN, "Enter a URL like https://x.com/yourhandle"), z.literal("")])
-    .optional()
-    .default(""),
+  // read-only here: the OAuth link and disconnect routes own them, and the
+  // PUT does not send them, so a stored value never blocks a save
+  github_account: z.string().optional().default(""),
+  x_account: z.string().optional().default(""),
   linkedin_account: z
-    .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"), z.literal("")])
+    .union([
+      z
+        .string()
+        .regex(
+          LINKEDIN_ACCOUNT_PATTERN,
+          "Enter a LinkedIn username that has only letters, numbers, dots, dashes or underscores.",
+        ),
+      z.literal(""),
+    ])
     .optional()
     .default(""),
   wallet: z.array(z.string()).optional().default([]),
-  additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
+  additional_social_accounts: z
+    .array(z.url("Enter a website address, for example https://example.com."))
+    .optional()
+    .default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
   telegram_account: z
-    .union([z.string().regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"), z.literal("")])
+    .union([
+      z
+        .string()
+        .regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a Telegram username of 5 to 32 characters that starts with a letter."),
+      z.literal(""),
+    ])
     .optional()
     .default(""),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
 
+/** what a save did: the caller tells the user. A failure names the first
+    field with an error, so the caller can open its section and focus it.
+    A save that worked can still carry a warning. */
+export type SaveResult =
+  | { ok: true; warning?: string }
+  | { ok: false; message: string; field?: keyof ProfileFormValues };
+
+const CHECK_FIELDS = "Check the fields marked in red.";
+
+/* One save model: the user edits, then saves or discards. Nothing saves in
+   the background, so Discard always undoes and the bar never lies. The form
+   does not send notifications or profile_privacy: Settings owns them. */
+
 export function useProfileForm() {
   const { data: session } = useSession();
-  const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const formData = useRef(new FormData());
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitialLoadRef = useRef(true);
-  const lastSavedDataRef = useRef<string>("");
   const [githubConnected, setGithubConnected] = useState(false);
 
   // Initialize form with react-hook-form and Zod
@@ -108,6 +125,13 @@ export function useProfileForm() {
   const { watch, setValue, formState } = form;
   const watchedValues = watch();
 
+  // GitHub and X have no input: OAuth links them. Register them so resetField
+  // can clear them after a disconnect.
+  useEffect(() => {
+    form.register("github_account");
+    form.register("x_account");
+  }, [form]);
+
   const loadProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setIsLoading(false);
@@ -120,36 +144,23 @@ export function useProfileForm() {
       if (response.ok) {
         const profile = await response.json();
 
-        let basicProfileData = null;
-        if (typeof window !== "undefined") {
-          const savedBasicProfile = localStorage.getItem('basicProfileData');
-          if (savedBasicProfile) {
-            try {
-              basicProfileData = JSON.parse(savedBasicProfile);
-              localStorage.removeItem('basicProfileData');
-            } catch (e) {
-              console.error('Error parsing basic profile data:', e);
-            }
-          }
-        }
-
         const formValues = {
-          name: basicProfileData?.name || profile.name || "",
+          name: profile.name || "",
           username: profile.username || "",
           bio: profile.bio || "",
           email: profile.email || session.user.email || "",
           notification_email: profile.notification_email || "",
           image: profile.image || "",
-          country: basicProfileData?.country || profile.country || "",
-          is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
-          is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
-          is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
-          is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
-          is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
-          founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
-          employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
-          employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
-          student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
+          country: profile.country || "",
+          is_student: profile.user_type?.is_student ?? false,
+          is_founder: profile.user_type?.is_founder ?? false,
+          is_employee: profile.user_type?.is_employee ?? false,
+          is_developer: profile.user_type?.is_developer ?? false,
+          is_enthusiast: profile.user_type?.is_enthusiast ?? false,
+          founder_company_name: profile.user_type?.founder_company_name || "",
+          employee_company_name: profile.user_type?.employee_company_name || "",
+          employee_role: profile.user_type?.employee_role || "",
+          student_institution: profile.user_type?.student_institution || "",
           company_name: profile.user_type?.company_name || "",
           role: profile.user_type?.role || "",
           github_account: profile.github_account || "",
@@ -165,21 +176,17 @@ export function useProfileForm() {
 
         setGithubConnected(Boolean(profile.githubConnected));
         form.reset(formValues);
-        lastSavedDataRef.current = JSON.stringify(formValues);
-        setTimeout(() => { isInitialLoadRef.current = false; }, 500);
+        setLoadFailed(false);
+      } else {
+        setLoadFailed(true);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
-      toast({
-        title: "Error loading profile",
-        description: "Could not load your profile data. Please refresh the page.",
-        variant: "destructive",
-      });
+      setLoadFailed(true);
     } finally {
       setIsLoading(false);
-      setTimeout(() => { isInitialLoadRef.current = false; }, 500);
     }
-  }, [session?.user?.id, session?.user?.email, form, toast]);
+  }, [session?.user?.id, session?.user?.email, form]);
   
   // Surface the result of an X/GitHub OAuth link redirect, then strip the
   // status params from the URL. Uses sonner: the global toaster in
@@ -205,15 +212,18 @@ export function useProfileForm() {
     };
     // Defer past this commit's effect phase: sonner's <Toaster> (mounted after
     // {children} in the root layout) subscribes in its own mount effect, which
-    // runs AFTER this one — a toast dispatched synchronously here is dropped.
+    // runs AFTER this one, so a toast dispatched synchronously here is dropped.
     setTimeout(() => {
       if (x) notify(x, 'X', 'x.com');
       if (gh) notify(gh, 'GitHub', 'github.com');
     }, 0);
 
+    // The link routes return to ?tab=personal; the accounts live in their own
+    // section, so open that one.
     const params = new URLSearchParams(searchParams.toString());
     params.delete('gh');
     params.delete('x');
+    params.set('tab', 'accounts');
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   }, []);
@@ -240,163 +250,11 @@ export function useProfileForm() {
     form.setValue("image", imageUrl, { shouldDirty: true });
   };
 
-  // Auto-save function (silent, no toast notifications)
-  const autoSave = useCallback(async (data: ProfileFormValues, skipImageUpload = false) => {
-    if (!session?.user?.id || isInitialLoadRef.current) {
-      return;
-    }
-
-    // Serialize current data for comparison
-    const currentDataString = JSON.stringify(data);
-    
-    // Skip if data hasn't changed (compare serialized data)
-    if (currentDataString === lastSavedDataRef.current) {
-      return;
-    }
-
-    // Skip if form is not dirty (check after data comparison to avoid unnecessary checks)
-    if (!formState.isDirty) {
-      return;
-    }
-
-    setIsAutoSaving(true);
-
-    try {
-      // Only handle image upload if explicitly requested (for manual saves)
-      let imageUrl = data.image;
-
-      if (!skipImageUpload) {
-        const hasImageChanged = formData.current.has("file");
-        if (hasImageChanged) {
-          try {
-            const imageResponse = await fetch("/api/file", {
-              method: "POST",
-              body: formData.current,
-            });
-
-            if (imageResponse.ok) {
-              const imageData = await imageResponse.json();
-              imageUrl = imageData.url;
-              formData.current = new FormData();
-            }
-          } catch (imageError) {
-            console.error("Image upload error during auto-save:", imageError);
-            // Continue with existing image URL if upload fails
-          }
-        }
-      }
-
-      // Build user_type object to send as JSON
-      const {
-        is_student,
-        is_founder,
-        is_employee,
-        is_developer,
-        is_enthusiast,
-        founder_company_name,
-        employee_company_name,
-        employee_role,
-        student_institution,
-        company_name,
-        role,
-        wallet,
-        github_account: _githubAccount,
-        x_account: _xAccount,
-        ...restData
-      } = data;
-
-      // Clean wallet array: remove empty strings and duplicates
-      const cleanedWallets = Array.isArray(wallet)
-        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))]
-        : [];
-
-      const profileData = {
-        ...restData,
-        wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
-        image: imageUrl,
-        user_type: {
-          is_student,
-          is_founder,
-          is_employee,
-          is_developer,
-          is_enthusiast,
-          ...(founder_company_name && { founder_company_name }),
-          ...(employee_company_name && { employee_company_name }),
-          ...(employee_role && { employee_role }),
-          ...(student_institution && { student_institution }),
-          ...(company_name && { company_name }),
-          ...(role && { role }),
-        }
-      };
-
-      const response = await fetch(`/api/profile/extended/${session.user.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to auto-save profile');
-      }
-      
-      const updatedProfile = await response.json();
-      
-      // Update last saved data reference with the data we just sent
-      // This ensures we track what was actually saved without resetting the form
-      lastSavedDataRef.current = currentDataString;
-      
-      // DO NOT reset the form during auto-save - this would cause the form to "reload"
-      // and lose the user's current edits (like checkboxes being unchecked)
-      // The form will remain "dirty" but that's okay - it will auto-save again if needed
-    } catch (error) {
-      console.error("Error auto-saving profile:", error);
-      // Silently fail - don't show toast for auto-save errors
-    } finally {
-      setIsAutoSaving(false);
-    }
-  }, [session?.user?.id, session?.user?.email, form, formState.isDirty]);
-
-  // Debounced auto-save effect - watches form values and triggers save after user stops editing
-  useEffect(() => {
-    // Skip auto-save during initial load
-    if (isInitialLoadRef.current || !formState.isDirty || isLoading || isAutoSaving) {
-      return;
-    }
-
-    // Clear existing timeout
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    // Set new timeout for auto-save (1.5 seconds after user stops typing)
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      // Get current values at the time of save (not from watchedValues to avoid stale closures)
-      // This ensures we get the latest values without causing re-renders
-      const currentValues = form.getValues();
-      // Run auto-save asynchronously without blocking
-      autoSave(currentValues, true).catch((error) => {
-        // Silently handle errors - don't interrupt user
-        console.error("Auto-save error:", error);
-      });
-    }, 1500);
-
-    // Cleanup timeout on unmount or when values change again
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, [watchedValues, formState.isDirty, isLoading, isAutoSaving, autoSave, form]);
-
-  // Handle form submission
-  const onSubmit = async (data: ProfileFormValues) => {
+  // Save the form. Resolves with what happened, so the caller never reports
+  // a save that did not happen.
+  const saveValues = async (data: ProfileFormValues): Promise<SaveResult> => {
     if (!session?.user?.id) {
-      toast({
-        title: "Authentication required",
-        description: "You must be logged in to update your profile",
-        variant: "destructive",
-      });
-      return;
+      return { ok: false, message: "Sign in to save your profile." };
     }
 
     // Only format validations - no required fields
@@ -411,17 +269,22 @@ export function useProfileForm() {
       if (invalidWallets.length > 0) {
         form.setError("wallet", {
           type: "manual",
-          message: `Invalid Ethereum address format: ${invalidWallets.length} wallet(s) are invalid (must be 0x + 40 hex characters)`,
+          message: `${
+            invalidWallets.length === 1
+              ? `The wallet address ${invalidWallets[0].trim()} is not valid.`
+              : `These wallet addresses are not valid: ${invalidWallets.map((w) => w.trim()).join(", ")}.`
+          } A C-Chain address is 0x and 40 hex characters.`,
         });
         hasErrors = true;
       }
     }
 
     if (hasErrors) {
-      return;
+      return { ok: false, message: CHECK_FIELDS, field: "wallet" };
     }
 
     setIsSaving(true);
+    let imageFailed = false;
 
     try {
       // Check if there's a new image to upload
@@ -447,11 +310,7 @@ export function useProfileForm() {
           formData.current = new FormData();
         } catch (imageError) {
           console.error("Image upload error:", imageError);
-          toast({
-            title: "Warning",
-            description: "Profile updated but image upload failed. Please try uploading the image again.",
-            variant: "destructive",
-          });
+          imageFailed = true;
         }
       }
 
@@ -469,8 +328,11 @@ export function useProfileForm() {
         company_name,
         role,
         wallet,
+        name,
         github_account: _githubAccount,
         x_account: _xAccount,
+        notifications: _notifications,
+        profile_privacy: _profilePrivacy,
         ...restData
       } = data;
 
@@ -481,6 +343,8 @@ export function useProfileForm() {
 
       const profileData = {
         ...restData,
+        // the server rejects a blank name but accepts a missing one
+        ...(name?.trim() ? { name: name.trim() } : {}),
         wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
         image: imageUrl, // Use uploaded image or existing one
         user_type: {
@@ -499,8 +363,6 @@ export function useProfileForm() {
         }
       };
 
-      console.log("Saving profile data:", profileData);
-      
       const response = await fetch(`/api/profile/extended/${session.user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -508,17 +370,12 @@ export function useProfileForm() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile');
+        // a 4xx says what to fix; a 5xx text ("Internal Server Error") does not
+        const errorData = response.status < 500 ? await response.json().catch(() => ({})) : {};
+        throw new Error(errorData.error || 'Could not save your profile. Try again.');
       }
-      
+
       const updatedProfile = await response.json();
-      console.log('Profile updated successfully:', updatedProfile);
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      });
       
       // Rebuild form data from response
       const newFormData = {
@@ -552,20 +409,41 @@ export function useProfileForm() {
       };
 
       form.reset(newFormData);
-      
-      // Update last saved data reference
-      lastSavedDataRef.current = JSON.stringify(newFormData);
+      if (imageFailed) {
+        return { ok: true, warning: "The profile is saved, but the photo did not upload. Try the photo again." };
+      }
+      return { ok: true };
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error saving profile. Please try again.",
-        variant: "destructive",
-      });
+      return { ok: false, message: error instanceof Error ? error.message : "Could not save your profile." };
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Validate, then save. A form that does not validate resolves as not saved,
+  // with the first field that has an error. The name is optional for a user
+  // who never set one, but a stored name cannot be cleared.
+  const save = () =>
+    new Promise<SaveResult>((resolve) => {
+      void form.handleSubmit(
+        async (data) => {
+          const storedName = (form.formState.defaultValues?.name ?? "").trim();
+          if (!data.name?.trim() && storedName) {
+            form.setError("name", { type: "manual", message: "Enter your full name." });
+            resolve({ ok: false, message: CHECK_FIELDS, field: "name" });
+            return;
+          }
+          resolve(await saveValues(data));
+        },
+        (errors) =>
+          resolve({
+            ok: false,
+            message: CHECK_FIELDS,
+            field: Object.keys(errors)[0] as keyof ProfileFormValues | undefined,
+          }),
+      )();
+    });
 
   // Skill handlers
   const handleAddSkill = (newSkill: string, setNewSkill: (skill: string) => void) => {
@@ -615,8 +493,9 @@ export function useProfileForm() {
     form,
     watchedValues,
     isLoading,
+    loadFailed,
+    reload: loadProfile,
     isSaving,
-    isAutoSaving,
     githubConnected,
     setGithubConnected,
     handleFileSelect,
@@ -626,6 +505,6 @@ export function useProfileForm() {
     handleRemoveSocial,
     handleAddWallet,
     handleRemoveWallet,
-    onSubmit: form.handleSubmit(onSubmit),
+    save,
   };
 }

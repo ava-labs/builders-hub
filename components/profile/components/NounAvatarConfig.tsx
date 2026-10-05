@@ -14,6 +14,8 @@ interface NounAvatarConfigProps {
   currentSeed?: AvatarSeed | null;
   nounAvatarEnabled?: boolean;
   onSave: (seed: AvatarSeed, enabled: boolean) => Promise<void>;
+  /** where focus goes when the dialog closes */
+  onCloseAutoFocus?: (e: Event) => void;
 }
 
 export function NounAvatarConfig({
@@ -22,6 +24,7 @@ export function NounAvatarConfig({
   currentSeed,
   nounAvatarEnabled = false,
   onSave,
+  onCloseAutoFocus,
 }: NounAvatarConfigProps) {
   const [seed, setSeed] = useState<AvatarSeed | null>(currentSeed || null);
   const [enabled, setEnabled] = useState(nounAvatarEnabled);
@@ -267,9 +270,10 @@ export function NounAvatarConfig({
                   variant="ghost"
                   size="icon"
                   onClick={() => adjustTrait(trait, 'prev')}
+                  aria-label={`Previous ${traitLabels[trait]}`}
                   className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-0"
                 >
-                  <ChevronLeft className="h-4 w-4 text-zinc-900 dark:text-zinc-100" />
+                  <ChevronLeft aria-hidden className="h-4 w-4 text-zinc-900 dark:text-zinc-100" />
                 </Button>
                 
                 <div className="flex flex-col items-center flex-1 text-center">
@@ -288,9 +292,10 @@ export function NounAvatarConfig({
                   variant="ghost"
                   size="icon"
                   onClick={() => adjustTrait(trait, 'next')}
+                  aria-label={`Next ${traitLabels[trait]}`}
                   className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-0"
                 >
-                  <ChevronRight className="h-4 w-4 text-zinc-900 dark:text-zinc-100" />
+                  <ChevronRight aria-hidden className="h-4 w-4 text-zinc-900 dark:text-zinc-100" />
                 </Button>
               </div>
             ))}
@@ -326,6 +331,7 @@ export function NounAvatarConfig({
       content={renderContent()}
       footer={renderFooter()}
       className="bg-white dark:bg-zinc-900 text-black dark:text-white w-[95vw] max-w-[95vw] sm:max-w-[640px] max-h-[88vh] overflow-y-auto"
+      onCloseAutoFocus={onCloseAutoFocus}
     />
   );
 }

@@ -119,6 +119,79 @@ export const AVATAR_OPTIONS = {
   ],
 };
 
+/** The generated avatar as an SVG data URI, for any <img>. It throws when
+    DiceBear rejects the seed. */
+export function diceBearDataUri(seed: AvatarSeed, size: number): string {
+  // Normalize seed to ensure all properties are present
+  const normalizedSeed = normalizeAvatarSeed(seed);
+  
+  // Create avatar with specific options
+  // Note: backgroundColor should be passed without # symbol (just hex string)
+  const bgColor = normalizedSeed.backgroundColor || AVATAR_OPTIONS.backgroundColor[0];
+  const bgColorValue = bgColor.startsWith('#') ? bgColor.slice(1) : bgColor;
+  
+  // Build avatar options - handle 'none' for optional accessories
+  const glassesValue = normalizedSeed.glasses || AVATAR_OPTIONS.glasses[0];
+  const earringsValue = normalizedSeed.earrings || AVATAR_OPTIONS.earrings[0];
+  const beardValue = normalizedSeed.beard || AVATAR_OPTIONS.beard[0];
+  const hairAccessoriesValue = normalizedSeed.hairAccessories || AVATAR_OPTIONS.hairAccessories[0];
+  const frecklesValue = normalizedSeed.freckles || AVATAR_OPTIONS.freckles[0];
+  
+  const avatarOptions: any = {
+    size,
+    backgroundColor: [bgColorValue],
+    hair: [normalizedSeed.hair || AVATAR_OPTIONS.hair[0]],
+    eyes: [normalizedSeed.eyes || AVATAR_OPTIONS.eyes[0]],
+    eyebrows: [normalizedSeed.eyebrows || AVATAR_OPTIONS.eyebrows[0]],
+    nose: [normalizedSeed.nose || AVATAR_OPTIONS.nose[0]],
+    mouth: [normalizedSeed.mouth || AVATAR_OPTIONS.mouth[0]],
+  };
+  
+  // Add optional accessories only if not 'none'
+  if (glassesValue !== 'none') {
+    avatarOptions.glasses = [glassesValue];
+    avatarOptions.glassesProbability = 100;
+  } else {
+    avatarOptions.glassesProbability = 0;
+  }
+  
+  if (earringsValue !== 'none') {
+    avatarOptions.earrings = [earringsValue];
+    avatarOptions.earringsProbability = 100;
+  } else {
+    avatarOptions.earringsProbability = 0;
+  }
+  
+  if (beardValue !== 'none') {
+    avatarOptions.beard = [beardValue];
+    avatarOptions.beardProbability = 100;
+  } else {
+    avatarOptions.beardProbability = 0;
+  }
+  
+  if (hairAccessoriesValue !== 'none') {
+    avatarOptions.hairAccessories = [hairAccessoriesValue];
+    avatarOptions.hairAccessoriesProbability = 100;
+  } else {
+    avatarOptions.hairAccessoriesProbability = 0;
+  }
+  
+  if (frecklesValue !== 'none') {
+    avatarOptions.freckles = [frecklesValue];
+    avatarOptions.frecklesProbability = 100;
+  } else {
+    avatarOptions.frecklesProbability = 0;
+  }
+
+  const avatar = createAvatar(lorelei, avatarOptions);
+
+  // Convert to SVG string and then to data URI
+  // Using encodeURIComponent instead of btoa to handle Unicode characters
+  const svg = avatar.toString();
+  const dataUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  return dataUri;
+}
+
 export function DiceBearAvatar({
   seed,
   size = "large",
@@ -195,73 +268,7 @@ export function DiceBearAvatar({
     }
 
     try {
-      // Normalize seed to ensure all properties are present
-      const normalizedSeed = normalizeAvatarSeed(seed);
-      
-      // Create avatar with specific options
-      // Note: backgroundColor should be passed without # symbol (just hex string)
-      const bgColor = normalizedSeed.backgroundColor || AVATAR_OPTIONS.backgroundColor[0];
-      const bgColorValue = bgColor.startsWith('#') ? bgColor.slice(1) : bgColor;
-      
-      // Build avatar options - handle 'none' for optional accessories
-      const glassesValue = normalizedSeed.glasses || AVATAR_OPTIONS.glasses[0];
-      const earringsValue = normalizedSeed.earrings || AVATAR_OPTIONS.earrings[0];
-      const beardValue = normalizedSeed.beard || AVATAR_OPTIONS.beard[0];
-      const hairAccessoriesValue = normalizedSeed.hairAccessories || AVATAR_OPTIONS.hairAccessories[0];
-      const frecklesValue = normalizedSeed.freckles || AVATAR_OPTIONS.freckles[0];
-      
-      const avatarOptions: any = {
-        size: config.svg,
-        backgroundColor: [bgColorValue],
-        hair: [normalizedSeed.hair || AVATAR_OPTIONS.hair[0]],
-        eyes: [normalizedSeed.eyes || AVATAR_OPTIONS.eyes[0]],
-        eyebrows: [normalizedSeed.eyebrows || AVATAR_OPTIONS.eyebrows[0]],
-        nose: [normalizedSeed.nose || AVATAR_OPTIONS.nose[0]],
-        mouth: [normalizedSeed.mouth || AVATAR_OPTIONS.mouth[0]],
-      };
-      
-      // Add optional accessories only if not 'none'
-      if (glassesValue !== 'none') {
-        avatarOptions.glasses = [glassesValue];
-        avatarOptions.glassesProbability = 100;
-      } else {
-        avatarOptions.glassesProbability = 0;
-      }
-      
-      if (earringsValue !== 'none') {
-        avatarOptions.earrings = [earringsValue];
-        avatarOptions.earringsProbability = 100;
-      } else {
-        avatarOptions.earringsProbability = 0;
-      }
-      
-      if (beardValue !== 'none') {
-        avatarOptions.beard = [beardValue];
-        avatarOptions.beardProbability = 100;
-      } else {
-        avatarOptions.beardProbability = 0;
-      }
-      
-      if (hairAccessoriesValue !== 'none') {
-        avatarOptions.hairAccessories = [hairAccessoriesValue];
-        avatarOptions.hairAccessoriesProbability = 100;
-      } else {
-        avatarOptions.hairAccessoriesProbability = 0;
-      }
-      
-      if (frecklesValue !== 'none') {
-        avatarOptions.freckles = [frecklesValue];
-        avatarOptions.frecklesProbability = 100;
-      } else {
-        avatarOptions.frecklesProbability = 0;
-      }
-
-      const avatar = createAvatar(lorelei, avatarOptions);
-
-      // Convert to SVG string and then to data URI
-      // Using encodeURIComponent instead of btoa to handle Unicode characters
-      const svg = avatar.toString();
-      const dataUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+      const dataUri = diceBearDataUri(seed, config.svg);
       setSvgDataUri(dataUri);
       setIsLoading(false);
     } catch (error) {
