@@ -20,6 +20,7 @@ import { BrandButton } from "@/components/landing-v2/BrandButton";
 import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import PillarsChapter from "@/components/landing-v2/PillarsChapter";
+import ChainDiagram from "@/components/landing-v2/diagrams/ChainDiagram";
 import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ROTATE_MS, SCRUB_SPRING } from "@/components/landing-v2/scrub";
@@ -992,7 +993,7 @@ function LiveChainsChapter({
 }
 
 /* ------------------------------------------------------------------ */
-/* Chapter 6 — pinned assembly of a sovereign L1                       */
+/* Chapter 6: playbooks, one L1 in three access modes                  */
 /* ------------------------------------------------------------------ */
 
 const PLAYBOOKS = [
@@ -1014,269 +1015,6 @@ const PLAYBOOKS = [
 ] as const;
 
 type PlaybookKey = (typeof PLAYBOOKS)[number]["key"];
-
-function ArchitectureDiagram({ mode }: { mode: PlaybookKey }) {
-  const SIZE = 480;
-  const CX = SIZE / 2;
-  const CY = SIZE / 2;
-  const RING = 118;
-  const BOUNDARY = 172;
-  const OUTER = 216;
-
-  const ring = Array.from({ length: 8 }, (_, i) => {
-    const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
-    return { x: CX + RING * Math.cos(a), y: CY + RING * Math.sin(a) };
-  });
-  const outer = Array.from({ length: 4 }, (_, i) => {
-    const a = ((i + 0.5) / 4) * Math.PI * 2 - Math.PI / 2;
-    return {
-      a,
-      x: CX + OUTER * Math.cos(a),
-      y: CY + OUTER * Math.sin(a),
-      bx: CX + (BOUNDARY + 2) * Math.cos(a),
-      by: CY + (BOUNDARY + 2) * Math.sin(a),
-      rx: CX + (RING + 14) * Math.cos(a),
-      ry: CY + (RING + 14) * Math.sin(a),
-    };
-  });
-
-  const showExternal = mode !== "private";
-  const filled = mode !== "public";
-
-  return (
-    // cropped to the drawing's true extent (actors sit at r=216+4 from
-    // center 240) so the instrument renders at full weight, no dead margin
-    <svg
-      viewBox="14 14 452 452"
-      className="w-full max-w-[540px] select-none"
-      role="img"
-      aria-label={`${mode} L1 architecture`}
-    >
-      {/* external actors: joiners (public) or gated users (permissioned) */}
-      <g
-        className="transition-opacity duration-500"
-        style={{ opacity: showExternal ? 1 : 0 }}
-      >
-        {outer.map((pt, i) => (
-          <g key={i}>
-            <line
-              x1={pt.x}
-              y1={pt.y}
-              x2={mode === "permissioned" ? pt.bx : pt.rx}
-              y2={mode === "permissioned" ? pt.by : pt.ry}
-              strokeDasharray="2 5"
-              strokeWidth={1}
-              className="stroke-zinc-400 transition-all duration-500 dark:stroke-zinc-500"
-            />
-            <circle cx={pt.x} cy={pt.y} r={4} className="fill-zinc-400 dark:fill-zinc-500" />
-          </g>
-        ))}
-      </g>
-
-      {/* Mode choreography. Drawn BEFORE the boundary, ring, and core so the
-          white core disc occludes spokes and arriving dots exactly the way
-          it occludes the resident validators' spokes — nothing ever draws
-          over the instrument's structure. */}
-
-      {/* PUBLIC — an open set: anyone transacts, validators rotate in and
-          out. Loop periods are deliberately incommensurate so the traffic
-          never visibly falls into a pattern (no client randomness allowed —
-          the SVG must hydrate identically on server and client). */}
-      <g className="transition-opacity duration-500" style={{ opacity: mode === "public" ? 1 : 0 }}>
-        {/* transactions stream in from all four open participants */}
-        {[
-          { path: "M392.74,87.26 L261.21,218.79", dur: "2.2s", begin: "0s" },
-          { path: "M87.26,392.74 L218.79,261.21", dur: "2.9s", begin: "0.9s" },
-          { path: "M392.74,392.74 L261.21,261.21", dur: "3.7s", begin: "1.7s" },
-          { path: "M87.26,87.26 L218.79,218.79", dur: "3.1s", begin: "2.3s" },
-        ].map((tx) => (
-          <circle key={tx.begin} r={3.5} fill="#E6212F" opacity={0}>
-            <animateMotion path={tx.path} dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.12;0.85;1" dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-          </circle>
-        ))}
-        {/* a validator arrives, docks between two ring slots, and gets
-            wired into consensus — its spoke draws in while it's seated */}
-        <line x1={240} y1={240} x2={285.16} y2={130.98} strokeWidth={1} opacity={0} className="stroke-zinc-300 dark:stroke-zinc-700">
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.35;0.42;0.75;0.85;1" dur="9s" repeatCount="indefinite" />
-        </line>
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.08;0.35;0.75;0.85;1" dur="9s" repeatCount="indefinite" />
-          <animateMotion path="M318.45,50.6 L285.16,130.98" calcMode="linear" keyPoints="0;0;1;1" keyTimes="0;0.08;0.35;1" dur="9s" repeatCount="indefinite" />
-          <circle r={9} strokeWidth={1.25} className="fill-white stroke-zinc-500 dark:fill-zinc-950 dark:stroke-zinc-400" />
-          <circle r={2.5} className="fill-zinc-500 dark:fill-zinc-400" />
-        </g>
-        {/* ...while another is unwired and leaves the set */}
-        <line x1={240} y1={240} x2={130.98} y2={285.16} strokeWidth={1} opacity={0} className="stroke-zinc-300 dark:stroke-zinc-700">
-          <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.4;0.47;1" dur="11s" begin="4s" repeatCount="indefinite" />
-        </line>
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.05;0.45;0.72;0.8;1" dur="11s" begin="4s" repeatCount="indefinite" />
-          <animateMotion path="M130.98,285.16 L50.6,318.45" calcMode="linear" keyPoints="0;0;1;1" keyTimes="0;0.45;0.75;1" dur="11s" begin="4s" repeatCount="indefinite" />
-          <circle r={9} strokeWidth={1.25} className="fill-white stroke-zinc-500 dark:fill-zinc-950 dark:stroke-zinc-400" />
-          <circle r={2.5} className="fill-zinc-500 dark:fill-zinc-400" />
-        </g>
-      </g>
-
-      {/* PERMISSIONED — KYC at the gate. Each participant pauses at the
-          boundary while its credential card is reviewed: photo, name lines,
-          signature. One card takes the red approval stamp — its holder
-          turns red (cleared to transact) and continues to the core. The
-          other card is stamped ✕ and its holder walks back out. */}
-      <g className="transition-opacity duration-500" style={{ opacity: mode === "permissioned" ? 1 : 0 }}>
-        <g>
-          {/* boundary sits at 22.6% of this path's length, so the dot
-              holds there while its card is checked */}
-          <animateMotion
-            path="M392.74,87.26 L363.04,116.96 L261.21,218.79"
-            calcMode="linear"
-            keyPoints="0;0.226;0.226;1;1"
-            keyTimes="0;0.25;0.5;0.8;1"
-            dur="6s"
-            repeatCount="indefinite"
-          />
-          <circle r={4} opacity={0}>
-            <animate attributeName="fill" values="#a1a1aa;#a1a1aa;#E6212F;#E6212F" keyTimes="0;0.5;0.55;1" dur="6s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.06;0.5;0.8;0.86;1" dur="6s" repeatCount="indefinite" />
-          </circle>
-        </g>
-        {/* the credential card, reviewed while its holder waits */}
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.26;0.3;0.62;0.7;1" dur="6s" repeatCount="indefinite" />
-          <rect x={374} y={82} width={32} height={22} rx={2} strokeWidth={1.25} className="fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100" />
-          <circle cx={381.5} cy={90} r={3} className="fill-zinc-400 dark:fill-zinc-500" />
-          <line x1={388} y1={88} x2={401} y2={88} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={388} y1={92} x2={398} y2={92} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={379} y1={99} x2={401} y2={99} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-        </g>
-        <path d="M396,100 l4,4 l7,-8" fill="none" strokeWidth={2} stroke="#E6212F" opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.38;0.43;0.62;0.7;1" dur="6s" repeatCount="indefinite" />
-        </path>
-        {/* the refused holder: same review, failing stamp, turned away */}
-        <g>
-          <animateMotion
-            path="M87.26,392.74 L116.96,363.04"
-            calcMode="linear"
-            keyPoints="0;0;1;1;0;0"
-            keyTimes="0;0.1;0.32;0.62;0.88;1"
-            dur="7s"
-            begin="1.5s"
-            repeatCount="indefinite"
-          />
-          <circle r={4} opacity={0} className="fill-zinc-400 dark:fill-zinc-500">
-            <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.14;0.62;0.85;0.92;1" dur="7s" begin="1.5s" repeatCount="indefinite" />
-          </circle>
-        </g>
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.33;0.37;0.64;0.7;1" dur="7s" begin="1.5s" repeatCount="indefinite" />
-          <rect x={72} y={352} width={32} height={22} rx={2} strokeWidth={1.25} className="fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100" />
-          <circle cx={79.5} cy={360} r={3} className="fill-zinc-400 dark:fill-zinc-500" />
-          <line x1={86} y1={358} x2={99} y2={358} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={86} y1={362} x2={96} y2={362} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={77} y1={369} x2={99} y2={369} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-        </g>
-        <g className="stroke-zinc-500 dark:stroke-zinc-400" opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.45;0.5;0.64;0.7;1" dur="7s" begin="1.5s" repeatCount="indefinite" />
-          <line x1={97} y1={366} x2={105} y2={374} strokeWidth={2} />
-          <line x1={105} y1={366} x2={97} y2={374} strokeWidth={2} />
-        </g>
-      </g>
-
-      {/* PRIVATE — the network is fully alive, but only inside the seal:
-          transactions run validator-to-validator on chords that never cross
-          the boundary. Outside, nothing moves — that's the point. */}
-      <g className="transition-opacity duration-500" style={{ opacity: mode === "private" ? 1 : 0 }}>
-        {[
-          { path: "M156.56,156.56 L358,240", dur: "2.6s", begin: "0s" },
-          { path: "M240,358 L323.44,156.56", dur: "3.3s", begin: "1.1s" },
-          { path: "M122,240 L323.44,323.44", dur: "4.1s", begin: "2.1s" },
-        ].map((tx) => (
-          <circle key={tx.begin} r={3} fill="#E6212F" opacity={0}>
-            <animateMotion path={tx.path} dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.12;0.85;1" dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-          </circle>
-        ))}
-      </g>
-
-      {/* boundary: absent → dashed → sealed */}
-      <circle
-        cx={CX}
-        cy={CY}
-        r={BOUNDARY}
-        fill="none"
-        strokeWidth={1.5}
-        strokeDasharray={mode === "permissioned" ? "5 7" : "none"}
-        className="stroke-zinc-900 transition-all duration-500 dark:stroke-zinc-100"
-        style={{ opacity: mode === "public" ? 0 : 1 }}
-      />
-      <circle
-        cx={CX}
-        cy={CY}
-        r={BOUNDARY + 7}
-        fill="none"
-        strokeWidth={1}
-        className="stroke-zinc-900 transition-opacity duration-500 dark:stroke-zinc-100"
-        style={{ opacity: mode === "private" ? 0.5 : 0 }}
-      />
-
-      {/* validator ring */}
-      {ring.map((pt, i) => (
-        <g key={i}>
-          <line
-            x1={CX}
-            y1={CY}
-            x2={pt.x}
-            y2={pt.y}
-            strokeWidth={1}
-            className="stroke-zinc-300 dark:stroke-zinc-700"
-          />
-          <circle
-            cx={pt.x}
-            cy={pt.y}
-            r={9}
-            strokeWidth={1.25}
-            className={`transition-all duration-500 ${
-              filled
-                ? "fill-zinc-700 stroke-zinc-700 dark:fill-zinc-300 dark:stroke-zinc-300"
-                : "fill-white stroke-zinc-500 dark:fill-zinc-950 dark:stroke-zinc-400"
-            }`}
-          />
-          <circle
-            cx={pt.x}
-            cy={pt.y}
-            r={2.5}
-            className={`transition-all duration-500 ${
-              filled ? "fill-white dark:fill-zinc-950" : "fill-zinc-500 dark:fill-zinc-400"
-            }`}
-          />
-        </g>
-      ))}
-
-      {/* core */}
-      <circle
-        cx={CX}
-        cy={CY}
-        r={30}
-        strokeWidth={1.5}
-        className="fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100"
-      />
-      <circle cx={CX} cy={CY} r={5} fill="#E6212F">
-        <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
-      </circle>
-
-      <text
-        x={CX}
-        y={CY + 52}
-        textAnchor="middle"
-        fontSize={10}
-        letterSpacing={2}
-        className="fill-zinc-500 font-mono dark:fill-zinc-400"
-      >
-        YOUR CHAIN
-      </text>
-    </svg>
-  );
-}
 
 function PlaybookSelector({
   mode,
@@ -1383,13 +1121,13 @@ function PlaybooksChapter({ reducedMotion }: { reducedMotion: boolean }) {
           </div>
         </div>
         <div className="hidden flex-col items-center lg:flex">
-          <ArchitectureDiagram mode={mode} />
+          <ChainDiagram mode={mode} cycle={cycle} />
         </div>
 
         {/* sub-lg stage: same instrument, compact, below the selector so the
             rotating list visibly drives something */}
         <div className="flex flex-col items-center gap-4 lg:hidden">
-          <ArchitectureDiagram mode={mode} />
+          <ChainDiagram mode={mode} cycle={cycle} className="-mx-5 w-[calc(100%+2.5rem)]" />
           <BrandButton
             variant="secondary"
             href="/console"

@@ -1,0 +1,260 @@
+/* YOUR CHAIN motion. Times are seconds from step 1 of a mode.
+
+   A mode shows for 9 s: ROTATE_MS in components/landing-v2/scrub.ts. Each
+   mode change restarts the incoming mode at step 1; the outgoing mode
+   freezes while it fades out (0.4 s). A click on the mode that shows
+   restarts it too: the old run freezes and fades out while step 1 fades
+   in (0.4 s).
+
+   Transactions loop every 9 s (the same 9 s). The component gives each
+   traveler its departure as --d, and its still position as --at and
+   --show. A user transaction: user to validator (0.8 s), under the
+   validator (0.15 s), validator to the core (0.8 s); the core accepts at
+   +1.35 s. A member transaction: member to the core (0.9 s); the core
+   accepts at +0.5 s. The beats at the east slot run once, then hold
+   their last frame.
+
+   Public
+     0.1 NW, 0.8 SW      users send (accept 1.45, 2.15)
+     2.0 NW              a user sends (accept 3.35)
+     2.8 - 3.8           the joiner moves from outside into the east slot
+     3.85 - 5.25         the record is lit: the P-Chain registers it
+     4.0 NE              a user sends (accept 5.35)
+     4.2 - 4.5           its spoke wires in
+     6.3 SE              a user sends (accept 7.65)
+   Permissioned
+     0.0 SW, 0.7 NW      users send (accept 1.35, 2.05)
+     0.5 - 1.2           candidate 1 moves to the east gate
+     1.2 - 2.2           the owner refuses it: the X shows; it holds on the gate
+     1.3 - 1.6           candidate 2 shows below the gate and waits there
+     2.2 - 2.5           candidate 1 and the X fade out on the gate
+     2.6 - 3.3           candidate 2 moves to the gate
+     2.75 SW             a user sends (accept 4.1)
+     3.4 - 4.6           the owner approves it: the check shows, then fades
+     4.6 - 6.1           the record is lit
+     4.8 - 5.5           it moves into the east slot
+     4.85 NE             a user sends (accept 6.2)
+     5.5 - 5.8           its spoke wires in
+     6.8 SE              a user sends (accept 8.15)
+   Private (members A -112.5, B -22.5, C 67.5, D 157.5 degrees)
+     0.2 A, 1.7 C, 3.2 D, 4.7 B, 6.2 A, 7.7 C   members send, one at a time
+                         (accept 0.7, 2.2, 3.7, 5.2, 6.7, 8.2)
+
+   The open east seat (a muted ring, no spoke) shows while the slot is
+   empty: until 3.8 in public and 5.5 in permissioned, and in both stills.
+
+   Users send all through each join, and no accept falls in a lit window.
+   Each hold is 0.5 s or more; a move at the gate takes 0.7 s.
+
+   Base styles are the stills. A delayed part fills backwards, so a held
+   step 1 shows the start of the sequence. */
+
+.mode {
+  transition: opacity 0.4s ease;
+}
+.hold,
+.hold * {
+  animation-play-state: paused !important;
+}
+/* a restarted run fades in over the frozen old run */
+.enter {
+  animation: show 0.4s ease both;
+}
+
+/* ---- transactions: shared keyframes, one clock, a delay per traveler */
+
+.send,
+.member {
+  transform: translateX(var(--at));
+  opacity: var(--show);
+}
+.send {
+  animation: send 9s linear var(--d) infinite backwards;
+}
+.member {
+  animation: member 9s linear var(--d) infinite backwards;
+}
+.accept {
+  animation: accept 9s linear var(--d) infinite backwards;
+}
+/* a member's transaction meets the core 0.85 s sooner in its trip */
+.memberAccept {
+  animation: accept 9s linear calc(var(--d) - 0.85s) infinite backwards;
+}
+
+/* percentages are seconds / 9 */
+@keyframes send {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--user));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  1.111% {
+    opacity: 1;
+  }
+  8.889% {
+    transform: translateX(var(--slot));
+    animation-timing-function: linear;
+  }
+  10.556% {
+    transform: translateX(var(--slot));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  19.444% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  20%,
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+@keyframes member {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--member));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  0.889% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  10.556%,
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+/* accept (the kit Pulse spec): a ring at core + 2 starts as the traveler
+   meets the core's stroke, scales to 1.6 and fades in 0.4 s, ease-out */
+@keyframes accept {
+  0%,
+  14.99% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  15% {
+    opacity: 0.9;
+    transform: scale(1);
+    animation-timing-function: ease-out;
+  }
+  19.444%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+/* ---- the east slot: one-shot steps, each with its own start */
+
+/* the open east seat: it hides under the validator that takes it */
+.joinSeat {
+  animation: hide 0.2s ease 3.8s forwards;
+}
+.approveSeat {
+  animation: hide 0.2s ease 5.5s forwards;
+}
+
+/* public */
+.joiner {
+  transform: translateX(194px); /* still: partway in, outside the edge */
+  animation: join 1s cubic-bezier(0.45, 0, 0.25, 1) 2.8s both;
+}
+.joinRecord {
+  animation:
+    show 0.25s ease 3.85s both,
+    hide 0.3s ease 4.95s forwards;
+}
+.joinSpoke {
+  opacity: 0;
+  animation: show 0.3s ease 4.2s both;
+}
+
+/* permissioned: candidate 1 is refused and fades out on the gate */
+.refused {
+  opacity: 0; /* still: gone */
+  transform: translateX(var(--gate));
+  animation:
+    toGate 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.5s both,
+    hide 0.3s ease 2.2s both;
+}
+.refuseMark {
+  animation:
+    show 0.2s ease 1.2s both,
+    hide 0.3s ease 2.2s forwards;
+}
+
+/* permissioned: candidate 2 waits below the gate, then is approved */
+.approved {
+  transform: translateX(var(--gate)); /* still: on the gate */
+  animation:
+    show 0.3s ease 1.3s both,
+    fromWait 0.7s cubic-bezier(0.45, 0, 0.25, 1) 2.6s both,
+    toSlot 0.7s cubic-bezier(0.45, 0, 0.25, 1) 4.8s forwards;
+}
+.approveMark {
+  animation:
+    show 0.2s ease 3.4s both,
+    hide 0.2s ease 4.4s forwards;
+}
+.approveRecord {
+  animation:
+    show 0.25s ease 4.6s both,
+    hide 0.3s ease 5.8s forwards;
+}
+.approveSpoke {
+  opacity: 0;
+  animation: show 0.3s ease 5.5s both;
+}
+
+@keyframes show {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes hide {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes join {
+  from {
+    transform: translateX(var(--out));
+  }
+  to {
+    transform: translateX(var(--slot));
+  }
+}
+@keyframes toGate {
+  from {
+    transform: translateX(var(--out));
+  }
+  to {
+    transform: translateX(var(--gate));
+  }
+}
+@keyframes fromWait {
+  from {
+    transform: translate(var(--wait-x), var(--wait-y));
+  }
+  to {
+    transform: translateX(var(--gate));
+  }
+}
+@keyframes toSlot {
+  from {
+    transform: translateX(var(--gate));
+  }
+  to {
+    transform: translateX(var(--slot));
+  }
+}
