@@ -20,11 +20,11 @@ This config key determines which JSON key to use when reading the precompile's c
 
 ## Setting Contract Address
 
-In the `helloworld/module.go` you can see the `ContractAddress` is set to some default value. This should be changed to a suitable address for your precompile. The address should be unique to the precompile. There is a registry of precompile addresses under [`precompile/registry/registry.go`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/registry/registry.go).
+In the `helloworld/module.go` you can see the `ContractAddress` is set to some default value. This should be changed to a suitable address for your precompile. The address should be unique to the precompile. There is a registry of precompile addresses under [`precompile/registry/registry.go`](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/registry/registry.go).
 
 A list of addresses is specified in the comments under this file. Modify the default value to be the next user available stateful precompile address. For forks of Subnet-EVM or Precompile-EVM, users should start at `0x0300000000000000000000000000000000000000` to ensure that their own modifications do not conflict with stateful precompiles that may be added to Subnet-EVM in the future. You should pick an address that is not already taken.
 
-```go title="helloworld/module.go"
+```go title="precompile/registry/registry.go"
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
 // Note: it is important that none of these addresses conflict with each other or any other precompiles
 // in core/vm/contracts.go.
@@ -42,6 +42,8 @@ A list of addresses is specified in the comments under this file. Modify the def
 // TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
 // FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
 // RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
+// WarpAddress                      = common.HexToAddress("0x0200000000000000000000000000000000000005")
+// GasPriceManagerAddress           = common.HexToAddress("0x0200000000000000000000000000000000000006")
 // HelloWorldAddress                = common.HexToAddress("0x0300000000000000000000000000000000000000")
 // ADD YOUR PRECOMPILE HERE
 // {YourPrecompile}Address          = common.HexToAddress("0x03000000000000000000000000000000000000??")
