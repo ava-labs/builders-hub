@@ -151,7 +151,7 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
                                 
                                 {/* Add Integration Button */}
                                 <Link 
-                                    href="https://github.com/ava-labs/builders-hub/blob/master/content/integrations" 
+                                    href="https://github.com/ava-labs/builders-hub/issues/new?template=integration_listing.yml"
                                     target='_blank'
                                     className="group relative overflow-hidden flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold rounded-none bg-brand text-white hover:bg-brand-deep transition-colors duration-200 lg:w-auto whitespace-nowrap"
                                 >
