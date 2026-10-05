@@ -7,7 +7,6 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
 import { LoginModal } from './LoginModal';
 import { Terms } from './terms';
-import { BasicProfileSetup } from './BasicProfileSetup';
 import {
   type NewUserLoginPayload,
   useLoginModalState,
@@ -21,8 +20,6 @@ export function LoginModalWrapper() {
   const { isOpen, closeLoginModal } = useLoginModalState();
   const pathname = usePathname();
   const [showTerms, setShowTerms] = useState(false);
-  const [showBasicProfile, setShowBasicProfile] = useState(false);
-  const [isBasicProfileSaving, setIsBasicProfileSaving] = useState(false);
   // Store user ID separately so we can show modal even before useSession updates
   const [termsUserId, setTermsUserId] = useState<string | null>(null);
 
@@ -99,12 +96,11 @@ export function LoginModalWrapper() {
       status === "authenticated" &&
       session?.user?.id &&
       !session.user.is_new_user &&
-      !showTerms &&
-      !showBasicProfile
+      !showTerms
     ) {
       closeLoginModal();
     }
-  }, [isOpen, status, session?.user?.id, session?.user?.is_new_user, showTerms, showBasicProfile, closeLoginModal]);
+  }, [isOpen, status, session?.user?.id, session?.user?.is_new_user, showTerms, closeLoginModal]);
 
   const handleTermsSuccess = async (createdUserId?: string) => {
     const firstUpdatedSession = await update();
@@ -133,11 +129,12 @@ export function LoginModalWrapper() {
     }
 
     setShowTerms(false);
-    setShowBasicProfile(true);
+    // Signup ends at Terms: no dialog asks for more. The profile page holds
+    // every optional field.
+    await finishSignup();
   };
 
-  const handleCompleteProfile = async () => {
-    setShowBasicProfile(false);
+  const finishSignup = async () => {
     closeLoginModal();
 
     // Force multiple session updates to ensure all components see the new auth state
@@ -148,7 +145,7 @@ export function LoginModalWrapper() {
     // Trigger login complete event to notify all listening components
     triggerLoginComplete();
 
-    // Stay on the page that opened signup. The basic profile was already saved.
+    // Stay on the page that opened signup.
   };
 
   const handleTermsDecline = () => {
@@ -212,7 +209,6 @@ export function LoginModalWrapper() {
 
   // Render all modals independently
   // Terms modal should show when user is new and hasn't accepted terms
-  // Basic profile modal should show after accepting terms
   // Login modal should show when isOpen is true
   return (
     <>
@@ -237,42 +233,6 @@ export function LoginModalWrapper() {
                     onDecline={handleTermsDecline}
                     skipRedirect={true}
                     compact={true}
-                  />
-                </div>
-              </DialogContent>
-            </Dialog.Portal>
-          </Dialog.Root>
-        </>
-      )}
-
-      {/* Basic Profile Modal - Shows once after accepting terms. Every field
-          is optional, so it can be dismissed (close button, Escape, outside
-          click, or "Skip for now") without saving anything. */}
-      {showBasicProfile && (termsUserId || session?.user?.id) && (
-        <>
-          <Dialog.Root
-            open={true}
-            onOpenChange={(open) => {
-              // Ignore close button / Escape / outside click while a save is
-              // pending, so a failed request can't advance the user anyway.
-              if (!open && !isBasicProfileSaving) void handleCompleteProfile();
-            }}
-          >
-            <Dialog.Portal>
-              <DialogOverlay />
-              <DialogContent
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[500px] max-h-[90vh] overflow-hidden z-10000 p-0"
-              >
-                <VisuallyHidden>
-                  <DialogTitle>Basic Profile Setup</DialogTitle>
-                  <Dialog.Description>Complete basic profile information for your Builder Hub account.</Dialog.Description>
-                </VisuallyHidden>
-                <div className="px-5 py-5 overflow-y-auto" style={{ maxHeight: '90vh' }}>
-                  <BasicProfileSetup
-                    userId={(termsUserId || session?.user?.id)!}
-                    onCompleteProfile={handleCompleteProfile}
-                    onSkip={handleCompleteProfile}
-                    onSavingChange={setIsBasicProfileSaving}
                   />
                 </div>
               </DialogContent>

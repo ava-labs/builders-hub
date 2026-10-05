@@ -28,7 +28,7 @@ vi.mock("@/prisma/prisma", () => ({
   },
 }));
 
-import { getProfileEngagement, getUserBadgesForProfile } from "@/server/services/profile-summary";
+import { getAcademyProgress, getProfileEngagement, getUserBadgesForProfile } from "@/server/services/profile-summary";
 import { NOT_CONSOLE_BADGE } from "@/server/services/rewardBoard";
 
 const course = (courseId: string) => ({
@@ -39,15 +39,38 @@ const course = (courseId: string) => ({
   description: `Complete the ${courseId} course`,
 });
 
-type BadgeRow = { id: string; name: string; description: string; image_path: string; category: string; requirements: ReturnType<typeof course>[] };
+type RequirementRow = {
+  id: string;
+  type: string;
+  unlocked: boolean;
+  course_id?: string;
+  hackathon?: string;
+  description: string;
+};
 
-const badge = (id: string, courseIds: string[]): BadgeRow => ({
+type BadgeRow = { id: string; name: string; description: string; image_path: string; category: string; requirements: RequirementRow[] };
+
+const badge = (id: string, courseIds: string[], category = "academy"): BadgeRow => ({
   id,
   name: id,
   description: `Badge ${id}`,
   image_path: `https://example.com/${id}.png`,
-  category: "academy",
+  category,
   requirements: courseIds.map(course),
+});
+
+/** A hackathon prize badge: its one requirement names the hackathon (set-project-winner.ts, project-badge.ts). */
+const prize = (id: string, hackathonId: string, category = "hackathon"): BadgeRow => ({
+  ...badge(id, [], category),
+  requirements: [
+    {
+      id: `${hackathonId}-won`,
+      type: "hackathon",
+      unlocked: false,
+      hackathon: hackathonId,
+      description: "Win a prize",
+    },
+  ],
 });
 
 const NFT_DEPLOYMENT = badge("2blockchainAcademy-3nft-deployment", ["nft-deployment"]);
@@ -95,12 +118,12 @@ describe("getUserBadgesForProfile: badges of removed courses (FDE-154)", () => {
     expect(await shownIds()).toEqual([X402.id]);
   });
 
-  it("keeps the NFT Deployment badge, unlocked, for a user who earned it", async () => {
+  it("keeps the NFT Deployment badge, unlocked and last, for a user who earned it", async () => {
     given([NFT_DEPLOYMENT, X402], [NFT_DEPLOYMENT]);
     const summaries = await getUserBadgesForProfile("u1");
     expect(summaries.map((summary) => [summary.badgeId, summary.isUnlocked])).toEqual([
-      [NFT_DEPLOYMENT.id, true],
       [X402.id, false],
+      [NFT_DEPLOYMENT.id, true],
     ]);
   });
 
@@ -163,6 +186,153 @@ describe("getUserBadgesForProfile: console badges were removed", () => {
     expect(userBadgeFindMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { user_id: "u1", badge: NOT_CONSOLE_BADGE } }),
     );
+  });
+});
+
+// The Academy badges as the database names them: the course_id is the course folder
+// (solidity-foundry for Intro to Solidity), and Access Restriction needs two halves.
+const BLOCKCHAIN_FUNDAMENTALS = badge("2blockchainAcademy-1blockchain-fundamentals", ["blockchain-fundamentals"]);
+const AVALANCHE_FUNDAMENTALS = badge("1avalancheL1Academy-1avalanche-fundamentals", ["avalanche-fundamentals"]);
+const ACCESS_RESTRICTION = badge("1avalancheL1Academy-9access-restriction", [
+  "access-restriction-fundamentals",
+  "access-restriction-advanced",
+]);
+const INTRO_TO_SOLIDITY = badge("2blockchainAcademy-2intro-to-solidity", ["solidity-foundry"]);
+const ENCRYPTED_ERC = badge("2blockchainAcademy-5encrypted-erc", ["encrypted-erc"]);
+const L1_GRADUATE = badge("1avalancheL1Academy-10academy-full-completion", [
+  "avalanche-fundamentals",
+  "permissioned-l1s",
+  "access-restriction-fundamentals",
+  "access-restriction-advanced",
+]);
+
+describe("getUserBadgesForProfile: groups", () => {
+  it("puts every badge in the academy or the hackathon group by its category, in any case", async () => {
+    const won = prize("hackathon-prize-1", "h1", "Hackathon");
+    given([won, badge("1avalancheL1Academy-1avalanche-fundamentals", ["avalanche-fundamentals"], "ACADEMY")], [won]);
+    const summaries = await getUserBadgesForProfile("u1");
+    expect(summaries.map((summary) => [summary.badgeId, summary.group])).toEqual([
+      [AVALANCHE_FUNDAMENTALS.id, "academy"],
+      [won.id, "hackathon"],
+    ]);
+  });
+
+  it("leaves out console, social and other badges, even when a read returns them and the user holds them", async () => {
+    const consoleBadge = badge("console-node-runner", [], "console");
+    const social = badge("social-github", [], "social");
+    const other = badge("devrel-pick", [], "requirement");
+    given([consoleBadge, social, other, X402], [consoleBadge, social, other]);
+    expect(await shownIds()).toEqual([X402.id]);
+  });
+});
+
+describe("getUserBadgesForProfile: Academy order", () => {
+  it("orders course badges by the Academy reading order, the Graduates after them, earned retired badges last", async () => {
+    given(
+      [
+        NFT_DEPLOYMENT,
+        L1_GRADUATE,
+        ENCRYPTED_ERC,
+        GRADUATE,
+        INTRO_TO_SOLIDITY,
+        ACCESS_RESTRICTION,
+        AVALANCHE_FUNDAMENTALS,
+        BLOCKCHAIN_FUNDAMENTALS,
+      ],
+      [NFT_DEPLOYMENT],
+    );
+    expect(await shownIds()).toEqual([
+      BLOCKCHAIN_FUNDAMENTALS.id,
+      AVALANCHE_FUNDAMENTALS.id,
+      ACCESS_RESTRICTION.id,
+      INTRO_TO_SOLIDITY.id,
+      ENCRYPTED_ERC.id,
+      GRADUATE.id,
+      L1_GRADUATE.id,
+      NFT_DEPLOYMENT.id,
+    ]);
+  });
+
+  it("hides an Academy badge that names no course of the programme from a user who does not hold it", async () => {
+    given([badge("1devAcademy-9unknown", ["no-such-course"]), X402], []);
+    expect(await shownIds()).toEqual([X402.id]);
+  });
+});
+
+describe("getUserBadgesForProfile: hackathon badges", () => {
+  it("shows only the prizes the user won, newest first, and no locked prize of another hackathon", async () => {
+    const first = prize("hackathon-prize-1", "h1");
+    const second = prize("hackathon-prize-2", "h2");
+    const others = prize("hackathon-prize-3", "h3");
+    badgeFindMany.mockResolvedValue([first, others, second]);
+    userBadgeFindMany.mockResolvedValue(
+      [
+        [first, "2026-01-01T00:00:00Z"],
+        [second, "2026-05-01T00:00:00Z"],
+      ].map(([row, at]) => ({
+        user_id: "u1",
+        badge_id: (row as BadgeRow).id,
+        awarded_at: new Date(at as string),
+        awarded_by: "admin",
+        status: BadgeAwardStatus.approved,
+        requirements_version: 1,
+        evidence: (row as BadgeRow).requirements,
+        badge: row,
+      })),
+    );
+    const summaries = await getUserBadgesForProfile("u1");
+    expect(summaries.map((summary) => [summary.badgeId, summary.isUnlocked])).toEqual([
+      [second.id, true],
+      [first.id, true],
+    ]);
+  });
+
+  it("shows no hackathon badge to a user who won none", async () => {
+    given([prize("hackathon-prize-1", "h1"), X402], []);
+    expect(await shownIds()).toEqual([X402.id]);
+  });
+});
+
+/** User u1's badge rows as getCompletedCourseSlugs reads them. */
+const certificateRow = (row: BadgeRow, status: BadgeAwardStatus, evidence: RequirementRow[] = []) => ({
+  user_id: "u1",
+  badge_id: row.id,
+  status,
+  evidence,
+  badge: row,
+});
+
+describe("getAcademyProgress", () => {
+  it("counts the courses with a certificate, of the 13", async () => {
+    userBadgeFindMany.mockResolvedValue([
+      certificateRow(AVALANCHE_FUNDAMENTALS, BadgeAwardStatus.approved),
+      certificateRow(INTRO_TO_SOLIDITY, BadgeAwardStatus.approved),
+      // the Blockchain Graduate started: one course done
+      certificateRow(GRADUATE, BadgeAwardStatus.pending, GRADUATE.requirements.slice(0, 1)),
+      // a hackathon prize names no course
+      certificateRow(prize("hackathon-prize-1", "h1"), BadgeAwardStatus.approved),
+    ]);
+    expect(await getAcademyProgress("u1")).toEqual({ completed: 3, total: 13 });
+  });
+
+  it("counts Access Restriction only when both halves are done", async () => {
+    userBadgeFindMany.mockResolvedValue([
+      certificateRow(ACCESS_RESTRICTION, BadgeAwardStatus.pending, ACCESS_RESTRICTION.requirements.slice(0, 1)),
+    ]);
+    expect(await getAcademyProgress("u1")).toEqual({ completed: 0, total: 13 });
+
+    userBadgeFindMany.mockResolvedValue([certificateRow(ACCESS_RESTRICTION, BadgeAwardStatus.approved)]);
+    expect(await getAcademyProgress("u1")).toEqual({ completed: 1, total: 13 });
+  });
+
+  it("counts no course of a removed course badge", async () => {
+    userBadgeFindMany.mockResolvedValue([certificateRow(NFT_DEPLOYMENT, BadgeAwardStatus.approved)]);
+    expect(await getAcademyProgress("u1")).toEqual({ completed: 0, total: 13 });
+  });
+
+  it("is zero without a user, and reads nothing", async () => {
+    expect(await getAcademyProgress("")).toEqual({ completed: 0, total: 13 });
+    expect(userBadgeFindMany).not.toHaveBeenCalled();
   });
 });
 

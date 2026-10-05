@@ -102,7 +102,7 @@ export function boardFromPlayground(d: PlaygroundDashboard): Board | null {
   // the dashboard's own time, so an edit made on the board since is newer and wins
   const updatedAt = Date.parse(d.updated_at ?? "") || createdAt;
   const name = typeof d.name === "string" ? d.name.trim().slice(0, 80) : "";
-  return { id: playgroundBoardId(d.id), name: name || "Playground dashboard", createdAt, updatedAt, tiles };
+  return { id: playgroundBoardId(d.id), name: name || "Untitled board", createdAt, updatedAt, tiles };
 }
 
 // one read of the reader's dashboards per page, once it answers

@@ -54,7 +54,7 @@ const ACCENT_SIGNUPS = "#E84142";
 const ACCENT_VISITS = "#7FA6FF";
 const ACCENT_CONSOLE = "#B88DFF";
 
-// Per-platform accents for the profile-completion bars — neon variants in
+// Per-platform accents for the profile-completion bars: neon variants in
 // line with the shell's vivid tokens (--pr-avax-hover, --pr-success-main).
 const PLATFORM_ACCENT: Record<SocialPlatform, string> = {
   x: "#ff5658",
@@ -101,24 +101,6 @@ const DEPTH_ACCENT: Record<number, string> = {
 export function InsightsCard({ data, loading, error }: Props) {
   return (
     <div className="pr-card">
-      <div className="pr-head">
-        <div
-          className="pr-ico"
-          style={{
-            background: "var(--pr-primary-light)",
-            color: "var(--pr-accent-main)",
-          }}
-        >
-          <GlobeIcon size={18} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3>Builder Insights</h3>
-          <div className="pr-desc">
-            Growth, engagement, and referral attribution across Builder Hub —
-            last 30 days vs. previous 30.
-          </div>
-        </div>
-      </div>
       <div className="pr-body">
         {error ? (
           <div className="pr-empty">{error}</div>
@@ -128,7 +110,12 @@ export function InsightsCard({ data, loading, error }: Props) {
             <span>Loading Builder Insights…</span>
           </div>
         ) : (
-          <InsightsBody data={data} />
+          <>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--pr-g-650)" }}>
+              Last 30 days compared with the 30 days before.
+            </p>
+            <InsightsBody data={data} />
+          </>
         )}
       </div>
     </div>
@@ -148,13 +135,13 @@ function InsightsBody({ data }: { data: BuilderInsightsData }) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// KPI strip — 8 panels (same data types as the previous Insights page).
+// KPI strip: 8 panels (same data types as the previous Insights page).
 // ───────────────────────────────────────────────────────────────────────────
 
 function KPIStrip({ data }: { data: BuilderInsightsData }) {
   return (
     <div className="pr-kpi-grid">
-      {/* Row 1 — top-line Builder Hub volume */}
+      {/* Row 1: top-line Builder Hub volume */}
       <KPI
         label="Total accounts"
         value={formatNumber(data.totalAccounts)}
@@ -177,7 +164,7 @@ function KPIStrip({ data }: { data: BuilderInsightsData }) {
         delta={data.rollingVisitsDeltaPercent}
         sub={`vs ${formatNumber(data.previous30DayVisits)}`}
       />
-      {/* Row 2 — engagement and depth */}
+      {/* Row 2: engagement and depth */}
       <KPI
         label="Top country"
         valueSmall
@@ -186,7 +173,7 @@ function KPIStrip({ data }: { data: BuilderInsightsData }) {
             ? `${countryNameToFlag(data.topCountry30d.countryCode) ||
                 countryNameToFlag(data.topCountry30d.country) ||
                 flagEmoji(data.topCountry30d.countryCode)} ${data.topCountry30d.country}`.trim()
-            : "—"
+            : "None"
         }
         sub={
           data.topCountry30d
@@ -259,7 +246,7 @@ function Delta({ pct }: { pct: number }) {
 interface Series {
   label: string;
   accent: string;
-  // `bucket` is the ISO period the point falls in — "2026-11" for a month,
+  // `bucket` is the ISO period the point falls in: "2026-11" for a month,
   // "2026-11-15" for a day. Both sort lexically, so the chart needs no
   // separate handling for the two granularities.
   data: Array<{ bucket: string; value: number }>;
@@ -391,7 +378,7 @@ function BigChart({
   normalized: boolean;
 }) {
   // Merge all series onto a shared time axis so each point lands at its
-  // real calendar position — series that started later (e.g. console)
+  // real calendar position: series that started later (e.g. console)
   // won't be stretched to fill the whole axis.
   const rows = React.useMemo(() => {
     const byBucket = new Map<string, Record<string, string | number>>();
@@ -428,7 +415,7 @@ function BigChart({
     data: rows,
     margin: { top: 8, right: 8, bottom: 0, left: 0 },
   };
-  // NOTE: grid/axes/tooltip/legend must be DIRECT children of the chart —
+  // NOTE: grid/axes/tooltip/legend must be DIRECT children of the chart:
   // recharts does not find components nested inside a fragment variable.
   const gridProps = {
     stroke: "var(--pr-g-300)",
@@ -446,7 +433,7 @@ function BigChart({
     interval: "preserveStartEnd" as const,
   };
   // Normalized ("All") mode plots shapes only, like the previous chart: each
-  // series scaled to its own peak, no y-axis — tooltips carry the raw values.
+  // series scaled to its own peak, no y-axis: tooltips carry the raw values.
   const yAxisProps = {
     tick: AXIS_TICK,
     tickFormatter: formatTick,
@@ -563,7 +550,7 @@ function Segmented<T extends string>({
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Profile completion — current snapshot. "By platform" shows adoption per
+// Profile completion: current snapshot. "By platform" shows adoption per
 // social link; "By depth" shows how many of the four links users have.
 // ───────────────────────────────────────────────────────────────────────────
 
@@ -696,7 +683,7 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Referral leaderboard — People / Teams toggle.
+// Referral leaderboard: People / Teams toggle.
 // ───────────────────────────────────────────────────────────────────────────
 
 function formatMonthLabel(month: string): string {
@@ -719,7 +706,7 @@ function formatDayLabel(day: string): string {
 /**
  * The last 12 months, newest first, as "YYYY-MM". Generated rather than
  * derived from the payload: the server no longer ships a row per
- * referrer × month, so there is nothing to derive the list from — and any
+ * referrer × month, so there is nothing to derive the list from, and any
  * month in range is one fetch away regardless of whether it has data.
  */
 function trailingMonths(count = 12): string[] {
@@ -735,7 +722,7 @@ function trailingMonths(count = 12): string[] {
 // are resolved in the viewer's own zone rather than silently in UTC.
 const VIEWER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
-/** Today in the viewer's zone — east of UTC that is a day ahead of the UTC date. */
+/** Today in the viewer's zone: east of UTC that is a day ahead of the UTC date. */
 function viewerToday(): string {
   // en-CA formats as YYYY-MM-DD, which is what <input type="date"> wants.
   return new Date().toLocaleDateString("en-CA", { timeZone: VIEWER_TIME_ZONE });
@@ -754,7 +741,7 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
   const isDay = period.length === 10;
 
   // Referrer × period rows are far too many to ship with the main payload, so
-  // a chosen period is fetched on demand — which also means every referrer in
+  // a chosen period is fetched on demand, which also means every referrer in
   // that period shows up, not just those in the all-time top 100.
   React.useEffect(() => {
     if (!period) {
@@ -965,7 +952,7 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Hackathon history — flat table view, newest first. Mirrors the referral
+// Hackathon history: flat table view, newest first. Mirrors the referral
 // leaderboard styling so the two sections feel like a matched pair.
 //
 // Named for what it actually queries: the payload filters to

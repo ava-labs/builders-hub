@@ -11,7 +11,7 @@ import {
   fakeAuth,
   type ReferralAttribution,
 } from '../lib/fake-auth';
-import { openAsReturningVisitor } from './helpers';
+import { NAVIGATION_TIMEOUT, openAsReturningVisitor } from './helpers';
 
 // The /signup page (app/(home)/signup/page.tsx), the /login page and the login dialog, against the fake auth
 // backend in lib/fake-auth.ts. No test creates an account or sends an email.
@@ -203,7 +203,7 @@ test('a referral link to the home page opens the login dialog in place', async (
   expect(auth.unanswered, 'API writes with no fake answer').toEqual([]);
 });
 
-test('email signup goes through Terms and the profile setup before the callback', async ({ app, screen, browser }) => {
+test('email signup goes through Terms, then straight to the callback', async ({ app, screen, browser }) => {
   const auth = await fakeAuth(app, browser);
   await openAsReturningVisitor(app, browser, signupPath({ ref: 'TEAM1', callbackUrl: CALLBACK_PATH }));
   await signInWithEmail(screen, browser);
@@ -219,16 +219,50 @@ test('email signup goes through Terms and the profile setup before the callback'
   await terms.getByRole('checkbox', /^I have read and agree to the Avalanche Privacy Policy/).check();
   await accept.tap();
 
-  // Terms creates the account with the referral of the signup link.
-  const setup = screen.getByRole('dialog', 'Basic Profile Setup');
-  await expect(setup).toBeVisible();
-  expect(auth.createdUserReferral?.referralCode).toBe('TEAM1');
-  await expect(browser).toHaveURL(/\/signup\?/);
-
-  // Every profile field is optional.
-  await setup.getByRole('button', 'Skip for now').tap();
+  // Terms creates the account with the referral of the signup link. No dialog asks for more: the user lands on the
+  // callback, and the profile page holds every optional field.
   await expect(screen.getByRole('heading', CALLBACK_HEADING)).toBeVisible();
   await expect(browser).toHaveURL(`${CALLBACK_PATH}?ref=TEAM1`);
+  // The fake serves the callback as a static page with no app (lib/fake-auth.ts), so no dialog can open on it and
+  // this check always passes. The heading and URL checks are the guard: a dialog that holds the user on /signup fails
+  // them. The next test checks for a dialog on a real site page.
+  await expect(screen.getByRole('dialog')).toHaveCount(0);
+  expect(auth.createdUserReferral?.referralCode).toBe('TEAM1');
+  expect(auth.unanswered, 'API writes with no fake answer').toEqual([]);
+});
+
+test('email signup lands on a real site page with no dialog', async ({ app, screen, browser }) => {
+  const auth = await fakeAuth(app, browser);
+  // /grants is in the (home) group, which mounts the login dialogs (components/login/LoginModalWrapper.tsx).
+  await openAsReturningVisitor(app, browser, signupPath({ callbackUrl: '/grants' }));
+  await signInWithEmail(screen, browser);
+  const terms = screen.getByRole('dialog', 'Terms and Conditions');
+  await terms.getByRole('checkbox', /^I have read and agree to the Avalanche Privacy Policy/).check();
+  await terms.getByRole('button', 'Accept').tap();
+
+  // The site renders the callback page, so a dialog or a redirect that starts on the page after signup shows here.
+  await expect(browser).toHaveURL(/\/grants(\?|#|$)/, { timeout: NAVIGATION_TIMEOUT });
+  await waitForHydration(browser, '#nd-nav');
+  // A dialog can open after a later session read, so watch the page for a while, not once.
+  const sawDialog = await browser.evaluate(
+    () =>
+      new Promise<boolean>((resolve) => {
+        const open = () => document.querySelector('[role="dialog"]') !== null;
+        if (open()) return resolve(true);
+        const observer = new MutationObserver(() => {
+          if (!open()) return;
+          observer.disconnect();
+          resolve(true);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => {
+          observer.disconnect();
+          resolve(false);
+        }, 3_000);
+      }),
+  );
+  expect(sawDialog, 'a dialog opened after signup').toBe(false);
+  await expect(screen.getByRole('dialog')).toHaveCount(0);
   expect(auth.unanswered, 'API writes with no fake answer').toEqual([]);
 });
 
