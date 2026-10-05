@@ -21,6 +21,7 @@ import { NounAvatarConfig } from "../components/NounAvatarConfig";
 import type { AvatarSeed } from "../components/DiceBearAvatar";
 import { AccountsSection } from "../sections/AccountsSection";
 import { AchievementsSection, type AcademyProgress, type AchievementBadge } from "../sections/AchievementsSection";
+import { AlertsSection } from "../sections/AlertsSection";
 import { ConsoleHistorySection } from "../sections/ConsoleHistorySection";
 import { PersonalSection } from "../sections/PersonalSection";
 import { ProjectsSection } from "../sections/ProjectsSection";
@@ -289,6 +290,7 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     },
     { id: "console", label: "Console history", group: "Activity" },
     { id: "query", label: "Query", group: "Activity" },
+    { id: "alerts", label: "Alerts", group: "Activity" },
     ...(showInsights ? [{ id: "insights" as const, label: "Insights", group: "Team" as const }] : []),
     ...(showNotifications
       ? [{ id: "notifications" as const, label: "Send notifications", group: "Team" as const }]
@@ -681,6 +683,9 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
         break;
       case "query":
         content = <QuerySection />;
+        break;
+      case "alerts":
+        content = <AlertsSection email={email} />;
         break;
       case "insights":
         content = (

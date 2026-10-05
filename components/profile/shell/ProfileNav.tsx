@@ -23,6 +23,7 @@ export type SectionId =
   | "achievements"
   | "console"
   | "query"
+  | "alerts"
   | "insights"
   | "notifications";
 
