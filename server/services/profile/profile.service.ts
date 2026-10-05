@@ -93,7 +93,8 @@ function buildUserUpdateData(
     if (profileData.name !== undefined) updateData.name = profileData.name;
     if (profileData.bio !== undefined) updateData.bio = profileData.bio;
     if (profileData.notification_email !== undefined) updateData.notification_email = profileData.notification_email;
-    // the photo is written only by /api/profile/photo, which checks and re-encodes it
+    // no client sets the photo: the profile has no upload, and
+    // only sign-in writes User.image (a URL from the request would show to everyone)
     if (profileData.country !== undefined) updateData.country = profileData.country;
     if (profileData.linkedin_account !== undefined) updateData.linkedin_account = nullableTrimmedString(profileData.linkedin_account);
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];

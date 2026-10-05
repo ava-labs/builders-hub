@@ -1,8 +1,7 @@
-import { fileURLToPath } from 'node:url';
 import { test, type Browser } from '@e2e-dev/web';
 import { expect, type Screen } from 'e2e';
 import { waitForHydration } from '../lib/hydration';
-import { RETURNING_USER_ID, TEST_EMAIL, fakeAuth, type FakeAnswers } from '../lib/fake-auth';
+import { RETURNING_USER_ID, TEST_EMAIL, fakeAuth } from '../lib/fake-auth';
 import { ACADEMY_DONE, ACADEMY_TOTAL, profileAnswers } from '../lib/fake-profile';
 import { NAVIGATION_TIMEOUT, openAsReturningVisitor } from './helpers';
 
@@ -22,16 +21,11 @@ const SECTIONS: Array<{ link: string; heading: string; tab: string | null }> = [
   { link: 'Query', heading: 'Query', tab: 'query' },
 ];
 
-async function openProfile(
-  app: Parameters<typeof fakeAuth>[0],
-  browser: Browser,
-  path = '/profile',
-  extra: FakeAnswers = {},
-) {
+async function openProfile(app: Parameters<typeof fakeAuth>[0], browser: Browser, path = '/profile') {
   const auth = await fakeAuth(app, browser, {
     newUser: false,
     signedIn: true,
-    answers: { ...profileAnswers(RETURNING_USER_ID, TEST_EMAIL), ...extra },
+    answers: profileAnswers(RETURNING_USER_ID, TEST_EMAIL),
   });
   await openAsReturningVisitor(app, browser, path);
   return auth;
@@ -136,36 +130,6 @@ test('a link off the profile asks before it drops unsaved edits', async ({ app, 
   await expect(browser).toHaveURL('/profile?tab=query');
   await sectionLink(screen, 'Personal info').tap();
   await expect(screen.getByRole('textbox', 'Bio')).toHaveValue('I build L1s for payments and games.');
-});
-
-test('a photo uploads and is removed at once, and a GIF is refused before any upload', async ({
-  app,
-  screen,
-  browser,
-}) => {
-  // the server re-encodes the photo; the fake answers with the stored URL
-  const auth = await openProfile(app, browser, '/profile', {
-    'POST /api/profile/photo': { image: '/small-logo.png' },
-    'DELETE /api/profile/photo': { image: '' },
-  });
-  const upload = screen.getByRole('button', 'Upload photo');
-  await expect(upload).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
-  await waitForHydration(browser, '#pr-photo');
-  const input = browser.locator('#pr-photo');
-
-  await input.setInputFiles(fileURLToPath(new URL('./fixtures/photo.gif', import.meta.url)));
-  await expect(screen.getByText('Choose a PNG or JPG file of 4 MB or less.')).toBeVisible();
-
-  await input.setInputFiles(fileURLToPath(new URL('./fixtures/photo.png', import.meta.url)));
-  await expect(screen.getByText('Photo saved')).toBeVisible();
-  await expect(screen.getByRole('button', 'Change photo')).toBeVisible();
-  // the photo saves at once: it leaves no edit for the save bar
-  await expect(screen.getByRole('region', 'Unsaved changes')).toHaveCount(0);
-
-  await screen.getByRole('button', 'Remove').tap();
-  await expect(screen.getByText('Photo removed')).toBeVisible();
-  await expect(screen.getByRole('button', 'Upload photo')).toBeVisible();
-  expect(auth.unanswered, 'API writes with no fake answer').toEqual([]);
 });
 
 test('a signed-out visitor gets the sign-in dialog, not the profile', async ({ app, screen, browser }) => {

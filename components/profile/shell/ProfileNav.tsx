@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FOCUS, MONO_LABEL, scrollBehavior } from "../ui";
@@ -43,8 +42,7 @@ export function sectionHref(id: SectionId): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Avatar: the generated avatar, else the photo, else the initials, in  */
-/* the site's square chrome.                                            */
+/* Avatar: the initials of the name, in the site's square chrome.       */
 export function initials(name: string | null | undefined): string {
   if (!name?.trim()) return "?";
   return name
@@ -56,32 +54,17 @@ export function initials(name: string | null | undefined): string {
     .toUpperCase();
 }
 
-export function Avatar({
-  name,
-  imageUrl,
-  size,
-  className,
-}: {
-  name: string;
-  imageUrl: string | null;
-  size: number;
-  className?: string;
-}) {
-  const src = imageUrl;
+export function Avatar({ name, size, className }: { name: string; size: number; className?: string }) {
   return (
     <span
       aria-hidden
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden border border-zinc-200 bg-zinc-50 font-mono font-bold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200",
+        "flex shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 font-mono font-bold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200",
         className,
       )}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.32) }}
     >
-      {src ? (
-        <Image src={src} alt="" width={size} height={size} unoptimized className="h-full w-full object-cover" />
-      ) : (
-        initials(name)
-      )}
+      {initials(name)}
     </span>
   );
 }
@@ -221,7 +204,6 @@ export function Identity({
   name,
   handle,
   email,
-  imageUrl,
   teamLabel,
   completion,
   onJumpToNext,
@@ -230,7 +212,6 @@ export function Identity({
   name: string;
   handle: string;
   email: string;
-  imageUrl: string | null;
   teamLabel: string | null;
   /** how much of the profile is filled, and the next step */
   completion: { pct: number; nextLabel: string | null };
@@ -239,7 +220,7 @@ export function Identity({
 }) {
   return (
     <div className={cn("flex gap-3", compact ? "items-center" : "flex-col")}>
-      <Avatar name={name} imageUrl={imageUrl} size={compact ? 44 : 64} />
+      <Avatar name={name} size={compact ? 44 : 64} />
       <div className="min-w-0">
         <p className="truncate text-[15px] font-medium text-zinc-900 dark:text-zinc-50">{name || "Your name"}</p>
         <p className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">

@@ -123,13 +123,11 @@ export function useProfileForm() {
   const { watch, setValue, formState } = form;
   const watchedValues = watch();
 
-  // GitHub, X and the photo have no input: OAuth links the accounts and
-  // /api/profile/photo saves the photo. Register them so resetField can set
-  // them after a disconnect or a photo change. On every render, not once:
+  // GitHub and X have no input: OAuth links them. Register them so
+  // resetField can clear them after a disconnect. On every render, not once:
   // form.reset() (the profile load) clears the registered fields.
   form.register("github_account");
   form.register("x_account");
-  form.register("image");
 
   const loadProfile = useCallback(async () => {
     if (!session?.user?.id) {

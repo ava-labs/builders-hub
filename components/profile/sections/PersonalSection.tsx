@@ -9,7 +9,6 @@ import type { ProfileFormValues } from "../components/hooks/useProfileForm";
 import { COUNTRIES, ROLES, SKILL_SUGGESTIONS } from "../shell/data";
 import { rolesFromValues, roleFieldKey } from "../shell/adapter";
 import type { ProfileRole } from "../shell/types";
-import { Avatar } from "../shell/ProfileNav";
 import {
   Button,
   FieldError,
@@ -24,9 +23,6 @@ import {
 } from "../ui";
 
 const BIO_MAX = 250; // the server's limit (lib/schemas/extended-profile.ts)
-// what /api/profile/photo takes (server/services/profile-photo.ts)
-const PHOTO_TYPES = ["image/png", "image/jpeg"];
-const PHOTO_MAX_BYTES = 4 * 1024 * 1024;
 
 /** the detail fields each role carries, cleared when the role is turned off */
 const ROLE_DETAILS: Partial<Record<ProfileRole, Array<keyof ProfileFormValues>>> = {
@@ -37,41 +33,10 @@ const ROLE_DETAILS: Partial<Record<ProfileRole, Array<keyof ProfileFormValues>>>
 
 export function PersonalSection({
   form,
-  imageUrl,
-  onPhotoChange,
 }: {
   form: UseFormReturn<ProfileFormValues>;
-  imageUrl: string | null;
-  /** saves a new photo (a file) or removes it (null) at once; resolves with an error text or null */
-  onPhotoChange: (file: File | null) => Promise<string | null>;
 }) {
   const { register, watch, setValue, formState } = form;
-  const photoInput = React.useRef<HTMLInputElement>(null);
-  const uploadButton = React.useRef<HTMLButtonElement>(null);
-  const [photoError, setPhotoError] = React.useState<string | null>(null);
-  const [photoBusy, setPhotoBusy] = React.useState(false);
-
-  const changePhoto = async (file: File | null) => {
-    setPhotoBusy(true);
-    setPhotoError(await onPhotoChange(file));
-    setPhotoBusy(false);
-  };
-  const choosePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // the same file again is a new choice
-    if (!file) return;
-    // the server checks again; this saves a refused upload
-    if (!PHOTO_TYPES.includes(file.type) || file.size > PHOTO_MAX_BYTES) {
-      setPhotoError("Choose a PNG or JPG file of 4 MB or less.");
-      return;
-    }
-    void changePhoto(file);
-  };
-  const removePhoto = async () => {
-    await changePhoto(null);
-    // the Remove button goes away with the photo
-    uploadButton.current?.focus();
-  };
   const errors = formState.errors;
   const values = watch();
   const roles = rolesFromValues(values);
@@ -93,29 +58,6 @@ export function PersonalSection({
       <SectionHeader eyebrow="Account" title="Personal info" id="section-title" />
       <Stack>
         <Group label="Profile">
-          <Row label="Photo" hint="PNG or JPG, 4 MB or less.">
-            <div className="flex flex-wrap items-center gap-3">
-              <Avatar name={values.name ?? ""} imageUrl={imageUrl} size={48} />
-              <Button ref={uploadButton} busy={photoBusy} onClick={() => photoInput.current?.click()}>
-                {imageUrl ? "Change photo" : "Upload photo"}
-              </Button>
-              {imageUrl && (
-                <Button variant="ghost" busy={photoBusy} onClick={removePhoto}>
-                  Remove
-                </Button>
-              )}
-              {/* the button opens it; it holds no label of its own */}
-              <input
-                ref={photoInput}
-                id="pr-photo"
-                type="file"
-                accept={PHOTO_TYPES.join(",")}
-                hidden
-                onChange={choosePhoto}
-              />
-            </div>
-            <FieldError id="pr-photo-error">{photoError}</FieldError>
-          </Row>
           <Row label="Full name" htmlFor="pr-name">
             <TextInput
               id="pr-name"

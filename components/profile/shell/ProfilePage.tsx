@@ -119,8 +119,8 @@ export default function ProfilePage({ teamLabel }: { teamLabel?: string | null }
   const { data: session, status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
 
-  // only the first load: a session update (after a photo change) is
-  // "loading" too, and must not unmount the page and its unsaved edits
+  // only the first load: a session update is "loading" too, and must not
+  // unmount the page and its unsaved edits
   if (status === "loading" && !session) {
     return (
       <ProfileFrame>
@@ -185,7 +185,7 @@ function PageSpinner() {
 }
 
 function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
-  const { data: session, update: updateSession } = useSession();
+  const { data: session } = useSession();
   const userId = session?.user?.id ?? null;
   const searchParams = useSearchParams();
   const { form, isLoading, loadFailed, reload, isSaving, githubConnected, setGithubConnected, save } = useProfileForm();
@@ -495,29 +495,6 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     opener.focus();
   };
 
-  // The photo saves at once, as the Settings switches do: it has no draft
-  // for Save or Discard. Resolves with an error text, or null.
-  const handlePhotoChange = async (file: File | null): Promise<string | null> => {
-    let res: Response;
-    try {
-      if (file) {
-        const body = new FormData();
-        body.set("file", file);
-        res = await fetch("/api/profile/photo", { method: "POST", body });
-      } else {
-        res = await fetch("/api/profile/photo", { method: "DELETE" });
-      }
-    } catch {
-      return "Could not reach the server. Try again.";
-    }
-    const data = (await res.json().catch(() => ({}))) as { image?: string; error?: string };
-    if (!res.ok) return data.error || "Could not save your photo. Try again.";
-    form.resetField("image", { defaultValue: data.image ?? "" });
-    // the site header reads the photo from the session
-    void updateSession();
-    sonnerToast.success(file ? "Photo saved" : "Photo removed");
-    return null;
-  };
 
   const referralCatalog: ReferralTarget[] = React.useMemo(
     () =>
@@ -585,7 +562,6 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
   /* ---------------------------------------------------------- render */
   const name = values.name ?? "";
   const email = values.email || session?.user?.email || "";
-  const imageUrl = values.image || null;
   // read during render, so the form reports changes to the edited fields
   const dirtyKeys = Object.keys(form.formState.dirtyFields);
   // the section that holds the edits; Personal info when both have some
@@ -596,7 +572,6 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
       name={name}
       handle={values.username ?? ""}
       email={email}
-      imageUrl={imageUrl}
       teamLabel={teamLabel}
       completion={{ pct: completion.pct, nextLabel: completion.next?.label ?? null }}
       onJumpToNext={jumpToNext}
@@ -617,7 +592,7 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     switch (active) {
       case "personal":
         content = (
-          <PersonalSection form={form} imageUrl={imageUrl} onPhotoChange={handlePhotoChange} />
+          <PersonalSection form={form} />
         );
         break;
       case "accounts":
