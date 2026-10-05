@@ -63,7 +63,7 @@ E2E_BASE_URL=http://localhost:3000 npm test
 | `.github/workflows/unit.yml` | Every PR, and each push to `master` | The whole Vitest suite (`npx vitest run`) |
 | `.github/workflows/e2e.yml` | Every PR, each push to `master`, and nightly | Browser tests (desktop, phone and in-app browsers) and API tests. A PR runs the tests its changed files reach plus a smoke set (`tests/e2e/select`); `master` and the nightly run all of them |
 | `.github/workflows/e2e-explore.yml` | Nightly, or by hand | AI bug hunt: one `e2e explore` per charter in `tests/e2e/explore/charters.json`, on production. Findings go to the job summary |
-| `.github/workflows/e2e-chain.yml` | Nightly, or by hand (`master` only) | Console chain tests (`tests/e2e/chain`) on production: a fresh PoA L1 on Fuji with real transactions. Then a teardown disables the validators that are still active |
+| `.github/workflows/e2e-chain.yml` | Nightly, or by hand (`master` only) | Console chain tests (`tests/e2e/chain`) on production, with real Fuji transactions. One job per suite, one after the other (`e2e-chain-suite.yml`): `tier1`, `pos`, `bridge`, `stake-reads`, then on Sunday `stake-acp236` and on Wednesday `stake-fixed`. A teardown after each suite disables the L1 validators that are still active, stops an auto-renewed stake that still renews, and imports AVAX left in shared memory |
 | `.github/workflows/commitlint.yml` | Every PR | Conventional Commits on every commit |
 | `.husky/pre-commit` (lint-staged) | Each local commit | Prettier and ESLint on the toolbox, the design check on the Console, ESLint on other files that a block covers, then `tsc --noEmit` |
 | `.husky/commit-msg` | Each local commit | commitlint |
@@ -111,7 +111,7 @@ E2E_BASE_URL=http://localhost:3000 npm test
   - Agent tests (`tests/e2e/ai/`) need `ANTHROPIC_API_KEY` and skip without it (`needsModel()`). Journeys (`agent.act`, then a locator check), visual checks (`agent.assert` with `vision: true`, tag `visual`) and data checks (`agent.extract`, then `expect`). Commit new entries in `tests/e2e/.e2e/cache/` with the test.
   - Sweeps (every embedded Academy tool, every Console tool route, every site route) carry the `sweep` tag.
   - A PR runs only the tests its changed files reach (`tests/e2e/README.md`, "Test selection"). When you add a test folder, a file in `ai/`, or a test helper that reads a repo file, update `tests/e2e/select/rules.ts`.
-- Console flows that send transactions are in `tests/e2e/chain/`, with their own config. They run at the desktop size only, on production, nightly or by hand on `master` (`e2e-chain.yml`), never on a PR. The wallet signs in Node, and the page never gets the key. In `tests/e2e`, `npm run test:chain` runs them, and `node chain/wallet/selftest.ts` checks the wallet with no transaction. Details: `tests/e2e/README.md`, "Console chain tests".
+- Console flows that send transactions are in `tests/e2e/chain/`, with their own config. They run at the desktop size only, on production, nightly or by hand on `master` (`e2e-chain.yml`), never on a PR. The wallet signs in Node, and the page never gets the key. Each file is a suite with its own tag. In `tests/e2e`, `npm run test:chain -- --tag <tag>` runs one suite, and `node chain/wallet/selftest.ts` checks the wallet with no transaction. A weekly suite (1 AVAX staked for about 12 h) runs only when `E2E_CHAIN_WEEKLY` names its tag. Details: `tests/e2e/README.md`, "Console chain tests".
 
 ## Generated files
 

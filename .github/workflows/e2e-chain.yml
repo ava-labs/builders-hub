@@ -1,31 +1,58 @@
 name: E2E chain
 
-# The Console chain tests in tests/e2e/chain. Each night tier 1 drives build.avax.network/console through a fresh PoA
-# L1 on Fuji, with real transactions: Create Subnet, the Validator Manager on the C-Chain, Create Chain, Convert to L1
-# with a mock validator, Initialize Validator Set, then add, change weight, top up and remove a validator, and Disable.
-# The wallet signs in Node with a dedicated Fuji key; the page never holds the key. PRs do not run these tests (the
-# main config excludes chain/, and the PR selection ignores it). The target is production only: the workflow takes no
-# URL, so no run can send the wallet to another site.
+# The Console chain tests in tests/e2e/chain. Each night they drive build.avax.network/console on Fuji with real
+# transactions, one suite per job, one job after the other (e2e-chain-suite.yml):
 #
-# Secret: E2E_CHAIN_FUJI_KEY, a repository secret holding the private key of the Fuji test wallet. Fund it with
-# Fuji AVAX on the P-Chain (0.3 at least) and some on the C-Chain; a run spends about 0.0003 P-Chain AVAX. A workflow
-# on any branch of this repository can read a repository secret, so keep the balance small (about 2 AVAX). The job
-# runs on master only, and the signer refuses mainnet, any value transfer and any tx type that tier 1 does not send.
+#   tier1        a fresh PoA L1 with the Validator Manager on the C-Chain: Create Subnet, the manager, Create Chain,
+#                Convert to L1 with a mock validator, Initialize Validator Set, then add, change weight, top up,
+#                remove and Disable
+#   pos          a fresh PoS L1 with an ERC20 staking manager on the C-Chain: stake and delegate test tokens, then
+#                remove the delegation and the validators
+#   bridge       0.01 AVAX from the P-Chain to the C-Chain and back, between the key's own addresses
+#   stake-reads  the Stake page's read-only views of live Fuji validators; no transaction
 #
-# One step writes the key to a file that only the runner user can read, and the later steps get only its path
-# (E2E_CHAIN_FUJI_KEY_FILE). So no later process environment holds the key: the test workers, Chromium and npx
-# inherit the environment.
+# One weekly suite runs last, because it locks 1 AVAX for about 12 h: stake-acp236 (an auto-renewed Primary Network
+# validator, then its config update and stop) on Sunday, stake-fixed (a fixed-duration Primary Network validator) on
+# Wednesday. Each weekly validator is a mock with no node, so the P-Chain returns the stake with no reward.
 #
-# After the tests, with `if: always()`, chain/lib/teardown.ts disables every validator that the run's ledger names and
-# the P-Chain shows active, so a failed or cancelled run does not leave balances to burn. The ledger, the report and
-# the screenshots are artifacts. No traces: a trace records the requests and their headers, and the artifacts of a
-# public repo are public.
+# The wallet signs in Node with a dedicated Fuji key; the page never holds the key. The signer refuses mainnet, any
+# native AVAX value on an EVM tx, and each stake or atomic tx type that the running file did not turn on
+# (allowPrimaryStake, allowBridge). It does not limit contract calls: it signs a zero-value call to any address with
+# any data, so a page can move the key's ERC20 tokens. PRs do not run these tests (the main config excludes chain/,
+# and the PR selection ignores it). The target is production only: the workflow takes no URL, so no run can send the
+# wallet to another site.
+#
+# Secret: E2E_CHAIN_FUJI_KEY, a repository secret holding the private key of the Fuji test wallet. Each suite's
+# preflight has its own minimums (below); the weekly suite needs 1.05 unlocked P-Chain AVAX. The master guards (the
+# plan job here and the suite job in e2e-chain-suite.yml) stop the nightly and a dispatch from running these jobs off
+# master. They do not protect the key: a workflow that runs from any branch of this repository (a same-repo
+# pull_request included) can read a repository secret, and a branch can edit these guards. The real boundary is a
+# GitHub Environment with a master-only deployment branch policy, which needs a repo admin (tests/e2e/README.md, "The
+# key"). Until then, keep only a small Fuji balance on the key: about 1.2 AVAX on the P-Chain and 0.02 AVAX on the
+# C-Chain.
+#
+# A suite job writes the key to a file that only the runner user can read, after npm ci and the Chromium install, and
+# the later steps get only its path (E2E_CHAIN_FUJI_KEY_FILE). So no later process environment holds the key: the
+# test workers, Chromium and npx inherit the environment. After the tests, with `if: always()`,
+# chain/lib/teardown.ts reads the job's ledgers. It disables each L1 validator that is still active, so a failed or
+# cancelled suite does not leave balances to burn. It also stops an auto-renewed Primary Network stake that still
+# renews, and imports the key's AVAX that a bridge run left in shared memory.
 
 on:
   schedule:
     # 08:23 UTC, after the nightly E2E run (06:43) and the explore hunt (07:17). GitHub can start a scheduled run late.
     - cron: '23 8 * * *'
   workflow_dispatch:
+    inputs:
+      weekly:
+        description: 'Weekly suite: auto (stake-acp236 on Sunday, stake-fixed on Wednesday), none, or one of them'
+        type: choice
+        options:
+          - auto
+          - none
+          - stake-acp236
+          - stake-fixed
+        default: auto
 
 permissions:
   contents: read
@@ -36,115 +63,164 @@ concurrency:
   group: e2e-chain
   cancel-in-progress: false
 
+# The suites run one after the other for the same reason: each job `needs` the job before it. A failed suite does
+# not skip the next one (`!cancelled()`). The cap of each test step is the sum of the suite's member caps plus 5
+# minutes, so a member's own cap stops a slow member first. The cap of each job adds 30 minutes for the setup, the
+# teardown and the uploads. The measured wall times (October 2026) are much shorter: tier1 3 to 7 min (Glacier can
+# take more than 3 min to list a new validator), pos 5.5 min, bridge 34 s, stake-reads 8 s, stake-acp236 25 s,
+# stake-fixed 13 s. The Stake page shows its own accepted txs at once, so a stake run waits for the public API's cache
+# (about 3 min) only when the config tx right after the add finds the validator list old. A night takes about 25 to
+# 35 min, with about 2 min of npm ci and Chromium per job.
 jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    # The cron runs on master. A dispatch from another branch skips every job. This guard does not protect the key: it
+    # lives in the workflow file of the ref that runs, so a branch can delete it. See the secret note at the top.
+    if: github.ref == 'refs/heads/master'
+    timeout-minutes: 5
+    outputs:
+      weekday: ${{ steps.day.outputs.weekday }}
+      weekly: ${{ steps.day.outputs.weekly }}
+    steps:
+      # date +%u: 1 is Monday, 7 is Sunday. The 1 AVAX stake of each weekly suite is locked for about 12 h, so the two
+      # locks never overlap, and each one ends before the next night's run. A scheduled run has no inputs (auto).
+      - name: Pick the weekly suite
+        id: day
+        env:
+          WEEKLY_INPUT: ${{ inputs.weekly }}
+        run: |
+          d=$(date -u +%u)
+          case "${WEEKLY_INPUT:-auto}" in
+            auto)
+              case "$d" in
+                7) weekly=stake-acp236 ;;
+                3) weekly=stake-fixed ;;
+                *) weekly= ;;
+              esac
+              ;;
+            none) weekly= ;;
+            stake-acp236 | stake-fixed) weekly=$WEEKLY_INPUT ;;
+            *)
+              echo "::error title=E2E chain::Unknown weekly suite '$WEEKLY_INPUT'."
+              exit 1
+              ;;
+          esac
+          {
+            echo "weekday=$d"
+            echo "weekly=$weekly"
+          } >> "$GITHUB_OUTPUT"
+          echo "Weekly suite: ${weekly:-none} (UTC weekday $d)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # Member caps: 203 min (the last member, the sends audit, has 3 min).
   tier1:
     name: Tier 1 (PoA L1, manager on the C-Chain)
-    runs-on: ubuntu-latest
-    # The cron runs on master. A dispatch from another branch is skipped, so branch code never gets the key.
-    if: github.ref == 'refs/heads/master'
-    # The test step gets 200 minutes, the sum of the member caps in chain/poa-cchain.e2e.ts (a run took 3 minutes on
-    # 2026-10-04). The rest is for the teardown and the uploads.
-    timeout-minutes: 220
-    defaults:
-      run:
-        working-directory: tests/e2e
-    env:
-      E2E_TELEMETRY_DISABLED: '1'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: tier1
+      min_p_avax: '0.3'
+      min_c_avax: '0.002'
+      test_minutes: 208
+      job_minutes: 238
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
 
-      # umask 077 gives the file mode 0600; chain/lib/chain.ts refuses a key file that others can read. printf is a
-      # shell builtin, so the key is in no process argument list. An if: expression cannot read a secret, so the step
-      # checks it in the shell.
-      - name: Write the key file
-        id: key
+  # Member caps: 285 min.
+  pos:
+    name: PoS ERC20 L1 (manager on the C-Chain)
+    needs: [plan, tier1]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: pos
+      min_p_avax: '0.1'
+      min_c_avax: '0.002'
+      test_minutes: 290
+      job_minutes: 320
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # Member caps: 30 min.
+  bridge:
+    name: C/P bridge round trip
+    needs: [plan, pos]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: bridge
+      min_p_avax: '0.02'
+      min_c_avax: '0.002'
+      test_minutes: 35
+      job_minutes: 65
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # Member caps: 15 min.
+  stake-reads:
+    name: Stake page reads
+    needs: [plan, bridge]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: stake-reads
+      min_p_avax: '0'
+      test_minutes: 20
+      job_minutes: 50
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # Member caps: 40 min (stake-acp236) and 21 min (stake-fixed). It runs last, so the nightly suites have their L1
+  # balances back before the stake, and a failed stake never blocks them.
+  stake-weekly:
+    name: Weekly stake
+    needs: [plan, stake-reads]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.weekly != '' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: ${{ needs.plan.outputs.weekly }}
+      min_p_avax: '1.05'
+      test_minutes: 45
+      job_minutes: 75
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # The alert: one table of the night's suites in the job summary, and an error annotation that names each suite that
+  # did not pass. The repository has no Slack secret, so nothing is sent.
+  result:
+    name: Result
+    needs: [plan, tier1, pos, bridge, stake-reads, stake-weekly]
+    if: ${{ always() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Summarize the suites
         env:
-          E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+          WEEKLY: ${{ needs.plan.outputs.weekly }}
+          TIER1: ${{ needs.tier1.result }}
+          POS: ${{ needs.pos.result }}
+          BRIDGE: ${{ needs.bridge.result }}
+          STAKE_READS: ${{ needs.stake-reads.result }}
+          STAKE_WEEKLY: ${{ needs.stake-weekly.result }}
         run: |
-          if [ -z "$E2E_CHAIN_FUJI_KEY" ]; then
-            echo "::error title=E2E chain::The repository has no E2E_CHAIN_FUJI_KEY secret."
+          failed=
+          {
+            echo '### Chain suites'
+            echo
+            echo '| Suite | Result |'
+            echo '|---|---|'
+          } >> "$GITHUB_STEP_SUMMARY"
+          row() {
+            echo "| $1 | $2 |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$2" != success ]; then failed="$failed $1"; fi
+          }
+          row tier1 "$TIER1"
+          row pos "$POS"
+          row bridge "$BRIDGE"
+          row stake-reads "$STAKE_READS"
+          if [ -n "$WEEKLY" ]; then row "$WEEKLY" "$STAKE_WEEKLY"; fi
+          if [ -n "$failed" ]; then
+            echo "::error title=E2E chain::These suites did not pass:$failed. Read each suite's job summary and artifacts."
             exit 1
           fi
-          umask 077
-          mkdir -p "$RUNNER_TEMP/e2e-chain"
-          printf '%s' "$E2E_CHAIN_FUJI_KEY" > "$RUNNER_TEMP/e2e-chain/fuji.key"
-          echo "E2E_CHAIN_FUJI_KEY_FILE=$RUNNER_TEMP/e2e-chain/fuji.key" >> "$GITHUB_ENV"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: tests/e2e/package-lock.json
-
-      - name: Install dependencies
-        id: install
-        run: npm ci
-
-      # Prints the key's addresses and balances. Fails below 0.3 AVAX on the P-Chain: Convert to L1 and the validator
-      # tools lock AVAX there.
-      - name: Check the balances
-        timeout-minutes: 5
-        run: node chain/lib/preflight.ts --min-p-avax 0.3
-
-      # The wallet's refusals and the route's origin checks, with no transaction and no browser. A failure here stops
-      # the run before the key signs anything.
-      - name: Self-test the wallet
-        timeout-minutes: 5
-        run: node chain/wallet/selftest.ts
-
-      # The engine's own installer gets the Chromium of the Playwright version that @e2e-dev/web pins. The ubuntu image
-      # has the Chromium system libraries; --with-deps can hang on apt.
-      - name: Install Chromium
-        timeout-minutes: 5
-        run: npx @e2e-dev/web install chromium
-
-      - name: Run tier 1
-        timeout-minutes: 200
-        env:
-          E2E_BASE_URL: https://build.avax.network
-        run: npm run test:chain
-
-      # Also after a failure or a cancel. It disables each validator of the ledger that the P-Chain shows active, and
-      # writes the result to the ledger and the job summary.
-      - name: Teardown
-        if: always() && steps.install.outcome == 'success' && steps.key.outcome == 'success'
-        timeout-minutes: 10
-        run: node chain/lib/teardown.ts
-
-      - name: Remove the key file
-        if: always() && steps.key.outcome != 'skipped'
-        run: rm -rf "$RUNNER_TEMP/e2e-chain"
-
-      - name: Job summary
-        if: always()
-        run: |
-          if [ -f chain/.e2e/summary.md ]; then cat chain/.e2e/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
-
-      # The ledger names the L1, its validators and every tx of the run. Kept 30 days: no later run reads it, but a
-      # person can download it and pass its folder to chain/lib/teardown.ts.
-      - name: Upload the ledger
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: e2e-chain-ledger-tier1-${{ github.run_id }}-${{ github.run_attempt }}
-          path: tests/e2e/chain/.run/
-          include-hidden-files: true
-          retention-days: 30
-          if-no-files-found: ignore
-
-      - name: Upload the report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: e2e-chain-report-tier1-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            tests/e2e/chain/.e2e/report.json
-            tests/e2e/chain/.e2e/junit.xml
-            tests/e2e/chain/.e2e/summary.md
-            tests/e2e/chain/.e2e/failures
-            tests/e2e/chain/.e2e/artifacts/**/*.png
-          include-hidden-files: true
-          retention-days: 14
-          if-no-files-found: ignore
