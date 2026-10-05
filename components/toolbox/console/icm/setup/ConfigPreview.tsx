@@ -51,8 +51,8 @@ export function ConfigPreview({ configJson, highlightedLines }: ConfigPreviewPro
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4 bg-zinc-50 dark:bg-zinc-950">
+      {/* Content. The config holds the relayer private key, so session replay skips it (ph-no-capture). */}
+      <div className="ph-no-capture flex-1 overflow-auto p-4 bg-zinc-50 dark:bg-zinc-950">
         {configJson ? (
           <SyntaxHighlightedJSON code={configJson} highlightedLines={highlightedLines} />
         ) : (

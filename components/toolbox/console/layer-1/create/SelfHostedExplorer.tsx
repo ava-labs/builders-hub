@@ -515,7 +515,10 @@ export default function DockerBlockscoutSetup({
 
               <div>
                 <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
-                <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                {/* The file holds the generated database password and SECRET_KEY_BASE. Session replay skips it. */}
+                <div className="ph-no-capture">
+                  <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                </div>
               </div>
 
               <div>

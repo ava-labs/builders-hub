@@ -119,7 +119,7 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
             onChange={(e) => setKeyInput(e.target.value.trim())}
             placeholder="paste auditor sk"
             rows={2}
-            className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-2 font-mono text-[11px]"
+            className="ph-no-capture w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-2 font-mono text-[11px]"
           />
           <Button size="sm" variant="primary" onClick={() => ev.setDecryptionKey(keyInput)} disabled={!keyInput}>
             Load key

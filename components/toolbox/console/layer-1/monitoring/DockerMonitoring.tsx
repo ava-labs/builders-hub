@@ -154,13 +154,16 @@ export default function DockerMonitoring() {
                   one-shot job that downloads your selected dashboards (pinned to a fixed commit). Both UIs bind to{' '}
                   <code>127.0.0.1</code> only.
                 </p>
+                {/* The compose file holds the generated Grafana password. Session replay skips it. */}
                 {composeEndpoint && (
-                  <DynamicCodeBlock
-                    lang="bash"
-                    code={composeSaveCommand(
-                      generateMonitoringCompose(composeEndpoint, selectedDashboards, grafanaPassword),
-                    )}
-                  />
+                  <div className="ph-no-capture">
+                    <DynamicCodeBlock
+                      lang="bash"
+                      code={composeSaveCommand(
+                        generateMonitoringCompose(composeEndpoint, selectedDashboards, grafanaPassword),
+                      )}
+                    />
+                  </div>
                 )}
               </Step>
 
@@ -171,7 +174,9 @@ export default function DockerMonitoring() {
                   Then open <code>http://localhost:3000</code> and log in as <code>admin</code> with the password baked
                   into your compose file:
                 </p>
-                <DynamicCodeBlock lang="text" code={grafanaPassword} />
+                <div className="ph-no-capture">
+                  <DynamicCodeBlock lang="text" code={grafanaPassword} />
+                </div>
                 <p className="text-sm mt-2">
                   Your dashboards are under <strong>Dashboards</strong> in the left sidebar; Prometheus itself is at{' '}
                   <code>http://localhost:9090</code>. Running the stack on a remote server? Reach it with an SSH tunnel

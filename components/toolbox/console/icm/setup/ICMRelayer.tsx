@@ -316,18 +316,21 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
             Run this command to save your relayer configuration to your local machine:
           </p>
-          <DynamicCodeBlock
-            code={genConfigCommand(
-              getConfigSources(),
-              getConfigDestinations(),
-              isTestnet ?? false,
-              logLevel,
-              storageLocation,
-              processMissedBlocks,
-              apiPort,
-            )}
-            lang="bash"
-          />
+          {/* The command holds the relayer private key, so session replay skips it (ph-no-capture). */}
+          <div className="ph-no-capture">
+            <DynamicCodeBlock
+              code={genConfigCommand(
+                getConfigSources(),
+                getConfigDestinations(),
+                isTestnet ?? false,
+                logLevel,
+                storageLocation,
+                processMissedBlocks,
+                apiPort,
+              )}
+              lang="bash"
+            />
+          </div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
             This creates the configuration file at{' '}
             <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-xs">

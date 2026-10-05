@@ -68,7 +68,7 @@ export default function ApiKeyCreatedModal({ isOpen, onClose, createdKey }: ApiK
               </p>
 
               <div className="flex items-center gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl">
-                <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 break-all">
+                <code className="ph-no-capture flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 break-all">
                   {createdKey.key}
                 </code>
                 <button
