@@ -68,12 +68,10 @@ export async function upsertUser(user: User, account: Account | null, profile: P
       select: oauthUserSelect,
       data: {
         name: user.name || "",
-        // "" is the default of an account made without a photo: the provider
-        // picture fills it. null is a photo the user removed, and it stays removed.
-        image: existingUser.image === "" ? user.image || "" : existingUser.image,
+        image: existingUser.image || user.image || "",
         authentication_mode: updatedAuthMode,
         last_login: new Date(),
-        // Never overwrite an existing user_name on login: only fill it in
+        // Never overwrite an existing user_name on login — only fill it in
         // when the account doesn't have one yet.
         ...(existingUser.user_name
           ? {}

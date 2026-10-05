@@ -289,9 +289,7 @@ export const AuthOptions: NextAuthOptions = {
 
       if (dbUser) {
         token.id = dbUser.id;
-        // the row decides (signIn has already written a provider picture to
-        // it): a removed photo must not live on in the token
-        token.avatar = dbUser.image || null;
+        token.avatar = dbUser.image || token.avatar || user?.image || null;
         token.custom_attributes = dbUser.custom_attributes
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
