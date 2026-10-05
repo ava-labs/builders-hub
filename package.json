@@ -184,6 +184,7 @@
     "remark-mdx": "^3.1.1",
     "remark-rehype": "^11.1.2",
     "sanitize-html": "^2.17.7",
+    "sharp": "^0.35.3",
     "shiki": "3.23.0",
     "snarkjs": "^0.7.5",
     "sonner": "^2.0.7",

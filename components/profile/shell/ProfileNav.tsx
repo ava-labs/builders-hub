@@ -4,7 +4,6 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { diceBearDataUri, type AvatarSeed } from "../components/DiceBearAvatar";
 import { FOCUS, MONO_LABEL, scrollBehavior } from "../ui";
 
 /* ------------------------------------------------------------------ */
@@ -60,27 +59,15 @@ export function initials(name: string | null | undefined): string {
 export function Avatar({
   name,
   imageUrl,
-  seed,
   size,
   className,
 }: {
   name: string;
   imageUrl: string | null;
-  /** the generated avatar, when the user turned it on; it wins over the photo, as in the site header */
-  seed?: AvatarSeed | null;
   size: number;
   className?: string;
 }) {
-  // a seed DiceBear rejects falls back to the photo, as a missing seed does
-  const generated = React.useMemo(() => {
-    if (!seed) return null;
-    try {
-      return diceBearDataUri(seed, size);
-    } catch {
-      return null;
-    }
-  }, [seed, size]);
-  const src = generated ?? imageUrl;
+  const src = imageUrl;
   return (
     <span
       aria-hidden
@@ -235,7 +222,6 @@ export function Identity({
   handle,
   email,
   imageUrl,
-  avatarSeed,
   teamLabel,
   completion,
   onJumpToNext,
@@ -245,7 +231,6 @@ export function Identity({
   handle: string;
   email: string;
   imageUrl: string | null;
-  avatarSeed?: AvatarSeed | null;
   teamLabel: string | null;
   /** how much of the profile is filled, and the next step */
   completion: { pct: number; nextLabel: string | null };
@@ -254,7 +239,7 @@ export function Identity({
 }) {
   return (
     <div className={cn("flex gap-3", compact ? "items-center" : "flex-col")}>
-      <Avatar name={name} imageUrl={imageUrl} seed={avatarSeed} size={compact ? 44 : 64} />
+      <Avatar name={name} imageUrl={imageUrl} size={compact ? 44 : 64} />
       <div className="min-w-0">
         <p className="truncate text-[15px] font-medium text-zinc-900 dark:text-zinc-50">{name || "Your name"}</p>
         <p className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">

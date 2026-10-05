@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
@@ -65,10 +65,9 @@ export const profileSchema = z.object({
 export type ProfileFormValues = z.infer<typeof profileSchema>;
 
 /** what a save did: the caller tells the user. A failure names the first
-    field with an error, so the caller can open its section and focus it.
-    A save that worked can still carry a warning. */
+    field with an error, so the caller can open its section and focus it. */
 export type SaveResult =
-  | { ok: true; warning?: string }
+  | { ok: true }
   | { ok: false; message: string; field?: keyof ProfileFormValues };
 
 const CHECK_FIELDS = "Check the fields marked in red.";
@@ -85,7 +84,6 @@ export function useProfileForm() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
-  const formData = useRef(new FormData());
   const [githubConnected, setGithubConnected] = useState(false);
 
   // Initialize form with react-hook-form and Zod
@@ -125,12 +123,13 @@ export function useProfileForm() {
   const { watch, setValue, formState } = form;
   const watchedValues = watch();
 
-  // GitHub and X have no input: OAuth links them. Register them so resetField
-  // can clear them after a disconnect.
-  useEffect(() => {
-    form.register("github_account");
-    form.register("x_account");
-  }, [form]);
+  // GitHub, X and the photo have no input: OAuth links the accounts and
+  // /api/profile/photo saves the photo. Register them so resetField can set
+  // them after a disconnect or a photo change. On every render, not once:
+  // form.reset() (the profile load) clears the registered fields.
+  form.register("github_account");
+  form.register("x_account");
+  form.register("image");
 
   const loadProfile = useCallback(async () => {
     if (!session?.user?.id) {
@@ -240,16 +239,6 @@ export function useProfileForm() {
     }
   }, [session?.user?.email, form, isLoading]);
 
-  // Handle file selection for avatar
-  const handleFileSelect = (file: File) => {
-    // Save file in formData to upload later
-    formData.current.set("file", file);
-    
-    // Create temporary URL for preview
-    const imageUrl = URL.createObjectURL(file);
-    form.setValue("image", imageUrl, { shouldDirty: true });
-  };
-
   // Save the form. Resolves with what happened, so the caller never reports
   // a save that did not happen.
   const saveValues = async (data: ProfileFormValues): Promise<SaveResult> => {
@@ -284,36 +273,8 @@ export function useProfileForm() {
     }
 
     setIsSaving(true);
-    let imageFailed = false;
 
     try {
-      // Check if there's a new image to upload
-      const hasImageChanged = formData.current.has("file");
-      let imageUrl = data.image;
-
-      // If there's a new image, upload it first
-      if (hasImageChanged) {
-        try {
-          const imageResponse = await fetch("/api/file", {
-            method: "POST",
-            body: formData.current,
-          });
-
-          if (!imageResponse.ok) {
-            throw new Error("Error uploading image");
-          }
-
-          const imageData = await imageResponse.json();
-          imageUrl = imageData.url;
-          
-          // Clear formData after upload
-          formData.current = new FormData();
-        } catch (imageError) {
-          console.error("Image upload error:", imageError);
-          imageFailed = true;
-        }
-      }
-
       // Build user_type object to send as JSON
       const {
         is_student,
@@ -346,7 +307,6 @@ export function useProfileForm() {
         // the server rejects a blank name but accepts a missing one
         ...(name?.trim() ? { name: name.trim() } : {}),
         wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
-        image: imageUrl, // Use uploaded image or existing one
         user_type: {
           is_student,
           is_founder,
@@ -409,9 +369,6 @@ export function useProfileForm() {
       };
 
       form.reset(newFormData);
-      if (imageFailed) {
-        return { ok: true, warning: "The profile is saved, but the photo did not upload. Try the photo again." };
-      }
       return { ok: true };
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -498,7 +455,6 @@ export function useProfileForm() {
     isSaving,
     githubConnected,
     setGithubConnected,
-    handleFileSelect,
     handleAddSkill,
     handleRemoveSkill,
     handleAddSocial,

@@ -8,7 +8,6 @@ import { toast as sonnerToast } from "sonner";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import SignOutComponent from "@/components/login/sign-out/SignOut";
 import SendNotificationsForm from "@/components/notification/send-notifications-form";
-import { useUserAvatar } from "@/components/context/UserAvatarContext";
 import { triggerNewUserLogin, useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { canAccessBuilderInsights, canSendNotifications } from "@/lib/auth/permissions";
 import { computeCompletion, type CompletionStepKey } from "@/lib/profile/completion";
@@ -17,8 +16,6 @@ import type { BuilderInsightsData } from "@/server/services/builderInsights";
 import "./styles.css";
 
 import { useProfileForm, type ProfileFormValues } from "../components/hooks/useProfileForm";
-import { NounAvatarConfig } from "../components/NounAvatarConfig";
-import type { AvatarSeed } from "../components/DiceBearAvatar";
 import { AccountsSection } from "../sections/AccountsSection";
 import { AchievementsSection, type AcademyProgress, type AchievementBadge } from "../sections/AchievementsSection";
 import { AlertsSection } from "../sections/AlertsSection";
@@ -122,14 +119,16 @@ export default function ProfilePage({ teamLabel }: { teamLabel?: string | null }
   const { data: session, status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
 
-  if (status === "loading") {
+  // only the first load: a session update (after a photo change) is
+  // "loading" too, and must not unmount the page and its unsaved edits
+  if (status === "loading" && !session) {
     return (
       <ProfileFrame>
         <PageSpinner />
       </ProfileFrame>
     );
   }
-  if (status !== "authenticated" || !session?.user?.id) {
+  if ((status !== "authenticated" && !session) || !session?.user?.id) {
     return (
       <ProfileFrame>
         <div className="mx-auto max-w-md py-24 text-center">
@@ -186,19 +185,14 @@ function PageSpinner() {
 }
 
 function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const userId = session?.user?.id ?? null;
   const searchParams = useSearchParams();
-  const avatarContext = useUserAvatar();
-  const setContextNounAvatar = avatarContext?.setNounAvatar;
   const { form, isLoading, loadFailed, reload, isSaving, githubConnected, setGithubConnected, save } = useProfileForm();
   const values = form.watch();
   const dirty = form.formState.isDirty;
 
   const [signOutOpen, setSignOutOpen] = React.useState(false);
-  const [isAvatarOpen, setIsAvatarOpen] = React.useState(false);
-  const [nounAvatarSeed, setNounAvatarSeed] = React.useState<AvatarSeed | null>(null);
-  const [nounAvatarEnabled, setNounAvatarEnabled] = React.useState(false);
   const [summary, setSummary] = React.useState<SummaryResponse>(EMPTY_SUMMARY);
   const [summaryLoading, setSummaryLoading] = React.useState(true);
   const [summaryFailed, setSummaryFailed] = React.useState(false);
@@ -219,23 +213,6 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
   const showNotifications = canSendNotifications(session?.user?.custom_attributes);
 
   /* ------------------------------------------------------------ data */
-  React.useEffect(() => {
-    let cancelled = false;
-    fetch("/api/user/noun-avatar")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        setNounAvatarSeed(data.seed ?? null);
-        setNounAvatarEnabled(data.enabled ?? false);
-        setContextNounAvatar?.(data.seed ?? null, data.enabled ?? false);
-      })
-      .catch(() => {
-        /* the photo or the initials stand in */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [setContextNounAvatar]);
 
   const summaryRun = React.useRef(0);
   const loadSummary = React.useCallback(() => {
@@ -430,8 +407,7 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     const result = await save();
     if (result.ok) {
       // a save that worked unmounts the bar, so a toast covers nothing
-      if (result.warning) sonnerToast.error(result.warning);
-      else sonnerToast.success("Profile saved");
+      sonnerToast.success("Profile saved");
       focusSectionTop();
       return;
     }
@@ -519,10 +495,28 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     opener.focus();
   };
 
-  const handleNounAvatarSave = async (seed: AvatarSeed, enabled: boolean) => {
-    setNounAvatarSeed(seed);
-    setNounAvatarEnabled(enabled);
-    avatarContext?.setNounAvatar(seed, enabled);
+  // The photo saves at once, as the Settings switches do: it has no draft
+  // for Save or Discard. Resolves with an error text, or null.
+  const handlePhotoChange = async (file: File | null): Promise<string | null> => {
+    let res: Response;
+    try {
+      if (file) {
+        const body = new FormData();
+        body.set("file", file);
+        res = await fetch("/api/profile/photo", { method: "POST", body });
+      } else {
+        res = await fetch("/api/profile/photo", { method: "DELETE" });
+      }
+    } catch {
+      return "Could not reach the server. Try again.";
+    }
+    const data = (await res.json().catch(() => ({}))) as { image?: string; error?: string };
+    if (!res.ok) return data.error || "Could not save your photo. Try again.";
+    form.resetField("image", { defaultValue: data.image ?? "" });
+    // the site header reads the photo from the session
+    void updateSession();
+    sonnerToast.success(file ? "Photo saved" : "Photo removed");
+    return null;
   };
 
   const referralCatalog: ReferralTarget[] = React.useMemo(
@@ -592,7 +586,6 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
   const name = values.name ?? "";
   const email = values.email || session?.user?.email || "";
   const imageUrl = values.image || null;
-  const avatarSeed = nounAvatarEnabled ? nounAvatarSeed : null;
   // read during render, so the form reports changes to the edited fields
   const dirtyKeys = Object.keys(form.formState.dirtyFields);
   // the section that holds the edits; Personal info when both have some
@@ -604,7 +597,6 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
       handle={values.username ?? ""}
       email={email}
       imageUrl={imageUrl}
-      avatarSeed={avatarSeed}
       teamLabel={teamLabel}
       completion={{ pct: completion.pct, nextLabel: completion.next?.label ?? null }}
       onJumpToNext={jumpToNext}
@@ -625,12 +617,7 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     switch (active) {
       case "personal":
         content = (
-          <PersonalSection
-            form={form}
-            imageUrl={imageUrl}
-            avatarSeed={avatarSeed}
-            onEditAvatar={openWith(setIsAvatarOpen)}
-          />
+          <PersonalSection form={form} imageUrl={imageUrl} onPhotoChange={handlePhotoChange} />
         );
         break;
       case "accounts":
@@ -731,14 +718,6 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
           )}
         </div>
       </div>
-      <NounAvatarConfig
-        isOpen={isAvatarOpen}
-        onOpenChange={setIsAvatarOpen}
-        currentSeed={nounAvatarSeed}
-        nounAvatarEnabled={nounAvatarEnabled}
-        onSave={handleNounAvatarSave}
-        onCloseAutoFocus={restoreFocus}
-      />
       <SignOutComponent
         isOpen={signOutOpen}
         onOpenChange={setSignOutOpen}

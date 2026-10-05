@@ -61,7 +61,7 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
         where: { id: id },
         data: {
             bio: data.bio,
-            image: data.image,
+            // the photo is written only by /api/profile/photo, which checks and re-encodes it
             name: data.name,
             notification_email: data.notification_email,
             notifications: data.notifications,
