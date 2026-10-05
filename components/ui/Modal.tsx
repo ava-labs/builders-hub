@@ -1,5 +1,6 @@
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -17,8 +18,6 @@ interface ModalProps {
   footer?: ReactNode;
   className?: string;
   contentClassName?: string;
-  /** where focus goes when the dialog closes: call e.preventDefault() and focus the opener */
-  onCloseAutoFocus?: (e: Event) => void;
 }
 
 export default function Modal({
@@ -30,12 +29,10 @@ export default function Modal({
   footer,
   className = '',
   contentClassName = '',
-  onCloseAutoFocus,
 }: ModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        onCloseAutoFocus={onCloseAutoFocus}
         className={`
           w-[95%] max-w-[450px] sm:w-[85%] sm:max-w-[500px] md:w-[70vw] md:max-w-[550px]
           border border-zinc-400 p-4 sm:p-6 gap-4 rounded-lg mx-auto
@@ -50,6 +47,7 @@ export default function Modal({
           <DialogTitle className='text-center font-bold text-lg sm:text-left'>
             {title}
           </DialogTitle>
+          <DialogClose />
         </DialogHeader>
 
         {description && (

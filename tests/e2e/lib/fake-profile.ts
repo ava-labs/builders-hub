@@ -31,7 +31,6 @@ export function profileAnswers(userId: string, email: string): FakeAnswers {
       profile_privacy: 'public',
       githubConnected: false,
     },
-    'GET /api/user/noun-avatar': { seed: null, enabled: false },
     'GET /api/profile/popular-skills': [],
     'GET /api/profile/summary': {
       projects: [],
