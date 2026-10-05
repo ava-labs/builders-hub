@@ -195,6 +195,18 @@ export const FIG_UNIT = "ml-1 font-mono text-[12px] font-normal tracking-normal 
 export const SUB = "font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
 export const BLOCK_FACE = "items-start gap-3 px-5 pb-12 pt-3 md:px-6";
 
+/** a long figure, such as a chain height on a phone, shrinks to its
+ *  block's width instead of running under the edge. The text column is
+ *  the container. In FIGURE's font a digit takes about 0.62 em, a capital
+ *  or % 0.8 em and a comma or point 0.3 em; a unit in FIG_UNIT's 12 px
+ *  mono takes about 7.3 px a character after its 4 px margin. */
+function fitFigure(value: React.ReactNode, unit?: string): React.CSSProperties | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  const em = [...value].reduce((sum, ch) => sum + (/[,.:]/.test(ch) ? 0.3 : /[A-Z%]/.test(ch) ? 0.8 : 0.62), 0);
+  const unitPx = unit ? 4 + unit.length * 7.3 : 0;
+  return { fontSize: `min(22px, calc((100cqi - ${unitPx}px) / ${em.toFixed(2)}))` };
+}
+
 /* The live readout: what is true this second, as a row of blocks. It
    sits between the search and the live boards, so the page reads:
    identity, pulse, ledger, then the clocked readings below. */
@@ -219,10 +231,10 @@ export function LiveReadoutAt({ chainId, cells, days }: { chainId: string; cells
         return (
           <ReadoutBlock key={c.label} href={c.href} className={BLOCK_FACE}>
             {c.live && <LiveDot className="mt-1.5 shrink-0" />}
-            <span className="relative z-10 flex min-w-0 flex-col gap-1">
+            <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-1 @container">
               <span className={LABEL}>{c.label}</span>
               <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                <span className={FIGURE}>
+                <span className={FIGURE} style={fitFigure(c.value, c.unit)}>
                   {c.value}
                   {c.unit && <span className={FIG_UNIT}>{c.unit}</span>}
                 </span>
