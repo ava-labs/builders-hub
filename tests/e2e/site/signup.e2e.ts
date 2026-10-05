@@ -149,8 +149,8 @@ for (const theme of ['light', 'dark'] as const) {
     await openAsReturningVisitor(app, browser, '/signup', { theme });
     await expect(browser).toHaveClass(browser.locator('html'), new RegExp(`\\b${theme}\\b`));
     await expect(screen.getByRole('heading', SIGNUP_HEADING)).toBeVisible();
-    // The artwork is aria-hidden, and the engine counts an aria-hidden node as hidden. So the page measures it:
-    // whether it is drawn, and the WCAG 2 contrast of its color against the first opaque background behind it.
+    // The artwork is aria-hidden, so no role query finds it, and no locator measures a contrast. So the page measures
+    // it: whether it is drawn, and the WCAG 2 contrast of its color against the first opaque background behind it.
     // A canvas turns any CSS color (the site uses lab() and oklch()) into sRGB.
     const artwork = await browser.evaluate(() => {
       const svg = document.querySelector('svg[viewBox="0 0 559 685"]');
