@@ -34,8 +34,9 @@ test('visitor finds the validator stake ranking from the P-Chain overview and op
 
 // The City view (/explorer/mainnet/chains) draws the L1s in 3D, with a chain list and a search over it.
 // Two acts, each with its own check, so the URL proves that the agent went through the City view.
-// The second act asks for the search: the list buttons name live counts ("Chains 68", "Dexalot 10" in
-// components/explorer-v2/network/city-app.tsx:2171 and :1716), so a replay through the list stops when a count changes.
+// The second act asks for the search: the list buttons name live counts ("Chains 68" in SidebarHead,
+// components/explorer-v2/network/city-frame.tsx, and "Dexalot 10" in RowButton, city-app.tsx), so a replay through the
+// list stops when a count changes.
 test('visitor opens an L1 from the City view of the explorer', MULTI_PAGE, async (fixtures) => {
   needsModel();
   const { app, agent, browser, screen } = fixtures;
