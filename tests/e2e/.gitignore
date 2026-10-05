@@ -7,3 +7,5 @@
 # uptime count) change between runs, so --strict-cache would fail them at random. These steps call the model in CI.
 .e2e/cache/c3b8aacfff21ca1d699bf7806c7f79a86261b50ff5fe6c027b1a5fe48cb9f969.json
 .e2e/cache/d0ab4e1eaa95866af6fe0b7426590d0f3a804ee1dfcd649d72dceecf00557b09.json
+# The output of the Console explore runs (explore/console/e2e.config.ts), the cache folder too: those runs commit nothing.
+explore/console/.e2e/

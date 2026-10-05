@@ -109,6 +109,17 @@ Rules for a new agent test:
 - Run one charter locally: `npx e2e explore '<goal>' --target desktop --output .e2e/explore/<key>`.
 - Without the `ANTHROPIC_API_KEY` secret the job skips.
 
+### Console bug hunt (watch-only wallet)
+
+`explore/console/` runs `e2e explore` on the Builder Console with a watch-only wallet. No CI job runs it. `charters.json` holds one goal per Console area, and `e2e.config.ts` gives the command for one charter.
+
+- With `E2E_CHAIN_FUJI_KEY_FILE` set, the page gets a Core wallet that knows only the public addresses of the Fuji test key (`watch-wallet.ts`). It reads Fuji and rejects each sign or send request with 4001, so a run sends no transaction. Without the variable, the page has no wallet.
+- The wallet's own reads go out one every 600 ms at most and stop at the first HTTP 429. The Console also reads Fuji by itself, so run one charter at a time.
+- The results go to `explore/console/.e2e/explore-console/<key>/`, which git ignores.
+- Keep each charter to one Console area. The planner's input grows with each step. When it is more than the agent's limit of 64,000 tokens, the run stops early (`STEP_BUDGET_EXHAUSTED`). One charter for ICM and ICTT went above the limit, so they are two charters (`icm-setup`, `ictt-setup`).
+- A run on localhost does not test the login gate: the Console lets a local dev server through without a sign-in (`isDevLocalhostBypass` in `components/toolbox/hooks/useAccountRequirements.ts`). To test the pages that need an account (Basic setup, the faucet, the managed relayer), run the charter on a preview. Set `E2E_BASE_URL` to the preview URL and `VERCEL_AUTOMATION_BYPASS_SECRET` to the bypass secret.
+- The watch wallet has no signer, so it cannot send a transaction. Other tools can use the same key at the same time, for example a chain test or a script. So a change of the key's balance or nonce during a run does not prove that the watch wallet sent something.
+
 ## Console chain tests
 
 `chain/` holds the Console flows that send real transactions on Fuji. They have their own config, `chain/e2e.config.ts`: desktop only (no phone size), one worker, no retries. The main config excludes the folder, so a PR never runs them. [`.github/workflows/e2e-chain.yml`](../../.github/workflows/e2e-chain.yml) runs them each night at 08:23 UTC on build.avax.network: one suite per job, one job after the other ([`e2e-chain-suite.yml`](../../.github/workflows/e2e-chain-suite.yml)). To run them by hand on GitHub: Actions, E2E chain, Run workflow, on `master`. A run from another branch skips every job. The workflow takes no URL: CI tests production only.
