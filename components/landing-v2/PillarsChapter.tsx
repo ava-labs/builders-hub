@@ -111,7 +111,7 @@ export default function PillarsChapter({ reducedMotion }: { reducedMotion: boole
                     {/* the instrument holds the panel's center, like the
                         imagery band in the brand reference */}
                     <div className="dark hidden min-h-0 flex-1 items-center justify-center py-4 lg:flex">
-                      <PillarDiagram slug={pillar.slug} />
+                      <PillarDiagram slug={pillar.slug} active={isActive} />
                     </div>
                     <div className="mt-auto flex items-center justify-between gap-8 pt-6 lg:mt-0">
                       <BrandButton
