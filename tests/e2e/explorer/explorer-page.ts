@@ -14,6 +14,9 @@ export const MULTI_PAGE = { timeout: 360_000 };
 // A "Latest Blocks" row on an overview: an optional chain name, a comma-grouped height, then the next cell.
 export const OVERVIEW_BLOCK_ROW = /^([A-Z][\w .()-]*? )?\d{1,3}(,\d{3})+ [\dA-Z]/;
 
+// A row of the Primary Network roster: the rank (desktop only), the title of the status dot once the status loads, then the NodeID.
+export const VALIDATOR_ROW = /^(\d+ )?(Online |Offline |Connection not reported )?NodeID-[1-9A-HJ-NP-Za-km-z]+/;
+
 // The tab rail of the explorer subnav (components/explorer-v2/ExplorerSubnav.tsx).
 export function sectionTabs(screen: Screen): Locator {
   return screen.getByRole('navigation', 'Explorer sections');
