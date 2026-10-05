@@ -50,7 +50,7 @@ The repo has no `lint` script. Run ESLint on the paths you changed, as CI does (
 For the browser and API tests, read `tests/e2e/README.md`. They run against a running site:
 
 ```bash
-cd tests/e2e && npm ci && npx playwright install chromium
+cd tests/e2e && npm ci && npx @e2e-dev/web install chromium
 E2E_BASE_URL=http://localhost:3000 npm test
 ```
 

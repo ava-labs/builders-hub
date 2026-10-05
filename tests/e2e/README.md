@@ -11,7 +11,7 @@ Console wallet flows have no tests yet. They need the Core wallet shim, and the 
 
 ## Why a separate package
 
-This folder has its own `package.json` and `package-lock.json`. The framework needs Playwright 1.63 or later and, for agent steps, `ai` 7. The site uses `ai` 6. A separate package keeps the two versions apart, and the site install does not download Playwright. The root `tsconfig.json` excludes `tests/`, so the site build does not type-check this folder.
+This folder has its own `package.json` and `package-lock.json`. The browser engine, `@e2e-dev/web`, pins its own `playwright-core` (1.63.0), and agent steps need `ai` 7. The site uses `ai` 6. A separate package keeps the two versions apart, and the site install does not download Playwright. The root `tsconfig.json` excludes `tests/`, so the site build does not type-check this folder.
 
 ## Run the tests
 
@@ -21,7 +21,7 @@ This folder has its own `package.json` and `package-lock.json`. The framework ne
    ```bash
    cd tests/e2e
    npm ci
-   npx playwright install chromium
+   npx @e2e-dev/web install chromium
    ```
 
 3. Run every test at both sizes:
