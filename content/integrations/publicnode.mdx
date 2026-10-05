@@ -1,0 +1,49 @@
+---
+title: PublicNode
+category: RPC Endpoints
+available: ["C-Chain", "P-Chain", "X-Chain"]
+description: "PublicNode by Allnodes provides fast, free, and privacy-first RPC endpoints for Avalanche."
+logo: /images/publicnode.png
+developer: Allnodes
+website: https://publicnode.com/
+---
+
+## Overview
+
+PublicNode by Allnodes provides fast, free, and privacy-first RPC endpoints for Avalanche. It serves the C-Chain over HTTPS and WebSocket, and the P-Chain and X-Chain over HTTPS, on Mainnet and the Fuji testnet.
+
+## Features
+
+- **C-Chain, P-Chain and X-Chain**: EVM, PlatformVM and AVM endpoints on one host per chain
+- **Free, no API key**: Endpoints are open, with no sign-up
+- **WebSocket for C-Chain**: WSS endpoints for Mainnet and Fuji
+- **Mainnet and Fuji**: Same endpoint layout for both networks
+- **Running since 2022**: Avalanche endpoints have been served continuously since October 2022
+- **Node snapshots**: Pruned snapshots for Mainnet and Fuji, updated daily, at [publicnode.com/snapshots](https://www.publicnode.com/snapshots#avalanche)
+- **Archive on Allnodes**: Archive nodes and archive snapshots for Mainnet and Fuji are available on [Allnodes](https://www.allnodes.com/avax) bare-metal infrastructure
+
+## Endpoints
+
+Mainnet:
+
+- C-Chain: `https://avalanche-c-chain-rpc.publicnode.com` and `wss://avalanche-c-chain-rpc.publicnode.com`
+- P-Chain: `https://avalanche-p-chain-rpc.publicnode.com`
+- X-Chain: `https://avalanche-x-chain-rpc.publicnode.com`
+
+Fuji testnet:
+
+- C-Chain: `https://avalanche-fuji-c-chain-rpc.publicnode.com` and `wss://avalanche-fuji-c-chain-rpc.publicnode.com`
+- P-Chain: `https://avalanche-fuji-p-chain-rpc.publicnode.com`
+- X-Chain: `https://avalanche-fuji-x-chain-rpc.publicnode.com`
+
+The standard Avalanche API paths work on these hosts, for example `/ext/bc/C/rpc` for the C-Chain and `/ext/bc/P` for the P-Chain.
+
+## Documentation
+
+For the full endpoint list, visit [avalanche.publicnode.com](https://avalanche.publicnode.com/).
+
+## Use Cases
+
+- **dApp frontends and scripts**: Read chain data and send transactions without running a node
+- **Wallet configuration**: Add Avalanche Mainnet or Fuji to a wallet with a public endpoint
+- **Validator and staking tools**: Query P-Chain data over HTTPS
