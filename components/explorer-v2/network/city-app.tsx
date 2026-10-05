@@ -2083,12 +2083,13 @@ export function CityApp({
   const room: Inset = { left: showPanel ? PANEL_W + 28 : 20, right: rightW ? rightW + 28 : 20, top: 112, bottom: 92 };
   const was = insetWas.current;
   const inset = was && was.left === room.left && was.right === room.right ? was : (insetWas.current = room);
+  // clip, not hidden: a hidden box still scrolls, and a focus or a click on a card that is sliding in scrolled the whole frame sideways
   // the sky under the canvas, matched to the city's first frame (its haze by rows, the sun's or the moon's glow at the upper left), so the canvas fades in on itself
   return (
     <div
       ref={appRef}
       data-city-app
-      className={`${FRAME} relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]`}
+      className={`${FRAME} relative h-full w-full overflow-clip bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]`}
     >
       <RouterRef into={router} />
       {(() => {
