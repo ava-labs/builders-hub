@@ -3,6 +3,8 @@
 // this module adds wei/ether + gas conversions, which are BigInt-safe because a
 // uint256 wei value blows past Number's 2^53 precision ceiling.
 
+import { paramUnit, ROLES } from "@/lib/precompiles";
+
 /** Decimal wei string → "1.2345" (fixed `decimals` significant fraction),
  *  trailing zeros trimmed. Pure integer/BigInt math — no float rounding. */
 function formatUnits(wei: string | number | undefined, unit: bigint, decimals: number): string {
@@ -46,15 +48,29 @@ export function formatGwei(wei: string | number | undefined): string {
   return `${formatUnits(wei, WEI_PER_GWEI, 4)} Gwei`;
 }
 
-/** gasUsed / gasLimit ratio → "42.1%" (or "—" when limit is 0/absent). */
-export function gasUsedPct(used?: number, limit?: number): string {
-  if (!limit || limit <= 0 || used === undefined) return "—";
-  return `${((used / limit) * 100).toFixed(1)}%`;
+/** wei → "0.22 nAVAX": gas prices in the chain's nano unit (gwei on
+ *  Ethereum, nAVAX here), two places under 100, whole above */
+export function formatNano(wei: string | number | undefined, symbol = "AVAX"): string {
+  if (wei === undefined || wei === null || wei === "") return "—";
+  const n = Number(wei) / 1e9;
+  if (!Number.isFinite(n)) return "—";
+  return `${n >= 100 ? Math.round(n).toLocaleString("en-US") : n.toFixed(2)} n${symbol}`;
 }
 
-/** Short label for an EVM tx: contract-creation, native transfer, or call. */
-export function txKind(to: string, input: string): string {
-  if (!to) return "Contract Creation";
-  if (!input || input === "0x") return "Transfer";
-  return "Contract Call";
+/** a precompile's number in the unit it means: the native coin, a role,
+ *  a gas price (in wei below a hundredth of a nano), seconds, or a count */
+export function precompileValue(name: string, value: string | bigint, symbol: string): string {
+  const v = BigInt(value);
+  switch (paramUnit(name)) {
+    case "native":
+      return formatEther(v.toString(), { symbol, decimals: 6 });
+    case "role":
+      return ROLES[Number(v)] ?? v.toString();
+    case "gasPrice":
+      return v < 10_000_000n ? `${v.toLocaleString("en-US")} wei` : formatNano(v.toString(), symbol);
+    case "seconds":
+      return `${v} s`;
+    default:
+      return v.toLocaleString("en-US");
+  }
 }

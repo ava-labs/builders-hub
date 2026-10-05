@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Box, Hash, Server, Wallet } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Box, Hash, Server, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { ICM_STATUS_LABEL, type IcmMessage } from "@/lib/icm-message";
 import type { L1Chain } from "@/types/stats";
 import { hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
+import { readIndexedChainIds } from "@/components/explorer-v2/validator-stats";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 import { buildTxUrl, buildAddressUrl, buildBlockUrl } from "@/utils/eip3091";
+import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
 
 /* ------------------------------------------------------------------ */
 /* The one chain-suggestion engine behind every explorer search bar    */
@@ -38,7 +42,7 @@ export interface ChainMatch {
 export const CHAIN_INDEX: ChainHit[] = [
   {
     slug: "p-chain",
-    name: "Platform Chain",
+    name: "P-Chain",
     logo: "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg",
     subnetId: "11111111111111111111111111111111LpoYY",
     isTestnet: false,
@@ -57,7 +61,8 @@ export const CHAIN_INDEX: ChainHit[] = [
     const net = c.isTestnet === true ? "fuji" : "mainnet";
     return {
       slug: c.slug,
-      name: c.chainName || c.slug,
+      // the Primary Network chain goes by its short name everywhere in the explorer
+      name: c.slug === "c-chain" ? "C-Chain" : c.chainName || c.slug,
       logo: hasRealChainLogo(c.chainLogoURI) ? c.chainLogoURI : undefined,
       subnetId: c.subnetId || undefined,
       blockchainId: c.blockchainId || undefined,
@@ -174,8 +179,18 @@ function ChainLogo({ uri, name }: { uri?: string; name: string }) {
 /* costs one lookup total — the Enter key reuses the same cache.       */
 /* ------------------------------------------------------------------ */
 
+/* How a P-Chain search result renders. "chain" comes from a CreateChainTx
+   id, whose page is the L1's own detail view rather than the creating tx. */
+const PCHAIN_HIT: Record<string, { icon: EntityHit["icon"]; label: string }> = {
+  block: { icon: "block", label: "Block" },
+  chain: { icon: "block", label: "Blockchain" },
+  node: { icon: "node", label: "Validator node" },
+  address: { icon: "address", label: "Address" },
+  tx: { icon: "tx", label: "Transaction" },
+};
+
 export interface EntityHit {
-  icon: "tx" | "block" | "address" | "node";
+  icon: "tx" | "block" | "address" | "node" | "icm";
   label: string;
   id: string;
   /** null while searching or when nothing claimed the identifier */
@@ -186,14 +201,24 @@ export interface EntityHit {
   status: "ready" | "searching" | "notfound";
 }
 
+/* The chains a pasted tx hash is raced across: the mainnet chains the
+   explorer indexes. A hit opens /explorer/mainnet/{slug}/tx, and an
+   unindexed chain has no tx page there; several of their RPCs refuse a
+   browser's read as well. Without the indexed set, the catalog's flag
+   stands in. */
+export function raceChains(indexed: Set<string> | null, chains: L1Chain[] = l1ChainsData as L1Chain[]): L1Chain[] {
+  return chains.filter((c) => !c.isTestnet && (indexed ? indexed.has(toStatsChainId(c.chainId)) : c.isIndexed !== false));
+}
+
 const txRaceCache = new Map<string, Promise<{ found: boolean; chain?: L1Chain }>>();
-/** lookupTransactionAcrossChains, one race per hash per session — the
- *  dropdown resolves it and the Enter key gets the answer for free. */
+/** lookupTransactionAcrossChains over the indexed mainnet chains, one race
+ *  per hash per session: the dropdown resolves it and the Enter key gets
+ *  the answer for free. */
 export function lookupTxAcrossChainsCached(hash: string) {
   const key = hash.toLowerCase();
   let p = txRaceCache.get(key);
   if (!p) {
-    p = lookupTransactionAcrossChains(hash);
+    p = readIndexedChainIds().then((indexed) => lookupTransactionAcrossChains(hash, raceChains(indexed)));
     txRaceCache.set(key, p);
   }
   return p;
@@ -212,6 +237,23 @@ function pchainSearchCached(network: string, q: string): Promise<SearchResult> {
   return p;
 }
 
+const icmLookupCache = new Map<string, Promise<IcmMessage | null>>();
+/** One lookup per message ID per session. Only ever reached after both the EVM
+ *  race and the P-Chain search came back empty, so the ordinary path, a hash
+ *  that is a transaction, never pays for it. */
+function icmLookupCached(hash: string): Promise<IcmMessage | null> {
+  const key = hash.toLowerCase();
+  let p = icmLookupCache.get(key);
+  if (!p) {
+    p = fetch(`/api/icm/message/${key}`, SOFT_READ)
+      .then((res) => (isOk(res) ? res.json() : null))
+      .then((body) => (body && !body.error ? (body as IcmMessage) : null))
+      .catch(() => null);
+    icmLookupCache.set(key, p);
+  }
+  return p;
+}
+
 /** Where this search bar's Enter key sends each shape — the entity row
  *  must point at the same place. */
 export interface EntityTargets {
@@ -222,6 +264,28 @@ export interface EntityTargets {
   /** base + display name for 0x addresses */
   evmAddressBase: string;
   evmAddressChainName: string;
+  /** base + display name for a plain height the P-Chain does not have; when
+   *  set, a height waits on the P-Chain search (the network search) */
+  heightFallback?: { base: string; chainName: string };
+}
+
+/** A plain height's row. With a fallback chain, a height opens on blockBase
+ *  only when the P-Chain search found that block; any other height opens on
+ *  the fallback chain, whose heights run far past the P-Chain tip. */
+export function heightHit(q: string, targets: EntityTargets, found?: SearchResult): EntityHit {
+  const other = targets.heightFallback && found?.type !== "block" ? targets.heightFallback : null;
+  return {
+    icon: "block", label: "Block", id: q,
+    href: buildBlockUrl(other?.base ?? targets.blockBase, q),
+    detail: other?.chainName ?? targets.blockChainName,
+    status: "ready",
+  };
+}
+
+/** heightHit after the P-Chain search, one lookup per height per session:
+ *  the dropdown's row and the Enter key share it. */
+export function heightHitCached(q: string, targets: EntityTargets): Promise<EntityHit> {
+  return pchainSearchCached(targets.network, q).then((found) => heightHit(q, targets, found));
 }
 
 const ENTITY_DEBOUNCE_MS = 350;
@@ -234,12 +298,17 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   // bech32 addresses share most of the CB58 alphabet — they resolve
   // instantly below and must not trigger a P-Chain search here
   const isCb58 = /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q) && !/^(P-)?(avax|fuji|custom)1/i.test(q);
+  // with a fallback chain, a plain height asks the P-Chain whether it has it
+  const isAskedHeight = !!targets.heightFallback && /^\d+$/.test(q);
 
   useEffect(() => {
-    if (!isTxHash && !isCb58) return;
+    if (!isTxHash && !isCb58 && !isAskedHeight) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
-      if (isTxHash) {
+      if (isAskedHeight) {
+        const hit = await heightHitCached(q, targets);
+        if (!cancelled) setResolved({ q, hit });
+      } else if (isTxHash) {
         const race = await lookupTxAcrossChainsCached(q);
         if (cancelled) return;
         if (race.found && race.chain) {
@@ -258,10 +327,20 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         // no EVM chain claimed it — a hex P-Chain tx id is still possible
         const r = await pchainSearchCached(targets.network, q);
         if (cancelled) return;
+        if (r.type !== "none") {
+          setResolved({
+            q,
+            hit: { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" },
+          });
+          return;
+        }
+
+        const icm = await icmLookupCached(q);
+        if (cancelled) return;
         setResolved({
           q,
-          hit: r.type !== "none"
-            ? { icon: "tx", label: r.type === "block" ? "Block" : "Transaction", id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
+          hit: icm
+            ? { icon: "icm", label: "Interchain message", id: q, href: `/explorer/${targets.network}/icm/${icm.messageId}`, detail: ICM_STATUS_LABEL[icm.status] ?? "Interchain message", status: "ready" }
             : { icon: "tx", label: "Transaction", id: q, href: null, detail: "No chain claims this hash", status: "notfound" },
         });
       } else {
@@ -270,7 +349,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         setResolved({
           q,
           hit: r.type !== "none"
-            ? { icon: r.type === "block" ? "block" : "tx", label: r.type === "block" ? "Block" : r.type === "tx" ? "Transaction" : r.type, id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
+            ? { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
             : { icon: "tx", label: "P-Chain ID", id: q, href: null, detail: "Nothing matched", status: "notfound" },
         });
       }
@@ -279,14 +358,12 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [q, isTxHash, isCb58, targets.network]);
+  }, [q, isTxHash, isCb58, isAskedHeight, targets.network]);
 
   if (!q) return null;
 
   // instant shapes — no network round-trip, mirrors Enter exactly
-  if (/^\d+$/.test(q)) {
-    return { icon: "block", label: "Block", id: q, href: buildBlockUrl(targets.blockBase, q), detail: targets.blockChainName, status: "ready" };
-  }
+  if (/^\d+$/.test(q) && !isAskedHeight) return heightHit(q, targets);
   if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) {
     return { icon: "node", label: "Validator node", id: q, href: `/explorer/${targets.network}/p-chain/node/${q}`, detail: "P-Chain", status: "ready" };
   }
@@ -298,11 +375,11 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   }
 
   // async shapes — the resolved answer when it's in, a searching row until
-  if (isTxHash || isCb58) {
+  if (isTxHash || isCb58 || isAskedHeight) {
     if (resolved && resolved.q === q) return resolved.hit;
     return {
-      icon: "tx",
-      label: isTxHash ? "Transaction" : "P-Chain ID",
+      icon: isAskedHeight ? "block" : "tx",
+      label: isTxHash ? "Transaction" : isAskedHeight ? "Block" : "P-Chain ID",
       id: q,
       href: null,
       detail: isTxHash ? "Searching every chain…" : "Searching the P-Chain…",
@@ -312,7 +389,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   return null;
 }
 
-const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server } as const;
+const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server, icm: ArrowLeftRight } as const;
 
 /** The entity row: what the identifier in the box resolves to, and where
  *  Enter (or a click) lands. Sits above the chain suggestions. */

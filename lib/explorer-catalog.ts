@@ -12,12 +12,29 @@ export function wantsTestnet(network: string): boolean {
   return network === "fuji" || network === "testnet";
 }
 
+export const TESTNET_COUNTERPART: Record<string, string> = {
+  "c-chain": "c-chain", // 43114 ↔ 43113
+  beam: "beam-l1", // 4337 ↔ 13337
+  dexalot: "dexalot-l1", // 432204 ↔ 432201
+  // Add pairs here as their testnet indexing comes online.
+};
+
+export const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
+  Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
+);
+
 /** The catalog entry a URL addresses, if any. */
 export function resolveCatalogChain(network: string, slug: string | undefined): L1Chain | undefined {
   if (!slug) return undefined;
   const testnet = wantsTestnet(network);
   const candidates = CATALOG.filter((c) => c.slug === slug);
-  return candidates.find((c) => (c.isTestnet === true) === testnet) ?? candidates[0];
+  const exact = candidates.find((c) => (c.isTestnet === true) === testnet);
+  if (exact) return exact;
+  const pairSlug = testnet ? TESTNET_COUNTERPART[slug] : MAINNET_COUNTERPART[slug];
+  const pair = pairSlug
+    ? CATALOG.find((c) => c.slug === pairSlug && (c.isTestnet === true) === testnet)
+    : undefined;
+  return pair ?? candidates[0];
 }
 
 /** Whether this URL points at a chain the explorer has no data for. */

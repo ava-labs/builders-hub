@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Shield, Check, X } from "lucide-react"
@@ -9,12 +9,36 @@ import posthog from 'posthog-js'
 export function PrivacyPolicyBox() {
   const [mounted, setMounted] = useState(false)
   const [shouldShow, setShouldShow] = useState(false)
+  const bannerRef = useRef<HTMLDivElement>(null)
+  const visible = mounted && shouldShow
 
   useEffect(() => {
     const consent = localStorage.getItem('cookie_consent')
     setShouldShow(!consent)
     setMounted(true)
   }, [])
+
+  // Publish the strip at the bottom of the viewport that the banner covers (its height plus its bottom
+  // offset) as --privacy-banner-inset on <html>. The phone menu sheet and the Console welcome dialog keep
+  // their controls above this strip, so a visitor can use them before they answer the banner.
+  // Without the banner the variable is not set, and they read 0px. Embed mode hides the banner (height 0).
+  useEffect(() => {
+    const banner = bannerRef.current
+    if (!visible || !banner) return
+    const root = document.documentElement
+    const publish = () => {
+      const height = banner.offsetHeight
+      const inset = height > 0 ? height + parseFloat(getComputedStyle(banner).bottom) : 0
+      root.style.setProperty('--privacy-banner-inset', `${inset}px`)
+    }
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(banner)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--privacy-banner-inset')
+    }
+  }, [visible])
 
   const handleAccept = () => {
     localStorage.setItem('cookie_consent', 'yes')
@@ -30,11 +54,11 @@ export function PrivacyPolicyBox() {
     window.location.reload()
   }
 
-  if (!mounted) return null
-  if (!shouldShow) return null
+  if (!visible) return null
 
   return (
     <div
+      ref={bannerRef}
       // Stay clickable while a modal Radix dialog is open: the dialog sets
       // pointer-events:none on <body>, and stopping pointerdown propagation
       // keeps the dialog's outside-click dismissal from firing.

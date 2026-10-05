@@ -13,12 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useLoginModalTrigger } from '@/hooks/useLoginModal';
-import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
-import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
-import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
 import { canAccessBuilderInsights } from '@/lib/auth/permissions';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 const AVATAR_PX = 30;
 
@@ -37,7 +34,7 @@ function initialsFromName(name?: string | null): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '';
   if (parts.length === 1) {
-    // Single word — show the first two letters so "Jeff" reads as "JE"
+    // Single word: show the first two letters so "Jeff" reads as "JE"
     // instead of a lonely "J" floating in the slot.
     return parts[0].slice(0, 2).toUpperCase();
   }
@@ -46,50 +43,13 @@ function initialsFromName(name?: string | null): string {
 
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
-  const [localSeed, setLocalSeed] = useState<AvatarSeed | null>(null);
-  const [localEnabled, setLocalEnabled] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
-  const { openLoginModal } = useLoginModalTrigger();
   const router = useRouter();
-
-  const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
-  const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
+  const { openLoginModal } = useLoginModalTrigger();
 
   const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      avatarContext?.setNounAvatar(null, false);
-      setLocalSeed(null);
-      setLocalEnabled(false);
-      return;
-    }
-    let cancelled = false;
-    fetch('/api/user/noun-avatar')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data) {
-          const seed = data.seed ?? null;
-          const enabled = data.enabled ?? false;
-          avatarContext?.setNounAvatar(seed, enabled);
-          setLocalSeed(seed);
-          setLocalEnabled(enabled);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          avatarContext?.setNounAvatar(null, false);
-          setLocalSeed(null);
-          setLocalEnabled(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, avatarContext?.setNounAvatar]);
 
   useEffect(() => {
     if (!session?.user) {
@@ -119,17 +79,6 @@ export function UserButton() {
       return <UserRound className={ICON_CLASS} strokeWidth={1.25} />;
     }
     const nameInitials = initialsFromName(session.user.name);
-    if (nounAvatarEnabled && nounAvatarSeed) {
-      return (
-        <span className={`${SLOT_CLASS} overflow-hidden`}>
-          <DiceBearAvatar
-            seed={nounAvatarSeed}
-            size="small"
-            className="pointer-events-none scale-[0.45] origin-center"
-          />
-        </span>
-      );
-    }
     if (session.user.image) {
       return (
         <span className={`${SLOT_CLASS} overflow-hidden`}>
@@ -149,26 +98,21 @@ export function UserButton() {
     return <UserRound className={ICON_CLASS} strokeWidth={1.25} />;
   };
 
-  // Unauthenticated — clicking the avatar still opens the login modal,
-  // matching the rest of the public-page UX.
+  // In-app authentication preserves the current page and its state.
   if (!isAuthenticated) {
     return (
-      <button
-        type="button"
-        aria-label="Login"
-        className={WRAPPER_CLASS}
-        onClick={() => {
-          const currentUrl =
-            typeof window !== 'undefined' ? window.location.href : '/';
-          openLoginModal(currentUrl);
-        }}
-      >
-        {renderAvatar()}
-      </button>
+      <div className="flex items-center gap-3 text-sm">
+        <button type="button" onClick={() => openLoginModal()} className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white">
+          Log in
+        </button>
+        <button type="button" onClick={() => openLoginModal(undefined, 'signup')} className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+          Sign up
+        </button>
+      </div>
     );
   }
 
-  // Authenticated — hover opens a small account menu (Profile, extras,
+  // Authenticated: hover opens a small account menu (Profile, extras,
   // Sign out), while clicking the avatar navigates straight to /profile.
   // Without the explicit onClick the Radix trigger would just toggle the
   // hover-opened menu shut, so a click on the pill did nothing.

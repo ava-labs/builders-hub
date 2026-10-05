@@ -8,6 +8,8 @@ interface StickyNavBarProps {
   onNavigate: (sectionId: string) => void;
   className?: string;
   children?: React.ReactNode;
+  /** a measured offset, for a page whose own sticky rail sits under the navbar */
+  style?: React.CSSProperties;
   /** false when the bar already sits inside a padded sheet column —
    *  full-width pages keep the default contained row */
   inset?: boolean;
@@ -23,10 +25,12 @@ export function StickyNavBar({
   onNavigate,
   className,
   children,
+  style,
   inset = true,
 }: StickyNavBarProps) {
   return (
     <div
+      style={style}
       className={cn(
         "sticky top-14 z-30 w-full border-b border-zinc-200 bg-white/95 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/95",
         className

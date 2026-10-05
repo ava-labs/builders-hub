@@ -4,10 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { geoNaturalEarth1, geoPath, type GeoPermissibleObjects } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
+import { cn } from "@/lib/utils";
+import { compact2 } from "@/components/explorer-v2/format";
 import { HoverReadout, HoverRow } from "@/components/explorer-v2/network/stablecoin-hover";
 
 /* The coverage map: every country a stablecoin on Avalanche answers to,
-   in the brand red on a quiet gray world. Countries are keyed by ISO
+   in the block gray on a quiet world. A click on a country cuts the
+   table to it; when the table is cut, the countries its rows reach turn
+   the selection blue and the rest recede. Countries are keyed by ISO
    3166-1 numeric id to match the vendored world-atlas topology
    (public/geo/countries-110m.json, world-atlas@2). Microstates the 110m
    resolution drops (Singapore, Liechtenstein, Malta) render as dots. */
@@ -44,12 +48,26 @@ function loadTopology() {
   return topologyPromise;
 }
 
-const usdCompact = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 2,
-});
+/* a covered country's fill: gray at rest, blue when lit by a cut */
+function coveredFill(lit: Set<string> | null, picked: string | null, id: string): string {
+  if (picked === id) return "fill-[#0061E2] dark:fill-[#5f9dff]";
+  if (!lit) return "fill-[#A2AFB2] dark:fill-zinc-500";
+  return lit.has(id) ? "fill-[#0061E2]/70 dark:fill-[#5f9dff]/70" : "fill-[#A2AFB2]/40 dark:fill-zinc-600/50";
+}
 
-export function StablecoinMap({ coverage }: { coverage: Map<string, CoveredCountry> }) {
+export function StablecoinMap({
+  coverage,
+  lit = null,
+  picked = null,
+  onPick,
+}: {
+  coverage: Map<string, CoveredCountry>;
+  /** the countries the cut rows reach; null when nothing is cut */
+  lit?: Set<string> | null;
+  /** the country the table is cut to */
+  picked?: string | null;
+  onPick?: (id: string) => void;
+}) {
   const [shapes, setShapes] = useState<CountryShape[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [tip, setTip] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -144,12 +162,13 @@ export function StablecoinMap({ coverage }: { coverage: Map<string, CoveredCount
               d={s.d}
               className={
                 covered
-                  ? "cursor-pointer fill-[#E6212F] stroke-white transition-opacity hover:opacity-80 dark:stroke-zinc-950"
+                  ? cn("cursor-pointer stroke-white transition-[fill,opacity] hover:opacity-80 dark:stroke-zinc-950", coveredFill(lit, picked, s.id))
                   : "fill-zinc-200/80 stroke-white dark:fill-zinc-800/80 dark:stroke-zinc-950"
               }
               strokeWidth={0.5}
               onMouseMove={covered ? onMove(s.id) : undefined}
               onMouseEnter={covered ? onMove(s.id) : undefined}
+              onClick={covered && onPick ? () => onPick(s.id) : undefined}
             />
           );
         })}
@@ -159,10 +178,11 @@ export function StablecoinMap({ coverage }: { coverage: Map<string, CoveredCount
             cx={d.x}
             cy={d.y}
             r={4.5}
-            className="cursor-pointer fill-[#E6212F] stroke-white transition-opacity hover:opacity-80 dark:stroke-zinc-950"
+            className={cn("cursor-pointer stroke-white transition-[fill,opacity] hover:opacity-80 dark:stroke-zinc-950", coveredFill(lit, picked, d.id))}
             strokeWidth={1}
             onMouseMove={onMove(d.id)}
             onMouseEnter={onMove(d.id)}
+            onClick={onPick ? () => onPick(d.id) : undefined}
           />
         ))}
       </svg>
@@ -173,7 +193,7 @@ export function StablecoinMap({ coverage }: { coverage: Map<string, CoveredCount
         >
           <HoverReadout
             label={`${tipData.flag} ${tipData.name}`}
-            value={`$${usdCompact.format(tipData.usd)}`}
+            value={`$${compact2(tipData.usd)}`}
           >
             {[...tipData.tokens]
               .sort((a, b) => b.usd - a.usd)
@@ -183,7 +203,7 @@ export function StablecoinMap({ coverage }: { coverage: Map<string, CoveredCount
                   key={t.symbol}
                   logo={t.logo}
                   label={t.symbol}
-                  value={`$${usdCompact.format(t.usd)}`}
+                  value={`$${compact2(t.usd)}`}
                   share={
                     tipData.usd > 0 ? `${((t.usd / tipData.usd) * 100).toFixed(1)}%` : undefined
                   }
@@ -192,7 +212,7 @@ export function StablecoinMap({ coverage }: { coverage: Map<string, CoveredCount
             {tipData.tokens.length > 5 && (
               <HoverRow
                 label={`+${tipData.tokens.length - 5} more`}
-                value={`$${usdCompact.format(
+                value={`$${compact2(
                   [...tipData.tokens]
                     .sort((a, b) => b.usd - a.usd)
                     .slice(5)

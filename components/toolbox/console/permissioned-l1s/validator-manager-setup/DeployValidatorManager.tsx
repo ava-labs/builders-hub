@@ -184,8 +184,10 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         if (!rescued?.contractAddress) throw new ReceiptUnknownError(hash);
         address = rescued.contractAddress;
       }
+      // Only the toolbox store gets the implementation address; ProxySetup reads it
+      // as `desiredImplementation`. createChainStore.managerAddress must stay the
+      // proxy, which ProxySetup writes once the upgrade lands.
       setValidatorManagerAddress(address);
-      setCreateChainManagerAddress(address);
       onSuccess?.();
     } finally {
       setIsDeployingManager(false);

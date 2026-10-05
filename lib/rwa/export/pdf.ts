@@ -71,14 +71,18 @@ export async function exportDashboardToPDF(
     // Offset the image upward for each page
     const yOffset = margin - page * availablePageHeight
 
-    // Clip to page bounds using the image placement
+    // Clip to page bounds using the image placement. One alias reuses the
+    // image on every page, and FAST deflates its pixels: jsPDF stores a PNG
+    // raw otherwise, about 56 MB for the whole dashboard at 2x
     pdf.addImage(
       dataUrl,
       'PNG',
       margin,
       yOffset,
       scaledWidth,
-      scaledHeight
+      scaledHeight,
+      'rwa-dashboard',
+      'FAST'
     )
 
     // White-out areas outside the content region to clean up overflow

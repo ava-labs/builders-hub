@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
+import { getClientIP } from '@/lib/net/clientIp';
 
 const FUJI_DEBUG_RPC_URL = process.env.FUJI_DEBUG_RPC_URL;
 
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
 
   // Prefer the signed-in identity over a spoofable x-forwarded-for header
   // for rate limiting. IP stays as a secondary bucket for shared accounts.
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const ip = getClientIP(request);
   const identity = `${email}|${ip}`;
   if (!checkRateLimit(identity)) {
     return NextResponse.json({ error: 'Rate limit exceeded. Try again in a minute.' }, { status: 429 });

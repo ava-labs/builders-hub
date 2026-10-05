@@ -2,7 +2,7 @@
 // Do NOT import this file from client components
 
 import { fenceAuth } from './auth'
-import { FENCE_REQUEST_TIMEOUT_MS } from '../constants/fence'
+import { FENCE_HISTORY_TIMEOUT_MS, FENCE_REQUEST_TIMEOUT_MS } from '../constants/fence'
 
 export interface FenceApiMetricValue {
   id: string
@@ -29,7 +29,7 @@ function getApiUrl(): string {
   return url
 }
 
-async function fetchWithAuth(url: string, retryOn401 = true): Promise<Response> {
+async function fetchWithAuth(url: string, timeoutMs: number, retryOn401 = true): Promise<Response> {
   const token = await fenceAuth.getToken()
 
   const response = await fetch(url, {
@@ -37,12 +37,12 @@ async function fetchWithAuth(url: string, retryOn401 = true): Promise<Response> 
       'Authorization': `Bearer ${token}`,
       'Accept': 'application/json',
     },
-    signal: AbortSignal.timeout(FENCE_REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   })
 
   if (response.status === 401 && retryOn401) {
     fenceAuth.invalidate()
-    return fetchWithAuth(url, false)
+    return fetchWithAuth(url, timeoutMs, false)
   }
 
   if (!response.ok) {
@@ -69,7 +69,7 @@ export async function fetchMetricValues(
   const queryString = params.toString()
   const url = `${apiUrl}/v3/metrics/${metricDefinitionId}/values${queryString ? `?${queryString}` : ''}`
 
-  const response = await fetchWithAuth(url)
+  const response = await fetchWithAuth(url, FENCE_HISTORY_TIMEOUT_MS)
   return response.json()
 }
 
@@ -79,6 +79,6 @@ export async function fetchMetricLatest(
   const apiUrl = getApiUrl()
   const url = `${apiUrl}/v3/metrics/${metricDefinitionId}/values/latest`
 
-  const response = await fetchWithAuth(url)
+  const response = await fetchWithAuth(url, FENCE_REQUEST_TIMEOUT_MS)
   return response.json()
 }

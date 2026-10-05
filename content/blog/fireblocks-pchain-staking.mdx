@@ -147,7 +147,7 @@ exportTx.addSignature(await rawSign(exportTx, "Export 25 AVAX to P-Chain"));
 const { txID } = await evmApi.issueSignedTx(exportTx.getSignedTx());
 ```
 
-Poll `evmApi.getAtomicTxStatus(txID)` until `Accepted`.
+Poll the `avax.getAtomicTx` RPC with `txID` until the response includes `blockHeight`. Do not use `avax.getAtomicTxStatus`. It is deprecated, and the public API endpoints do not serve it after the Helicon upgrade.
 
 </Step>
 <Step>

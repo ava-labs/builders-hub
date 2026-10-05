@@ -8,12 +8,10 @@ import { SiteHeader } from "../../components/console/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
-import { useRetroactiveConsoleBadges } from "@/hooks/useRetroactiveConsoleBadges";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
 import { OnboardingTour } from "@/components/console/onboarding-tour";
 import { WelcomeModal } from "@/components/console/onboarding-tour/welcome-modal";
-import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
 import { ConsoleViewport } from "@/components/console/console-viewport";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { baseOptions } from "@/app/layout.config";
@@ -39,7 +37,6 @@ function ConsolePageTransition({ children }: { children: ReactNode }) {
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
-  useRetroactiveConsoleBadges();
 
   return (
     <WalletProvider>
@@ -81,7 +78,6 @@ function ConsoleContent({ children }: { children: ReactNode }) {
           </SidebarProvider>
         </ConsoleViewport>
       </LayoutWrapper>
-      <ConsoleBadgeNotification />
       <OnboardingTour />
       <WelcomeModal />
     </WalletProvider>

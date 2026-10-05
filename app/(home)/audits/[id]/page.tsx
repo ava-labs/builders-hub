@@ -33,6 +33,8 @@ export default async function AuditRequestPage({ params, searchParams }: AuditRe
           projectName={detail.project_name || "Your request"}
           submittedAt={detail.submitted_at}
           quoteDeadline={detail.quote_deadline}
+          chosenCount={detail.shortlist_firms.length}
+          whitelistCount={detail.whitelist_count}
         />
       ) : (
         <RequestDetailView detail={detail} userId={session.user.id} />

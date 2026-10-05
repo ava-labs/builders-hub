@@ -4,6 +4,10 @@ description: "Complete list of Avalanche CLI commands and their usage."
 edit_url: https://github.com/ava-labs/avalanche-cli/edit/main/cmd/commands.md
 ---
 
+<Callout type="warn">
+Avalanche-CLI is in maintenance mode. Its latest release is v1.9.6. The CLI pins AvalancheGo v1.14.0 and Subnet-EVM v0.8.0. Both use plugin version 44. Helicon activated on Fuji on 2026-07-28 and on Mainnet on 2026-09-22, both at 15:00 UTC. After Helicon, AvalancheGo v1.15.x nodes refuse peers older than v1.15.0. AvalancheGo v1.15.0 and v1.15.1 load only plugins with plugin version 46. Thus a node at the pinned AvalancheGo version cannot join Fuji or Mainnet. A Fuji or Mainnet node also cannot run a Subnet-EVM v0.8.0 chain. For Fuji and Mainnet, use AvalancheGo v1.15.1 and the Subnet-EVM v1.15.1 binary from the [AvalancheGo releases](https://github.com/ava-labs/avalanchego/releases). You can also use [Platform CLI](/docs/tooling/platform-cli) and the [Builder Console](/console).
+</Callout>
+
 <a id="avalanche-blockchain"></a>
 ## avalanche blockchain
 
@@ -35,7 +39,7 @@ Testnet or Mainnet.
 
 The L1 has to be a Proof of Authority L1.
 - [`configure`](#avalanche-blockchain-configure): AvalancheGo nodes support several different configuration files.
-Each network (a Subnet or an L1) has their own config which applies to all blockchains/VMs in the network (see https://build.avax.network/docs/nodes/configure/avalanche-l1-configs)
+Each network (a Subnet or an L1) has their own config which applies to all blockchains/VMs in the network (see https://build.avax.network/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs)
 Each blockchain within the network can have its own chain config (see https://build.avax.network/docs/nodes/chain-configs/primary-network/c-chain https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/plugin/evm/config/config.go for subnet-evm options).
 A chain can also have special requirements for the AvalancheGo node configuration itself (see https://build.avax.network/docs/nodes/configure/configs-flags).
 This command allows you to set all those files.
@@ -167,7 +171,7 @@ avalanche blockchain addValidator [subcommand] [flags]
 --rpc string                            connect to validator manager at the given rpc endpoint
 --stake-amount uint                     (PoS only) amount of tokens to stake
 --staking-period duration               how long this validator will be staking
---start-time string                     (for Subnets, not L1s) UTC start time when this validator starts validating, in 'YYYY-MM-DD HH:MM:SS' format
+--start-time string                     (for Subnets, not L1s) UTC start time in 'YYYY-MM-DD HH:MM:SS' format. The CLI sets the end time to this time plus --staking-period. Since Durango, the P-Chain ignores the start time and starts the validator when it accepts the tx
 --subnet-auth-keys strings              (for Subnets, not L1s) control keys that will be used to authenticate add validator tx
 -t, --testnet                           fuji                         operate on testnet (alias to fuji)
 --wait-for-tx-acceptance                (for Subnets, not L1s) just issue the add validator tx, without waiting for its acceptance (default true)
@@ -251,7 +255,7 @@ avalanche blockchain changeWeight [subcommand] [flags]
 ### configure
 
 AvalancheGo nodes support several different configuration files.
-Each network (a Subnet or an L1) has their own config which applies to all blockchains/VMs in the network (see https://build.avax.network/docs/nodes/configure/avalanche-l1-configs)
+Each network (a Subnet or an L1) has their own config which applies to all blockchains/VMs in the network (see https://build.avax.network/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs)
 Each blockchain within the network can have its own chain config (see https://build.avax.network/docs/nodes/chain-configs/primary-network/c-chain https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/plugin/evm/config/config.go for subnet-evm options).
 A chain can also have special requirements for the AvalancheGo node configuration itself (see https://build.avax.network/docs/nodes/configure/configs-flags).
 This command allows you to set all those files.
@@ -314,8 +318,8 @@ avalanche blockchain create [subcommand] [flags]
 -h, --help                          help for create
 --icm                               interoperate with other blockchains using ICM
 --icm-registry-at-genesis           setup ICM registry smart contract on genesis [experimental]
---latest                            use latest Subnet-EVM released version, takes precedence over --vm-version
---pre-release                       use latest Subnet-EVM pre-released version, takes precedence over --vm-version
+--latest                            use the Subnet-EVM version that the CLI pins (v0.8.0, plugin version 44, which AvalancheGo v1.15.x cannot load). Do not combine with --pre-release or --vm-version
+--pre-release                       use the newest release of the archived ava-labs/subnet-evm repo (v0.8.0, plugin version 44). Do not combine with --latest or --vm-version
 --production-defaults               use default production settings for your blockchain
 --proof-of-authority                use proof of authority(PoA) for validator management
 --proof-of-stake                    use proof of stake(PoS) for validator management
@@ -416,7 +420,7 @@ Bootstrap Validators Flags:
 
 Local Machine Flags (Use Local Machine as Bootstrap Validator):
   --avalanchego-path string              use this avalanchego binary path
-  --avalanchego-version string           use this version of avalanchego (ex: v1.17.12)
+  --avalanchego-version string           use this version of avalanchego (ex: v1.15.1)
   --http-port uintSlice                  http port for node(s)
   --partial-sync                         set primary network partial sync for new validators
   --staking-cert-key-path stringSlice    path to provided staking cert key for node(s)
@@ -427,7 +431,7 @@ Local Machine Flags (Use Local Machine as Bootstrap Validator):
 
 Local Network Flags:
   --avalanchego-path string     use this avalanchego binary path
-  --avalanchego-version string  use this version of avalanchego (ex: v1.17.12)
+  --avalanchego-version string  use this version of avalanchego (ex: v1.15.1)
   --num-nodes uint32            number of nodes to be created on local network deploy
 
 Non Subnet-Only-Validators (Non-SOV) Flags:
@@ -812,7 +816,7 @@ to upgrade your node manually.
 
 After you update your validator's configuration, you need to restart your validator manually.
 If you provide the --avalanchego-chain-config-dir flag, this command attempts to write the upgrade file at that path.
-Refer to https://docs.avax.network/nodes/maintain/chain-config-flags#subnet-chain-configs for related documentation.
+Refer to https://build.avax.network/docs/nodes/configure/configs-flags (`--chain-config-dir`) for related documentation. AvalancheGo reads the upgrade file of a chain from `{chain-config-dir}/{blockchainID}/upgrade.json`.
 - [`export`](#avalanche-blockchain-upgrade-export): Export the upgrade bytes file to a location of choice on disk
 - [`generate`](#avalanche-blockchain-upgrade-generate): The blockchain upgrade generate command builds a new upgrade.json file to customize your Blockchain. It
 guides the user through the process using an interactive wizard.
@@ -846,7 +850,7 @@ to upgrade your node manually.
 
 After you update your validator's configuration, you need to restart your validator manually.
 If you provide the --avalanchego-chain-config-dir flag, this command attempts to write the upgrade file at that path.
-Refer to https://docs.avax.network/nodes/maintain/chain-config-flags#subnet-chain-configs for related documentation.
+Refer to https://build.avax.network/docs/nodes/configure/configs-flags (`--chain-config-dir`) for related documentation. AvalancheGo reads the upgrade file of a chain from `{chain-config-dir}/{blockchainID}/upgrade.json`.
 
 **Usage:**
 ```bash
@@ -856,7 +860,7 @@ avalanche blockchain upgrade apply [subcommand] [flags]
 **Flags:**
 
 ```bash
---avalanchego-chain-config-dir string    avalanchego's chain config file directory (default "/home/runner/.avalanchego/chains")
+--avalanchego-chain-config-dir string    chain config directory where the CLI writes the upgrade file (default "$HOME/.avalanchego/chains"). AvalancheGo reads $HOME/.avalanchego/configs/chains by default, so set this flag to the --chain-config-dir of your node
 --config                                 create upgrade config for future subnet deployments (same as generate)
 --force                                  If true, don't prompt for confirmation of timestamps in the past
 --fuji                                   fuji                             apply upgrade existing fuji deployment (alias for `testnet`)
@@ -2097,7 +2101,7 @@ avalanche network start [subcommand] [flags]
 
 ```bash
 --avalanchego-path string       use this avalanchego binary path
---avalanchego-version string    use this version of avalanchego (ex: v1.17.12) (default "latest-prerelease")
+--avalanchego-version string    use this version of avalanchego (ex: v1.15.1) (default "latest-prerelease")
 -h, --help                      help for start
 --num-nodes uint32              number of nodes to be created on local network (default 2)
 --relayer-path string           use this relayer binary path
@@ -2345,7 +2349,7 @@ avalanche node create [subcommand] [flags]
 --alternative-key-pair-name string          key pair name to use if default one generates conflicts
 --authorize-access                          authorize CLI to create cloud resources
 --auto-replace-keypair                      automatically replaces key pair to access node if previous key pair is not found
---avalanchego-version-from-subnet string    install latest avalanchego version, that is compatible with the given subnet, on node/s
+--avalanchego-version-from-subnet string    install an avalanchego version for the plugin version of the given blockchain (for plugin version 44 or later, the CLI installs its pinned v1.14.0) on node/s
 --aws                                       create node/s in AWS cloud
 --aws-profile string                        aws profile to use (default "default")
 --aws-volume-iops int                       AWS iops (for gp3, io1, and io2 volume types only) (default 3000)
@@ -2367,7 +2371,7 @@ avalanche node create [subcommand] [flags]
 --grafana-pkg string                        use grafana pkg instead of apt repo(by default), for example https://dl.grafana.com/oss/release/grafana_10.4.1_amd64.deb
 -h, --help                                  help for create
 --latest-avalanchego-pre-release-version    install latest avalanchego pre-release version on node/s
---latest-avalanchego-version                install latest avalanchego release version on node/s
+--latest-avalanchego-version                install the avalanchego version that the CLI pins (v1.14.0, which cannot join Fuji or Mainnet after Helicon)
 -m, --mainnet                               operate on mainnet
 --node-type string                          cloud instance type. Use 'default' to use recommended default instance type
 --num-apis                                  ints                            number of API nodes(nodes without stake) to create in the new Devnet
@@ -2527,9 +2531,9 @@ avalanche node devnet wiz [subcommand] [flags]
 --icm-registry-bytecode-path string                    path to an icm registry bytecode file
 --icm-version string                                   icm version to deploy (default "latest")
 --latest-avalanchego-pre-release-version               install latest avalanchego pre-release version on node/s
---latest-avalanchego-version                           install latest avalanchego release version on node/s
---latest-evm-version                                   use latest Subnet-EVM released version
---latest-pre-released-evm-version                      use latest Subnet-EVM pre-released version
+--latest-avalanchego-version                           install the avalanchego version that the CLI pins (v1.14.0, before Helicon)
+--latest-evm-version                                   use the Subnet-EVM version that the CLI pins (v0.8.0, plugin version 44)
+--latest-pre-released-evm-version                      use the newest release of the archived ava-labs/subnet-evm repo (v0.8.0, plugin version 44)
 --node-config string                                   path to avalanchego node configuration for subnet
 --node-type string                                     cloud instance type. Use 'default' to use recommended default instance type
 --num-apis                                             ints                                       number of API nodes(nodes without stake) to create in the new Devnet
@@ -2813,8 +2817,8 @@ avalanche node local start [subcommand] [flags]
 -f, --fuji                                  testnet                             operate on fuji (alias to testnet
 --genesis string                            path to genesis file
 -h, --help                                  help for start
---latest-avalanchego-pre-release-version    install latest avalanchego pre-release version on node/s (default true)
---latest-avalanchego-version                install latest avalanchego release version on node/s
+--latest-avalanchego-pre-release-version    install the newest avalanchego GitHub release, pre-release or not (v1.15.1 on 2026-10-03). Set --latest-avalanchego-version=false to use it
+--latest-avalanchego-version                install the avalanchego version that the CLI pins (v1.14.0, which cannot join Fuji or Mainnet after Helicon) (default true)
 -l, --local                                 operate on a local network
 -m, --mainnet                               operate on mainnet
 --node-config string                        path to common avalanchego config settings for all nodes
@@ -3222,8 +3226,8 @@ avalanche node validate primary [subcommand] [flags]
 -g, --ledger                 use ledger instead of key (always true on mainnet, defaults to false on fuji/devnet)
 --ledger-addrs strings       use the given ledger addresses
 --stake-amount uint          how many AVAX to stake in the validator
---staking-period duration    how long validator validates for after start time
---start-time string          UTC start time when this validator starts validating, in 'YYYY-MM-DD HH:MM:SS' format
+--staking-period duration    time from --start-time to the end of validation
+--start-time string          UTC start time in 'YYYY-MM-DD HH:MM:SS' format. Since Durango, the P-Chain ignores it and starts the validator when it accepts the tx
 --config string              config file (default is $HOME/.avalanche-cli/config.json)
 --log-level string           log level for the application (default "ERROR")
 --skip-update-check          skip check for new versions
@@ -3259,8 +3263,8 @@ avalanche node validate subnet [subcommand] [flags]
 --no-checks                   do not check for bootstrapped status or healthy status
 --no-validation-checks        do not check if subnet is already synced or validated (default true)
 --stake-amount uint           how many AVAX to stake in the validator
---staking-period duration     how long validator validates for after start time
---start-time string           UTC start time when this validator starts validating, in 'YYYY-MM-DD HH:MM:SS' format
+--staking-period duration     time from --start-time to the end of validation, for the Primary Network validator tx only
+--start-time string           UTC start time in 'YYYY-MM-DD HH:MM:SS' format, for the Primary Network validator tx only. Since Durango, the P-Chain ignores it and starts the validator when it accepts the tx
 --validators strings          validate subnet for the given comma separated list of validators. defaults to all cluster nodes
 --config string               config file (default is $HOME/.avalanche-cli/config.json)
 --log-level string            log level for the application (default "ERROR")
@@ -3346,8 +3350,8 @@ avalanche primary addValidator [subcommand] [flags]
 --nodeID string                 set the NodeID of the validator to add
 --proof-of-possession string    set the BLS proof of possession of the validator to add
 --public-key string             set the BLS public key of the validator to add
---staking-period duration       how long this validator will be staking
---start-time string             UTC start time when this validator starts validating, in 'YYYY-MM-DD HH:MM:SS' format
+--staking-period duration       time from --start-time to the end of validation
+--start-time string             UTC start time in 'YYYY-MM-DD HH:MM:SS' format. Since Durango, the P-Chain ignores it and starts the validator when it accepts the tx
 -t, --testnet                   fuji                 operate on testnet (alias to fuji)
 --weight uint                   set the staking weight of the validator to add
 --config string                 config file (default is $HOME/.avalanche-cli/config.json)

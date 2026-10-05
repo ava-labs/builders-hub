@@ -1,0 +1,277 @@
+name: E2E
+
+# Browser tests in tests/e2e (tester-army/e2e) at a desktop and a phone size, the API tests in tests/e2e/api, and the
+# in-app browser tests in tests/e2e/webview, which have their own targets.
+# A PR runs the tests that its changed files can break, plus a smoke set (tests/e2e/select picks them). Every push to
+# master and every night run the whole suite, so a test that a PR skipped runs within a day. A PR and a master push
+# run the sweeps (every page opens) at the desktop size only; the nightly run runs them at both sizes. Console wallet
+# flows have no tests until the framework can inject the wallet shim before page load (tester-army/e2e#696).
+#
+# Targets: a PR tests the Vercel preview of its head commit, a master push the production deployment of its commit,
+# and the nightly run build.avax.network.
+#
+# Secrets:
+#   - VERCEL_AUTOMATION_BYPASS_SECRET opens the SSO-protected deployments. The engine sends it only to the app's site.
+#   - ANTHROPIC_API_KEY runs the agent tests in ai/. Without it they skip.
+# Fork and Dependabot PRs get no bypass secret, so the plan skips their tests. The master push after a merge runs them.
+#
+# The check to require on master is `E2E result`: it fails when the plan or a test job failed or was cancelled.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  schedule:
+    # 06:43 UTC, before the nightly explore hunt (07:17). GitHub can delay or drop runs at the start of an hour.
+    - cron: '43 6 * * *'
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Base URL to test'
+        required: false
+        default: 'https://build.avax.network'
+
+permissions:
+  contents: read
+  deployments: read
+  pull-requests: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  # A newer push to a PR replaces its run. A master run is never stopped: a newer push waits, and of several waiting
+  # pushes only the newest runs.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Browser and API tests live in tests/e2e. This job fails when the old Playwright harness comes back (a root e2e/
+  # folder, or a file that uses the Playwright test runner). It needs no secrets, so it runs on fork PRs too.
+  location:
+    name: E2E test location
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Check the test location
+        run: ./scripts/check-e2e-location.sh
+
+  plan:
+    name: E2E plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      testable: ${{ steps.access.outputs.testable }}
+      legs: ${{ steps.plan.outputs.legs }}
+    steps:
+      # An if: expression cannot read a secret, so the step reads its presence from the environment.
+      - name: Check access
+        id: access
+        env:
+          HAS_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET != '' }}
+          FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          DEPENDABOT: ${{ github.actor == 'dependabot[bot]' }}
+        run: |
+          if [ "$HAS_BYPASS" = true ]; then
+            echo "testable=true" >> "$GITHUB_OUTPUT"
+          elif [ "$FORK" = true ] || [ "$DEPENDABOT" = true ]; then
+            echo "::notice title=E2E skipped::A fork or Dependabot PR gets no VERCEL_AUTOMATION_BYPASS_SECRET, so no test can open its preview. The push to master after the merge runs the suite."
+            echo "testable=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::The VERCEL_AUTOMATION_BYPASS_SECRET secret is empty."
+            exit 1
+          fi
+
+      - name: Checkout
+        if: steps.access.outputs.testable == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        if: steps.access.outputs.testable == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      # The plan reads the code with the TypeScript compiler of the e2e package, and counts the tests with e2e list.
+      - name: Install dependencies
+        if: steps.access.outputs.testable == 'true'
+        working-directory: tests/e2e
+        run: npm ci
+
+      - name: Typecheck
+        if: steps.access.outputs.testable == 'true'
+        working-directory: tests/e2e
+        run: npx tsc --noEmit -p .
+
+      - name: List the changed files
+        if: steps.access.outputs.testable == 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/${{ github.repository }}/pulls/$PR/files" --paginate \
+            --jq '.[] | {filename, status, previous_filename}' > "$RUNNER_TEMP/changed-files.jsonl"
+
+      # A PR gets the tests its changed files reach (tests/e2e/select/select.ts); every other event gets all of them.
+      # The plan splits them into legs, one test job each; a big leg is split into shards. The step summary lists the
+      # legs, and each changed file with the rule that placed it and the tests it runs.
+      - name: Plan
+        id: plan
+        if: steps.access.outputs.testable == 'true'
+        working-directory: tests/e2e
+        env:
+          EVENT: ${{ github.event_name }}
+          FILES: ${{ runner.temp }}/changed-files.jsonl
+          FILE_COUNT: ${{ github.event.pull_request.changed_files }}
+        run: node select/plan.ts
+
+  e2e:
+    name: E2E (${{ matrix.leg.name }})
+    needs: plan
+    if: needs.plan.outputs.testable == 'true' && needs.plan.outputs.legs != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      # Each leg reports its own tests, so a failed leg does not stop the others.
+      fail-fast: false
+      matrix:
+        leg: ${{ fromJSON(needs.plan.outputs.legs) }}
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt. The engine launches Chromium
+      # headless with no channel, which runs the headless shell, so the full browser (187 MB) is not needed.
+      - name: Install Chromium
+        if: matrix.leg.browser
+        timeout-minutes: 5
+        run: npx playwright install chromium --only-shell
+
+      # Vercel builds the deployment in parallel with the steps above. The GitHub deployment for the commit can appear
+      # only when the build is done, so poll for it.
+      - name: Resolve target URL
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          DISPATCH_URL: ${{ github.event.inputs.target_url }}
+        run: |
+          case "$EVENT" in
+            pull_request) environment=Preview; sha=$PR_SHA ;;
+            push) environment=Production; sha=$GITHUB_SHA ;;
+            workflow_dispatch) echo "url=$DISPATCH_URL" >> "$GITHUB_OUTPUT"; exit 0 ;;
+            *) echo "url=https://build.avax.network" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          for _ in $(seq 1 60); do
+            id=$(gh api "repos/${{ github.repository }}/deployments?sha=$sha&environment=$environment&per_page=1" --jq '.[0].id // empty')
+            if [ -n "$id" ]; then
+              latest=$(gh api "repos/${{ github.repository }}/deployments/$id/statuses?per_page=1" --jq '.[0] | "\(.state) \(.environment_url // "")"')
+              state=${latest%% *}
+              url=${latest#* }
+              case "$state" in
+                success) echo "url=$url" >> "$GITHUB_OUTPUT"; echo "Target: $url"; exit 0 ;;
+                failure|error) echo "::error::The Vercel $environment deployment for $sha did not deploy ($state)"; exit 1 ;;
+              esac
+            fi
+            sleep 20
+          done
+          echo "::error::No Vercel $environment deployment for $sha after 20 minutes"; exit 1
+
+      # A deployment that the bypass secret does not open answers with a redirect to the Vercel login. Every test would
+      # then wait for the page until the job times out (two Dependabot runs held a runner 40 minutes each), so stop.
+      - name: Check that the bypass opens the target
+        env:
+          URL: ${{ steps.target.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          redirect=$(curl -s -o /dev/null --max-time 60 -w '%{redirect_url}' \
+            -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$URL/")
+          case "$redirect" in
+            *vercel.com/sso*|*vercel.com/login*)
+              echo "::error::$URL sends the tests to the Vercel login: VERCEL_AUTOMATION_BYPASS_SECRET does not open it."
+              exit 1 ;;
+          esac
+
+      - name: Run tests
+        env:
+          ARGS: ${{ toJSON(matrix.leg.args) }}
+          E2E_BASE_URL: ${{ steps.target.outputs.url }}
+          E2E_TELEMETRY_DISABLED: '1'
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          # Agent steps (tests/e2e/ai) use Claude. Without this secret they skip.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          mapfile -t args < <(jq -r '.[]' <<< "$ARGS")
+          npx e2e run "${args[@]}"
+
+      - name: Job summary
+        if: always()
+        env:
+          OUTPUT: ${{ matrix.leg.output }}
+        run: |
+          if [ -f "$OUTPUT/summary.md" ]; then cat "$OUTPUT/summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+
+      # Failure pages and screenshots for failed runs only; green runs need nothing. No traces: a trace records the
+      # request headers, the Vercel bypass secret included, and anyone can download the artifacts of a public repo.
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-report-${{ strategy.job-index }}
+          path: |
+            tests/e2e/${{ matrix.leg.output }}/report.json
+            tests/e2e/${{ matrix.leg.output }}/junit.xml
+            tests/e2e/${{ matrix.leg.output }}/failures
+            tests/e2e/${{ matrix.leg.output }}/artifacts/**/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The one check to require. It fails when the test location check failed, on every PR. A PR that the plan found
+  # untestable (fork or Dependabot) then passes with a notice: its tests run on the master push after the merge.
+  result:
+    name: E2E result
+    needs: [location, plan, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # A matrix job's result is success only when every leg succeeded. A plan with no leg skips the tests on purpose.
+      - name: Check the jobs
+        env:
+          LOCATION: ${{ needs.location.result }}
+          TESTABLE: ${{ needs.plan.outputs.testable }}
+          PLAN: ${{ needs.plan.result }}
+          TESTS: ${{ needs.e2e.result }}
+          LEGS: ${{ needs.plan.outputs.legs }}
+        run: |
+          if [ "$LOCATION" != success ]; then
+            echo "::error title=E2E result::The test location check ended $LOCATION."
+            exit 1
+          fi
+          if [ "$PLAN" = success ] && [ "$TESTABLE" = false ]; then
+            echo "::notice title=E2E result::No test ran: a fork or Dependabot PR gets no bypass secret."
+            exit 0
+          fi
+          if [ "$PLAN" = success ] && { [ "$TESTS" = success ] || { [ "$TESTS" = skipped ] && [ "$LEGS" = '[]' ]; }; }; then
+            echo "E2E passed."
+          else
+            echo "::error title=E2E result::The plan ended $PLAN and the tests ended $TESTS."
+            exit 1
+          fi

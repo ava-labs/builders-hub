@@ -7,7 +7,7 @@ import type {
   DAppsApiResponse
 } from '@/types/dapps';
 import { mapDefiLlamaCategory } from '@/types/dapps';
-import { SLUG_ALIASES, PROTOCOL_SLUGS, CONTRACT_REGISTRY, getProtocolContracts } from '@/lib/contracts';
+import { SLUG_ALIASES, PROTOCOL_SLUGS, CONTRACT_REGISTRY, getProtocolContracts, protocolMainContract, cChainAddressOf } from '@/lib/contracts';
 import { getAllRWAProjects } from '@/lib/rwa/projects';
 
 const DEFILLAMA_API = 'https://api.llama.fi';
@@ -25,27 +25,47 @@ function getCanonicalSlug(slug: string): string | null {
 export const dynamic = 'force-dynamic';
 export const revalidate = 300; // Cache for 5 minutes
 
+// The /protocols list is about 12 MB, over the 2 MB the Next.js data cache takes,
+// so the route holds its Avalanche protocols here for 5 minutes instead
+const PROTOCOLS_MS = 300_000;
+let protocolsHeld: { list: DefiLlamaProtocol[]; at: number } | null = null;
+let protocolsLoading: Promise<DefiLlamaProtocol[] | null> | null = null;
+
 async function fetchAllProtocols(): Promise<DefiLlamaProtocol[]> {
-  try {
-    const res = await fetch(`${DEFILLAMA_API}/protocols`, {
-      next: { revalidate: 300 },
+  const res = await fetch(`${DEFILLAMA_API}/protocols`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch protocols');
+  return await res.json();
+}
+
+// One request at a time; null when it fails
+function refreshAvalancheProtocols(): Promise<DefiLlamaProtocol[] | null> {
+  protocolsLoading ??= fetchAllProtocols()
+    .then((allProtocols) => {
+      const list = allProtocols.filter(
+        (p) =>
+          p.chains?.includes('Avalanche') &&
+          p.chainTvls?.Avalanche &&
+          p.chainTvls.Avalanche > 0
+      );
+      protocolsHeld = { list, at: Date.now() };
+      return list;
+    })
+    .catch((error) => {
+      console.error('Error fetching protocols:', error);
+      return null;
+    })
+    .finally(() => {
+      protocolsLoading = null;
     });
-    if (!res.ok) throw new Error('Failed to fetch protocols');
-    return await res.json();
-  } catch (error) {
-    console.error('Error fetching protocols:', error);
-    return [];
-  }
+  return protocolsLoading;
 }
 
 async function fetchAvalancheProtocols(): Promise<DefiLlamaProtocol[]> {
-  const allProtocols = await fetchAllProtocols();
-  return allProtocols.filter(
-    (p) =>
-      p.chains?.includes('Avalanche') &&
-      p.chainTvls?.Avalanche &&
-      p.chainTvls.Avalanche > 0
-  );
+  const held = protocolsHeld;
+  if (held && Date.now() - held.at < PROTOCOLS_MS) return held.list;
+  // An older list answers while the refresh runs, and stays if the refresh fails
+  const next = refreshAvalancheProtocols();
+  return held ? held.list : (await next) ?? [];
 }
 
 async function fetchAvalancheTVL(): Promise<{ tvl: number; protocols: number } | null> {
@@ -141,6 +161,7 @@ export async function GET() {
         url: p.url,
         twitter: p.twitter,
         description: p.description,
+        address: cChainAddressOf(p.address),
       };
     });
 
@@ -239,6 +260,8 @@ export async function GET() {
           change_7d: null,
           description: project.description,
           darkInvert: project.darkInvert ?? true,
+          // the tranche pool is where an RWA project's loans live
+          address: project.addresses.tranchePool.toLowerCase(),
         });
         existingSlugs.add(project.slug);
       }
@@ -286,6 +309,13 @@ export async function GET() {
     }));
 
     dapps.push(...localOnlyWithRank);
+
+    // the explorer links a protocol to its contract: the registry's main one first, then DefiLlama's C-Chain address
+    for (const d of dapps) {
+      // an RWA project keeps its tranche pool
+      const main = protocolMainContract(d.slug);
+      if (main && !(d.id.startsWith("local-") && d.address)) d.address = main;
+    }
 
     // Calculate category breakdown
     const categoryBreakdown = dapps.reduce((acc, p) => {

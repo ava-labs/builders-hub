@@ -15,4 +15,7 @@ export const FENCE_STALE_TTL = 60 * 60 * 1000
 export const CL01_THRESHOLD = 0.35
 
 export const FENCE_REQUEST_TIMEOUT_MS = 10_000
+// a series read returns every reading in its window (about 100 a day; a
+// year took 8s on 2026-10-01), so it gets longer than a latest reading
+export const FENCE_HISTORY_TIMEOUT_MS = 30_000
 export const FENCE_AUTH_TIMEOUT_MS = 5_000

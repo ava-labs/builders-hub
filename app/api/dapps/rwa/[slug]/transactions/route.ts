@@ -98,10 +98,13 @@ export async function GET(request: Request, { params }: RouteParams) {
     const seen = new Set<string>()
     const allRecords: TransactionRecord[] = []
 
+    // one row per transfer, as the metrics count them: a transaction can carry
+    // several tracked transfers, and an internal one is listed under both addresses
     for (const [, transfers] of transfersByAddress) {
       for (const transfer of transfers) {
-        if (seen.has(transfer.txHash)) continue
-        seen.add(transfer.txHash)
+        const key = `${transfer.txHash}-${transfer.from}-${transfer.to}`
+        if (seen.has(key)) continue
+        seen.add(key)
         allRecords.push(toTransactionRecord(transfer))
       }
     }

@@ -38,7 +38,7 @@ export function Footer() {
   };
 
   return (
-    <footer className="relative mt-auto border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <footer data-site-footer className="relative mt-auto border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mx-auto max-w-7xl">
         {/* Brand rule */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-6 dark:border-zinc-800 md:px-6">
@@ -67,7 +67,7 @@ export function Footer() {
           <FooterSection title="AVALANCHE">
             <ul className="flex flex-col gap-2.5">
               <FooterLink href="https://github.com/ava-labs/audits" external>Audits</FooterLink>
-              <FooterLink href="/explorer">Explorer</FooterLink>
+              <FooterLink href="/explorer/mainnet">Explorer</FooterLink>
               <FooterLink href="https://github.com/ava-labs" external>GitHub</FooterLink>
               <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
               <FooterLink href="https://avalabs.org/whitepapers" external>Whitepapers</FooterLink>

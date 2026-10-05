@@ -8,10 +8,12 @@ export function formatUsd(amount: number): string {
   return usd.format(amount);
 }
 
-/** "1 week", "6 weeks". Durations are rendered in half a dozen places and
-    every one of them used to hardcode the plural. */
-export function weeksLabel(weeks: number): string {
-  return `${weeks} week${weeks === 1 ? "" : "s"}`;
+/** "1 day", "10 days", "1 week", "6 weeks": a quote's duration in the unit
+    the firm picked. Durations are rendered in half a dozen places and every
+    one of them used to hardcode the plural. */
+export function durationLabel(duration: number, unit: string): string {
+  const noun = unit === "days" ? "day" : "week";
+  return `${duration} ${noun}${duration === 1 ? "" : "s"}`;
 }
 
 /**
@@ -85,6 +87,22 @@ export function formatQuoteRange(min: number, max: number): string {
 /** Lowercases a label's first character for mid-sentence segments. */
 export function lowerFirst(text: string): string {
   return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/**
+ * Two-letter firm monogram for the fallback tile. Splits on whitespace and on
+ * lowercase->uppercase boundaries (so "HackenProof" is HP, "BlockSec" is BS),
+ * takes the first letter of the first two parts, uppercased; a single part
+ * takes its first two letters. Replaces the panel's and the shell's local
+ * initialsOf (Tasks 8 and 10).
+ */
+export function monogramOf(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+|(?<=[a-z])(?=[A-Z])/)
+    .filter(Boolean);
+  const letters = parts.length >= 2 ? parts[0][0] + parts[1][0] : (parts[0] ?? "").slice(0, 2);
+  return letters.toUpperCase();
 }
 
 /** Display host for a proposal link ("docs.google.com"), so the reader knows

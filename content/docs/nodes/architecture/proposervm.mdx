@@ -5,7 +5,7 @@ description: "How the ProposerVM wrapper schedules block production from the P-C
 
 {/* NATIVE FILE: authored in builders-hub. Unlike generated pages (acps/, configs-flags, releases), this page is NOT produced by utils/remote-content. */}
 
-Every chain in an Avalanche node runs inside the [ProposerVM](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm). This wrapper connects the inner virtual machine (Subnet-EVM, Coreth, the PlatformVM itself) to Avalanche consensus and to the P-Chain. The wrapper decides **who may build the next block and when**, and it stamps every block with the P-Chain context of that decision. When an L1 stops producing blocks and the cause is hard to diagnose, the cause usually sits in this layer.
+Every chain in an Avalanche node runs inside the [ProposerVM](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm). This wrapper connects the inner virtual machine (Subnet-EVM, the C-Chain VM, the PlatformVM itself) to Avalanche consensus and to the P-Chain. The wrapper decides **who may build the next block and when**, and it stamps every block with the P-Chain context of that decision. When an L1 stops producing blocks and the cause is hard to diagnose, the cause usually sits in this layer.
 
 <Callout title="At a glance">
 - The wrapper schedules block production from a **recorded view of the P-Chain**. Each block's builder embeds a recent P-Chain height. The validator set at the parent's embedded height decides who may build next.
@@ -26,12 +26,12 @@ Do not confuse the two. Proposer eligibility comes from the parent's embedded he
 
 ## Proposer selection and slots
 
-For each height, the wrapper samples a stake-weighted proposer list from the validator set at the parent block's embedded P-Chain height ([`vms/proposervm/proposer/windower.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/proposer/windower.go)). Each sampled proposer owns one slot. If a slot passes without a block, the schedule moves to the next sampled validator. The constants, from `windower.go`:
+The wrapper divides the time after the parent block's timestamp into 5-second slots. For each slot, it samples one proposer by stake from the validator set at the parent block's embedded P-Chain height ([`vms/proposervm/proposer/windower.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/proposer/windower.go)). One validator can own more than one slot. If a slot passes without a block, the schedule moves to the proposer of the next slot. The constants, from `windower.go`:
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
 | `WindowDuration` | 5s | One proposer slot |
-| `MaxVerifyWindows` / `MaxVerifyDelay` | 6 / 30s | How far past its slot a proposer's block still verifies |
+| `MaxVerifyWindows` / `MaxVerifyDelay` | 6 / 30s | Pre-Durango only: a block less than 30s after its parent had to be signed by one of the first 6 sampled proposers. A later block had to be unsigned |
 | `MaxBuildWindows` / `MaxBuildDelay` | 60 / 5 min | Pre-Durango only: when unsigned blocks became buildable by anyone |
 | `MaxLookAheadSlots` / `MaxLookAheadWindow` | 720 / 1h | How far ahead the build scheduler plans proposer slots |
 | Epoch duration D | 5 min (Fuji, Mainnet); 30s local default | Set per network; changing it requires a network upgrade |
@@ -47,7 +47,7 @@ The practical consequence for validator set migrations: some operations change w
 **A node does not poll for build opportunities.** It computes when its next proposer slot arrives and sleeps until then (`WaitForEvent`). It plans up to 720 slots (one hour) ahead. Two properties follow:
 
 - A node that is **not in the validator set at the parent's embedded height** never calls the VM's `BuildBlock`. There is no error to log: from the node's point of view, it is simply never its turn. The `avalanche_meterchainvm_build_block_count` metric stays at exactly zero.
-- The gauge `avalanche_proposervm_block_building_slot` climbs by one for every 5 seconds of tip staleness. A reading of 27,000 means the tip is roughly a day and a half old. A chain can therefore look fully able to build (pending transactions, healthy node, live validator) and still produce nothing, with no error anywhere.
+- The gauge `avalanche_proposervm_block_building_slot` shows the slot of this node's next build opportunity, counted in 5-second slots from the tip's timestamp. If the schedule never selects this node, the gauge jumps by 720 slots about once an hour. On average, it grows by one for every 5 seconds of tip staleness. A reading of 27,000 means the tip is roughly a day and a half old. A chain can therefore look fully able to build (pending transactions, healthy node, live validator) and still produce nothing, with no error anywhere.
 
 ## Epochs (ACP-181)
 
@@ -151,7 +151,7 @@ curl -s http://127.0.0.1:9650/ext/metrics \
   | grep -E 'proposervm_block_building_slot|meterchainvm_build_block(_err)?_count'
 ```
 
-`avalanche_proposervm_block_building_slot` climbs by one every 5 seconds of tip staleness. `avalanche_meterchainvm_build_block_count` flat at zero means the ProposerVM never asks the VM for a block. (The build counters exist only when the metered VM wrapper is enabled. If they are absent, that is configuration, not a symptom.)
+`avalanche_proposervm_block_building_slot` grows by about one for every 5 seconds of tip staleness, in steps of about 720 once an hour. `avalanche_meterchainvm_build_block_count` flat at zero means the ProposerVM never asks the VM for a block. (The build counters exist only when the metered VM wrapper is enabled. If they are absent, that is configuration, not a symptom.)
 
 </Step>
 </Steps>

@@ -30,6 +30,15 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
 import { AuthLoading } from "@/components/ui/auth-loading";
 import { AccessDenied } from "@/components/ui/access-denied";
+import { CourseOutlineProvider } from "@/components/academy/course/course-outline-context";
+import { findCourseOutline, lessonPosition } from "@/lib/academy/course-outline";
+import { LessonEyebrow } from "@/components/academy/lesson/lesson-eyebrow";
+import { courseDiscipline } from "@/lib/academy/course-discipline";
+import { CourseFacts, CourseHeader } from "@/components/academy/course/course-header";
+import { CourseModules } from "@/components/academy/course/course-modules";
+import { CourseCertificateCard } from "@/components/academy/course/course-certificate-card";
+import { certificateAcademyFor } from "@/components/academy/certificate/certificate-artwork";
+import { certificateCourseName } from "@/lib/academy/certificate-entry";
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper";
 import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer";
@@ -109,14 +118,25 @@ export default async function Page(props: {
   const path = `content/academy/${page.path}`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
-  // Check both official courses and entrepreneur courses
-  // page.slugs[1] contains the course slug (e.g., "avalanche-fundamentals", "foundations-web3-venture")
-  const course = COURSES.official.find((c) => c.slug === page.slugs[1]) 
-    || COURSES.avalancheEntrepreneur.find((c) => c.slug === page.slugs[1]);
+  // page.slugs[1] contains the course slug (e.g., "avalanche-fundamentals")
+  const course = COURSES.official.find((c) => c.slug === page.slugs[1]);
+  const outline = findCourseOutline(academy.pageTree, page.slugs[0], page.slugs[1]);
+  const isOverview = page.slugs.length === 2;
+  const isCertificatePage = outline?.certificateUrl === page.url;
+  // The facts the MDX body's components read (CertificatePage), from the outline above; never recomputed.
+  const courseFacts = outline
+    ? { name: outline.name, modules: outline.modules.length, lessons: outline.lessons.length }
+    : null;
+  const position = outline && !isOverview && !isCertificatePage ? lessonPosition(outline, page.url) : null;
+  const certificatePage = isOverview && outline?.certificateUrl
+    ? academy.getPage(outline.certificateUrl.split("/").slice(2))
+    : undefined;
 
   return (
     <DocsPage
       toc={page.data.toc}
+      breadcrumb={{ enabled: false }}
+      article={{ className: "pt-10" }}
       tableOfContent={{
         style: "clerk",
         single: false,
@@ -148,36 +168,55 @@ export default async function Page(props: {
         ),
       }}
     >
+      {isOverview && outline && (
+        <CourseHeader discipline={courseDiscipline(outline.track, outline.slug)} />
+      )}
+      {outline && position && (
+        <LessonEyebrow outline={outline} position={position} lessonTitle={page.data.title} />
+      )}
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
       {page.data.description && (
         <DocsDescription>{page.data.description}</DocsDescription>
       )}
+      {isOverview && outline && <CourseFacts outline={outline} duration={course?.duration} />}
       <DocsBody className="text-fd-foreground/80">
         <IndexedDBComponent />
-        <MDX
-          components={{
-            ...defaultComponents,
-            ...toolboxComponents,
-            ...sharedMDXComponents,
-            Button,
-            Quiz,
-            pre: ({
-              title,
-              className,
-              icon,
-              allowCopy,
-              ...props
-            }: CodeBlockProps) => (
-              <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
-                <Pre
-                  className={cn("max-h-[1200px]", className)}
-                  {...(props as any)}
-                />
-              </CodeBlock>
-            ),
-          }}
-        />
+        <CourseOutlineProvider value={courseFacts}>
+          <MDX
+            components={{
+              ...defaultComponents,
+              ...toolboxComponents,
+              ...sharedMDXComponents,
+              Button,
+              Quiz,
+              pre: ({
+                title,
+                className,
+                icon,
+                allowCopy,
+                ...props
+              }: CodeBlockProps) => (
+                <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
+                  <Pre
+                    className={cn("max-h-[1200px]", className)}
+                    {...(props as any)}
+                  />
+                </CodeBlock>
+              ),
+            }}
+          />
+        </CourseOutlineProvider>
       </DocsBody>
+      {isOverview && outline && <CourseModules outline={outline} />}
+      {isOverview && outline?.certificateUrl && (
+        <CourseCertificateCard
+          academy={certificateAcademyFor(outline.track)}
+          courseTitle={certificateCourseName(outline) ?? outline.name}
+          href={outline.certificateUrl}
+          label={certificatePage?.data.title ?? "Certificate"}
+          afterModules={outline.modules.length > 0}
+        />
+      )}
       <Feedback
         path={path}
         title={page.data.title || "Untitled"}

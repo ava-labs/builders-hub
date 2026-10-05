@@ -5,7 +5,7 @@ description: Helper functions for transactions, events, and common testing opera
 
 This guide covers utility patterns for working with transactions, events, and common operations in tmpnet tests.
 
-> Pattern guide only. The snippets mirror helpers used in icm-services (for example `tests/contracts/lib/icm-contracts/lib/subnet-evm/tests/utils`) and avalanchego e2e utilities. Copy from those source files for runnable code; adjust imports/types to your project.
+> Pattern guide only. The snippets mirror helpers used in icm-services (for example `icm-contracts/tests/utils`; the Subnet-EVM test helpers are now in avalanchego `graft/subnet-evm/tests/utils`) and avalanchego e2e utilities. Copy from those source files for runnable code; adjust imports/types to your project.
 
 ## Transaction Management
 
@@ -32,7 +32,7 @@ func CalculateTxParams(
     fromAddress common.Address,
 ) (*big.Int, *big.Int, uint64) {
 
-    // Get base fee from latest block
+    // Estimate the base fee of the next block (eth_baseFee)
     baseFee, err := l1.RPCClient.EstimateBaseFee(ctx)
     Expect(err).NotTo(HaveOccurred())
 
@@ -241,20 +241,24 @@ func CreatePredicateTx(
     fromAddress := crypto.PubkeyToAddress(senderKey.PublicKey)
     gasFeeCap, gasTipCap, nonce := CalculateTxParams(ctx, l1, fromAddress)
 
-    // Create predicate access list with Warp message
-    tx := predicateutils.NewPredicateTx(
-        l1.EVMChainID,
-        nonce,
-        &contractAddress,
-        gasLimit,
-        gasFeeCap,
-        gasTipCap,
-        big.NewInt(0),
-        callData,
-        types.AccessList{},
-        warp.ContractAddress,
-        signedWarpMessage.Bytes(),
-    )
+    // Put the signed Warp message in the access list as a predicate.
+    // predicate is github.com/ava-labs/avalanchego/vms/evm/predicate.
+    tx := types.NewTx(&types.DynamicFeeTx{
+        ChainID:   l1.EVMChainID,
+        Nonce:     nonce,
+        To:        &contractAddress,
+        Gas:       gasLimit,
+        GasFeeCap: gasFeeCap,
+        GasTipCap: gasTipCap,
+        Value:     big.NewInt(0),
+        Data:      callData,
+        AccessList: types.AccessList{
+            {
+                Address:     warp.ContractAddress,
+                StorageKeys: predicate.New(signedWarpMessage.Bytes()),
+            },
+        },
+    })
 
     return SignTransaction(tx, senderKey, l1.EVMChainID)
 }

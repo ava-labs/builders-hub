@@ -1,13 +1,17 @@
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
+import { isPublicRpcUrl } from "@/lib/explorer-rpc";
 
 /* Races every chain's RPC for a transaction hash and reports whichever chain
    claims it. Used by the explorer portal and the all-chains directory: paste
-   any 0x hash, land on the right chain's tx page. */
+   any 0x hash, land on the right chain's tx page. Only public RPCs are
+   asked, so no catalog entry can make the browser reach into the reader's
+   local network. */
 export async function lookupTransactionAcrossChains(
   txHash: string,
+  chains: L1Chain[] = l1ChainsData as L1Chain[],
 ): Promise<{ found: boolean; chain?: L1Chain }> {
-  const chainsWithRpc = (l1ChainsData as L1Chain[]).filter((chain) => chain.rpcUrl);
+  const chainsWithRpc = chains.filter((chain) => isPublicRpcUrl(chain.rpcUrl));
 
   const lookupPromises = chainsWithRpc.map(async (chain) => {
     try {

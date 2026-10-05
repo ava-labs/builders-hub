@@ -2,6 +2,7 @@ import { z } from "zod";
 import { emailSchema } from "@/lib/email";
 import {
   DEPLOYMENT_TARGETS,
+  QUOTE_DURATION_UNITS,
   SUBSIDY_DECISION_STATES,
   URGENCY_OPTIONS,
 } from "@/lib/audits/status";
@@ -10,9 +11,12 @@ import {
   AUDIT_LANGUAGES,
   AUDIT_PROJECT_TYPES,
   AUDIT_SERVICES,
-  MAX_QUOTE_WEEKS,
+  MAX_QUOTE_DURATION,
+  SHORTLIST_LIMIT,
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
+import { isAllowedAttachmentSrc, isAllowedLogoSrc } from "@/lib/audits/blobSrc";
+import { parseWholeNumber } from "@/components/audits/shared/format";
 
 const MAX_NAME = 200;
 const MAX_URL = 2048;
@@ -45,22 +49,64 @@ const httpsUrl = z.preprocess(
   normalizeUrlInput,
   trimmed(MAX_URL)
     .min(1, "Link is required")
-    .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://"),
+    .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://")
+    // Rejects javascript:/data:/vbscript: (which normalizeUrlInput leaves as
+    // "https://javascript:alert(1)") and the bare "https://" (S-7).
+    .refine((v) => {
+      try {
+        const u = new URL(v);
+        return u.protocol === "https:" || u.protocol === "http:";
+      } catch {
+        return false;
+      }
+    }, "Enter a valid URL"),
 );
+
+// One website field shared by both auditor schemas so they cannot drift:
+// httpsUrl, nullable, "" becomes null (the contact_calendar_url shape at :124).
+const auditorWebsiteField = httpsUrl.nullable().optional().or(z.literal("").transform(() => null));
+
+// One services field shared by both auditor schemas: dedupe on parse (S-14;
+// thirteen copies of one value pass .max today).
+const auditorServicesField = z
+  .array(z.enum(AUDIT_SERVICES))
+  .max(AUDIT_SERVICES.length)
+  .transform((values) => Array.from(new Set(values)));
 // z.coerce.date() would coerce null to 1970-01-01 (a valid Date), silently
 // passing a missing required date. Map nullish to undefined so it fails as
 // "required" instead.
 const requiredDate = (message: string) =>
   z.preprocess((v) => v ?? undefined, z.coerce.date({ message }));
 
+// Firms price from this number (Joey, 2026-09-30: two of them could not quote
+// a request that left it blank). The wizard holds it as typed text ("4,200"),
+// the stored row as an integer, and both pass through this one gate.
+const LINES_OF_CODE_MESSAGE = "Enter the lines of code as a whole number, like 4200";
+const requiredLinesOfCode = z.preprocess(
+  (v) => (typeof v === "string" ? parseWholeNumber(v) : v),
+  z
+    .number({ message: LINES_OF_CODE_MESSAGE })
+    .int(LINES_OF_CODE_MESSAGE)
+    .min(1, LINES_OF_CODE_MESSAGE)
+    .max(100_000_000, LINES_OF_CODE_MESSAGE),
+);
+
 const repoDraftSchema = z.strictObject({
   url: trimmed(MAX_URL),
   ref: trimmed(MAX_NAME).optional().default(""),
 });
 
+/**
+ * An uploaded spec or scoping doc. `url` must be a key our own attachment
+ * route minted: the list is rendered to every firm the request reaches, so an
+ * arbitrary URL here is a link the program would publish on the requester's
+ * behalf. The draft schema is otherwise deliberately permissive, but this one
+ * is not a half-typed value a user is still editing, it is a value only our
+ * upload can produce.
+ */
 const attachmentSchema = z.strictObject({
   name: trimmed(300).min(1),
-  url: trimmed(MAX_URL).min(1),
+  url: trimmed(MAX_URL).min(1).refine(isAllowedAttachmentSrc, "Unsupported attachment URL"),
   size: z.number().int().min(0).max(MAX_ATTACHMENT_BYTES),
 });
 export type AuditAttachment = z.infer<typeof attachmentSchema>;
@@ -95,6 +141,13 @@ export const auditDraftSchema = z.strictObject({
   contact_email: trimmed(320).optional(),
   contact_handle: trimmed(100).nullable().optional(),
   contact_calendar_url: trimmed(MAX_URL).nullable().optional(),
+  shortlist_auditor_ids: z
+    .preprocess(
+      (v) => (Array.isArray(v) ? v.map((x) => (typeof x === "string" ? x.toLowerCase() : x)) : v),
+      z.array(z.uuid()).max(SHORTLIST_LIMIT),
+    )
+    .refine((ids) => new Set(ids).size === ids.length, "Duplicate firm ids")
+    .optional(),
 });
 export type AuditDraftInput = z.infer<typeof auditDraftSchema>;
 
@@ -116,7 +169,12 @@ export const auditSubmitSchema = z.object({
     .max(20)
     .optional()
     .default([]),
+  nsloc: requiredLinesOfCode,
   doc_links: z.array(httpsUrl).max(20).optional().default([]),
+  // Re-checked against the STORED row at submit, like every other link:
+  // without this the draft-time refinement is the only gate and a row written
+  // before it existed would fan out unchecked.
+  attachments: z.array(attachmentSchema).max(10).optional().default([]),
   needed_by: requiredDate("Pick the latest completion date"),
   quote_deadline: z.coerce.date().nullable().optional(),
   contact_name: trimmed(MAX_NAME).min(1, "Contact name is required"),
@@ -125,15 +183,22 @@ export const auditSubmitSchema = z.object({
 });
 export type AuditSubmitData = z.infer<typeof auditSubmitSchema>;
 
-export const auditQuoteSchema = z.strictObject({
-  price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
-  duration_weeks: z.number().int().min(1).max(MAX_QUOTE_WEEKS),
-  earliest_start: requiredDate("Pick the earliest start date"),
-  message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
-  // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
-  // a pasted "docs.google.com/..." still resolves.
-  deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
-});
+export const auditQuoteSchema = z
+  .strictObject({
+    price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
+    duration: z.number().int().min(1),
+    duration_unit: z.enum(QUOTE_DURATION_UNITS),
+    earliest_start: requiredDate("Pick the earliest start date"),
+    message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
+    // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
+    // a pasted "docs.google.com/..." still resolves.
+    deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
+  })
+  // One year at most, in the unit the firm picked.
+  .refine((quote) => quote.duration <= MAX_QUOTE_DURATION[quote.duration_unit], {
+    message: "A quote can run at most one year",
+    path: ["duration"],
+  });
 export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
 
 /**
@@ -180,10 +245,22 @@ export type AuditorCreateInput = z.infer<typeof auditorCreateSchema>;
 
 export const auditorUpdateSchema = z.strictObject({
   firm_name: trimmed(MAX_NAME).min(1).optional(),
-  services: z.array(z.enum(AUDIT_SERVICES)).max(AUDIT_SERVICES.length).optional(),
+  services: auditorServicesField.optional(),
   active: z.boolean().optional(),
+  website: auditorWebsiteField,
+  logo_url: trimmed(MAX_URL)
+    .refine((v) => isAllowedLogoSrc(v), "Unsupported logo URL")
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
 });
 export type AuditorUpdateInput = z.infer<typeof auditorUpdateSchema>;
+
+export const auditorSelfUpdateSchema = z.strictObject({
+  services: auditorServicesField.optional(),
+  website: auditorWebsiteField,
+});
+export type AuditorSelfUpdateInput = z.infer<typeof auditorSelfUpdateSchema>;
 
 export const auditorMemberCreateSchema = z.strictObject({
   email: normalizedEmail,

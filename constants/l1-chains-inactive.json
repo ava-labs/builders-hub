@@ -482,30 +482,6 @@
     "isIndexed": true
   },
   {
-    "chainId": "8198",
-    "chainName": "Hatchyverse",
-    "description": "The world's first decentralized IP owned by a DAO. A gamified ecosystem combining collecting, competitive gameplay, and content creation revolving around Hatchies: unique creatures that hatch from mysterious eggs. Features over 400 elemental monsters.",
-    "website": "https://hatchyverse.com/",
-    "socials": {
-      "twitter": "Hatchyverse",
-      "discord": "https://discord.com/invite/w47s6RGCH7"
-    },
-    "chainLogoURI": "https://dashboard-assets.dappradar.com/document/8825/hatchyverse-project-games-8825-logo_aaafc4cafbea89ae57991f888d963abb.png",
-    "subnetId": "2Mi7V6HwKCEPxXTRG87o5tHACECkMPnJKP6UA3w1ote7j46GYT",
-    "slug": "hatchyverse",
-    "color": "#2596BE",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Blockscout",
-        "link": "https://hatchyverse-explorer.ash.center"
-      }
-    ],
-    "isActive": false,
-    "aliasVerified": true,
-    "isIndexed": true
-  },
-  {
     "chainId": "1216",
     "chainName": "Intersect",
     "isActive": false,

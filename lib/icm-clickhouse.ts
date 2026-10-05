@@ -9,6 +9,9 @@ import { wrapFetchWithPayment } from "@x402/fetch";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { toClientEvmSigner } from "@x402/evm";
 import { statsApi } from "@/lib/stats-api";
+import { runQuery } from "@/lib/explorer-query/clickhouse";
+import { redis } from "@/lib/redis";
+import { DEDICATED_METRICS_CHAINS } from "@/lib/dedicated-stats";
 
 type L1ChainEntry = {
   chainId: string;
@@ -22,7 +25,6 @@ type L1ChainEntry = {
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || "";
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
 const QUERY_TIMEOUT_MS = 10_000;
-const CONTRACT_FEES_QUERY_TIMEOUT_MS = 60_000;
 
 // x402 payer wallet — signs USDC transfer authorizations on Avalanche C-Chain
 const X402_PAYER_PRIVATE_KEY = process.env.X402_PAYER_PRIVATE_KEY || "";
@@ -140,7 +142,13 @@ interface ChainInfo {
   chainName: string;
   chainLogoURI: string;
   color: string;
+  isTestnet: boolean;
 }
+
+/** the network a flow feed answers for: a message never crosses from one to the other */
+export type IcmNetwork = "mainnet" | "fuji";
+
+const onNetwork = (c: ChainInfo, network: IcmNetwork) => c.isTestnet === (network === "fuji");
 
 function generateColor(name: string): string {
   let hash = 0;
@@ -163,14 +171,19 @@ for (const c of l1ChainsData) {
     chainName: typed.chainName,
     chainLogoURI: typed.chainLogoURI || "",
     color: typed.color || generateColor(typed.chainName),
+    isTestnet: typed.isTestnet === true,
   });
 }
 
-function lookupChain(chainIdNum: number): ChainInfo | undefined {
-  return chainMap.get(String(chainIdNum));
+function lookupChain(chainId: number | string): ChainInfo | undefined {
+  return chainMap.get(String(chainId));
 }
 
-const blockchainHexToChainId: Map<string, number> = new Map();
+// Keyed to the catalog's chainId as written. Most EVM chains carry their
+// numeric EVM chain id, but chains the explorer does not index carry their
+// CB58 blockchain id instead (omnicoin, 2026-09: ~258K messages a month to
+// the C-Chain); a Number() cast turned those into NaN and dropped them.
+const blockchainHexToChainId: Map<string, string> = new Map();
 for (const c of l1ChainsData) {
   const typed = c as L1ChainEntry;
   if (!typed.blockchainId) continue;
@@ -178,7 +191,7 @@ for (const c of l1ChainsData) {
     const hex = typed.blockchainId.startsWith("0x")
       ? typed.blockchainId.slice(2).toUpperCase()
       : CB58ToHex(typed.blockchainId).slice(2).toUpperCase();
-    blockchainHexToChainId.set(hex, Number(typed.chainId));
+    blockchainHexToChainId.set(hex, String(typed.chainId));
   } catch {
     // Skip entries with unparseable blockchainId
   }
@@ -203,7 +216,8 @@ interface RawCrossChainFlow {
 }
 
 interface CrossChainFlow {
-  source_chain_id: number;
+  /** the catalog's chainId: numeric EVM id, or CB58 for unindexed chains */
+  source_chain_id: string;
   dest_chain_id: number;
   msg_count: number;
 }
@@ -315,24 +329,94 @@ function sqlCrossChainFlows(days?: number): string {
   `;
 }
 
-function sqlContractFees(days?: number): string {
-  const prewhereClauses = ["chain_id = 43114"];
-  if (days && Number.isFinite(days) && days > 0) {
-    prewhereClauses.push(`block_time >= now() - INTERVAL ${Math.ceil(days)} DAY`);
-  }
+/* Teleporter's fees on the C-Chain: the gas of each transaction sent to the TeleporterMessenger. The stats API
+   reads them in one query that scans every C-Chain transaction in the window, and past about a month it times out
+   (HTTP 500 after 30 s), which left the AVAX page's ICM fees empty. So the window is read here a calendar month at
+   a time through the Query engine's read path (about 7 s a month), two months at a time. A month that ended more
+   than a day ago no longer changes, and Redis keeps it 30 days; the current month is read again every 4 hours. A
+   month that fails fails the whole read, so no cache keeps a window with a hole in it. */
 
+/** the month of Teleporter's first C-Chain message (2024-03-06), where "all" starts */
+const TELEPORTER_SINCE = Date.UTC(2024, 2, 1);
+const DAY_MS = 86_400_000;
+const MONTH_KEY = "icm:contract-fees:month:v1:";
+const CLOSED_MONTH_TTL_S = 30 * 86_400;
+const OPEN_MONTH_TTL_S = 4 * 3_600;
+/** the months this instance has read or fetched, with when each goes stale, and the reads still running */
+const monthFees = new Map<string, { rows: ContractFee[]; until: number }>();
+const monthReads = new Map<string, Promise<ContractFee[]>>();
+
+interface FeeMonth {
+  key: string;
+  from: string;
+  to: string;
+  closed: boolean;
+}
+
+const isoDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+/** each calendar month (UTC) from the one that holds start to the current one */
+export function feeMonths(start: number, now: number): FeeMonth[] {
+  const out: FeeMonth[] = [];
+  const first = new Date(start);
+  let y = first.getUTCFullYear();
+  let m = first.getUTCMonth();
+  while (Date.UTC(y, m, 1) <= now) {
+    // Date.UTC carries month 12 into the next year's January
+    const end = Date.UTC(y, m + 1, 1);
+    out.push({ key: `${y}-${String(m + 1).padStart(2, "0")}`, from: isoDay(Date.UTC(y, m, 1)), to: isoDay(end), closed: end + DAY_MS < now });
+    [y, m] = m === 11 ? [y + 1, 0] : [y, m + 1];
+  }
+  return out;
+}
+
+function sqlContractFees(month: FeeMonth): string {
   return `
     SELECT
-      toDate(block_time) AS day,
+      toString(toDate(block_time)) AS day,
       toString(sum(toUInt256(gas_used) * toUInt256(gas_price))) AS fees_paid,
       count() AS tx_count
     FROM raw_txs
-    PREWHERE ${prewhereClauses.join(" AND ")}
-    WHERE \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
+    PREWHERE chain_id = 43114
+      AND block_time >= toDateTime('${month.from} 00:00:00')
+      AND block_time < toDateTime('${month.to} 00:00:00')
+      AND \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
     GROUP BY day
     ORDER BY day
-    FORMAT JSONEachRow
   `;
+}
+
+/** one month's fees: from this instance's memory, else Redis, else the index; a month already being read is
+    shared, so two requests never read it twice */
+function feesOfMonth(month: FeeMonth): Promise<ContractFee[]> {
+  const hit = monthFees.get(month.key);
+  if (hit && hit.until > Date.now()) return Promise.resolve(hit.rows);
+  const running = monthReads.get(month.key);
+  if (running) return running;
+  const read = readMonth(month).finally(() => monthReads.delete(month.key));
+  monthReads.set(month.key, read);
+  return read;
+}
+
+async function readMonth(month: FeeMonth): Promise<ContractFee[]> {
+  const ttl = month.closed ? CLOSED_MONTH_TTL_S : OPEN_MONTH_TTL_S;
+  const store = await redis();
+  const kept = store ? await store.get(MONTH_KEY + month.key).catch(() => null) : null;
+  if (kept) {
+    try {
+      const { rows, at } = JSON.parse(kept) as { rows: ContractFee[]; at: number };
+      monthFees.set(month.key, { rows, until: at + ttl * 1000 });
+      return rows;
+    } catch {
+      // a value this code cannot read: the month is read again, and the new value replaces it
+    }
+  }
+  const read = await runQuery(sqlContractFees(month));
+  const rows: ContractFee[] = read.rows.map((r) => ({ day: String(r.day), fees_paid: String(r.fees_paid), tx_count: Number(r.tx_count) }));
+  const at = Date.now();
+  monthFees.set(month.key, { rows, until: at + ttl * 1000 });
+  await store?.set(MONTH_KEY + month.key, JSON.stringify({ rows, at }), { EX: ttl }).catch(() => undefined);
+  return rows;
 }
 
 async function refreshCache(): Promise<ICMCacheData> {
@@ -421,18 +505,30 @@ async function getICMCacheData(): Promise<ICMCacheData> {
 }
 
 async function refreshContractFeesCache(days?: number): Promise<ContractFeesCacheData> {
-  const feesBody = await statsApi<{ fees?: { day: string; feesPaid: string; txCount: number }[] }>(
-    days && days > 0 ? `/icm-api/contract-fees?days=${Math.ceil(days)}` : "/icm-api/contract-fees",
-    CONTRACT_FEES_QUERY_TIMEOUT_MS,
-  );
-  const contractFees: ContractFee[] = (feesBody?.fees ?? []).map((f) => ({
-    day: f.day,
-    fees_paid: f.feesPaid,
-    tx_count: f.txCount,
-  }));
+  const now = Date.now();
+  const since = days && days > 0 ? Math.max(TELEPORTER_SINCE, now - Math.ceil(days) * DAY_MS) : TELEPORTER_SINCE;
+  const months = feeMonths(since, now);
+  // two months at a time: the box takes four queries from this user, and other readers share them. Once a month
+  // fails, no new month is started: a box that times out gets no more reads from this one
+  const read: ContractFee[][] = [];
+  let next = 0;
+  let failed = false;
+  const worker = async () => {
+    while (!failed && next < months.length) {
+      const i = next++;
+      try {
+        read[i] = await feesOfMonth(months[i]);
+      } catch (e) {
+        failed = true;
+        throw e;
+      }
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  const first = isoDay(since);
   return {
-    contractFees,
-    fetchedAt: Date.now(),
+    contractFees: read.flat().filter((f) => f.day >= first),
+    fetchedAt: now,
   };
 }
 
@@ -596,14 +692,17 @@ interface ICMFlowData {
   messageCount: number;
 }
 
-export async function getICMFlowData(days: number): Promise<ICMFlowData[]> {
+/* The flows of one network. The index holds Fuji's chains beside mainnet's,
+   so each flow keeps only when both its ends are catalog chains of the
+   network asked for. */
+export async function getICMFlowData(days: number, network: IcmNetwork = "mainnet"): Promise<ICMFlowData[]> {
   const crossChainFlows = await fetchCrossChainFlows(days);
 
   const flows: ICMFlowData[] = [];
   for (const row of crossChainFlows) {
     const src = lookupChain(row.source_chain_id);
     const dst = lookupChain(row.dest_chain_id);
-    if (!src || !dst) continue;
+    if (!src || !dst || !onNetwork(src, network) || !onNetwork(dst, network)) continue;
 
     flows.push({
       sourceChain: src.chainName,
@@ -620,6 +719,94 @@ export async function getICMFlowData(days: number): Promise<ICMFlowData[]> {
 
   flows.sort((a, b) => b.messageCount - a.messageCount);
   return flows;
+}
+
+/* The flows both ways, as the city draws them: each direction counted once,
+   as the larger of its sends, on a sender the index holds, and its
+   deliveries, on a receiver it holds. With the sender's logs whole its sends
+   are the larger, the messages still in flight among them; with its logs
+   behind (Blaze's stopped on Sep 22 while it went on sending), its
+   deliveries stand in. The sends are one ad-hoc query beside the flows' own;
+   when it cannot be read, the deliveries come back alone and say so. */
+export interface ICMFlowBothSides extends ICMFlowData {
+  countedAs: "sent" | "delivered";
+}
+
+// the index's chain IDs where they differ from the catalog's: KiteAI's catalog entry carries its blockchain ID
+const catalogIdOfStats = new Map(
+  Object.entries(DEDICATED_METRICS_CHAINS)
+    .filter(([catalogId, statsId]) => catalogId !== statsId)
+    .map(([catalogId, statsId]) => [statsId, catalogId])
+);
+const catalogIdOf = (statsId: string | number) => catalogIdOfStats.get(String(statsId)) ?? String(statsId);
+
+// the index's chain IDs for a network's senders: the catalog's EVM IDs, KiteAI's by its stats ID
+function senderChainIds(network: IcmNetwork): number[] {
+  const ids = new Set<number>();
+  for (const c of l1ChainsData as L1ChainEntry[]) {
+    if ((c.isTestnet === true) !== (network === "fuji")) continue;
+    const id = Number(DEDICATED_METRICS_CHAINS[c.chainId] ?? c.chainId);
+    if (Number.isSafeInteger(id)) ids.add(id);
+  }
+  return [...ids];
+}
+
+// SendCrossChainMessage: chain_id = the sender, topic2 = destinationBlockchainID; the senders are the network's own
+async function fetchSentFlows(days: number, network: IcmNetwork): Promise<{ from: string; to: string; n: number }[]> {
+  const r = await runQuery(
+    `SELECT chain_id AS src, hex(topic2) AS dest, count() AS n
+FROM raw_logs
+PREWHERE block_time >= now() - INTERVAL ${Math.ceil(days)} DAY AND chain_id IN (${senderChainIds(network).join(", ")})
+WHERE topic0 = unhex('${SEND_CROSS_CHAIN_MSG_TOPIC0}')
+GROUP BY src, dest`
+  );
+  const out: { from: string; to: string; n: number }[] = [];
+  for (const row of r.rows) {
+    const to = blockchainHexToChainId.get(String(row.dest).toUpperCase());
+    if (to !== undefined) out.push({ from: catalogIdOf(String(row.src)), to, n: Number(row.n) || 0 });
+  }
+  return out;
+}
+
+export async function getICMFlowDataBothSides(days: number, network: IcmNetwork = "mainnet"): Promise<{ flows: ICMFlowBothSides[]; complete: boolean }> {
+  const [delivered, sent] = await Promise.all([
+    fetchCrossChainFlows(days),
+    fetchSentFlows(days, network).catch((err) => {
+      console.warn("[icm-clickhouse] sent flows unavailable; deliveries alone:", err);
+      return null;
+    }),
+  ]);
+  const best = new Map<string, { from: string; to: string; n: number; side: "sent" | "delivered" }>();
+  for (const f of delivered) {
+    const to = catalogIdOf(f.dest_chain_id);
+    best.set(`${f.source_chain_id}>${to}`, { from: f.source_chain_id, to, n: Number(f.msg_count), side: "delivered" });
+  }
+  for (const f of sent ?? []) {
+    const k = `${f.from}>${f.to}`;
+    // a tie goes to the sender's side
+    if (f.n >= (best.get(k)?.n ?? 0)) best.set(k, { ...f, side: "sent" });
+  }
+  const flows: ICMFlowBothSides[] = [];
+  for (const f of best.values()) {
+    const src = lookupChain(f.from);
+    const dst = lookupChain(f.to);
+    // both ends on the network asked for: the deliveries hold Fuji's receivers too
+    if (!src || !dst || !onNetwork(src, network) || !onNetwork(dst, network) || !(f.n > 0)) continue;
+    flows.push({
+      sourceChain: src.chainName,
+      sourceChainId: src.chainId,
+      sourceLogo: src.chainLogoURI,
+      sourceColor: src.color,
+      targetChain: dst.chainName,
+      targetChainId: dst.chainId,
+      targetLogo: dst.chainLogoURI,
+      targetColor: dst.color,
+      messageCount: f.n,
+      countedAs: f.side,
+    });
+  }
+  flows.sort((a, b) => b.messageCount - a.messageCount);
+  return { flows, complete: sent !== null };
 }
 
 interface DailyFeeData {

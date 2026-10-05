@@ -1,0 +1,5 @@
+# Run output stays local. The replay cache of agent steps is committed, so CI can replay them without model calls.
+**/.e2e/*
+!**/.e2e/cache/
+# The root ignores package-lock.json because the site uses yarn. This package uses npm, and CI installs from its lockfile.
+!package-lock.json

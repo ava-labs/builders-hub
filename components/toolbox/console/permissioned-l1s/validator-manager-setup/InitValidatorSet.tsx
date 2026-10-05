@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { getPChainRpcUrl, getGlacierNetwork } from '@/components/toolbox/utils/avalancheEndpoints';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { PRIMARY_NETWORK_SUBNET_ID } from '@/components/toolbox/components/InputSubnetId';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, type Hex } from 'viem';
@@ -27,7 +30,8 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { CB58ToHex } from '@avalanche-sdk/client/utils';
+import { CB58ToHex, removeChecksum } from '@avalanche-sdk/client/utils';
+import { utils } from '@avalabs/avalanchejs';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -38,11 +42,25 @@ import {
   parseAggregationError,
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
+import { parseInitValidatorSetError } from '@/components/toolbox/hooks/contracts/parseInitValidatorSetError';
 
 type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId: string };
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 const add0x = (hex: string): `0x${string}` => (hex.startsWith('0x') ? (hex as `0x${string}`) : `0x${hex}`);
+
+/**
+ * A well-formed CB58 subnet ID: 32 bytes behind a valid checksum. Checked
+ * with removeChecksum, because base58check.decode (and so CB58ToHex) does
+ * not verify the checksum and takes a mistyped ID.
+ */
+function isSubnetId(id: string): boolean {
+  try {
+    return removeChecksum(utils.base58.decode(id)).length === 32;
+  } catch {
+    return false;
+  }
+}
 
 const metadata: ConsoleToolMetadata = {
   title: 'Initialize Validator Set',
@@ -74,11 +92,24 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [conversionResult, setConversionResult] = useState<ConversionData | null>(null);
   const [isValidatorSetInit, setIsValidatorSetInit] = useState<boolean | null>(null);
   const [isCheckingInit, setIsCheckingInit] = useState(false);
+  const [managerBlockchainId, setManagerBlockchainId] = useState('');
+  const managerChain = useL1ByChainId(managerBlockchainId);
+
+  // The L1 whose validator set this step initializes. A wallet on the L1
+  // names it. A wallet on the C-Chain (a manager hosted there) names only
+  // the Primary Network, so the subnet from the create flow stands in.
+  const storeSubnetId = useCreateChainStore()((s) => s.subnetId);
+  const storeConversionTxId = useCreateChainStore()((s) => s.convertToL1TxId);
+  const walletSubnetId =
+    selectedL1?.subnetId && selectedL1.subnetId !== PRIMARY_NETWORK_SUBNET_ID ? selectedL1.subnetId : '';
+  const [subnetId, setSubnetId] = useState('');
+  const [notConverted, setNotConverted] = useState(false);
 
   const { notify } = useConsoleNotifications();
 
   // Unified aggregation: works for ALL wallet types
   async function aggSigs() {
+    const txId = conversionTxID.trim();
     setError(null);
     setIsAggregating(true);
 
@@ -88,10 +119,16 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       // L1's bootstrap validators); kept out of the SDK to avoid pulling in
       // a Glacier dep there.
       const extracted = await extractSubnetToL1ConversionDataFromPChainTx({
-        txId: conversionTxID,
+        txId,
         pChainRpcUrl: getPChainRpcUrl(isTestnet),
         networkId: avalancheNetworkID,
       });
+      // A pasted or saved ID can belong to another subnet: never sign for the wrong L1.
+      if (subnetId && extracted.subnetId !== subnetId) {
+        throw new Error(
+          `Transaction ${txId} converted subnet ${extracted.subnetId}, not ${subnetId}. Select that subnet, or paste the conversion ID for ${subnetId}.`,
+        );
+      }
 
       const network = getGlacierNetwork(isTestnet);
       const glacierRes = await fetch(
@@ -107,6 +144,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
       if (data.managerAddress) {
         setManagerAddress(data.managerAddress);
+        setManagerBlockchainId(data.blockchainId);
       }
 
       const { signedMessage } = await aggregateSignature({
@@ -132,24 +170,67 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   }
 
   useEffect(() => {
+    const next = walletSubnetId || storeSubnetId;
+    if (next) setSubnetId(next);
+  }, [walletSubnetId, storeSubnetId]);
+
+  useEffect(() => {
+    // A different L1: nothing from the last one carries over.
+    setConversionTxID('');
     setConversionTxIDError('');
-    const subnetId = selectedL1?.subnetId;
-    if (!subnetId) return;
-    getSubnetInfo(subnetId)
+    setNotConverted(false);
+    setL1ConversionSignature('');
+    setConversionResult(null);
+    setManagerAddress('');
+    setManagerBlockchainId('');
+    setIsValidatorSetInit(null);
+    setTxSuccess(false);
+    setError(null);
+    setCollectedData({});
+    if (!isSubnetId(subnetId)) return;
+
+    // The convert step's own record, for when Glacier has not indexed the conversion yet.
+    const saved = subnetId === storeSubnetId ? storeConversionTxId : '';
+    const controller = new AbortController();
+    getSubnetInfo(subnetId, controller.signal)
       .then((subnetInfo) => {
-        setConversionTxID(subnetInfo.l1ConversionTransactionHash);
-        const contractAddr = subnetInfo.l1ValidatorManagerDetails?.contractAddress;
-        if (contractAddr) setManagerAddress(contractAddr);
+        if (subnetInfo.isTestnet !== isTestnet) {
+          setConversionTxIDError(
+            `Subnet ${subnetId} is on ${subnetInfo.isTestnet ? 'Fuji' : 'Mainnet'}. Switch the console to that network.`,
+          );
+          return;
+        }
+        const manager = subnetInfo.l1ValidatorManagerDetails;
+        if (manager?.contractAddress) {
+          setManagerAddress(manager.contractAddress);
+          setManagerBlockchainId(manager.blockchainId);
+        }
+        // Glacier reports no conversion hash until the subnet converts.
+        const txId = subnetInfo.l1ConversionTransactionHash || saved;
+        if (txId) setConversionTxID(txId);
+        else setNotConverted(true);
       })
       .catch((error) => {
+        if (controller.signal.aborted) return;
+        if (saved) {
+          setConversionTxID(saved);
+          return;
+        }
         console.error('Error getting subnet info:', error);
         setConversionTxIDError((error as Error)?.message || 'Unknown error');
       });
-  }, [selectedL1?.subnetId]);
+    return () => controller.abort();
+  }, [subnetId, storeSubnetId, storeConversionTxId, isTestnet]);
 
-  // Check on-chain whether initializeValidatorSet has already been called
+  // Check on-chain whether initializeValidatorSet has already been called.
+  // Read only on the chain that hosts the manager: the same address on
+  // another chain is another account.
   useEffect(() => {
-    if (!managerAddress || !chainPublicClient) return;
+    if (!managerAddress || !chainPublicClient || (managerBlockchainId && selectedL1?.id !== managerBlockchainId)) {
+      setIsCheckingInit(false);
+      return;
+    }
+    let cancelled = false;
     setIsCheckingInit(true);
     chainPublicClient
       .readContract({
@@ -158,15 +239,18 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         functionName: 'isValidatorSetInitialized',
       })
       .then((result) => {
-        setIsValidatorSetInit(result as boolean);
+        if (!cancelled) setIsValidatorSetInit(result as boolean);
       })
       .catch(() => {
-        setIsValidatorSetInit(null);
+        if (!cancelled) setIsValidatorSetInit(null);
       })
       .finally(() => {
-        setIsCheckingInit(false);
+        if (!cancelled) setIsCheckingInit(false);
       });
-  }, [managerAddress, chainPublicClient]);
+    return () => {
+      cancelled = true;
+    };
+  }, [managerAddress, managerBlockchainId, selectedL1?.id, chainPublicClient]);
 
   // Build the transaction args from conversion data
   function buildTxArgs(data: ConversionData) {
@@ -193,7 +277,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
   // Core Wallet path: send tx with access list in-browser
   const onInitialize = async () => {
-    if (!conversionTxID) {
+    if (!conversionTxID.trim()) {
       setError('Conversion Tx ID is required');
       return;
     }
@@ -205,15 +289,23 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setError('Aggregate signatures first');
       return;
     }
+    // A call to the manager's address on another chain reaches no contract and still succeeds.
+    if (!chainPublicClient || selectedL1?.id !== conversionResult.blockchainId) {
+      setError(
+        `The Validator Manager is on ${managerChain?.name ?? `blockchain ${conversionResult.blockchainId}`}. Switch your wallet to that chain.`,
+      );
+      return;
+    }
 
     setIsInitializing(true);
     setError(null);
+    setAggRemediation(null);
 
     try {
       const txArgs = buildTxArgs(conversionResult);
       setCollectedData({ ...(txArgs[0] as any), L1ConversionSignature });
 
-      const initPromise = initializeValidatorSet(walletClient, chainPublicClient!, {
+      const initPromise = initializeValidatorSet(walletClient, chainPublicClient, {
         contractAddress: conversionResult.managerAddress as `0x${string}`,
         networkId: avalancheNetworkID,
         subnetId: conversionResult.subnetId,
@@ -250,7 +342,12 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setTxSuccess(true);
       onSuccess?.();
     } catch (err) {
-      setError((err as Error).message);
+      // The SDK simulates before sending and throws the raw viem revert
+      // dump; map the unambiguous reverts to actionable guidance instead
+      // of showing the dump (issue #4464).
+      const mapped = parseInitValidatorSetError(err, conversionResult?.managerAddress ?? managerAddress ?? null);
+      setAggRemediation(mapped?.remediation?.length ? mapped.remediation : null);
+      setError(mapped?.message ?? (err as Error).message);
     } finally {
       setIsInitializing(false);
     }
@@ -260,7 +357,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   function generateCastCommand(): string {
     if (!conversionResult || !L1ConversionSignature) return '';
 
-    const rpcUrl = selectedL1?.rpcUrl || '<L1_RPC_URL>';
+    // the chain that hosts the manager, which need not be the wallet's
+    const rpcUrl = managerChain?.rpcUrl || '<L1_RPC_URL>';
     const addr = conversionResult.managerAddress || managerAddress || '<VALIDATOR_MANAGER_ADDRESS>';
 
     const txArgs = buildTxArgs(conversionResult);
@@ -336,6 +434,12 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                 </p>
 
                 <div className="mt-2 space-y-2">
+                  <SelectSubnetId
+                    value={subnetId}
+                    onChange={setSubnetId}
+                    hidePrimaryNetwork={true}
+                    label="L1 Subnet ID"
+                  />
                   <div>
                     <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
                       Conversion Tx ID (P-Chain)
@@ -348,6 +452,15 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                       placeholder="txID..."
                     />
                     {conversionTxIDError && <p className="mt-0.5 text-[10px] text-red-500">{conversionTxIDError}</p>}
+                    {notConverted && !conversionTxID && (
+                      <p className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400">
+                        This subnet is not converted to an L1 yet. Convert it with{' '}
+                        <Link href="/console/layer-1/create/convert-to-l1" className="underline">
+                          Convert to L1
+                        </Link>
+                        , or paste the conversion transaction ID.
+                      </p>
+                    )}
                   </div>
 
                   {step1Complete ? (
@@ -375,7 +488,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                       variant="primary"
                       onClick={aggSigs}
                       loading={isAggregating}
-                      disabled={!conversionTxID || isAggregating}
+                      disabled={!conversionTxID.trim() || isAggregating}
                       className="w-full"
                     >
                       {isAggregating ? 'Aggregating...' : 'Aggregate Signatures'}

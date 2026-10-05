@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, HashChip, SectionHeader, SpecPlate, SpecRow } from "@/components/explorer-v2/ui";
+import { Board, EmptyRow, HEAD, HashChip, LoadMore, ROW, SectionHeader, SpecLine, SpecSheet, Tabs, TxTypePill } from "@/components/explorer-v2/ui";
 import { formatTime } from "@/components/explorer-v2/format";
 
 /* CreateChainTx genesisData → readable. The node's JSON codec ships the
    genesis bytes base64-encoded; for EVM chains those bytes ARE the genesis
-   JSON — the chain's founding document. Decode defensively: custom VMs can
+   JSON, the chain's founding document. Decode defensively: custom VMs can
    put anything in there, and the viewer must degrade, never break the page. */
 
 interface DecodedGenesis {
@@ -45,7 +45,7 @@ export function decodeGenesisData(genesisData: unknown): DecodedGenesis | null {
     const json = JSON.parse(text) as Record<string, unknown>;
     return { json, text: JSON.stringify(json, null, 2) };
   } catch {
-    // not JSON — worth showing only if it reads as text, not binary noise
+    // not JSON: worth showing only if it reads as text, not binary noise
     const nonPrintable = text.replace(/[\x20-\x7e\s]/g, "");
     return nonPrintable.length / Math.max(text.length, 1) < 0.05 ? { text } : null;
   }
@@ -72,7 +72,7 @@ interface EvmOverview {
   alloc: { address: string; balance: string; contract: boolean }[];
 }
 
-/* one subnet-evm GenesisAccount — alloc entries can be funded accounts
+/* one subnet-evm GenesisAccount: alloc entries can be funded accounts
    (balance) or predeployed contracts (code/storage/nonce), or both */
 interface GenesisAccount {
   balance?: string;
@@ -125,7 +125,7 @@ function evmOverview(g: Record<string, unknown>): EvmOverview | null {
 const MAX_UINT256 = (1n << 256n) - 1n;
 
 /* wei (hex or decimal string) → whole native-token units, 2dp when needed.
-   Genesis balances can be absurd on purpose — a faucet chain allocates
+   Genesis balances can be absurd on purpose: a faucet chain allocates
    max uint256 (~1.16e59 tokens) to one key. Never expand those into a
    60-character comma string: it crushes the address column into a one-
    character-per-line ribbon. */
@@ -139,7 +139,7 @@ function formatTokenBalance(balance: string): string {
   if (v === MAX_UINT256) return "MAX";
   const whole = v / 10n ** 18n;
   if (whole >= 10n ** 15n) {
-    // beyond any real supply — exponent form keeps the column sane
+    // beyond any real supply: exponent form keeps the column sane
     const s = whole.toString();
     return `${s[0]}.${s.slice(1, 3)}e${s.length - 1}`;
   }
@@ -149,10 +149,11 @@ function formatTokenBalance(balance: string): string {
 }
 
 const ALLOC_PREVIEW = 8;
+const ALLOC_COLS = "md:grid-cols-[minmax(0,1fr)_minmax(0,11rem)]";
 
 /* The genesis instrument: an Overview board reading the founding config
    like a spec sheet (chain id, fee market, precompiles, allocations), and
-   the raw JSON verbatim — copy and download always at hand. Shared by the
+   the raw JSON verbatim, copy and download always at hand. Shared by the
    CreateChainTx page and the chain Details tab. */
 export function GenesisViewer({
   genesisData,
@@ -169,7 +170,7 @@ export function GenesisViewer({
     [decoded],
   );
   const [view, setView] = useState<"overview" | "json">("json");
-  // the data lands async — jump to the richer view the moment it parses
+  // the data lands async: jump to the richer view the moment it parses
   useEffect(() => {
     setView(overview ? "overview" : "json");
   }, [overview]);
@@ -225,24 +226,7 @@ export function GenesisViewer({
         action={
           decoded ? (
             <span className="flex shrink-0 items-center gap-4">
-              {overview && (
-                <div className="inline-flex border border-zinc-200 dark:border-zinc-800">
-                  {(["overview", "json"] as const).map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setView(v)}
-                      className={cn(
-                        "px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
-                        view === v
-                          ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                          : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
-                      )}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {overview && <Tabs tabs={["overview", "json"] as ("overview" | "json")[]} active={view} onChange={setView} labels={{ overview: "Overview", json: "JSON" }} />}
               <button
                 onClick={copy}
                 className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -270,92 +254,58 @@ export function GenesisViewer({
           </div>
         </Board>
       ) : view === "overview" && overview ? (
-        <div className="grid items-start gap-8 lg:grid-cols-2">
-          <Board divide={false} className="px-5 py-4 md:px-6">
-            <SpecPlate>
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+          <Board divide={false} className="px-5 md:px-6">
+            <SpecSheet>
               {overview.chainId !== undefined && (
-                <SpecRow label="EVM Chain ID">
+                <SpecLine label="EVM Chain ID">
                   <span className="inline-flex items-baseline gap-2">
                     <span className="font-mono">{overview.chainId}</span>
-                    <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                      0x{overview.chainId.toString(16)}
-                    </span>
+                    <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">0x{overview.chainId.toString(16)}</span>
                   </span>
-                </SpecRow>
+                </SpecLine>
               )}
-              {overview.gasLimit !== undefined && (
-                <SpecRow label="Gas Limit">{overview.gasLimit.toLocaleString("en-US")}</SpecRow>
-              )}
-              {overview.targetBlockRate !== undefined && (
-                <SpecRow label="Target Block Rate">{overview.targetBlockRate}s</SpecRow>
-              )}
-              {overview.minBaseFee !== undefined && (
-                <SpecRow label="Min Base Fee">
-                  {(overview.minBaseFee / 1e9).toLocaleString("en-US")} gwei
-                </SpecRow>
-              )}
-              {overview.targetGas !== undefined && (
-                <SpecRow label="Target Gas">{overview.targetGas.toLocaleString("en-US")}</SpecRow>
-              )}
-              {overview.timestamp !== undefined && overview.timestamp > 0 && (
-                <SpecRow label="Genesis Time">{formatTime(overview.timestamp)}</SpecRow>
-              )}
+              {overview.gasLimit !== undefined && <SpecLine label="Gas Limit">{overview.gasLimit.toLocaleString("en-US")}</SpecLine>}
+              {overview.targetBlockRate !== undefined && <SpecLine label="Target Block Rate">{overview.targetBlockRate}s</SpecLine>}
+              {overview.minBaseFee !== undefined && <SpecLine label="Min Base Fee">{(overview.minBaseFee / 1e9).toLocaleString("en-US")} gwei</SpecLine>}
+              {overview.targetGas !== undefined && <SpecLine label="Target Gas">{overview.targetGas.toLocaleString("en-US")}</SpecLine>}
+              {overview.timestamp !== undefined && overview.timestamp > 0 && <SpecLine label="Genesis Time">{formatTime(overview.timestamp)}</SpecLine>}
               {overview.precompiles.length > 0 && (
-                <SpecRow label="Precompiles" align="start">
-                  <span className="flex flex-wrap justify-end gap-1.5">
+                <SpecLine label="Precompiles" align="start">
+                  <span className="flex flex-wrap gap-x-4 gap-y-1.5">
                     {overview.precompiles.map((p) => (
-                      <span
-                        key={p}
-                        className="border border-[#0061E2]/35 bg-[#0061E2]/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#0052bd] dark:border-[#0061E2]/50 dark:text-[#5f9dff]"
-                      >
-                        {PRECOMPILE_NAMES[p] ?? p.replace(/Config$/, "")}
-                      </span>
+                      <TxTypePill key={p} type="subnet" label={PRECOMPILE_NAMES[p] ?? p.replace(/Config$/, "")} />
                     ))}
                   </span>
-                </SpecRow>
+                </SpecLine>
               )}
-            </SpecPlate>
+            </SpecSheet>
           </Board>
           <div className="flex flex-col gap-4">
-            <Board>
-              <div className="flex items-center justify-between gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500">
+            <Board divide={false}>
+              {/* two columns read on a phone too: the header stays, with the count */}
+              <div className={cn(HEAD, "grid grid-cols-2", ALLOC_COLS, "border-b border-zinc-200 dark:border-zinc-800")}>
                 <span>Genesis Allocations · {overview.alloc.length}</span>
                 <span className="text-right">Balance</span>
               </div>
-              {overview.alloc.length === 0 && (
-                <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  no pre-funded accounts
-                </div>
-              )}
-              {visibleAlloc.map((a) => (
-                <div
-                  key={a.address}
-                  className="flex items-center justify-between gap-4 px-5 py-3 md:px-6"
-                >
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <HashChip value={a.address} len={24} />
-                    {a.contract && (
-                      <span className="shrink-0 border border-[#0061E2]/35 bg-[#0061E2]/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#0052bd] dark:border-[#0061E2]/50 dark:text-[#5f9dff]">
-                        contract
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className="shrink-0 font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100"
-                    title={a.balance}
-                  >
-                    {formatTokenBalance(a.balance)}
-                  </span>
-                </div>
-              ))}
+              {overview.alloc.length === 0 && <EmptyRow>no pre-funded accounts</EmptyRow>}
+              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {visibleAlloc.map((a) => (
+                  <div key={a.address} className={cn(ROW, ALLOC_COLS, "hover:bg-transparent dark:hover:bg-transparent")}>
+                    {/* on a phone the contract mark wraps under the address */}
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                      <HashChip value={a.address} len={24} />
+                      {a.contract && <TxTypePill type="subnet" label="contract" className="shrink-0" />}
+                    </span>
+                    <span className="text-right font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-100" title={a.balance}>
+                      {formatTokenBalance(a.balance)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </Board>
             {overview.alloc.length > ALLOC_PREVIEW && (
-              <button
-                onClick={() => setShowAllAlloc((v) => !v)}
-                className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-              >
-                {showAllAlloc ? "Show fewer" : `Show all ${overview.alloc.length}`}
-              </button>
+              <LoadMore onClick={() => setShowAllAlloc((v) => !v)} label={showAllAlloc ? "Show fewer" : `Show all ${overview.alloc.length}`} />
             )}
           </div>
         </div>

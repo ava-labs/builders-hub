@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Coreth C-Chain API
   description: >-
-    JSON-RPC 2.0 API for Avalanche's C-Chain (Coreth EVM). All methods use POST to the same
+    JSON-RPC 2.0 API for Avalanche's C-Chain. Since the Helicon upgrade, the C-Chain runs Continuous Execution (ACP-194) and no longer runs Coreth. All methods use POST to the same
     endpoint with the method specified in the request body.
     
     
@@ -12,10 +12,10 @@ info:
     
     • **Restricted Methods:**
       - `debug_*` methods: NOT available on public RPCs (require node access)
-      - `personal_*` methods: NOT available on public RPCs (security reasons)  
+      - `personal_*` methods: removed from every C-Chain node in AvalancheGo v1.15.0  
       - `txpool_*` methods: May be restricted or rate-limited
       - Filter methods (`eth_newFilter`, etc.): May have limited functionality
-      - `eth_sign`: Typically disabled for security
+      - `eth_sign`, `eth_signTransaction` and `eth_sendTransaction`: fail on every C-Chain node, because the node holds no accounts. Sign on the client and use `eth_sendRawTransaction`
     
     • **Full Access:** Run your own node or use a dedicated node service for unrestricted access to all methods.
     
@@ -136,81 +136,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JSONRPCError'
 
-  /ext/bc/C/rpc#eth_coinbase:
-    post:
-      summary: eth_coinbase
-      description: |
-        Returns the client coinbase address.
-        
-        **Note:** On public RPC endpoints, this returns the node operator's coinbase address, not yours. This method is mainly useful when running your own node.
-      operationId: eth_coinbase
-      tags:
-        - eth
-      requestBody:
-        required: true
-        description: JSON-RPC request
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/JSONRPCRequest'
-            examples:
-              default:
-                value:
-                  jsonrpc: '2.0'
-                  method: eth_coinbase
-                  params: []
-                  id: 1
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCResponse'
-        default:
-          description: Error response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCError'
 
-  /ext/bc/C/rpc#eth_accounts:
-    post:
-      summary: eth_accounts
-      description: |
-        Returns a list of addresses owned by the client.
-        
-        **Note:** Public RPC endpoints will return an empty array as they don't manage any accounts. This method only returns accounts when using a node you control with unlocked accounts.
-      operationId: eth_accounts
-      tags:
-        - eth
-      requestBody:
-        required: true
-        description: JSON-RPC request
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/JSONRPCRequest'
-            examples:
-              default:
-                value:
-                  jsonrpc: '2.0'
-                  method: eth_accounts
-                  params: []
-                  id: 1
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCResponse'
-        default:
-          description: Error response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCError'
 
   # eth - Account Methods
   /ext/bc/C/rpc#eth_getBalance:
@@ -469,7 +395,7 @@ paths:
   /ext/bc/C/rpc#eth_blockNumber:
     post:
       summary: eth_blockNumber
-      description: Returns the block number of the chain head.
+      description: Returns the number of the last executed block. Consensus can already have accepted later blocks, and eth_getBlockByNumber returns an accepted block by number before it executes.
       operationId: eth_blockNumber
       tags:
         - eth
@@ -597,9 +523,8 @@ paths:
                   items:
                     oneOf:
                       - type: integer
-                        description: "Number of blocks to retrieve (1-1024)"
+                        description: "Number of blocks to retrieve. The node returns at most 2048 blocks."
                         minimum: 1
-                        maximum: 1024
                       - type: string
                         description: "Highest block number - 'latest', 'earliest', 'pending', or block number in hex"
                       - type: array
@@ -1814,7 +1739,7 @@ paths:
       description: |
         Signs data with a given address.
         
-        **⚠️ Security Note:** This method is typically disabled on public RPC endpoints for security reasons. It requires access to private keys and should only be used on nodes you control.
+        **⚠️ Security Note:** This method fails on every C-Chain node. Since AvalancheGo v1.15.0, the node holds no accounts or keystore. Sign the transaction on the client and send it with `eth_sendRawTransaction`.
       operationId: eth_sign
       tags:
         - eth
@@ -1874,40 +1799,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JSONRPCError'
 
-  /ext/bc/C/rpc#eth_protocolVersion:
-    post:
-      summary: eth_protocolVersion
-      description: Returns the current ethereum protocol version.
-      operationId: eth_protocolVersion
-      tags:
-        - eth
-      requestBody:
-        required: true
-        description: JSON-RPC request
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/JSONRPCRequest'
-            examples:
-              default:
-                value:
-                  jsonrpc: '2.0'
-                  method: eth_protocolVersion
-                  params: []
-                  id: 1
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCResponse'
-        default:
-          description: Error response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCError'
+
 
   # txpool - Note: Txpool methods may be restricted on public RPC endpoints
   /ext/bc/C/rpc#txpool_status:
@@ -1948,134 +1840,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JSONRPCError'
 
-  # personal - Note: Personal methods are NOT available on public RPC endpoints for security reasons
-  /ext/bc/C/rpc#personal_newAccount:
-    post:
-      summary: personal_newAccount
-      description: |
-        Creates a new account with the given password.
-        
-        **⚠️ Security Note:** This method is NOT available on public RPC endpoints for security reasons. Personal methods manage private keys and must only be used on nodes you control.
-      operationId: personal_newAccount
-      tags:
-        - personal
-      requestBody:
-        required: true
-        description: JSON-RPC request
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                jsonrpc:
-                  type: string
-                  example: '2.0'
-                method:
-                  type: string
-                  example: personal_newAccount
-                params:
-                  type: array
-                  items:
-                    type: string
-                    description: "Password for the new account"
-                  minItems: 1
-                  maxItems: 1
-                  description: "[password]"
-                id:
-                  type: integer
-                  example: 1
-              required:
-                - jsonrpc
-                - method
-                - params
-                - id
-            examples:
-              default:
-                value:
-                  jsonrpc: '2.0'
-                  method: personal_newAccount
-                  params: ['strong_password']
-                  id: 1
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCResponse'
-        default:
-          description: Error response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCError'
 
-  /ext/bc/C/rpc#personal_unlockAccount:
-    post:
-      summary: personal_unlockAccount
-      description: |
-        Unlocks an account with the given password and optional duration.
-        
-        **⚠️ Security Note:** This method is NOT available on public RPC endpoints for security reasons. Personal methods manage private keys and must only be used on nodes you control.
-      operationId: personal_unlockAccount
-      tags:
-        - personal
-      requestBody:
-        required: true
-        description: JSON-RPC request
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                jsonrpc:
-                  type: string
-                  example: '2.0'
-                method:
-                  type: string
-                  example: personal_unlockAccount
-                params:
-                  type: array
-                  items:
-                    oneOf:
-                      - type: string
-                        description: "Address to unlock (20 bytes, hex encoded with 0x prefix)"
-                        pattern: "^0x[a-fA-F0-9]{40}$"
-                      - type: string
-                        description: "Password for the account"
-                      - type: integer
-                        description: "Duration in seconds (optional, 0 for indefinite)"
-                  minItems: 2
-                  maxItems: 3
-                  description: "[address, password, duration(optional)]"
-                id:
-                  type: integer
-                  example: 1
-              required:
-                - jsonrpc
-                - method
-                - params
-                - id
-            examples:
-              default:
-                value:
-                  jsonrpc: '2.0'
-                  method: personal_unlockAccount
-                  params: ['0x...', 'strong_password', 300]
-                  id: 1
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCResponse'
-        default:
-          description: Error response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JSONRPCError'
 
   # debug - Note: Debug methods are NOT available on public RPC endpoints
   /ext/bc/C/rpc#debug_getRawBlock:
@@ -2222,7 +1987,7 @@ paths:
                         type: array
                         items:
                           type: string
-                        description: "Array of addresses to get UTXOs for"
+                        description: "C-Chain addresses (C-avax1... on Mainnet), at most 1024. An X-Chain or P-Chain address fails."
                       limit:
                         type: integer
                         description: "Maximum number of UTXOs to return (optional)"
@@ -2236,10 +2001,10 @@ paths:
                             type: string
                       sourceChain:
                         type: string
-                        description: "Source chain ID (optional)"
+                        description: "Source chain ID or alias, for example X or P. Required."
                       encoding:
                         type: string
-                        enum: ["hex", "cb58"]
+                        enum: ["hex", "hexc", "hexnc"]
                         description: "Encoding format"
                   minItems: 1
                   maxItems: 1
@@ -2288,13 +2053,18 @@ paths:
                   type: string
                   example: avax.issueTx
                 params:
-                  type: array
-                  items:
-                    type: string
-                    description: "Signed transaction bytes (hex or cb58 encoded)"
-                  minItems: 1
-                  maxItems: 1
-                  description: "[signedTx]"
+                  type: object
+                  properties:
+                    tx:
+                      type: string
+                      description: "Signed transaction bytes with 0x prefix. With hex (default) or hexc, append the 4-byte checksum. With hexnc, send the bytes without a checksum."
+                    encoding:
+                      type: string
+                      enum: ["hex", "hexc", "hexnc"]
+                      description: "Encoding of tx (default hex)"
+                  required:
+                    - tx
+                  description: "{tx, encoding}"
                 id:
                   type: integer
                   example: 1
@@ -2320,8 +2090,12 @@ paths:
   /ext/bc/C/avax#avax.getAtomicTxStatus:
     post:
       summary: avax.getAtomicTxStatus
-      description: Returns the status of the specified atomic transaction.
+      description: >-
+        Deprecated. Returns the status of the specified atomic transaction.
+        After the Helicon upgrade, the public API endpoints do not serve this method.
+        Use avax.getAtomicTx instead. When the transaction is accepted, avax.getAtomicTx returns blockHeight.
       operationId: avax_getAtomicTxStatus
+      deprecated: true
       tags:
         - Avalanche
       requestBody:
@@ -2339,13 +2113,14 @@ paths:
                   type: string
                   example: avax.getAtomicTxStatus
                 params:
-                  type: array
-                  items:
-                    type: string
-                    description: "Transaction ID (hex or cb58 encoded)"
-                  minItems: 1
-                  maxItems: 1
-                  description: "[txID]"
+                  type: object
+                  properties:
+                    txID:
+                      type: string
+                      description: "Transaction ID in CB58 format"
+                  required:
+                    - txID
+                  description: "{txID}"
                 id:
                   type: integer
                   example: 1
@@ -2390,13 +2165,18 @@ paths:
                   type: string
                   example: avax.getAtomicTx
                 params:
-                  type: array
-                  items:
-                    type: string
-                    description: "Transaction ID (hex or cb58 encoded)"
-                  minItems: 1
-                  maxItems: 1
-                  description: "[txID]"
+                  type: object
+                  properties:
+                    txID:
+                      type: string
+                      description: "Transaction ID in CB58 format"
+                    encoding:
+                      type: string
+                      enum: ["hex", "hexc", "hexnc"]
+                      description: "Encoding of the returned tx (default hex)"
+                  required:
+                    - txID
+                  description: "{txID, encoding}"
                 id:
                   type: integer
                   example: 1

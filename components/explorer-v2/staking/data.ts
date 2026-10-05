@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { recall, remember } from "@/components/explorer-v2/page-data";
 import type { PrimaryNetworkMetrics, TimeSeriesMetric } from "@/types/stats";
+import type { AvalancheGoRelease } from "@/lib/avalanchego-releases";
+import type { L1Feed } from "@/lib/l1-validator-triage";
 import { getValidatorFeeState } from "@/lib/pchain-node";
 
 /* Shared feeds for the Primary Network's two instruments — Staking (the
@@ -20,6 +23,12 @@ export interface SdkValidator {
   delegatorCount: number;
   validationStatus: string;
   version?: string;
+  /** the P-Chain API node is connected to it */
+  connected?: boolean;
+  /** our node's reading of its uptime, percent */
+  uptime?: number;
+  /** unix seconds the validation ends */
+  endTime?: number;
 }
 
 export interface P2pValidator {
@@ -33,6 +42,8 @@ export interface P2pValidator {
   days_left: number;
   miss_rate_14d: number;
   block_count_14d: number;
+  /** host:port; "" when the crawler never reached the node */
+  public_ip?: string;
 }
 
 export interface StakingApy {
@@ -40,15 +51,25 @@ export interface StakingApy {
   current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
 }
 
-function useLoad<T>(url: string, pick: (raw: unknown) => T | null) {
-  const [data, setData] = useState<T | null>(null);
+/* the metrics feeds and the p2p crawler watch mainnet alone: elsewhere their hooks load nothing */
+const onMainnet = (network: string, url: string) => (network === "mainnet" ? url : null);
+
+/** a null url loads nothing: the feed does not cover the network */
+function useLoad<T>(url: string | null, pick: (raw: unknown) => T | null) {
+  // a page seen before opens on the memory's payload while it is read again
+  const [data, setData] = useState<T | null>(() => {
+    const hit = url ? recall<unknown>(url, false) : null;
+    return hit ? pick(hit.data) : null;
+  });
   const [failed, setFailed] = useState(false);
   useEffect(() => {
+    if (!url) return;
     let cancelled = false;
     fetch(url)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((raw) => {
         if (cancelled) return;
+        remember(url, raw);
         const picked = pick(raw);
         if (picked === null) setFailed(true);
         else setData(picked);
@@ -66,23 +87,40 @@ function useLoad<T>(url: string, pick: (raw: unknown) => T | null) {
   return { data, failed };
 }
 
-export function usePrimaryMetrics() {
-  return useLoad<PrimaryNetworkMetrics>("/api/primary-network-stats?timeRange=all", (raw) =>
+export function usePrimaryMetrics(network = "mainnet") {
+  return useLoad<PrimaryNetworkMetrics>(onMainnet(network, "/api/primary-network-stats?timeRange=all"), (raw) =>
     raw && typeof raw === "object" ? (raw as PrimaryNetworkMetrics) : null,
   );
 }
 
-export function useSdkValidators() {
-  return useLoad<SdkValidator[]>("/api/primary-network-validators", (raw) => {
+export function useSdkValidators(network = "mainnet") {
+  return useLoad<SdkValidator[]>(`/api/primary-network-validators${network === "mainnet" ? "" : `?network=${network}`}`, (raw) => {
     const list = (raw as { validators?: SdkValidator[] })?.validators;
     return Array.isArray(list) ? list : null;
   });
 }
 
-export function useP2pValidators() {
-  return useLoad<Map<string, P2pValidator>>("/api/validators", (raw) => {
+export function useP2pValidators(network = "mainnet") {
+  return useLoad<Map<string, P2pValidator>>(onMainnet(network, "/api/validators"), (raw) => {
     if (!Array.isArray(raw)) return null;
     return new Map((raw as P2pValidator[]).map((v) => [v.node_id, v]));
+  });
+}
+
+/* every L1's validators, and the fee price that turns a balance into days */
+export function useL1Validators(network = "mainnet") {
+  return useLoad<L1Feed>(`/api/l1-validators/${network}`, (raw) => {
+    const r = raw as Partial<L1Feed> | null;
+    return r && Array.isArray(r.validators) ? { validators: r.validators, price: typeof r.price === "number" ? r.price : null } : null;
+  });
+}
+
+/* AvalancheGo's stable releases, newest first: the validators page reads
+   the required upgrade target from them */
+export function useAvalancheGoReleases() {
+  return useLoad<AvalancheGoRelease[]>("/api/avalanchego-releases", (raw) => {
+    const list = (raw as { releases?: AvalancheGoRelease[] })?.releases;
+    return Array.isArray(list) ? list : null;
   });
 }
 
@@ -95,8 +133,8 @@ export function useStakingApy() {
 }
 
 /* the total-seats overlay (Primary + L1 validators, post-Etna) */
-export function useTotalSeats() {
-  return useLoad<TimeSeriesMetric>("/api/total-ecosystem-validators?timeRange=all", (raw) => {
+export function useTotalSeats(network = "mainnet") {
+  return useLoad<TimeSeriesMetric>(onMainnet(network, "/api/total-ecosystem-validators?timeRange=all"), (raw) => {
     const metric = (raw as { total_validator_seats?: TimeSeriesMetric })?.total_validator_seats;
     return metric?.data ? metric : null;
   });
@@ -110,8 +148,8 @@ export interface EcosystemSeats {
   primary: TimeSeriesMetric | null;
 }
 
-export function useEcosystemSeats() {
-  return useLoad<EcosystemSeats>("/api/total-ecosystem-validators?timeRange=all", (raw) => {
+export function useEcosystemSeats(network = "mainnet") {
+  return useLoad<EcosystemSeats>(onMainnet(network, "/api/total-ecosystem-validators?timeRange=all"), (raw) => {
     const r = raw as {
       total_validator_seats?: TimeSeriesMetric;
       l1_validator_seats?: TimeSeriesMetric;

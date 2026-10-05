@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { TransactionDetailPageClient } from "./page.client";
@@ -43,7 +44,12 @@ export async function generateMetadata({ params }: TxPageProps): Promise<Metadat
 }
 
 export default async function TxPage({ params }: TxPageProps) {
-  const { network, txHash } = await params;
+  const { network, chain, txHash } = await params;
+  // C-Chain atomic (import/export) tx IDs are CB58, not 0x hashes
+  // todo: find a way to show results on the tx page itself
+  if (chain === "c-chain" && /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(txHash)) {
+    redirect(`/explorer/${network}/c-chain/atomic-tx/${txHash}`);
+  }
 
   return <TransactionDetailPageClient network={network} txHash={txHash} />;
 }

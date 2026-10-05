@@ -15,6 +15,9 @@ interface RouteParams {
   params: Promise<{ slug: string }>
 }
 
+// an ISO day or timestamp; anything else is a 400, not an Invalid Date downstream
+const isoDate = z.union([z.iso.date(), z.iso.datetime()])
+
 const querySchema = z.object({
   metric: z
     .enum([
@@ -28,9 +31,8 @@ const querySchema = z.object({
     ])
     .default('all'),
   interval: z.enum(['daily', 'weekly', 'monthly']).default('daily'),
-  refresh: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: isoDate.optional(),
+  endDate: isoDate.optional(),
 })
 
 export async function GET(request: Request, { params }: RouteParams) {
@@ -61,13 +63,13 @@ export async function GET(request: Request, { params }: RouteParams) {
     const rawParams = {
       metric: searchParams.get('metric') ?? 'all',
       interval: searchParams.get('interval') ?? 'daily',
-      refresh: searchParams.get('refresh') ?? undefined,
       startDate: searchParams.get('startDate') ?? undefined,
       endDate: searchParams.get('endDate') ?? undefined,
     }
 
     const validatedParams = querySchema.parse(rawParams)
-    const forceRefresh = validatedParams.refresh === 'true'
+    // no caller can force a recompute: a public refresh would let anyone drive the Stats API reads
+    const forceRefresh = false
     const dateRange =
       validatedParams.startDate && validatedParams.endDate
         ? { from: new Date(validatedParams.startDate), to: new Date(validatedParams.endDate) }

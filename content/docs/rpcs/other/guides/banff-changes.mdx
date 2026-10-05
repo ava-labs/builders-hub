@@ -72,7 +72,7 @@ type RemoveSubnetValidatorTx struct {
 	// The node to remove from the Avalanche L1.
 	NodeID ids.NodeID `serialize:"true" json:"nodeID"`
 	// The Avalanche L1 to remove the node from.
-	Subnet ids.ID `serialize:"true" json:"subnet"`
+	Subnet ids.ID `serialize:"true" json:"subnetID"`
 	// Proves that the issuer has the right to remove the node from the Avalanche L1.
 SubnetAuth verify.Verifiable `serialize:"true" json:"subnetAuthorization"`
 }
@@ -166,7 +166,10 @@ type AddPermissionlessValidatorTx struct {
 	// Describes the validator
 	Validator validator.Validator `serialize:"true" json:"validator"`
 	// ID of the Avalanche L1 this validator is validating
-	Subnet ids.ID `serialize:"true" json:"subnet"`
+	Subnet ids.ID `serialize:"true" json:"subnetID"`
+	// If [Subnet] is the Primary Network, [Signer] is the BLS key of this
+	// validator. Otherwise, it is the empty signer.
+	Signer signer.Signer `serialize:"true" json:"signer"`
 	// Where to send staked tokens when done validating
 	StakeOuts []*avax.TransferableOutput `serialize:"true" json:"stake"`
 	// Where to send validation rewards when done validating
@@ -189,11 +192,11 @@ type AddPermissionlessDelegatorTx struct {
 	// Describes the validator
 	Validator validator.Validator `serialize:"true" json:"validator"`
 	// ID of the Avalanche L1 this validator is validating
-	Subnet ids.ID `serialize:"true" json:"subnet"`
+	Subnet ids.ID `serialize:"true" json:"subnetID"`
 	// Where to send staked tokens when done validating
-	Stake []*avax.TransferableOutput `serialize:"true" json:"stake"`
+	StakeOuts []*avax.TransferableOutput `serialize:"true" json:"stake"`
 	// Where to send staking rewards when done validating
-	RewardsOwner fx.Owner `serialize:"true" json:"rewardsOwner"`
+	DelegationRewardsOwner fx.Owner `serialize:"true" json:"rewardsOwner"`
 }
 ```
 

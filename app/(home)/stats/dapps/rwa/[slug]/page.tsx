@@ -1,25 +1,9 @@
-'use client'
+import { permanentRedirect } from "next/navigation";
+import { getRWAProject } from "@/lib/rwa/projects";
 
-import { useParams, notFound } from 'next/navigation'
-import { getRWAProject } from '@/lib/rwa/projects'
-import { RWADashboard } from '@/components/rwa/RWADashboard'
-import { StatsBubbleNav } from '@/components/stats/stats-bubble.config'
-
-export default function RWAProjectPage() {
-  const params = useParams<{ slug: string }>()
-  const slug = params.slug
-  const project = getRWAProject(slug)
-
-  if (!project) {
-    notFound()
-  }
-
-  return (
-    <>
-      <div className="container mx-auto px-4 pt-14 pb-8 space-y-8 max-w-full min-w-0">
-        <RWADashboard slug={slug} />
-      </div>
-      <StatsBubbleNav />
-    </>
-  )
+/* The RWA dashboards live on the C-Chain DeFi tab's RWA view now; an
+   unknown slug lands on the DeFi tab. */
+export default async function RWAProjectPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  permanentRedirect(getRWAProject(slug) ? "/explorer/mainnet/c-chain/defi/rwa" : "/explorer/mainnet/c-chain/defi");
 }

@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createMetadata } from "@/utils/metadata";
 import { NetworkOverview } from "@/components/explorer-v2/network/NetworkOverview";
+import { ViewSwitchFade } from "@/components/explorer-v2/view-switch";
 
 const ogImage = { url: "/api/og/explorer", width: 1200, height: 630, alt: "Avalanche Explorer" };
 
@@ -29,5 +30,9 @@ export default async function ExplorerNetworkHome({
 }) {
   const { network } = await params;
   if (network !== "mainnet") redirect(`/explorer/${network}/p-chain`);
-  return <NetworkOverview />;
+  return (
+    <ViewSwitchFade>
+      <NetworkOverview />
+    </ViewSwitchFade>
+  );
 }

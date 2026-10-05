@@ -77,11 +77,15 @@ console.log("Block height:", atomicTx.blockHeight);
 **Related:**
 
 - [API Reference](https://build.avax.network/docs/rpcs/c-chain#avaxgetatomictx)
-- [getAtomicTxStatus](#getatomictxstatus) - Get transaction status
+- [getAtomicTxStatus](#getatomictxstatus) - Get transaction status (deprecated)
 
 ---
 
 ### getAtomicTxStatus
+
+<Callout type="warn" title="Deprecated">
+`getAtomicTxStatus` calls `avax.getAtomicTxStatus`, which is deprecated. After the Helicon upgrade, the public API endpoints do not serve it. Use [getAtomicTx](#getatomictx) instead. When the transaction is accepted, the response includes `blockHeight`.
+</Callout>
 
 Get the status of an atomic transaction. Returns the current processing state and block information.
 

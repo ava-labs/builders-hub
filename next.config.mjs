@@ -2,9 +2,36 @@ import { createMDX } from 'fumadocs-mdx/next';
 
 const withMDX = createMDX();
 
+// The Vercel toolbar runs on preview deployments only, so the report-only CSP
+// adds the sources its docs list there and nowhere else
+// (vercel.com/docs/vercel-toolbar/managing-toolbar).
+const vercelToolbarSources =
+  process.env.VERCEL_ENV === 'preview'
+    ? {
+        'script-src': 'https://vercel.live',
+        'style-src': 'https://vercel.live',
+        'img-src': 'https://vercel.live https://vercel.com',
+        'font-src': 'https://vercel.live https://assets.vercel.com',
+        'connect-src': 'https://vercel.live wss://ws-us3.pusher.com',
+        'frame-src': 'https://vercel.live',
+      }
+    : {};
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  // AGENTS.md holds the agent instructions, so next dev must not write its own AGENTS.md or CLAUDE.md.
+  agentRules: false,
+  experimental: {
+    // The fumadocs-mdx loader names only source.config.ts as a dependency, so a restored
+    // Turbopack build cache can keep old MDX output after a remark plugin or package change.
+    // The Vercel build cache still restores node_modules and the incremental type check.
+    turbopackFileSystemCacheForBuild: false,
+  },
+  // scripts/build-with-typecheck.mjs runs tsc beside next build and sets this flag.
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_NEXT_TYPECHECK === '1',
+  },
   serverExternalPackages: [
     'ts-morph',
     'typescript',
@@ -68,10 +95,6 @@ const config = {
       },
       {
         protocol: 'https',
-        hostname: 'dashboard-assets.dappradar.com',
-      },
-      {
-        protocol: 'https',
         hostname: 'icons.llama.fi',
       },
     ],
@@ -120,6 +143,98 @@ const config = {
         destination: '/explorer/:network/:chain/accounts',
         permanent: true,
       },
+      // the Atomic tab folded into Transactions as its second view; the
+      // query string (?address=) rides along
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/atomic',
+        destination: '/explorer/:network/:chain/txs/atomic',
+        permanent: true,
+      },
+      // ICM folded into Transactions and Staking into Validators, as views;
+      // Details became the foot of the Overview. The P-Chain and X-Chain
+      // keep their own staking and chain pages, so they are left out
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!p-chain|x-chain)[^/]+)/icm',
+        destination: '/explorer/:network/:chain/txs/icm',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/c-chain/staking/:path*',
+        destination: '/explorer/:network/c-chain/validators/staking/:path*',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!p-chain|x-chain|c-chain)[^/]+)/staking/:path*',
+        destination: '/explorer/:network/:chain/validators',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!p-chain|x-chain)[^/]+)/details',
+        destination: '/explorer/:network/:chain#chain',
+        permanent: true,
+      },
+      // ── Docs pages no sidebar listed: duplicates and stale copies ──
+      // Each goes to the listed page on the same topic.
+      {
+        source: '/docs/rpcs/subnet-evm/config',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/chain-configs/subnet-evm',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: true,
+      },
+      {
+        source: '/docs/nodes/configure/avalanche-l1-configs',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/cli-commands',
+        destination: '/docs/tooling/avalanche-cli/cli-commands',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        destination: '/docs/tooling/avalanche-cli/cli-commands',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        destination: '/docs/avalanche-l1s/precompiles/warp-messenger',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/c-chain/api',
+        destination: '/docs/rpcs/c-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/x-chain/api',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/x-chain/rpc',
+        destination: '/docs/rpcs/x-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/add-utility/testnet-faucet',
+        destination: '/docs/tooling/avalanche-deploy/add-ons#faucet',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/wagmi-avalanche-l1',
+        destination: '/docs/avalanche-l1s/upgrade/precompile-upgrades',
+        permanent: true,
+      },
+      {
+        source: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):
@@ -166,7 +281,7 @@ const config = {
       },
       {
         source: '/docs/avalanche-l1s/deploy-a-avalanche-l1',
-        destination: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        destination: '/docs/tooling/avalanche-cli/cli-commands',
         permanent: false,
       },
       {
@@ -231,7 +346,7 @@ const config = {
       },
       {
         source: '/docs/primary-network/validate',
-        destination: '/docs/primary-network/validate/what-is-staking',
+        destination: '/docs/primary-network/validate/how-to-stake',
         permanent: false,
       },
       {
@@ -597,7 +712,7 @@ const config = {
       },
       {
         source: '/docs/dapps/deploy-nft-collection/prep-nft-files',
-        destination: '/academy/blockchain/nft-deployment/02-prepare-nft-files',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -677,7 +792,7 @@ const config = {
       },
       {
         source: '/introduction',
-        destination: '/docs/api-reference/introduction',
+        destination: '/docs/api-reference/data-api',
         permanent: false,
       },
       {
@@ -737,12 +852,12 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur',
-        destination: '/academy/entrepreneur',
+        destination: '/academy',
         permanent: true,
       },
       {
         source: '/codebase-entrepreneur/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -752,7 +867,7 @@ const config = {
       },
       {
         source: '/codebase-entrepreneur-academy/:path*',
-        destination: '/academy/entrepreneur/:path*',
+        destination: '/academy',
         permanent: true,
       },
       {
@@ -823,7 +938,7 @@ const config = {
       },
       {
         source: '/docs/virtual-machines/default-precompiles/warpmessenger',
-        destination: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        destination: '/docs/avalanche-l1s/precompiles/warp-messenger',
         permanent: true,
       },
       {
@@ -956,7 +1071,7 @@ const config = {
       },
       {
         source: "/docs/nodes/configure/chain-configs/p-chain",
-        destination: "/docs/nodes/chain-configs/p-chain",
+        destination: "/docs/nodes/chain-configs/primary-network/p-chain",
         permanent: true,
       },
       {
@@ -971,7 +1086,7 @@ const config = {
       },
       {
         source: "/docs/nodes/configure/chain-configs/subnet-evm",
-        destination: "/docs/nodes/chain-configs/subnet-evm",
+        destination: "/docs/nodes/chain-configs/avalanche-l1s/subnet-evm",
         permanent: true,
       },
       {
@@ -1619,12 +1734,12 @@ const config = {
       },
       {
         source: "/docs/build/dapp/smart-contracts/nfts/deploy-collection",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
         source: "/docs/build/tutorials/smart-digital-assets/wallet-nft-studio",
-        destination: "/academy/blockchain/nft-deployment",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -1891,7 +2006,7 @@ const config = {
       },
       {
         source: "/academy/codebase-entrepreneur-academy/09-fundraising/:path*",
-        destination: "/academy/entrepreneur/fundraising-finance/09-fundraising/:path*",
+        destination: "/academy",
         permanent: true,
       },
       {
@@ -1926,7 +2041,7 @@ const config = {
       },
       {
         source: "/stats/primary-network/validators",
-        destination: "/explorer/mainnet/validators",
+        destination: "/explorer/mainnet/p-chain/validators",
         permanent: true,
       },
       // the stats section's network-scope pages moved into the explorer's
@@ -1953,13 +2068,14 @@ const config = {
         permanent: true,
       },
       {
+        // ICM and the network's validator sets live on the Chains tab now
         source: "/stats/interchain-messaging",
-        destination: "/explorer/mainnet/icm",
+        destination: "/explorer/mainnet/chains",
         permanent: true,
       },
       {
         source: "/stats/validators",
-        destination: "/explorer/mainnet/validators",
+        destination: "/explorer/mainnet/chains",
         permanent: true,
       },
       {
@@ -1983,7 +2099,7 @@ const config = {
       },
       {
         source: "/stats/dapps",
-        destination: "/explorer/mainnet/apps",
+        destination: "/explorer/mainnet/c-chain/defi",
         permanent: true,
       },
       {
@@ -2211,46 +2327,54 @@ const config = {
           {
             type: 'query',
             key: 'path',
-            value: 'avalanche-l1',
-          },
-        ],
-        destination: "/academy/avalanche-l1",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
-            value: 'blockchain',
-          },
-        ],
-        destination: "/academy/blockchain",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
-            value: 'entrepreneur',
-          },
-        ],
-        destination: "/academy/entrepreneur",
-        permanent: true,
-      },
-      {
-        source: "/academy",
-        has: [
-          {
-            type: 'query',
-            key: 'path',
             value: 'team1',
           },
         ],
         destination: "/academy/team1",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-154): the NFT Deployment course was removed; `:path*` also
+      // matches the bare course url.
+      {
+        source: "/academy/blockchain/nft-deployment/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-153): the Entrepreneur Academy was removed; `:path*` also
+      // matches the bare track url.
+      {
+        source: "/academy/entrepreneur/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Campus Connect was removed: its pages for students and educators send visitors to the
+      // Academy, the nearest student content. `:path*` also matches the bare url.
+      {
+        source: "/university/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/students/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/student-launchpad/:path*",
+        destination: "/academy",
+        permanent: true,
+      },
+      // Academy consolidation (FDE-155): the Avalanche L1 and Blockchain landings merged into /academy. Exact
+      // paths only, so the course urls below them stay. No ?path rule may point here: Next passes the query on,
+      // so /academy would loop.
+      {
+        source: "/academy/avalanche-l1",
+        destination: "/academy",
+        permanent: true,
+      },
+      {
+        source: "/academy/blockchain",
+        destination: "/academy",
         permanent: true,
       },
       // Hackathons → Events migration
@@ -2288,6 +2412,133 @@ const config = {
         source: '/hackathons',
         destination: '/events',
         permanent: true,
+      },
+      // ── 404 sweep (2026-09-09): paths from analytics with no live page ──
+      // Glacier API was renamed to the Data API.
+      {
+        source: '/docs/tooling/glacier-api',
+        destination: '/docs/api-reference/data-api',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/glacier-api/:path*',
+        destination: '/docs/api-reference/data-api/:path*',
+        permanent: true,
+      },
+      // Doubled section segment and a section overview that never existed.
+      {
+        source: '/docs/avalanche-l1s/overview',
+        destination: '/docs/avalanche-l1s',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/avalanche-l1s/:path*',
+        destination: '/docs/avalanche-l1s/:path*',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/interoperability',
+        destination: '/docs/cross-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-interchain-messaging',
+        destination: '/docs/cross-chain/avalanche-warp-messaging/overview',
+        permanent: true,
+      },
+      // The L1 validator continuous fee is documented in the blog post.
+      {
+        source: '/docs/avalanche-l1s/validators/l1-validator-fee',
+        destination: '/blog/l1-validator-fee',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/permissionless-l1s/02-l1-validator/01-l1-validator-fee',
+        destination: '/blog/l1-validator-fee',
+        permanent: true,
+      },
+      // Old /docs/quickstart/* (no hyphen) paths; /docs/quick-start/* is handled above.
+      {
+        source: '/docs/quickstart/avalanche-consensus',
+        destination: '/docs/primary-network/avalanche-consensus',
+        permanent: true,
+      },
+      {
+        source: '/docs/quickstart/avax-token',
+        destination: '/docs/primary-network/avax-token',
+        permanent: true,
+      },
+      {
+        source: '/docs/primary-network/validators',
+        destination: '/docs/primary-network/validate/how-to-stake',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/other/admin-rpc',
+        destination: '/docs/rpcs/other',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/avalanche-consensus/05-avax-token',
+        destination: '/docs/primary-network/avax-token',
+        permanent: true,
+      },
+      // Old Interchain Token Transfer course lessons. The ITT → native-token-bridge
+      // wildcard above lands them on paths that no longer exist, so map them here.
+      {
+        source: '/academy/avalanche-l1/native-token-bridge/03-tokens/:path*',
+        destination: '/academy/avalanche-l1/l1-native-tokenomics/01b-native-vs-erc20/08-native-and-erc20-tokens',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/native-token-bridge/08-native-to-erc-20-bridge/03-deploy-erc20-token-remote',
+        destination: '/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/06-deploy-erc20-token-remote',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/native-token-bridge/08-native-to-erc-20-bridge/:path*',
+        destination: '/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/01-overview',
+        permanent: true,
+      },
+      // Malformed URLs seen in the wild (temporary redirects: these are not renames).
+      // Trailing ")" from a markdown link.
+      {
+        source: '/\\)',
+        destination: '/',
+        permanent: false,
+      },
+      // Note text pasted onto the end of the slug. [^./] keeps /blog/helicon-upgrade.md
+      // (raw markdown rewrite) and sub-paths out of the match.
+      {
+        source: '/blog/helicon-upgrade:suffix([^./].*)',
+        destination: '/blog/helicon-upgrade',
+        permanent: false,
+      },
+      // Truncated base64 of "l1-validator-fee".
+      {
+        source: '/blog/bDEtdmFsaW',
+        destination: '/blog/l1-validator-fee',
+        permanent: false,
+      },
+      // Bare NextAuth root has no handler; send people to the login page.
+      {
+        source: '/api/auth',
+        destination: '/login',
+        permanent: false,
+      },
+      // Explorer: a tx hash pasted directly after the chain segment.
+      // Fixed-word routes (accounts, tx, block, ...) can never be 64 hex chars.
+      //
+      // `icm` is excluded because it is NOT a chain.
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!icm/)[^/]+)/:hash(0x[0-9a-fA-F]{64})',
+        destination: '/explorer/:network/:chain/tx/:hash',
+        permanent: false,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!icm/)[^/]+)/:hash([0-9a-fA-F]{64})',
+        destination: '/explorer/:network/:chain/tx/0x:hash',
+        permanent: false,
       },
     ];
   },
@@ -2334,16 +2585,23 @@ const config = {
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://app.posthog.com https://mcp.figma.com",
+              // PostHog loads its config and extensions from us-assets; Cloudflare
+              // injects its analytics beacon on build.avax.network
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://us-assets.i.posthog.com https://app.posthog.com https://mcp.figma.com https://static.cloudflareinsights.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://dashboard-assets.dappradar.com",
+              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://www.avalanche.com",
               "font-src 'self'",
               "connect-src 'self' https://us.i.posthog.com https://app.posthog.com https://api.openai.com https://api.github.com https://www.googleapis.com https://api.hubapi.com https://api.dune.com https://glacier-api.avax.network https://data-api.avax.network https://accounts.google.com https://api.avax.network https://api.avax-test.network",
               "frame-src 'self' https://calendar.google.com https://www.google.com https://chromewebstore.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
-            ].join('; '),
+            ]
+              .map((directive) => {
+                const extra = vercelToolbarSources[directive.split(' ')[0]];
+                return extra ? `${directive} ${extra}` : directive;
+              })
+              .join('; '),
           },
         ],
       },

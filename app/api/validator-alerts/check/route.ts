@@ -32,7 +32,7 @@ async function logCheckFailed(
   return alerts.length;
 }
 
-export async function POST(req: NextRequest) {
+async function run(req: NextRequest) {
   // Authenticate: accept Vercel CRON_SECRET or custom API key
   const authHeader = req.headers.get('authorization');
   const apiKey = req.headers.get('x-api-key');
@@ -158,4 +158,12 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET(req: NextRequest) {
+  return run(req);
+}
+
+export async function POST(req: NextRequest) {
+  return run(req);
 }

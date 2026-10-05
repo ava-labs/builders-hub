@@ -17,7 +17,7 @@ export function ChainGasMetricPageClient({
   metric: GasMetricKey;
 }) {
   const chain = useChainContext();
-  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
+  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.chainId === chain.chainId);
 
   return (
     <ExplorerLayout
@@ -26,8 +26,6 @@ export function ChainGasMetricPageClient({
       chainSlug={chain.chainSlug}
       themeColor={chain.themeColor}
       chainLogoURI={chain.chainLogoURI}
-      website={chain.website}
-      socials={chain.socials}
       rpcUrl={chain.rpcUrl}
       // the sheet carries its own title and breadcrumb; the chain identity
       // stays in the subnav's switcher

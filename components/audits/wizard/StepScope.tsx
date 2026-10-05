@@ -16,10 +16,13 @@ import { ChipGroup, asChips } from "@/components/audits/shared/ChipGroup";
 import { RepoRepeater } from "@/components/audits/wizard/RepoRepeater";
 import { MultiLinkInput } from "@/components/audits/wizard/MultiLinkInput";
 import { AttachmentUploader } from "@/components/audits/wizard/AttachmentUploader";
+import { FirmPicker } from "@/components/audits/wizard/FirmPicker";
+import { useAuditWizard } from "@/components/audits/wizard/AuditWizardContext";
 import type { AuditWizardValues } from "@/components/audits/wizard/types";
 
 export function StepScope() {
   const form = useFormContext<AuditWizardValues>();
+  const { firms } = useAuditWizard();
 
   return (
     <div className="space-y-6">
@@ -42,6 +45,19 @@ export function StepScope() {
             />
             <FormMessage />
           </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="shortlist_auditor_ids"
+        render={({ field }) => (
+          <FirmPicker
+            firms={firms}
+            neededServices={form.watch("services")}
+            value={field.value}
+            onChange={field.onChange}
+          />
         )}
       />
 
@@ -108,7 +124,9 @@ export function StepScope() {
         name="nsloc"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Lines of code to audit</FormLabel>
+            <FormLabel>
+              Lines of code to audit <span className="text-brand">*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 {...field}

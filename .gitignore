@@ -197,7 +197,6 @@ content/docs/acps/83-dynamic-multidimensional-fees.mdx
 content/docs/acps/84-table-preamble.mdx
 content/docs/acps/99-validatorsetmanager-contract.mdx
 content/docs/acps/index.mdx
-content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
 content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx
@@ -208,11 +207,11 @@ content/docs/cross-chain/icm-contracts/deep-dive.mdx
 content/docs/cross-chain/icm-contracts/overview.mdx
 content/docs/cross-chain/icm-contracts/upgradeability.mdx
 content/docs/cross-chain/interchain-token-transfer/overview.mdx
+content/docs/nodes/chain-configs/avalanche-l1s/avalanche-l1-configs.mdx
+content/docs/nodes/chain-configs/avalanche-l1s/subnet-evm.mdx
 content/docs/nodes/chain-configs/primary-network/c-chain.mdx
 content/docs/nodes/chain-configs/primary-network/p-chain.mdx
 content/docs/nodes/chain-configs/primary-network/x-chain.mdx
-content/docs/nodes/chain-configs/subnet-evm.mdx
-content/docs/nodes/configure/avalanche-l1-configs.mdx
 content/docs/nodes/configure/configs-flags.mdx
 content/docs/nodes/releases.mdx
 content/docs/rpcs/c-chain/index.mdx
@@ -225,7 +224,6 @@ content/docs/rpcs/other/proposervm-rpc.mdx
 content/docs/rpcs/p-chain/index.mdx
 content/docs/rpcs/subnet-evm/index.mdx
 content/docs/rpcs/x-chain/index.mdx
-content/docs/tooling/cli-commands.mdx
 # Generated event signatures for explorer
 abi/event-signatures.generated.ts
 
@@ -292,7 +290,6 @@ content/docs/rpcs/c-chain/**/meta.json
 !content/docs/rpcs/c-chain/meta.json
 !content/docs/rpcs/c-chain/index.mdx
 !content/docs/rpcs/c-chain/txn-format.mdx
-!content/docs/rpcs/c-chain/api.mdx
 
 # Generated X-Chain RPC API documentation (auto-generated from OpenAPI)
 content/docs/rpcs/x-chain/**/*.mdx
@@ -300,5 +297,3 @@ content/docs/rpcs/x-chain/**/meta.json
 !content/docs/rpcs/x-chain/meta.json
 !content/docs/rpcs/x-chain/index.mdx
 !content/docs/rpcs/x-chain/txn-format.mdx
-!content/docs/rpcs/x-chain/api.mdx
-!content/docs/rpcs/x-chain/rpc.mdx

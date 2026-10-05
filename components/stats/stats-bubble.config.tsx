@@ -2,17 +2,16 @@
 
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
-import { Globe, List, ChartArea, Command, MessageCircleMore, AppWindow, LayoutGrid } from "lucide-react";
+import { Globe, List, ChartArea, Command, AppWindow, LayoutGrid } from "lucide-react";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
   items: [
     { id: "overview", label: "Overview", href: "/explorer/mainnet", icon: Globe },
     { id: "chain-list", label: "Chain List", href: "/explorer/mainnet/chains", icon: List },
-    { id: "dapps", label: "DApps", href: "/explorer/mainnet/apps", icon: AppWindow },
+    { id: "dapps", label: "DApps", href: "/explorer/mainnet/c-chain/defi", icon: AppWindow },
     { id: "gas-stats", label: "Gas Stats", href: "/explorer/mainnet/c-chain/gas", icon: LayoutGrid },
-    { id: "stats", label: "Stats", href: "/stats/network-metrics", icon: ChartArea },
-    { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
-    { id: "icm", label: "ICM", href: "/explorer/mainnet/icm", icon: MessageCircleMore },
+    { id: "stats", label: "Stats", href: "/explorer/mainnet", icon: ChartArea },
+    { id: "query", label: "Query", href: "/explorer/mainnet/query", icon: Command },
   ],
   activeColor: "bg-red-100 dark:bg-red-500/20",
   darkActiveColor: "",
@@ -33,14 +32,14 @@ const getActiveItem = (
     return "chain-list";
   } else if (pathname.startsWith("/explorer/mainnet/c-chain/gas")) {
     return "gas-stats";
-  } else if (pathname.startsWith("/explorer/mainnet/apps")) {
+  } else if (pathname.startsWith("/explorer/mainnet/c-chain/defi")) {
     return "dapps";
   } else if (pathname.startsWith("/stats/network-metrics")) {
     return "stats"; // All chains stats page
   } else if (pathname.startsWith("/explorer/mainnet/icm")) {
-    return "icm";
+    return "chain-list";
   } else if (pathname.startsWith("/stats/playground")) {
-    return "playground";
+    return "query";
   }
   return "overview";
 };

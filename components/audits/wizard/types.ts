@@ -1,4 +1,5 @@
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import { parseStoredAttachments } from "@/lib/audits/attachments";
 import type { AuditAttachment, AuditDraftInput } from "@/types/audits";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { parseWholeNumber } from "@/components/audits/shared/format";
@@ -28,13 +29,14 @@ export interface AuditWizardValues {
   contact_email: string;
   contact_handle: string;
   contact_calendar_url: string;
+  shortlist_auditor_ids: string[];
 }
 
 // Which fields each step must pass (against auditSubmitSchema) before
 // Continue; the rest of the payload is optional by design.
 export const STEP_FIELDS: Record<number, (keyof AuditWizardValues)[]> = {
   0: ["project_name", "website", "description", "deployment_target"],
-  1: ["services", "scope"],
+  1: ["services", "scope", "nsloc"],
   2: ["needed_by"],
   3: ["contact_name", "contact_email"],
 };
@@ -95,6 +97,7 @@ export function wizardDefaults(prefill: {
     contact_email: prefill.contact_email,
     contact_handle: "",
     contact_calendar_url: "",
+    shortlist_auditor_ids: [],
   };
 }
 
@@ -128,6 +131,7 @@ export function toDraftPayload(values: AuditWizardValues): AuditDraftInput {
     contact_email: values.contact_email,
     contact_handle: values.contact_handle,
     contact_calendar_url: values.contact_calendar_url,
+    shortlist_auditor_ids: values.shortlist_auditor_ids,
   } as AuditDraftInput;
 }
 
@@ -154,6 +158,7 @@ interface DraftRow {
   contact_email: string;
   contact_handle: string | null;
   contact_calendar_url: string | null;
+  shortlist_auditor_ids: string[];
 }
 
 export function parseRepos(value: unknown): { url: string; ref: string }[] {
@@ -167,16 +172,13 @@ export function parseRepos(value: unknown): { url: string; ref: string }[] {
     .filter((repo) => repo.url !== "");
 }
 
+/**
+ * The wizard's own view of the stored list: it keeps the store URL because it
+ * PATCHes the same list back. Every read-only surface uses toAttachmentLinks
+ * instead, which hands out program paths and no store URL.
+ */
 export function parseAttachments(value: unknown): AuditAttachment[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter(
-    (entry): entry is AuditAttachment =>
-      Boolean(entry) &&
-      typeof entry === "object" &&
-      typeof (entry as AuditAttachment).name === "string" &&
-      typeof (entry as AuditAttachment).url === "string" &&
-      typeof (entry as AuditAttachment).size === "number",
-  );
+  return parseStoredAttachments(value);
 }
 
 /** Stored draft row -> form values, for resuming via /audits/new?draft=<id>. */
@@ -209,5 +211,6 @@ export function draftToValues(
     contact_email: row.contact_email || defaults.contact_email,
     contact_handle: row.contact_handle ?? "",
     contact_calendar_url: row.contact_calendar_url ?? "",
+    shortlist_auditor_ids: row.shortlist_auditor_ids ?? [],
   };
 }

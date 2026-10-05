@@ -34,4 +34,4 @@ A block in the EVM is a bundle of validated transactions, grouped together and l
 - **Gas Limit**: The maximum gas all transactions in the block can consume.
 - **Gas Used**: The total gas consumed by all transactions in the block.
 - **Extra Data**: An optional field for including arbitrary data up to 32 bytes.
-- **Validator**: The address of the node that proposed the block.
+- **Coinbase**: The address that receives the fees of the block. On Subnet-EVM, this is the blackhole address `0x0100000000000000000000000000000000000000` by default, so the fees are burned. With `allowFeeRecipients` or the RewardManager precompile, the fees can go to other addresses.

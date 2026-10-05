@@ -15,6 +15,8 @@ export interface NavItem {
   /** Small "New" style pill next to the label (drop after launch month). */
   badge?: string;
   external?: boolean;
+  /** Picture under public/: the item renders as a picture card instead of a text row. */
+  image?: string;
 }
 
 export interface NavSection {
@@ -32,59 +34,52 @@ export const menuSections: NavSection[] = [
     title: 'Solutions',
     href: '/solutions',
     items: [
-      { text: 'Why Avalanche', href: '/solutions' },
-      { text: 'Performance', href: '/solutions/performance' },
+      { text: 'Why Avalanche', href: '/solutions', image: '/nav/solutions.webp' },
       { text: 'Interoperability', href: '/solutions/interoperability' },
+      { text: 'Performance', href: '/solutions/performance' },
       { text: 'Privacy', href: '/solutions/privacy' },
       { text: 'Compliance', href: '/solutions/compliance' },
     ],
   },
-    {
-    title: 'Documentation',
+  {
+    title: 'Developers',
     href: '/docs/primary-network',
     items: [
-      { text: 'Academy', href: '/academy' },
-      { text: 'Primary Network', href: '/docs/primary-network' },
-      { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
-      { text: 'Nodes & Validators', href: '/docs/nodes' },
-      { text: 'Data APIs', href: '/docs/api-reference/data-api' },
-      { text: 'ACPs', href: '/docs/acps' },
-      { text: 'Developer Tools', href: '/docs/tooling' },
-      { text: 'Integrations', href: '/integrations' },
+      { text: 'Documentation', href: '/docs/primary-network', image: '/nav/documentation.webp' },
+      { text: 'Academy', href: '/academy', image: '/nav/academy-fundamentals.webp' },
     ],
   },
   {
+    // The faucet is the most tapped link of the phone menu, so it gets the second card.
     title: 'Console',
     href: '/console',
     items: [
-      { text: 'Console', href: '/console' },
-      { text: 'Interchain Messaging Tools', href: '/console/icm/setup' },
-      { text: 'Interchain Token Transfer Tools', href: '/console/ictt/setup' },
-      { text: 'Testnet Faucet', href: '/console/primary-network/faucet' },
+      { text: 'Console', href: '/console', image: '/nav/console.webp' },
+      { text: 'Testnet Faucet', href: '/console/primary-network/faucet', image: '/nav/faucet.webp' },
     ],
   },
   {
     title: 'Explorer',
-    href: '/explorer',
+    href: '/explorer/mainnet',
     items: [
-      { text: 'Block Explorer', href: '/explorer' },
-      { text: 'Playground', href: '/stats/playground' },
-      { text: 'All Networks', href: '/explorer/mainnet' },
+      { text: 'Block Explorer', href: '/explorer/mainnet', image: '/nav/explorer.webp' },
+      { text: 'Query', href: '/explorer/mainnet/query' },
       { text: 'C-Chain Explorer', href: '/explorer/mainnet/c-chain' },
-      { text: 'Validators', href: '/explorer/mainnet/validators' },
+      { text: 'Validators', href: '/explorer/mainnet/p-chain/validators' },
       { text: 'Validator Alerts', href: '/validator-alerts' },
     ],
   },
   {
+    // The card opens the /ecosystem overview, which lists the links this section leaves out.
+    // One-word labels fit the column beside the card on a 360px phone.
     title: 'Ecosystem',
-    href: '/events',
+    href: '/ecosystem',
     items: [
-      { text: 'Hackathons & Events', href: '/events' },
-      { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true },
-      { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
-      { text: 'Campus Connect', href: '/university' },
-      { text: 'Grants & Funding', href: '/grants' },
-      { text: 'Security Audits', href: '/audits', badge: 'New' },
+      { text: 'Overview', href: '/ecosystem', image: '/nav/ecosystem.webp' },
+      { text: 'Events', href: '/events' },
+      { text: 'Grants', href: '/grants' },
+      { text: 'Audits', href: '/audits', badge: 'New' },
+      { text: 'Integrations', href: '/integrations' },
     ],
   },
 ];

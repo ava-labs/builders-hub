@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { documentation, blog, academy, integration } from '@/lib/source';
 import type { DocumentRecord } from 'fumadocs-core/search/algolia';
 import l1Chains from '@/constants/l1-chains.json';
+import { getStructuredData } from '@/lib/search/structured-data';
 
 export const revalidate = false;
 
@@ -11,9 +12,9 @@ const statsPages: DocumentRecord[] = [
   { title: 'AVAX Token', url: '/explorer/mainnet/token', _id: '/explorer/mainnet/token', structured: { headings: [], contents: [] }, description: 'AVAX token metrics', tag: 'stats' },
   { title: 'Network Metrics', url: '/stats/network-metrics', _id: '/stats/network-metrics', structured: { headings: [], contents: [] }, description: 'Network-wide metrics', tag: 'stats' },
   { title: 'C-Chain Gas Market', url: '/explorer/mainnet/c-chain/gas', _id: '/explorer/mainnet/c-chain/gas', structured: { headings: [], contents: [] }, description: 'Live gas market, fee history, and gas usage by protocol', tag: 'stats' },
-  { title: 'Interchain Messaging', url: '/explorer/mainnet/icm', _id: '/explorer/mainnet/icm', structured: { headings: [], contents: [] }, description: 'ICM statistics', tag: 'stats' },
+  { title: 'Interchain Messaging', url: '/explorer/mainnet/chains', _id: '/explorer/mainnet/chains#icm', structured: { headings: [], contents: [] }, description: 'The network map: ICM between Avalanche L1s', tag: 'stats' },
   { title: 'Chain List', url: '/explorer/mainnet/chains', _id: '/explorer/mainnet/chains', structured: { headings: [], contents: [] }, description: 'All Avalanche L1 chains', tag: 'stats' },
-  { title: 'Validators', url: '/explorer/mainnet/validators', _id: '/explorer/mainnet/validators', structured: { headings: [], contents: [] }, description: 'Validator dashboard', tag: 'stats' },
+  { title: 'Validators', url: '/explorer/mainnet/p-chain/validators', _id: '/explorer/mainnet/p-chain/validators', structured: { headings: [], contents: [] }, description: 'Primary Network validators and client versions', tag: 'stats' },
 ];
 
 // Generate per-L1 accounts pages from chain registry (the old per-chain
@@ -31,12 +32,11 @@ const l1StatsPages: DocumentRecord[] = l1Chains.map((chain: any) => ({
 export async function GET() {
   const results: DocumentRecord[] = await Promise.all([
     ...documentation.getPages().map(async (page) => {
-      const loadedData = await page.data.load()
       return {
         title: page.data.title,
         url: page.url,
         _id: page.url,
-        structured: loadedData.structuredData,
+        structured: await getStructuredData(page),
         description: page.data.description,
         tag: 'docs'
       }
@@ -52,12 +52,11 @@ export async function GET() {
       }
     }),
     ...integration.getPages().map(async (page) => {
-      const loadedData = await page.data.load()
       return {
         title: page.data.title,
         url: page.url,
         _id: page.url,
-        structured: loadedData.structuredData,
+        structured: await getStructuredData(page),
         description: page.data.description,
         tag: 'integrations'
       }

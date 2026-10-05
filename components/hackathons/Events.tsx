@@ -307,9 +307,9 @@ export default function Events({
           ref={eventsSectionRef}
           className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${topMostEvent ? "mt-12" : ""}`}
         >
-          <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
+          <h1 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
             {t(lang, "events.listing.title")}
-          </h2>
+          </h1>
           <Tabs
             value={activeEventType}
             onValueChange={handleActiveEventTypeChange}
@@ -362,7 +362,7 @@ export default function Events({
             {t(lang, "events.discoverMore")}
           </h2>
           <Separator className="mb-6 bg-zinc-300 dark:bg-zinc-800" />
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             <DiscoveryCard
               title={t(lang, "events.discovery.avalancheCalendar.title")}
               description={t(lang, "events.discovery.avalancheCalendar.description")}
@@ -374,12 +374,6 @@ export default function Events({
               description={t(lang, "events.discovery.communityEvents.description")}
               image="/team1/team1-events.png"
               url="https://lu.ma/Team1?utm_source=builder_hub"
-            />
-            <DiscoveryCard
-              title={t(lang, "events.discovery.campusConnect.title")}
-              description={t(lang, "events.discovery.campusConnect.description")}
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
-              url="/university"
             />
           </div>
         </div>
@@ -405,11 +399,13 @@ export default function Events({
             <button
               onClick={() => handleSearchChange(searchValue)}
               className="px-[6px] rounded-md bg-red-500 hover:bg-red-600 transition"
+              aria-label={t(lang, "events.search.button")}
             >
               <Search size={24} color="white" />
             </button>
           </div>
-          <div className="flex flex-row gap-4 items-center">
+          {/* Below 474 px the two 180 px selects plus the 16 px gap no longer fit the column, so they share the row and use short placeholders. */}
+          <div className="flex flex-row gap-4 items-center max-[474px]:w-full">
             <Select
               onValueChange={(value: string) => {
                 const normalized = value === "all" ? "" : value;
@@ -427,8 +423,15 @@ export default function Events({
               }}
               value={pastEventType}
             >
-              <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder={t(lang, "events.filter.event.placeholder")} />
+              <SelectTrigger className="w-[180px] max-[474px]:min-w-0 max-[474px]:flex-1 border border-zinc-300 dark:border-zinc-800">
+                <SelectValue
+                  placeholder={
+                    <>
+                      <span className="max-[474px]:hidden">{t(lang, "events.filter.event.placeholder")}</span>
+                      <span className="min-[474px]:hidden">{t(lang, "events.filter.event.short")}</span>
+                    </>
+                  }
+                />
               </SelectTrigger>
               <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
                 <SelectItem value="all">{t(lang, "events.filter.event.all")}</SelectItem>
@@ -445,8 +448,15 @@ export default function Events({
               }
               value={filters.location}
             >
-              <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder={t(lang, "events.filter.location.placeholder")} />
+              <SelectTrigger className="w-[180px] max-[474px]:min-w-0 max-[474px]:flex-1 border border-zinc-300 dark:border-zinc-800">
+                <SelectValue
+                  placeholder={
+                    <>
+                      <span className="max-[474px]:hidden">{t(lang, "events.filter.location.placeholder")}</span>
+                      <span className="min-[474px]:hidden">{t(lang, "events.filter.location.short")}</span>
+                    </>
+                  }
+                />
               </SelectTrigger>
               <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
                 <SelectItem value="all">{t(lang, "events.filter.location.all")}</SelectItem>

@@ -5,12 +5,19 @@ import { EvmAddress } from "@/components/explorer-v2/evm/EvmAddress";
 export function AddressDetailPageClient({
   network,
   address,
+  initialTab,
+  justVerified,
 }: {
   network: string;
   address: string;
-  // sourcifySupport is accepted for call-site compatibility; the activity-only
-  // explorer doesn't surface source verification.
+  initialTab?: string;
+  justVerified?: boolean;
+  // sourcifySupport is accepted for call-site compatibility. The Contract
+  // tab doesn't consult it: verification is resolved per address, and our
+  // own verifier covers chains Sourcify has never heard of.
   sourcifySupport?: boolean;
 }) {
-  return <EvmAddress network={network} addr={address} />;
+  return (
+    <EvmAddress network={network} addr={address} initialTab={initialTab} justVerified={justVerified} />
+  );
 }

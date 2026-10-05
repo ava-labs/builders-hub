@@ -9,18 +9,20 @@ export async function fetchWithRetry(
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let response: Response | null = null
     try {
-      const response = await fetch(url, options)
-      if (response.ok) return response
+      response = await fetch(url, options)
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error('Network error')
+    }
 
-      // Don't retry client errors (4xx)
+    if (response) {
+      if (response.ok) return response
+      // a client error (4xx, a 429 included) will not change on a retry, so it is the answer
       if (response.status >= 400 && response.status < 500) {
         throw new Error(`Request failed: ${response.status}`)
       }
-
       lastError = new Error(`Request failed: ${response.status}`)
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error('Network error')
     }
 
     if (attempt < maxRetries) {

@@ -6,9 +6,9 @@ description: Learn how to execute a native transfer on the C or P-Chain using th
 # Prerequisites
 
 - Install the [Avalanche CLI](/docs/tooling/avalanche-cli).
-- Use the CLI to [create a key](/docs/tooling/cli-commands#key-create).
+- Use the CLI to [create a key](/docs/tooling/avalanche-cli/cli-commands#key-create).
 - Fund the key with AVAX. You can use the [faucet](https://test.core.app/tools/testnet-faucet/?subnet=c&token=c) with coupon code `devrel-avax-0112` to get testnet AVAX. 
-- *Optionally*, you can [export](/docs/tooling/cli-commands#key-export) your private key for use in scripting or other tools. 
+- *Optionally*, you can [export](/docs/tooling/avalanche-cli/cli-commands#key-export) your private key for use in scripting or other tools. 
 
 ## Initiate the `transfer` Command and Walk Through the Prompts
 
@@ -20,7 +20,7 @@ avalanche key transfer
 
 <Callout title="Note">
 
-This command and all of its flags are documented [here](/docs/tooling/cli-commands#key-transfer).
+This command and all of its flags are documented [here](/docs/tooling/avalanche-cli/cli-commands#key-transfer).
 
 </Callout>
 
@@ -97,7 +97,7 @@ Specify the amount to send, input the destination address:
 ✗ Destination address: P-avax1zgjx8zj7z7zj7z7zj7z7zj7z7zj7zj7zj7zj7e
 ```
 
-Review the transaction details and confirm/abort:
+The fee in this example output (0.001 AVAX) is the static P-Chain fee from before Etna. Since Etna (ACP-103), the P-Chain fee is dynamic. A simple P-Chain transfer uses about 5,200 gas. At the minimum gas price of 1 nAVAX per gas, the fee is about 0.0000052 AVAX. Review the transaction details, then confirm or abort:
 
 ```zsh
 this operation is going to:
@@ -108,4 +108,4 @@ this operation is going to:
   ▸ Yes
 ```
 
-After a successful transfer, you can check your CLI keys' balances with the [command](/docs/tooling/cli-commands#key-list): `avalanche key list`.
+After a successful transfer, you can check your CLI keys' balances with the [command](/docs/tooling/avalanche-cli/cli-commands#key-list): `avalanche key list`.

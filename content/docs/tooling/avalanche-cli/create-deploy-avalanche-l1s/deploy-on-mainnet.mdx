@@ -174,7 +174,7 @@ If the Ledger doesn't have enough funds, the user may see an error message:
 
 ```bash
 *** Please sign Avalanche L1 creation hash on the ledger device ***
-Error: insufficient funds: provided UTXOs need 1000000000 more units of asset "U8iRqJoiJm8xZHAacmvYyZVwqQx6uDNtQeP3CQ6fcgQk3JqnK"
+Error: insufficient funds: provided UTXOs needed 10278 more nAVAX ("FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z")
 ```
 
 If successful, the CLI next asks you to sign a CreateChain Tx. Once CreateChain Tx is signed, it will then ask you to sign ConvertSubnetToL1 Tx.
@@ -241,13 +241,13 @@ Now, enter the amount of AVAX that you would like to allocate to the new validat
 
 The validator's balance is used to pay for continuous fee to the P-Chain. When this Balance reaches 0, the validator will be considered inactive and will no longer participate in validating the L1.
 
-1 AVAX should last the validator about a month.
+At the minimum fee of 512 nAVAX per second, 1 AVAX pays for about 22 days. The fee goes up when more than 10,000 L1 validators are active.
 
 ```bash
 What balance would you like to assign to the validator (in AVAX)?: 1
 ```
 
-Sign the addValidatorTx with your Ledger:
+Sign the `RegisterL1ValidatorTx` with your Ledger:
 
 ```bash
 *** Please sign add validator hash on the ledger device ***

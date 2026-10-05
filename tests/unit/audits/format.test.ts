@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  durationLabel,
   formatIsoDate,
   fromUtcCalendarDate,
   hostOf,
   isOutsideWindow,
+  monogramOf,
   parseWholeNumber,
   priceDeltaLabel,
   toUtcCalendarDate,
-  weeksLabel,
 } from "@/components/audits/shared/format";
 import { normalizeUrlInput } from "@/types/audits";
 
@@ -43,15 +44,16 @@ describe("parseWholeNumber", () => {
   });
 });
 
-describe("weeksLabel", () => {
-  it("says week in the singular", () => {
-    expect(weeksLabel(1)).toBe("1 week");
+describe("durationLabel", () => {
+  it("says the unit the firm picked, in the singular at one", () => {
+    expect(durationLabel(1, "days")).toBe("1 day");
+    expect(durationLabel(1, "weeks")).toBe("1 week");
   });
 
-  it("pluralizes everything else, including zero", () => {
-    expect(weeksLabel(0)).toBe("0 weeks");
-    expect(weeksLabel(2)).toBe("2 weeks");
-    expect(weeksLabel(12)).toBe("12 weeks");
+  it("pluralizes everything else, in either unit", () => {
+    expect(durationLabel(10, "days")).toBe("10 days");
+    expect(durationLabel(0, "weeks")).toBe("0 weeks");
+    expect(durationLabel(12, "weeks")).toBe("12 weeks");
   });
 });
 
@@ -140,5 +142,17 @@ describe("isOutsideWindow", () => {
   it("never fires without a needed-by date", () => {
     expect(isOutsideWindow("2026-08-19", null)).toBe(false);
     expect(isOutsideWindow("2026-08-19", undefined)).toBe(false);
+  });
+});
+
+describe("monogramOf", () => {
+  it("takes the first letters of the first two words, or two of a single word", () => {
+    expect(monogramOf("Spearbit Labs")).toBe("SL");
+    expect(monogramOf("Open Zeppelin")).toBe("OZ");
+    expect(monogramOf("HackenProof")).toBe("HP");
+    expect(monogramOf("BlockSec")).toBe("BS");
+    expect(monogramOf("Halborn")).toBe("HA");
+    expect(monogramOf("shieldify")).toBe("SH");
+    expect(monogramOf("FYEO")).toBe("FY");
   });
 });

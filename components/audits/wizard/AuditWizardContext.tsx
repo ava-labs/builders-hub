@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Form } from "@/components/ui/form";
 import { zodResolver } from "@/lib/zodResolver";
 import { auditSubmitSchema } from "@/types/audits";
+import type { PublicFirm } from "@/server/services/audits/visibility";
 import { useAutosave, type SaveState } from "@/components/audits/wizard/useAutosave";
 import {
   FIELD_STEP,
@@ -29,11 +30,18 @@ interface AuditWizardContextValue {
   saveAndExit: () => Promise<void>;
   submit: () => Promise<void>;
   submitting: boolean;
+  /** The draft id, creating the draft first if this is the wizard's first
+      save. Attachments need it: the upload token is minted against a draft
+      the caller owns, so there is nothing to upload to before one exists. */
+  ensureDraftId: () => Promise<string | null>;
   /** Step 4's consent checkbox, read by the shell to arm Submit. Deliberately
       NOT autosaved: consent is given at the moment of sending, so resuming a
       draft asks again. */
   consent: boolean;
   setConsent: (next: boolean) => void;
+  /** The public firm list, server-rendered once and held for the wizard's
+      lifetime; its length is the whitelist count. */
+  firms: PublicFirm[];
 }
 
 const AuditWizardContext = createContext<AuditWizardContextValue | null>(null);
@@ -47,10 +55,16 @@ export function useAuditWizard(): AuditWizardContextValue {
 interface AuditWizardProviderProps {
   initialDraft: { id: string; values: AuditWizardValues } | null;
   prefill: { contact_name: string; contact_email: string };
+  firms: PublicFirm[];
   children: ReactNode;
 }
 
-export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWizardProviderProps) {
+export function AuditWizardProvider({
+  initialDraft,
+  prefill,
+  firms,
+  children,
+}: AuditWizardProviderProps) {
   const router = useRouter();
   const [step, setStepState] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -102,6 +116,8 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
     else toast.error("We couldn't save your draft, but your session may have expired.");
     router.push("/audits");
   }, [flush, form, initialDraft, router]);
+
+  const ensureDraftId = useCallback(() => flush(true), [flush]);
 
   const submit = useCallback(async () => {
     const valid = await form.trigger(STEP_FIELDS[3]);
@@ -155,8 +171,10 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
       saveAndExit,
       submit,
       submitting,
+      ensureDraftId,
       consent,
       setConsent,
+      firms,
     }),
     [
       form,
@@ -170,7 +188,9 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
       saveAndExit,
       submit,
       submitting,
+      ensureDraftId,
       consent,
+      firms,
     ],
   );
 

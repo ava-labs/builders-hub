@@ -1,5 +1,6 @@
 import { algoliasearch } from 'algoliasearch';
-import { sync, DocumentRecord } from '../node_modules/fumadocs-core/dist/search/algolia.js';
+import { sync } from '../node_modules/fumadocs-core/dist/search/algolia.js';
+import { syncIfChanged } from './algolia-sync';
 import * as fs from 'node:fs';
 import 'dotenv/config';
 
@@ -17,14 +18,13 @@ async function main() {
   }
 
   try {
-    const content = fs.readFileSync(filePath);
-    const records = JSON.parse(content.toString()) as DocumentRecord[];
+    const body = fs.readFileSync(filePath);
     const client = algoliasearch('0T4ZBDJ3AF', process.env.ALGOLIA_WRITE_KEY);
 
-    await sync(client, {
-      documents: records,
-      indexName: 'builder-hub',
-    });
+    const result = await syncIfChanged({ client, body, indexName: 'builder-hub', sync });
+    console.log(
+      result === 'skipped' ? 'Algolia records match the last sync, skipping the index update' : 'Algolia index updated',
+    );
   } catch (error) {
     console.error('Algolia sync failed:', error);
     process.exit(1);

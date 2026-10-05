@@ -1,4 +1,7 @@
-import { cn } from "@/lib/utils";
+import { useVerifiedContracts, functionNameFromAbi } from "@/lib/sourcify-client";
+import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { useSignatures } from "@/lib/token-list";
+import { knownAddress } from "@/lib/evm-explorer";
 
 /* Row-level garnish shared by the EVM home and list pages: what a tx DID
    (the 4-byte selector, named when it's a classic) and how full a block
@@ -45,42 +48,34 @@ export function methodLabel(t: { methodId?: string; to: string }): string {
   return SELECTOR_NAMES[sel] ?? sel;
 }
 
-/** bordered mono chip — the tx row's "what happened" cell */
-export function MethodChip({ t, className }: { t: { methodId?: string; to: string }; className?: string }) {
-  const label = methodLabel(t);
-  const named = !label.startsWith("0x");
-  return (
-    <span
-      title={t.methodId || undefined}
-      className={cn(
-        "inline-block max-w-full truncate border border-zinc-200 px-1.5 py-0.5 text-left font-mono text-[10px] leading-4 dark:border-zinc-800",
-        named ? "text-zinc-600 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500",
-        className,
-      )}
-    >
-      {label}
-    </span>
-  );
+export interface MethodName {
+  label: string;
+  /** false when the label is the bare selector */
+  named: boolean;
 }
 
-/** how full the block ran — the tape's gas vessel, flattened into a row */
-export function GasFill({ used, limit }: { used: number; limit: number }) {
-  const pct = limit > 0 ? Math.min(1, used / limit) * 100 : 0;
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="h-1.5 w-12 shrink-0 bg-zinc-100 dark:bg-zinc-900">
-        <span
-          className={cn("block h-full", pct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
-          style={{ width: `${pct.toFixed(1)}%` }}
-        />
-      </span>
-      {/* fixed slot up to "100%", right-aligned — the bars stay registered
-          whether the number is one digit or three */}
-      <span className="w-9 text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-        {pct.toFixed(0)}%
-      </span>
-    </span>
-  );
+/** One resolver for every transaction table, so a selector reads the
+ *  same on the home board, the block page, the address page and the
+ *  list: the called contract's verified ABI first (a precompile's own
+ *  ABI stands in for one), then the generated registry and the classics
+ *  table, then the signature database for whatever is left, then the
+ *  selector itself. */
+export function useMethodNames(chainId: string | number, rows: { methodId?: string; to: string | null | undefined }[]): (t: { methodId?: string; to: string | null | undefined }) => MethodName {
+  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
+  const local = (t: { methodId?: string; to: string | null | undefined }): string | null => {
+    const sel = t.methodId?.toLowerCase() ?? "";
+    if (!sel) return null;
+    const abi = t.to ? contracts.get(t.to.toLowerCase())?.abi ?? knownAddress(t.to, chainId)?.abi : null;
+    return functionNameFromAbi(abi, sel) ?? getFunctionBySelector(sel)?.name ?? SELECTOR_NAMES[sel] ?? null;
+  };
+  const unknown = rows.filter((t) => t.methodId && !local(t)).map((t) => t.methodId!.toLowerCase());
+  const sigs = useSignatures(unknown, []);
+  return (t) => {
+    const sel = t.methodId?.toLowerCase() ?? "";
+    if (!sel) return { label: t.to ? "transfer" : "create", named: true };
+    const name = local(t) ?? sigs.fn.get(sel)?.name.split("(")[0] ?? null;
+    return name ? { label: name, named: true } : { label: sel, named: false };
+  };
 }
 
 /* The honest failure plate: the feed didn't 404, it died (indexer outage,

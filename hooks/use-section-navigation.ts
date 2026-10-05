@@ -19,6 +19,16 @@ interface UseSectionNavigationReturn {
   scrollToSection: (sectionId: string) => void;
 }
 
+/** the index of the last section whose top has reached the line, or -1 above them all; a pixel of slack,
+ *  since a section a tab scrolled to can land a fraction of a pixel under the line */
+export function sectionAt(tops: (number | null)[], line: number): number {
+  for (let i = tops.length - 1; i >= 0; i--) {
+    const top = tops[i];
+    if (top !== null && top <= line + 1) return i;
+  }
+  return -1;
+}
+
 export function useSectionNavigation(
   options: UseSectionNavigationOptions
 ): UseSectionNavigationReturn {
@@ -85,24 +95,25 @@ export function useSectionNavigation(
       // Skip scroll tracking during programmatic scrolls
       if (isScrollingRef.current) return;
 
-      const sections = categories.map((cat) => document.getElementById(cat.id));
-      const scrollPosition = window.scrollY + offset;
+      // the page position from the viewport, not offsetTop: a section inside
+      // a positioned wrapper reads offsetTop against that wrapper
+      const tops = categories.map((cat) => {
+        const section = document.getElementById(cat.id);
+        return section ? section.getBoundingClientRect().top + window.scrollY : null;
+      });
+      const i = sectionAt(tops, window.scrollY + offset);
 
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section && section.offsetTop <= scrollPosition) {
-          const newActiveSection = categories[i].id;
+      if (i >= 0) {
+        const newActiveSection = categories[i].id;
 
-          // Only update if changed
-          if (newActiveSection !== activeSection) {
-            setActiveSection(newActiveSection);
+        // Only update if changed
+        if (newActiveSection !== activeSection) {
+          setActiveSection(newActiveSection);
 
-            // Update URL hash without triggering scroll (using replaceState)
-            if (updateHash && window.location.hash !== `#${newActiveSection}`) {
-              window.history.replaceState(null, "", `#${newActiveSection}`);
-            }
+          // Update URL hash without triggering scroll (using replaceState)
+          if (updateHash && window.location.hash !== `#${newActiveSection}`) {
+            window.history.replaceState(null, "", `#${newActiveSection}`);
           }
-          break;
         }
       }
     };

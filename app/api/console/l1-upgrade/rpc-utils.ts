@@ -1,5 +1,6 @@
 import { lookup } from 'node:dns/promises';
 import { isValidAddress } from '@/lib/console/upgrade-json';
+import { getClientIP } from '@/lib/net/clientIp';
 
 type JsonRpcResponse<T> = {
   jsonrpc: string;
@@ -84,11 +85,11 @@ async function assertHostResolvesPublic(rawUrl: string): Promise<void> {
 }
 
 // Best-effort client IP for rate limiting the unauthenticated rpc/code
-// endpoints. On Vercel x-forwarded-for is set by the platform.
+// endpoints. Delegates to the shared resolver, which only trusts headers the
+// edge overwrites — the leftmost x-forwarded-for entry read here previously is
+// client-supplied, so any caller could rotate their own bucket per request.
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0]!.trim();
-  return request.headers.get('x-real-ip') ?? 'unknown';
+  return getClientIP(request);
 }
 
 export async function callJsonRpc<T>(rpcUrl: string, method: string, params: unknown[] = []): Promise<T> {

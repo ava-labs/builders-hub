@@ -89,11 +89,7 @@ Create a network - monitoring will be automatic:
 tmpnetctl start-network
 ```
 
-**Output includes a Grafana link:**
-```
-Started network /home/user/.tmpnet/networks/20240312-143052.123456
-Network metrics: https://grafana.example.com/...
-```
+**The log output includes a Grafana link.** tmpnet logs `started network` with the `networkDir` and `uuid` fields. It then logs `metrics and logs available via grafana (collectors must be running)` with the `url` and `linkPath` fields. tmpnetctl then prints the commands that set `TMPNET_NETWORK_DIR` for the new network.
 
 ### View Metrics and Logs
 
@@ -165,27 +161,19 @@ Start collectors from Go code:
 ```go
 import "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 
-// Start Prometheus
-err := tmpnet.StartPrometheus(
-    prometheusURL,
-    prometheusUsername,
-    prometheusPassword,
-    pushURL,
-    os.Stdout, // Progress output
-)
-if err != nil {
+// The collectors read their push URL and credentials from the PROMETHEUS_* and
+// LOKI_* env vars. The context must have a deadline.
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+defer cancel()
+var log logging.Logger = logging.NoLog{} // or any logging.Logger
+
+// Start Prometheus (agent mode)
+if err := tmpnet.StartPrometheus(ctx, log); err != nil {
     panic(err)
 }
 
 // Start Promtail
-err = tmpnet.StartPromtail(
-    lokiURL,
-    lokiUsername,
-    lokiPassword,
-    pushURL,
-    os.Stdout,
-)
-if err != nil {
+if err := tmpnet.StartPromtail(ctx, log); err != nil {
     panic(err)
 }
 ```
@@ -195,14 +183,15 @@ if err != nil {
 Check that metrics and logs are being collected:
 
 ```go
-// Check metrics
-err := tmpnet.CheckMetricsExist(context.Background(), prometheusURL, prometheusUsername, prometheusPassword, network.UUID)
+// ctx (with a deadline) and log as in the previous example.
+// Check metrics (reads PROMETHEUS_URL, PROMETHEUS_USERNAME, PROMETHEUS_PASSWORD)
+err := tmpnet.CheckMetricsExist(ctx, log, network.UUID)
 if err != nil {
     fmt.Println("Metrics not found:", err)
 }
 
-// Check logs
-err = tmpnet.CheckLogsExist(context.Background(), lokiURL, lokiUsername, lokiPassword, network.UUID)
+// Check logs (reads LOKI_URL, LOKI_USERNAME, LOKI_PASSWORD)
+err = tmpnet.CheckLogsExist(ctx, log, network.UUID)
 if err != nil {
     fmt.Println("Logs not found:", err)
 }
@@ -222,7 +211,7 @@ tmpnetctl start-logs-collector
 # Create/destroy networks as needed
 tmpnetctl start-network
 # ... test ...
-tmpnetctl stop-network
+tmpnetctl stop-network --network-dir=$HOME/.tmpnet/networks/latest
 
 # Collectors keep running
 # Stop when done with all testing
@@ -259,21 +248,21 @@ tmpnet collects standard AvalancheGo metrics:
 
 ### Node Health
 - `avalanche_network_peers` - Number of connected peers
-- `avalanche_P_vm_blks_accepted` - Accepted blocks on P-Chain
+- `avalanche_platformvm_blks_accepted{chain="P"}` - Accepted blocks on P-Chain (label `blk` gives the block type)
 - `avalanche_health_checks_failing` - Failing health checks
 
 ### Network Activity
-- `avalanche_network_msgs_sent` - Messages sent
-- `avalanche_network_msgs_received` - Messages received
-- `avalanche_network_bandwidth_throttler_inbound_acquired_bytes` - Inbound bandwidth
+- `avalanche_network_msgs{io="sent"}` - Messages sent (labels `op` and `compressed` also apply)
+- `avalanche_network_msgs{io="received"}` - Messages received
+- `avalanche_network_bandwidth_throttler_inbound_awaiting_acquire` - Inbound messages waiting for bandwidth
 
 ### Consensus
 - `avalanche_snowman_polls_successful` - Successful consensus polls
 - `avalanche_snowman_polls_failed` - Failed consensus polls
-- `avalanche_P_blks_processing` - Blocks currently processing
+- `avalanche_snowman_blks_processing{chain="P"}` - Blocks currently processing
 
 ### Performance
-- `avalanche_P_vm_blks_processing_time` - Block processing time
+- `avalanche_snowman_consensus_latencies{chain="P"}` - Time from block issuance to acceptance (histogram, in ns)
 - `go_goroutines` - Number of goroutines
 - `go_memstats_alloc_bytes` - Memory allocated
 
@@ -394,7 +383,7 @@ echo $GRAFANA_URI
 ```
 
 **Check network UUID is in the URL:**
-The URL should contain `var-network_uuid=YOUR_UUID`
+The URL should contain `var-filter=network_uuid%7C%3D%7CYOUR_UUID` (the URL-encoded form of `network_uuid|=|YOUR_UUID`)
 
 ## CI/CD Integration
 
@@ -417,12 +406,11 @@ Use the provided GitHub Action for automated monitoring:
     loki_password: ${{ secrets.LOKI_PASSWORD }}
 ```
 
-The action automatically:
-- Starts collectors
-- Runs your tests
-- Stops collectors
-- Uploads network artifacts
-- Emits Grafana links in logs
+The action:
+- Installs nix, which provides `prometheus` and `promtail`
+- Prints a Grafana link for the job (only when monitoring credentials are set)
+- Runs your command with `TMPNET_START_METRICS_COLLECTOR`, `TMPNET_START_LOGS_COLLECTOR` and the `TMPNET_CHECK_*` env vars set. The e2e fixture reads them and starts the collectors.
+- Uploads `~/.tmpnet/networks` and the collector logs as an artifact (process runtime only)
 
 ### Custom CI Systems
 
@@ -454,13 +442,13 @@ Create custom Grafana dashboards using tmpnet labels:
 
 ```
 # Panel: Network Message Rate
-rate(avalanche_network_msgs_sent{network_uuid="$network_uuid"}[1m])
+rate(avalanche_network_msgs{io="sent", network_uuid="$network_uuid"}[1m])
 
-# Panel: Block Processing Time (P-Chain)
-histogram_quantile(0.99, rate(avalanche_P_vm_blks_processing_time_bucket[5m]))
+# Panel: Block Acceptance Latency (P-Chain, ns)
+histogram_quantile(0.99, rate(avalanche_snowman_consensus_latencies_bucket{chain="P"}[5m]))
 
 # Panel: Active Validators
-avalanche_P_vm_validators_count{network_uuid="$network_uuid"}
+avalanche_stake_num_validators{chain="P", network_uuid="$network_uuid"}
 ```
 
 ### Alerting
@@ -472,7 +460,7 @@ Set up alerts based on network behavior:
 avalanche_network_peers < 4
 
 # Alert on high block processing time
-histogram_quantile(0.99, rate(avalanche_P_vm_blks_processing_time_bucket[5m])) > 1000
+histogram_quantile(0.99, rate(avalanche_snowman_consensus_latencies_bucket{chain="P"}[5m])) > 2e9
 
 # Alert on failed health checks
 avalanche_health_checks_failing > 0

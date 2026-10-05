@@ -25,8 +25,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     )
   }
 
+  // the stale fallback below reads the same key a success writes
+  const { slug } = await params
+  const cacheKey = `${CacheKeys.metrics()}:${slug}`
+
   try {
-    const { slug } = await params
     const project = getRWAProject(slug)
 
     if (!project) {
@@ -36,24 +39,18 @@ export async function GET(request: Request, { params }: RouteParams) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const forceRefresh = searchParams.get('refresh') === 'true'
-
-    const cacheKey = `${CacheKeys.metrics()}:${slug}`
-
-    if (!forceRefresh) {
-      const cached = cache.get(cacheKey)
-      if (cached && !cached.isStale) {
-        return NextResponse.json(cached.data, {
-          headers: {
-            'Cache-Control': 'public, max-age=300, stale-while-revalidate=1800',
-            'X-Cache': 'HIT',
-          },
-        })
-      }
+    // no caller can skip the cache: a public refresh would let anyone drive the Stats API reads
+    const cached = cache.get(cacheKey)
+    if (cached && !cached.isStale) {
+      return NextResponse.json(cached.data, {
+        headers: {
+          'Cache-Control': 'public, max-age=300, stale-while-revalidate=1800',
+          'X-Cache': 'HIT',
+        },
+      })
     }
 
-    const metrics = await calculateAllMetrics(forceRefresh)
+    const metrics = await calculateAllMetrics()
     const serializedMetrics = serializeBigints(metrics)
 
     cache.set(cacheKey, serializedMetrics)
@@ -65,7 +62,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       },
     })
   } catch (error) {
-    const stale = cache.get(CacheKeys.metrics())
+    const stale = cache.get(cacheKey)
     if (stale) {
       return NextResponse.json(stale.data, {
         headers: {

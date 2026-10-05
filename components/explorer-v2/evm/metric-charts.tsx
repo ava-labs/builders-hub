@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartBoard } from "@/components/explorer-v2/ui";
+import { recall, remember } from "@/components/explorer-v2/page-data";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
 
@@ -155,28 +156,40 @@ export function metricSeries(
  * between 1D/1W/1M costs nothing after the first load.
  */
 export function useChainMetrics(chainId: string, range: number, metricKeys: string) {
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [failed, setFailed] = useState(false);
   // "all" rides the API's genesis-anchored window (STATS_CONFIG.TIME_RANGES
   // pins it to September 2020), so the widest clock tick is true all-time
   const timeRange = range <= 30 ? "30d" : range <= 90 ? "90d" : range <= 365 ? "1y" : "all";
+  const url = `/api/chain-stats/${chainId}?metrics=${metricKeys}&timeRange=${timeRange}`;
+  // the charts a page drew before open from memory while they are read again
+  const [metrics, setMetrics] = useState<Metrics | null>(() => recall<Metrics>(url, false)?.data ?? null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setMetrics(null);
+    let again: ReturnType<typeof setTimeout> | undefined;
+    setMetrics(recall<Metrics>(url, false)?.data ?? null);
     setFailed(false);
-    fetch(`/api/chain-stats/${chainId}?metrics=${metricKeys}&timeRange=${timeRange}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((data: Metrics) => {
-        if (!cancelled) setMetrics(data);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+    const load = (first: boolean) =>
+      fetch(url)
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = (await res.json()) as Metrics;
+          if (cancelled) return;
+          remember(url, data);
+          setMetrics(data);
+          // a metric the stats API did not answer in time comes back missing, and the server keeps nothing: ask once more
+          if (first && res.headers.get("X-Partial-Metrics")) again = setTimeout(() => void load(false), 10_000);
+        })
+        .catch(() => {
+          // a second ask that fails leaves the first answer standing
+          if (!cancelled && first) setFailed(true);
+        });
+    void load(true);
     return () => {
       cancelled = true;
+      if (again) clearTimeout(again);
     };
-  }, [chainId, timeRange, metricKeys]);
+  }, [url]);
 
   return { metrics, failed };
 }

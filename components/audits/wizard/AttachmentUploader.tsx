@@ -8,9 +8,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MAX_ATTACHMENT_BYTES } from "@/types/audits";
 import type { AuditWizardValues } from "@/components/audits/wizard/types";
+import { useAuditWizard } from "@/components/audits/wizard/AuditWizardContext";
 
-const ACCEPT = ".pdf,.txt,.md,image/*";
-const ACCEPTED_TYPES = /^(application\/pdf|text\/plain|text\/markdown|image\/)/;
+// Mirrors ALLOWED_CONTENT_TYPES on the token route; svg is deliberately out
+// (a scriptable document read back by audit firms), so no bare image/*.
+const ACCEPT = ".pdf,.txt,.md,.png,.jpg,.jpeg,.gif,.webp";
+const ACCEPTED_TYPES =
+  /^(application\/pdf|text\/plain|text\/markdown|image\/(png|jpeg|gif|webp))$/;
 
 function formatSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -20,11 +24,14 @@ function formatSize(bytes: number): string {
 /**
  * Uploads go straight from the browser to Vercel Blob via the token exchange
  * at /api/audits/attachments/upload (128MB would never fit through a
- * function body). On success the file lands in the form's attachments list,
- * which the autosave PATCHes onto the draft; removing only unlinks it.
+ * function body). The token is minted against a draft the caller owns, so the
+ * draft is created first when this is the wizard's first save. On success the
+ * file lands in the form's attachments list, which the autosave PATCHes onto
+ * the draft; removing it there unlinks AND unpublishes the stored object.
  */
 export function AttachmentUploader() {
   const { setValue, watch } = useFormContext<AuditWizardValues>();
+  const { ensureDraftId } = useAuditWizard();
   const attachments = watch("attachments");
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -33,18 +40,24 @@ export function AttachmentUploader() {
     if (!files?.length) return;
     setUploading(true);
     try {
+      const requestId = await ensureDraftId();
+      if (!requestId) {
+        toast.error("We couldn't save your draft, so the file was not uploaded.");
+        return;
+      }
       for (const file of Array.from(files)) {
         if (file.size > MAX_ATTACHMENT_BYTES) {
           toast.error(`${file.name} is over the 128MB limit.`);
           continue;
         }
         if (!ACCEPTED_TYPES.test(file.type)) {
-          toast.error(`${file.name}: only pdf, text and image files are accepted.`);
+          toast.error(`${file.name}: only pdf, text, png, jpg, gif and webp files are accepted.`);
           continue;
         }
-        const blob = await upload(`audits/${file.name}`, file, {
+        const blob = await upload(`audits/${requestId}/${file.name}`, file, {
           access: "public",
           handleUploadUrl: "/api/audits/attachments/upload",
+          clientPayload: JSON.stringify({ requestId }),
         });
         setValue(
           "attachments",

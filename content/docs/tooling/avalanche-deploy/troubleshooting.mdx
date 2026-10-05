@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Common issues and solutions for Avalanche Deploy — SSH connectivity, node sync, L1 creation, RPC access, genesis configuration, snapshots, migration, and add-on debugging.
+description: Common issues and solutions for Avalanche Deploy (SSH connectivity, node sync, L1 creation, RPC access, genesis configuration, snapshots, migration, and add-on debugging).
 ---
 
 ## Connection Issues
@@ -51,7 +51,7 @@ ssh ubuntu@<node-ip> "curl -s localhost:9650/ext/health"
 
 **Symptom**: Chain creation fails with an illegal name character error.
 
-**Solution**: Chain names must be alphanumeric only — no hyphens, underscores, or special characters:
+**Solution**: Chain names must be alphanumeric only (no hyphens, underscores, or special characters):
 
 ```bash
 # Incorrect
@@ -84,12 +84,15 @@ ssh -i ~/.ssh/avalanche-deploy -L 9650:localhost:9650 ubuntu@<validator-ip>
 
 **Symptom**: Chain fails to start with a warp activation error.
 
-**Solution**: Ensure your genesis file includes the Durango timestamp:
+**Solution**: Set `warpConfig.blockTimestamp` to a time at or after the Durango activation time of your network: `1707840000` on Fuji, `1709740800` on Mainnet. The value `1709740800` works on both networks. Adding `"durangoTimestamp": 0` does not fix this error: Subnet-EVM treats `0` as unset and uses the Durango time of the network. If you set a nonzero `durangoTimestamp`, it must not be earlier than the Durango time of the network.
 
 ```json
 {
   "config": {
-    "durangoTimestamp": 0
+    "warpConfig": {
+      "blockTimestamp": 1709740800,
+      "quorumNumerator": 67
+    }
   }
 }
 ```
@@ -132,7 +135,7 @@ All chains (P, X, C) must report `SYNCED`.
 
 **Symptom**: Both old and new validators show as active briefly after migration.
 
-**Explanation**: This is expected. The old validator becomes inactive after missing its next validation slot. Verify the migration was successful:
+**Explanation**: AvalancheGo has no validation slots. Peers keep one connection per NodeID and drop a second connection from the same NodeID. A peer that is connected to the old node stays connected to it until the old node stops. Then the peer connects to the IP with the newest signed timestamp, which is the IP of the new node. Make sure that AvalancheGo is stopped on the old node, then verify the migration:
 
 ```bash
 curl -s http://<new-ip>:9650/ext/info -X POST \

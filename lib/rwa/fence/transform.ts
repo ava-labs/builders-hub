@@ -48,7 +48,9 @@ export function transformCollectionLatest(raw: FenceApiMetricValue): FenceCollec
 }
 
 export function transformCollectionSeries(rawValues: FenceApiMetricValue[]): TimeSeriesDataPoint[] {
-  const dateMap = new Map<string, number>()
+  // Fence does not list a series in time order, so each day keeps its
+  // latest reading by as_of_date rather than the last one in the list
+  const byDay = new Map<string, { asOf: string; value: number }>()
 
   for (const entry of rawValues) {
     if (typeof entry.value !== 'object' || entry.value === null) continue
@@ -57,11 +59,12 @@ export function transformCollectionSeries(rawValues: FenceApiMetricValue[]): Tim
     if (usdValue === null) continue
 
     const date = normalizeDate(entry.as_of_date)
-    dateMap.set(date, usdValue)
+    const held = byDay.get(date)
+    if (!held || entry.as_of_date > held.asOf) byDay.set(date, { asOf: entry.as_of_date, value: usdValue })
   }
 
-  return Array.from(dateMap.entries())
-    .map(([date, value]) => ({ date, value }))
+  return Array.from(byDay.entries())
+    .map(([date, { value }]) => ({ date, value }))
     .sort((a, b) => a.date.localeCompare(b.date))
 }
 

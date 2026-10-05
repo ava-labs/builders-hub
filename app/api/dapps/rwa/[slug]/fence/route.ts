@@ -34,24 +34,18 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Fence metrics not available for this project' }, { status: 404 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const forceRefresh = searchParams.get('refresh') === 'true'
-
-    const cacheKey = CacheKeys.fenceMetrics(slug)
-
-    if (!forceRefresh) {
-      const cached = cache.get<FenceMetrics>(cacheKey)
-      if (cached && !cached.isStale) {
-        return NextResponse.json(cached.data, {
-          headers: {
-            'Cache-Control': 'public, max-age=1800, stale-while-revalidate=3600',
-            'X-Cache': 'HIT',
-          },
-        })
-      }
+    // no caller can skip the cache: a public refresh would let anyone drive the Fence reads
+    const cached = cache.get<FenceMetrics>(CacheKeys.fenceMetrics(slug))
+    if (cached && !cached.isStale) {
+      return NextResponse.json(cached.data, {
+        headers: {
+          'Cache-Control': 'public, max-age=1800, stale-while-revalidate=3600',
+          'X-Cache': 'HIT',
+        },
+      })
     }
 
-    const metrics = await fetchFenceMetrics(slug, forceRefresh)
+    const metrics = await fetchFenceMetrics(slug)
 
     return NextResponse.json(metrics, {
       headers: {
@@ -71,9 +65,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       })
     }
 
-    const message = error instanceof Error ? error.message : 'Fence API unavailable'
+    // the upstream error stays in the server log; the browser gets a fixed line
     return NextResponse.json(
-      { error: message },
+      { error: 'Fence API unavailable' },
       { status: 503 }
     )
   }

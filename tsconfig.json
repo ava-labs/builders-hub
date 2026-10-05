@@ -27,9 +27,6 @@
       "@/*": [
         "./*"
       ],
-      "@/stores/*": [
-        "components/toolbox/stores/*"
-      ],
       "@console-header/*": [
         "components/toolbox/components/console-header/*"
       ]

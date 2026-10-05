@@ -71,25 +71,30 @@ const subscribe = (l: () => void) => {
   };
 };
 
+/* a pick follows the visitor from page to page for the length of the
+   visit, and no further: every new visit opens on the default window, so
+   the explorer always greets a reader with the same month */
 export function setExplorerRange(next: ExplorerRange) {
   if (next === range) return;
   range = next;
   try {
-    localStorage.setItem(STORAGE_KEY, next);
+    sessionStorage.setItem(STORAGE_KEY, next);
   } catch {
-    /* private mode: the session keeps the value, reloads reset it */
+    /* private mode: the in-memory value carries the session, reloads reset it */
   }
   emit();
 }
 
-/* restore the visitor's last pick once, on the first client subscription —
-   after hydration, so the server-rendered default never mismatches */
+/* restore this visit's pick once, on the first client subscription, after
+   hydration, so the server-rendered default never mismatches */
 let restored = false;
 function restoreOnce() {
   if (restored) return;
   restored = true;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY) as ExplorerRange | null;
+    // an older build kept the pick across visits; forget that copy
+    localStorage.removeItem(STORAGE_KEY);
+    const saved = sessionStorage.getItem(STORAGE_KEY) as ExplorerRange | null;
     if (saved && saved !== range && EXPLORER_RANGES.some((r) => r.value === saved)) {
       range = saved;
       emit();
@@ -97,6 +102,13 @@ function restoreOnce() {
   } catch {
     /* keep the default */
   }
+}
+
+/* the clock outside React, for a read ahead of its page (the link warmer):
+   this visit's pick, restored first if no page has asked for it yet */
+export function currentExplorerRange(): ExplorerRange {
+  restoreOnce();
+  return range;
 }
 
 /* Read the clock AND register as one of its consumers: any component
@@ -135,7 +147,7 @@ export function ExplorerRangeControl({ className }: { className?: string }) {
         <select
           value={current}
           onChange={(e) => setExplorerRange(e.target.value as ExplorerRange)}
-          className="appearance-none border border-zinc-200 bg-transparent py-1.5 pl-2.5 pr-7 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+          className="appearance-none border border-zinc-200 bg-transparent py-1 pl-2.5 pr-7 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
         >
           {/* label only: the closed control renders the selected option's
               full text, so anything longer would re-widen the rail */}

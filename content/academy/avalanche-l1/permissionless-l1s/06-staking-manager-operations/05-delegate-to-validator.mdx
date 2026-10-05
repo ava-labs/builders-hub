@@ -16,7 +16,7 @@ When a delegator stakes tokens with a validator:
 - The validator's **weight increases** on the P-Chain (more stake = more consensus influence)
 - The delegator earns rewards proportional to their stake
 - The validator earns a **delegation fee** (percentage of the delegator's rewards)
-- Both are subject to the validator's **minimum stake duration**
+- The delegator can remove the delegation after the staking manager's **minimum stake duration** (`minimumStakeDuration`), counted from the delegation start
 
 ### Phase 1: Initiation (L1)
 
@@ -24,7 +24,8 @@ The delegator calls [`initiateDelegatorRegistration`](https://github.com/ava-lab
 
 ```solidity
 function initiateDelegatorRegistration(
-    bytes32 validationID
+    bytes32 validationID,
+    address rewardRecipient
 ) external payable returns (bytes32 delegationID)
 ```
 
@@ -50,7 +51,7 @@ The weight update message must be signed and submitted to the P-Chain as a `SetL
 
 ### Phase 3: Completion (L1)
 
-Call [`completeDelegatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/PoSValidatorManager.sol) with the P-Chain's signed response:
+Call [`completeDelegatorRegistration(delegationID, messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol) with the P-Chain's signed response:
 
 - Verifies the Warp message and nonce correspondence
 - Activates the delegation (status → Active)
@@ -78,7 +79,7 @@ sequenceDiagram
     participant PChain as P-Chain
 
     %% Phase 1: Initiation
-    Delegator->>StakingManager: initiateDelegatorRegistration{value: amount}(validationID)
+    Delegator->>StakingManager: initiateDelegatorRegistration{value: amount}(validationID, rewardRecipient)
 
     StakingManager->>StakingManager: Validate validator is Active
 

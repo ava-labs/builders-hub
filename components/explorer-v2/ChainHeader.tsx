@@ -4,30 +4,14 @@ import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /* The chain identity block, shared by every chain-scoped surface       */
-/* (explorer and stats alike): logo in a hairline circle, display name  */
-/* with the red period, the chain's exits as mono links at right, and   */
-/* the identifier chips + wallet hook underneath. One component so the  */
-/* explorer and the stats pages can never drift apart.                  */
+/* (explorer and stats alike): logo in a hairline circle and display    */
+/* name with the red period, and an aside at right. One component so    */
+/* the explorer and the stats pages can never drift apart.              */
 /* ------------------------------------------------------------------ */
-
-export interface ChainExit {
-  label: string;
-  href: string;
-}
 
 interface ChainHeaderProps {
   chainName: string;
   chainLogoURI?: string;
-  website?: string;
-  socials?: {
-    twitter?: string;
-    linkedin?: string;
-  };
-  /** extra external exits, e.g. third-party block explorers */
-  exits?: ChainExit[];
-  subnetId?: string;
-  blockchainId?: string;
-  wallet?: { rpcUrl: string; chainId?: number; tokenSymbol?: string };
   /** right-hand companion above the exits (e.g. the live tip-height hero) */
   aside?: React.ReactNode;
   className?: string;
@@ -37,18 +21,12 @@ interface ChainHeaderProps {
    naming the network over the proper chain name — no "Avalanche" prefix,
    no logo bubble. Catalog data (and wallet metadata) keep the full name. */
 const PRIMARY_NETWORK_DISPLAY: Record<string, { title: string; eyebrow: string }> = {
-  "Avalanche C-Chain": { title: "Contract Chain", eyebrow: "Avalanche Primary Network" },
+  "Avalanche C-Chain": { title: "C-Chain", eyebrow: "Avalanche Primary Network" },
 };
 
 export function ChainHeader({
   chainName,
   chainLogoURI,
-  website,
-  socials,
-  exits = [],
-  subnetId,
-  blockchainId,
-  wallet,
   aside,
   className,
 }: ChainHeaderProps) {

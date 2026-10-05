@@ -56,32 +56,16 @@ function cleanupOldEntries(): void {
   lastCleanup = now;
 }
 
-/**
- * Extract client IP address from request headers
- * Handles various proxy configurations (Cloudflare, Vercel, nginx, etc.)
- */
-export function getClientIP(request: Request): string {
-  const headers = request.headers;
+export { getClientIP } from '@/lib/net/clientIp';
 
-  // Cloudflare
-  const cfConnectingIP = headers.get('cf-connecting-ip');
-  if (cfConnectingIP) return cfConnectingIP;
 
-  // Vercel / standard proxy
-  const xForwardedFor = headers.get('x-forwarded-for');
-  if (xForwardedFor) {
-    // x-forwarded-for can contain multiple IPs: "client, proxy1, proxy2"
-    // The first one is the original client
-    const firstIP = xForwardedFor.split(',')[0].trim();
-    if (firstIP) return firstIP;
-  }
-
-  // Generic proxy
-  const xRealIP = headers.get('x-real-ip');
-  if (xRealIP) return xRealIP;
-
-  // Fallback - this might be the load balancer IP in production
-  return 'unknown';
+/** the loopback address in any of the spellings a dev server forwards, port included */
+function isLoopback(identifier: string): boolean {
+  const host = identifier
+    .replace(/^\[([^\]]+)\](:\d+)?$/, '$1')
+    .replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, '$1')
+    .toLowerCase();
+  return host === 'unknown' || host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '::ffff:127.0.0.1';
 }
 
 /**
@@ -96,6 +80,18 @@ export function checkChatRateLimit(
   isAuthenticated: boolean
 ): RateLimitResult {
   const now = Date.now();
+
+  // Local development: every request arrives from the one loopback address
+  // (or with no proxy header at all), so a few smoke tests would lock the
+  // developer out for an hour. Production is not affected.
+  if (process.env.NODE_ENV === 'development' && !isAuthenticated && isLoopback(identifier)) {
+    return {
+      allowed: true,
+      remaining: RATE_LIMITS.anonymous.maxRequests,
+      resetTime: new Date(now + RATE_LIMITS.anonymous.windowMs),
+      limit: RATE_LIMITS.anonymous.maxRequests,
+    };
+  }
 
   // Periodic cleanup
   if (now - lastCleanup > CLEANUP_INTERVAL_MS) {

@@ -78,7 +78,7 @@ describe('action output safety and links', () => {
       to: '0xabc; curl https://attacker.invalid',
     })
     expect(injected.isError).toBe(true)
-    expect(textOf(injected)).not.toContain('platform transfer')
+    expect(textOf(injected)).not.toContain('platform-cli transfer')
 
     const missingChain = await actionTools.handlers.build_plan({ operation: 'create-l1' })
     expect(missingChain.isError).toBe(true)
@@ -92,10 +92,11 @@ describe('action output safety and links', () => {
     expect(textOf(manager)).toContain('/permissionless-l1s/native-staking-manager-setup')
 
     const kit = await actionTools.handlers.console_link({ flow: 'interchain-kit-local' })
-    expect(textOf(kit)).toContain('/docs/tooling/avalanche-sdk/interchain-kit')
+    expect(textOf(kit)).toContain('/docs/tooling/interchain-kit')
 
     const listed = await consoleTools.handlers.console_flow({})
     expect(textOf(listed)).toContain('/console/ictt/setup')
+    expect(textOf(listed)).toContain('/docs/tooling/interchain-kit')
     expect(textOf(listed)).toContain('/console/primary-network/c-p-bridge')
   })
 })

@@ -1817,7 +1817,7 @@ export default function ConfigurableChart({
           </div>
         </div>
 
-        <ChartWatermark className="p-6">
+        <ChartWatermark className="p-6" visible={visibleSeries.length > 0}>
             {renderChart()}
 
             {/* Brush Slider */}

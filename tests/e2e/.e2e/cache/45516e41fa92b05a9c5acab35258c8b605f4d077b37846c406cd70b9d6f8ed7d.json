@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T06:22:46.770Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap node \"Validators create a new transaction to …\" in \"Primer on Avalanche Consensus\"",
+        "target": {
+          "text": "Validators create a new transaction to resolve the conflict.",
+          "within": "Primer on Avalanche Consensus"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap button \"Check Answer\" in \"Primer on Avalanche Consensus\" (1 of 2)",
+        "target": {
+          "role": "button",
+          "name": "Check Answer",
+          "within": "Primer on Avalanche Consensus",
+          "position": {
+            "index": 0,
+            "of": 2
+          }
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/academy-quiz.e2e.ts::quiz%20tells%20a%20learner%20who%20picks%20a%20wrong%20answer%20that%20it%20is%20wrong",
+      "targetId": "desktop",
+      "instructionDigest": "bf9846dc08c340f587b4efd31022e8f8e515322b1c05a8ce55b8d100ff29f410"
+    },
+    "summary": "On Question 1 I selected the wrong option, \"Validators create a new transaction to resolve the conflict.\", and tapped Check Answer. The page showed \"Not Quite\", \"Attempt 1 of 3\", a hint, and a \"Try Again\" button.",
+    "startPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
+    "endPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
+    "endAnchors": [
+      {
+        "text": "Attempt 1 of 3"
+      },
+      {
+        "text": "Not Quite"
+      },
+      {
+        "text": "Hint:"
+      },
+      {
+        "text": "Think about how validators resolve conflicts in a blockchain network."
+      },
+      {
+        "role": "button",
+        "name": "Try Again"
+      }
+    ],
+    "endWaitMs": 12856
+  }
+}

@@ -3,7 +3,8 @@ import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
-import { parseAttachments, parseRepos } from "@/components/audits/wizard/types";
+import { toAttachmentLinks } from "@/lib/audits/attachments";
+import { parseRepos } from "@/components/audits/wizard/types";
 
 function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -17,7 +18,9 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
 /** What was sent to the firms, so the request page answers its own questions. */
 export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
   const repos = parseRepos(detail.repos);
-  const attachments = parseAttachments(detail.attachments);
+  // Through the program's own route, not the store: the owner's page must not
+  // put a bearer URL in the DOM either (it travels in copies and referrers).
+  const attachments = toAttachmentLinks(detail.id, detail.attachments);
   const deployment = detail.deployment_target
     ? (DEPLOYMENT_TARGET_LABELS[detail.deployment_target as DeploymentTarget] ??
       detail.deployment_target)
@@ -30,15 +33,37 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
       : []),
   ].filter(Boolean);
 
+  // narrowed = the project chose a subset (spec 7.2.5); the Firms row is
+  // pre-approval only, after which the delivery rows speak.
+  const narrowed = detail.shortlist_auditor_ids.length > 0;
+  const preApproval = detail.status === "pending_review" || detail.status === "rejected";
+
   return (
     <div className={`${CARD} space-y-4 p-5`}>
       {/* Before approval no firm has received anything, and claiming
           otherwise is the one line that makes the gate look broken. */}
       <p className={MONO_LABEL_SM}>
-        {detail.status === "pending_review" || detail.status === "rejected"
+        {preApproval
           ? "Your request · what firms will receive"
-          : "Your request · what every firm received"}
+          : narrowed
+            ? "Your request · what the firms you chose received"
+            : "Your request · what every firm received"}
       </p>
+      {preApproval && narrowed ? (
+        <SummaryRow label="Firms">
+          {detail.shortlist_firms.length > 0 ? (
+            <>
+              {detail.shortlist_firms.map((firm) => firm.firm_name).join(" · ")}
+              <span className="text-zinc-500 dark:text-zinc-400">
+                {" "}
+                · {detail.shortlist_firms.length} of {detail.whitelist_count} whitelisted firms
+              </span>
+            </>
+          ) : (
+            "None of the firms you chose is still listed."
+          )}
+        </SummaryRow>
+      ) : null}
       {detail.description ? <SummaryRow label="Project">{detail.description}</SummaryRow> : null}
       {detail.scope ? (
         <SummaryRow label="Scope">
@@ -83,13 +108,8 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
               </li>
             ))}
             {attachments.map((attachment) => (
-              <li key={attachment.url} className="font-mono text-xs">
-                <a
-                  href={attachment.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2"
-                >
+              <li key={attachment.href} className="font-mono text-xs">
+                <a href={attachment.href} rel="noreferrer" className="underline underline-offset-2">
                   {attachment.name}
                 </a>
               </li>

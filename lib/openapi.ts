@@ -24,3 +24,10 @@ export const xChainApi = createOpenAPI({
   // X-Chain RPC API
   input: ['./public/openapi/xchain.yaml'],
 });
+
+export const verificationApi = createOpenAPI({
+  // Contract Verification API. Hand-written and committed, unlike the
+  // specs above: this one describes our own routes, so it lives with them
+  // rather than being fetched at build time.
+  input: ['./public/openapi/verification.json'],
+});

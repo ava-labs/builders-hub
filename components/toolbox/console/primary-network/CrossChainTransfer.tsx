@@ -4,7 +4,7 @@ import { ArrowDownUp, Clock } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs';
-import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
+import { toNanoAvax } from '@/components/toolbox/coreViem/utils/units';
 import { getRPCEndpoint } from '@/components/toolbox/coreViem/utils/rpc';
 import { useAvalancheContext } from '@/components/toolbox/hooks/useAvalancheContext';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
@@ -33,16 +33,40 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
 // P-Chain (flat tx fee). MAX subtracts this so the user always has gas left.
 const EXPORT_FEE_BUFFER_NAVAX = 1_000_000;
 
+// Public API nodes no longer serve avax.getAtomicTxStatus after Helicon, so the
+// SDK's waitForTxn fails for C-Chain atomic txs. Poll avax.getAtomicTx instead:
+// it returns blockHeight once the tx is accepted, and a "not found" error before.
+async function waitForCChainAtomicTx(isTestnet: boolean, txID: string, sleepTime = 2000, maxRetries = 30) {
+  const endpoint = `${getRPCEndpoint(isTestnet)}/ext/bc/C/avax`;
+  for (let i = 0; i < maxRetries; i++) {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'avax.getAtomicTx', params: { txID, encoding: 'hex' } }),
+    });
+    const { result, error } = (await res.json()) as {
+      result?: { blockHeight?: string };
+      error?: { message?: string };
+    };
+    if (result?.blockHeight) return;
+    if (error && !/not found|could not find tx/i.test(error.message ?? '')) {
+      throw new Error(`avax.getAtomicTx failed for ${txID}: ${error.message}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, sleepTime));
+  }
+  throw new Error(`Transaction ${txID} was not accepted on C-Chain after ${maxRetries} attempts`);
+}
+
 const metadata: ConsoleToolMetadata = {
   title: 'Cross-Chain Transfer',
   description: (
     <>
       Transfer AVAX between the{' '}
-      <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/c-chain" className="text-primary hover:underline">
         C-Chain
       </Link>{' '}
       and{' '}
-      <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain" className="text-primary hover:underline">
         P-Chain
       </Link>
       . Requires two{' '}
@@ -266,10 +290,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setError(null);
     autoImportTriggeredRef.current = false;
 
-    // P-Chain/X-Chain transfer amounts are nAVAX (1 AVAX = 1e9 nAVAX). Use the
-    // SDK's converter, which parses the decimal safely — `BigInt(0.5)` and the
-    // float drift from `amount * 1e9` (e.g. 1.498999999) both throw otherwise.
-    const amountNAvax = avaxToNanoAvax(Number(amount));
+    // P-Chain/X-Chain transfer amounts are nAVAX (1 AVAX = 1e9 nAVAX). Parse
+    // the typed decimal: `BigInt(0.5)` and the float drift from `amount * 1e9`
+    // (e.g. 1.005 * 1e9 = 1004999999.9999999) both throw, and the SDK's
+    // avaxToNanoAvax does exactly that multiplication.
+    const amountNAvax = toNanoAvax(amount);
     if (amountNAvax <= 0n) {
       setError('Amount is below the smallest exportable unit (1 nAVAX).');
       setExportLoading(false);
@@ -288,7 +313,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-        await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
+        await waitForCChainAtomicTx(Boolean(isTestnet), String(txnResponse.txHash));
         return { txHash: txnResponse.txHash, xpChain: 'C' as const };
       } else {
         const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
@@ -378,7 +403,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-        await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
+        await waitForCChainAtomicTx(Boolean(isTestnet), String(txnResponse.txHash));
         return { txHash: String(txnResponse.txHash), xpChain: 'C' as const };
       }
     })();
@@ -507,7 +532,7 @@ const txnRequest = await coreWalletClient.cChain.prepareExportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
+// Poll avax.getAtomicTx until the result has blockHeight (waitForTxn uses the deprecated avax.getAtomicTxStatus)
 console.log("Export tx:", txnResponse.txHash);`
           : `import { CoreWalletClient } from "@core-wallet/sdk";
 
@@ -553,7 +578,7 @@ const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
+// Poll avax.getAtomicTx until the result has blockHeight (waitForTxn uses the deprecated avax.getAtomicTxStatus)
 console.log("Import tx:", txnResponse.txHash);`,
         description: isCtoP ? 'Import the exported AVAX to P-Chain' : 'Import the exported AVAX to C-Chain',
       },

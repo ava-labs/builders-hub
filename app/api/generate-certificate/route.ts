@@ -119,41 +119,25 @@ export async function POST(req: NextRequest) {
     const pdfDoc = await PDFDocument.load(templateArrayBuffer);
     const form = pdfDoc.getForm();
 
-    const isAvalancheTemplate = templateUrl.includes('AvalancheAcademy_Certificate.pdf');
-
     try {
-      if (isAvalancheTemplate) {
-        // Original 4-field flow for Avalanche certificates
-        form.getTextField('FullName').setText(userName);
-        form.getTextField('Class').setText(courseName);
-        form
-          .getTextField('Awarded')
-          .setText(
-            new Date().toLocaleDateString('en-US', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })
-          );
-        form
-          .getTextField('Id')
-          .setText(
-            Math.random().toString(36).substring(2, 15) +
-            Math.random().toString(36).substring(2, 15)
-          );
-      } else {
-        // Codebase Entrepreneur certificates: only Name and Date
-        form.getTextField('Enter Name').setText(userName);
-        form
-          .getTextField('Enter Date')
-          .setText(
-            new Date().toLocaleDateString('en-US', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })
-          );
-      }
+      // Every course uses the Avalanche Academy template and its four fields.
+      form.getTextField('FullName').setText(userName);
+      form.getTextField('Class').setText(courseName);
+      form
+        .getTextField('Awarded')
+        .setText(
+          new Date().toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        );
+      form
+        .getTextField('Id')
+        .setText(
+          Math.random().toString(36).substring(2, 15) +
+          Math.random().toString(36).substring(2, 15)
+        );
     } catch (error) {
       throw new Error('Failed to fill form fields');
     }

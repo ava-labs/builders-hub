@@ -78,8 +78,7 @@ Customize subnet parameters:
 
 ```go
 subnet.Config = tmpnet.ConfigMap{
-    "proposerMinBlockDelay": 0,        // Minimum block delay
-    "proposerNumHistoricalBlocks": 50000,  // Historical blocks
+    "proposerNumHistoricalBlocks": 50000, // Historical ProposerVM blocks to index
 }
 ```
 
@@ -139,15 +138,20 @@ func addValidatorToSubnet(network *tmpnet.Network, subnet *tmpnet.Subnet) error 
         return err
     }
 
-    // Add as subnet validator using the subnet wallet
+    // Add as subnet validator using the subnet wallet.
+    // AddSubnetValidatorTx requires the node to be a Primary Network validator.
+    // The subnet validation period must be inside its Primary Network validation period.
     // (Implementation details depend on your wallet setup)
     err = addSubnetValidator(subnet, newNode.NodeID)
     if err != nil {
         return err
     }
 
-    // Wait for validator to become active
-    return subnet.WaitForActiveValidators(context.Background(), newNode.NodeID)
+    // Wait for the validator to become active.
+    // WaitForActiveValidators waits for all IDs in subnet.ValidatorIDs.
+    subnet.ValidatorIDs = append(subnet.ValidatorIDs, newNode.NodeID)
+    pChainClient := platformvm.NewClient(newNode.URI)
+    return tmpnet.WaitForActiveValidators(context.Background(), logging.NoLog{}, pChainClient, subnet)
 }
 ```
 
@@ -164,15 +168,16 @@ func testL1Conversion(t *testing.T) {
     subnet := network.Subnets[0]
 
     // Perform L1 conversion operations
-    // 1. Register L1 validators
-    for _, node := range network.Nodes {
+    // 1. Convert the subnet to an L1. ConvertSubnetToL1Tx sets the initial validators.
+    initialNodes, additionalNodes := network.Nodes[:3], network.Nodes[3:]
+    err := convertSubnetToL1(subnet, initialNodes)
+    require.NoError(t, err)
+
+    // 2. Register more L1 validators. RegisterL1ValidatorTx is valid only after the conversion.
+    for _, node := range additionalNodes {
         err := registerL1Validator(subnet, node)
         require.NoError(t, err)
     }
-
-    // 2. Convert subnet to L1
-    err := convertSubnetToL1(subnet)
-    require.NoError(t, err)
 
     // 3. Wait for validators to activate
     err = waitForL1Validators(subnet)
@@ -231,15 +236,18 @@ func TestSubnetValidatorLifecycle(t *testing.T) {
     err := network.StartNode(context.Background(), node)
     require.NoError(t, err)
 
-    // Add as pending validator
+    // Add as validator. Since Durango, the validation starts when the P-Chain accepts the tx.
+    // The P-Chain ignores startTime.
     t.Run("AddValidator", func(t *testing.T) {
         err := addSubnetValidator(subnet, node.NodeID, startTime, endTime, weight)
         require.NoError(t, err)
     })
 
-    // Wait for validation period to start
+    // Wait for the P-Chain to list the validator as current
     t.Run("WaitForActive", func(t *testing.T) {
-        err := subnet.WaitForActiveValidators(context.Background(), node.NodeID)
+        subnet.ValidatorIDs = append(subnet.ValidatorIDs, node.NodeID)
+        pChainClient := platformvm.NewClient(node.URI)
+        err := tmpnet.WaitForActiveValidators(context.Background(), logging.NoLog{}, pChainClient, subnet)
         require.NoError(t, err)
     })
 
@@ -273,7 +281,7 @@ func testSubnetConfigUpdate(t *testing.T) {
     subnet := &tmpnet.Subnet{
         Name: "configurable-subnet",
         Config: tmpnet.ConfigMap{
-            "proposerMinBlockDelay": 1000, // 1 second
+            "validatorOnly": false,
         },
         Chains:       []*tmpnet.Chain{chain},
         ValidatorIDs: validatorIDs,
@@ -290,20 +298,20 @@ func testSubnetConfigUpdate(t *testing.T) {
         },
     }
 
-    // Bootstrap network
-    require.NoError(t, tmpnet.BootstrapNewNetwork(ctx, os.Stdout, network, ""))
+    // Bootstrap network (the second argument is a logging.Logger)
+    require.NoError(t, tmpnet.BootstrapNewNetwork(ctx, logging.NoLog{}, network, ""))
 
-    // Test behavior with initial config
-    measureBlockTime(t, subnet, 1000)
+    // Test behavior with initial config: a non-validator can sync the chain
+    verifyNonValidatorSync(t, network, subnet, true)
 
-    // Update configuration
-    subnet.Config["proposerMinBlockDelay"] = 0
+    // Update configuration: only subnet validators get chain messages
+    subnet.Config["validatorOnly"] = true
 
-    // Restart nodes to apply new configuration
-    network.Restart(context.Background())
+    // Restart the running nodes to apply the new configuration
+    require.NoError(t, network.Restart(context.Background()))
 
     // Test behavior with updated config
-    measureBlockTime(t, subnet, 0)
+    verifyNonValidatorSync(t, network, subnet, false)
 }
 ```
 
@@ -360,15 +368,18 @@ Add temporary validators for specific test scenarios:
 func addEphemeralValidator(network *tmpnet.Network, subnet *tmpnet.Subnet) (*tmpnet.Node, error) {
     // Create ephemeral node that tracks the subnet
     ephemeralNode := tmpnet.NewEphemeralNode(tmpnet.FlagsMap{
-        config.TrackSubnetsKey:          subnet.SubnetID.String(),
-        config.SybilProtectionEnabledKey: "false", // For testing only
+        config.TrackSubnetsKey: subnet.SubnetID.String(),
     })
 
-    // Add to network
-    err := network.AddEphemeralNode(context.Background(), ephemeralNode)
+    // Add to network (tmpnet.Network has no AddEphemeralNode method)
+    err := network.StartNode(context.Background(), ephemeralNode)
     if err != nil {
         return nil, err
     }
+
+    // Make the node a Primary Network validator first.
+    // AddSubnetValidatorTx requires it.
+    // ...
 
     // Add as subnet validator with short duration
     shortDuration := 5 * time.Minute
@@ -428,8 +439,8 @@ func testChainUpgrade(t *testing.T) {
     // Update chain configuration or VM binary
     updateChainConfig(network.Subnets[0])
 
-    // Restart network
-    err := network.Restart(context.Background())
+    // Start the stopped nodes again. Network.Restart restarts only running nodes.
+    err := network.StartNodes(context.Background(), logging.NoLog{}, network.Nodes...)
     require.NoError(t, err)
 
     // Verify upgrade succeeded
@@ -449,20 +460,21 @@ func testChainUpgrade(t *testing.T) {
 **Debug:**
 ```bash
 # Check subnet creation logs
-grep -i "subnet" ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+# NETWORK_DIR is network.Dir. BootstrapNewNetwork does not update the latest symlink.
+grep -i "subnet" "$NETWORK_DIR"/NodeID-*/logs/main.log
 ```
 
 ### Validators Not Becoming Active
 
 **Check:**
-- Validation period has started
+- The node is a Primary Network validator, and its Primary Network validation period covers the validation period in the `AddSubnetValidatorTx`
 - Nodes are tracking the subnet
 - Subnet validators were added correctly
 
 **Debug:**
 ```bash
 # Check if node is tracking subnet
-cat ~/.tmpnet/networks/latest/NodeID-*/flags.json | jq '.["track-subnets"]'
+jq '.["track-subnets"]' "$NETWORK_DIR"/NodeID-*/flags.json
 ```
 
 ### Cross-Subnet Messaging Issues

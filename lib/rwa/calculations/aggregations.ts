@@ -162,13 +162,13 @@ export async function calculateHistoricalData(
   forceRefresh = false,
   dateRange?: DateRange
 ): Promise<HistoricalData> {
-  const cacheKey = dateRange
-    ? CacheKeys.historical('all', interval) + `-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`
-    : CacheKeys.historical('all', interval)
+  // one cached history per interval; a date window is cut from it per
+  // request and never stored, so a caller's windows cannot grow the cache
+  const cacheKey = CacheKeys.historical('all', interval)
 
   if (!forceRefresh) {
     const cached = cache.get<HistoricalData>(cacheKey)
-    if (cached && !cached.isStale) return cached.data
+    if (cached && !cached.isStale) return cutToRange(cached.data, dateRange)
   }
 
   const [transfersByAddress, lenderTransfers] = await Promise.all([
@@ -222,16 +222,29 @@ export async function calculateHistoricalData(
   )
 
   const data: HistoricalData = {
-    transactedVolume: filterByDateRange(transactedVolume, dateRange),
-    assetsFinanced: filterByDateRange(assetsFinanced, dateRange),
-    lenderRepayments: filterByDateRange(lenderRepayments, dateRange),
-    capitalUtilization: filterByDateRange(capitalUtilization, dateRange),
-    committedCapital: filterByDateRange(committedCapital, dateRange),
-    netCapitalPosition: filterByDateRange(netCapitalPosition, dateRange),
+    transactedVolume,
+    assetsFinanced,
+    lenderRepayments,
+    capitalUtilization,
+    committedCapital,
+    netCapitalPosition,
   }
 
   cache.set(cacheKey, data)
-  return data
+  return cutToRange(data, dateRange)
+}
+
+/** every series of the history cut to the window, or the whole history without one */
+function cutToRange(data: HistoricalData, dateRange?: DateRange): HistoricalData {
+  if (!dateRange) return data
+  return {
+    transactedVolume: filterByDateRange(data.transactedVolume, dateRange),
+    assetsFinanced: filterByDateRange(data.assetsFinanced, dateRange),
+    lenderRepayments: filterByDateRange(data.lenderRepayments, dateRange),
+    capitalUtilization: filterByDateRange(data.capitalUtilization, dateRange),
+    committedCapital: filterByDateRange(data.committedCapital, dateRange),
+    netCapitalPosition: filterByDateRange(data.netCapitalPosition, dateRange),
+  }
 }
 
 export async function getMetricTimeSeries(
