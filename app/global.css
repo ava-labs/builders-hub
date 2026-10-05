@@ -2198,6 +2198,12 @@ html.embed-mode #nd-toc {
   }
 }
 
+/* the phone menu sheet reaches the bottom of the screen, where the chat button would cover its
+   last links: the button stands down while the menu is open (components/navigation/navbar-dropdown.tsx) */
+body:has([data-navbar-dropdown] > button[aria-expanded="true"]) .chatbot-container {
+  display: none;
+}
+
 /* the city and 2D explorer toggle (components/explorer-v2/view-switch.tsx): the view it leaves fades out fast, and the one it
    opens fades in once the old one is nearly gone */
 ::view-transition-old(.vs-out) {
