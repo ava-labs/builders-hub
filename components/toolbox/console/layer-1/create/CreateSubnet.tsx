@@ -100,7 +100,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
 
   return (
     <div className="space-y-6">
-      {/* Create Subnet — primary action */}
+      {/* Create Subnet: primary action */}
       <CoreWalletTransactionButton
         onClick={handleCreateSubnet}
         loading={isCreatingSubnet || isConfirming}
@@ -144,7 +144,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         </div>
       </div>
 
-      {/* Paste Subnet ID — fallback for CLI users */}
+      {/* Paste Subnet ID: fallback for CLI users */}
       <div className="space-y-2">
         <label htmlFor="create-subnet-id" className="block text-sm font-medium">
           Already have a Subnet ID?

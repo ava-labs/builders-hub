@@ -17,7 +17,7 @@ export default function SelectSubnetStep() {
   // Treat staking-type resolution as part of "detection" so the badge doesn't
   // briefly read "PoA" before the staking probe finishes for an inheritance-model
   // L1 (NativeStakingManager IS the VMC). When the wallet is on the wrong chain
-  // the reads are skipped entirely — the badge stays in "Detecting…" so it
+  // the reads are skipped entirely. The badge stays in "Detecting…" so it
   // doesn't claim a type we haven't actually confirmed on-chain.
   const isDetecting =
     !!vmcCtx.chainMismatch ||

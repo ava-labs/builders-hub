@@ -134,7 +134,7 @@ const TOOLS_RAW: ToolCard[] = [
     category: 'Create & Deploy',
     icon: Layers,
     featured: true,
-    // Convert to L1 is exposed as a standalone tile below — keep it out of
+    // Convert to L1 is exposed as a standalone tile below. Keep it out of
     // subSteps to avoid double-listing the same path when sub-step search
     // is on.
     subSteps: [
@@ -259,14 +259,14 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Stake (Native Token)',
-    description: 'Register a validator with native-token staking. Same flow as Add Validator — pick a Native PoS L1.',
+    description: 'Register a validator with native-token staking. Same flow as Add Validator: pick a Native PoS L1.',
     path: '/console/add-validator',
     category: 'Permissionless L1s',
     icon: HandCoins,
   },
   {
     name: 'Stake (ERC20 Token)',
-    description: 'Register a validator with ERC20-token staking. Same flow as Add Validator — pick an ERC20 PoS L1.',
+    description: 'Register a validator with ERC20-token staking. Same flow as Add Validator: pick an ERC20 PoS L1.',
     path: '/console/add-validator',
     category: 'Permissionless L1s',
     icon: HandCoins,
@@ -288,7 +288,7 @@ const TOOLS_RAW: ToolCard[] = [
   {
     name: 'Remove Validator (PoS)',
     description:
-      'End validation and withdraw staked tokens. Same flow as Remove Validator — uptime-proof first, force-remove fallback.',
+      'End validation and withdraw staked tokens. Same flow as Remove Validator: uptime-proof first, force-remove fallback.',
     path: '/console/remove-validator',
     category: 'Permissionless L1s',
     icon: SquareMinus,
@@ -482,7 +482,7 @@ const TOOLS_RAW: ToolCard[] = [
   // the in-page hub linking the rest.
   {
     name: 'Encrypted ERC Overview',
-    description: 'Hub for the Encrypted ERC suite — register, deposit, transfer, withdraw, audit.',
+    description: 'Hub for the Encrypted ERC suite: register, deposit, transfer, withdraw, audit.',
     path: '/console/encrypted-erc/overview',
     category: 'Encrypted ERC',
     icon: BookOpen,
@@ -561,11 +561,11 @@ const TOOLS_RAW: ToolCard[] = [
 // Sub-step catalogue auto-derived from each flow's `steps.ts`. Keyed by the
 // tool's canonical path so the merge below picks the right entries. Tools
 // that already declare inline `subSteps` (Create L1, VMC Setup, Encrypted
-// ERC Deposit/Deploy) keep those — the inline list is hand-curated and may
+// ERC Deposit/Deploy) keep those. The inline list is hand-curated and may
 // add affordances the auto-extract doesn't see.
 //
 // To regenerate (when new steps are added): run `node /tmp/extract-substeps.js`
-// from the repo root — it walks every `steps.ts` and prints the JSON we paste
+// from the repo root. It walks every `steps.ts` and prints the JSON we paste
 // here.
 const FLOW_SUBSTEPS: Record<string, Array<{ name: string; path: string }>> = {
   '/console/add-validator': [

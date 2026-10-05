@@ -19,7 +19,7 @@ import {
 
 /**
  * Grafana admin password, generated client-side via Web Crypto (same
- * pattern as SelfHostedExplorer's secrets) — anything is better than
+ * pattern as SelfHostedExplorer's secrets). Anything is better than
  * shipping the compose file with Grafana's default admin/admin.
  */
 function generateRandomSecret(byteLength = 24): string {
@@ -75,7 +75,7 @@ export default function DockerMonitoring() {
 
         {endpoint?.isManagedNode && (
           <Note variant="warning">
-            This is a Builder Console managed testnet node. Managed nodes expose only their chain RPC URL —{' '}
+            This is a Builder Console managed testnet node. Managed nodes expose only their chain RPC URL. Their{' '}
             <code>/ext/metrics</code> is not reachable, so Grafana monitoring can't be set up against them. To get full
             node metrics, run your own node with{' '}
             <Link href="/console/layer-1/l1-node-setup" className="text-blue-500 hover:underline">
@@ -94,7 +94,7 @@ export default function DockerMonitoring() {
               <code>127.0.0.1</code> by default (<code>--http-host</code>), requests to a DNS hostname are rejected with
               403 unless the node's <code>--http-allowed-hosts</code> includes it (raw IPs always work), and public RPC
               providers and load-balanced endpoints don't serve <code>/ext/metrics</code> at all. Keep the metrics port
-              firewalled to your own machines — never expose it publicly.
+              firewalled to your own machines. Never expose it publicly.
             </Note>
           </>
         )}
@@ -122,13 +122,13 @@ export default function DockerMonitoring() {
               >
                 avalanche-monitoring
               </a>{' '}
-              Grafana dashboards to install — the compose file below only downloads what you select:
+              Grafana dashboards to install. The compose file below only downloads what you select:
             </p>
             <div className="mt-4">
               {DASHBOARD_OPTIONS.map((d) => (
                 <Checkbox
                   key={d.file}
-                  label={`${d.title} — ${d.details}`}
+                  label={`${d.title}: ${d.details}`}
                   checked={selectedDashboards.includes(d.file)}
                   onChange={(checked) => toggleDashboard(d.file, checked)}
                 />
@@ -140,7 +140,7 @@ export default function DockerMonitoring() {
             {selectedDashboards.includes('subnets') && (
               <Note>
                 The Subnets dashboard filters by the <strong>Chain</strong> dropdown at the top, auto-populated from
-                your node's metrics once Prometheus has scraped it — pick your L1's blockchain ID there.
+                your node's metrics once Prometheus has scraped it. Pick your L1's blockchain ID there.
               </Note>
             )}
           </Step>
@@ -190,7 +190,7 @@ export default function DockerMonitoring() {
                   The Main dashboard covers node uptime, peers, successful/failed queries and throughput; Subnets tracks
                   block height and validator connectivity per L1; the chain dashboards break down each chain's
                   internals. The Main dashboard's CPU and disk panels use machine metrics from{' '}
-                  <code>node_exporter</code> — without it they show "No data"; see below to add it.
+                  <code>node_exporter</code>. Without it they show "No data". See below to add it.
                 </p>
                 <div className="mt-4">
                   <Accordions type="single">
@@ -214,7 +214,7 @@ export default function DockerMonitoring() {
                     <Accordion title="Troubleshooting">
                       <ul className="list-disc pl-5 space-y-2">
                         <li>
-                          <strong>Prometheus target down / connection refused</strong> — the node isn't reachable from
+                          <strong>Prometheus target down / connection refused</strong>: the node isn't reachable from
                           Docker. Check <code>http://localhost:9090/targets</code>; for a node on this machine make sure
                           it listens on <code>--http-host=0.0.0.0</code> or <code>127.0.0.1</code> (we route via{' '}
                           <code>host.docker.internal</code>).
@@ -235,7 +235,7 @@ export default function DockerMonitoring() {
                           <code>docker compose up -d</code>.
                         </li>
                         <li>
-                          <strong>Empty Subnets dashboard</strong> — select your blockchain ID from the{' '}
+                          <strong>Empty Subnets dashboard</strong>: select your blockchain ID from the{' '}
                           <strong>Chain</strong> dropdown at the top; it populates from your node's metrics after the
                           first Prometheus scrape.
                         </li>

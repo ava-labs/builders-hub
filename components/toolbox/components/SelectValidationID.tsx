@@ -186,7 +186,7 @@ export default function SelectValidationID({
           });
         } catch {
           // Deployless multicall is rejected by the Contract Deployer Allowlist
-          // precompile on permissioned L1s — fall back to sequential reads.
+          // precompile on permissioned L1s, so fall back to sequential reads.
           results = await Promise.all(
             mapped.map(async (c) => {
               try {

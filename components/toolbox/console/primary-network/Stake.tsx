@@ -139,7 +139,7 @@ import { prepareSetAutoRenewedValidatorConfigTxn } from "@avalanche-sdk/client/m
 import { sendXPTransaction } from "@avalanche-sdk/client/methods/wallet";
 
 // ACP-236: update an auto-renewed validator's next-cycle config.
-// period = 0n stops auto-renewal — the validator exits at the end of its current cycle.
+// period = 0n stops auto-renewal: the validator exits at the end of its current cycle.
 export async function setAutoRenewedValidatorConfig(
   pChainClient: AvalanchePChainWalletClient,
   params: {
@@ -707,7 +707,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     )}
                     {isUpdateMode && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                        This node already has auto-renewed staking — switched to config update mode.
+                        This node already has auto-renewed staking. The tool changed to config update mode.
                       </p>
                     )}
                   </>
@@ -737,7 +737,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                         <div className="text-xs text-zinc-700 dark:text-zinc-300">
                           {existingValidator.endTime
                             ? new Date(existingValidator.endTime * 1000).toLocaleString()
-                            : '—'}
+                            : 'Unknown'}
                         </div>
                       </div>
                     </div>
@@ -789,7 +789,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                       </div>
                     </div>
                     <Alert variant="warning" className="mt-3">
-                      The connected wallet is not this validator's authority — only the authority can update or stop it.
+                      The connected wallet is not this validator's authority. Only the authority can update or stop it.
                     </Alert>
                   </>
                 )}

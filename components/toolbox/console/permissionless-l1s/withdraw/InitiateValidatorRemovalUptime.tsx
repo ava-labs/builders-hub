@@ -107,7 +107,7 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       return;
     }
     try {
-      // Pre-checks are handled by useValidatorPreflight — the button is gated
+      // Pre-checks are handled by useValidatorPreflight: the button is gated
       // behind preflight.checks.initiateRemoval.status === 'met', so we only
       // reach here when all on-chain preconditions are satisfied.
 
@@ -181,7 +181,7 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
 
       {validationID && <ValidatorPreflightChecklist preflight={preflight} currentFlow="initiate-removal" />}
 
-      {/* Custom validators URL — collapsed by default, auto-shown on endpoint failure */}
+      {/* Custom validators URL: collapsed by default, auto-shown on endpoint failure */}
       <div className="space-y-2">
         <button
           type="button"
@@ -219,7 +219,7 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       <Alert variant="info">
         <p className="text-sm">
           This will aggregate an uptime proof from L1 validators and include it in the removal transaction. Higher
-          uptime = higher staking rewards. If the validator is ineligible for rewards, the transaction will revert — use{' '}
+          uptime = higher staking rewards. If the validator is ineligible for rewards, the transaction will revert. Use{' '}
           <strong>Force Remove</strong> instead.
         </p>
       </Alert>

@@ -37,7 +37,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
   const tokenLabel = isNative ? 'Native Token' : 'ERC20 Token';
 
   // Resolve the staking manager's actual ERC20 token address from the contract.
-  // Avoid useToolboxStore().exampleErc20Address — it's the example token from a
+  // Avoid useToolboxStore().exampleErc20Address. It's the example token from a
   // different setup wizard, not necessarily this chain's staking token.
   const stakingManagerAddress = validatorManagerDetails.contractOwner || '';
   const [resolvedErc20Address, setResolvedErc20Address] = useState<string | null>(null);

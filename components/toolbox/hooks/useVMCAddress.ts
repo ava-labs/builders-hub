@@ -7,7 +7,7 @@ import { useViemChainStore } from '../stores/toolboxStore';
 /**
  * Set when the connected wallet's EVM chain doesn't match the chain where the
  * VMC contract is deployed (its "home chain"). All EVM reads + writes against
- * the VMC must happen on this chain — typically the L1 itself for the
+ * the VMC must happen on this chain: typically the L1 itself for the
  * inheritance-model contracts, or C-Chain when the VMC is composed cross-chain.
  */
 export interface VMCChainMismatch {
@@ -20,7 +20,7 @@ interface VMCAddressResult {
   validatorManagerAddress: string;
   /** Blockchain where the VMC contract is deployed (home chain) */
   blockchainId: string;
-  /** The L1's own blockchain ID — use this for uptimeBlockchainID */
+  /** The L1's own blockchain ID. Use this for uptimeBlockchainID */
   l1BlockchainId: string;
   signingSubnetId: string;
   isLoading: boolean;
@@ -131,12 +131,12 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
 
         // The signing subnet is the parent subnet of the chain where the VMC
         // is deployed. Warp messages originate from that chain, so its subnet's
-        // validators must sign. This is NOT always the L1's own subnet — both
+        // validators must sign. This is NOT always the L1's own subnet: both
         // PoA and PoS L1s can have the VMC deployed on any chain (e.g. C-Chain
         // on the primary network, or the L1's own chain).
         const vmcSubnetId = blockchainInfoForVMC.subnetId;
 
-        // The L1's own blockchain ID — the first blockchain on this subnet.
+        // The L1's own blockchain ID: the first blockchain on this subnet.
         // This is what should be used for uptimeBlockchainID in the staking manager,
         // NOT the VMC's home chain (which could be C-Chain for cross-chain setups).
         const l1ChainId = subnetInfo.blockchains?.[0]?.blockchainId || vmcBlockchainId;

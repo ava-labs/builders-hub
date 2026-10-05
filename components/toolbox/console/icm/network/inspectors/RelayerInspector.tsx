@@ -83,7 +83,7 @@ export function RelayerInspector() {
           <Note variant="default">
             <span className="text-xs">
               Pick the source and destination chains, fund the relayer signer, and copy the generated Docker command.
-              The same config powers mainnet relayers — only the network endpoints differ.
+              Mainnet relayers use the same config with different network endpoints.
             </span>
           </Note>
           <ICMRelayer />

@@ -115,7 +115,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   '0xcaa903f9': 'Invalid reward recipient address. The reward recipient cannot be the zero address.',
   InvalidRewardRecipient: 'Invalid reward recipient address. The reward recipient cannot be the zero address.',
 
-  // ── ERC20 — check BEFORE access control since the raw error message
+  // ── ERC20: check BEFORE access control since the raw error message
   // from viem can contain both the ERC20 error data AND decoded
   // OwnableUnauthorizedAccount text ────────────────────────────────────
   '0xfb8f41b2': 'Insufficient ERC20 token allowance. Click "Approve Tokens" first, then retry.',
@@ -191,7 +191,7 @@ const NONCE_ERROR =
 export function parseContractError(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
 
-  // User rejection — pass through quickly
+  // User rejection: pass through quickly
   if (raw.includes('User rejected') || raw.includes('user rejected')) {
     return 'Transaction was rejected by user';
   }

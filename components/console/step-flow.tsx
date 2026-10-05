@@ -90,7 +90,7 @@ type StepFlowProps = {
    */
   onNavigate?: (stepKey: string) => void;
   /**
-   * Compact mode — tighter spacing for embedding in chat messages.
+   * Compact mode: tighter spacing for embedding in chat messages.
    */
   compact?: boolean;
   /**
@@ -138,7 +138,7 @@ export default function StepFlow({
   // reads a flow store reset by `onFinish`) before the modal can render.
   const handleFinish = useCallback(() => {
     // When onNavigate is provided (inline chat mode), skip URL navigation
-    // and fire onFinish immediately — there is no modal to wait for.
+    // and fire onFinish immediately. There is no modal to wait for.
     if (onNavigate) {
       if (onFinish) onFinish();
       return;

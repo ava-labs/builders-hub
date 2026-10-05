@@ -145,7 +145,7 @@ function CrossChainCard() {
         transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
         className="group relative h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-5 overflow-hidden transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg"
       >
-        {/* avax.network alpha_webm sequence — replaces the cross-chain
+        {/* avax.network alpha_webm sequence. It replaces the cross-chain
             SVG animation. Original preserved at
             components/console/cross-chain-animation-svg.tsx for revert. */}
         <div className="absolute right-4 top-4 bottom-4 w-[50%] pointer-events-none">
@@ -340,14 +340,14 @@ function ConsoleDashboard() {
         }
 
         /* OS-level reduce-motion preference. Framer-motion variants respect
-           this automatically — these raw CSS keyframes/transitions don't
+           this automatically; these raw CSS keyframes/transitions don't
            unless we silence them explicitly. */
         @media (prefers-reduced-motion: reduce) {
           .group:hover .bell-jingle,
           .group:hover .chevron-bounce {
             animation: none !important;
           }
-          /* Inline cardPulse styles on bento cards — substring match is the
+          /* Inline cardPulse styles on bento cards: substring match is the
              only stable hook since those are set per-element via style={}. */
           [style*="cardPulse"] {
             animation: none !important;

@@ -381,7 +381,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
           </Alert>
         )}
 
-        {/* Explicit emergency confirmation — this operation is irreversible
+        {/* Explicit emergency confirmation: this operation is irreversible
             and bypasses the Validator Manager, so require the user to opt in
             once the target validator is known and they are authorized. */}
         {selectedValidator && isAuthorized && (

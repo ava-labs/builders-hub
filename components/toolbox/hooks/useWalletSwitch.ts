@@ -9,7 +9,7 @@ export function useWalletSwitch() {
   // Granular selectors so this hook only re-renders when fields it actually
   // reads change. A full-store destructure (`const { ... } = useWalletStore()`)
   // tore down the memoization below on every unrelated wallet field update,
-  // which then handed unstable function references to consumers — e.g. the
+  // which then handed unstable function references to consumers, for example the
   // ICTT RemoteInspector's auto-switch useEffect kept re-firing because
   // `switchChainOrAdd` was a new reference each render.
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
@@ -50,7 +50,7 @@ export function useWalletSwitch() {
    * rejects the switch (most commonly because it hasn't been added yet).
    *
    * Use this from any UI that hands the user a button to "switch to <L1>"
-   * where the L1 may or may not already be in the wallet — e.g. the ICTT
+   * where the L1 may or may not already be in the wallet, for example the ICTT
    * bridge's chain pickers and phase gate. The plain `safelySwitch` above
    * only switches; it silently fails for unknown chains.
    *
@@ -83,7 +83,7 @@ export function useWalletSwitch() {
                   chainName: l1.name,
                   nativeCurrency: { name: l1.coinName, symbol: l1.coinName, decimals: 18 },
                   rpcUrls: [l1.rpcUrl],
-                  // Core's proprietary flag — ignored by other wallets.
+                  // Core's proprietary flag. Other wallets ignore it.
                   isTestnet: Boolean(l1.isTestnet),
                 },
               ] as never,
@@ -92,7 +92,7 @@ export function useWalletSwitch() {
             try {
               await coreWalletClient.switchChain({ id: l1.evmChainId });
             } catch {
-              // Ignore — wallet may have already switched during the add.
+              // Ignore: the wallet may have already switched during the add.
             }
             sync();
             return true;
@@ -107,7 +107,7 @@ export function useWalletSwitch() {
         }
       }
 
-      // Generic EVM wallet via wagmi — switchChainAsync handles add-on-demand
+      // Generic EVM wallet via wagmi: switchChainAsync handles add-on-demand
       // for chains that are registered in wagmiConfig.
       try {
         await switchChainAsync({ chainId: l1.evmChainId });

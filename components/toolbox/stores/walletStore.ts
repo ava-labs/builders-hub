@@ -31,7 +31,7 @@ interface WalletState {
     pChain: number;
     cChain: number;
     // Key: chainId. null = the balance could NOT be fetched (RPC unreachable,
-    // mixed content, ...) — deliberately distinct from 0, which is a real
+    // mixed content, ...). It is deliberately distinct from 0, which is a real
     // on-chain value. Rendering null as 0 sent funded users to faucets (#4450).
     l1Chains: Record<string, number | null>;
   };
@@ -287,6 +287,6 @@ export const useNetworkInfo = () => {
 export const useWalletType = () => useWalletStore((state) => state.walletType);
 
 // Selector for specific L1 balance. null = could not be fetched (do not
-// render as 0 — see the l1Chains comment above).
+// render as 0. See the l1Chains comment above).
 export const useL1Balance = (chainId: string) => useWalletStore((state) => state.balances.l1Chains[chainId] ?? null);
 export const useL1Loading = (chainId: string) => useWalletStore((state) => state.isLoading.l1Chains[chainId] || false);

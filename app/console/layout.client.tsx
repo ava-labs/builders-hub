@@ -68,7 +68,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
                     "calc(var(--console-viewport) - var(--header-height) - 1rem)",
                 }}
               >
-                <StepErrorBoundary fallbackMessage="Something went wrong rendering this page. The console sidebar is still available — try navigating to a different tool.">
+                <StepErrorBoundary fallbackMessage="Something went wrong while this page rendered. The console sidebar still works: open a different tool.">
                   <ConsolePageTransition>{children}</ConsolePageTransition>
                 </StepErrorBoundary>
                 <ConsoleFooter />

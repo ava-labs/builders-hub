@@ -56,7 +56,7 @@ interface CompleteValidatorRemovalProps {
  * which is the wrong primitive: once P-Chain finalizes a SetL1ValidatorWeightTx
  * with weight=0, the validator is removed from P-Chain's active set entirely
  * (s.state.GetL1Validator returns ErrNotFound). P-Chain validators then refuse
- * to sign L1ValidatorWeight messages about non-existent validators — see
+ * to sign L1ValidatorWeight messages about non-existent validators. See
  * avalanchego vms/platformvm/network/warp.go:332-340, which literally tells you
  * to use L1ValidatorRegistration(registered=false) instead. The aggregator just
  * hangs forever on signature collection.
@@ -102,7 +102,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   const [error, setLocalError] = useState<string | null>(null);
 
-  // We don't need to parse the P-Chain tx — the L1ValidatorRegistration message
+  // We don't need to parse the P-Chain tx: the L1ValidatorRegistration message
   // only needs the validationID. The P-Chain tx ID stays in the UI as a
   // confirmation breadcrumb that the user did the prior step.
   const step1Complete = !!validationID;
@@ -113,7 +113,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setLocalError(null);
 
     if (!validationID) {
-      const msg = 'Validation ID missing — go back to the Initiate Removal step.';
+      const msg = 'The validation ID is missing. Go back to the Initiate Removal step.';
       setLocalError(msg);
       onError(msg);
       return;
@@ -183,7 +183,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setLocalError(null);
 
     if (!signedWarpMessage) {
-      const msg = 'No signed warp message — aggregate signatures first.';
+      const msg = 'No signed Warp message. Aggregate the signatures first.';
       setLocalError(msg);
       onError(msg);
       return;
@@ -259,7 +259,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     <div className="space-y-3">
       {error && <Alert variant="error">{error}</Alert>}
 
-      {/* Step 1 — Confirm we have what we need from the previous step */}
+      {/* Step 1: Confirm we have what we need from the previous step */}
       <StepFlowCard
         step={1}
         title="Verify Prior Steps"
@@ -278,7 +278,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
               </code>
             </div>
           ) : (
-            <Alert variant="warning">Validation ID missing — go back to Initiate Removal.</Alert>
+            <Alert variant="warning">The validation ID is missing. Go back to Initiate Removal.</Alert>
           )}
           <Input
             label="P-Chain Transaction ID"
@@ -286,12 +286,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             onChange={setPChainTxId}
             placeholder="From the P-Chain Weight Update step"
             disabled={isAggregating || isSubmitting || !!txHash}
-            helperText="For your reference — this Complete step uses the validation ID directly, not the tx contents."
+            helperText="For your reference only. This Complete step uses the validation ID directly, not the tx contents."
           />
         </div>
       </StepFlowCard>
 
-      {/* Step 2 — Aggregate signatures */}
+      {/* Step 2: Aggregate signatures */}
       <StepFlowCard
         step={2}
         title="Aggregate Signatures"
@@ -335,7 +335,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         )}
       </StepFlowCard>
 
-      {/* Step 3 — Submit to L1 */}
+      {/* Step 3: Submit to L1 */}
       <StepFlowCard
         step={3}
         title="Submit to L1"

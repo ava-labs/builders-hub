@@ -85,7 +85,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
   // Wallet integration for RPC nodes
   const { addToWallet, isAdding: isAddingToWallet } = useAddToWallet();
 
-  // Network selection — syncs with wallet when connected
+  // Network selection: syncs with wallet when connected
   const [selectedNetwork, setSelectedNetwork] = useState<'mainnet' | 'fuji'>('mainnet');
 
   const { isTestnet: walletIsTestnet } = useWalletStore();
@@ -1575,7 +1575,7 @@ ls -la ~/avalanche-backup/staking/`}
                 </p>
                 <p className="flex items-start gap-1.5">
                   <span className="text-amber-500 mt-0.5">🔒</span>
-                  <span>Never share private keys — anyone with them can impersonate your validator.</span>
+                  <span>Never share private keys. Anyone with them can impersonate your validator.</span>
                 </p>
               </div>
 

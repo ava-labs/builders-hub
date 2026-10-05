@@ -89,7 +89,7 @@ interface DockerComposeConfig {
 /**
  * Generates a cryptographically-random base64url string suitable for
  * Postgres passwords and Phoenix SECRET_KEY_BASE values. Runs on the
- * client via Web Crypto — no server round-trip.
+ * client via Web Crypto, with no server round-trip.
  */
 function generateRandomSecret(byteLength = 48): string {
   const buf = new Uint8Array(byteLength);

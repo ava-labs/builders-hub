@@ -27,7 +27,7 @@ interface TokenInspectorProps {
   underlyingTokenAddress: Address | null;
   /** Lift the chosen address to the parent so Phase 2 can read it. */
   onTokenSelected: (address: Address | null) => void;
-  /** Active bridge, if any — used to detect "editing an existing bridge". */
+  /** Active bridge, if any. Used to detect "editing an existing bridge". */
   bridge: Bridge | null;
   /** Reset the active bridge association so Phase 1 starts fresh. */
   onStartNewBridge: () => void;
@@ -397,7 +397,7 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Balance summary always visible — even when no Wtest is deployed yet
+      {/* Balance summary always visible. Even when no Wtest is deployed yet,
           users can see how much native they hold to decide whether to wrap. */}
       <BalanceSummary
         coinName={coinName}
@@ -523,7 +523,7 @@ function WrapUnwrapControls({
     setErr(null);
     try {
       const hash = await wrapped.deposit(wrapAmount);
-      // deposit() resolves on broadcast — wait for the receipt before refreshing
+      // deposit() resolves on broadcast. Wait for the receipt before refreshing
       // balances so the readContract call sees the mined state.
       if (selectedL1?.rpcUrl && hash) {
         try {
@@ -599,7 +599,7 @@ function WrapUnwrapControls({
 /**
  * Renders the native (and optionally wrapped) balance row at the top of
  * the Wrap-native panel. Always shown for connected wallets so the user
- * can size their wrap intent against actual holdings — even before any
+ * can size their wrap intent against actual holdings, even before any
  * Wtest contract is deployed.
  */
 function BalanceSummary({

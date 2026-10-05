@@ -19,7 +19,7 @@ export default function CreateL1StepClientPage({ currentStepKey }: { currentStep
   const hasFlow = !!answers && steps.length > 0;
 
   // Keep the flow store's currentStepIndex in sync with the URL. The URL is
-  // the source of truth for "where the user is now" — every Next/Back/deep-
+  // the source of truth for "where the user is now": every Next/Back/deep-
   // link goes through this component on mount. Writing the index here makes
   // the sidebar's Resume entry deep-link to the user's actual last position.
   useEffect(() => {

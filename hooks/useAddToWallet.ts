@@ -24,7 +24,7 @@ export interface AddToWalletResult {
   alreadyAdded: boolean;
   /** Core only: the chain exists in the wallet with a DIFFERENT RPC URL
    *  than the one we tried to register. Wallets dedupe
-   *  wallet_addEthereumChain, so the correction was NOT applied — the user
+   *  wallet_addEthereumChain, so the correction was NOT applied: the user
    *  must update it manually in the wallet's network settings. */
   rpcUrlMismatch?: boolean;
   walletRpcUrl?: string;
@@ -54,7 +54,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
     setIsAdding(true);
 
     try {
-      // Request account access first — required before any wallet_ method.
+      // Request account access first: required before any wallet_ method.
       // Some wallets (MetaMask) return 4100 "not authorized" if this is
       // skipped and the site hasn't been connected in this session yet.
       try {
@@ -129,13 +129,13 @@ export function useAddToWallet(): UseAddToWalletReturn {
               }
             }
           } catch {
-            // Advisory only — never fail the flow over the read.
+            // Advisory only: never fail the flow over the read.
           }
         }
 
         if (rpcUrlMismatch) {
           toast.warning(
-            "Already in your wallet — with a different RPC URL",
+            "Already in your wallet, with a different RPC URL",
             "Wallets don't let sites update it. Open your wallet's network settings (Core: Settings > Networks) and update the RPC URL manually.",
           );
         } else {

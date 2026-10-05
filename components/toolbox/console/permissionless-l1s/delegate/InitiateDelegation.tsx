@@ -179,7 +179,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     setErrorState(null);
 
     try {
-      // useERC20Token.approve() parses the amount internally with parseEther —
+      // useERC20Token.approve() parses the amount internally with parseEther, so
       // pass the raw user input, NOT a pre-parsed wei string.
       const approvePromise = erc20Token.approve(stakingManagerAddress as `0x${string}`, delegationAmount);
       notify({ type: 'call', name: 'Approve ERC20 for Delegation' }, approvePromise, viemChain ?? undefined);
@@ -232,7 +232,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     }
 
     // ERC20 path: ensure on-chain allowance covers the delegation amount before
-    // submitting — otherwise the contract revert is opaque.
+    // submitting. Otherwise the contract revert is opaque.
     if (!isNative && (tokenAllowance === null || tokenAllowance < parsedDelegationAmount)) {
       const message = `Insufficient allowance. Need ${delegationAmount} ${tokenSymbol ?? 'tokens'}, have ${
         tokenAllowance !== null ? formatEther(tokenAllowance) : '0'

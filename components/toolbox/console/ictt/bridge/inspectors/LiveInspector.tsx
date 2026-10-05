@@ -72,7 +72,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
     if (!recipient && walletEVMAddress) setRecipient(walletEVMAddress);
   }, [walletEVMAddress, recipient]);
 
-  // Balance read from the Home L1's RPC — independent of the wallet chain.
+  // Balance read from the Home L1's RPC, independent of the wallet chain.
   // The stage dep refreshes after a successful send so the displayed balance
   // matches the wallet's post-send state.
   useEffect(() => {
@@ -107,7 +107,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   // Keeps the destructive Note in sync with the inputs the user can see.
   useEffect(() => {
     if (error) resetError();
-    // Intentional: `error` and `resetError` excluded — they're internal state
+    // Intentional: `error` and `resetError` excluded. They're internal state
     // updaters; including them would loop the effect on every error change.
   }, [amount, recipient, selectedRemoteId]);
 
@@ -120,7 +120,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   };
 
   const handleAddAnotherDestination = () => {
-    // Start the Phase 3 dropdown fresh — the user is here to pick a NEW L1,
+    // Start the Remote step dropdown fresh: the user is here to pick a NEW L1,
     // not to re-deploy the existing remote.
     setPendingDestinationL1Id(null);
     router.push(`${BRIDGE_BASE_PATH}/remote`);
@@ -158,7 +158,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
         actionHref: `${BRIDGE_BASE_PATH}/register`,
       },
       {
-        // Native-home bridges don't need explicit collateral — registration alone
+        // Native-home bridges don't need explicit collateral: registration alone
         // is sufficient to send. Mark this row OK to keep the card honest.
         id: 'collateralized',
         label: isNativeHome ? 'Collateral (not required for native home)' : 'Collateral funded on Home',

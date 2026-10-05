@@ -281,7 +281,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       setError(
         contextError
           ? `Could not load network parameters: ${contextError}`
-          : 'Network parameters are still loading — please try again in a moment.',
+          : 'Network parameters are still loading. Try again in a moment.',
       );
       return;
     }
@@ -368,11 +368,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       setImportError(
         contextError
           ? `Could not load network parameters: ${contextError}`
-          : 'Network parameters are still loading — please try again in a moment.',
+          : 'Network parameters are still loading. Try again in a moment.',
       );
       return;
     }
-    // Guard against importing before the exported UTXOs have arrived — otherwise
+    // Guard against importing before the exported UTXOs have arrived. Otherwise
     // the SDK rejects with a raw "insufficient funds" (the bulk of importCross errors).
     const utxosReady = destinationChain === 'p-chain' ? cToP_UTXOs : pToC_UTXOs;
     if (utxosReady.length === 0) {

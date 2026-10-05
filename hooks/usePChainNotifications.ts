@@ -118,7 +118,7 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
   },
   exportCross: {
     loadingMessage: 'Signing cross-chain export with Core...',
-    successMessage: 'Export confirmed — importing to destination',
+    successMessage: 'Export confirmed. Importing to the destination chain.',
     errorMessagePrefix: 'Export failed: ',
     eventType: 'cross_chain_export',
   },

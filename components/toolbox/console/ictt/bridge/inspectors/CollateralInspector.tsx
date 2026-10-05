@@ -142,7 +142,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span>
                   Still waiting on the ICM relayer after {pollAttempts}/{pollMaxAttempts} attempts. The registration
-                  message might be delayed — try refreshing in a few seconds.
+                  message can be late. Click Refresh in a few seconds.
                 </span>
                 <button
                   type="button"
@@ -174,7 +174,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
             <Note variant="warning">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span>
-                  Remote not registered on {homeL1?.name ?? 'Home'} yet — the ICM message may still be in flight.
+                  Remote not registered on {homeL1?.name ?? 'Home'} yet. The ICM message can still be in flight.
                 </span>
                 <button
                   type="button"
@@ -205,7 +205,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Fund the bridge with {bridge?.symbol ?? 'the underlying token'} on {homeL1?.name ?? 'Home'}.{' '}
             {isNative
-              ? 'Native home — sends gas directly.'
+              ? 'Native home: sends gas directly.'
               : 'Two-step: approve TokenHome to spend the amount, then add collateral.'}
           </p>
           <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 text-xs dark:border-zinc-800 dark:bg-zinc-900/40">
@@ -218,7 +218,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
             <div className="flex flex-col items-end">
               <span className="text-[10px] uppercase tracking-wider text-zinc-400">Your balance</span>
               <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-                {balance !== null ? `${formatAmount(balance, decimals)} ${bridge?.symbol ?? ''}` : '—'}
+                {balance !== null ? `${formatAmount(balance, decimals)} ${bridge?.symbol ?? ''}` : 'Not loaded'}
               </span>
             </div>
           </div>
@@ -270,7 +270,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
                   : allowance === null
                     ? 'Checking allowance…'
                     : hasAllowance
-                      ? 'Step 1 done — the collateral transaction is ready to sign.'
+                      ? 'Step 1 done. The collateral transaction is ready to sign.'
                       : 'Step 1: approve TokenHome. Step 2 unlocks once the approval confirms on-chain.'}
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -326,7 +326,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
               )}
             </div>
           ) : (
-            // Native home — single button (no approve needed).
+            // Native home: single button (no approve needed).
             <button
               type="button"
               onClick={handleAddCollateral}

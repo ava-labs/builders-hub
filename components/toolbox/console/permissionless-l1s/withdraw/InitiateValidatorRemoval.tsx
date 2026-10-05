@@ -18,7 +18,7 @@ interface InitiateValidatorRemovalProps {
   stakingManagerAddress: string;
   /**
    * Underlying ValidatorManager contract address. Required for preflight reads
-   * — see the same prop's doc on InitiateValidatorRemovalUptime. Defaults to
+   * (see the same prop's doc on InitiateValidatorRemovalUptime). Defaults to
    * stakingManagerAddress for inheritance-model L1s.
    */
   validatorManagerAddress?: string;
@@ -93,7 +93,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
     setIsProcessing(true);
     try {
-      // Pre-checks are handled by useValidatorPreflight — the button is gated
+      // Pre-checks are handled by useValidatorPreflight: the button is gated
       // behind preflight.checks.initiateRemoval.status === 'met', so we only
       // reach here when all on-chain preconditions are satisfied.
 
@@ -141,7 +141,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
       {/* Message Index is rarely non-zero, but the warp aggregator occasionally
           returns a multi-message bundle where the uptime proof isn't at index 0.
-          Exposed as a single editable input — the parent step already shows the
+          Exposed as a single editable input. The parent step already shows the
           selected Validation ID, so no need to repeat it here. */}
       <Input
         label="Message Index"

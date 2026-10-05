@@ -259,7 +259,7 @@ export function AddValidatorControls({
                         {node.node_id}
                       </div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight">
-                        {node.chain_name ? `${node.chain_name} — ` : ''}Subnet: {node.subnet_id || 'unknown'}
+                        {node.chain_name ? `${node.chain_name} · ` : ''}Subnet: {node.subnet_id || 'unknown'}
                       </div>
                       {node.public_key && node.proof_of_possession ? (
                         <div className="text-xs text-green-600 dark:text-green-400 leading-tight">

@@ -24,15 +24,15 @@ export const PCHAIN_COMMANDS = {
   }) =>
     `platform-cli l1 register-validator --message ${opts.signedWarpMessage} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueSetL1ValidatorWeightTx — update validator weight (used for removal, delegation, weight change) */
+  /** IssueSetL1ValidatorWeightTx: update validator weight (used for removal, delegation, weight change) */
   setL1ValidatorWeight: (opts: { signedWarpMessage: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli l1 set-validator-weight --message ${opts.signedWarpMessage} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueIncreaseL1ValidatorBalanceTx — top up validator balance */
+  /** IssueIncreaseL1ValidatorBalanceTx: top up validator balance */
   addBalance: (opts: { validationId: string; balance: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli l1 increase-validator-balance --validation-id ${opts.validationId} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueDisableL1ValidatorTx — disable a validator */
+  /** IssueDisableL1ValidatorTx: disable a validator */
   disableValidator: (opts: { validationId: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli l1 disable-validator --validation-id ${opts.validationId} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 

@@ -23,7 +23,7 @@ const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
   }
 });
 
-// Submit SetL1ValidatorWeightTx to P-Chain — sets weight to 0
+// Submit SetL1ValidatorWeightTx to P-Chain: sets weight to 0
 const txHash = await walletClient.setL1ValidatorWeight({
   signedWarpMessage: signedMessage,
 });`;
@@ -58,7 +58,7 @@ export function buildStepConfig(flavor: ManagerCodeFlavor): StepConfig[] {
       description:
         flavor === 'PoA'
           ? 'Call initiateValidatorRemoval on ValidatorManager'
-          : 'Call initiateValidatorRemoval (with uptime proof) on the Staking Manager — falls back to forceInitiateValidatorRemoval if rewards-ineligible',
+          : 'Call initiateValidatorRemoval (with uptime proof) on the Staking Manager. Falls back to forceInitiateValidatorRemoval if rewards-ineligible',
       codeType: 'solidity' as const,
       sourceUrl: src.raw,
       githubUrl: src.github,
@@ -89,7 +89,7 @@ export function buildStepConfig(flavor: ManagerCodeFlavor): StepConfig[] {
     },
   ];
 
-  // claim-fees only meaningful for PoS staking managers — the code-viewer
+  // claim-fees only meaningful for PoS staking managers. The code-viewer
   // sidebar still wants an entry for it (so the step index lines up).
   if (flavor !== 'PoA') {
     config.push({

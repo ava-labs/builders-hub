@@ -17,16 +17,16 @@ interface ResendRemovalMessageProps {
 }
 
 /**
- * Validator is in PendingRemoved on chain but P-Chain hasn't confirmed — usually
+ * Validator is in PendingRemoved on chain but P-Chain hasn't confirmed, usually
  * because the SetL1ValidatorWeight warp couldn't be verified at the height
  * P-Chain landed it at (validator-set drift between aggregator snapshot and
- * verification snapshot — most common during Fuji churn).
+ * verification snapshot, most common during Fuji churn).
  *
  * The contract provides `resendValidatorRemovalMessage` for exactly this case.
  * It re-emits the same warp bytes (same nonce, same weight=0) from a fresh
  * on-chain transaction, giving the user a fresh extraction point to attempt
- * P-Chain submission again. The on-chain state doesn't advance — `sentNonce`
- * stays put — so this is safe to call repeatedly.
+ * P-Chain submission again. The on-chain state doesn't advance (`sentNonce`
+ * stays put), so this is safe to call repeatedly.
  */
 export function ResendRemovalMessage({
   validatorManagerAddress,

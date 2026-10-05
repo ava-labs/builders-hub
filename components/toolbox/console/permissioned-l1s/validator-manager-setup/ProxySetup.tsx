@@ -92,7 +92,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [proxyError, setProxyError] = useState<string>('');
 
   // Deploy state. Default the section OPEN when we're on C-Chain (43113
-  // Fuji / 43114 Mainnet) — there's no `0xfacade…` genesis proxy to
+  // Fuji / 43114 Mainnet). There's no `0xfacade…` genesis proxy to
   // upgrade, so "Deploy New Proxy" is the only path forward. On L1s
   // created through the Builder Console the genesis proxy exists and
   // Upgrade is the default.
@@ -102,7 +102,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   // wagmi state yet), so the `useState` initializer above can see the
   // wrong value and default to Upgrade. This one-shot effect re-syncs the
   // default once the chain id first becomes non-zero, and then steps out
-  // of the way — any later manual toggle or chain switch is respected.
+  // of the way. Any later manual toggle or chain switch is respected.
   const autoDefaultAppliedRef = useRef(false);
   useEffect(() => {
     if (autoDefaultAppliedRef.current) return;
@@ -274,7 +274,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
   // Pre-fill the Deploy New Proxy "implementation" field too. This is the
   // same ValidatorManager address the user just deployed in the previous
-  // step — the Deploy path needs it to initialize the TransparentUpgradeable-
+  // step. The Deploy path needs it to initialize the TransparentUpgradeable-
   // Proxy. Guarding on empty string so a user who manually cleared or
   // overrode the field doesn't get clobbered.
   useEffect(() => {

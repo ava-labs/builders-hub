@@ -85,12 +85,12 @@ export function PosInitiateRemoval({
   const [error, setErrorState] = useState<string | null>(null);
 
   // Re-probe whenever the actual inputs change. Drive directly from the primitive
-  // string deps rather than from a useCallback identity — that avoids a render
+  // string deps rather than from a useCallback identity. That avoids a render
   // loop if the probe function reference is ever unstable (it isn't anymore,
   // but the effect is the safer place to encode the invariant).
   //
   // The cancelled flag handles the case where the user switches validators
-  // mid-probe — the stale fetch resolves last and would otherwise overwrite the
+  // mid-probe: the stale fetch resolves last and would otherwise overwrite the
   // new validator's state.
   useEffect(() => {
     if (!validationID || !rpcUrl) {
@@ -112,7 +112,7 @@ export function PosInitiateRemoval({
     };
   }, [validationID, rpcUrl, customValidatorsUrl]);
 
-  // Retry button — read latest customValidatorsUrl from state but doesn't need
+  // Retry button: read latest customValidatorsUrl from state but doesn't need
   // to participate in the effect's dep chain.
   const runProbe = useCallback(() => {
     if (!validationID || !rpcUrl) {
@@ -151,7 +151,7 @@ export function PosInitiateRemoval({
       if (useUptime) {
         // Uptime path: aggregate signatures, pack into access list, call with
         // includeUptimeProof=true. The contract validates and reverts with
-        // ValidatorIneligibleForRewards if the uptime isn't enough — we catch
+        // ValidatorIneligibleForRewards if the uptime isn't enough. We catch
         // that and transition to force mode rather than just dumping the
         // revert reason into the error banner.
         const uptimeProofPromise = createAndSignUptimeProof(
@@ -194,7 +194,7 @@ export function PosInitiateRemoval({
       if (message.includes('User rejected')) {
         message = 'Transaction was rejected by user';
       } else if (message.includes('ValidatorIneligibleForRewards') || message.includes('ineligible for rewards')) {
-        // The contract said "this validator hasn't earned rewards" — transition
+        // The contract said "this validator hasn't earned rewards": transition
         // to force mode so the user's next click does the no-rewards removal.
         setProbe({ kind: 'uptime-unavailable', reason: 'rewards-ineligible' });
         message = 'Validator is ineligible for staking rewards. Switch to Force Remove to proceed without them.';
@@ -374,7 +374,7 @@ function RemoveButton({
           ? 'Remove Validator (preserves rewards)'
           : 'Force Remove Validator (forfeits rewards)';
 
-  // Button stays primary blue across both probe states — the risk narrative is
+  // Button stays primary blue across both probe states. The risk narrative is
   // carried by the banner + the inline "forfeits rewards" label text, not by
   // the button color. Variant flipping read as visual noise.
   return (

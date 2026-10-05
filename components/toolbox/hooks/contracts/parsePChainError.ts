@@ -13,7 +13,7 @@ export function parsePChainError(err: unknown): string {
   // The aggregator returned a partial signature that doesn't meet 67% quorum
   // of the signing subnet. Almost always a transient aggregator/validator
   // availability gap on smaller networks (especially Fuji's Primary Network
-  // with its ~9 validators) — a fresh aggregation attempt usually clears it.
+  // with its ~9 validators). A fresh aggregation attempt usually clears it.
   if (raw.includes('signature weight is insufficient')) {
     const match = raw.match(/67\*(\d+) > 100\*(\d+)/);
     if (match) {
@@ -29,7 +29,7 @@ export function parsePChainError(err: unknown): string {
     }
     return (
       'Aggregator returned a partial signature below the 67% quorum P-Chain requires. ' +
-      'Retry the P-Chain submission — usually a transient availability gap.'
+      'Retry the P-Chain submission. This is usually a transient availability gap.'
     );
   }
 
@@ -46,13 +46,13 @@ export function parsePChainError(err: unknown): string {
   if (raw.includes('execution reverted')) return `Transaction reverted: ${raw}`;
 
   // viem InternalRpcError (-32603) wrapping a P-Chain RPC failure. viem's default
-  // "mistyped URL / resource doesn't exist" boilerplate is NOT the real cause —
+  // "mistyped URL / resource doesn't exist" boilerplate is NOT the real cause:
   // the node returned an internal error without a specific reason. Surface an
   // honest message rather than the boilerplate (the raw text is still logged for
   // diagnosis), and don't blame the user's input, which is usually fine here.
   if (raw.includes('An internal error was received') || raw.includes('Unable to create transaction')) {
     return (
-      'The P-Chain RPC returned an internal error without a specific reason — this points to an ' +
+      'The P-Chain RPC returned an internal error without a specific reason. This points to an ' +
       'RPC/endpoint problem rather than your input. Wait a moment and try again; if it keeps failing, ' +
       'the P-Chain endpoint is likely degraded.'
     );

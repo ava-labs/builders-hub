@@ -327,7 +327,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         })),
         // The signature was already aggregated in step 1; the SDK rebuilds the
         // unsigned message internally and asks us to sign it. Return the
-        // signature we already have — it must match because both paths derive
+        // signature we already have. It must match because both paths derive
         // from the same ConversionData.
         aggregateSignatures: async () => add0x(L1ConversionSignature),
       });
@@ -722,7 +722,7 @@ const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string | undefin
       }
     }
 
-    // No output — include what we do know from the trace
+    // No output: include what we do know from the trace
     const revertReason = trace.result?.revertReason;
     if (revertReason) return `Revert: ${revertReason}`;
 

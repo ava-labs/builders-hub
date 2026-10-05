@@ -132,7 +132,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
         // Only attempt resend fallback if the error suggests a pending removal
         // (e.g. InvalidValidatorStatus or generic reverts). For user rejections,
-        // insufficient funds, ownership errors, etc. — the hook already parsed these.
+        // insufficient funds, ownership errors, etc.: the hook already parsed these.
         const shouldAttemptFallback =
           primaryMessage.includes('reverted') ||
           primaryMessage.includes('Invalid validator status') ||

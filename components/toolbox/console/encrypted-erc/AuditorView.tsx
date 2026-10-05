@@ -99,12 +99,12 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
         <div>
           <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">On-chain auditor</div>
           <code className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-            {ev.auditorAddressOnChain ?? '—'}
+            {ev.auditorAddressOnChain ?? 'Not set'}
           </code>
         </div>
         {isAuditorWallet && ev.decryptionKey && (
           <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
-            ✓ Your wallet is the auditor — local key auto-loaded.
+            ✓ Your wallet is the auditor. The local key loaded automatically.
           </div>
         )}
       </div>
@@ -183,10 +183,10 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
                     <KindBadge kind={e.kind} />
                   </td>
                   <td className="px-3 py-2 font-mono text-zinc-500 dark:text-zinc-400">
-                    {e.from ? `${e.from.slice(0, 10)}…` : '—'}
+                    {e.from ? `${e.from.slice(0, 10)}…` : 'None'}
                   </td>
                   <td className="px-3 py-2 font-mono text-zinc-500 dark:text-zinc-400">
-                    {e.to ? `${e.to.slice(0, 10)}…` : '—'}
+                    {e.to ? `${e.to.slice(0, 10)}…` : 'None'}
                   </td>
                   <td className="px-3 py-2 font-mono text-right text-zinc-700 dark:text-zinc-300">
                     {e.amountFormatted ?? (ev.decryptionKey ? <span className="text-zinc-400">wrong key</span> : '—')}
