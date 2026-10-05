@@ -11,6 +11,25 @@ export type FaucetThresholds = {
   dripAmount: number;
 };
 
+/**
+ * How the Builder Hub faucet sources an ERC-20 token before dripping it.
+ * - `wrapped-native`: the token is the chain's WNative contract; the faucet
+ *   wraps its own native balance on demand via `deposit()` so it never needs
+ *   to be pre-funded with the token.
+ * - `erc20`: a plain ERC-20 the faucet wallet must already hold.
+ */
+export type ERC20FaucetTokenKind = 'wrapped-native' | 'erc20';
+
+export type ERC20FaucetToken = {
+  address: `0x${string}`;
+  name: string;
+  symbol: string;
+  decimals: number;
+  kind: ERC20FaucetTokenKind;
+  logoUrl?: string;
+  faucetThresholds: FaucetThresholds;
+};
+
 export type L1ListItem = {
   id: string;
   name: string;
@@ -32,6 +51,8 @@ export type L1ListItem = {
   hasBuilderHubFaucet?: boolean;
   features?: string[];
   faucetThresholds?: FaucetThresholds;
+  /** ERC-20 tokens the Builder Hub faucet can drip on this chain (testnet only). */
+  erc20Faucets?: ERC20FaucetToken[];
   nativeCurrency?: {
     name: string;
     symbol: string;
@@ -67,6 +88,21 @@ const l1ListInitialStateFuji = {
         threshold: 0.2,
         dripAmount: 0.5,
       },
+      erc20Faucets: [
+        {
+          address: '0xd00ae08403B9bbb9124bB305C09058E32C39A48c',
+          name: 'Wrapped AVAX',
+          symbol: 'WAVAX',
+          decimals: 18,
+          kind: 'wrapped-native',
+          logoUrl:
+            'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg',
+          faucetThresholds: {
+            threshold: 0.1,
+            dripAmount: 0.25,
+          },
+        },
+      ],
       features: ['EVM-compatible blockchain', 'Deploy smart contracts'],
     },
     {
@@ -91,6 +127,19 @@ const l1ListInitialStateFuji = {
         threshold: 1.0,
         dripAmount: 2,
       },
+      erc20Faucets: [
+        {
+          address: '0xc85a1b7876eabbacf1d6551c58e0759788cf8d02',
+          name: 'Wrapped ECH',
+          symbol: 'WECH',
+          decimals: 18,
+          kind: 'wrapped-native',
+          faucetThresholds: {
+            threshold: 0.5,
+            dripAmount: 1,
+          },
+        },
+      ],
       features: ['EVM-compatible L1 chain', 'Deploy dApps & test interoperability with Echo'],
     },
     {
@@ -114,6 +163,19 @@ const l1ListInitialStateFuji = {
         threshold: 1.0,
         dripAmount: 2,
       },
+      erc20Faucets: [
+        {
+          address: '0x8d4dfb65e48a464d6fca2b297776da77e01db34b',
+          name: 'Wrapped DIS',
+          symbol: 'WDIS',
+          decimals: 18,
+          kind: 'wrapped-native',
+          faucetThresholds: {
+            threshold: 0.5,
+            dripAmount: 1,
+          },
+        },
+      ],
       features: ['EVM-compatible L1 chain', 'Deploy dApps & test interoperability with Dispatch'],
     },
     {

@@ -27,13 +27,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const faucetType = searchParams.get('faucetType') as 'pchain' | 'evm' | null;
+    const faucetType = searchParams.get('faucetType') as 'pchain' | 'evm' | 'erc20' | null;
     const destinationAddress = searchParams.get('address');
     const chainId = searchParams.get('chainId');
 
-    if (!faucetType || !['pchain', 'evm'].includes(faucetType)) {
+    if (!faucetType || !['pchain', 'evm', 'erc20'].includes(faucetType)) {
       return NextResponse.json(
-        { success: false, message: 'Valid faucetType (pchain or evm) is required' },
+        { success: false, message: 'Valid faucetType (pchain, evm or erc20) is required' },
         { status: 400 }
       );
     }

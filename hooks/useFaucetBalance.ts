@@ -11,6 +11,16 @@ interface ChainBalance {
   faucetAddress: string;
 }
 
+export interface ERC20TokenBalance {
+  chainId: number;
+  tokenAddress: string;
+  symbol: string;
+  decimals: number;
+  kind: 'wrapped-native' | 'erc20';
+  balance: string;
+  balanceFormatted: string;
+}
+
 interface FaucetBalances {
   pChain?: {
     balance: string;
@@ -18,6 +28,7 @@ interface FaucetBalances {
     faucetAddress: string;
   };
   evmChains: ChainBalance[];
+  erc20Tokens: ERC20TokenBalance[];
 }
 
 interface UseFaucetBalanceReturn {
@@ -26,6 +37,7 @@ interface UseFaucetBalanceReturn {
   error: string | null;
   refetch: () => Promise<void>;
   getBalanceForChain: (chainId: number) => ChainBalance | undefined;
+  getBalanceForToken: (chainId: number, tokenAddress: string) => ERC20TokenBalance | undefined;
 }
 
 // Cache the balances for 30 seconds to avoid excessive API calls
@@ -61,6 +73,7 @@ export function useFaucetBalance(): UseFaucetBalanceReturn {
       const newBalances: FaucetBalances = {
         pChain: data.pChain,
         evmChains: data.evmChains || [],
+        erc20Tokens: data.erc20Tokens || [],
       };
 
       // Update cache
@@ -85,6 +98,13 @@ export function useFaucetBalance(): UseFaucetBalanceReturn {
     return balances?.evmChains.find(chain => chain.chainId === chainId);
   }, [balances]);
 
+  const getBalanceForToken = useCallback((chainId: number, tokenAddress: string): ERC20TokenBalance | undefined => {
+    const wanted = tokenAddress.toLowerCase();
+    return balances?.erc20Tokens.find(
+      token => token.chainId === chainId && token.tokenAddress.toLowerCase() === wanted
+    );
+  }, [balances]);
+
   useEffect(() => {
     fetchBalances();
   }, [fetchBalances]);
@@ -95,5 +115,6 @@ export function useFaucetBalance(): UseFaucetBalanceReturn {
     error,
     refetch,
     getBalanceForChain,
+    getBalanceForToken,
   };
 }

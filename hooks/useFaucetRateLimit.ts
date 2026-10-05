@@ -17,7 +17,8 @@ interface RateLimitStatus {
 }
 
 interface UseFaucetRateLimitOptions {
-  faucetType: 'pchain' | 'evm';
+  faucetType: 'pchain' | 'evm' | 'erc20';
+  /** Chain ID, or for `erc20` the claim scope from `getERC20ClaimScope()`. */
   chainId?: string | number;
   autoRefresh?: boolean;
   refreshInterval?: number; // in milliseconds

@@ -5,6 +5,7 @@ const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_CLAIMS_PER_USER = 1;
 const MAX_CLAIMS_PER_DESTINATION = 2;
 
+export type FaucetType = 'pchain' | 'evm' | 'devnet' | 'erc20';
 
 interface RateLimitResult {
   allowed: boolean;
@@ -14,7 +15,7 @@ interface RateLimitResult {
 
 export async function checkAndReserveFaucetClaim(
   userId: string,
-  faucetType: 'pchain' | 'evm' | 'devnet',
+  faucetType: FaucetType,
   destinationAddress: string,
   amount: string,
   chainId?: string,
@@ -133,7 +134,7 @@ export async function checkAndReserveFaucetClaim(
 
 export async function checkFaucetRateLimit(
   userId: string,
-  faucetType: 'pchain' | 'evm' | 'devnet',
+  faucetType: FaucetType,
   destinationAddress: string,
   chainId?: string
 ): Promise<RateLimitResult> {

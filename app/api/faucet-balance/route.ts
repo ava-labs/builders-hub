@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, formatEther, defineChain } from 'viem';
 import { avalancheFuji } from 'viem/chains';
-import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getL1ListStore, type ERC20FaucetToken, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { ERC20_FAUCET_ABI, formatERC20Balance } from '@/lib/faucet/erc20';
 
 const FAUCET_C_CHAIN_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
@@ -23,6 +24,16 @@ interface ChainBalance {
   faucetAddress: string;
 }
 
+interface ERC20TokenBalance {
+  chainId: number;
+  tokenAddress: string;
+  symbol: string;
+  decimals: number;
+  kind: ERC20FaucetToken['kind'];
+  balance: string;
+  balanceFormatted: string;
+}
+
 interface FaucetBalanceResponse {
   success: boolean;
   pChain?: {
@@ -31,6 +42,7 @@ interface FaucetBalanceResponse {
     faucetAddress: string;
   };
   evmChains?: ChainBalance[];
+  erc20Tokens?: ERC20TokenBalance[];
   message?: string;
 }
 
@@ -119,6 +131,37 @@ async function getEVMChainBalance(chain: L1ListItem): Promise<ChainBalance | nul
   }
 }
 
+async function getERC20TokenBalance(chain: L1ListItem, token: ERC20FaucetToken): Promise<ERC20TokenBalance | null> {
+  if (!FAUCET_C_CHAIN_ADDRESS) return null;
+
+  try {
+    const publicClient = createPublicClient({
+      chain: createViemChain(chain),
+      transport: http(),
+    });
+
+    const balance = await publicClient.readContract({
+      address: token.address,
+      abi: ERC20_FAUCET_ABI,
+      functionName: 'balanceOf',
+      args: [FAUCET_C_CHAIN_ADDRESS as `0x${string}`],
+    });
+
+    return {
+      chainId: chain.evmChainId,
+      tokenAddress: token.address,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      kind: token.kind,
+      balance: balance.toString(),
+      balanceFormatted: formatERC20Balance(balance, token.decimals),
+    };
+  } catch (error) {
+    console.error(`Failed to fetch ${token.symbol} balance for chain ${chain.name}:`, error);
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse<FaucetBalanceResponse>> {
   try {
     // Get list of chains with faucet support
@@ -127,13 +170,23 @@ export async function GET(request: NextRequest): Promise<NextResponse<FaucetBala
       (chain: L1ListItem) => chain.hasBuilderHubFaucet
     );
 
+    const erc20Targets: { chain: L1ListItem; token: ERC20FaucetToken }[] = chainsWithFaucet.flatMap(
+      (chain: L1ListItem) => (chain.erc20Faucets ?? []).map((token) => ({ chain, token }))
+    );
+
     // Fetch all balances in parallel
-    const [pChainResult, ...evmResults] = await Promise.all([
+    const [pChainResult, evmResults, erc20Results] = await Promise.all([
       getPChainBalance(),
-      ...chainsWithFaucet.map((chain: L1ListItem) => getEVMChainBalance(chain)),
+      Promise.all(chainsWithFaucet.map((chain: L1ListItem) => getEVMChainBalance(chain))),
+      Promise.all(
+        erc20Targets.map(({ chain, token }: { chain: L1ListItem; token: ERC20FaucetToken }) =>
+          getERC20TokenBalance(chain, token)
+        )
+      ),
     ]);
 
     const evmChains = evmResults.filter((result): result is ChainBalance => result !== null);
+    const erc20Tokens = erc20Results.filter((result): result is ERC20TokenBalance => result !== null);
 
     return NextResponse.json({
       success: true,
@@ -142,6 +195,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<FaucetBala
         faucetAddress: FAUCET_P_CHAIN_ADDRESS!,
       } : undefined,
       evmChains,
+      erc20Tokens,
     });
   } catch (error) {
     console.error('Faucet balance error:', error);

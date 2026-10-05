@@ -75,6 +75,30 @@ describe('checkAndReserveFaucetClaim — devnet + coupon', () => {
     );
   });
 
+  it('scopes erc20 claims by chain + token so they do not share the native faucet allowance', async () => {
+    txMocks.count.mockResolvedValue(0);
+    txMocks.findUnique.mockResolvedValue({ id: 'user-1' });
+    txMocks.create.mockResolvedValue({ id: 'claim-3' });
+
+    const result = await checkAndReserveFaucetClaim(
+      'user-1',
+      'erc20',
+      '0xAbC',
+      '0.25',
+      '43113:0xd00ae08403b9bbb9124bb305c09058e32c39a48c',
+    );
+
+    expect(result.allowed).toBe(true);
+    expect(txMocks.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          faucet_type: 'erc20',
+          chain_id: '43113:0xd00ae08403b9bbb9124bb305c09058e32c39a48c',
+        }),
+      }),
+    );
+  });
+
   it('blocks (and does not create a claim) when the per-user daily limit is reached', async () => {
     txMocks.count.mockResolvedValueOnce(1); // user already claimed in window
     txMocks.findFirst.mockResolvedValue({ created_at: new Date() });
