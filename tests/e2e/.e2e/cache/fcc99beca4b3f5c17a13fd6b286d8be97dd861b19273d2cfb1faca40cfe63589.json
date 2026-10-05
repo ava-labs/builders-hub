@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T06:38:51.938Z",
+  "createdAt": "2026-10-05T03:18:45.759Z",
   "payload": {
     "actions": [
       {
@@ -39,9 +39,12 @@
     "recordedFor": {
       "testId": "ai/explorer-transaction.e2e.ts::explorer%20search%20leads%20to%20a%20transaction%20that%20shows%20its%20sender%2C%20recipient%20and%20value",
       "targetId": "desktop",
-      "instructionDigest": "f29c2004997405d65f59a41949167086519d8c906f6aeea0895615e8ef8dcab5"
+      "instructionDigest": "f29c2004997405d65f59a41949167086519d8c906f6aeea0895615e8ef8dcab5",
+      "paramsDigest": "27c64417141d60c87f726dde96530a8696f26fb6b7f13f03d92e27134307df87",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Searched 96532770, opened the block page, then opened its first transaction (position 0). Now on /explorer/mainnet/c-chain/tx/0xb482a389a0133da3d0520ba8b8c18364be40df2049a6869e2df61f57cb56a03a. It shows Success status and Block #96,532,770.",
+    "summary": "Searched 96532770 and opened the block, then opened its first transaction. The tx page 0xb482a389…cb56a03a shows Block #96,532,770, position 0, status Success.",
     "startPath": "/explorer/mainnet/c-chain",
     "endPath": "/explorer/mainnet/c-chain/tx/0xb482a389a0133da3d0520ba8b8c18364be40df2049a6869e2df61f57cb56a03a",
     "endAnchors": [
@@ -55,21 +58,50 @@
         "text": "0x01000000"
       },
       {
-        "text": "USDC"
-      },
-      {
         "text": "·"
       },
       {
         "text": "59,944.78"
       },
       {
-        "text": "WAVAX"
+        "text": "Wrapped AVAX"
       },
       {
-        "text": "Wrapped AVAX"
+        "text": "5,444.04"
+      },
+      {
+        "text": "2 transfers · 4 events · 19 calls"
       }
     ],
-    "endWaitMs": 13639
+    "goneAnchors": [
+      {
+        "role": "radio",
+        "name": "1W"
+      },
+      {
+        "role": "radio",
+        "name": "1Y"
+      },
+      {
+        "role": "radio",
+        "name": "ALL"
+      },
+      {
+        "text": "Throughput"
+      },
+      {
+        "text": "TPS"
+      },
+      {
+        "text": "Chain Height"
+      },
+      {
+        "text": "96,779,057"
+      },
+      {
+        "text": "Price"
+      }
+    ],
+    "endWaitMs": 12942
   }
 }

@@ -220,7 +220,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           mapfile -t args < <(jq -r '.[]' <<< "$ARGS")
-          npx e2e run "${args[@]}"
+          # Fail a stale act recording (REPLAY_STALE): CI never re-records it, so it would call the model on every run.
+          npx e2e run --strict-cache "${args[@]}"
 
       - name: Job summary
         if: always()

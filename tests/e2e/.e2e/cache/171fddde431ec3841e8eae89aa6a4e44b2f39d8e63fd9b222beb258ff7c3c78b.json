@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T13:13:51.024Z",
+  "createdAt": "2026-10-05T03:20:56.376Z",
   "payload": {
     "actions": [
       {
@@ -13,11 +13,11 @@
       },
       {
         "name": "tap",
-        "summary": "tap link \"Explorer\" in \"Solutions\"",
+        "summary": "tap link \"Explorer\" in \"Log in\"",
         "target": {
           "role": "link",
           "name": "Explorer",
-          "within": "Solutions"
+          "within": "Log in"
         }
       }
     ],
@@ -28,9 +28,12 @@
     "recordedFor": {
       "testId": "ai/site-navigation.e2e.ts::phone%20menu%20leads%20from%20the%20home%20page%20to%20the%20Explorer",
       "targetId": "phone",
-      "instructionDigest": "e821603f045aeb50797a4192fd69132011c493315556a575f1b62e07ce028ca2"
+      "instructionDigest": "e821603f045aeb50797a4192fd69132011c493315556a575f1b62e07ce028ca2",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Menu opened and Explorer link followed. The page is now /explorer/mainnet, showing the \"Avalanche Explorer\" heading, an \"All Networks\" selector, and the Explorer/Chains/AVAX/Query tabs.",
+    "summary": "Opened the Toggle Menu and tapped \"Explorer\" (/explorer/mainnet). The Avalanche Explorer page (\"All Networks | Avalanche Explorer\") loaded.",
     "startPath": "/",
     "endPath": "/explorer/mainnet",
     "endAnchors": [
@@ -64,6 +67,33 @@
         "name": "1Y"
       }
     ],
-    "endWaitMs": 20527
+    "goneAnchors": [
+      {
+        "text": "network"
+      },
+      {
+        "text": "."
+      },
+      {
+        "text": "Build an L1"
+      },
+      {
+        "text": "Build on C-Chain"
+      },
+      {
+        "role": "link",
+        "name": "READ THE ARCHITECTURE →"
+      },
+      {
+        "text": "JPMorgan"
+      },
+      {
+        "text": "Franklin Templeton"
+      },
+      {
+        "text": "T. Rowe Price"
+      }
+    ],
+    "endWaitMs": 13519
   }
 }

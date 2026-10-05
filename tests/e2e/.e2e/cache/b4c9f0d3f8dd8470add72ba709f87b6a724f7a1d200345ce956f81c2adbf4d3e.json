@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T06:23:30.871Z",
+  "createdAt": "2026-10-05T03:18:39.823Z",
   "payload": {
     "actions": [
       {
@@ -44,9 +44,12 @@
     "recordedFor": {
       "testId": "ai/docs-search.e2e.ts::docs%20search%20answers%20how%20to%20add%20a%20validator%20to%20an%20L1",
       "targetId": "desktop",
-      "instructionDigest": "86a44b5c2232c1e3f743fe8609e87ff6f88ba3077b867df772155832032e9beb"
+      "instructionDigest": "86a44b5c2232c1e3f743fe8609e87ff6f88ba3077b867df772155832032e9beb",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Searched \"add a validator to an L1\" and opened the top result \"Add Validator\". The app navigated to /docs/tooling/avalanche-cli/maintain/add-validator-l1. The page loads with the heading \"Add Validator\" and the text \"Learn how to add a validator to an Avalanche L1.\"",
+    "summary": "Searched \"add a validator to an L1\" in docs search and opened the \"Add Validator\" result. It loaded /docs/tooling/avalanche-cli/maintain/add-validator-l1, titled \"Add Validator\" with the description \"Learn how to add a validator to an Avalanche L1.\"",
     "startPath": "/docs/primary-network",
     "endPath": "/docs/tooling/avalanche-cli/maintain/add-validator-l1",
     "endAnchors": [
@@ -67,22 +70,55 @@
         "name": "Create Avalanche L1"
       },
       {
-        "role": "button",
-        "name": "Deploy Avalanche L1s"
-      },
-      {
-        "role": "button",
-        "name": "Manage Avalanche L1s"
-      },
-      {
         "role": "link",
         "name": "Add Validator"
       },
       {
         "role": "link",
         "name": "Delete an Avalanche L1"
+      },
+      {
+        "role": "link",
+        "name": "Remove Validator"
+      },
+      {
+        "role": "link",
+        "name": "Troubleshooting"
       }
     ],
-    "endWaitMs": 32961
+    "goneAnchors": [
+      {
+        "role": "link",
+        "name": "Primary Network"
+      },
+      {
+        "role": "link",
+        "name": "Snowman Consensus"
+      },
+      {
+        "role": "link",
+        "name": "AVAX Token"
+      },
+      {
+        "role": "link",
+        "name": "Virtual Machines"
+      },
+      {
+        "role": "link",
+        "name": "Helicon Upgrade"
+      },
+      {
+        "text": "C-Chain"
+      },
+      {
+        "role": "link",
+        "name": "Coreth Architecture"
+      },
+      {
+        "role": "link",
+        "name": "Continuous Execution"
+      }
+    ],
+    "endWaitMs": 12765
   }
 }

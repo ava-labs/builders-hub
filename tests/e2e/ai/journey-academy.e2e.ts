@@ -45,8 +45,9 @@ test('next lesson link at the end of a module opens the next module', async (fix
 });
 
 // The part bar moves between the Avalanche L1 and Blockchain tracks without a page load, and the sidebar must follow.
-// The agent can take the Applications hover card or the part link. academy/course-sidebar.e2e.ts makes the move at
-// both sizes.
+// The instruction names the hover card. A tap on the Applications link also opens Intro to Solidity, the first course
+// of the part. An agent that tapped it and then the card link recorded two taps, and a replay found the course already
+// open before the second tap (end-mismatch). academy/course-sidebar.e2e.ts makes the move at both sizes.
 test(
   'learner moves from Avalanche Fundamentals to Intro to Solidity with the part bar',
   { timeout: TWO_ROUTE_TIMEOUT },
@@ -56,7 +57,9 @@ test(
     await openAsReturningVisitor(app, browser, COURSE);
     await desktopOnly(browser, 'academy/course-sidebar.e2e.ts makes the same move at both sizes');
     await markPage(browser);
-    await agent.act('open the Intro to Solidity course from the Applications part in the bar above the page');
+    await agent.act(
+      'hover over Applications in the bar above the page, then open Intro to Solidity from the card that opens',
+    );
     await expect(browser).toHaveURL('/academy/blockchain/solidity-foundry', NAVIGATION);
     await expectSamePage(browser);
     const course = sidebarCourse('/academy/blockchain/solidity-foundry');

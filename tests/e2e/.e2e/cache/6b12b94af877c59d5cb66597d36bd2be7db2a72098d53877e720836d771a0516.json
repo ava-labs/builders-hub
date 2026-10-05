@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T06:22:46.770Z",
+  "createdAt": "2026-10-05T03:04:20.263Z",
   "payload": {
     "actions": [
       {
@@ -32,14 +32,24 @@
     "recordedFor": {
       "testId": "ai/academy-quiz.e2e.ts::quiz%20tells%20a%20learner%20who%20picks%20a%20wrong%20answer%20that%20it%20is%20wrong",
       "targetId": "desktop",
-      "instructionDigest": "bf9846dc08c340f587b4efd31022e8f8e515322b1c05a8ce55b8d100ff29f410"
+      "instructionDigest": "bf9846dc08c340f587b4efd31022e8f8e515322b1c05a8ce55b8d100ff29f410",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "On Question 1 I selected the wrong option, \"Validators create a new transaction to resolve the conflict.\", and tapped Check Answer. The page showed \"Not Quite\", \"Attempt 1 of 3\", a hint, and a \"Try Again\" button.",
+    "summary": "On question 1 I selected the wrong option \"Validators create a new transaction to resolve the conflict.\" and tapped Check Answer. The page showed \"Not Quite\", \"Attempt 1 of 3\", a hint, and a \"Try Again\" button.",
     "startPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
     "endPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
     "endAnchors": [
       {
         "text": "Attempt 1 of 3"
+      },
+      {
+        "role": "radio",
+        "name": "Validators create a new transaction to resolve the conflict.",
+        "states": [
+          "checked"
+        ]
       },
       {
         "text": "Not Quite"
@@ -55,6 +65,12 @@
         "name": "Try Again"
       }
     ],
-    "endWaitMs": 12856
+    "goneAnchors": [
+      {
+        "role": "radio",
+        "name": "Validators create a new transaction to resolve the conflict."
+      }
+    ],
+    "endWaitMs": 12228
   }
 }

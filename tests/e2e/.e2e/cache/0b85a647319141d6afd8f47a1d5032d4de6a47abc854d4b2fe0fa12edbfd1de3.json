@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T16:27:00.343Z",
+  "createdAt": "2026-10-05T03:19:48.041Z",
   "payload": {
     "actions": [
       {
@@ -19,9 +19,12 @@
     "recordedFor": {
       "testId": "ai/journey-explorer.e2e.ts::visitor%20opens%20an%20L1%20from%20the%20City%20view%20of%20the%20explorer",
       "targetId": "desktop",
-      "instructionDigest": "c98ee12cc845551f281e7b82d0af8738fd86dd14531d2660cb7e16754161a1fa"
+      "instructionDigest": "c98ee12cc845551f281e7b82d0af8738fd86dd14531d2660cb7e16754161a1fa",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Tapped the City link. The app loaded /explorer/mainnet/chains, titled \"Chains | Avalanche Explorer\". The page shows the 3D city region, the \"Explorer / City\" view toggle, \"Chains 68\", and the city controls and stats.",
+    "summary": "Tapped the City tab. The page is now /explorer/mainnet/chains, titled \"Chains | Avalanche Explorer\". It shows the 3D city region (\"Avalanche L1s as a city in 3D\"), the Explorer/City toggle, and stats for 69 chains in 7 districts.",
     "startPath": "/explorer/mainnet",
     "endPath": "/explorer/mainnet/chains",
     "endAnchors": [
@@ -58,6 +61,39 @@
         "text": "Districts"
       }
     ],
-    "endWaitMs": 17905
+    "goneAnchors": [
+      {
+        "text": "All Networks"
+      },
+      {
+        "role": "link",
+        "name": "AVAX"
+      },
+      {
+        "role": "link",
+        "name": "Query"
+      },
+      {
+        "role": "radio",
+        "name": "1W"
+      },
+      {
+        "role": "radio",
+        "name": "1Y"
+      },
+      {
+        "role": "radio",
+        "name": "ALL"
+      },
+      {
+        "text": "Mainnet"
+      },
+      {
+        "role": "textbox",
+        "name": "Search or ask a question",
+        "placeholder": "Search an address, tx, block, NodeID or chain, or ask a question…"
+      }
+    ],
+    "endWaitMs": 17084
   }
 }

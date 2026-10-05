@@ -3,3 +3,7 @@
 !**/.e2e/cache/
 # The root ignores package-lock.json because the site uses yarn. This package uses npm, and CI installs from its lockfile.
 !package-lock.json
+# Replay entries that end on a page with live chain data. Their end anchors (Fuji blocks per minute, a validator
+# uptime count) change between runs, so --strict-cache would fail them at random. These steps call the model in CI.
+.e2e/cache/c3b8aacfff21ca1d699bf7806c7f79a86261b50ff5fe6c027b1a5fe48cb9f969.json
+.e2e/cache/d0ab4e1eaa95866af6fe0b7426590d0f3a804ee1dfcd649d72dceecf00557b09.json

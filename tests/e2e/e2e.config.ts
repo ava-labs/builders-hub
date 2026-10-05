@@ -19,8 +19,28 @@ const url = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 // set the secret. lib/visitor.ts hides the Vercel Toolbar of a preview.
 export const headers = bypassHeaders();
 
-// One identity for every preview URL, so the replay cache keys stay stable.
-export const app = { url, identity: 'builders-hub' };
+// The replay cache keys on the app's identity and environment. Both are fixed, so an entry recorded on localhost, a
+// preview or production replays on all of them. Without `environment`, e2e reads localhost as 'test' and every other
+// host as 'production', and an entry from one never replays on the other. All of them read the same live mainnet data.
+export const app = { url, identity: 'builders-hub', environment: 'production' as const };
+
+// After each client-side navigation, Next.js reads the page title into a live region with role alert
+// (next/dist/client/components/app-router-announcer.js). The new title can arrive before or after that read, so the
+// region holds the full title, a part of it, or nothing. The replay cache checks every alert, so an agent.act step
+// recorded with one text fails its replay on another (end-mismatch). This script hides the region from the
+// accessibility tree in every document. The cache still checks the route and the controls the step showed or removed.
+function hideRouteAnnouncer(): void {
+  if (customElements.get('next-route-announcer')) return;
+  customElements.define(
+    'next-route-announcer',
+    class extends HTMLElement {
+      connectedCallback() {
+        this.setAttribute('aria-hidden', 'true');
+      }
+    },
+  );
+}
+const initScripts = [hideRouteAnnouncer];
 
 // The engine emulates a phone by size and user agent only: no touch and no device scale factor.
 export const PHONE_VIEWPORT = { width: 390, height: 844 };
@@ -33,8 +53,8 @@ export default {
   // The Console chain tests send Fuji transactions and run only nightly (chain/e2e.config.ts).
   tests: ['**/*.e2e.ts', '!api/**', '!webview/**', '!chain/**'],
   targets: [
-    { name: 'desktop', engine: web({ viewport: { width: 1440, height: 900 }, headers }), app },
-    { name: 'phone', engine: web({ viewport: PHONE_VIEWPORT, userAgent: PHONE_UA, headers }), app },
+    { name: 'desktop', engine: web({ viewport: { width: 1440, height: 900 }, headers, initScripts }), app },
+    { name: 'phone', engine: web({ viewport: PHONE_VIEWPORT, userAgent: PHONE_UA, headers, initScripts }), app },
   ],
   // A dev server compiles each route on its first visit, which can take 30 s or more.
   timeout: 180_000,

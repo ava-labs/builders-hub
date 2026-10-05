@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T16:06:51.965Z",
+  "createdAt": "2026-10-05T03:18:53.721Z",
   "payload": {
     "actions": [
       {
@@ -29,9 +29,12 @@
     "recordedFor": {
       "testId": "ai/journey-academy.e2e.ts::next%20lesson%20link%20at%20the%20end%20of%20a%20module%20opens%20the%20next%20module",
       "targetId": "desktop",
-      "instructionDigest": "ce6e10c5c84e587e68ed70000bf664a7421a54f0b721105e87d826eda51d29f3"
+      "instructionDigest": "ce6e10c5c84e587e68ed70000bf664a7421a54f0b721105e87d826eda51d29f3",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Scrolled to the end of \"Throughput vs. Time to Finality\" and tapped the next-lesson link \"Multi-Chain Architecture\". The app now shows /academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/01-multi-chain-architecture, \"Lesson 1 of 8\".",
+    "summary": "Scrolled to the end of \"Throughput vs. Time to Finality\" and tapped the \"Multi-Chain Architecture\" next-lesson link. The app opened /academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/01-multi-chain-architecture, which shows \"Lesson 1 of 8\".",
     "startPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/04-tps-vs-ttf",
     "endPath": "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/01-multi-chain-architecture",
     "endAnchors": [
@@ -62,6 +65,36 @@
         "text": "Use Dexalot:"
       }
     ],
-    "endWaitMs": 12492
+    "goneAnchors": [
+      {
+        "name": "Primer on Avalanche Consensus"
+      },
+      {
+        "text": "Lesson 4 of 4"
+      },
+      {
+        "role": "heading",
+        "name": "Throughput vs. Time to Finality"
+      },
+      {
+        "text": "To measure blockchain performance we can use two metrics:"
+      },
+      {
+        "role": "listitem",
+        "name": "Throughput: How many transaction are finalized per second measured in transactions per second (TPS)"
+      },
+      {
+        "role": "listitem",
+        "name": "Time to Finality: How long does it take a transaction to go from being submitted to validators to being unchangeable."
+      },
+      {
+        "text": "These metrics are very different. Blockchain builders aspire to high throughput and very short time to finality."
+      },
+      {
+        "role": "link",
+        "name": "Highway Analogy"
+      }
+    ],
+    "endWaitMs": 12216
   }
 }

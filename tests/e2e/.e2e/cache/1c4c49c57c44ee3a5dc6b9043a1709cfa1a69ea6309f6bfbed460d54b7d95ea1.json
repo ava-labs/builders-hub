@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T16:06:57.248Z",
+  "createdAt": "2026-10-05T03:18:51.402Z",
   "payload": {
     "actions": [
       {
@@ -19,9 +19,12 @@
     "recordedFor": {
       "testId": "ai/journey-console.e2e.ts::visitor%20finds%20the%20tool%20to%20create%20an%20L1%20from%20the%20Console%20home",
       "targetId": "desktop",
-      "instructionDigest": "6c20aa5ab5ebab5df49d4b229ba0172f1b48daf0885689f5ae91935be8c4225d"
+      "instructionDigest": "6c20aa5ab5ebab5df49d4b229ba0172f1b48daf0885689f5ae91935be8c4225d",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Tapped \"Create L1\" in the Console sidebar. The page opened at /console/create-l1 with the breadcrumb Console > Create L1. It shows a requirements panel (\"To use this tool you need: Wallet detected, Wallet connected\") and a Core Wallet download prompt.",
+    "summary": "Tapped \"Create L1\" in the Console sidebar. It opened /console/create-l1 (\"Create L1 | Avalanche Builder Hub\"). The page shows a wallet requirements panel: \"Wallet detected\" and \"Wallet connected\", plus a Download Core Wallet option.",
     "startPath": "/console",
     "endPath": "/console/create-l1",
     "endAnchors": [
@@ -50,10 +53,42 @@
         "name": "Download"
       },
       {
-        "role": "alert",
+        "role": "document",
         "name": "Create L1 | Avalanche Builder Hub"
       }
     ],
-    "endWaitMs": 12537
+    "goneAnchors": [
+      {
+        "role": "heading",
+        "name": "Avalanche Builder Console"
+      },
+      {
+        "role": "heading",
+        "name": "Built on Avalanche"
+      },
+      {
+        "role": "link",
+        "name": "View all →"
+      },
+      {
+        "role": "image",
+        "name": "FIFA"
+      },
+      {
+        "text": "FIFA"
+      },
+      {
+        "role": "image",
+        "name": "MapleStory"
+      },
+      {
+        "text": "MapleStory"
+      },
+      {
+        "role": "image",
+        "name": "Beam"
+      }
+    ],
+    "endWaitMs": 12452
   }
 }

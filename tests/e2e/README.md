@@ -93,8 +93,10 @@ Rules for a new agent test:
 - After an `act`, check the result with a locator (URL, heading, active tab). The model does the task; the `expect` decides pass or fail.
 - Use `desktopOnly()` unless the test is about layout. Visual tests run at both sizes on purpose.
 - Explorer data is live. Use a fixed historical block or transaction, never a live value.
-- An `act` step replays only when the page it ends on is the same. A step that reads a live ranking or a live number calls the model on every run.
+- An `act` step replays only when the page it ends on is the same. Do not commit the entry of a step that ends on a page with a live number or ranking: CI would fail it with `REPLAY_STALE` when the number changes. Add its file name to `tests/e2e/.gitignore` instead, so the step calls the model in CI. A content change that alters a recorded count (integrations, lessons) needs the entry recorded again.
 - Commit the new cache entries in `.e2e/cache/` with the test. A local run records and updates entries; CI only reads them. When the page changes, the next passing local run records the step again. `npx e2e cache clear` deletes every entry.
+- An entry recorded on localhost, a preview or production replays on all of them: `app` in `e2e.config.ts` fixes the cache identity and environment.
+- CI runs with `--strict-cache`: an entry that no longer replays fails its step with `REPLAY_STALE` and calls no model. Run the test locally without the flag to record it again, then commit the changed entry.
 
 `agent.assert`, `agent.waitFor` and `agent.extract` call the model on every run.
 

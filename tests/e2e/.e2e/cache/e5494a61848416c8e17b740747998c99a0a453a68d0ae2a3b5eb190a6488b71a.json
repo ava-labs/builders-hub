@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-02T16:07:02.273Z",
+  "createdAt": "2026-10-05T03:18:56.582Z",
   "payload": {
     "actions": [
       {
@@ -19,9 +19,12 @@
     "recordedFor": {
       "testId": "ai/journey-console.e2e.ts::visitor%20finds%20where%20to%20get%20test%20AVAX%20from%20the%20Console%20home",
       "targetId": "desktop",
-      "instructionDigest": "161a3b7fe24ee4886e31ac30e2362d5e73393c3728fd825741deaccf66e5676d"
+      "instructionDigest": "161a3b7fe24ee4886e31ac30e2362d5e73393c3728fd825741deaccf66e5676d",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Opened the \"Testnet Faucet\" tool (Get test AVAX) from the console. The page is at /console/primary-network/faucet. It lists requirements: wallet detected, wallet connected, and a Builder Hub account.",
+    "summary": "Opened the \"Testnet Faucet\" tool (Get test AVAX) from the console sidebar. The page /console/primary-network/faucet loaded and shows the requirements: wallet, wallet connected, Builder Hub account.",
     "startPath": "/console",
     "endPath": "/console/primary-network/faucet",
     "endAnchors": [
@@ -53,6 +56,38 @@
         "name": "Download"
       }
     ],
-    "endWaitMs": 12136
+    "goneAnchors": [
+      {
+        "role": "heading",
+        "name": "Avalanche Builder Console"
+      },
+      {
+        "role": "heading",
+        "name": "Built on Avalanche"
+      },
+      {
+        "role": "link",
+        "name": "View all →"
+      },
+      {
+        "role": "image",
+        "name": "FIFA"
+      },
+      {
+        "text": "FIFA"
+      },
+      {
+        "role": "image",
+        "name": "MapleStory"
+      },
+      {
+        "text": "MapleStory"
+      },
+      {
+        "role": "image",
+        "name": "Beam"
+      }
+    ],
+    "endWaitMs": 12211
   }
 }
