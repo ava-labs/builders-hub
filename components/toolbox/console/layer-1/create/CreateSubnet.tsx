@@ -20,6 +20,7 @@ import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts/parsePChainError';
+import { DATA_API_ERROR } from '@/components/toolbox/utils/vmcLookupText';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Create Subnet',
@@ -56,7 +57,11 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
   const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [issuedTxId, setIssuedTxId] = useState('');
-  const [created, setCreated] = useState(false);
+  // The subnet that this page created, the last typed ID that the Subnet ID field found on this network, and the last
+  // typed ID that the field could not check because the Data API read failed
+  const [createdId, setCreatedId] = useState('');
+  const [foundId, setFoundId] = useState('');
+  const [lookupFailedId, setLookupFailedId] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
 
   async function handleCreateSubnet() {
@@ -84,7 +89,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
       await waitForPChainConfirmation(txID, isTestnet);
 
       setSubnetID(txID);
-      setCreated(true);
+      setCreatedId(txID);
     } catch (err) {
       // Keep an issued-but-unconfirmed txID visible so the user can track it and
       // paste it below once it commits. It stays out of the store on purpose:
@@ -106,7 +111,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         loading={isCreatingSubnet || isConfirming}
         loadingText={isConfirming ? 'Confirming...' : 'Creating...'}
         // A CreateSubnetTx is already out there: a second click would issue another one
-        disabled={!!issuedTxId || created}
+        disabled={!!issuedTxId || !!createdId}
         variant="primary"
         className="w-full"
         cliCommand={`platform-cli subnet create --network ${isTestnet ? 'fuji' : 'mainnet'}`}
@@ -114,7 +119,8 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         Create Subnet
       </CoreWalletTransactionButton>
 
-      {subnetId && (
+      {/* Confirmed: this page created the subnet, or the typed ID passed the field's check. Not any typed value. */}
+      {subnetId && (subnetId === createdId || subnetId === foundId) && (
         <Success label="Subnet ID (CreateSubnetTx)" value={subnetId} isTestnet={Boolean(isTestnet)} confirmed={true} />
       )}
 
@@ -160,6 +166,12 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
           validationDelayMs={3000}
           hideSuggestions={true}
           placeholder="Paste Subnet ID"
+          // The field shows no text for a Data API failure, so this page shows it
+          error={subnetId && subnetId === lookupFailedId ? DATA_API_ERROR : null}
+          onLookup={(id, status) => {
+            setFoundId(status === 'found' ? id : '');
+            setLookupFailedId(status === 'failed' ? id : '');
+          }}
         />
       </div>
     </div>

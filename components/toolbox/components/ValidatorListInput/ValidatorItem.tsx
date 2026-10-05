@@ -19,6 +19,14 @@ interface Props {
 }
 
 /**
+ * The highest weight of a new validator that is less than 20% of the current total L1 weight: the largest w with
+ * 5w < total. validateStakePercentage accepts it and refuses w + 1. Zero: no weight above 0 is valid.
+ */
+export function maxNewValidatorWeight(l1TotalWeight: bigint): bigint {
+  return l1TotalWeight > 0n ? (l1TotalWeight - 1n) / 5n : 0n;
+}
+
+/**
  * The warning for a validator weight of 20% or more of the current total L1 weight, or null.
  * The submit refuses the same weights (validateStakePercentage).
  */
@@ -26,7 +34,9 @@ export function weightShareWarning(weight: bigint, l1TotalWeight: bigint | null)
   if (!l1TotalWeight || l1TotalWeight <= 0n || weight <= 0n) return null;
   const percent = Number((weight * 10000n) / l1TotalWeight) / 100;
   if (percent < 20) return null;
-  return `This validator's weight is ${percent.toFixed(2)}% of the current total L1 weight. It must be less than 20%.`;
+  const max = maxNewValidatorWeight(l1TotalWeight);
+  const action = max > 0n ? `Enter ${max} or less.` : 'The total L1 weight is too low for a new validator.';
+  return `This validator's weight is ${percent.toFixed(2)}% of the current total L1 weight. It must be less than 20%. ${action}`;
 }
 
 export function ValidatorItem({

@@ -11,6 +11,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -208,8 +209,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           primaryMessage.includes('execution');
 
         if (!shouldAttemptFallback) {
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(failureText('Transaction failed: ', primaryMessage));
           return;
         }
 
@@ -224,8 +225,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
           // No existing validation ID: the node was never registered, so the primary error is the real problem
           if (validationId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-            setErrorState(`Transaction failed: ${primaryMessage}`);
-            onError(`Transaction failed: ${primaryMessage}`);
+            setErrorState(failureText('Transaction failed: ', primaryMessage));
+            onError(failureText('Transaction failed: ', primaryMessage));
             return;
           }
 
@@ -258,15 +259,17 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           });
         } catch (fallbackError: any) {
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(
+            `${failureText('Transaction failed: ', primaryMessage)}. Resend fallback also failed: ${fallbackMessage}`,
+          );
         }
       }
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
 
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }

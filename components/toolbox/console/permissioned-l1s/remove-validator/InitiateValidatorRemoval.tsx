@@ -6,6 +6,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -139,8 +140,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           primaryMessage.includes('execution');
 
         if (!shouldAttemptFallback) {
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(failureText('Transaction failed: ', primaryMessage));
           return;
         }
 
@@ -152,8 +153,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           });
 
           if (fallbackReceipt.status === 'reverted') {
-            setErrorState(`Transaction failed: ${primaryMessage}`);
-            onError(`Transaction failed: ${primaryMessage}. Resend also reverted.`);
+            setErrorState(failureText('Transaction failed: ', primaryMessage));
+            onError(`${failureText('Transaction failed: ', primaryMessage)}. Resend also reverted.`);
             return;
           }
 
@@ -165,14 +166,16 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           });
         } catch (fallbackError: any) {
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(
+            `${failureText('Transaction failed: ', primaryMessage)}. Resend fallback also failed: ${fallbackMessage}`,
+          );
         }
       }
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }

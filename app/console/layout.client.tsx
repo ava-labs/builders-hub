@@ -35,11 +35,21 @@ function ConsolePageTransition({ children }: { children: ReactNode }) {
   );
 }
 
-function ConsoleContent({ children }: { children: ReactNode }) {
+/**
+ * Runs the automated faucet in a leaf. The hook reads the whole wallet store, so its component renders again on each
+ * wallet store write. In ConsoleContent, that render also rendered WalletProvider and wagmi's Hydrate again. With
+ * `ssr: false`, Hydrate calls reconnect() in each render, and the reconnect updated ConnectModal and WalletSync
+ * during that render: React's "Cannot update a component while rendering a different component" warning.
+ */
+function AutomatedFaucet() {
   useAutomatedFaucet();
+  return null;
+}
 
+function ConsoleContent({ children }: { children: ReactNode }) {
   return (
     <WalletProvider>
+      <AutomatedFaucet />
       <LayoutWrapper baseOptions={baseOptions}>
         <NavbarDropdownInjector />
         <ConsoleViewport>

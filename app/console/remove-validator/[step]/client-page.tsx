@@ -49,11 +49,11 @@ function RemoveValidatorFlow({
 
 export default function RemoveValidatorClientPage({ currentStepKey }: { currentStepKey: string }) {
   const basePath = "/console/remove-validator";
-  const { subnetIdL1, globalError, pChainTxId, setSubnetIdL1 } = useRemoveValidatorStore();
-  useSubnetIdQuery(subnetIdL1, setSubnetIdL1);
+  const { subnetIdL1, pChainTxId, flowCompleted, setSubnetIdL1 } = useRemoveValidatorStore();
+  useSubnetIdQuery(subnetIdL1, flowCompleted, setSubnetIdL1);
 
   return (
-    <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError}>
+    <ValidatorManagerLayout subnetIdL1={subnetIdL1}>
       <RemoveValidatorFlow basePath={basePath} currentStepKey={currentStepKey} pChainTxId={pChainTxId} />
     </ValidatorManagerLayout>
   );

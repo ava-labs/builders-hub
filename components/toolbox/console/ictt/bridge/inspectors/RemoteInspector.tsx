@@ -20,6 +20,7 @@ import { InspectorShell } from '@/components/console/inspector-shell';
 import { useDeployTokenRemote } from '../hooks/useDeployTokenRemote';
 import { useBridgeContext } from '../hooks/useBridgeContext';
 import { truncateAddress } from '../utils/explorer-url';
+import { describeTxError } from '../utils/tx-error';
 import { detectNativeMinterPrecompile } from '../utils/native-minter';
 import type { Address, Bridge, BridgePhase, Remote, RemoteKind } from '../types';
 
@@ -193,7 +194,8 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     if (!chainMismatch) return;
     if (autoSwitchedFor.current === destinationChainId) return;
     autoSwitchedFor.current = destinationChainId;
-    void switchChainOrAdd(destinationL1).catch(() => {});
+    // No toast on a refusal: the user clicked nothing, and the deploy button shows the Switch action.
+    void switchChainOrAdd(destinationL1, { toastOnFailure: false }).catch(() => {});
   }, [destinationChainId, chainMismatch, walletEVMAddress, switchChainOrAdd, destinationL1]);
 
   // No reset effect needed: the `autoSwitchedFor.current === destinationChainId`
@@ -296,7 +298,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
         banner={
           !bridge?.homeAddress ? (
             <Note variant="warning">
-              <span className="text-xs">Deploy TokenHome in Phase 2 before deploying a Remote.</span>
+              <span className="text-xs">Deploy TokenHome in the Home step before you deploy a Remote.</span>
             </Note>
           ) : chainMismatch && destinationL1 ? (
             <Note variant="warning">
@@ -447,7 +449,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
 
                   <FormField
                     label="Burned fees reward %"
-                    hint="0–100. Percentage of burned transaction fees rewarded to whoever reports them via the precompile. Leave at 0 to disable rewards."
+                    hint="From 0 to 100. Percentage of burned transaction fees rewarded to whoever reports them via the precompile. Leave at 0 to disable rewards."
                   >
                     <input
                       type="number"
@@ -490,7 +492,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
 
           {error && (
             <Note variant="destructive">
-              <span className="text-xs">{error.message}</span>
+              <span className="text-xs">{describeTxError(error)}</span>
             </Note>
           )}
 

@@ -24,6 +24,8 @@ import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolb
 import { Success } from '@/components/toolbox/components/Success';
 import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
 import { SigningSubnetStatus, signingSubnetWaitText } from './SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 export interface WeightUpdateEventData {
   validationID: `0x${string}`;
@@ -205,8 +207,8 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!unsignedWarpMessage) {
@@ -293,8 +295,8 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       // A dropped tx cannot commit, so its ID is not kept.
       if (pChainTxId && !isPChainTxDropped(err)) setIssuedTxId(pChainTxId);
       const message = parsePChainError(err);
-      setErrorState(`P-Chain submission failed: ${message}`);
-      onError(`P-Chain submission failed: ${message}`);
+      setErrorState(failureText('P-Chain submission failed: ', message));
+      onError(failureText('P-Chain submission failed: ', message));
     } finally {
       setIsSubmitting(false);
     }

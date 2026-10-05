@@ -197,8 +197,8 @@ export default function DockerMonitoring() {
                     <Accordion title="Full machine metrics (CPU, disk, network) via node_exporter">
                       <p>
                         The Machine Metrics dashboard needs Prometheus <code>node_exporter</code> running{' '}
-                        <strong>on the node's host</strong> (port 9100) — it can't be provided from this machine for a
-                        remote node. If you administer the node host, follow the{' '}
+                        <strong>on the node's host</strong> (port 9100). This machine can't provide it for a remote
+                        node. If you administer the node host, follow the{' '}
                         <a
                           href="/docs/nodes/maintain/monitoring"
                           target="_blank"
@@ -220,18 +220,18 @@ export default function DockerMonitoring() {
                           <code>host.docker.internal</code>).
                         </li>
                         <li>
-                          <strong>403 from the node</strong> — you're scraping a DNS hostname the node doesn't allow.
-                          Add it to <code>--http-allowed-hosts</code> on the node, or scrape by IP.
+                          <strong>403 from the node</strong>: you're scraping a DNS hostname the node doesn't allow. Add
+                          it to <code>--http-allowed-hosts</code> on the node, or scrape by IP.
                         </li>
                         <li>
-                          <strong>404/405 from the endpoint</strong> — the endpoint is a load balancer or public RPC
-                          that doesn't expose <code>/ext/metrics</code>. Point at the node's API port directly.
+                          <strong>404/405 from the endpoint</strong>: the endpoint is a load balancer or public RPC that
+                          doesn't expose <code>/ext/metrics</code>. Point at the node's API port directly.
                         </li>
                         <li>
                           <strong>
                             <code>dashboards</code> service failed
-                          </strong>{' '}
-                          — the one-shot download from <code>raw.githubusercontent.com</code> was interrupted. Re-run{' '}
+                          </strong>
+                          : the one-shot download from <code>raw.githubusercontent.com</code> was interrupted. Re-run{' '}
                           <code>docker compose up -d</code>.
                         </li>
                         <li>

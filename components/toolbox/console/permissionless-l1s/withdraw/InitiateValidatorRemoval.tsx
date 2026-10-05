@@ -10,6 +10,7 @@ import { ValidatorPreflightChecklist } from '@/components/toolbox/components/Val
 import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
 
 type TokenType = 'native' | 'erc20';
 
@@ -123,11 +124,11 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       let message = err instanceof Error ? err.message : String(err);
 
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       }
 
-      setErrorState(`Failed to initiate validator removal: ${message}`);
-      onError(`Failed to initiate validator removal: ${message}`);
+      setErrorState(failureText('Failed to initiate validator removal: ', message));
+      onError(failureText('Failed to initiate validator removal: ', message));
     } finally {
       setIsProcessing(false);
     }

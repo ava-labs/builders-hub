@@ -41,6 +41,16 @@ const isRevert = (err: unknown) =>
       e instanceof ExecutionRevertedError,
   );
 
+export interface SavedProxyAdminProblem {
+  /** The text for the user. */
+  message: string;
+  /**
+   * True when the saved address stays: the ProxyAdmin is valid, and another account owns it. When the owner
+   * connects again, the page uses it. False when the address can never be used, so the page removes it.
+   */
+  keepSaved: boolean;
+}
+
 /**
  * Why Proxy Setup must not use the saved ProxyAdmin, or null when it can.
  * A contract must exist at the address, and its owner() must be the
@@ -51,21 +61,30 @@ export async function savedProxyAdminProblem(
   client: PublicClient,
   address: string,
   wallet: string,
-): Promise<string | null> {
+): Promise<SavedProxyAdminProblem | null> {
   const lead = `This page does not use the ProxyAdmin that it deployed earlier (${address}).`;
   const next = 'Deploy a new ProxyAdmin.';
-  if (!isAddress(address)) return `${lead} The saved address is not valid. ${next}`;
+  const unusable = (reason: string): SavedProxyAdminProblem => ({
+    message: `${lead} ${reason} ${next}`,
+    keepSaved: false,
+  });
+  if (!isAddress(address)) return unusable('The saved address is not valid.');
   const code = await client.getCode({ address });
-  if (!code || code === '0x') return `${lead} No contract exists at this address on this chain. ${next}`;
+  if (!code || code === '0x') return unusable('No contract exists at this address on this chain.');
   let owner: string;
   try {
     owner = await client.readContract({ address, abi: OWNER_ABI, functionName: 'owner' });
   } catch (err) {
-    if (isRevert(err)) return `${lead} The contract at this address is not a ProxyAdmin. ${next}`;
+    if (isRevert(err)) return unusable('The contract at this address is not a ProxyAdmin.');
     throw err;
   }
   if (owner.toLowerCase() !== wallet.toLowerCase()) {
-    return `${lead} Its owner is ${owner}, not the connected wallet. ${next}`;
+    return {
+      message:
+        `This page deployed a ProxyAdmin earlier (${address}). Its owner is ${owner}, not the connected wallet. ` +
+        'Connect that account, or deploy a new ProxyAdmin.',
+      keepSaved: true,
+    };
   }
   return null;
 }

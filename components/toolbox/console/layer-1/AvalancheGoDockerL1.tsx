@@ -5,8 +5,9 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useWalletStore } from '../../stores/walletStore';
 import { useCreateChainStore } from '../../stores/createChainStore';
 import { Container } from '../../components/Container';
-import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork } from '../../coreViem/utils/glacier';
+import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork, GlacierHttpError } from '../../coreViem/utils/glacier';
 import InputSubnetId from '../../components/InputSubnetId';
+import { DATA_API_ERROR, pageLookupErrorText, subnetIdFormatErrorText } from '../../utils/vmcLookupText';
 import BlockchainDetailsDisplay from '../../components/BlockchainDetailsDisplay';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -23,7 +24,11 @@ import {
   generateNodeConfig,
   generateDockerCommand,
   generateAllConfigCommands,
+  isDebugTraceOn,
+  l1PortsTileText,
+  l1StorageTileText,
 } from './nodeConfig';
+import Link from 'next/link';
 import { useNodeConfigHighlighting } from './useNodeConfigHighlighting';
 import {
   AlertCircle,
@@ -310,7 +315,8 @@ function AvalanchegoDockerInner({
     setChainId('');
     setSubnet(null);
     setBlockchainInfo(null);
-    if (!subnetId) return;
+    // A value that is not a Subnet ID in form (for example while the user types) gets the field's text, and no read
+    if (!subnetId || subnetIdFormatErrorText(subnetId)) return;
 
     const abortController = new AbortController();
     setIsLoading(true);
@@ -331,19 +337,17 @@ function AvalanchegoDockerInner({
             const chainInfo = await getBlockchainInfoForNetwork(network, blockchainId, abortController.signal);
             if (abortController.signal.aborted) return;
             setBlockchainInfo(chainInfo);
-          } catch (error) {
-            if (!abortController.signal.aborted) {
-              setSubnetIdError((error as Error).message);
-            }
+          } catch {
+            if (!abortController.signal.aborted) setSubnetIdError(DATA_API_ERROR);
           }
         }
-      } catch {
+      } catch (error) {
+        // A miss names the Network toggle, which sets the network that this page reads. A Data API failure (5xx, 429,
+        // network error) does not blame the ID. The Subnet ID field reads the other network too, and its more exact
+        // text replaces this one when it has one.
         if (!abortController.signal.aborted) {
-          const [here, other] = selectedNetwork === 'fuji' ? ['Fuji', 'Mainnet'] : ['Mainnet', 'Fuji'];
-          setSubnetIdError(
-            `L1 not found on ${here}. A new L1 can take a minute to appear. Make sure this is a Subnet ID, not a ` +
-              `blockchain ID. If the L1 is on ${other}, switch networks.`,
-          );
+          const status = error instanceof GlacierHttpError ? error.status : undefined;
+          setSubnetIdError(pageLookupErrorText(status, selectedNetwork === 'fuji'));
         }
       } finally {
         if (!abortController.signal.aborted) setIsLoading(false);
@@ -432,7 +436,7 @@ function AvalanchegoDockerInner({
 curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.isBootstrapped","params":{"chain":"P"}}' \\
   -H 'content-type:application/json;' http://localhost:9650/ext/info | jq
 
-# Get nodeID + BLS proof-of-possession (inputs for Convert to L1)
+# Get nodeID + BLS proof-of-possession (inputs for Convert to L1 or Add Validator)
 curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
   -H 'content-type:application/json;' http://localhost:9650/ext/info | jq`;
 
@@ -859,15 +863,16 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
               </div>
 
               {/* Storage Requirements Visualization (matches Primary Network setup).
-                  variant="l1" anchors the baseline on the ~40 GB Fuji / ~200 GB
-                  Mainnet figures shown in the Set up Instance tile — Primary
-                  Network's 13 TB archival numbers don't apply to L1s. */}
+                  variant="l1" uses the L1 baseline. The Set up Instance storage
+                  tile shows this chart's Initial figure for the node type's
+                  preset (l1StorageTileText). Primary Network's 13 TB archival
+                  numbers don't apply to L1s. */}
               <StorageRequirements
                 nodeType={nodeType}
                 pruningEnabled={cfg.pruningEnabled}
                 skipTxIndexing={cfg.skipTxIndexing}
                 stateSyncEnabled={cfg.stateSyncEnabled}
-                debugEnabled={cfg.enableDebugTrace}
+                debugEnabled={isDebugTraceOn(nodeType, cfg.enableDebugTrace)}
                 network={selectedNetwork}
                 variant="l1"
               />
@@ -925,7 +930,7 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                   <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
                 </div>
                 <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {isTestnet ? '~40 GB Fuji' : '~200 GB Mainnet'}
+                  {l1StorageTileText(nodeType, isTestnet)}
                 </div>
               </div>
               <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
@@ -933,7 +938,9 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                   <ShieldCheck className="w-4 h-4 text-zinc-500" />
                   <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Open ports</span>
                 </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">9651 P2P · 9650 RPC</div>
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {l1PortsTileText(nodeType)}
+                </div>
               </div>
             </div>
 
@@ -974,7 +981,15 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
               : 'Enter the Avalanche Subnet ID of the L1 you want to run a node for.'}
           </p>
 
-          <InputSubnetId value={subnetId} onChange={setSubnetId} error={subnetIdError} />
+          {/* The field reads the network of this page's Network toggle, not the wallet's. The suggestions come
+              from the L1 list of the wallet's network. Hide them when the toggle names the other network. */}
+          <InputSubnetId
+            value={subnetId}
+            onChange={setSubnetId}
+            error={subnetIdError}
+            isTestnet={isTestnet}
+            hideSuggestions={isTestnet !== walletIsTestnet}
+          />
 
           {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
             <div className="space-y-4 mt-4">
@@ -1183,7 +1198,8 @@ sudo ufw status`
             <Step>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Start the node. Config is read from the mounted volume — no env vars needed.
+                Start the node. The command gives the node the path of its config file and the VM ID. The node reads all
+                other settings from the mounted volume.
               </p>
 
               <DynamicCodeBlock
@@ -1227,8 +1243,8 @@ sudo ufw status`
                 {isCustomVM && (
                   <Accordion title="Custom VM Configuration">
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      This blockchain uses a non-standard Virtual Machine ID. The Docker command includes VM aliases
-                      mapping.
+                      This blockchain uses a non-standard Virtual Machine ID. The <code>aliases.json</code> file from
+                      Create Configuration Files maps this VM ID to Subnet-EVM.
                     </p>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
                       <strong>VM ID:</strong> {blockchainInfo.vmId}
@@ -1255,8 +1271,8 @@ sudo ufw status`
             <Step>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Verify the Node</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Wait for bootstrap, then grab the <code>nodeID</code> and BLS proof-of-possession — these are the inputs
-                for the Convert to L1 step.
+                Wait for bootstrap, then get the <code>nodeID</code> and BLS proof-of-possession. A new L1 needs them in
+                the Convert to L1 step. An L1 that already runs needs them in Add Validator.
               </p>
 
               <DynamicCodeBlock lang="bash" code={verifySnippet} />
@@ -1273,8 +1289,12 @@ sudo ufw status`
                   <Copy className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-zinc-500" />
                   <span>
                     Copy the <code>nodeID</code>, <code>nodePOP.publicKey</code>, and{' '}
-                    <code>nodePOP.proofOfPossession</code> from the second response — paste them into the Convert to L1
-                    step.
+                    <code>nodePOP.proofOfPossession</code> from the second response. Paste them into the Convert to L1
+                    step for a new L1, or into{' '}
+                    <Link href="/console/add-validator" className="text-blue-500 hover:underline">
+                      Add Validator
+                    </Link>{' '}
+                    for an L1 that already runs.
                   </span>
                 </div>
               )}

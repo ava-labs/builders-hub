@@ -62,6 +62,7 @@ export function WalletSync() {
   const setCoreWalletClient = useWalletStore((s) => s.setCoreWalletClient);
   const setWalletEVMAddress = useWalletStore((s) => s.setWalletEVMAddress);
   const setWalletChainId = useWalletStore((s) => s.setWalletChainId);
+  const setWalletChainConfirmed = useWalletStore((s) => s.setWalletChainConfirmed);
   const setPChainAddress = useWalletStore((s) => s.setPChainAddress);
   const setCoreEthAddress = useWalletStore((s) => s.setCoreEthAddress);
   const setIsTestnet = useWalletStore((s) => s.setIsTestnet);
@@ -198,6 +199,7 @@ export function WalletSync() {
         setPChainAddress('');
         setCoreEthAddress('');
         setWalletChainId(0);
+        setWalletChainConfirmed(false);
         setCoreWalletClient(null);
         setWalletType(null);
         setBootstrapped(false);
@@ -314,6 +316,7 @@ export function WalletSync() {
     setEvmChainName,
     setIsTestnet,
     setPChainAddress,
+    setWalletChainConfirmed,
     setWalletChainId,
     setWalletEVMAddress,
     setWalletType,
@@ -384,13 +387,23 @@ export function WalletSync() {
   // chain "unsupported" and never propagates the change. That leaves
   // `walletChainId` stale in the store and breaks ChainGate for L1 steps.
   // A native listener catches every switch regardless of registration.
+  //
+  // The read and the events are the wallet's live chain, so they also set
+  // walletChainConfirmed. Until then, walletChainId can be wagmi's persisted
+  // chain: on a reload with the wallet on an L1, that is the last C-Chain
+  // that wagmi saw, which can be on the other network.
   useEffect(() => {
     if (isCoreConnector === null) return;
     if (!isConnected) return;
 
+    const applyLiveChainId = (next: number) => {
+      applyWalletChainId(next);
+      setWalletChainConfirmed(true);
+    };
+
     const handler = (chainIdHex: unknown) => {
       const next = parseProviderChainId(chainIdHex);
-      if (next !== null) applyWalletChainId(next);
+      if (next !== null) applyLiveChainId(next);
     };
 
     let cancelled = false;
@@ -405,7 +418,7 @@ export function WalletSync() {
 
       const liveChainId = await readWalletProviderChainId(provider);
       if (!cancelled && liveChainId !== null) {
-        applyWalletChainId(liveChainId);
+        applyLiveChainId(liveChainId);
       }
     });
 
@@ -413,7 +426,7 @@ export function WalletSync() {
       cancelled = true;
       activeProvider?.removeListener?.('chainChanged', handler);
     };
-  }, [applyWalletChainId, connector, isConnected, isCoreConnector]);
+  }, [applyWalletChainId, connector, isConnected, isCoreConnector, setWalletChainConfirmed]);
 
   return null;
 }

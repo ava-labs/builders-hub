@@ -14,6 +14,7 @@ import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/com
 import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
 
 type TokenType = 'native' | 'erc20';
 
@@ -410,7 +411,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
 
       // Provide more helpful error messages
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('insufficient funds')) {
         message = `Insufficient ${tokenLabel.toLowerCase()} balance for delegation`;
       } else if (message.includes('ERC20: insufficient allowance')) {
@@ -421,8 +422,8 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
         message = 'Delegation amount does not meet minimum stake duration requirements.';
       }
 
-      setErrorState(`Failed to initiate delegation: ${message}`);
-      onError(`Failed to initiate delegation: ${message}`);
+      setErrorState(failureText('Failed to initiate delegation: ', message));
+      onError(failureText('Failed to initiate delegation: ', message));
     } finally {
       setIsProcessing(false);
     }

@@ -15,6 +15,7 @@ import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/com
 import { useUptimeProof, probeValidatorUptime } from '@/components/toolbox/hooks/useUptimeProof';
 import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
 
 type TokenType = 'native' | 'erc20';
 
@@ -192,7 +193,7 @@ export function PosInitiateRemoval({
       let message = err instanceof Error ? err.message : String(err);
 
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('ValidatorIneligibleForRewards') || message.includes('ineligible for rewards')) {
         // The contract said "this validator hasn't earned rewards": transition
         // to force mode so the user's next click does the no-rewards removal.

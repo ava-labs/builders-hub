@@ -376,9 +376,7 @@ export default function CreateL1Questionnaire() {
         <div className="mb-8">
           <ProgressBar current={0} total={totalSteps + 1} />
           <div className="flex items-center justify-between mt-3">
-            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-              Question 1 of {totalSteps}
-            </p>
+            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Setup</p>
             <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
           </div>
         </div>
@@ -501,14 +499,14 @@ export default function CreateL1Questionnaire() {
       )}
 
       {/* ── Progress ──────────────────────────────────────── */}
-      {/* The Basic vs Advanced chooser counts as Q1, so the Advanced
-          questionnaire picks up from Q2 onward. `+1` shifts both the
-          displayed index and the total. */}
+      {/* The progress bar counts the Basic vs Advanced chooser as its
+          first step. The question count does not: the chooser shows no
+          count, so the Advanced questions count from 1. */}
       <div className="mb-8">
         <ProgressBar current={questionIndex + 1} total={totalQuestions + 2} />
         <div className="flex items-center justify-between mt-3">
           <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-            {isReview ? 'Review' : `Question ${questionIndex + 2} of ${totalQuestions + 1}`}
+            {isReview ? 'Review' : `Question ${questionIndex + 1} of ${totalQuestions}`}
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
         </div>
@@ -785,7 +783,7 @@ export default function CreateL1Questionnaire() {
                   Review your setup
                 </h2>
                 <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  Your custom deployment flow based on the choices above.
+                  The deployment steps for your answers.
                 </p>
               </div>
 

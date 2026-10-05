@@ -171,7 +171,7 @@ function CrossChainCard() {
               the alpha video on the right half of the card. */}
           <div className="space-y-1 max-w-[50%]">
             <SubLink href="/console/icm/setup" icon={MessagesSquare} label="ICM Setup" />
-            <SubLink href="/console/ictt/setup" icon={ArrowUpDown} label="ICTT Bridge" />
+            <SubLink href="/console/ictt/setup" icon={ArrowUpDown} label="ICTT Setup" />
           </div>
         </div>
       </motion.div>

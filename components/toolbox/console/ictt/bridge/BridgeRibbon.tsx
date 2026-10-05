@@ -143,8 +143,8 @@ export function BridgeRibbon() {
         />
       );
     }
-    // Block ribbon-driven picking until TokenHome is deployed — otherwise users
-    // can jump to Phase 3 without prerequisites.
+    // Block ribbon-driven picking until TokenHome is deployed. Otherwise users
+    // can jump to the Remote step without prerequisites.
     if (!ctx.bridge?.homeAddress) {
       return (
         <div
@@ -590,8 +590,8 @@ function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinat
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-            Where should bridged tokens land? Choose any L1 except the Home chain. We&apos;ll open Phase 3 with this
-            chain pre-selected.
+            Where should bridged tokens land? Choose any L1 except the Home chain. The Remote step opens with this chain
+            selected.
           </p>
           {candidates.length === 0 ? (
             <div className="flex flex-col items-stretch gap-2 rounded-lg border border-dashed border-zinc-200 px-3 py-6 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">

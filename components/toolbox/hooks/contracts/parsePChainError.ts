@@ -1,3 +1,5 @@
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
+
 /**
  * Maps common P-Chain operation errors to human-readable messages.
  * Used by components that submit transactions directly to the P-Chain
@@ -6,7 +8,7 @@
 export function parsePChainError(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
 
-  if (raw.includes('User rejected')) return 'Transaction was rejected by user';
+  if (raw.includes('User rejected') || raw.includes('user rejected')) return WALLET_REJECTED_TEXT;
   if (raw.includes('insufficient funds')) return 'Insufficient P-Chain balance for transaction';
 
   // P-Chain rejects with: "signature weight is insufficient: 67*<total> > 100*<signed>".
@@ -22,8 +24,8 @@ export function parsePChainError(err: unknown): string {
       const percent = total > 0n ? Number((signed * 10000n) / total) / 100 : 0;
       return (
         `Signature aggregator only collected ${percent.toFixed(1)}% of the signing subnet's ` +
-        `stake (need 67%). This is a transient aggregator/validator availability gap — retry the ` +
-        `P-Chain submission, the next aggregation usually pulls a different set of responders. ` +
+        `stake (need 67%). This is a transient aggregator/validator availability gap. Retry the ` +
+        `P-Chain submission: the next aggregation usually pulls a different set of responders. ` +
         `Common on Fuji, where the Primary Network signing set is small.`
       );
     }

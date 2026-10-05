@@ -125,8 +125,8 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
             Load key
           </Button>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-            On the canonical Fuji demo, the key lives with whoever ran the deploy script — get it from them or appoint
-            yourself as the new auditor via <em>Set Auditor</em>.
+            On the canonical Fuji demo, the key is with the person who ran the deploy script. Get it from them, or
+            appoint yourself as the new auditor via <em>Set Auditor</em>.
           </p>
         </div>
       )}
@@ -189,7 +189,8 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
                     {e.to ? `${e.to.slice(0, 10)}…` : 'None'}
                   </td>
                   <td className="px-3 py-2 font-mono text-right text-zinc-700 dark:text-zinc-300">
-                    {e.amountFormatted ?? (ev.decryptionKey ? <span className="text-zinc-400">wrong key</span> : '—')}
+                    {e.amountFormatted ??
+                      (ev.decryptionKey ? <span className="text-zinc-400">wrong key</span> : 'Hidden')}
                   </td>
                   <td className="px-3 py-2">
                     <EERCTxLink

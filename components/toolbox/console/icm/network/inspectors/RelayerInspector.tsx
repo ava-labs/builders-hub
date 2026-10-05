@@ -40,8 +40,8 @@ export function RelayerInspector() {
           How do you want to relay messages?
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          A relayer watches your source chains and delivers messages to destination chains. Pick the option that fits
-          your stage — Avalanche can host one for you on testnet, or you can run your own Docker container.
+          A relayer watches your source chains and delivers messages to destination chains. On testnet, Avalanche can
+          host a relayer for you. You can also run your own relayer in a Docker container.
         </p>
       </header>
       <ToggleGroup
@@ -59,7 +59,8 @@ export function RelayerInspector() {
             <Cloud className="h-4 w-4" aria-hidden /> Managed testnet relayer
           </div>
           <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            Avalanche hosts a relayer for your Fuji testnet L1. No Docker, no funding.
+            Avalanche hosts a relayer for your Fuji testnet L1. You do not need Docker. You fund the relayer address
+            with gas on each chain.
           </p>
         </ToggleGroupItem>
         <ToggleGroupItem

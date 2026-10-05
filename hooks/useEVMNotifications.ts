@@ -3,6 +3,7 @@ import { getTxHistoryStore } from '@/components/toolbox/stores/txHistoryStore';
 import { useConsoleLog } from './use-console-log';
 import { Chain, createPublicClient, http } from 'viem';
 import { classifyEvmTxError } from '@/components/toolbox/lib/evmErrors';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 import { ReceiptUnknownError, waitForReceiptWithWalletFallback } from '@/components/toolbox/lib/walletReceipt';
 import { usePathname } from 'next/navigation';
 import posthog from 'posthog-js';
@@ -199,7 +200,7 @@ const useEVMNotifications = () => {
           ? classified.message.startsWith("Couldn't confirm")
             ? `${options.name}: ${classified.message}`
             : `Couldn't confirm ${options.name}: ${classified.message}`
-          : messages.error + classified.message;
+          : failureText(messages.error, classified.message);
         const unknownHash =
           (error as { txHash?: string })?.txHash ??
           classified.txHash ??

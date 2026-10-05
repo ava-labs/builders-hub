@@ -7,7 +7,7 @@ import ClaimDelegationFeesStep from "@/components/toolbox/console/remove-validat
 import VerifyValidatorSetStep from "@/components/toolbox/console/permissioned-l1s/shared/VerifyValidatorSetStep";
 
 export const steps: StepDefinition[] = [
-  { type: "single", key: "select-subnet", title: "Select L1 Subnet", component: SelectSubnetStep },
+  { type: "single", key: "select-subnet", title: "Select L1", component: SelectSubnetStep },
   { type: "single", key: "initiate-removal", title: "Initiate Removal", component: InitiateRemovalStep },
   { type: "single", key: "pchain-removal", title: "P-Chain Weight Update", component: PChainRemovalStep },
   { type: "single", key: "complete-removal", title: "Complete Removal", component: CompleteRemovalStep },

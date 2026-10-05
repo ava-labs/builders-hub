@@ -31,6 +31,7 @@ import {
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
 import { SigningSubnetStatus, signingSubnetWaitText } from './SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -144,8 +145,8 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       return false;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return false;
     }
     if (!managerAddress) {

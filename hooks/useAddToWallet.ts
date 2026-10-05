@@ -5,6 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useWalletType } from "@/components/toolbox/stores/walletStore";
 import { toast } from "@/lib/toast";
 import { rpcUrlsEquivalent } from "@/components/toolbox/lib/rpcUrl";
+import { WALLET_REJECTED_TEXT } from "@/components/toolbox/lib/walletRejection";
 
 interface AddToWalletOptions {
   rpcUrl: string;
@@ -60,8 +61,9 @@ export function useAddToWallet(): UseAddToWalletReturn {
       try {
         await window.ethereum.request({ method: "eth_requestAccounts" });
       } catch (authError: any) {
+        // The user refused to connect the wallet to the site.
         if (authError.code === 4001) {
-          toast.error("Request rejected", "Please connect your wallet first");
+          toast.error("Connect your wallet first.");
           return { ok: false, alreadyAdded: false };
         }
         // Non-4001 errors (e.g. already connected) are safe to ignore.
@@ -176,7 +178,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
       console.error("Failed to add chain to wallet:", error);
 
       if (error.code === 4001) {
-        toast.error("Request rejected", "You rejected the request");
+        toast.error(WALLET_REJECTED_TEXT);
       } else {
         toast.error("Failed to add chain", error.message || "An error occurred");
       }

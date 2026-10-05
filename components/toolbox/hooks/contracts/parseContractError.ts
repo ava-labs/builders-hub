@@ -1,3 +1,5 @@
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
+
 /**
  * Maps known Solidity revert selectors and error names to human-readable messages.
  * Used by contract hooks to provide actionable error messages instead of raw hex.
@@ -193,7 +195,7 @@ export function parseContractError(err: unknown): string {
 
   // User rejection: pass through quickly
   if (raw.includes('User rejected') || raw.includes('user rejected')) {
-    return 'Transaction was rejected by user';
+    return WALLET_REJECTED_TEXT;
   }
 
   // Insufficient native funds

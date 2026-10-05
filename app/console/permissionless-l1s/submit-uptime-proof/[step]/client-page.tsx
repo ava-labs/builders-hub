@@ -7,10 +7,10 @@ import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManag
 
 export default function SubmitUptimeProofClientPage({ currentStepKey }: { currentStepKey: string }) {
     const basePath = "/console/permissionless-l1s/submit-uptime-proof";
-    const { subnetIdL1, globalError } = useUptimeProofStore();
+    const { subnetIdL1 } = useUptimeProofStore();
 
     return (
-        <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError} showPoSWarning>
+        <ValidatorManagerLayout subnetIdL1={subnetIdL1} showPoSWarning>
             <StepFlow
                 steps={steps}
                 basePath={basePath}

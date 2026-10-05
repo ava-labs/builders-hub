@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import type { ConsoleLog } from '@/types/console-log';
@@ -112,6 +113,7 @@ export default function ConsoleHistoryPage() {
   const getTxExplorerUrl = (tx: TxRecord): string | null => {
     if (!tx.txHash) return null;
     if (tx.type === 'pchain') return `/explorer/${tx.network}/p-chain/tx/${tx.txHash}`;
+    if (tx.type === 'cchain-atomic') return `/explorer/${tx.network}/c-chain/atomic-tx/${tx.txHash}`;
     if (tx.chainId === 43114) return `/explorer/mainnet/c-chain/tx/${tx.txHash}`;
     if (tx.chainId === 43113) return `/explorer/fuji/c-chain/tx/${tx.txHash}`;
     const base = tx.network === 'mainnet' ? 'https://explorer.avax.network' : 'https://explorer-test.avax.network';
@@ -213,7 +215,16 @@ export default function ConsoleHistoryPage() {
         </motion.section>
       )}
 
-      {/* Local transaction history (from txHistoryStore — persisted in localStorage) */}
+      {/* Local transaction history (from txHistoryStore, kept in localStorage) */}
+      {txHistory.length === 0 && (
+        <motion.p className="mb-8 text-sm text-zinc-500" variants={sectionItem}>
+          No transactions from this browser yet. Transactions that you send in the{' '}
+          <Link href="/console" className="underline underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-300">
+            Console
+          </Link>{' '}
+          show here.
+        </motion.p>
+      )}
       {filteredTxHistory.length > 0 && (
         <motion.section className="mb-8" variants={sectionItem}>
           <div className="flex items-center justify-between mb-3">
@@ -263,12 +274,12 @@ export default function ConsoleHistoryPage() {
                     <span
                       className={cn(
                         'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-                        tx.type === 'pchain'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                        tx.type === 'evm'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
                       )}
                     >
-                      {tx.type === 'pchain' ? 'P-Chain' : 'EVM'}
+                      {tx.type === 'pchain' ? 'P-Chain' : tx.type === 'cchain-atomic' ? 'C-Chain' : 'EVM'}
                     </span>
                     <span
                       className={cn(

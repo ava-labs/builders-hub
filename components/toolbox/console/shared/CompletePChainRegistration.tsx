@@ -38,6 +38,7 @@ import {
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
 import { SigningSubnetStatus, signingSubnetWaitText } from './SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -146,8 +147,8 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       return false;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return false;
     }
     if (!managerAddress) {

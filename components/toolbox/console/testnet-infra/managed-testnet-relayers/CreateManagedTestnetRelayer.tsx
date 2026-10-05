@@ -49,11 +49,12 @@ function CreateManagedTestnetRelayerBase() {
   const [tokenAmounts, setTokenAmounts] = useState<Record<string, string>>({});
   const [isSending, setIsSending] = useState(false);
 
-  // Initialize with first chain if available
+  // Start with the first chain as the source and the second chain as the destination. The same chain on both sides
+  // is not a valid pair, so a list of one chain starts with no destination.
   useEffect(() => {
     if (l1List.length > 0 && selectedSources.length === 0 && selectedDestinations.length === 0) {
       setSelectedSources([l1List[0].id]);
-      setSelectedDestinations([l1List[0].id]);
+      setSelectedDestinations(l1List[1] ? [l1List[1].id] : []);
     }
   }, [l1List]);
 

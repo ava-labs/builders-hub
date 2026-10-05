@@ -107,8 +107,8 @@ export default function BasicSetupForm() {
   // flow.
   const [validatorMode, setValidatorMode] = useState<ValidatorMode>({ type: 'poa' });
   const [precompiles, setPrecompiles] = useState<Required<PrecompileConfig>>(DEFAULT_PRECOMPILES);
-  // Managed ICM relayer + MockUSDC bridge — opt-in, off by default so
-  // the common path (baseline L1 deploy) stays ~30s. Enabling it costs
+  // Managed ICM relayer + MockUSDC bridge: opt-in, off by default so
+  // the common path (baseline L1 deploy) stays faster. Enabling it costs
   // ~60-120s for relayer boot + ICTT deploys. Requires Warp/ICM to be
   // on in genesis; we enforce that dependency on submit and visually
   // in the UI below.
@@ -372,7 +372,7 @@ export default function BasicSetupForm() {
 
               {/* Reassurance line: small, muted */}
               <p className="mt-2 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
-                Usually takes 1–2 minutes. You can leave the tab open.
+                This usually takes 1 to 2 minutes. You can leave the tab open.
               </p>
             </motion.div>
           </div>
@@ -443,7 +443,7 @@ function ChainDetailsCard({
       <div className="px-5 py-5 space-y-5 flex-1">
         <BigField
           label="Chain name"
-          hint="Registered on the Avalanche P-Chain. 2–32 characters. Letters, digits, and spaces only."
+          hint="Registered on the Avalanche P-Chain. 2 to 32 characters. Letters, digits, and spaces only."
           value={chainName}
           onChange={setChainName}
           placeholder="My Awesome L1"
@@ -452,7 +452,7 @@ function ChainDetailsCard({
         />
         <BigField
           label="Coin symbol"
-          hint="Ticker for the native gas token. 2–5 letters. Auto-derived from chain name."
+          hint="Ticker for the native gas token. 2 to 5 letters. Auto-derived from chain name."
           value={tokenSymbol}
           onChange={setTokenSymbol}
           placeholder="COIN"
@@ -784,8 +784,8 @@ function ManagedRelayerCard({
             {enabled
               ? 'Adds ~60-120s to setup. Ready-to-use cross-chain bridge when done.'
               : warpEnabled
-                ? 'Leave off for a ~30s deploy. Enable anytime later from the relayer page.'
-                : 'Requires Warp/Interoperability — clicking will auto-enable it.'}
+                ? 'Leave it off for a faster deploy. You can turn it on later on the relayer page.'
+                : 'Needs Warp/Interoperability. Turning it on also turns on Warp.'}
           </div>
         </div>
         <Toggle checked={enabled} />

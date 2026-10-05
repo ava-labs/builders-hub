@@ -13,6 +13,7 @@ import { ICTT_HOME_SOURCES } from '@/lib/ictt/contractSources';
 import { InspectorShell } from '@/components/console/inspector-shell';
 import { useDeployTokenHome } from '../hooks/useDeployTokenHome';
 import { truncateAddress } from '../utils/explorer-url';
+import { describeTokenReadError, describeTxError } from '../utils/tx-error';
 import type { Address, BridgePhase, Bridge } from '../types';
 
 interface HomeInspectorProps {
@@ -99,7 +100,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
       })
       .catch((err) => {
         if (cancelled) return;
-        setDecimalsError(`Could not read token decimals: ${(err as Error).message}`);
+        setDecimalsError(describeTokenReadError(err, viemChain.name));
       });
     return () => {
       cancelled = true;
@@ -144,7 +145,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
         banner={
           !underlyingTokenAddress && (
             <Note variant="warning">
-              <span className="text-xs">Pick a source token in Phase 1 first.</span>
+              <span className="text-xs">Pick a source token in the Token step first.</span>
             </Note>
           )
         }
@@ -167,11 +168,11 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Deploying <span className="font-medium text-zinc-900 dark:text-zinc-100">ERC20TokenHome</span> on{' '}
             <span className="font-medium text-zinc-900 dark:text-zinc-100">{selectedL1?.name ?? 'the Home chain'}</span>
-            . Your wallet must be on this chain — we&apos;ll auto-switch if needed. The constructor wires the contract
-            to the Teleporter registry and your token in one transaction.
+            . Your wallet must be on this chain. If it is not, the Console switches it. The constructor wires the
+            contract to the Teleporter registry and your token in one transaction.
           </p>
 
-          <FormField label="Source token" hint="Auto-filled from Phase 1.">
+          <FormField label="Source token" hint="Filled in from the Token step.">
             <code className="block rounded-md bg-zinc-100 px-2.5 py-1.5 font-mono text-[12px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
               {underlyingTokenAddress
                 ? `${truncateAddress(underlyingTokenAddress, 10, 6)}${symbol ? ` · ${symbol}` : ''}`
@@ -212,7 +213,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
 
           {error && (
             <Note variant="destructive">
-              <span className="text-xs">{error.message}</span>
+              <span className="text-xs">{describeTxError(error)}</span>
             </Note>
           )}
 

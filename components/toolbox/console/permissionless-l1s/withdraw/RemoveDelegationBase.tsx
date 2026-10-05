@@ -173,13 +173,12 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
   return (
     <div className="space-y-6">
-      {globalError && <Alert variant="error">Error: {globalError}</Alert>}
-
+      {/* Each step's tool shows its own error next to its button. globalError only shows the reset button. */}
       <Steps>
         <L1SubnetStep
           subnetId={l1State.subnetIdL1}
           onSubnetIdChange={l1State.setSubnetIdL1}
-          description="Choose the L1 subnet where you want to remove a delegation."
+          description="Choose the L1 where you want to remove a delegation."
           validatorManagerDetails={validatorManagerDetails}
           validatorManagerError={validatorManagerDetails.error}
           isExpanded={l1State.isValidatorManagerDetailsExpanded}

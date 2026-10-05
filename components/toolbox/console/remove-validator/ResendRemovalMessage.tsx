@@ -6,6 +6,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { Button } from '@/components/toolbox/components/Button';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
 
 interface ResendRemovalMessageProps {
   /** The underlying ValidatorManager contract address (NOT the StakingManager). */
@@ -60,7 +61,7 @@ export function ResendRemovalMessage({
       onSuccess(hash);
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
-      if (message.includes('User rejected')) message = 'Transaction was rejected by user';
+      if (message.includes('User rejected')) message = WALLET_REJECTED_TEXT;
       setLocalError(message);
       onError(message);
     } finally {
@@ -86,8 +87,7 @@ export function ResendRemovalMessage({
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Click below to re-emit the same warp message from a new transaction. Then go back to{' '}
             <strong>P-Chain Weight Update</strong> with the fresh transaction hash and try aggregation again. Repeat
-            until P-Chain accepts the message — each fresh aggregation rolls the dice against the current validator-set
-            snapshot.
+            until P-Chain accepts the message. Each new aggregation uses the current validator-set snapshot.
           </p>
         </div>
       </div>

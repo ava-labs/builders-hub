@@ -29,6 +29,12 @@ interface AddValidatorState {
   // locally from the warp message in CompletePChainRegistration, so it stays empty there.
   validationID: string;
   pChainTxId: string;
+  /**
+   * True after Complete Registration (completeValidatorRegistration) succeeds. Only then does the ?subnetId= query
+   * start a new flow on the same L1 (useSubnetIdQuery). pChainTxId is set one step earlier, so it does not mark
+   * the end.
+   */
+  flowCompleted: boolean;
   globalError: string | null;
   globalSuccess: string | null;
 
@@ -39,6 +45,7 @@ interface AddValidatorState {
   setBlsProofOfPossession: (blsProofOfPossession: string) => void;
   setValidationID: (validationID: string) => void;
   setPChainTxId: (pChainTxId: string) => void;
+  setFlowCompleted: (flowCompleted: boolean) => void;
   setGlobalError: (globalError: string | null) => void;
   setGlobalSuccess: (globalSuccess: string | null) => void;
   reset: () => void;
@@ -52,6 +59,7 @@ const initialValues = {
   blsProofOfPossession: '',
   validationID: '',
   pChainTxId: '',
+  flowCompleted: false,
   globalError: null as string | null,
   globalSuccess: null as string | null,
 };
@@ -70,6 +78,7 @@ const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } = creat
         blsProofOfPossession: '',
         validationID: '',
         pChainTxId: '',
+        flowCompleted: false,
         globalError: null,
         globalSuccess: null,
       }),
@@ -82,17 +91,20 @@ const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } = creat
         blsProofOfPossession: '',
         validationID: '',
         pChainTxId: '',
+        flowCompleted: false,
         globalError: null,
         globalSuccess: null,
       }),
 
-    setEvmTxHash: (evmTxHash: string) => set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
+    setEvmTxHash: (evmTxHash: string) =>
+      set({ evmTxHash, pChainTxId: '', flowCompleted: false, globalError: null, globalSuccess: null }),
 
     setValidatorBalance: (validatorBalance: string) => set({ validatorBalance }),
     setBlsProofOfPossession: (blsProofOfPossession: string) => set({ blsProofOfPossession }),
     setValidationID: (validationID: string) => set({ validationID }),
 
     setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
+    setFlowCompleted: (flowCompleted: boolean) => set({ flowCompleted }),
 
     setGlobalError: (globalError: string | null) => set({ globalError }),
     setGlobalSuccess: (globalSuccess: string | null) => set({ globalSuccess }),

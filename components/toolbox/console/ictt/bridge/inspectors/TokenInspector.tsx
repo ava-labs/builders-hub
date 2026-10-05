@@ -17,6 +17,7 @@ import { useDeploySourceToken } from '../hooks/useDeploySourceToken';
 import { useDeployWrappedNative } from '../hooks/useDeployWrappedNative';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';
 import { truncateAddress } from '../utils/explorer-url';
+import { describeTokenReadError, describeTxError } from '../utils/tx-error';
 import type { Address, Bridge, BridgePhase } from '../types';
 
 type Mode = 'existing' | 'deploy-test' | 'wrap-native';
@@ -25,11 +26,11 @@ interface TokenInspectorProps {
   onPhaseChange: (next: BridgePhase) => void;
   /** Address selected so far (from prior deploy, paste, or migration). */
   underlyingTokenAddress: Address | null;
-  /** Lift the chosen address to the parent so Phase 2 can read it. */
+  /** Lift the chosen address to the parent so the Home step can read it. */
   onTokenSelected: (address: Address | null) => void;
   /** Active bridge, if any. Used to detect "editing an existing bridge". */
   bridge: Bridge | null;
-  /** Reset the active bridge association so Phase 1 starts fresh. */
+  /** Reset the active bridge association so the Token step starts fresh. */
   onStartNewBridge: () => void;
   /** True when the user has explicitly chosen to start fresh. Suppresses the
    *  "editing existing bridge" banner even if `bridge` momentarily appears
@@ -72,7 +73,7 @@ export function TokenInspector({
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                 <span>
                   You&apos;re looking at an existing bridge (TokenHome already deployed). Deploying or selecting a new
-                  token here will <strong>replace</strong> it for the next phases. Start a fresh bridge to keep the
+                  token here will <strong>replace</strong> it for the next steps. Start a fresh bridge to keep the
                   current one intact.
                 </span>
                 <button
@@ -168,7 +169,7 @@ function DeployTestPanel({ chainName, existingAddress, onTokenSelected }: Deploy
       <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy a test ERC-20</p>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          1,000,000 tokens minted to{' '}
+          10,000,000,000 tokens minted to{' '}
           {walletEVMAddress ? (
             <code className="font-mono text-[11px]">{truncateAddress(walletEVMAddress)}</code>
           ) : (
@@ -199,7 +200,7 @@ function DeployTestPanel({ chainName, existingAddress, onTokenSelected }: Deploy
       {existingAddress && <SelectedTokenChip address={existingAddress} chainName={chainName} />}
       {error && (
         <Note variant="destructive">
-          <span className="text-xs">{error.message}</span>
+          <span className="text-xs">{describeTxError(error)}</span>
         </Note>
       )}
     </div>
@@ -255,7 +256,7 @@ function ExistingTokenPanel({ chainName, existingAddress, onTokenSelected }: Exi
       setMeta({ name, symbol, decimals: Number(decimals) });
       onTokenSelected(pasted as Address);
     } catch (err) {
-      setVerifyError(`Could not read ERC-20 metadata: ${(err as Error).message}`);
+      setVerifyError(describeTokenReadError(err, chainName ?? viemChain.name));
       setMeta(null);
     } finally {
       setVerifying(false);
@@ -488,7 +489,7 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
       {existingAddress && <SelectedTokenChip address={existingAddress} chainName={selectedL1?.name} />}
       {error && (
         <Note variant="destructive">
-          <span className="text-xs">{error.message}</span>
+          <span className="text-xs">{describeTxError(error)}</span>
         </Note>
       )}
     </div>
@@ -536,7 +537,7 @@ function WrapUnwrapControls({
       setWrapAmount('');
       onRefresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(describeTxError(e));
     } finally {
       setBusy(null);
     }
@@ -559,7 +560,7 @@ function WrapUnwrapControls({
       setUnwrapAmount('');
       onRefresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(describeTxError(e));
     } finally {
       setBusy(null);
     }
@@ -619,18 +620,14 @@ function BalanceSummary({
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
           Native
         </span>
-        <span className="font-mono">
-          {formatBalance(native, 18)} {coinName}
-        </span>
+        <span className="font-mono">{balanceText(native, coinName)}</span>
       </span>
       {showWrapped && (
         <span className="flex items-center gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
             Wrapped
           </span>
-          <span className="font-mono">
-            {formatBalance(wrapped, 18)} W{coinName}
-          </span>
+          <span className="font-mono">{balanceText(wrapped, `W${coinName}`)}</span>
         </span>
       )}
     </div>
@@ -681,8 +678,12 @@ function WrapField({ label, amount, onChange, onMax, onSubmit, isBusy, submitLab
   );
 }
 
-function formatBalance(value: bigint | null, decimals: number): string {
-  if (value === null) return '—';
+/** A balance with its unit, or 'Not loaded' while the read runs or after it fails. */
+function balanceText(value: bigint | null, unit: string): string {
+  return value === null ? 'Not loaded' : `${formatBalance(value, 18)} ${unit}`;
+}
+
+function formatBalance(value: bigint, decimals: number): string {
   const factor = 10n ** BigInt(decimals);
   const whole = value / factor;
   const fraction = value % factor;

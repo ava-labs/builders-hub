@@ -20,6 +20,7 @@ import {
   generateChainConfig,
   generatePrimaryNetworkNodeConfig,
   generatePrimaryNetworkDockerCommand,
+  primaryValidatorStorageNote,
 } from '@/components/toolbox/console/layer-1/nodeConfig';
 import { useNodeConfigHighlighting } from '@/components/toolbox/console/layer-1/useNodeConfigHighlighting';
 import { C_CHAIN_ID } from '@/components/toolbox/console/layer-1/create/config';
@@ -1156,15 +1157,18 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
               </div>
               <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {nodeType === 'archival' ? '20 TB' : '1 TB'} {nodeType === 'validator' && 'NVMe'}
+                {nodeType === 'validator' ? '1 TB+ NVMe' : nodeType === 'archival' ? '20 TB' : '1 TB'}
               </div>
             </div>
           </div>
 
-          {/* Storage note */}
+          {/* Storage note. The validator numbers are the storage chart's figures for the validator settings. */}
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {nodeType === 'validator' ? (
-              <>Use local NVMe, not cloud block storage (EBS, Persistent Disk). </>
+              <>
+                Use local NVMe, not cloud block storage (EBS, Persistent Disk).{' '}
+                {primaryValidatorStorageNote(selectedNetwork === 'fuji')}{' '}
+              </>
             ) : nodeType === 'archival' ? (
               <>Full historical state requires significant storage. </>
             ) : (
@@ -1332,15 +1336,16 @@ sudo ufw status`
         <Step>
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Start the node. Config is read from the mounted volume — no env vars needed.
+            Start the node. The command gives the node the path of its config file. The node reads all other settings
+            from the mounted volume.
           </p>
 
           <DynamicCodeBlock lang="bash" code={getDockerCommand()} />
 
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-            Restart anytime with{' '}
-            <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded">docker restart avago</code> — config
-            changes are picked up automatically.
+            To apply a config change, run{' '}
+            <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded">docker restart avago</code>. The node
+            reads its config files when it starts.
           </p>
 
           <Accordions type="single" className="mt-4">
@@ -1542,9 +1547,11 @@ sudo ufw status`
 
               <DynamicCodeBlock
                 lang="bash"
-                code={`# Backup your validator credentials
+                code={`# Back up your validator credentials
+# The node runs as root in Docker, so the key files belong to root
 mkdir -p ~/avalanche-backup
-cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo chown -R "$(id -u):$(id -g)" ~/avalanche-backup
 
 # Verify backup
 ls -la ~/avalanche-backup/staking/`}

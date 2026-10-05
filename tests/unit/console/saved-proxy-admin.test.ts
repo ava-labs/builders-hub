@@ -77,27 +77,36 @@ describe('savedProxyAdminProblem', () => {
     expect(await savedProxyAdminProblem(chain, ADMIN, getAddress(WALLET))).toBeNull();
   });
 
-  it('refuses a ProxyAdmin that another wallet owns, and names the owner', async () => {
-    expect(await savedProxyAdminProblem(chain, FOREIGN_ADMIN, WALLET)).toBe(
-      `This page does not use the ProxyAdmin that it deployed earlier (${FOREIGN_ADMIN}). ` +
-        `Its owner is ${getAddress(OTHER_OWNER)}, not the connected wallet. Deploy a new ProxyAdmin.`,
-    );
+  it('refuses a ProxyAdmin that another wallet owns, names the owner, and keeps the saved address', async () => {
+    expect(await savedProxyAdminProblem(chain, FOREIGN_ADMIN, WALLET)).toEqual({
+      message:
+        `This page deployed a ProxyAdmin earlier (${FOREIGN_ADMIN}). Its owner is ${getAddress(OTHER_OWNER)}, ` +
+        'not the connected wallet. Connect that account, or deploy a new ProxyAdmin.',
+      keepSaved: true,
+    });
   });
 
-  it('refuses an address with no code', async () => {
-    expect(await savedProxyAdminProblem(chain, EMPTY, WALLET)).toBe(
-      `This page does not use the ProxyAdmin that it deployed earlier (${EMPTY}). ` +
+  it('refuses an address with no code, and removes the saved address', async () => {
+    expect(await savedProxyAdminProblem(chain, EMPTY, WALLET)).toEqual({
+      message:
+        `This page does not use the ProxyAdmin that it deployed earlier (${EMPTY}). ` +
         'No contract exists at this address on this chain. Deploy a new ProxyAdmin.',
-    );
+      keepSaved: false,
+    });
   });
 
-  it('refuses a contract whose owner() reverts or returns no data', async () => {
-    expect(await savedProxyAdminProblem(chain, NOT_ADMIN, WALLET)).toMatch(/is not a ProxyAdmin\. Deploy a new/);
-    expect(await savedProxyAdminProblem(chain, NO_DATA, WALLET)).toMatch(/is not a ProxyAdmin\. Deploy a new/);
+  it('refuses a contract whose owner() reverts or returns no data, and removes the saved address', async () => {
+    for (const address of [NOT_ADMIN, NO_DATA]) {
+      const problem = await savedProxyAdminProblem(chain, address, WALLET);
+      expect(problem?.message).toMatch(/is not a ProxyAdmin\. Deploy a new/);
+      expect(problem?.keepSaved).toBe(false);
+    }
   });
 
-  it('refuses a saved value that is not an address', async () => {
-    expect(await savedProxyAdminProblem(chain, '0x1234', WALLET)).toMatch(/The saved address is not valid\./);
+  it('refuses a saved value that is not an address, and removes it', async () => {
+    const problem = await savedProxyAdminProblem(chain, '0x1234', WALLET);
+    expect(problem?.message).toMatch(/The saved address is not valid\./);
+    expect(problem?.keepSaved).toBe(false);
   });
 
   it('throws when the chain cannot be read, so the saved address stays', async () => {

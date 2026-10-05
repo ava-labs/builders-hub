@@ -21,7 +21,7 @@ export interface L1SubnetStepProps {
 export default function L1SubnetStep({
   subnetId,
   onSubnetIdChange,
-  description = 'Choose the L1 subnet for this operation.',
+  description = 'Choose the L1 for this operation.',
   validatorManagerDetails,
   validatorManagerError,
   isExpanded,
@@ -29,7 +29,7 @@ export default function L1SubnetStep({
 }: L1SubnetStepProps) {
   return (
     <Step>
-      <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+      <h2 className="text-lg font-semibold">Select L1</h2>
       <p className="text-sm text-zinc-500 mb-4">{description}</p>
       <div className="space-y-2">
         <SelectSubnetId

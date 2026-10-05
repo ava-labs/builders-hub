@@ -3,7 +3,7 @@ import { useConsoleLog } from './use-console-log';
 import { Chain } from 'viem';
 import usePChainNotifications from './usePChainNotifications';
 import useEVMNotifications from './useEVMNotifications';
-import { type PChainAction, PChainActionList } from './usePChainNotifications';
+import { type PChainAction, type PChainTxResult, PChainActionList } from './usePChainNotifications';
 import { type EVMNotificationOptions } from './useEVMNotifications';
 
 type ConsoleAction = PChainAction | EVMNotificationOptions;
@@ -20,7 +20,7 @@ const useConsoleNotifications = () => {
 
     const notify = <T>(action: ConsoleAction, promise: Promise<T>, viemChain?: Chain) => {
         if (typeof action === 'string' && PChainActionList.includes(action)) {
-            notifyP(action as PChainAction, promise as Promise<string>);
+            notifyP(action as PChainAction, promise as Promise<PChainTxResult>);
         } else if (typeof action === 'object' && 'type' in action) {
             // Local operations don't require a chain
             if (!viemChain && action.type !== 'local') {

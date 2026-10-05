@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseContractError } from '@/components/toolbox/hooks/contracts/parseContractError';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
 
 const NONCE_TEXT = /^Transaction nonce error/;
 const INVALID_STATUS_TEXT =
@@ -65,7 +66,7 @@ describe('parseContractError', () => {
 
   it('keeps wallet rejections and missing funds ahead of the selector table', () => {
     expect(parseContractError(new Error(`User rejected the request. ${revertDump('0x5c3324cc')}`))).toBe(
-      'Transaction was rejected by user',
+      WALLET_REJECTED_TEXT,
     );
     expect(parseContractError(new Error('insufficient funds for gas * price + value'))).toBe(
       'Insufficient funds for transaction',

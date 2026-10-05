@@ -24,6 +24,8 @@ import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolb
 import { Success } from '@/components/toolbox/components/Success';
 import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
 import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -123,8 +125,8 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!validatorBalance) {
@@ -203,7 +205,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       let display: string;
       if (aggregated) {
-        display = `P-Chain transaction failed: ${parsePChainError(err)}`;
+        display = failureText('P-Chain transaction failed: ', parsePChainError(err));
       } else {
         // The L1's own validators sign the message of a manager on the L1, so the L1 causes apply. The Primary
         // Network signs the message of a manager on the C-Chain.

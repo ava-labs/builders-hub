@@ -569,14 +569,14 @@ const TOOLS_RAW: ToolCard[] = [
 // here.
 const FLOW_SUBSTEPS: Record<string, Array<{ name: string; path: string }>> = {
   '/console/add-validator': [
-    { name: 'Select L1 Subnet', path: '/console/add-validator/select-subnet' },
+    { name: 'Select L1', path: '/console/add-validator/select-subnet' },
     { name: 'Initiate Validator Registration', path: '/console/add-validator/initiate-registration' },
     { name: 'P-Chain Registration', path: '/console/add-validator/pchain-registration' },
     { name: 'Complete Registration', path: '/console/add-validator/complete-registration' },
     { name: 'Verify Validator Set', path: '/console/add-validator/verify-validator-set' },
   ],
   '/console/permissioned-l1s/change-validator-weight': [
-    { name: 'Select L1 Subnet', path: '/console/permissioned-l1s/change-validator-weight/select-subnet' },
+    { name: 'Select L1', path: '/console/permissioned-l1s/change-validator-weight/select-subnet' },
     {
       name: 'Initiate Weight Change',
       path: '/console/permissioned-l1s/change-validator-weight/initiate-weight-change',
@@ -595,7 +595,7 @@ const FLOW_SUBSTEPS: Record<string, Array<{ name: string; path: string }>> = {
     { name: 'Read Validator Manager', path: '/console/permissioned-l1s/multisig-setup/read-validator-manager' },
   ],
   '/console/remove-validator': [
-    { name: 'Select L1 Subnet', path: '/console/remove-validator/select-subnet' },
+    { name: 'Select L1', path: '/console/remove-validator/select-subnet' },
     { name: 'Initiate Removal', path: '/console/remove-validator/initiate-removal' },
     { name: 'P-Chain Weight Update', path: '/console/remove-validator/pchain-removal' },
     { name: 'Complete Removal', path: '/console/remove-validator/complete-removal' },
@@ -635,14 +635,14 @@ const FLOW_SUBSTEPS: Record<string, Array<{ name: string; path: string }>> = {
     { name: 'Read Contract', path: '/console/permissionless-l1s/erc20-staking-manager-setup/read-contract' },
   ],
   '/console/permissionless-l1s/delegate/native': [
-    { name: 'Select L1 Subnet', path: '/console/permissionless-l1s/delegate/native/select-l1' },
+    { name: 'Select L1', path: '/console/permissionless-l1s/delegate/native/select-l1' },
     { name: 'Initiate Delegation', path: '/console/permissionless-l1s/delegate/native/initiate-delegation' },
     { name: 'P-Chain Weight Update', path: '/console/permissionless-l1s/delegate/native/pchain-weight-update' },
     { name: 'Complete Delegation', path: '/console/permissionless-l1s/delegate/native/complete-delegation' },
     { name: 'Verify Validator Set', path: '/console/permissionless-l1s/delegate/native/verify-validator-set' },
   ],
   '/console/permissionless-l1s/delegate/erc20': [
-    { name: 'Select L1 Subnet', path: '/console/permissionless-l1s/delegate/erc20/select-l1' },
+    { name: 'Select L1', path: '/console/permissionless-l1s/delegate/erc20/select-l1' },
     { name: 'Initiate Delegation', path: '/console/permissionless-l1s/delegate/erc20/initiate-delegation' },
     { name: 'P-Chain Weight Update', path: '/console/permissionless-l1s/delegate/erc20/pchain-weight-update' },
     { name: 'Complete Delegation', path: '/console/permissionless-l1s/delegate/erc20/complete-delegation' },
@@ -652,14 +652,14 @@ const FLOW_SUBSTEPS: Record<string, Array<{ name: string; path: string }>> = {
   // -uptime variant (with uptime proof); the "Force Remove" tile routes to
   // the no-uptime variant. Sub-steps follow the path, not the display name.
   '/console/permissionless-l1s/remove-delegation': [
-    { name: 'Select L1 Subnet', path: '/console/permissionless-l1s/remove-delegation/select-l1' },
+    { name: 'Select L1', path: '/console/permissionless-l1s/remove-delegation/select-l1' },
     { name: 'Initiate Delegator Removal', path: '/console/permissionless-l1s/remove-delegation/initiate-removal' },
     { name: 'P-Chain Weight Update', path: '/console/permissionless-l1s/remove-delegation/pchain-weight-update' },
     { name: 'Complete Delegator Removal', path: '/console/permissionless-l1s/remove-delegation/complete-removal' },
     { name: 'Verify Validator Set', path: '/console/permissionless-l1s/remove-delegation/verify-validator-set' },
   ],
   '/console/permissionless-l1s/submit-uptime-proof': [
-    { name: 'Select L1 Subnet', path: '/console/permissionless-l1s/submit-uptime-proof/select-l1' },
+    { name: 'Select L1', path: '/console/permissionless-l1s/submit-uptime-proof/select-l1' },
     { name: 'Validator Uptimes', path: '/console/permissionless-l1s/submit-uptime-proof/dashboard' },
   ],
   '/console/icm/setup': [

@@ -88,6 +88,7 @@ export default function CompleteRegistrationStep() {
               ownerType={!isStaking ? vmcCtx.ownerType : undefined}
               onSuccess={(data) => {
                 store.setGlobalSuccess(data.message);
+                store.setFlowCompleted(true);
                 store.setGlobalError(null);
               }}
               onError={(message) => store.setGlobalError(message)}

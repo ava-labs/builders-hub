@@ -3,7 +3,7 @@ import { isValidBridgeStep } from '@/components/toolbox/console/ictt/bridge/brid
 import IcttBridgeStepClientPage from './client-page';
 import { consoleToolMetadata } from "@/components/console/tool-metadata";
 
-export const metadata = consoleToolMetadata("/console/ictt", "Interchain Token Transfer");
+export const metadata = consoleToolMetadata("/console/ictt", "ICTT Setup");
 
 export default async function Page({ params }: { params: Promise<{ step: string }> }) {
   const { step } = await params;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
@@ -35,6 +35,16 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import Link from 'next/link';
+import {
+  type AcceptedValidator,
+  type ExistingValidatorInfo,
+  configTxErrorText,
+  configTxReady,
+  existingValidatorFromApi,
+  shownValidator,
+  stakeAvaxText,
+} from '@/components/toolbox/utils/primaryValidatorLookup';
+import { stakeBalanceError, stakeTxErrorText } from '@/components/toolbox/utils/stakeTxText';
 
 const STAKE_VALIDATOR_SOURCE = `import type { AvalanchePChainWalletClient } from "@avalanche-sdk/client";
 import { prepareAddPermissionlessValidatorTxn } from "@avalanche-sdk/client/methods/wallet/pChain";
@@ -172,17 +182,6 @@ const SET_CONFIG_SDK_SOURCES: SDKCodeSource[] = [
   },
 ];
 
-type ExistingValidatorInfo = {
-  kind: 'autoRenewed' | 'fixed';
-  txID: string;
-  isAuthority: boolean;
-  stakeAvax: string;
-  endTime?: number;
-  periodHours?: number;
-  autoCompoundPct?: number;
-  authorityAddresses: string[];
-};
-
 const NETWORK_CONFIG = {
   fuji: {
     minStakeAvax: 1,
@@ -227,6 +226,41 @@ const MAX_PERIOD_HOURS = 365 * 24;
 const DEFAULT_DELEGATOR_FEE = '2';
 const DEFAULT_AUTO_COMPOUND = '100';
 const BUFFER_MINUTES = 5;
+// While the page shows an accepted tx's values, it reads the validator again at this interval, until the API shows them
+const ACCEPTED_TX_POLL_MS = 30_000;
+
+// The public API caches the validator list for a few minutes, so a lookup can miss the page's own accepted tx
+const ACCEPTED_TX_NOTE = 'The P-Chain accepted the transaction. The validator list can take a few minutes to show it.';
+// Under ACCEPTED_TX_NOTE while Update and Stop wait for the list (configBlocked): a reload loses the accepted tx
+const CONFIG_WAIT_NOTE =
+  'Update Config and Stop Auto-Renewal start to work when the list shows this validator. ' +
+  `The page checks again every ${ACCEPTED_TX_POLL_MS / 1000} seconds. Keep this page open.`;
+
+function AcceptedTxNote({ className = '' }: { className?: string }) {
+  return <p className={`text-[12px] text-zinc-500 dark:text-zinc-400 ${className}`}>{ACCEPTED_TX_NOTE}</p>;
+}
+
+/** The key of an accepted tx's values: the network and the NodeID. */
+function acceptedKey(onFuji: boolean, nodeID: string): string {
+  return `${onFuji ? 'fuji' : 'mainnet'}:${nodeID}`;
+}
+
+/** The cycle period in whole hours, as the page reads it back from the API (nextPeriod in seconds). */
+function periodHoursAsRead(hours: string): number {
+  return Math.round(Math.round(Number(hours) * 60 * 60) / 3600);
+}
+
+/** Reads the current Primary Network validator with this NodeID, as the page shows it. Null: it does not validate. */
+async function readValidator(
+  nodeID: string,
+  onFuji: boolean,
+  walletPAddress: string,
+): Promise<ExistingValidatorInfo | null> {
+  const client = createPChainClient({ chain: onFuji ? avalancheFuji : avalanche, transport: { type: 'http' } });
+  const { validators } = await client.getCurrentValidators({ nodeIDs: [nodeID] });
+  const v = validators?.[0];
+  return v ? existingValidatorFromApi(v, walletPAddress) : null;
+}
 
 const metadata: ConsoleToolMetadata = {
   title: 'Stake on Primary Network',
@@ -261,7 +295,13 @@ const metadata: ConsoleToolMetadata = {
 
 function Stake({ onSuccess }: BaseConsoleToolProps) {
   const { pChainAddress, isTestnet, avalancheNetworkID } = useWalletStore();
+  // The unlocked P-Chain balance in AVAX. 0 until the header reads it.
+  const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const { avalancheWalletClient } = useWallet();
+  // Ties the Cycle Period label above its preset buttons to the field
+  const cycleFieldId = useId();
+  // Names the group of Duration preset buttons
+  const durationPresetsId = useId();
 
   const [action, setAction] = useState<'stake' | 'manage'>('stake');
   const [manageNodeID, setManageNodeID] = useState('');
@@ -283,6 +323,8 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txId, setTxId] = useState<string>('');
+  // What each of the page's accepted txs set, by network and NodeID. 'Stake Another Validator' and 'Start Over' keep it.
+  const acceptedRef = useRef<Record<string, AcceptedValidator>>({});
 
   const { notify } = useConsoleNotifications();
 
@@ -291,12 +333,24 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
   const networkName = onFuji ? 'Fuji' : 'Mainnet';
   const isAutoRenew = stakingMode === 'autoRenew';
   const isUpdateMode = existingValidator?.kind === 'autoRenewed' && existingValidator.isAuthority;
+  // Right after the page's own add, the SDK cannot build a config tx: its validator list misses the validator for a
+  // few minutes. Update and Stop wait until the 30 s re-read sees the validator.
+  const configBlocked = isUpdateMode && !configTxReady(existingValidator);
   // Changing a config only needs the NodeID, so managing skips the BLS credentials a new stake requires.
   const managedID = validateManagedNodeCredentials({ nodeID: manageNodeID, publicKey: '', proofOfPossession: '' });
   const lookupNodeID = action === 'manage' ? (managedID.ok ? managedID.value.nodeID : undefined) : validator?.nodeID;
 
+  const recordAccepted = (nodeID: string, info: ExistingValidatorInfo) => {
+    acceptedRef.current[acceptedKey(onFuji, nodeID)] = {
+      info: { ...info, pending: undefined, listed: undefined },
+      acceptedAt: Date.now(),
+    };
+  };
+
   // Once a NodeID is entered, check whether it is already an active validator:
   // an auto-renewed one owned by this wallet switches the tool to config-update mode.
+  // After the page's own accepted tx, the API can show the old state for a few minutes: the page then shows what
+  // the tx set (shownValidator), with a note.
   useEffect(() => {
     const nodeID = lookupNodeID;
     setExistingValidator(null);
@@ -306,48 +360,21 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
 
     let cancelled = false;
     setCheckingExisting(true);
-    const client = createPChainClient({
-      chain: onFuji ? avalancheFuji : avalanche,
-      transport: { type: 'http' },
-    });
-    client
-      .getCurrentValidators({ nodeIDs: [nodeID] })
-      .then(({ validators }) => {
+    const key = acceptedKey(onFuji, nodeID);
+    readValidator(nodeID, onFuji, pChainAddress || '')
+      .then((fromApi) => {
         if (cancelled) return;
-        const v = validators?.[0];
-        if (!v) {
+        const shown = shownValidator(fromApi, acceptedRef.current[key], Date.now(), pChainAddress || '');
+        if (shown.dropAccepted) delete acceptedRef.current[key];
+        const info = shown.info;
+        if (!info) {
           setNotValidating(true);
           return;
         }
-        const stakeAvax = (Number(v.stakeAmount ?? v.weight ?? 0) / 1e9).toLocaleString();
-        const walletAddr = pChainAddress?.replace(/^P-/, '');
-        if (v.nextPeriod !== undefined || v.validatorAuthority) {
-          const authorityAddresses = (v.validatorAuthority?.addresses ?? []).map((a) =>
-            a.startsWith('P-') ? a : `P-${a}`,
-          );
-          const isAuthority = !!walletAddr && authorityAddresses.some((a) => a.replace(/^P-/, '') === walletAddr);
-          const currentPeriodHours = Math.round(Number(v.nextPeriod ?? 0) / 3600);
-          const autoCompoundPct = Number(v.autoCompoundRewardShares ?? 0) / 10_000;
-          setExistingValidator({
-            kind: 'autoRenewed',
-            txID: v.txID,
-            isAuthority,
-            stakeAvax,
-            periodHours: currentPeriodHours,
-            autoCompoundPct,
-            authorityAddresses,
-          });
-          setUpdPeriodHours(String(currentPeriodHours));
-          setUpdAutoCompound(String(autoCompoundPct));
-        } else {
-          setExistingValidator({
-            kind: 'fixed',
-            txID: v.txID,
-            isAuthority: false,
-            stakeAvax,
-            endTime: Number(v.endTime ?? 0),
-            authorityAddresses: [],
-          });
+        setExistingValidator(info);
+        if (info.kind === 'autoRenewed') {
+          setUpdPeriodHours(String(info.periodHours ?? 0));
+          setUpdAutoCompound(String(info.autoCompoundPct ?? 0));
         }
       })
       .catch(() => {
@@ -361,6 +388,40 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       cancelled = true;
     };
   }, [lookupNodeID, onFuji, pChainAddress]);
+
+  // While the page shows an accepted tx's values, read the validator again until the API shows them (or the
+  // accepted values expire). The form fields keep what the user typed.
+  const pendingNodeID = existingValidator?.pending ? lookupNodeID : undefined;
+  useEffect(() => {
+    const nodeID = pendingNodeID;
+    if (!nodeID) return;
+    const key = acceptedKey(onFuji, nodeID);
+    let cancelled = false;
+    const timer = setInterval(() => {
+      readValidator(nodeID, onFuji, pChainAddress || '')
+        .then((fromApi) => {
+          if (cancelled) return;
+          const shown = shownValidator(fromApi, acceptedRef.current[key], Date.now(), pChainAddress || '');
+          if (shown.dropAccepted) {
+            delete acceptedRef.current[key];
+            setExistingValidator(shown.info);
+            setNotValidating(!shown.info);
+            return;
+          }
+          // The API lists the validator now, with its old values: the SDK can build a config tx
+          if (shown.info?.listed) {
+            setExistingValidator((prev) => (prev?.pending && !prev.listed ? { ...prev, listed: true } : prev));
+          }
+        })
+        .catch(() => {
+          // Best-effort, as the lookup: the next interval reads again
+        });
+    }, ACCEPTED_TX_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [pendingNodeID, onFuji, pChainAddress]);
 
   // Initialize defaults
   if (!stakeInAvax) {
@@ -410,6 +471,8 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
     if (!Number.isFinite(stakeNum) || stakeNum < config.minStakeAvax) {
       return `Minimum stake is ${config.minStakeAvax.toLocaleString()} AVAX on ${networkName}`;
     }
+    const overBalance = stakeBalanceError(stakeNum, pChainBalance);
+    if (overBalance) return overBalance;
 
     if (isAutoRenew) {
       const hours = Number(periodHours);
@@ -490,10 +553,32 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       notify(isAutoRenew ? 'addAutoRenewedValidator' : 'addPermissionlessValidator', stakePromise);
 
       const txHash = await stakePromise;
+      const stakeAvax = stakeAvaxText(Number(toNanoAvax(stakeInAvax)));
+      recordAccepted(
+        validator!.nodeID,
+        isAutoRenew
+          ? {
+              kind: 'autoRenewed',
+              txID: txHash,
+              isAuthority: true,
+              stakeAvax,
+              periodHours: periodHoursAsRead(periodHours),
+              autoCompoundPct: Number(autoCompound),
+              authorityAddresses: [pChainAddress!],
+            }
+          : {
+              kind: 'fixed',
+              txID: txHash,
+              isAuthority: false,
+              stakeAvax,
+              endTime: Math.floor(new Date(endTime).getTime() / 1000),
+              authorityAddresses: [],
+            },
+      );
       setTxId(txHash);
       onSuccess?.();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(stakeTxErrorText(e, Number(stakeInAvax), pChainBalance));
     } finally {
       setIsSubmitting(false);
     }
@@ -545,21 +630,30 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       notify('setAutoRenewedValidatorConfig', updatePromise);
 
       const txHash = await updatePromise;
+      if (lookupNodeID) {
+        recordAccepted(lookupNodeID, {
+          ...existingValidator,
+          periodHours: stop ? 0 : periodHoursAsRead(updPeriodHours),
+          autoCompoundPct: stop ? 0 : Number(updAutoCompound),
+        });
+      }
       setTxId(txHash);
       onSuccess?.();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(configTxErrorText(e));
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // platform-cli refuses an add with no BLS key and proof of possession (cmd/validator.go: --bls-public-key, --bls-pop)
+  const blsFlags = `--bls-public-key ${validator?.nodePOP.publicKey || '<bls-public-key>'} --bls-pop ${validator?.nodePOP.proofOfPossession || '<bls-pop>'}`;
   const cliCommand =
     isUpdateMode || action === 'manage'
       ? `platform-cli validator set-auto-renewed-config --tx-id ${existingValidator?.txID || '<tx-id>'} --node-id ${lookupNodeID || '<node-id>'} --period ${updPeriodHours ? `${updPeriodHours}h` : '<hours>h'} --auto-compound ${updAutoCompound ? Number(updAutoCompound) / 100 : '<0-1>'} --network ${onFuji ? 'fuji' : 'mainnet'}`
       : isAutoRenew
-        ? `platform-cli validator add-auto-renewed --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --period ${periodHours}h --delegation-fee ${Number(delegationFee) / 100} --auto-compound ${Number(autoCompound) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`
-        : `platform-cli validator add-permissionless --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --duration ${getDurationHours()}h --delegation-fee ${Number(delegationFee) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`;
+        ? `platform-cli validator add-auto-renewed --node-id ${validator?.nodeID || '<node-id>'} ${blsFlags} --stake ${stakeInAvax || '<amount>'} --period ${periodHours}h --delegation-fee ${Number(delegationFee) / 100} --auto-compound ${Number(autoCompound) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`
+        : `platform-cli validator add-permissionless --node-id ${validator?.nodeID || '<node-id>'} ${blsFlags} --stake ${stakeInAvax || '<amount>'} --duration ${getDurationHours()}h --delegation-fee ${Number(delegationFee) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`;
 
   return (
     <SDKCodeViewer
@@ -575,6 +669,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       <div>
         {txId ? (
           <div className="space-y-4">
+            <AcceptedTxNote />
             <Button
               variant="secondary"
               onClick={() => {
@@ -661,7 +756,8 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     )}
                     {notValidating && (
                       <Alert variant="warning" className="mt-3">
-                        This node is not a current Primary Network validator on {networkName}.
+                        This node is not a current Primary Network validator on {networkName}. A validator added in the
+                        last few minutes may not show yet.
                       </Alert>
                     )}
                   </>
@@ -680,7 +776,11 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     />
 
                     {validator && (
-                      <div className="mt-3 p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
+                      <div
+                        role="group"
+                        aria-label="Added validator"
+                        className="mt-3 p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2"
+                      >
                         <div>
                           <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
                             Node ID
@@ -721,6 +821,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
                       This node is already a fixed-duration Primary Network validator.
                     </p>
+                    {existingValidator.pending && <AcceptedTxNote className="-mt-2 mb-4" />}
                     <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
                       <div>
                         <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
@@ -754,6 +855,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
                       This node already validates with auto-renewal. Read-only view.
                     </p>
+                    {existingValidator.pending && <AcceptedTxNote className="-mt-2 mb-4" />}
                     <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
                       <div>
                         <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
@@ -800,6 +902,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
                       Update the next cycle's period and auto-compounding for this validator.
                     </p>
+                    {existingValidator.pending && !configBlocked && <AcceptedTxNote className="-mt-2 mb-4" />}
 
                     <div className="space-y-4">
                       <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
@@ -866,7 +969,9 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                   <>
                     <h3 className="text-[14px] font-semibold mb-1">Auto-Renewal Config</h3>
                     <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                      Enter the NodeID above to load the validator's current cycle period and auto-compounding.
+                      {notValidating
+                        ? 'This node has no auto-renewed stake to change.'
+                        : "Enter the NodeID above to load the validator's current cycle period and auto-compounding."}
                     </p>
                     <CliAlternative command={cliCommand} />
                   </>
@@ -879,6 +984,9 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                       {isAutoRenew
                         ? 'Set your stake amount, delegation fee, cycle period, and auto-compounding.'
                         : 'Set your stake amount, delegation fee, and duration.'}
+                    </p>
+                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400 -mt-2 mb-4 break-words">
+                      {`Rewards and the returned stake go to your connected P-Chain address${pChainAddress ? ` (${pChainAddress})` : ''}.`}
                     </p>
 
                     <div className="space-y-4">
@@ -955,10 +1063,13 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
 
                       {!isAutoRenew && (
                         <div>
-                          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                          <p
+                            id={durationPresetsId}
+                            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
+                          >
                             Duration
-                          </label>
-                          <div className="flex gap-2 mb-2">
+                          </p>
+                          <div role="group" aria-labelledby={durationPresetsId} className="flex gap-2 mb-2">
                             {config.presets.map((preset) => (
                               <button
                                 key={preset.days}
@@ -974,7 +1085,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                             ))}
                           </div>
                           <Input
-                            label=""
+                            label="End time"
                             value={endTime}
                             onChange={setEndTime}
                             type="datetime-local"
@@ -993,7 +1104,10 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                       {isAutoRenew && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                            <label
+                              htmlFor={cycleFieldId}
+                              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
+                            >
                               Cycle Period
                             </label>
                             <div className="flex gap-2 mb-2">
@@ -1012,6 +1126,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                               ))}
                             </div>
                             <Input
+                              id={cycleFieldId}
                               label=""
                               value={periodHours}
                               onChange={setPeriodHours}
@@ -1047,8 +1162,8 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                           />
 
                           <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            The stake renews automatically at the end of each cycle. Stop anytime — the validator exits
-                            at the end of its current cycle.
+                            The stake renews automatically at the end of each cycle. You can stop it at any time: the
+                            validator then exits at the end of its current cycle.
                           </p>
                         </>
                       )}
@@ -1071,10 +1186,17 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                       </p>
 
                       {error && <Alert variant="error">{error}</Alert>}
+                      {/* The reason that Update and Stop wait, and when they start to work */}
+                      {configBlocked && (
+                        <>
+                          <AcceptedTxNote />
+                          <p className="mt-1 text-[12px] text-zinc-500 dark:text-zinc-400">{CONFIG_WAIT_NOTE}</p>
+                        </>
+                      )}
 
                       <Button
                         onClick={() => submitConfigUpdate(false)}
-                        disabled={!pChainAddress || isSubmitting}
+                        disabled={!pChainAddress || isSubmitting || configBlocked}
                         loading={isSubmitting}
                         loadingText="Processing..."
                         variant="primary"
@@ -1088,7 +1210,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                           variant="outline-danger"
                           className="w-full mt-2"
                           onClick={() => setConfirmStop(true)}
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || configBlocked}
                         >
                           Stop Auto-Renewal
                         </Button>
@@ -1101,7 +1223,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                             variant="danger"
                             className="w-full"
                             onClick={() => submitConfigUpdate(true)}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || configBlocked}
                             loading={isSubmitting}
                             loadingText="Processing..."
                           >

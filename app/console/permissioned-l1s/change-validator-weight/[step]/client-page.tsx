@@ -8,11 +8,11 @@ import { useSubnetIdQuery } from "@/components/toolbox/hooks/useSubnetIdQuery";
 
 export default function ChangeWeightClientPage({ currentStepKey }: { currentStepKey: string }) {
   const basePath = "/console/permissioned-l1s/change-validator-weight";
-  const { subnetIdL1, globalError, pChainTxId, setSubnetIdL1 } = useChangeWeightStore();
-  useSubnetIdQuery(subnetIdL1, setSubnetIdL1);
+  const { subnetIdL1, pChainTxId, flowCompleted, setSubnetIdL1 } = useChangeWeightStore();
+  useSubnetIdQuery(subnetIdL1, flowCompleted, setSubnetIdL1);
 
   return (
-    <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError}>
+    <ValidatorManagerLayout subnetIdL1={subnetIdL1}>
       <StepFlow
         steps={steps}
         basePath={basePath}

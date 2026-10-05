@@ -15,14 +15,18 @@ import { packWarpIntoAccessList, WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/
 // ---------------------------------------------------------------------------
 
 export const PCHAIN_COMMANDS = {
-  /** IssueRegisterL1ValidatorTx — register a new validator on an L1 */
+  /**
+   * IssueRegisterL1ValidatorTx: register a new validator on an L1. platform-cli requires --pop (cmd/l1.go), the
+   * validator's BLS proof of possession (hex).
+   */
   registerL1Validator: (opts: {
     signedWarpMessage: string;
+    pop: string;
     balance: string;
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform-cli l1 register-validator --message ${opts.signedWarpMessage} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli l1 register-validator --message ${opts.signedWarpMessage} --pop ${opts.pop} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueSetL1ValidatorWeightTx: update validator weight (used for removal, delegation, weight change) */
   setL1ValidatorWeight: (opts: { signedWarpMessage: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
@@ -68,16 +72,21 @@ export const PCHAIN_COMMANDS = {
   }) =>
     `platform-cli subnet convert-to-l1 --subnet-id ${opts.subnetId} --chain-id ${opts.chainId} --manager ${opts.contractAddress} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueAddPermissionlessValidatorTx (Primary Network) */
+  /**
+   * IssueAddPermissionlessValidatorTx (Primary Network). platform-cli refuses the add without the node's BLS public
+   * key and proof of possession (cmd/validator.go: --bls-public-key and --bls-pop, both hex).
+   */
   addValidator: (opts: {
     nodeId: string;
+    blsPublicKey: string;
+    blsPop: string;
     stake: string;
     duration: string;
     delegationFee: string;
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform-cli validator add-permissionless --node-id ${opts.nodeId} --stake ${opts.stake} --duration ${opts.duration} --delegation-fee ${opts.delegationFee} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli validator add-permissionless --node-id ${opts.nodeId} --bls-public-key ${opts.blsPublicKey} --bls-pop ${opts.blsPop} --stake ${opts.stake} --duration ${opts.duration} --delegation-fee ${opts.delegationFee} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueAddPermissionlessDelegatorTx (Primary Network) */
   addDelegator: (opts: {

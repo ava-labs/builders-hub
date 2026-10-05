@@ -20,6 +20,8 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 type TokenType = 'native' | 'erc20';
 
@@ -119,8 +121,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     }
 
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
 
@@ -242,7 +244,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
 
       // Provide more helpful error messages
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('InvalidDelegationID')) {
         message = 'Invalid delegation ID. The delegation may not exist or removal was not initiated.';
       } else if (message.includes('DelegatorNotRemovable')) {
@@ -257,8 +259,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
         message = 'Invalid warp message. Ensure the P-Chain transaction was successful.';
       }
 
-      setErrorState(`Failed to complete delegator removal: ${message}`);
-      onError(`Failed to complete delegator removal: ${message}`);
+      setErrorState(failureText('Failed to complete delegator removal: ', message));
+      onError(failureText('Failed to complete delegator removal: ', message));
     } finally {
       setIsProcessing(false);
     }

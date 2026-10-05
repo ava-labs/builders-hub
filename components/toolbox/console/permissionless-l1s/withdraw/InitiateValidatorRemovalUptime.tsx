@@ -18,6 +18,7 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
 import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
 
 type TokenType = 'native' | 'erc20';
 
@@ -157,7 +158,7 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       let message = err instanceof Error ? err.message : String(err);
 
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('ValidatorIneligibleForRewards')) {
         message =
           'Validator is ineligible for rewards based on current uptime. Use "Force Remove Validator" to proceed without rewards.';
@@ -168,8 +169,8 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
         setShowCustomUrl(true);
       }
 
-      setErrorState(`Failed to initiate validator removal: ${message}`);
-      onError(`Failed to initiate validator removal: ${message}`);
+      setErrorState(failureText('Failed to initiate validator removal: ', message));
+      onError(failureText('Failed to initiate validator removal: ', message));
     } finally {
       setIsProcessing(false);
     }

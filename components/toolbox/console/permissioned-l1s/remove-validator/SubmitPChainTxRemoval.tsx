@@ -16,6 +16,8 @@ import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -235,8 +237,8 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required. Please select a subnet first.');
-      onError('L1 Subnet ID is required. Please select a subnet first.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!unsignedWarpMessage) {
@@ -302,8 +304,8 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     } catch (err: any) {
       const message = parsePChainError(err);
 
-      setErrorState(`P-Chain transaction failed: ${message}`);
-      onError(`P-Chain transaction failed: ${message}`);
+      setErrorState(failureText('P-Chain transaction failed: ', message));
+      onError(failureText('P-Chain transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }

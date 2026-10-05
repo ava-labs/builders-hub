@@ -66,7 +66,7 @@ export function RegisterInspector({ onPhaseChange, bridge, remote }: RegisterIns
         banner={
           !remote?.address && (
             <Note variant="warning">
-              <span className="text-xs">Deploy a TokenRemote in Phase 3 first.</span>
+              <span className="text-xs">Deploy a TokenRemote in the Remote step first.</span>
             </Note>
           )
         }

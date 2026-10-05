@@ -7,10 +7,22 @@ import { usePathname } from 'next/navigation';
 import posthog from 'posthog-js';
 import { useNotificationPanelStore } from '@/components/console/notification-panel';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts/parsePChainError';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
   return `https://${isTestnet ? 'subnets-test' : 'subnets'}.avax.network/p-chain/tx/${txID}`;
 };
+
+// A C-Chain atomic tx (import or export) has a CB58 ID. The explorer shows it on its own page.
+const getCChainAtomicTxExplorerURL = (txID: string, isTestnet: boolean) => {
+  return `/explorer/${isTestnet ? 'fuji' : 'mainnet'}/c-chain/atomic-tx/${txID}`;
+};
+
+/**
+ * What a notified promise gives: the tx ID, or an object with it. The C/P bridge (exportCross, importCross) also
+ * names the chain that issued the tx: 'C' is an atomic tx on the C-Chain, not a P-Chain tx.
+ */
+export type PChainTxResult = string | { txHash: string; xpChain?: 'P' | 'C' };
 
 export type PChainAction =
   | 'createSubnet'
@@ -153,7 +165,7 @@ const usePChainNotifications = () => {
     transport: { type: 'http' },
   });
 
-  const notifyPChain = (action: PChainAction, promise: Promise<string>) => {
+  const notifyPChain = (action: PChainAction, promise: Promise<PChainTxResult>) => {
     const config = configs[action];
     const store = useNotificationPanelStore.getState();
     const notifId = store.addNotification({
@@ -176,16 +188,15 @@ const usePChainNotifications = () => {
     const skipConfirmationWait = action === 'exportCross' || action === 'importCross';
 
     promise
-      .then(async (txID) => {
+      .then(async (result) => {
+        // Callers cast their promise, so the result is not always the declared shape
+        const txID = (typeof result === 'string' ? result : result?.txHash) as string;
+        const onCChain = typeof result === 'object' && result?.xpChain === 'C';
         try {
-          if (typeof txID !== 'string' && txID && 'txHash' in txID) {
-            txID = (txID as { txHash: string }).txHash;
-          }
-
-          // Log P-Chain tx to history store as pending
+          // Log the tx to the history store as pending
           const txHistory = getTxHistoryStore(Boolean(isTestnet)).getState();
           txHistory.addTx({
-            type: 'pchain',
+            type: onCChain ? 'cchain-atomic' : 'pchain',
             network: isTestnet ? 'fuji' : 'mainnet',
             operation: config.eventType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
             txHash: txID,
@@ -197,13 +208,15 @@ const usePChainNotifications = () => {
               message: 'Waiting for transaction confirmation...',
               txHash: txID,
             });
-            await waitForTransaction(client, txID as string);
+            await waitForTransaction(client, txID);
           }
 
           // Update tx history to confirmed
           txHistory.updateTxStatus(txID, 'confirmed');
 
-          const explorerUrl = getPChainTxExplorerURL(txID, isTestnet);
+          const explorerUrl = onCChain
+            ? getCChainAtomicTxExplorerURL(txID, isTestnet)
+            : getPChainTxExplorerURL(txID, isTestnet);
           store.updateNotification(notifId, {
             status: 'success',
             message: config.successMessage,
@@ -224,12 +237,12 @@ const usePChainNotifications = () => {
             network: isTestnet ? 'testnet' : 'mainnet',
             tx_id: txID,
             context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
-            chain_type: 'p-chain',
+            chain_type: onCChain ? 'c-chain' : 'p-chain',
           });
         } catch (error) {
           // Show a parsed, human-readable reason to the user; keep the raw
           // message for tx history + PostHog so the true cause stays diagnosable.
-          const errorMessage = config.errorMessagePrefix + parsePChainError(error);
+          const errorMessage = failureText(config.errorMessagePrefix, parsePChainError(error));
           store.updateNotification(notifId, {
             status: 'error',
             message: errorMessage,
@@ -250,14 +263,14 @@ const usePChainNotifications = () => {
             network: isTestnet ? 'testnet' : 'mainnet',
             error_message: (error as Error).message,
             context: pathname?.includes('/academy') ? 'academy' : pathname?.includes('/docs') ? 'docs' : 'console',
-            chain_type: 'p-chain',
+            chain_type: onCChain ? 'c-chain' : 'p-chain',
           });
         }
       })
       .catch((error) => {
         // Parsed message for the user; raw `error.message` still flows to the
         // log + PostHog capture below for diagnosis.
-        const errorMessage = config.errorMessagePrefix + parsePChainError(error);
+        const errorMessage = failureText(config.errorMessagePrefix, parsePChainError(error));
         store.updateNotification(notifId, {
           status: 'error',
           message: errorMessage,

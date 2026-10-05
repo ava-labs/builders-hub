@@ -73,6 +73,7 @@ export default function CompleteRemovalStep() {
                 pChainTxId={store.pChainTxId}
                 onSuccess={(data) => {
                   store.setGlobalSuccess(data.message);
+                  store.setFlowCompleted(true);
                   store.setGlobalError(null);
                 }}
                 onError={(message) => store.setGlobalError(message)}
@@ -93,6 +94,7 @@ export default function CompleteRemovalStep() {
                 ownerType={vmcCtx.ownerType}
                 onSuccess={(message) => {
                   store.setGlobalSuccess(message);
+                  store.setFlowCompleted(true);
                   store.setGlobalError(null);
                 }}
                 onError={(message) => store.setGlobalError(message)}

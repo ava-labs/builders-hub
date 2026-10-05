@@ -42,8 +42,8 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
   const [balance, setBalance] = useState<bigint | null>(null);
 
   // Balance must target the Home L1's RPC regardless of the wallet's current
-  // chain — otherwise the read fails when the user lands on this phase straight
-  // from Phase 4 (which lives on the Remote chain).
+  // chain. Otherwise the read fails when the user lands on this step straight
+  // from the Register step (which lives on the Remote chain).
   useEffect(() => {
     if (!bridge?.underlyingTokenAddress || !homeL1?.rpcUrl || !walletEVMAddress) return;
     let cancelled = false;
@@ -112,7 +112,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
         banner={
           !remote?.registeredAt ? (
             <Note variant="warning">
-              <span className="text-xs">Register the Remote in Phase 4 before adding collateral.</span>
+              <span className="text-xs">Register the Remote in the Register step before you add collateral.</span>
             </Note>
           ) : rpcErrorVisible ? (
             <Note variant="destructive">
@@ -226,8 +226,8 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
           {noCollateralRequired ? (
             <Note variant="success">
               <span className="text-xs">
-                No collateral is required for this bridge — decimals match and there&apos;s no reserve imbalance, so
-                TokenHome is already fully backed. You can continue to Phase 6.
+                No collateral is required for this bridge. The decimals match and there&apos;s no reserve imbalance, so
+                TokenHome is already fully backed. You can continue to the Live step.
               </span>
             </Note>
           ) : (

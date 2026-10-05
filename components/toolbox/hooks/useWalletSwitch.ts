@@ -4,6 +4,60 @@ import { useSwitchChain } from 'wagmi';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { toast } from '@/lib/toast';
 import type { L1ListItem } from '../stores/l1ListStore';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
+
+/** The text of a network switch that the user rejected in the wallet: the one Console text for a wallet rejection. */
+export const SWITCH_REJECTED_MESSAGE = WALLET_REJECTED_TEXT;
+
+/**
+ * True when the wallet reports that the user refused the request (EIP-1193
+ * code 4001). viem and wagmi wrap the wallet error, so walk the cause chain.
+ */
+export function isUserRejection(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; current && typeof current === 'object' && depth < 6; depth++) {
+    if ((current as { code?: unknown }).code === 4001) return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return err instanceof Error && /user rejected|user denied/i.test(err.message);
+}
+
+/**
+ * Shows one plain toast for a failed network switch. A refusal gets the
+ * rejection text. Other errors get viem's one-line `shortMessage`, never the
+ * full multi-line `message` with request details and the viem version.
+ */
+export function toastSwitchFailure(err: unknown, chainId: number, chainName?: string) {
+  const id = `network-switch:${chainId}`;
+  if (isUserRejection(err)) {
+    toast.error(SWITCH_REJECTED_MESSAGE, undefined, { id });
+    return;
+  }
+  const title = chainName ? `Your wallet did not switch to ${chainName}.` : 'Your wallet did not switch the network.';
+  const shortMessage = (err as { shortMessage?: unknown } | null)?.shortMessage;
+  toast.error(title, typeof shortMessage === 'string' ? shortMessage : undefined, { id });
+}
+
+/** Options of a network switch. */
+export interface SwitchOptions {
+  /**
+   * Show a toast when the wallet does not switch. Default true. Pass false when the caller shows its own next step
+   * (ChainGate opens the Add Chain modal) or when no user action started the switch (AutoSwitchChainGate on load).
+   */
+  toastOnFailure?: boolean;
+}
+
+/** Logs a failed switch and, unless the caller turned it off, shows the toast. Returns false, the switch result. */
+export function reportSwitchFailure(
+  err: unknown,
+  chainId: number,
+  { toastOnFailure = true }: SwitchOptions = {},
+  chainName?: string,
+): false {
+  console.warn(`switchChain to ${chainId} failed:`, err);
+  if (toastOnFailure) toastSwitchFailure(err, chainId, chainName);
+  return false;
+}
 
 export function useWalletSwitch() {
   // Granular selectors so this hook only re-renders when fields it actually
@@ -18,29 +72,27 @@ export function useWalletSwitch() {
   const setAvalancheNetworkID = useWalletStore((s) => s.setAvalancheNetworkID);
   const { switchChainAsync } = useSwitchChain();
 
+  /**
+   * Switches the wallet to `chainId`. Returns true when the wallet switched.
+   * A failure shows a toast (unless `options.toastOnFailure` is false) and
+   * returns false; it never throws.
+   */
   const safelySwitch = useCallback(
-    async (chainId: number, testnet: boolean) => {
-      if (coreWalletClient) {
-        try {
-          await coreWalletClient.switchChain({ id: chainId });
-          setWalletChainId(chainId);
-          setIsTestnet(testnet);
-          setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
-        } catch (e) {
-          console.warn('switchChain (Core) failed:', e);
-        }
-        return;
-      }
-
-      // Fallback for generic EVM wallets via wagmi
+    async (chainId: number, testnet: boolean, options?: SwitchOptions): Promise<boolean> => {
       try {
-        await switchChainAsync({ chainId });
-        setWalletChainId(chainId);
-        setIsTestnet(testnet);
-        setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
+        if (coreWalletClient) {
+          await coreWalletClient.switchChain({ id: chainId });
+        } else {
+          // Fallback for generic EVM wallets via wagmi
+          await switchChainAsync({ chainId });
+        }
       } catch (e) {
-        console.warn('switchChain (wagmi) failed:', e);
+        return reportSwitchFailure(e, chainId, options);
       }
+      setWalletChainId(chainId);
+      setIsTestnet(testnet);
+      setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
+      return true;
     },
     [coreWalletClient, setWalletChainId, setIsTestnet, setAvalancheNetworkID, switchChainAsync],
   );
@@ -52,13 +104,14 @@ export function useWalletSwitch() {
    * Use this from any UI that hands the user a button to "switch to <L1>"
    * where the L1 may or may not already be in the wallet, for example the ICTT
    * bridge's chain pickers and phase gate. The plain `safelySwitch` above
-   * only switches; it silently fails for unknown chains.
+   * only switches: for an unknown chain it shows a toast and returns false.
    *
    * Surfaces a `toast.error` if both attempts fail so the user isn't left
-   * staring at an unresponsive button.
+   * staring at an unresponsive button. `options.toastOnFailure: false` turns
+   * the toast off.
    */
   const safelySwitchOrAdd = useCallback(
-    async (l1: L1ListItem): Promise<boolean> => {
+    async (l1: L1ListItem, options?: SwitchOptions): Promise<boolean> => {
       const sync = () => {
         setWalletChainId(l1.evmChainId);
         setIsTestnet(Boolean(l1.isTestnet));
@@ -97,12 +150,13 @@ export function useWalletSwitch() {
             sync();
             return true;
           } catch (addErr) {
-            const msg =
-              (addErr instanceof Error && addErr.message) ||
-              (switchErr instanceof Error && switchErr.message) ||
-              'Unknown wallet error';
-            toast.error(`Couldn't switch to ${l1.name}`, msg);
-            return false;
+            // A refusal of either prompt is a refusal of the switch.
+            return reportSwitchFailure(
+              isUserRejection(switchErr) ? switchErr : addErr,
+              l1.evmChainId,
+              options,
+              l1.name,
+            );
           }
         }
       }
@@ -114,9 +168,7 @@ export function useWalletSwitch() {
         sync();
         return true;
       } catch (e) {
-        const msg = (e instanceof Error && e.message) || 'Unknown wallet error';
-        toast.error(`Couldn't switch to ${l1.name}`, msg);
-        return false;
+        return reportSwitchFailure(e, l1.evmChainId, options, l1.name);
       }
     },
     [coreWalletClient, setWalletChainId, setIsTestnet, setAvalancheNetworkID, switchChainAsync],

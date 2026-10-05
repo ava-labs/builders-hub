@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { toast } from '@/lib/toast';
-import { useWalletSwitch } from './useWalletSwitch';
+import { toastSwitchFailure, useWalletSwitch } from './useWalletSwitch';
 import type { L1ListItem } from '../stores/l1ListStore';
 
 interface UseChainSwitchResult {
@@ -45,8 +44,8 @@ export function useChainSwitch(): UseChainSwitchResult {
         return await safelySwitchOrAdd(l1);
       } catch (err) {
         // safelySwitchOrAdd toasts internally; this is the absolute
-        // fallback for unexpected exceptions outside its try/catch.
-        toast.error(`Couldn't switch to ${l1.name}`, err instanceof Error ? err.message : 'Unknown wallet error');
+        // fallback for unexpected exceptions outside its try/catch. It shows the same plain text.
+        toastSwitchFailure(err, l1.evmChainId, l1.name);
         return false;
       }
     },

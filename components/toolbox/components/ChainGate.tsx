@@ -134,7 +134,8 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     if (expectedChainId === null) return;
     setIsSwitching(true);
     try {
-      await switchChain(expectedChainId, isTestnet ?? false);
+      // No toast on a failed switch: the Add Chain modal below is the next step.
+      await switchChain(expectedChainId, isTestnet ?? false, { toastOnFailure: false });
 
       // useWalletSwitch writes walletChainId after a confirmed switch. Check
       // the store before reading the async provider hook so a fast click while

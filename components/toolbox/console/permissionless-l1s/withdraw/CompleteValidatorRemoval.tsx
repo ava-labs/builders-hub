@@ -27,6 +27,8 @@ import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand'
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 type TokenType = 'native' | 'erc20';
 
@@ -119,7 +121,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       return;
     }
     if (!subnetIdL1) {
-      const msg = 'L1 Subnet ID is required.';
+      const msg = NO_L1_SELECTED;
       setLocalError(msg);
       onError(msg);
       return;
@@ -141,8 +143,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     try {
       // Fetch the registration justification from the L1's WarpMessenger logs.
       // This is the preimage that proves the validationID corresponds to a
-      // validator that was previously registered — required by P-Chain's
-      // verifyL1ValidatorRegistration for the registered=false case.
+      // validator that was previously registered, as P-Chain's
+      // verifyL1ValidatorRegistration requires for the registered=false case.
       const justification = await findRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
       if (!justification) {
         throw new Error(
@@ -222,7 +224,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('InvalidValidationID')) {
         message = 'Invalid validation ID. The validator may not exist or removal was not initiated.';
       } else if (message.includes('ValidatorNotRemovable')) {
@@ -233,8 +235,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         message =
           "Contract rejected the warp's registration status. Make sure the SetL1ValidatorWeightTx (weight=0) has been accepted by P-Chain before completing here.";
       }
-      setLocalError(`Failed to complete validator removal: ${message}`);
-      onError(`Failed to complete validator removal: ${message}`);
+      setLocalError(failureText('Failed to complete validator removal: ', message));
+      onError(failureText('Failed to complete validator removal: ', message));
     } finally {
       setIsSubmitting(false);
     }

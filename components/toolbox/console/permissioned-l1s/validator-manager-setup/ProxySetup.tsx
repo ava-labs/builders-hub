@@ -121,10 +121,11 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [txError, setTxError] = useState<string | null>(null);
   const [savedProxyAdminError, setSavedProxyAdminError] = useState<string | null>(null);
 
-  // A ProxyAdmin deployed here belongs to the wallet's chain and to one L1.
-  // The deploy results on screen are cleared when either one changes.
+  // A ProxyAdmin deployed here belongs to the wallet's chain and to one L1, and the account that deployed it owns it.
+  // The deploy results on screen are cleared when the chain, the L1 or the account changes. The saved ProxyAdmin is
+  // then checked again for the new account.
   const adminSubnetId = proxyAdminSubnetId(selectedL1?.subnetId, flowSubnetId);
-  const deployScopeKey = `${walletChainId}:${adminSubnetId}`;
+  const deployScopeKey = `${walletChainId}:${adminSubnetId}:${walletEVMAddress.toLowerCase()}`;
   const deployScopeRef = useRef(deployScopeKey);
   useEffect(() => {
     if (deployScopeRef.current === deployScopeKey) return;
@@ -135,7 +136,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   }, [deployScopeKey]);
 
   // After a reload between the two deploys, show the ProxyAdmin that this page
-  // deployed, once the chain confirms it. A failed check removes the saved address.
+  // deployed, once the chain confirms it. A failed check removes the saved address,
+  // except when another account owns the ProxyAdmin: the owner can connect again.
+  // A new deploy replaces the saved address.
   const savedProxyAdminAddress = savedProxyAdminFor(savedProxyAdmin, walletChainId, adminSubnetId);
   const isCheckingSavedProxyAdmin =
     !!savedProxyAdminAddress && savedProxyAdminAddress !== newProxyAdminAddress && !savedProxyAdminError;
@@ -148,8 +151,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
         if (cancelled) return;
         setShowDeploySection(true);
         if (problem) {
-          setSavedProxyAdmin(null);
-          setSavedProxyAdminError(problem);
+          if (!problem.keepSaved) setSavedProxyAdmin(null);
+          setSavedProxyAdminError(problem.message);
           return;
         }
         setSavedProxyAdminError(null);
@@ -655,6 +658,11 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                 {savedProxyAdminError && (
                   <p role="alert" className="text-[11px] text-red-600 dark:text-red-400 px-1 break-words">
                     {savedProxyAdminError}
+                  </p>
+                )}
+                {isCheckingSavedProxyAdmin && (
+                  <p role="status" className="text-[11px] text-zinc-500 dark:text-zinc-400 px-1 break-words">
+                    Checking the ProxyAdmin that this page deployed earlier...
                   </p>
                 )}
 

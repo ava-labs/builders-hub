@@ -140,21 +140,21 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
         id: 'bridge',
         label: 'TokenHome deployed on Home',
         ok: Boolean(bridge?.homeAddress),
-        actionLabel: 'Go to Phase 2 (Home)',
+        actionLabel: 'Go to the Home step',
         actionHref: `${BRIDGE_BASE_PATH}/home`,
       },
       {
         id: 'remote',
         label: 'TokenRemote deployed on Remote',
         ok: Boolean(selectedRemote?.address),
-        actionLabel: 'Go to Phase 3 (Remote)',
+        actionLabel: 'Go to the Remote step',
         actionHref: `${BRIDGE_BASE_PATH}/remote`,
       },
       {
         id: 'registered',
         label: 'Remote registered with Home',
         ok: Boolean(selectedRemote?.registeredAt),
-        actionLabel: 'Go to Phase 4 (Register)',
+        actionLabel: 'Go to the Register step',
         actionHref: `${BRIDGE_BASE_PATH}/register`,
       },
       {
@@ -163,7 +163,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
         id: 'collateralized',
         label: isNativeHome ? 'Collateral (not required for native home)' : 'Collateral funded on Home',
         ok: isNativeHome ? Boolean(selectedRemote?.registeredAt) : Boolean(selectedRemote?.collateralizedAt),
-        actionLabel: 'Go to Phase 5 (Collateral)',
+        actionLabel: 'Go to the Collateral step',
         actionHref: `${BRIDGE_BASE_PATH}/collateral`,
       },
       {
@@ -242,7 +242,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
           !hasRemotes ? (
             <Note variant="warning">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs">Deploy a Remote in Phase 3 before sending tokens.</span>
+                <span className="text-xs">Deploy a Remote in the Remote step before you send tokens.</span>
                 <button
                   type="button"
                   onClick={handleAddAnotherDestination}

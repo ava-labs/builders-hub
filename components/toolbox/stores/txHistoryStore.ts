@@ -7,7 +7,8 @@ export type TxStatus = 'pending' | 'confirmed' | 'failed';
 export interface TxRecord {
   id: string;
   timestamp: number;
-  type: 'evm' | 'pchain';
+  /** 'cchain-atomic': a C-Chain import or export of the C/P bridge. An atomic tx with a CB58 ID, not an EVM tx. */
+  type: 'evm' | 'pchain' | 'cchain-atomic';
   network: 'fuji' | 'mainnet';
   operation: string;
   txHash: string;

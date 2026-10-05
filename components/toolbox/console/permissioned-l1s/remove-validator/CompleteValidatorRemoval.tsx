@@ -29,6 +29,7 @@ import {
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
 import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -114,8 +115,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required. Please select a subnet first.');
-      onError('L1 Subnet ID is required. Please select a subnet first.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!validatorManagerAddress) {

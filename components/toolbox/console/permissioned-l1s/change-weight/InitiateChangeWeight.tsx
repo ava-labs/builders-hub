@@ -9,6 +9,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 interface InitiateChangeWeightProps {
   subnetId: string;
@@ -161,8 +162,8 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       });
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }

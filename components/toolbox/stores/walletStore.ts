@@ -17,6 +17,12 @@ interface WalletState {
 
   // Wallet connection data
   walletChainId: number;
+  /**
+   * True after WalletSync reads the chain from the wallet provider itself (eth_chainId or a chainChanged event) for
+   * the current connection. Before that, walletChainId and isTestnet can come from wagmi's persisted chain, which is
+   * the last Fuji or Mainnet C-Chain that wagmi saw, not the chain the wallet is on now.
+   */
+  walletChainConfirmed: boolean;
   walletEVMAddress: `0x${string}` | '';
   pChainAddress: string;
   coreEthAddress: string;
@@ -76,6 +82,7 @@ interface WalletActions {
   // Legacy individual setters for backward compatibility
   setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => void;
   setWalletChainId: (walletChainId: number) => void;
+  setWalletChainConfirmed: (walletChainConfirmed: boolean) => void;
   setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => void;
   setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => void;
   setPChainAddress: (pChainAddress: string) => void;
@@ -145,6 +152,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
           : http(avalancheFuji.rpcUrls.default.http[0]),
     }),
     walletChainId: 0,
+    walletChainConfirmed: false,
     walletEVMAddress: '' as `0x${string}` | '',
     avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
     pChainAddress: '',
@@ -201,6 +209,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     // Legacy individual setters for backward compatibility
     setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => set({ coreWalletClient }),
     setWalletChainId: (walletChainId: number) => set({ walletChainId }),
+    setWalletChainConfirmed: (walletChainConfirmed: boolean) => set({ walletChainConfirmed }),
     setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => set({ walletEVMAddress }),
     setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) =>
       set({ avalancheNetworkID }),
