@@ -4,12 +4,12 @@ import { bypassHeaders } from '../lib/bypass.ts';
 import { readFujiKeyIfSet } from './lib/chain.ts';
 import { coreProvider } from './wallet/provider.ts';
 
-// The Console chain tests: each night they drive build.avax.network/console through a fresh L1 on Fuji, with real
-// transactions signed in Node by the Fuji test key (E2E_CHAIN_FUJI_KEY_FILE or E2E_CHAIN_FUJI_KEY). They run only
-// from .github/workflows/e2e-chain.yml or by hand (README.md, "Console chain tests"). The main config excludes this
-// folder.
+// The Console chain tests: each night they drive build.avax.network/console on Fuji, with real transactions signed in
+// Node by the Fuji test key (E2E_CHAIN_FUJI_KEY_FILE or E2E_CHAIN_FUJI_KEY). They run only from
+// .github/workflows/e2e-chain.yml or by hand (README.md, "Console chain tests"). The main config excludes this folder.
+// Each file is one suite with its own tag; run one suite per process:
 //
-//   npm run test:chain
+//   npm run test:chain -- --tag <tag>
 
 // Production by default. A local run can test a preview: set E2E_BASE_URL and VERCEL_AUTOMATION_BYPASS_SECRET.
 // This config does not load .env.local, so only the shell sets the target.

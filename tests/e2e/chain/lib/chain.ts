@@ -24,10 +24,13 @@ export const FUJI = {
   api: 'https://api.avax-test.network',
   pRpc: 'https://api.avax-test.network/ext/bc/P',
   cRpc: 'https://api.avax-test.network/ext/bc/C/rpc',
+  // The C-Chain's Avalanche API: avax.issueTx and avax.getAtomicTx for the atomic txs (ExportTx and ImportTx).
+  cAvax: 'https://api.avax-test.network/ext/bc/C/avax',
   infoRpc: 'https://api.avax-test.network/ext/info',
   glacier: 'https://glacier-api.avax.network/v1/networks/fuji',
   // The P-Chain blockchain ID and the Primary Network subnet ID are both the empty ID.
   pBlockchainId: '11111111111111111111111111111111LpoYY',
+  primaryNetworkId: '11111111111111111111111111111111LpoYY',
   cBlockchainId: 'yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp',
   avaxAssetId: 'U8iRqJoiJm8xZHAacmvYyZVwqQx6uDNtQeP3CQ6fcgQk3JqnK',
 } as const;
@@ -380,14 +383,27 @@ export interface PSubnet {
   managerAddress?: string;
 }
 
-/** platform.getSubnet, or null when the P-Chain does not know the subnet. */
+/** platform.getSubnet, or null when the P-Chain does not know the subnet. Read past the API cache (freshParams). */
 export async function pSubnet(subnetId: string): Promise<PSubnet | null> {
   try {
-    return await jsonRpc<PSubnet>(FUJI.pRpc, 'platform.getSubnet', { subnetID: subnetId });
+    return await jsonRpc<PSubnet>(FUJI.pRpc, 'platform.getSubnet', freshParams({ subnetID: subnetId }));
   } catch (error) {
     if (notFound(error)) return null;
     throw error;
   }
+}
+
+/**
+ * platform.getTx in JSON: the unsigned tx as the P-Chain decodes it. Read past the API cache (freshParams). A node that
+ * has not seen the tx answers 'not found', so call it in a poll (chainShows) after a send.
+ */
+export async function pTxJson<T>(txId: string): Promise<T> {
+  const { tx } = await jsonRpc<{ tx: { unsignedTx: T } }>(
+    FUJI.pRpc,
+    'platform.getTx',
+    freshParams({ txID: txId, encoding: 'json' }),
+  );
+  return tx.unsignedTx;
 }
 
 /** True when the P-Chain shows the subnet converted to an L1. */
@@ -399,7 +415,11 @@ export async function pIsL1(subnetId: string): Promise<boolean> {
 /** platform.getL1Validator, or null when the P-Chain has no such validator (never added, or removed). */
 export async function pL1Validator(validationId: string): Promise<L1Validator | null> {
   try {
-    const raw = await jsonRpc<RawL1Validator>(FUJI.pRpc, 'platform.getL1Validator', { validationID: validationId });
+    const raw = await jsonRpc<RawL1Validator>(
+      FUJI.pRpc,
+      'platform.getL1Validator',
+      freshParams({ validationID: validationId }),
+    );
     return toL1Validator({ ...raw, validationID: raw.validationID ?? validationId }, raw.subnetID ?? '');
   } catch (error) {
     if (notFound(error)) return null;
@@ -407,13 +427,40 @@ export async function pL1Validator(validationId: string): Promise<L1Validator | 
   }
 }
 
-/** The L1 validators of a subnet (platform.getCurrentValidators), active and inactive. */
-export async function pL1Validators(subnetId: string): Promise<L1Validator[]> {
-  const { validators } = await jsonRpc<{ validators: Partial<RawL1Validator>[] }>(
+// A new value for each read: see freshParams.
+let freshRead = 0;
+
+/**
+ * The params with one more field that makes the request new to the public API's cache. The public Fuji API caches
+ * platform.getCurrentValidators, platform.getSubnet and platform.getTx by their params for about 3 min (response header
+ * x-cache: HIT; request headers such as Cache-Control do not stop it; measured 2026-10-05). So a read right after a tx
+ * can get the answer from before it, also when a page made the first read. The node ignores a param that it does not
+ * know (checked on Fuji for these three methods), and a new value of that param makes each request new. The wallet
+ * signer uses it for its owner lookups too.
+ */
+export function freshParams<T extends object>(params: T): T & { e2eRead: string } {
+  return { ...params, e2eRead: `${process.pid}-${Date.now()}-${++freshRead}` };
+}
+
+/** platform.getCurrentValidators, read past the cache of the public API (freshParams). */
+export async function pCurrentValidators<T>(params: { subnetID?: string; nodeIDs?: readonly string[] }): Promise<T[]> {
+  const { validators } = await jsonRpc<{ validators?: T[] }>(
     FUJI.pRpc,
     'platform.getCurrentValidators',
-    { subnetID: subnetId },
+    freshParams(params),
   );
+  return validators ?? [];
+}
+
+/** The nAVAX that the address has staked on the P-Chain (platform.getStake): validator and delegator stakes. */
+export async function pStaked(address: string): Promise<bigint> {
+  const { staked } = await jsonRpc<{ staked?: string }>(FUJI.pRpc, 'platform.getStake', { addresses: [address] });
+  return BigInt(staked ?? '0');
+}
+
+/** The L1 validators of a subnet (platform.getCurrentValidators), active and inactive. */
+export async function pL1Validators(subnetId: string): Promise<L1Validator[]> {
+  const validators = await pCurrentValidators<Partial<RawL1Validator>>({ subnetID: subnetId });
   return validators
     .filter((v): v is RawL1Validator => typeof v.validationID === 'string' && v.deactivationOwner !== undefined)
     .map((v) => toL1Validator(v, subnetId));

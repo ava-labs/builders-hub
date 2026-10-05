@@ -1,132 +1,130 @@
 # Console map: tier 1 (PoA L1, Validator Manager on the Fuji C-Chain)
 
-This map tells a test author, for each tier 1 step, which controls the test touches, what the page shows on success, which chain read proves the step, and which traps the code has. It also lists the UX problems found on the way.
+This map tells a test author, for each tier 1 step, which controls the test touches, what the page shows on success, which chain read proves the step, and which traps the code has. It also lists the UX problems found on the way, and their status.
 
-Source: a code read of this worktree (base `7ddcb814a`) on 2026-10-04, checked line by line against the components. On 2026-10-04 `chain/poa-cchain.e2e.ts` used these names in live runs against build.avax.network: every step of sections 2.1 to 2.9 and 2.11 to 2.16 passed (2.0, 2.10 and 2.15 are not in the test yet). Line numbers are in this worktree.
+Source: a code read of this worktree (base `7ddcb814a`) on 2026-10-04, updated on 2026-10-05 for the UX fixes of this branch (commit `4d69149e7` and the fix rounds after it). The names below are the names of the fixed pages. They hold on a server that runs this branch (a local server or a preview). On build.avax.network they hold only after the fixes deploy. File references name the component; line numbers change, so search the file for the text.
 
 Notation:
 
-- `role 'name'` means `screen.getByRole(role, 'name')` (e2e 0.17.0, `docs/reference/screen.mdx`). A string name matches the whole name. A `/regex/` name matches as written.
-- `placeholder '...'` means `screen.getByPlaceholder('...')`. Playwright uses the placeholder as the accessible name of a field that has no label, so `role 'textbox'` with the placeholder text also works.
-- `css: <selector>` means `browser.locator('<selector>')`. Use it only where the Console gives the control no accessible name. Put a comment in the test that names the missing label. Section 4 lists each one as a UX finding.
-- Chain helpers are in `chain/lib/chain.ts`: `waitForPTx`, `pSubnet`, `pIsL1`, `pL1Validator`, `pBalance`, `cHasCode`, `waitForCTx`, `managerValidator`, `managerNodeValidationId`, `managerTotalWeight`, `managerSubnetId`, `managerIsValidatorSetInitialized`, `glacierSubnet`, `waitForGlacierSubnet`, `glacierL1Validators`, `initialValidationId`, `nodeIdToHex`, `ValidatorStatus`.
-- The signer records each send in `wallet.signer.sends` (`chain/lib/fixtures.ts`). Take every tx ID and contract address from that record and from the receipts, not from the page. The page often shortens them or does not show them.
+- `role 'name'` means `screen.getByRole(role, 'name')` (e2e 0.17.0, `docs/reference/screen.mdx`). A string name matches the whole name. A `/regex/` name matches as written. A field of type number is a `spinbutton`, not a `textbox`. A `datetime-local` field has no role: find it with `screen.getByLabel`.
+- `css: <selector>` means `browser.locator('<selector>')`. Use it only where the Console gives the control no accessible name. Put a comment in the test that names the missing label.
+- `alert 'text'` means `pageAlert(screen, 'text')` (`chain/lib/console.ts`): `role 'alert'` filtered by its text (section 1.5).
+- Chain helpers are in `chain/lib/chain.ts`: `waitForPTx`, `pSubnet`, `pIsL1`, `pL1Validator`, `pBalance`, `cHasCode`, `waitForCTx`, `managerValidator`, `managerNodeValidationId`, `managerTotalWeight`, `managerSubnetId`, `managerIsValidatorSetInitialized`, `waitForGlacierSubnet`, `glacierL1Validators`, `initialValidationId`, `ValidatorStatus`. They read past the public API's cache (`freshParams`).
+- The signer records each send in `wallet.signer.sends` (`chain/lib/fixtures.ts`). Take every tx ID and contract address from that record and from the receipts. Where the page shows a full P-Chain tx ID (a Success box: a label, then a link named by the ID to `/explorer/fuji/p-chain/tx/<ID>`), check that the page shows the wallet's ID (`shownPChainTxId` in `chain/lib/validator-steps.ts`). The flow stores in localStorage are a cross-check only.
 - The mock validators come from `chain/lib/mock-validator.ts` (section 3).
+- The shared steps are in `chain/lib/create-l1.ts` (the create flow, sections 2.1 to 2.9) and `chain/lib/validator-steps.ts` (the Warp steps of the validator flows).
 
 ## 1. Facts that apply to every step
 
 ### 1.1 Open pages as a returning visitor
 
-A first Console visit opens the dialog 'Welcome to Builder Console' 800 ms after mount (`components/console/onboarding-tour/welcome-modal.tsx:36, 64`). The open dialog hides the page from the accessibility tree. The privacy banner also shows. `answerFirstVisitPrompts(browser)` in `lib/visitor.ts` writes both answers to localStorage. Two ways to use it:
-
-- Open any page of the site first, then call it (as `site/helpers.ts` `openAsReturningVisitor` does).
-- Better for the chain tests: write the same three keys in an init script (`browser.addInitScript` in the fixture, before the first `app.open`), so no extra page load is needed.
+A first Console visit opens the dialog 'Welcome to Builder Console' 800 ms after mount (`components/console/onboarding-tour/welcome-modal.tsx`). The open dialog hides the page from the accessibility tree. The privacy banner also shows. `openAsReturningVisitor` in `chain/lib/console.ts` loads a small static file, writes both answers to localStorage (`lib/visitor.ts`), and then opens the page.
 
 ### 1.2 Wallet connection
 
-The provider is an init script (`chain/wallet/provider.ts`, `web({ initScripts })`). It announces EIP-6963 rdns `app.core`, name `Core`. The site has no grant until the user connects (`chain/wallet/bridge.ts`), so wagmi never connects by itself. Each session connects once:
+The provider is an init script (`chain/wallet/provider.ts`, `web({ initScripts })`). It announces EIP-6963 rdns `app.core`, name `Core`. The site has no grant until the user connects (`chain/wallet/bridge.ts`), so wagmi never connects by itself. Each session connects once (`connectCore` in `chain/lib/fixtures.ts`):
 
-1. `button 'Connect Wallet'` in the header (`components/toolbox/components/console-header/evm-network-wallet/index.tsx:39-46`). A tool page without a wallet also shows the gate `css: [data-console-tool-gate]` with `heading 'To use this tool you need:'` and `button 'Connect'` (`components/toolbox/components/CheckRequirements.tsx:118-128, 239-246`; label from `hooks/useWalletRequirements.ts:26-31`). Both open the RainbowKit modal.
-2. `dialog 'Connect a Wallet'` (RainbowKit 2.2.10: role dialog, labelled by the 'Connect a Wallet' h1). In it, `button /^Core( Recent)?$/`. The name is the wallet name, plus 'Recent' after an earlier connect in the same browser. RainbowKit gives the icon no name. Fallback: `screen.getByTestId('rk-wallet-option-app.core')` (RainbowKit sets `data-testid="rk-wallet-option-<connector id>"`).
-3. Success: the header shows the P-Chain button: `button /^P-Chain Logo P-Chain .* AVAX$/` (image alt 'P-Chain Logo', text 'P-Chain', the balance; `console-header/pchain-wallet/index.tsx:47-67`). It renders only when the Console has the Core client and the P-Chain address.
+1. `button 'Connect Wallet'` in the header. A tool page without a wallet also shows the gate `css: [data-console-tool-gate]` with `heading 'To use this tool you need:'` and `button 'Connect'` (`components/toolbox/components/CheckRequirements.tsx`). Both open the RainbowKit modal.
+2. `dialog 'Connect a Wallet'`. In it, `button /^Core( Recent)?$/`. Fallback: `screen.getByTestId('rk-wallet-option-app.core')`.
+3. Success: the header shows the P-Chain button: `button /P-Chain.*AVAX$/`. It renders only when the Console has the Core client and the P-Chain address.
 
 Rules:
 
-- Wait for the P-Chain button after each full load (`app.open`, `browser.reload`, `browser.goto`) before you touch anything. Before the wallet reconnects, `isTestnet` is false, so every flow store reads the mainnet copy of its data (`stores/createFlowStore.ts:44-80`, `stores/walletStore.ts` initial `isTestnet: false`), and the C-Chain steps show the network gate.
-- The Console treats the wallet as Core when the connector id is `app.core` (`console-header/WalletSync.tsx:145-153`) or when the injected provider is `window.avalanche` or has `isAvalanche` (`:155-184`). Then it sets `walletType` 'core' (`:236`). Without that, the P-Chain buttons show a `platform-cli` command and the warp steps show a `cast` command instead of a button (`CoreWalletTransactionButton.tsx:96-117`; `InitValidatorSet.tsx:560-572`; `CompletePChainRegistration.tsx:465-482`).
-- On a fresh connect to a chain other than 43113, the Console asks the wallet to switch to Fuji (`WalletSync.tsx:53-60`). Start the signer on 43113.
+- Wait for the P-Chain button after each full load (`app.open`, `browser.reload`) before you touch anything. Before the wallet reconnects, `isTestnet` is false, so every flow store reads the mainnet copy of its data, and the C-Chain steps show the network gate.
+- The Console treats the wallet as Core when the connector id is `app.core` or the injected provider has `isAvalanche` (`console-header/WalletSync.tsx`). Without that, the P-Chain buttons show a `platform-cli` command and the Warp steps show a `cast` command instead of a button.
+- A `?subnetId=` query of a validator flow applies only after the wallet has reported its chain. Connect in the header first.
 
 What the Console asks of the wallet (for the signer owner):
 
-- Before each P-Chain tx: `wallet_getEthereumChain`. It must return `isTestnet: true`, or the Console switches the chain first (`coreViem/index.ts:143-161`, `hooks/useSubmitPChainTx.ts:20-37`). Then `avalanche_sendTransaction` through the SDK.
-- Deploy Validator Manager: `wallet_addEthereumChain` and `wallet_switchEthereumChain` for 43113 before each deploy (`DeployValidatorManager.tsx:111-112, 154-155`).
-- The amber notice 'Your wallet uses a different RPC URL for this chain' shows when `wallet_getEthereumChain` gives an `rpcUrls[0]` other than `https://api.avax-test.network/ext/bc/C/rpc` (`hooks/useWalletRpcAdvisory.ts:23-42`; `stores/l1ListStore.ts:50-53`).
-- Contract calls send `eth_sendTransaction` with a nonce that the page sets to the pending count, and the warp steps add an `accessList` (`hooks/contracts/useContractActions.ts:91, 142-157`).
+- Before each P-Chain tx: `wallet_getEthereumChain`. It must return `isTestnet: true`, or the Console switches the chain first (`hooks/useSubmitPChainTx.ts`). Then `avalanche_sendTransaction` through the SDK.
+- Deploy Validator Manager: `wallet_addEthereumChain` and `wallet_switchEthereumChain` for 43113 before each deploy.
+- Contract calls send `eth_sendTransaction` with a nonce that the page sets to the pending count, and the Warp steps add an `accessList` (`hooks/contracts/useContractActions.ts`).
+- A test can make the wallet answer a request as a user who clicks Reject in Core: `signer.rejectNext(method)` answers the next request of the method with 4001 'User rejected the request.' before the wallet signs or sends anything. `signer.rejectNext(method, { times: Infinity })` answers each request of the method until `cancel()`: tier 1 uses it while it checks that a page sends nothing. The page then shows `alert 'You rejected the request in your wallet. To continue, click the button again and approve the request.'`. Every tool shows this text for an EVM tx and for a P-Chain tx (`WALLET_REJECTED` in `chain/lib/console.ts`). The sends audit fails on a rejection that is still armed.
 
 ### 1.3 Tool chrome and step flow
 
-- Each tool renders `css: [data-console-tool="<tool title>"]` with `heading '<tool title>'` level 1 (`components/toolbox/components/Container.tsx:25-31`). The tool title can differ from the step title (section 4, C).
-- A step flow renders `css: [data-console-flow]` (`components/console/step-flow.tsx:262`). 'Next' and 'Back' are links: `link 'Next'`, `link 'Back'` (`:395-400, 456-461`). The last step has `button 'Finish'` (`:434-441`). The step pills are links too. A done step's name is its title; another step's name is its number and its title, for example '2 Deploy Validator Manager'.
-- 'Next' is never gated (`step-flow.tsx:443-463`). The questionnaire's 'Continue' is gated only on the first screen (`CreateL1Questionnaire.tsx:438-451`).
-- `ChainGate` wraps each step (`step-flow.tsx:375-377`). P-Chain and 'any' steps pass through (`ChainGate.tsx:53-55`). On a C-Chain step with the wallet on another chain it shows `heading 'Connect to Fuji C-Chain'` and `button 'Switch Network'` (`:178, 194, 210-219`). The step stays in the page under `pointer-events: none` (`:241`), so role queries still find its controls, but a click times out. Tier 1 stays on 43113.
+- Each tool renders `css: [data-console-tool="<tool title>"]` with `heading '<tool title>'` level 1 (`components/toolbox/components/Container.tsx`). The card has no role. The tool title can differ from the step title.
+- A step flow renders `css: [data-console-flow]` (`components/console/step-flow.tsx`). 'Next' and 'Back' are links: `link 'Next'`, `link 'Back'`. The last step has `button 'Finish'`. The step pills are links in `navigation 'Steps'`; the active one has `aria-current="step"`.
+- 'Next' is never gated. The questionnaire's 'Continue' is gated only on the first screen.
+- `ChainGate` wraps each step. On a C-Chain step with the wallet on another chain it shows `heading 'Connect to Fuji C-Chain'` and `button 'Switch Network'`, and the step's controls are out of the accessibility tree until the switch. Tier 1 stays on 43113.
 
 ### 1.4 Button names change while busy
 
-- Every P-Chain tx button (`CoreWalletTransactionButton`) puts the image alt 'Core' before its text (`CoreWalletTransactionButton.tsx:105`). 'Create Subnet' is `button 'Core Create Subnet'`.
-- While busy, a button shows its loading text in place of its label (`CoreWalletTransactionButton.tsx:106-110`; `components/toolbox/components/Button.tsx:85-89`). The toolbox `Button` shows `loadingText`, or 'Loading...' when the step passes none, and drops the busy label that the step puts in the children. A locator by the idle name stops matching while the button is busy.
+- The P-Chain tx buttons have the plain action name: `button 'Create Subnet'`, `button 'Convert to L1'` (the Core image has an empty alt).
+- While busy, a toolbox `Button` shows its busy label in place of its name ('Processing...', 'Aggregating signatures...', 'Creating...', 'Confirming...') and has `aria-busy="true"`; idle, it has `aria-busy="false"`. A locator by the idle name stops matching while the button is busy (`busyThenIdle` and `clickAndSettle` in `chain/lib/console.ts` use this).
 - So wait for the success signal or for the error box, not for "button enabled". The busy names are listed per step.
 
 ### 1.5 Errors and toasts
 
-- `Alert` has no role (`components/toolbox/components/Alert.tsx:35-42`). `role 'alert'` finds nothing. Read errors by text. Several steps render errors as plain `div` or `p` elements. The error texts are listed per step.
+- An error `Alert` is `role 'alert'`; a warning or info `Alert` is `role 'status'` (`components/toolbox/components/Alert.tsx`). Next 16 adds its own `role="alert"` route announcer with no text, so an unfiltered `getByRole('alert')` can match two elements: filter by text (`pageAlert`). A few boxes still have no role (the C/P bridge error box): read them by text.
+- A field error or a helper text under an Input is plain text tied to the field with `aria-describedby`; the field gets `aria-invalid="true"` on an error.
+- After a P-Chain tx was issued but not confirmed, the error box says 'This transaction was issued and may still commit. Check it in the explorer before you send it again.' with `link 'View transaction in the explorer'`.
 - The Console also shows sonner toasts. They go away by themselves. Do not use a toast as the success signal.
 - If an error box contains '429' or 'Too Many Requests', stop the test. Do not click again.
 
 ### 1.6 State: what survives a reload
 
-A serial group shares app state (`docs/reference/test.mdx:299`), so localStorage carries from one member to the next.
+A serial group shares app state, so localStorage carries from one member to the next.
 
-| localStorage key | Holds | Lost on reload | Cleared by |
-|---|---|---|---|
-| `v4-create-l1-flow` | questionnaire answers, step index | nothing | 'Start deployment' sets new answers; closing the Finish modal clears it (`app/console/create-l1/[step]/client-page.tsx:43-45`) |
-| `v4-create-chain-store-testnet` | `subnetId`, `chainID`, `chainName`, `managerAddress` (the proxy after Proxy Setup), `genesisData`, `evmChainId`, `convertToL1TxId` | nothing | 'Start deployment' (`CreateL1Questionnaire.tsx:330-341`) |
-| `v4-toolbox-storage-43113` | `validatorMessagesLibAddress`, `validatorManagerAddress` | nothing | 'Start deployment'; 'Redeploy' |
-| `v4-add-validator-store-testnet` | validator list, `evmTxHash`, `validatorBalance`, `blsProofOfPossession`, `pChainTxId` | `subnetIdL1` (not persisted, `stores/addValidatorStore.ts:105-108`) | setting the subnet (`:64-75`) |
-| `v4-change-weight-store-testnet` | `nodeId`, `validationId`, `newWeight`, `evmTxHash`, `pChainTxId` | `subnetIdL1` (`stores/changeWeightStore.ts:73-76`) | setting the subnet (`:41-50`) |
-| `v4-remove-validator-store-testnet` | `nodeId`, `validationId`, `evmTxHash`, `pChainTxId` | `subnetIdL1` (`stores/removeValidatorStore.ts:66-69`) | setting the subnet |
+| localStorage key | Holds | Cleared by |
+|---|---|---|
+| `v4-create-l1-flow` | questionnaire answers, step index | 'Start deployment' sets new answers; closing the Finish modal clears it |
+| `v4-create-chain-store-testnet` | `subnetId`, `chainID`, `chainName`, `managerAddress` (the proxy after Proxy Setup), `genesisData`, `evmChainId`, `convertToL1TxId`, and `proxyAdmin` (`{ address, evmChainId, subnetId }`) between the two proxy deploys (null after 'Deploy Proxy') | 'Start deployment' |
+| `v4-toolbox-storage-43113` | `validatorMessagesLibAddress`, `validatorManagerAddress` | 'Start deployment'; 'Redeploy' |
+| `v4-add-validator-store-testnet` | `subnetIdL1`, validator list, `evmTxHash`, `validatorBalance`, `blsProofOfPossession`, `pChainTxId` | `button 'Start over'` on step 1 |
+| `v4-change-weight-store-testnet` | `subnetIdL1`, `nodeId`, `validationId`, `newWeight`, `evmTxHash`, `pChainTxId` | `button 'Start over'` on step 1 |
+| `v4-remove-validator-store-testnet` | `subnetIdL1`, `nodeId`, `validationId`, `evmTxHash`, `pChainTxId` | `button 'Start over'` on step 1 |
 
-React state is lost on any reload or remount: signatures, the ProxyAdmin address on Proxy Setup, the 'Transaction Completed' state of initiate buttons.
+React state is lost on any reload or remount: signatures, the 'Transaction Completed' state of initiate buttons.
 
 ### 1.7 Reload or remount
 
-- Create flow steps: a reload is safe. The IDs come back from `v4-create-chain-store-testnet`.
-- Add validator, change weight, remove: never reload in the middle. A reload loses `subnetIdL1`, and every later step shows 'Please select an L1 subnet first.' Opening the URL again with `?subnetId=` sets the subnet but also clears the tx hash, the balance and the proof of possession (`app/console/add-validator/[step]/client-page.tsx:15-18`; `addValidatorStore.ts:64-75`). To get a fresh component on a step, remount it: `link 'Back'`, then `link 'Next'` (client navigation keeps the store and mounts the step again). Do not click the initiate button on the way back: its 'Transaction Completed' state is gone and it is enabled again.
-- To start a validator flow clean, open its first step URL (with `?subnetId=` where the flow takes it). Setting the subnet clears the old validator, tx hash and P-Chain tx ID.
+- Every tier 1 step survives a reload: the stores above keep the L1, the tx IDs and the ProxyAdmin. Tier 1 checks two reloads: between the two proxy deploys (2.4) and on the P-Chain Registration step (2.11).
+- To mount a step fresh with no full load: `link 'Back'`, then `link 'Next'` (`remountStep`). The step's React state (a signature, an error) starts fresh. Do not click the initiate button on the way back: its 'Transaction Completed' state is gone and it is enabled again.
+- To start a validator flow clean, click `button 'Start over'` on step 1 (it shows only when the store holds an L1). It clears the store and the `?subnetId=` query. Opening step 1 with a `?subnetId=` equal to the saved L1 no longer clears the flow.
 
 ### 1.8 Glacier: what each page reads, and the Node pre-wait
 
-None of these reads retries. Each runs on mount and again only when its inputs change (subnet ID; for `useVMCAddress` also the wallet chain and network). A read that ran before Glacier indexed the new state leaves the page without data until a remount. Rule: poll Glacier from Node first, then open or remount the page. Write the measured lag to the ledger.
+None of these reads retries, except the `useVMCAddress` re-read of a 'not an L1' result (below). Each runs on mount and again only when its inputs change. A read that ran before Glacier indexed the new state leaves the page without data until a remount. Rule: poll Glacier from Node first, then open or remount the page. Write the measured lag to the ledger.
 
 | Page | Read | Effect of a miss | Node pre-wait |
 |---|---|---|---|
-| Convert to L1 | `SelectSubnet` → Data API `getSubnetById` once (`components/SelectSubnet.tsx:33-81`) | 'Core Convert to L1' stays disabled (`ConvertSubnetToL1.tsx:124, 301`) | `waitForGlacierSubnet(subnetId)` |
-| Every validator tool | `useVMCAddress` → Glacier subnet `isL1` and `l1ValidatorManagerDetails`, then the manager's blockchain (`hooks/useVMCAddress.ts:63-184`) | error 'Selected subnet is not an L1 or doesn't have a Validator Manager Contract.'; no manager address, no signing subnet | `waitForGlacierSubnet(subnetId, { converted: true })` |
-| Change weight, top-up, remove | `SelectValidationID` → `listL1Validators` with inactive validators, weight > 0 (`components/SelectValidationID.tsx:84-127, 214-257`) | the validator is not in the suggestions; a failed read shows nothing | `glacierL1Validators(subnetId, { includeInactive: true })` lists the validator |
-| Disable | `ValidatorSelector` → `listL1Validators`, active only, weight > 0 (`disable-validator/ValidatorSelector.tsx:26-61`) | 'No active validators found for this subnet.' | `glacierL1Validators(subnetId)` lists V0 |
-| Subnet fields (`InputSubnetId`) | Glacier subnet, 500 ms after each change (`components/InputSubnetId.tsx:55-91`) | red 'Subnet ID not found or invalid' under the field; blocks nothing | none |
+| Convert to L1 | `SelectSubnet` → Data API `getSubnetById` once | 'Convert to L1' stays disabled | `waitForGlacierSubnet(subnetId)` |
+| Every validator tool | `useVMCAddress` → Glacier subnet `isL1` and `l1ValidatorManagerDetails`, then the manager's blockchain | 'This is not an L1, or it has no Validator Manager. After a conversion, the Data API can take a few minutes to show the L1.' The hook reads the subnet again every 20 s, for up to 5 min after the first read. A 404 or 400 gets 'This L1 is not on Fuji. A new L1 can take a minute to appear. Check that the ID is a Subnet ID, not a blockchain ID.' A 5xx, a 429 or a network error gets 'Could not load the L1 from the Data API.'; the signing steps then show `alert 'Could not load the Validator Manager details: ...'` | `waitForGlacierSubnet(subnetId, { converted: true })` |
+| Change weight, top-up, remove | `SelectValidationID` → `listL1Validators` with inactive validators, weight > 0 | the validator is not in the list; a failed read shows 'Could not load the validators of this L1: ...' under the field | `glacierL1Validators(subnetId, { includeInactive: true })` lists the validator |
+| Disable | `ValidatorSelector` → `listL1Validators`, active only, weight > 0 | 'No active validators found for this subnet.' | `glacierL1Validators(subnetId)` lists V0 |
+| Subnet fields (`InputSubnetId`) | Glacier subnet on the wallet's network (L1 Node Setup: the network of the page's Network toggle, through the `isTestnet` prop), 500 ms after each change; the other network once after a 404 or 400. A read-only field (Explorer Setup) does not read Glacier | Under the field: 'This is not a valid Subnet ID. Check that the ID is complete and correct.' for any non-empty value that is not a Subnet ID in form; 'This L1 is not on Fuji. A new L1 can take a minute to appear. Check that the ID is a Subnet ID, not a blockchain ID.' for a 404 or 400 on both networks; 'This L1 is on Mainnet. Switch the wallet to Mainnet.' when only the other network has it. On L1 Node Setup, the texts name the toggle: 'This L1 is on Fuji. Set the Network to Fuji.' when only the other network has it; the not-found text when neither network has it; 'This L1 is not on Mainnet. If it is a Fuji L1, set the Network to Fuji.' when the read of the other network fails, and from the page's own read before the field's check ends. No field text for a 5xx, a 429 or a network error (the caller's text shows; Create Subnet shows 'Could not load the L1 from the Data API.'). Blocks nothing | none |
 
-Initialize Validator Set needs no wait: it takes the conversion tx ID from the store when Glacier does not have it yet (`InitValidatorSet.tsx:192-221`).
+Initialize Validator Set needs no wait: it takes the conversion tx ID from the store when Glacier does not have it yet.
 
 ### 1.9 Warp deliveries and `deliverWithRetry`
 
-`deliverWithRetry` (`chain/lib/warp.ts`) gets `landed`, `aggregate` and `deliver`. Each attempt needs a new signature. The pages differ:
+`deliverWithRetry` (`chain/lib/warp.ts`) gets `landed`, `aggregate` and `deliver`. Each attempt needs a new signature. `chain/lib/validator-steps.ts` holds the validator-flow steps (`registerOnPChain`, `completeOnManager`, `aggregateThenSend`):
 
 | Step | Fresh signature for an attempt | `deliver` waits for | `landed` |
 |---|---|---|---|
-| Initialize Validator Set | reload the page, then `button 'Aggregate Signatures'`, wait for 'Signature aggregated'. The page keeps one signature per mount and reuses it on each 'Initialize Validator Set' click (`InitValidatorSet.tsx:322, 466-496`) | 'Validator set initialized' or the red error box (`:552-556, 580-585`) | `managerIsValidatorSetInitialized(proxy)` |
-| Add validator, P-Chain Registration | one button aggregates and sends. After a failure the button is gone (`SubmitPChainTxRegisterL1Validator.tsx:148, 294-332`): remount (`link 'Back'`, `link 'Next'`) | the store's `pChainTxId` is set, or 'P-Chain transaction failed:' | `pL1Validator(validationId) !== null` |
-| Complete Registration | each click aggregates again. A failed simulation leaves the button enabled; a sent tx that reverted disables it (`CompletePChainRegistration.tsx:306-311, 357-363`): then remount | 'Registration completed' or the error box | `managerValidator(...).status === Active` |
-| Change weight and remove, P-Chain step | `button 'Aggregate Signatures'`; for a retry `button 'Re-aggregate signatures'` (`console/shared/SubmitPChainTxWeightUpdate.tsx:388-411`) | 'P-Chain tx confirmed:' or 'P-Chain submission failed:' (`:424-433, 263-270`) | `pL1Validator` weight 12, or null after removal |
-| Complete Weight Change | as Complete Registration (`CompletePChainWeightUpdate.tsx:281-286, 338-345`) | 'Success! The validator weight has been updated successfully.' | `receivedNonce === sentNonce` |
-| Complete Removal | each click aggregates again; a reverted tx leaves the button enabled (`CompleteValidatorRemoval.tsx:206-214, 369-389`) | 'Validator removal completed' | status `Completed` |
+| Initialize Validator Set | `button 'Aggregate Signatures'` (busy 'Aggregating...'), then 'Signature aggregated'. A retry clicks `button 'Re-aggregate signatures'`: it drops the signature and starts a new aggregation at once, so do not click 'Aggregate Signatures' after it | 'Validator set initialized' or the error box | `managerIsValidatorSetInitialized(proxy)` |
+| Add validator, P-Chain Registration | one button aggregates and sends. After a failure the button comes back: click it again | the label 'RegisterL1ValidatorTx ID' with `link <tx ID>`; or an error box that starts 'P-Chain transaction failed:' (the submission) or 'Signature aggregation failed:' (the aggregation; a mapped text starts 'Signature aggregation reached' or 'Signature aggregation could not') | `pL1Validator(validationId) !== null` |
+| Complete Registration, Complete Weight Change, Complete Removal | each click aggregates again. After a failure or a reverted tx the button is enabled again: click it again | 'Registration completed', 'Success! The validator weight has been updated successfully.', 'Validator removal completed', or the error box | status `Active`; `receivedNonce === sentNonce`; status `Completed` |
+| Change weight and remove, P-Chain step | `button 'Aggregate Signatures'` (busy 'Aggregating signatures...'), then 'Signatures aggregated'. After a failed submission the step keeps its signature and shows `button 'Re-aggregate signatures'`; the test remounts the step for a retry | 'P-Chain tx confirmed:' or 'P-Chain submission failed:' | `pL1Validator` weight 12, or weight 0 after removal |
 
-Timing: one click can take minutes. The page itself retries a below-quorum or transient aggregation up to 4 times, 5, 10 and 20 s apart, and each attempt can last 60 s (`utils/aggregationRetry.ts:24-25`; `stores/useAvalancheSDKChainkit.ts:17, 82-97`). Give `deliver` a 5 min wait, then let `deliverWithRetry` wait its 15 s.
+Timing: one click can take minutes. The page itself retries a below-quorum or transient aggregation up to 4 times, and each attempt can last 60 s (`utils/aggregationRetry.ts`). Give `deliver` a 5 min wait, then let `deliverWithRetry` wait its 15 s.
 
-Signing subnet: on a C-Chain manager the Primary Network signs. The pages take the signing subnet from the manager details (`useVMCAddress`), but three steps fall back to the L1's own subnet while those details load (`PChainRegistrationStep.tsx:79`, `CompleteRegistrationStep.tsx:80`, `PChainRemovalStep.tsx:76`). An early click then asks the mock validators, which cannot sign. Before each warp click in the validator flows, wait for the badge 'PoA · EOA' in the step header (the details have loaded when it shows; CSS shows it in upper case, the text is mixed case), or for the row 'Signing Subnet ID' with `11111111111111111111111111111111LpoYY` in 'Validator Manager Details'.
+Signing subnet: on a C-Chain manager the Primary Network signs. The pages take the signing subnet from the manager details (`useVMCAddress`). While the details load, each Warp button of the validator flows is disabled (same idle name) and the step shows 'Loading the Validator Manager details...'. So wait for the button to be enabled before the click (`expect(button).toBeEnabled()`). The badge 'PoA · EOA' in the step header (CSS shows it in upper case, the text is mixed case) shows the owner type.
 
 ### 1.10 Requests that the page makes by itself
 
 Count these when you set your own poll rate. They are the app's requests; the Node code still uses public endpoints only, under 2 per second.
 
-- After each P-Chain tx, `waitForPChainConfirmation` polls `platform.getTxStatus` every 2 s for up to 60 s (`utils/pchainConfirmation.ts:10-32`). After 60 s the page reports a timeout, but the tx can still commit. Decide by the chain.
-- The top-up tool reads the P-Chain balance every 10 s (`layer-1/BalanceTopup.tsx:88-94`).
-- A failed contract simulation on Fuji makes the page call the site's own `/api/debug-rpc` (`useContractActions.ts:103-127`).
-- Each warp click: one Glacier aggregation request per page-side attempt (up to 4).
-- Remove expired registration: one `eth_getLogs` per 2,000 blocks from 'From Block' to the head (`RemoveExpiredValidatorRegistration.tsx:194-220`).
+- After each P-Chain tx, `waitForPChainConfirmation` polls `platform.getTxStatus` every 2 s for up to 60 s (`utils/pchainConfirmation.ts`). After 60 s the page reports a timeout and keeps the issued tx ID, but the tx can still commit. Decide by the chain.
+- The top-up tool reads the P-Chain balance every 10 s.
+- A failed contract simulation on Fuji makes the page call the site's own `/api/debug-rpc`.
+- Each Warp click: one Glacier aggregation request per page-side attempt (up to 4).
+- Remove expired registration: one `eth_getLogs` per 2,000 blocks from 'From Block' to the head.
 
-### 1.11 A false warning to ignore
+### 1.11 The P-Chain balance warning
 
-`walletStore.pChainBalance` is a getter in the initial zustand state (`stores/walletStore.ts:231-233`). Zustand's `set` copies the state with `Object.assign`, which turns the getter into a plain value the first time any field changes. The value stays at the initial 0 (checked in Node with zustand 5.0.8: `balances.pChain` 1.38, `pChainBalance` 0). So the P-Chain steps of Add validator and Remove always show 'Insufficient P-Chain balance for transaction fees. You need at least 0.1 AVAX.' (`add-validator/steps/PChainRegistrationStep.tsx:19-23, 61-74`; `remove-validator/steps/PChainRemovalStep.tsx:28-31, 51-64`). It blocks nothing. Do not treat it as a failure. Convert, top-up and the bridge read `balances.pChain` and show correct values.
+The P-Chain steps of Add validator and Remove read the real P-Chain balance. They show `status 'Insufficient P-Chain balance for transaction fees. You need at least 0.1 AVAX. ...'` only below 0.1 AVAX (`add-validator/steps/PChainRegistrationStep.tsx`; `remove-validator/steps/PChainRemovalStep.tsx`). The register step also shows 'Exceeds P-Chain balance (X AVAX)' when the validator balance is more than the P-Chain balance. Tier 1 checks that neither shows for the funded key.
 
 ### 1.12 Before each send, and where to resume
 
@@ -134,306 +132,271 @@ Before each send, read the chain (and the ledger). If the effect is already ther
 
 | Step | "Already landed" check | Where the page takes the ID |
 |---|---|---|
-| Create Subnet | `pSubnet(subnetId)` exists | `placeholder 'Paste Subnet ID'` (`CreateSubnet.tsx:154-162`) |
-| Deploy Validator Manager | `cHasCode(address)` for each contract | per card, `button 'Already deployed? Enter the address'`, then `textbox 'Already deployed? Enter the address'` (`ManualAddressInput.tsx:30-46`); both cards have it, so scope to the card with `heading 'Deploy ValidatorMessages Library'` or `heading 'Deploy ValidatorManager Contract'` |
-| Proxy Setup | `cHasCode(proxy)` and the EIP-1967 slots | the ProxyAdmin address cannot be entered. Deploy a new ProxyAdmin, or put the proxy into Initialize's manager field (`placeholder '0x...'`, `Initialize.tsx:225-231`) |
+| Create Subnet | `pSubnet(subnetId)` exists | `textbox 'Already have a Subnet ID?'` |
+| Deploy Validator Manager | `cHasCode(address)` for each contract | per card, the 'Already deployed? Enter the address' toggle and its address field |
+| Proxy Setup | `cHasCode(proxy)` and the EIP-1967 slots | the page keeps a ProxyAdmin that it deployed (store `proxyAdmin`); after a reload 'Deploy Proxy' is the only deploy button |
 | Initialize Validator Manager | `managerSubnetId(proxy)` is the subnet | none needed |
 | Create Chain | `waitForPTx(chainId)` | none. Convert does not need the chain ID for a C-Chain manager |
-| Convert to L1 | `pIsL1(subnetId)` | Initialize Validator Set: `placeholder 'txID...'` ('Conversion Tx ID (P-Chain)') |
+| Convert to L1 | `pIsL1(subnetId)` | Initialize Validator Set: `textbox 'Conversion Tx ID (P-Chain)'` |
 | Initialize Validator Set | `managerIsValidatorSetInitialized(proxy)` | none needed |
-| Add validator, initiate | `managerNodeValidationId(proxy, v1.nodeID)` is not zero | P-Chain step: `placeholder 'Enter the transaction hash from the previous step (0x...)'` |
-| Add validator, P-Chain | `pL1Validator(validationId)` exists | Complete step: `placeholder 'Enter the P-Chain transaction ID from the previous step'` |
-| Change weight, initiate | `managerValidator(...).weight === 12n` | P-Chain step: `placeholder 'Enter the transaction hash from step 2 (0x...)'` |
-| Change weight, P-Chain | `pL1Validator(...).weight === 12n` | Complete step: `placeholder 'Enter the P-Chain transaction ID from the previous step'` |
+| Add validator, initiate | `managerNodeValidationId(proxy, v1.nodeID)` is not zero | P-Chain step: `textbox 'initiateValidatorRegistration Transaction Hash'` |
+| Add validator, P-Chain | `pL1Validator(validationId)` exists | Complete step: `textbox 'P-Chain Transaction ID'` |
+| Change weight, initiate | `managerValidator(...).weight === 12n` | P-Chain step: `textbox 'initiateValidatorWeightUpdate Transaction Hash'` |
+| Change weight, P-Chain | `pL1Validator(...).weight === 12n` | Complete step: `textbox 'P-Chain Transaction ID'` |
 | Remove, initiate | status `PendingRemoved` | the page shows a resend card instead (2.14) |
-| Remove, P-Chain | `pL1Validator(v1) === null` | Complete step: `placeholder 'Enter the P-Chain SetL1ValidatorWeightTx ID from step 3'` |
+| Remove, P-Chain | `pL1Validator(v1)` weight 0 | Complete step: `textbox 'P-Chain SetL1ValidatorWeightTx ID'` |
 | Top-up | V0's balance grew | none |
 | Disable | `pL1Validator(v0).balance === 0n` | none |
 
 ### 1.13 The public API lags itself
 
-`api.avax-test.network` is load-balanced, and its nodes accept a block at different times. On 2026-10-04 `platform.getTxStatus` said Committed for a ConvertSubnetToL1Tx, and the next `platform.getSubnet` came from a node that still showed no conversion. A Node check after a tx must poll until a node shows the result (`chainShows` in `chain/lib/chain.ts`, 90 s). The C-Chain RPC is the same; the test polls its checks too (`expect.poll`). The Console's own reads go to the same endpoints.
+`api.avax-test.network` is load-balanced, and its nodes accept a block at different times. On 2026-10-04 `platform.getTxStatus` said Committed for a ConvertSubnetToL1Tx, and the next `platform.getSubnet` came from a node that still showed no conversion. A Node check after a tx must poll until a node shows the result (`chainShows` in `chain/lib/chain.ts`, 90 s). The API also caches `platform.getCurrentValidators`, `platform.getSubnet` and `platform.getTx` by their params for about 3 min; the Node reads add a param that the node ignores (`freshParams`). The Console's own reads go to the same endpoints and get the cached answer.
 
 ## 2. Steps
 
-The create flow for PoA, manager on the C-Chain, Docker hosting has 8 steps (`components/toolbox/console/create-l1/generateSteps.ts:173-237`): `/console/create-l1/create-subnet`, `deploy-validator-manager`, `proxy-setup`, `initialize-manager`, `create-chain`, `docker-setup`, `convert-to-l1`, `init-validator-set`.
+The create flow for PoA, manager on the C-Chain, Docker hosting has 8 steps (`components/toolbox/console/create-l1/generateSteps.ts`): `/console/create-l1/create-subnet`, `deploy-validator-manager`, `proxy-setup`, `initialize-manager`, `create-chain`, `docker-setup`, `convert-to-l1`, `init-validator-set`. `chain/lib/create-l1.ts` runs them for tier 1 and for the PoS file; tier 1 also runs the page checks of `uxChecks`.
 
-A step URL with no stored answers redirects to `/console/create-l1` (`app/console/create-l1/[step]/client-page.tsx:37-39`). Run the questionnaire first in the same session. Move between steps with `link 'Next'`.
+A step URL with no stored answers redirects to `/console/create-l1`. Run the questionnaire first in the same session. Move between steps with `link 'Next'`.
 
-### 2.0 C/P bridge (optional; only when the P-Chain balance is below 0.2 AVAX)
+### 2.0 C/P bridge
 
-- Route: `/console/primary-network/c-p-bridge`. The tool gates itself on the Fuji C-Chain (`primary-network/CrossChainTransfer.tsx:610-617`).
+- Route: `/console/primary-network/c-p-bridge`. The tool gates itself on the Fuji C-Chain. `chain/bridge-cp.e2e.ts` covers it (tag `bridge`).
 - Controls:
-  - Direction: text 'From C-Chain' or 'From P-Chain' (`:626`). `button 'Swap chains'` swaps them (`:652-660`).
-  - Amount: `css: input[type="number"][step="0.000001"]`. The `AmountInput` gets `label=""` and no placeholder, so it has no accessible name (`:630-646`).
-  - `button 'MAX'` (`:641-645`).
-  - `button /^Export .* AVAX from /` (`:685-693`). The import runs by itself after the export.
-- Success: `button 'Start New Transfer'` (`:769-790`).
-- Chain check: `pBalance(P address)` grew by the amount minus fees; `cBalance(C address)` fell.
-- Gotcha: a pending import from an earlier run shows 'Pending import from a previous transfer' and `button /^Import .* AVAX to /` (`:738-752`). Click it before a new export.
+  - Direction: text 'From C-Chain' or 'From P-Chain'. `button 'Swap chains'` swaps them.
+  - `spinbutton 'Amount'` (`aria-label`).
+  - `button 'MAX'`.
+  - `button /^Export .* AVAX from /`. The import runs by itself after the export.
+- Success: `button 'Start New Transfer'`. The history lists each tx on its own chain: the P-Chain export and import with the badge 'P-Chain', the C-Chain export and import with the badge 'C-Chain' (store type `cchain-atomic`).
+- Chain check: `pBalance(P address)` and `cBalance(C address)` change by the amount and the fees (`chain/lib/bridge-cp.ts`); shared memory holds none of the key's AVAX after the round trip, except the dust that the first test left (`chain/lib/atomic.ts`).
+- Gotcha: a pending import from an earlier run shows 'Pending import from a previous transfer' and `button /^Import .* AVAX to /`. Click it before a new export. The error box has no role: read it by text.
+- Anyone can export a UTXO to the key's address. The page imports only the key's own unlocked AVAX, and gives the SDK exactly the UTXOs that it selects (`selectImport` and `toSdkUtxos` in `components/toolbox/utils/sharedMemoryImport.ts`). A UTXO enters only when it holds more than the fee of its own input (`inputGas` times the price that the page reads first). One import takes the largest of these first, as many as fit in its gas limit (`importGasLimit`): 100,000 gas on the C-Chain (coreth's gas limit for an atomic tx), and half the P-Chain's maxCapacity on the P-Chain (`maxPImportGas`; the SDK refuses a P-Chain import above the current capacity). So a UTXO that the key cannot import alone (locked, another asset, more owners) has no effect on the import or its fee, and a dust flood cannot raise the fee above the export. When the selection cannot pay its fee (dust), the page imports nothing on that side. The page shows one line with the count of the UTXOs that it leaves, and keeps Export. It reads each side page by page (`readSharedMemory`, at most 10 pages of 1,024 UTXOs), and shows 'Shared memory holds more UTXOs than this page reads.' when a side holds more. The test reads and sorts shared memory with the same rules (`atomicUtxos` and `importSelection` in `chain/lib/atomic.ts`, at the page's prices from `pageImportRule` in `chain/lib/bridge-cp.ts`), records the dust and does not wait for it (`importProblems`, `LeftUtxos`), and checks that each import it clicks spends exactly the page's selection (`importPending`).
 
 ### 2.1 Questionnaire
 
-- Route: `/console/create-l1`. Gate: wallet connected (`app/console/create-l1/page.client.tsx:9`).
-- Each option card is a button. Its name is the title, the description and, on some cards, 'Recommended', run together (`create-l1/CreateL1Questionnaire.tsx:83-164`). Match the start of the name.
+- Route: `/console/create-l1`. Gate: wallet connected.
+- Each option card is a button. Its name is the title, the description and, on some cards, 'Recommended', run together. Match the start of the name. The picked card has `aria-pressed="true"`, the others `"false"`.
 - Controls, in order (all headings are h2):
-  1. `heading 'Choose a setup'`. `button /^Advanced setup/`, then `button 'Continue'` (`:406-451`). Here 'Continue' stays disabled until a card is picked.
-  2. `heading 'Validator management'`. `button /^Proof of Authority/`, then 'Continue' (`:546-553, 888-895`). PoA is the default. Pick it before the next question anyway: picking a validator type resets the manager location to 'On the L1' (`:251-257`).
-  3. `heading 'Validator Manager location'`. `button /^On C-Chain/`, then 'Continue' (`:611-619`).
-  4. `heading 'Interoperability'` (shown only for the C-Chain). Keep the default `button /^Enable cross-chain messaging/`, then 'Continue' (`:655-663`).
-  5. `heading 'Contract ownership'` (PoA on the C-Chain only). `button /^Single wallet/` (the default), then 'Continue' (`:703-711`).
-  6. `heading 'Infrastructure'`. `button /^Docker/` (the default for Advanced, `:231`), then 'Continue' (`:759-767`). 'Managed' shows only on testnet.
-  7. `heading 'Review your setup'`. The card 'Deployment steps' shows '8 steps' (`:811-815`). `button 'Start deployment'` (`:866-886`).
-- From screen 2 on, 'Continue' is never disabled (`:888-895`). The answers are the defaults until a card is clicked.
-- Progress text: the totals follow the answers (`:283-290, 379, 510`). The first screens say 'Question 1 of 4' and 'Question 2 of 4'. After 'On C-Chain' they say 'of 6'. The last screen says 'Review'. Do not assert a fixed total before question 3.
-- Success: the URL becomes `/console/create-l1/create-subnet`. 'Start deployment' cleared the create stores (`:330-341`).
-- Chain check: none.
+  1. `heading 'Choose a setup'`. `button /^Advanced setup/`, then `button 'Continue'`. Here 'Continue' stays disabled until a card is picked.
+  2. `heading 'Validator management'`. `button /^Proof of Authority/`, then 'Continue'. Pick it before the next question: picking a validator type resets the manager location.
+  3. `heading 'Validator Manager location'`. `button /^On C-Chain/`, then 'Continue'.
+  4. `heading 'Interoperability'` (shown only for the C-Chain). `button /^Enable cross-chain messaging/`, then 'Continue'.
+  5. `heading 'Contract ownership'` (PoA on the C-Chain only). `button /^Single wallet/`, then 'Continue'.
+  6. `heading 'Infrastructure'`. `button /^Docker/`, then 'Continue'.
+  7. `heading 'Review your setup'`. The list shows 'Create Subnet', 'Deploy Validator Manager', 'Proxy Setup', 'Initialize Validator Manager', 'Create Chain', 'Docker Node Setup', 'Convert to L1', 'Initialize Validator Set'. `button 'Start deployment'`.
+- Success: the URL becomes `/console/create-l1/create-subnet`. 'Start deployment' cleared the create stores.
 - Gotchas:
-  - The selected card has no `aria-pressed` and no radio role. Only its colors change. Check the choices on the Review screen: its list shows 'Deploy Validator Manager', 'Proxy Setup', 'Initialize Validator Manager', 'Create Chain + Genesis', 'Docker Node Setup', 'Convert to L1', 'Init Validator Set' after 'Create Subnet' (`generateSteps.ts:374-403`).
-  - A stored flow shows the banner 'Resume your previous flow' on screen 2 (`:473-500`). Do not click 'Resume'.
-  - The banner 'We recommend starting on Fuji testnet' shows when the wallet is on mainnet (`:365-372, 460-467`). Fail the test if it shows after the P-Chain header button is there.
-  - Phone checkpoint: `browser.setViewport({ width: 390, height: 844 })` on any screen, check for no horizontal overflow, then set the desktop size again.
+  - A stored flow shows the banner 'Resume your previous flow' on screen 2. Do not click 'Resume'.
+  - The banner 'We recommend starting on Fuji testnet' shows when the wallet is on mainnet. Fail the test if it shows after the P-Chain header button is there.
 
 ### 2.2 Create Subnet (P-Chain)
 
 - Route: `/console/create-l1/create-subnet`. Tool title 'Create Subnet'.
-- Control: `button 'Core Create Subnet'` (`layer-1/create/CreateSubnet.tsx:100-111`). Busy names: 'Core Creating...', then 'Core Confirming...'.
-- Success: text 'Subnet ID (CreateSubnetTx)' and `link <subnet ID>` (`:113-115`; `components/Success.tsx:73-86`). Use `link /^[1-9A-HJ-NP-Za-km-z]{40,60}$/`.
-- Error: 'Subnet ID (CreateSubnetTx, not confirmed)' with the issued ID, and an error box that says 'The transaction was issued and may still be committed on the P-Chain.' (`:117-136`).
-- Chain check: the subnet ID is the CreateSubnetTx ID from the signer's record; compare it with the link text. `waitForPTx(subnetId)` gives 'Committed'. `pSubnet(subnetId)` shows the wallet's P address as the only control key, threshold 1.
-- Gotchas:
-  - After success the button stays enabled (`:105` disables it only after an unconfirmed failure). A second click creates a second subnet. Check the ledger before you click.
-  - The field under 'Already have a Subnet ID?' shows the new subnet ID and checks it against Glacier after 3 s. 'Subnet ID not found or invalid' under it is expected while Glacier lags.
+- Control: `button 'Create Subnet'` (`layer-1/create/CreateSubnet.tsx`). Busy names 'Creating...', then 'Confirming...'.
+- Success: the label 'Subnet ID (CreateSubnetTx)' and `link <subnet ID>` to `/explorer/fuji/p-chain/tx/<subnet ID>`. The button is then disabled.
+- Error: 'Subnet ID (CreateSubnetTx, not confirmed)' with the issued ID, and an error box with the issued-tx text (section 1.5).
+- Chain check: the subnet ID is the CreateSubnetTx ID from the signer's record; the page's link shows the same ID. `pSubnet(subnetId)` shows the wallet's P address as the only control key, threshold 1.
 
 ### 2.3 Deploy Validator Manager (C-Chain, 2 deploys)
 
-- Route: `/console/create-l1/deploy-validator-manager`. Tool title 'Deploy Validator Contracts' (`permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx:55-60`).
+- Route: `/console/create-l1/deploy-validator-manager`. Tool title 'Deploy Validator Contracts'.
 - Controls:
-  1. `button 'Deploy Library'` (`:268-275`). Busy name 'Loading...'.
-  2. `button 'Deploy Contract'` (`:367-374`). Disabled until the library has an address. Busy name 'Loading...'.
-- Success: each card shows the full address in a `code` element and `button 'Redeploy'` (`:242-259, 339-355`). After both deploys there are 2 'Redeploy' buttons.
-- Error: a red box under the cards (`:389-393`).
-- Chain check: take both addresses from the receipts (`contractAddress`) in send order. `cHasCode` for each. The page text holds the same full addresses.
+  1. `button 'Deploy Library'`.
+  2. `button 'Deploy Contract'`. Disabled until the library has an address.
+- Success: each card shows the full address in a `code` element, and `button 'Redeploy library'` or `button 'Redeploy manager'`.
+- Error: `alert` under the cards.
+- Chain check: take both addresses from the receipts (`contractAddress`) in send order. `cHasCode` for each.
 - Gotchas:
-  - Each deploy first calls `wallet_addEthereumChain` and `wallet_switchEthereumChain` for 43113, and checks that the RPC answers (`:84-88, 109-112`).
+  - Each deploy first calls `wallet_addEthereumChain` and `wallet_switchEthereumChain` for 43113.
   - 'Redeploy' clears the stored addresses. Do not click it.
-  - Fuji gas is about 160 wei, so both deploys cost almost nothing.
 
 ### 2.4 Proxy Setup (C-Chain, 2 deploys)
 
 - Route: `/console/create-l1/proxy-setup`. Tool title 'Proxy Setup'.
 - Controls:
-  1. On the C-Chain the section 'Deploy New Proxy' opens by itself once the wallet chain is known (`validator-manager-setup/ProxySetup.tsx:84-98`). If `button 'Deploy'` is not there, click `button /^Deploy New Proxy/` (`:531-547`; its name ends with 'C-Chain / Custom').
-  2. ProxyAdmin: `button 'Deploy'` (`:573-581`).
-  3. Proxy: `button 'Deploy'` (`:599-612`). Disabled until the ProxyAdmin has an address. Its implementation field is filled with the ValidatorManager address (`:214-218`).
-- Locator: two buttons are named 'Deploy'. Before the first deploy, take the enabled one: `screen.getByRole('button', 'Deploy', { disabled: false })`. After it, the ProxyAdmin button is gone and one 'Deploy' remains. Busy name 'Loading...'.
-- Success: the section closes, and the upgrade card shows 'Proxy is up to date' (`:377-384, 504-508`).
-- Error: a small red line at the top of the card (`:412`).
-- Chain check: `cHasCode(proxyAdmin)`, `cHasCode(proxy)`. The EIP-1967 implementation slot of the proxy (`0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc`) holds the ValidatorManager address. The admin slot (`0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`) holds the ProxyAdmin.
-- Gotchas:
-  - Before you deploy, the upgrade card reads the genesis proxy address `0xfacade...` on the C-Chain and shows 'No proxy admin found at this address. The contract may not be an EIP-1967 proxy.' (`:71, 245-247`). That text is expected here.
-  - The page shows the new addresses cut to 10 characters (`:568-570, 594-596`). Take the full addresses from the receipts. After the proxy deploy, `managerAddress` in `v4-create-chain-store-testnet` is the proxy (`:383-384`).
-  - Do not reload between the two deploys: the ProxyAdmin address is React state only (`:101, 340`).
+  1. On the C-Chain the section 'Deploy New Proxy' opens by itself once the wallet chain is known. `textbox 'Proxy Address'` starts empty on the C-Chain.
+  2. ProxyAdmin: `button 'Deploy ProxyAdmin'`. It is disabled while the page checks a ProxyAdmin that it saved earlier.
+  3. Proxy: `button 'Deploy Proxy'`. Disabled until the ProxyAdmin has an address. `textbox 'Implementation address'` holds the ValidatorManager address. A string name is exact, so 'Deploy Proxy' does not match 'Deploy ProxyAdmin'.
+- After the ProxyAdmin deploy: the ProxyAdmin column shows a check and the address cut to 10 characters, and its button is gone. The store keeps `proxyAdmin` (`{ address, evmChainId: 43113, subnetId }`). A reload shows the same, and 'Deploy Proxy' is the only deploy button (tier 1 checks this).
+- Success: the upgrade card shows 'Proxy is up to date'. The store's `managerAddress` is the proxy, and `proxyAdmin` is null.
+- Errors: `alert` texts that start 'This page does not use the ProxyAdmin that it deployed earlier' (the saved ProxyAdmin has another owner, no code, or is not a ProxyAdmin) or 'Could not check the ProxyAdmin that this page deployed earlier'.
+- Chain check: `cHasCode(proxyAdmin)`, `cHasCode(proxy)`. The EIP-1967 implementation slot of the proxy holds the ValidatorManager address, and the admin slot holds the ProxyAdmin.
 
 ### 2.5 Initialize Validator Manager (C-Chain)
 
 - Route: `/console/create-l1/initialize-manager`. Tool title 'Initialize Validator Manager'.
-- Defaults: admin = the wallet's C address, churn period 0 s, maximum churn 20 % (`validator-manager-setup/Initialize.tsx:50-52, 77-81`). The manager address is the proxy from the store. On the C-Chain the subnet comes from the store (`:87-92`).
-- Wait for: 'Ready to initialize' (`:254-270`). The page reads `owner()`, then the `Initialized` logs of the last 2,000 blocks (`:109-154`).
-- Control: `button 'Initialize Contract'` (`:349-357`). Disabled until 'Ready to initialize'. Busy name 'Loading...'.
-- Success: 'Contract already initialized' replaces the button, and the status line says 'Already initialized' (`:258-262, 343-347`). The page shows no other success message.
-- Error: an error box at the top of the card (`:199`).
-- Chain check: `managerSubnetId(proxy)` equals the new subnet ID. `owner()` is the wallet's C address. Churn period 0.
-- Gotchas:
-  - Initialize binds the manager to the subnet for good. If the store holds a subnet from an old run, the step binds the wrong one. 'Start deployment' clears the store, so start each night with the questionnaire, and check the subnet field (`placeholder 'Enter subnet ID'`, label 'Select L1/Subnet' not tied, `:282-286`) before you click.
-  - The subnet field can show 'Subnet ID not found or invalid' while Glacier lags. That does not block the button.
+- Fields: `textbox 'Subnet ID'` (from the store), `textbox 'ValidatorManager Address'`, `textbox 'Admin Address'`, `spinbutton 'Churn Period (sec)'`, `spinbutton 'Max Churn %'`, `button 'Check status'`. Defaults: admin = the wallet's C address, churn period 0 s, maximum churn 20 %.
+- Wait for: 'Ready to initialize'.
+- Control: `button 'Initialize Contract'`. Disabled until 'Ready to initialize'.
+- Success: the label 'Contract initialized. Transaction hash:' and the tx hash in a `code` element (a C-Chain hash is not a link). A later visit shows 'Contract already initialized'.
+- Chain check: `managerSubnetId(proxy)` equals the new subnet ID. `owner()` is the wallet's C address.
+- Gotcha: Initialize binds the manager to the subnet for good. Check `textbox 'Subnet ID'` before you click.
 
 ### 2.6 Create Chain (P-Chain)
 
 - Route: `/console/create-l1/create-chain`. Tool title 'Create Chain'.
-- The genesis builds by itself from the defaults: Subnet-EVM, a random EVM chain ID, the wallet as the first allocation and the PoA owner, Warp and the ICM messenger on (`layer-1/create/GenesisBuilder.tsx:303-330, 409-414`; `create-l1/generateSteps.ts:50-58`). The chain name is random, for example 'Brave Otter Chain' (`components/genesis/ChainConfigStep.tsx:16-35`).
-- Control: `button 'Core Create Chain'` (`layer-1/create/CreateChain.tsx:313-325`). It shows only after the genesis is valid. Before that the card says 'Configure Genesis First' (`:303-311`). Busy names 'Core Creating Chain...', then 'Core Confirming...'.
-- Success: text `Chain "<name>" created (CreateChainTx ID)` and `link <chain ID>` (`:327-336`). Use `screen.getByText(/^Chain ".*" created \(CreateChainTx ID\)$/)`.
-- Error: 'CreateChainTx ID (not confirmed)' and an error box (`:338-360`).
-- Chain check: the chain ID is the CreateChainTx ID from the signer's record. `waitForPTx(chainId)` gives 'Committed'.
-- Gotchas:
-  - After success the button stays enabled, and the name field gets a new random name (`:148-150, 318`). A second click creates a second chain on the subnet. Check the ledger before you click.
-  - Phone checkpoint: below 1,024 px the genesis builder switches to its phone layout on the window's resize event (`components/genesis/GenesisWizard.tsx:354-365`), so `browser.setViewport` is enough; no reload.
+- The genesis builds by itself from the defaults: Subnet-EVM, a random EVM chain ID, the wallet as the first allocation and the PoA owner, Warp and the ICM messenger on. `textbox 'Chain Name'` holds a random name.
+- Control: `button 'Create Chain'`. It shows only after the genesis is valid. Busy names 'Creating Chain...', then 'Confirming...'.
+- Success: the label `Chain "<name>" created (CreateChainTx ID)` and `link <chain ID>`. The button is then disabled.
+- Chain check: the chain ID is the CreateChainTx ID from the signer's record. `platform.getTx` shows the run's subnet and the subnet-evm VM ID.
 
 ### 2.7 Docker Node Setup (skipped)
 
-- Route: `/console/create-l1/docker-setup`. Tool title 'L1 Node Setup with Docker' (`layer-1/AvalancheGoDockerL1.tsx:436-440`).
+- Route: `/console/create-l1/docker-setup`. Tool title 'L1 Node Setup with Docker'.
 - Control: `link 'Next'`. Nothing gates it.
-- Success: the URL becomes `/console/create-l1/convert-to-l1`.
-- Chain check: none. The page reads Glacier for the subnet (`:307-351`); that read does not matter here.
 
 ### 2.8 Convert to L1 (P-Chain) with mock validator V0
 
-- Route: `/console/create-l1/convert-to-l1`. Tool title 'Convert Subnet to L1' (`layer-1/create/ConvertSubnetToL1.tsx:31`).
-- Before you open it: `waitForGlacierSubnet(subnetId)`. The page reads the subnet once (section 1.8). If the read missed, remount with `link 'Back'` and `link 'Next'`.
+- Route: `/console/create-l1/convert-to-l1`. Tool title 'Convert Subnet to L1'.
+- Before you open it: `waitForGlacierSubnet(subnetId)`. The page reads the subnet once (section 1.8).
 - Wait for:
-  - `textbox 'Subnet'` holds the subnet ID (label tied by id `subnet-input`, `components/SelectSubnet.tsx:89-98`). If it is empty after a reload, fill it.
-  - The helper 'A Validator Manager exists at this address on the C-Chain, so the C-Chain is selected.' (`ConvertSubnetToL1.tsx:232-237`). The page then puts the Fuji C-Chain ID `yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp` into 'Manager Chain ID' (`:105-111`). Check it with `screen.getByDisplayValue('yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp')`, and the proxy with `getByDisplayValue(proxy)`.
-  - 'Checking the manager address on the C-Chain...' is gone (`:280`).
-- Controls:
-  1. `tab 'API Response'` is the default tab (`components/ValidatorListInput/AddValidatorControls.tsx:38, 220-225`). Do not click 'Managed Node' or 'Manual Input'.
-  2. The JSON field has no label; its name is its placeholder. `placeholder /"nodePOP"/` (`:295-308`), `fill(nodeCredentialsJson(v0))`.
-  3. `button 'Add Validator'` (`:310-318`).
-  4. The validator card opens by itself and shows V0's NodeID (`components/ValidatorListInput/ValidatorsList.tsx:22-29`).
-  5. Consensus Weight: `css: input[type="number"]:not([step]):not([min])`. The label is not tied, and the field has no placeholder (`ValidatorItem.tsx:101-113`). Keep the default 100.
-  6. Validator Balance: `css: input[type="number"][step="0.000001"]`. The label 'Validator Balance (P-Chain AVAX)' is not tied (`ValidatorItem.tsx:124-147`). `fill('0.02')`. Use `fill`, not typed keys: the field converts each value to nAVAX at once, so a partial value like '0.' becomes 0.
-  7. `button 'Core Convert to L1'` (`ConvertSubnetToL1.tsx:298-308`). Busy names 'Core Converting...', then 'Core Waiting for P-Chain confirmation...'.
-- Success: none on the page. After the tx commits, the button is 'Core Convert to L1' again and stays enabled. The page reads the subnet only once, so it never shows 'Core Already Converted' in the same visit. Rely on the chain check. Never click again.
-- Error: a yellow box with a list of problems above the button (`:289-297`; texts in `conversionChecks.ts:100-147`), or an error box under it (`:309`).
-- Chain check: the conversion tx from the signer's record, `waitForPTx`. `pIsL1(subnetId)` is true; `pSubnet` shows manager chain = the C-Chain and manager address = the proxy. `pL1Validator(initialValidationId(subnetId, 0))` shows V0's NodeID, weight 100, a balance near 0.02 AVAX, and the wallet's P address as remaining-balance owner and deactivation owner (threshold 1).
-- Gotchas:
-  - The default validator balance is 0.1 AVAX (`AddValidatorControls.tsx:155-156`). Change it. The P-Chain accepts any balance above 0 (section 3).
-  - The page also calls `GET /api/managed-testnet-nodes`. Without a login this fails, and the JSON tab stays active (`AddValidatorControls.tsx:50-85`). That is expected.
-  - The conversion is permanent.
+  - `textbox 'Subnet'` holds the subnet ID.
+  - The helper 'A Validator Manager exists at this address on the C-Chain, so the C-Chain is selected.' Then `textbox 'Manager Chain ID'` holds the Fuji C-Chain ID and `textbox 'Manager Contract Address'` holds the proxy.
+  - 'Checking the manager address on the C-Chain...' is gone.
+- Controls (`addValidatorFromJson` in `chain/lib/create-l1.ts`):
+  1. `tab 'API Response'`.
+  2. `textbox /^Paste the JSON response/`, `fill(nodeCredentialsJson(v0))`. The Manual tab has `textbox 'Node ID'` (exact), `textbox 'BLS Public Key'`, `textbox 'BLS Proof of Possession'`.
+  3. `button 'Add Validator'`. The validator card opens: its header is `button <NodeID>` with `aria-expanded="true"`. `button 'Remove validator <NodeID>'` removes it.
+  4. `spinbutton 'Consensus Weight'`: keep the default 100.
+  5. `spinbutton 'Validator Balance (P-Chain AVAX)'`: `fill('0.02')`. Use `fill`, not typed keys: the field converts each value to nAVAX at once.
+  6. `button 'Convert to L1'`. Busy names 'Converting...', then 'Waiting for P-Chain confirmation...'.
+- Success: the label 'ConvertSubnetToL1Tx ID' and `link <tx ID>`, and `button 'Converted to L1'`, disabled.
+- Error: `status` with a list of problems above the button, or `alert` under it.
+- Chain check: `pIsL1(subnetId)` is true; `pSubnet` shows manager chain = the C-Chain and manager address = the proxy. `pL1Validator(initialValidationId(subnetId, 0))` shows V0's NodeID, weight 100, a balance near 0.02 AVAX, and the wallet's P address as remaining-balance owner and deactivation owner.
+- Gotcha: the default validator balance is 0.1 AVAX. Change it. The conversion is permanent.
 
 ### 2.9 Initialize Validator Set (C-Chain; the Primary Network signs)
 
 - Route: `/console/create-l1/init-validator-set`. Tool title 'Initialize Validator Set'.
-- The page fills the subnet field (label 'L1 Subnet ID' not tied; `placeholder 'Enter subnet ID'`) from the store, and 'Conversion Tx ID (P-Chain)' (`placeholder 'txID...'`) from Glacier or, before Glacier has it, from the store (`validator-manager-setup/InitValidatorSet.tsx:172-223, 437-453`).
+- The page fills `textbox 'L1 Subnet ID'` from the store, and `textbox 'Conversion Tx ID (P-Chain)'` from Glacier or, before Glacier has it, from the store.
 - Controls:
-  1. `button 'Aggregate Signatures'` (`:487-495`). Needs a conversion tx ID. Busy name 'Loading...'.
-  2. Wait for 'Signature aggregated' (`:466-476`).
-  3. `button 'Initialize Validator Set'` (`:561-569`). Busy name 'Loading...'.
-- Success: 'Validator set initialized' (`:552-556`).
-- Error: a red box under the second card (`:580-585`). Mapped texts come from `parseAggregationError` and `parseInitValidatorSetError`.
+  1. `button 'Aggregate Signatures'`. Needs a conversion tx ID. Busy name 'Aggregating...'.
+  2. Wait for 'Signature aggregated'. The text 'subnet: <signing subnet>' next to it starts with the Primary Network ID.
+  3. `button 'Initialize Validator Set'`.
+- Success: 'Validator set initialized'.
+- Error: `alert` under the second card. Mapped texts come from `parseAggregationError` and `parseInitValidatorSetError`.
 - Chain check: `managerIsValidatorSetInitialized(proxy)` is true. `managerTotalWeight(proxy)` is 100. `managerNodeValidationId(proxy, v0.nodeID)` equals `initialValidationId(subnetId, 0)` as hex. `managerValidator(...).status` is `ValidatorStatus.Active`.
+- Page check (tier 1): a blockchain ID in `textbox 'L1 Subnet ID'` gets 'This L1 is not on Fuji. A new L1 can take a minute to appear. Check that the ID is a Subnet ID, not a blockchain ID.' and no wallet request. The subnet ID again brings the conversion tx ID back.
 - Gotchas:
-  - Retry: reload, 'Aggregate Signatures', then 'Initialize Validator Set' (section 1.9). The reload is safe here.
-  - The ProposerVM card stays hidden on the C-Chain (`console/shared/ProposerVMPreflightCard.tsx:42-45`).
-  - Do not click 'Finish' unless the test covers the end modal. Closing the modal clears `v4-create-l1-flow` (`app/console/create-l1/[step]/client-page.tsx:43-45`).
+  - Retry: `button 'Re-aggregate signatures'` (section 1.9).
+  - Do not click 'Finish' unless the test covers the end modal. Closing the modal clears `v4-create-l1-flow`.
 
-### 2.10 Initiate V2 only (carry-over seed for remove-expired, M2)
+### 2.10 Initiate V2 only (carry-over seed for remove-expired, M2; not in the test yet)
 
-- Route: `/console/add-validator/select-subnet?subnetId=<subnetId>`. The query sets the subnet when it differs from the store's, which is always the case after a full load because the subnet is not persisted (`app/console/add-validator/[step]/client-page.tsx:15-18`).
+- Route: `/console/add-validator/select-subnet?subnetId=<subnetId>`.
 - Controls: as 2.11 steps 1 and 2, with V2 and weight 1. Stop at 'Transaction Completed'. Do not open the P-Chain step.
 - Chain check: `managerValidator(proxy, validationId)` has status `PendingAdded`. Write the block number and the `registrationExpiry` of the `InitiatedValidatorRegistration` event to the ledger.
-- Gotcha: the add-validator store keeps V2. Open the 2.11 URL again with `?subnetId=`; setting the subnet clears V2 (`addValidatorStore.ts:64-75`). With client navigation instead, click `button 'Remove validator'` on the V2 card (`ValidatorItem.tsx:62-72`; the name comes from `title`).
+- Gotcha: the add-validator store keeps V2 and the L1. Click `button 'Start over'` on step 1 before the 2.11 flow.
 
 ### 2.11 Add validator V1 (C-Chain, P-Chain, C-Chain)
 
-Route: `/console/add-validator/select-subnet?subnetId=<subnetId>`. Steps: `select-subnet`, `initiate-registration`, `pchain-registration`, `complete-registration`, `verify-validator-set` (optional) (`app/console/add-validator/steps.ts`). No tool gate: connect in the header first.
+Route: `/console/add-validator/select-subnet?subnetId=<subnetId>`. Steps: `select-subnet`, `initiate-registration`, `pchain-registration`, `complete-registration`, `verify-validator-set` (optional). No tool gate: connect in the header first.
 
 Before you open it: `waitForGlacierSubnet(subnetId, { converted: true })`.
 
-1. Select L1 Subnet
-   - Wait for the badge 'PoA · EOA' next to `heading 'Select L1 Subnet'` (`add-validator/steps/SelectSubnetStep.tsx:30-39`; `add-validator/ManagerTypeBadge.tsx:37-39`), and for `button /^Validator Manager Details/` (the name ends with a plus or minus sign) with the row 'Total Validator Weight' 100 (`components/ValidatorManagerDetails.tsx:103-158`).
+1. Select L1
+   - Wait for the badge 'PoA · EOA' next to `heading 'Select L1'`, and for `button '11111111111111111111111111111111LpoYY'` (the signing subnet in 'Validator Manager Details').
    - `link 'Next'`.
 2. Initiate Validator Registration (C-Chain)
-   - `placeholder /"nodePOP"/`, `fill(nodeCredentialsJson(v1))`, `button 'Add Validator'`.
-   - Consensus Weight `css: input[type="number"]:not([step]):not([min])`, `fill('10')`. The page refuses 20 % or more of the total weight (`permissioned-l1s/add-validator/InitiateValidatorRegistration.tsx:84-103`).
-   - Validator Balance `css: input[type="number"][step="0.000001"]`, `fill('0.02')`.
-   - Fill the card before you initiate: each card edit clears the stored tx hash (`addValidatorStore.ts:77-87`).
-   - `button 'Initiate Validator Registration'` (`InitiateValidatorRegistration.tsx:350-361`). It shows only after the badge stops 'Detecting…' (`add-validator/steps/InitiateRegistrationStep.tsx:128`). Busy name 'Processing...'.
+   - `addValidatorFromJson(screen, v1)`, as 2.8 steps 1 to 3.
+   - `spinbutton 'Consensus Weight'`, `fill('10')`. The page refuses 20 % or more of the L1's weight: under the field "This validator's weight is 25.00% of the current total L1 weight. It must be less than 20%. Enter 19 or less." (for 25 of 100; the number is the largest weight under 20%), and on the click `alert "The new validator's proposed weight (25) represents 25.00% of the current total L1 weight (100). This must be less than 20%."` with no wallet request (tier 1 checks this before the real weight).
+   - `spinbutton 'Validator Balance (P-Chain AVAX)'`, `fill('0.02')`.
+   - Fill the card before you initiate: each card edit clears the stored tx hash.
+   - `button 'Initiate Validator Registration'`. Busy name 'Processing...'.
    - Success: the button name becomes 'Transaction Completed'.
-   - Chain check: `managerNodeValidationId(proxy, v1.nodeID)` is not zero. `managerValidator(...)`: status `PendingAdded`, weight 10. The validation ID is topic 1 of the manager's log in the receipt (`:175-187`). Write it to the ledger.
+   - Chain check: `managerNodeValidationId(proxy, v1.nodeID)` is not zero. `managerValidator(...)`: status `PendingAdded`, weight 10. The validation ID is topic 1 of the manager's log in the receipt.
 3. P-Chain Registration
-   - Ignore 'Insufficient P-Chain balance...' (section 1.11).
-   - Wait for the badge 'PoA · EOA' (signing subnet loaded, section 1.9), then for 'Initial Balance:' and the text '0.02 AVAX' (`permissioned-l1s/add-validator/SubmitPChainTxRegisterL1Validator.tsx:238-249`). They show when the page has read the Warp message from the initiate receipt.
-   - `button 'Core Sign & Submit to P-Chain'` (`:312-320`). It aggregates, sends the RegisterL1ValidatorTx and waits for it. Busy name 'Core Processing...' until the aggregation ends; then the button is gone.
-   - 'Signatures aggregated' shows as soon as the aggregation ends, before the tx goes out (`:148, 294-299`). It is not the success signal.
-   - Success: the store has the P-Chain tx ID: `browser.evaluate(() => JSON.parse(localStorage.getItem('v4-add-validator-store-testnet') ?? '{}').state?.pChainTxId ?? '')` is not empty, and the page shows no 'P-Chain transaction failed:' box. The page never shows the tx ID.
-   - Chain check: the RegisterL1ValidatorTx from the signer's record gives 'Committed'. `pL1Validator(validationId)` shows weight 10 and a balance near 0.02 AVAX.
-   - Retry: remount (section 1.7).
+   - A reload here keeps the L1 and the initiate tx (tier 1 checks this: the store's `subnetIdL1` is the L1, and 'No transaction hash from the initiation step' does not show).
+   - Wait for the badge 'PoA · EOA', 'Initial Balance:' and the text '0.02 AVAX'. They show when the page has read the Warp message from the initiate receipt.
+   - `button 'Sign & Submit to P-Chain'`: enabled once the manager details have loaded. It aggregates, sends the RegisterL1ValidatorTx and waits for it. Busy name 'Processing...'. 'Signatures aggregated. Approve RegisterL1ValidatorTx in Core. ...' shows while it waits; it is not the success signal.
+   - Success: the exact label 'RegisterL1ValidatorTx ID' and `link <tx ID>`. After a failed confirmation the label is 'RegisterL1ValidatorTx ID (not confirmed)' next to the error box.
+   - Chain check: the RegisterL1ValidatorTx from the signer's record gives 'Committed'; the page's link and the store's `pChainTxId` show the same ID. `pL1Validator(validationId)` shows weight 10 and a balance near 0.02 AVAX.
 4. Complete Registration (C-Chain)
-   - 'P-Chain Transaction ID' (`placeholder 'Enter the P-Chain transaction ID from the previous step'`) is filled from the store (`console/shared/CompletePChainRegistration.tsx:128-133, 388-395`). If it is empty, fill it from the signer's record.
-   - Wait for the badge 'PoA · EOA' (`add-validator/steps/CompleteRegistrationStep.tsx:52-55`).
-   - `button 'Complete Validator Registration'` (`CompletePChainRegistration.tsx:467-480`). Busy name 'Loading...'.
-   - Success: 'Registration completed' and 'Success! Your validator is now registered and active on the L1.' (`:460-464, 495-501`).
+   - `textbox 'P-Chain Transaction ID'` is filled from the store.
+   - `button 'Complete Validator Registration'`. Busy name 'Processing...'.
+   - Success: 'Registration completed' and 'Success! Your validator is now registered and active on the L1.'
    - Chain check: `managerValidator(...).status` is `Active`. `managerTotalWeight` grew by 10.
 
 ### 2.12 Change weight of V1 (10 to 12)
 
-Route: `/console/permissioned-l1s/change-validator-weight/select-subnet`. This flow takes no `subnetId` query. Steps: `select-subnet`, `initiate-weight-change`, `pchain-weight-update`, `complete-weight-change`, `verify-validator-set` (optional). The steps show no type badge.
+Route: `/console/permissioned-l1s/change-validator-weight/select-subnet?subnetId=<subnetId>`. Steps: `select-subnet`, `initiate-weight-change`, `pchain-weight-update`, `complete-weight-change`, `verify-validator-set` (optional). The steps show no type badge.
 
 Before you open it: `glacierL1Validators(subnetId, { includeInactive: true })` lists V1.
 
-1. Select L1 Subnet: label 'Subnet ID' is not tied. `placeholder 'Enter subnet ID'`, `fill(subnetId)` (`permissioned-l1s/change-weight/steps/SelectSubnetStep.tsx:21-26`). Wait for `button /^Validator Manager Details/` (the name ends with a plus or minus sign) and its row 'Signing Subnet ID' with `11111111111111111111111111111111LpoYY` (`ValidatorManagerDetails.tsx:147-149`). `link 'Next'`.
+1. Select L1: the query fills `textbox 'Subnet ID'`. Wait for `button '11111111111111111111111111111111LpoYY'` (the signing subnet). `link 'Next'`.
 2. Initiate Weight Change
-   - Validation ID: wait for the suggestion `screen.getByText(v1.nodeID)`, then click it (`components/Input.tsx:151-171`; suggestions are `div` elements with no role). Do not wait on the placeholder: it reads 'Enter validation ID in HEX format' on the first render, before the load starts, and again after a failed load (`SelectValidationID.tsx:78, 119-123, 300`).
-   - `textbox 'New Weight'` (label tied by id `weight`), `fill('12')` (`permissioned-l1s/change-weight/InitiateChangeWeight.tsx:201-210`).
-   - `button 'Initiate Change Weight'` (`:244-258`). Disabled until the selection has a NodeID. Busy name 'Processing...'.
+   - Under `textbox 'Validation ID'` each validator of the L1 is a button named by its NodeID and its weight, for example 'NodeID-... Weight: 10 | 0.02 AVAX'. Click `button new RegExp('^' + v1.nodeID)`; the picked one has `aria-pressed="true"`. A Validation ID typed before the list loads also works once the list loads.
+   - `textbox 'New Weight'`, `fill('12')`.
+   - `button 'Initiate Change Weight'`. Busy name 'Processing...'.
    - Success: 'Transaction Completed'.
    - Chain check: `managerValidator(...)`: weight 12, `sentNonce` > `receivedNonce`.
 3. P-Chain Weight Update
-   - `button 'Aggregate Signatures'`. Busy name 'Loading...'. Wait for 'Signatures aggregated'. Then `button 'Core Submit to P-Chain'`; busy name 'Core Submitting to P-Chain…' (`console/shared/SubmitPChainTxWeightUpdate.tsx:400-446`).
-   - Success: 'P-Chain tx confirmed:' with the tx ID (`:424-433`).
+   - `button 'Aggregate Signatures'` (enabled once the manager details have loaded; busy 'Aggregating signatures...'). Wait for 'Signatures aggregated'. Then `button 'Submit to P-Chain'`; busy name 'Submitting to P-Chain…'.
+   - Success: 'P-Chain tx confirmed:' with the tx ID.
    - Chain check: `pL1Validator(validationId)` shows weight 12.
 4. Complete Weight Change
-   - `button 'Complete Weight Change'` (`console/shared/CompletePChainWeightUpdate.tsx:480-493`). Busy name 'Loading...'.
-   - Success: 'Success! The validator weight has been updated successfully.' (`:510-518`).
+   - `button 'Complete Weight Change'`: enabled once the manager details have loaded. Busy name 'Processing...'.
+   - Success: 'Success! The validator weight has been updated successfully.'
    - Chain check: `managerValidator(...)`: `receivedNonce` equals `sentNonce`, weight 12.
-   - Signing subnet: the step aggregates with `signingSubnetId || subnetIdL1` (`console/shared/CompletePChainWeightUpdate.tsx:235`), so a click before the manager details load asks the mock validators, which never sign. This step and the P-Chain step show no badge. The test starts `browser.waitForResponse` for Glacier's record of the manager's chain (`/v1/networks/testnet/blockchains/yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp`, `coreViem/utils/glacier.ts:49`) before 'Next', and waits for it. That request ends the details load (`hooks/useVMCAddress.ts:128-147`). UX finding 37.
-
-Gotchas:
-
-- A Validation ID typed or pasted before the list loads keeps an empty NodeID, and the button stays disabled with no message (`SelectValidationID.tsx:277-290`). Always click the suggestion.
-- The P-Chain step takes the signing subnet only from the manager details. While they load, a click shows an error box that starts with 'Signing subnet ID not available.' (`SubmitPChainTxWeightUpdate.tsx:199-205`). Wait for the 'Signing Subnet ID' row, then click again.
 
 ### 2.13 Balance top-up of V0 (+0.01 AVAX)
 
 - Route: `/console/layer-1/l1-validator-balance`. Tool title 'Validator Balance Increase'.
 - Before you open it: `glacierL1Validators(subnetId, { includeInactive: true })` lists V0.
 - Controls:
-  1. `placeholder 'Enter subnet ID'`, `fill(subnetId)` (`layer-1/BalanceTopup.tsx:250-255`).
-  2. Validation ID (CB58 here): wait for the suggestion `screen.getByText(v0.nodeID)`, click it (`:263-269`).
-  3. Amount: label 'Amount' not tied. `placeholder '0.0'` (`:281-298`), `fill('0.01')`.
-  4. `button 'Core Increase Balance'` (`:339-348`). Disabled while the amount is above the P-Chain balance (`:165-166`). Busy name 'Core Increasing Balance...'.
-- Success: `heading 'Balance Increased Successfully'` (h3) and 'Added 0.01 AVAX to validator balance' (`:171-188`).
-- Chain check: `pL1Validator(v0ValidationId).balance` grew by about 0.01 AVAX. The balance falls by 512 nAVAX each second (about 31,000 nAVAX per minute), so compare with a margin.
-- Gotcha: errors that contain 'balance' show nowhere, and errors that contain 'amount' show only as a red border (`:293, 327-331`). A failed tx can show nothing. The chain check is the only proof.
+  1. `textbox 'Subnet ID'`, `fill(subnetId)`.
+  2. Validation ID (CB58 here): `button new RegExp('^' + v0.nodeID)`; the picked one has `aria-pressed="true"`.
+  3. `spinbutton 'Amount'`, `fill('0.01')`.
+  4. `button 'Increase Balance'`. Disabled while the amount is above the P-Chain balance. Busy name 'Increasing Balance...'.
+- Errors show once, in an `alert` box ('Invalid amount provided.', 'Amount exceeds available P-Chain balance.', the parsed P-Chain error). A user rejection shows only the `alert` with the text of `WALLET_REJECTED` (section 1.2). Tier 1 checks this with `signer.rejectNext`, then clicks again.
+- Success: `heading 'Balance Increased Successfully'` (h3), 'Added 0.01 AVAX to validator balance', `button 'Copy transaction ID'` and `link 'View transaction in the explorer'` to `/explorer/fuji/p-chain/tx/<tx ID>`.
+- Chain check: `pL1Validator(v0ValidationId).balance` grew by about 0.01 AVAX. The balance falls by 512 nAVAX each second, so compare with a margin.
 
 ### 2.14 Remove validator V1
 
-Route: `/console/remove-validator/select-subnet?subnetId=<subnetId>` (`app/console/remove-validator/[step]/client-page.tsx:55-58`). For PoA the flow drops 'Claim Delegation Fees' once the type is known (`:30-38`). Steps: `select-subnet`, `initiate-removal`, `pchain-removal`, `complete-removal`, `verify-validator-set` (optional).
+Route: `/console/remove-validator/select-subnet?subnetId=<subnetId>`. For PoA the flow drops 'Claim Delegation Fees' once the type is known. Steps: `select-subnet`, `initiate-removal`, `pchain-removal`, `complete-removal`, `verify-validator-set` (optional).
 
-1. Select L1 Subnet: wait for the badge 'PoA · EOA'. `link 'Next'`.
+1. Select L1: wait for the badge 'PoA · EOA'. `link 'Next'`.
 2. Initiate Removal
-   - Validation ID (HEX): wait for `screen.getByText(v1.nodeID)`, click it (`permissioned-l1s/remove-validator/InitiateValidatorRemoval.tsx:209-218`).
-   - `button 'Initiate Validator Removal'` (`:251-265`). Busy name 'Processing...'.
+   - Validation ID (HEX): `button new RegExp('^' + v1.nodeID)`; the picked one has `aria-pressed="true"`.
+   - `button 'Initiate Validator Removal'`. Busy name 'Processing...'.
    - Success: 'Transaction Completed'.
    - Chain check: `managerValidator(...).status` is `PendingRemoved`.
 3. P-Chain Weight Update
-   - Ignore 'Insufficient P-Chain balance...' (section 1.11). Wait for the badge 'PoA · EOA' (`remove-validator/steps/PChainRemovalStep.tsx:41-44`).
-   - `button 'Aggregate Signatures'`, then `button 'Core Submit to P-Chain'` (shared component, 2.12 step 3).
+   - Wait for the badge 'PoA · EOA' and for `button 'Aggregate Signatures'` to be enabled. The balance warning does not show (section 1.11).
+   - `button 'Aggregate Signatures'`, then `button 'Submit to P-Chain'` (shared component, 2.12 step 3). `textbox 'Initiate Removal Transaction Hash'` holds the initiate tx.
    - Success: 'P-Chain tx confirmed:'.
-   - Chain check: `pL1Validator(v1ValidationId)` returns null (the P-Chain removed the validator). The remaining balance goes back to the wallet's P address.
+   - Chain check: `pL1Validator(v1ValidationId)` shows weight 0. The remaining balance goes back to the wallet's P address.
 4. Complete Removal
-   - 'P-Chain SetL1ValidatorWeightTx ID' is filled from the store.
-   - `button 'Sign & Complete Validator Removal'` (`permissioned-l1s/remove-validator/CompleteValidatorRemoval.tsx:369-389`). Busy name 'Loading...'.
-   - Success: 'Validator removal completed' (`:357-361`).
+   - `textbox 'P-Chain SetL1ValidatorWeightTx ID'` is filled from the store.
+   - `button 'Sign & Complete Validator Removal'`. Busy name 'Processing...'.
+   - Success: 'Validator removal completed'.
    - Chain check: `managerValidator(...).status` is `Completed`. `managerTotalWeight` fell by 12.
 
-Gotcha: if a removal went out earlier and the P-Chain step failed, the initiate step shows a resend card with `button 'Resend Removal Message'`, because the validator is `PendingRemoved` with `sentNonce` > `receivedNonce` (`remove-validator/steps/InitiateRemovalStep.tsx:71-114`; `remove-validator/ResendRemovalMessage.tsx:112-122`). Click it, then 'Next'.
+Gotcha: if a removal went out earlier and the P-Chain step failed, the initiate step shows a resend card with `button 'Resend Removal Message'`, because the validator is `PendingRemoved` with `sentNonce` > `receivedNonce`. Click it, then 'Next'.
 
-### 2.15 Remove expired registration (carry-over, M2)
+### 2.15 Remove expired registration (carry-over, M2; not in the test yet)
 
 - Route: `/console/permissioned-l1s/remove-expired-validator-registration`. Tool title 'Remove Expired Validator Registration'.
-- Controls: the subnet field (`placeholder 'Enter subnet ID'`; it starts with the create store's subnet, `:66`, so fill the old L1's subnet), then 'From Block' (no tied label): `placeholder 'Enter block number or leave blank'`, `fill(<ledger block number>)`. Then `button 'Search for Expired Registrations'`. Then, on the card that shows V2's validation ID (hex), `button 'Remove'` (`permissioned-l1s/remove-expired-registration/RemoveExpiredValidatorRegistration.tsx:513-549, 590-625`). Scope the card with `filter({ hasText: v2ValidationIdHex })`.
-- Success: 'Removal Successful' on that card (`:674`).
+- Controls: the subnet field (it starts with the create store's subnet, so fill the old L1's subnet), then `textbox /^From Block/` (the name is 'From Block (defaults to last 100k blocks)'), `fill(<ledger block number>)`. Then `button 'Search for Expired Registrations'`. Then, on the card that shows V2's validation ID (hex), `button 'Remove'`. Scope the card with `filter({ hasText: v2ValidationIdHex })`.
+- Success: 'Removal Successful' on that card.
 - Chain check: `managerValidator(v2ValidationId).status` is `Invalidated`.
-- Gotcha: always fill 'From Block'. Blank starts at block 0 (`:194`), although the label says 'defaults to last 100k blocks' (`:515`). From block 0 the page sends one `eth_getLogs` per 2,000 blocks for the whole Fuji C-Chain.
+- Gotcha: fill 'From Block' with the ledger's block number: a blank field scans the last 100k blocks, one `eth_getLogs` per 2,000 blocks.
 
 ### 2.16 Disable V0 (teardown, P-Chain)
 
 - Route: `/console/permissioned-l1s/disable-validator`. Tool title 'Disable L1 Validator'.
 - Before you open it: `glacierL1Validators(subnetId)` lists V0 as active.
 - Controls:
-  1. `placeholder 'Enter subnet ID'`, `fill(subnetId)` (`permissioned-l1s/disable-validator/DisableValidator.tsx:270-278`). Use `fill`: each change of the field loads the list again (`ValidatorSelector.tsx:77-85`).
-  2. The list loads by itself. `button 'Refresh'` loads it again (`ValidatorSelector.tsx:102-110`). Pick V0: `button new RegExp('^' + v0.nodeID)` (`:168-207`).
-  3. Wait for 'Your wallet is authorized to disable this validator.' (`DisableValidator.tsx:338-342`).
-  4. `checkbox /^I understand this disables/` (the checkbox sits inside its label, `:375-389`), `check()`.
-  5. `button 'Core Disable Validator'` (`:392-404`). Busy name 'Core Disabling Validator...'.
-- Success: `heading 'Validator Disabled'` (h4, `:198-199`).
+  1. `textbox 'Subnet ID'`, `fill(subnetId)`. Use `fill`: each change of the field loads the list again.
+  2. The list (`group 'Select Validator to Disable'`, `textbox 'Search validators'`) loads by itself. `button 'Refresh'` loads it again. Pick V0: `button new RegExp('^' + v0.nodeID)`.
+  3. Wait for 'Your wallet is authorized to disable this validator.'
+  4. `checkbox /^I understand this disables/`, `check()`.
+  5. `button 'Disable Validator'`. Busy name 'Disabling Validator...'.
+- Success: `heading 'Validator Disabled'` (h4) and `link 'View transaction in the explorer'` to `/explorer/fuji/p-chain/tx/<tx ID>`.
 - Chain check: `pL1Validator(v0ValidationId).balance` is 0. The wallet's P balance grew by the refund.
 - Gotchas:
-  - The page computes `disableAuth` from Glacier's deactivation owner list (`:115-145, 159-162`). The SDK does not pass the owners to the wallet, so the signer reads them from `platform.getL1Validator`.
-  - The list hides validators with weight 0 and inactive validators (`ValidatorSelector.tsx:35-51`).
-  - The success link goes to the legacy explorer (section 4, C).
+  - The page computes `disableAuth` from Glacier's deactivation owner list. The SDK does not pass the owners to the wallet, so the signer reads them from `platform.getL1Validator`.
+  - The list hides validators with weight 0 and inactive validators.
 
 ## 3. Mock validators
 
@@ -452,7 +415,9 @@ Plan for one night: V0 (convert, weight 100, 0.02 AVAX), V1 (add, weight 10, 0.0
 
 ## 4. UX findings
 
-Each item names the file and line in this worktree (paths under `components/toolbox` unless the path says otherwise). Severity: A = blocks or misleads a user, B = accessibility, C = text or consistency.
+Each item names the file and line in this worktree at base `7ddcb814a` (paths under `components/toolbox` unless the path says otherwise). Severity: A = blocks or misleads a user, B = accessibility, C = text or consistency.
+
+Status on 2026-10-05: the UX fix rounds of this branch address findings 1 to 32, 34, 35, 37 and 38; sections 1 and 2 give the fixed names and behavior. Finding 4 is partly fixed: `useVMCAddress` reads a 'not an L1' result again every 20 s for 5 min, and the 404 text says that a new L1 can take a minute to appear. The other pages still read Glacier once. Findings 33 and 36 are open. The items below keep their first text as the record of what the live runs found. The findings F-01 to F-29 of the Console bug hunt (`tests/e2e/explore/console/`) are in the last table.
 
 ### A: behavior
 
@@ -503,3 +468,45 @@ Each item names the file and line in this worktree (paths under `components/tool
 
 37. (A) The change-weight Complete step can sign with the wrong subnet, and shows no sign that the details loaded. `console/shared/CompletePChainWeightUpdate.tsx:235` aggregates with `signingSubnetId || subnetIdL1`. `console/permissioned-l1s/change-weight/steps/CompleteWeightChangeStep.tsx:35` passes the context value, which is empty until `useVMCAddress` returns. For a C-Chain manager an early click asks the L1's own validators and fails after the page's retries. The change-weight steps show no `ManagerTypeBadge`, so a user cannot see when it is safe to click. Fix: refuse while the signing subnet is empty, as `SubmitPChainTxWeightUpdate.tsx:199-205` does.
 38. (C) Change weight takes no `subnetId` query. Add validator and remove validator read `?subnetId=` (`app/console/add-validator/[step]/client-page.tsx:15-18`, `app/console/remove-validator/[step]/client-page.tsx:55-58`). Change weight does not (`app/console/permissioned-l1s/change-validator-weight/[step]/client-page.tsx`), so a link cannot open it on an L1, and the user types the subnet ID again.
+
+### Found in the live runs (2026-10-05)
+
+39. (A, fixed on this branch) A full load of a create-L1 step always went back to the questionnaire. `app/console/create-l1/[step]/client-page.tsx` redirected to `/console/create-l1` when the flow store had no answers. In the render that hydrates the server HTML, zustand gives the store's initial state (`getInitialState`, no answers), not the answers in localStorage, so the redirect ran on every reload, bookmark or pasted step URL. The page now redirects only after hydration. Tier 1's reload between the two proxy deploys (2.4) found it.
+
+### Found by the Console bug hunt (2026-10-05)
+
+Eight charters of `tests/e2e/explore/console/` ran on a dev server of this branch with the watch-only wallet. A person checked each finding by hand. `icm-ictt-setup` is now two charters, `icm-setup` and `ictt-setup`; the table uses the new keys. Severity is the bug hunt's: high, medium or low.
+
+| ID | Charter | Severity | Problem | Status |
+|---|---|---|---|---|
+| F-01 | console-navigation | high | Ctrl+K opens the docs search and the Console palette together, and the focus goes to the docs search (`components/console/command-palette.tsx`). | Fixed in this PR |
+| F-02 | console-navigation | medium | The palette matches the letters of the query anywhere in the description, so a title match ranks low: 'add validator' selects Validator Lookup first. | Fixed in this PR |
+| F-03 | console-navigation | low | The palette footer shows the escape text `↑ ↓`, not the arrows. | Fixed in this PR |
+| F-04 | primary-stake | medium | The Stake page's CLI commands have no BLS flags, so platform-cli refuses them. `PCHAIN_COMMANDS.addValidator` has the same gap, and `registerL1Validator` has no `--pop`. | Fixed in this PR |
+| F-05 | primary-stake | medium | A stake above the P-Chain balance shows a raw avalanchejs error, and a BLS key that is not valid shows 'Cannot find square root'. | Fixed in this PR |
+| F-06 | node-setup | medium | A Fuji Validator node config turns on the debug APIs, and the page shows no toggle for them for that node type. | Fixed in this PR |
+| F-07 | node-setup | medium | The Primary Network backup command copies the root-owned key files without sudo. | Fixed in this PR |
+| F-08 | node-setup | low | 'needs no env vars' shows above a command with two `-e` flags. The Custom VM note names the Docker command, not `aliases.json`, as the home of the VM alias. | Fixed in this PR |
+| F-09 | icm-setup | medium | The managed relayer card says 'no funding', but Step 3 tells the user to fund the relayer. | Fixed in this PR |
+| F-10 | ictt-setup | medium | The 'View on GitHub' links of the contract source viewer return 404. | Fixed in this PR |
+| F-11 | ictt-setup | medium | A rejected ExampleERC20 deploy shows a raw viem error of 6,546 characters. A Verify of an address with no token shows the full viem text. | Fixed in this PR |
+| F-12 | ictt-setup | low | The ExampleERC20 text says 1,000,000 tokens. The contract mints 10,000,000,000. | Fixed in this PR |
+| F-13 | create-l1-questionnaire | medium | 'Already have a Subnet ID?' shows the green confirmed box for any typed value. | Fixed in this PR |
+| F-14 | primary-stake | low | A refused network switch in the header shows no message. The ICTT switch toast shows the full viem text. | Fixed in this PR |
+| F-15 | add-validator | medium | The tools show different texts for a wallet rejection, and no text says what to do next. | Fixed in this PR |
+| F-16 | c-p-bridge-history | low | The bridge's 'Max:' line shows the full balance, but MAX fills the balance less the fee buffer. | Fixed in this PR |
+| F-17 | create-l1-questionnaire | medium | The step bar ticks each step before the current one, also a step that is not done. | Waits for the owner |
+| F-18 | create-l1-questionnaire | low | (1) The chooser says 'Question 1 of 4'. (2) Docker is the hosting default, but Managed has the Recommended badge on testnet. (3) The Review text names the answers, but the screen does not list them. | Items 1 and 3: fixed in this PR. Item 2: waits for the owner |
+| F-19 | create-l1-questionnaire | low | The relayer toggle says '~30s deploy', and the note under Create Chain says 1 to 2 minutes. | Fixed in this PR |
+| F-20 | node-setup | low | The Storage and Open ports tiles do not change with the node type. The Primary Network page says 1 TB for a validator, and its chart reaches 1.3 TB in one year. | Fixed in this PR |
+| F-21 | add-validator | low | Node Setup sends the node values only to Convert to L1, also for an L1 that runs already (Add Validator). | Fixed in this PR |
+| F-22 | ictt-setup | low | The ICTT text says 'Phase 1' to 'Phase 6'. The step bar uses the step names. | Fixed in this PR |
+| F-23 | c-p-bridge-history | low | The History page shows no empty state to a user who is not signed in and has no local transactions. | Fixed in this PR |
+| F-24 | create-l1-questionnaire | low | The CLI copy button cannot be seen when it has the keyboard focus, and it does not announce 'Copied'. | Fixed in this PR |
+| F-25 | primary-stake | low | The Stake page does not say where the rewards and the returned stake go. Manage Auto-Renewal step 3 asks for a NodeID after the lookup found no validator. | Fixed in this PR |
+| F-26 | add-validator | low | Add Validator fills in a weight of 100, and the warning gives no valid number to enter. | Fixed in this PR |
+| F-27 | icm-setup | low | The managed relayer form opens with one chain as the source and the destination, and shows an error at once. | Fixed in this PR for the managed form. The self-hosted form (`icm/setup/ICMRelayer.tsx`, the same default on master) still opens with the C-Chain on both sides and shows the error: open |
+| F-28 | node-setup | low | Node Setup suggests the L1s of the wallet's network, not of the page's Network setting. | Fixed in this PR |
+| F-29 | console-navigation | low | One task has many names: 'ICTT Bridge', 'ICTT Setup', 'Interchain Token Transfer'. Add Validator opens with the heading 'Select L1 Subnet'. | Fixed in this PR. The palette group names (from `ToolCard.category` in `toolbox/tools.ts`) still differ from the sidebar sections: open |
+
+False positives, no change: the login gate on localhost (`isDevLocalhostBypass`, so run the account-gated charters on a preview), field checks that run on submit only, the ACP-236 docs page that `yarn build:remote` writes, the storage legend labels, and the ACP links on Deploy Validator Manager.

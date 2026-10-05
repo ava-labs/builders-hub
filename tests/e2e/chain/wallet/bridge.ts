@@ -20,9 +20,14 @@ function escapeRegExp(text: string): string {
 // WALLET_PATH on any http or https origin, with or without a query.
 export const WALLET_ROUTE = new RegExp(`^https?://[^/?#]+${escapeRegExp(WALLET_PATH)}(?:[?#]|$)`);
 
-export interface WalletRoute {
-  // The wallet requests that the route answered for the app, as method names, in order.
-  readonly requests: readonly string[];
+// The method name in a request body, for the refusal log. '(unknown)' when the body is not a JSON request.
+function methodOf(postData: string | undefined): string {
+  try {
+    const method = (JSON.parse(postData ?? '') as { method?: unknown } | null)?.method;
+    return typeof method === 'string' ? method : '(unknown)';
+  } catch {
+    return '(unknown)';
+  }
 }
 
 function header(request: WebRoute['request'], name: string): string | undefined {
@@ -86,11 +91,12 @@ export async function answerWalletRequest(signer: Signer, body: unknown): Promis
   }
 }
 
-// The route handler. `appOrigin` is the origin of the app under test; `requests` collects the method names.
+// The route handler. `appOrigin` is the origin of the app under test. `requests` (the self-test's) collects the
+// method name of each request that reaches the signer.
 export function walletRouteHandler(
   signer: Signer,
   appOrigin: string,
-  requests: string[],
+  requests?: string[],
 ): (route: WebRoute) => Promise<void> {
   return async (route) => {
     const { request } = route;
@@ -101,13 +107,19 @@ export function walletRouteHandler(
         json: { error: { code: ERR.unauthorized, message: `[e2e wallet] ${message}` } },
       });
 
+    // A refusal of another origin also goes into signer.refusals, so the sends audit (chain/lib/audit.ts) sees it.
+    const refuseOrigin = (message: string) => {
+      signer.recordRefusal(methodOf(request.postData), message);
+      return refuse(403, message);
+    };
+
     const target = new URL(request.url).origin;
-    if (target !== appOrigin) return refuse(403, `no wallet on ${target}`);
+    if (target !== appOrigin) return refuseOrigin(`no wallet on ${target}`);
     if (request.method !== 'POST') return refuse(405, 'POST a JSON request');
     // A fetch from a page of the app sends Origin: the app origin. A page of another site that posts here sends
     // its own origin, and gets nothing from the signer.
     const origin = header(request, 'origin');
-    if (origin !== appOrigin) return refuse(403, `no wallet for a request from ${origin ?? 'an unknown origin'}`);
+    if (origin !== appOrigin) return refuseOrigin(`no wallet for a request from ${origin ?? 'an unknown origin'}`);
 
     let body: unknown;
     try {
@@ -123,7 +135,7 @@ export function walletRouteHandler(
       });
     }
     const method = (body as { method?: unknown }).method;
-    requests.push(typeof method === 'string' ? method : '(none)');
+    requests?.push(typeof method === 'string' ? method : '(none)');
     const reply = await answerWalletRequest(signer, body);
     await route.fulfill({ status: 200, headers: NO_STORE, json: reply as JsonValue });
   };
@@ -131,8 +143,6 @@ export function walletRouteHandler(
 
 // Installs the wallet route for the attempt. Call it before the first navigation: chain/lib/fixtures.ts does. The
 // signer keeps its state (chain, added chains, nonces) for every page of the attempt.
-export async function installWalletRoute(browser: Browser, signer: Signer, appUrl: string): Promise<WalletRoute> {
-  const requests: string[] = [];
-  await browser.route(WALLET_ROUTE, walletRouteHandler(signer, new URL(appUrl).origin, requests));
-  return { requests };
+export async function installWalletRoute(browser: Browser, signer: Signer, appUrl: string): Promise<void> {
+  await browser.route(WALLET_ROUTE, walletRouteHandler(signer, new URL(appUrl).origin));
 }

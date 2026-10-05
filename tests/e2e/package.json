@@ -12,7 +12,7 @@
     "test:phone": "E2E_TELEMETRY_DISABLED=1 e2e run --target phone",
     "test:api": "E2E_TELEMETRY_DISABLED=1 e2e run --config api/e2e.config.ts",
     "test:webview": "E2E_TELEMETRY_DISABLED=1 e2e run --config webview/e2e.config.ts",
-    "test:chain": "E2E_TELEMETRY_DISABLED=1 e2e run --config chain/e2e.config.ts --workers 1",
+    "test:chain": "f() { node chain/lib/check-suite-tag.ts \"$@\" && E2E_TELEMETRY_DISABLED=1 e2e run --config chain/e2e.config.ts --workers 1 \"$@\"; }; f",
     "list": "E2E_TELEMETRY_DISABLED=1 e2e list",
     "typecheck": "tsc --noEmit"
   },

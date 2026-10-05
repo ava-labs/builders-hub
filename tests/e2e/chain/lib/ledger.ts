@@ -1,4 +1,5 @@
-// The run ledger: what the Console chain tests sent, in chain/.run/ledger.json (gitignored).
+// The run ledger: what a Console chain test file sent. Each file has its own ledger under chain/.run (gitignored):
+// tier 1 uses ledger.json, the other files pass their own path (pos.json, bridge-cp.json, stake-acp236.json, ...).
 //
 // A test writes the ledger before each send (the step and its inputs) and after it (tx IDs and outputs). With it:
 //   - before a send, a member reads the chain and sends nothing when the result is already there (sendOnce);
@@ -17,9 +18,11 @@
 // `node chain/lib/ledger.ts show` prints the ledger. `node chain/lib/ledger.ts new` archives it by hand.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { AuditRecord } from './audit.ts';
 import { chainShows, readFujiKeyIfSet } from './chain.ts';
+import type { PrimaryStakeRecord } from './primary-stake.ts';
 
 export const RUN_DIR = fileURLToPath(new URL('../.run/', import.meta.url));
 export const LEDGER_PATH = resolve(process.env.E2E_CHAIN_LEDGER ?? join(RUN_DIR, 'ledger.json'));
@@ -105,6 +108,10 @@ export interface Ledger {
   validators: LedgerValidator[];
   sends: LedgerSend[];
   teardown: LedgerTeardown[];
+  /** The Primary Network stake of a stake test file (lib/primary-stake.ts). teardown.ts and preflight.ts read it. */
+  primaryStake?: PrimaryStakeRecord;
+  /** The sends audit of the test file's last member (lib/audit.ts). */
+  audit?: AuditRecord;
 }
 
 const now = () => new Date().toISOString();
@@ -318,11 +325,18 @@ export function upsertValidator(
 // Files: archive, and every ledger under a folder (teardown.ts)
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Moves the ledger to archive/ledger-<runId>.json next to it, so the caller starts a new L1. Returns its path. */
+/**
+ * Moves the ledger to archive/<name>-<runId>.json next to it (ledger.json becomes archive/ledger-<runId>.json), so the
+ * caller starts a new L1. Each test file has its own ledger, and the files of one CI run share a run ID, so the name
+ * keeps the file's own name. An archive of that name that exists already is never overwritten: the new one gets the
+ * time as a suffix. Returns the new path.
+ */
 export function archiveLedger(path = LEDGER_PATH): string | undefined {
   if (!existsSync(path)) return undefined;
   const { runId } = readLedger(path);
-  const target = join(dirname(path), 'archive', `ledger-${runId}.json`);
+  const name = `${basename(path, '.json')}-${runId}`;
+  let target = join(dirname(path), 'archive', `${name}.json`);
+  if (existsSync(target)) target = join(dirname(target), `${name}-${now().replace(/[:.]/g, '-')}.json`);
   mkdirSync(dirname(target), { recursive: true });
   renameSync(path, target);
   return target;

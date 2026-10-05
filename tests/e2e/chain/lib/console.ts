@@ -2,10 +2,15 @@ import type { Browser } from '@e2e-dev/web';
 import { expect, type App, type Locator, type Screen } from 'e2e';
 import { answerFirstVisitPrompts } from '../../lib/visitor.ts';
 import type { Signer, WalletSend } from '../wallet/signer.ts';
-import { FUJI } from './chain.ts';
 
 // Page helpers of the Console chain tests. lib/console-map.md lists the controls, the success signals and the traps
 // of each step.
+
+// What every Console tool shows when the user rejects a request in the wallet, for an EVM tx and a P-Chain tx
+// (WALLET_REJECTED_TEXT in components/toolbox/lib/walletRejection.ts). The test keeps its own copy, so a change of
+// the text fails the test.
+export const WALLET_REJECTED =
+  'You rejected the request in your wallet. To continue, click the button again and approve the request.';
 
 // Opens a page as a returning visitor: the privacy banner and the Console welcome dialog are answered
 // (lib/visitor.ts), so no dialog hides the page. A small static file loads first, because localStorage needs a page
@@ -22,8 +27,8 @@ export function toolHeading(screen: Screen, title: string): Locator {
   return screen.getByRole('heading', title, { level: 1 });
 }
 
-// The text of the tool card, for an error message. The Console's error boxes have no role (Alert.tsx, UX finding
-// B23), so a failed wait names what the card showed instead.
+// The text of the tool card, for an error message: a failed wait names what the card showed, whatever the error
+// looks like (an Alert, a field error, a helper text).
 export async function toolText(browser: Browser): Promise<string> {
   const text = await browser.evaluate(() => {
     const tools = Array.from(document.querySelectorAll<HTMLElement>('[data-console-tool]'));
@@ -31,6 +36,13 @@ export async function toolText(browser: Browser): Promise<string> {
   });
   const compact = text.replace(/\n{2,}/g, '\n').trim();
   return compact.length > 2_500 ? `...${compact.slice(-2_500)}` : compact;
+}
+
+// The page's error box with this text. An error Alert is role=alert, a warning or an info Alert is role=status
+// (components/toolbox/components/Alert.tsx). Next 16 adds its own role=alert route announcer with no text, so the
+// alert is filtered by its text: an unfiltered getByRole('alert') can match two elements.
+export function pageAlert(screen: Screen, text: string | RegExp): Locator {
+  return screen.getByRole('alert').filter({ hasText: text });
 }
 
 // Waits until the locator is visible. On a timeout the error names the step and adds the tool card's text, so the
@@ -87,16 +99,19 @@ export function busyThenIdle(button: Locator): () => Promise<boolean> {
 }
 
 // Clicks a button that is busy while its work runs, and waits until `done` shows. While busy, the toolbox Button
-// shows 'Loading...' in place of its label (Button.tsx, UX finding B27), so the locator by the idle name stops
-// matching. When the idle button comes back without `done`, the work failed: this throws with the tool card's text.
+// shows a busy label in place of its own ('Processing...', 'Aggregating signatures...', 'Creating...') and has
+// aria-busy='true' (Button.tsx), so the locator by the idle name stops matching. When the idle button comes back
+// without `done`, the work failed: this throws with the tool card's text.
 export async function clickAndSettle(
   browser: Browser,
   label: string,
   button: Locator,
   done: Locator,
   timeoutMs = 300_000,
+  // Another control that starts the same work, for example 'Re-aggregate signatures' for 'Aggregate Signatures'.
+  click: () => Promise<void> = () => button.click(),
 ): Promise<void> {
-  await button.click();
+  await click();
   const start = Date.now();
   let sawBusy = false;
   for (;;) {
@@ -112,9 +127,9 @@ export async function clickAndSettle(
   }
 }
 
-// Mounts the current step again with client navigation: 'Back', then 'Next'. The flow stores keep their state, and
-// the step's React state (a signature, a reverted tx hash) starts fresh. A reload would lose the subnet of the
-// validator flows (UX finding A12).
+// Mounts the current step again with client navigation: 'Back', then 'Next'. The flow stores keep their state (the
+// validator flows keep the L1), and the step's React state (a signature, an error) starts fresh, with no full page
+// load.
 export async function remountStep(screen: Screen, browser: Browser, stepPath: RegExp): Promise<void> {
   await screen.getByRole('link', 'Back').click();
   await expect.poll(async () => stepPath.test(await browser.url()), { timeout: 60_000 }).toBe(false);
@@ -122,20 +137,13 @@ export async function remountStep(screen: Screen, browser: Browser, stepPath: Re
   await browser.waitForURL(stepPath, { timeout: 60_000 });
 }
 
-// The validator flows read the manager details (address, signing subnet) from Glacier when a step mounts
-// (hooks/useVMCAddress.ts). Until they load, three steps sign with the L1's own subnet (UX finding A13). The badge
-// 'PoA · EOA' shows once the owner type is read, which needs the manager address; the signing subnet comes in the
-// same update. CSS shows the badge in upper case; the text is mixed case.
+// The badge 'PoA · EOA' in a step header of the validator flows: the page has read the manager details from Glacier
+// (hooks/useVMCAddress.ts) and the owner type. The Warp buttons of a step stay disabled until the details and the
+// signing subnet have loaded, so a test also waits for its button to be enabled. CSS shows the badge in upper case;
+// the text is mixed case.
 export async function waitForPoaBadge(screen: Screen): Promise<void> {
   await expect(screen.getByText(/^PoA · EOA$/i)).toBeVisible({ timeout: 90_000 });
 }
-
-// The Glacier request that ends a step's manager-details load: the record of the manager's chain (the Fuji C-Chain
-// for tier 1). Start it before the navigation that mounts the step, and await it after. Used on the change-weight
-// steps, which show no badge.
-export const MANAGER_CHAIN_RECORD = new RegExp(
-  `^https://glacier-api\\.avax\\.network/v1/networks/testnet/blockchains/${FUJI.cBlockchainId}$`,
-);
 
 // Moves to the next step of a step flow. 'Next' is a link (components/console/step-flow.tsx).
 export async function clickNext(screen: Screen, browser: Browser, nextPath: string | RegExp): Promise<void> {
