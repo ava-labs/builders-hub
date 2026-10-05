@@ -2,16 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  ExternalLink,
-  Globe,
-  Heart,
-  Lock,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import ConfigurableChart from "@/components/stats/ConfigurableChart";
+import { boardHref, playgroundBoardId } from "@/lib/explorer-query/board-links";
+import { boardFromPlayground, PLAYGROUND_SCOPE } from "@/lib/explorer-query/playground";
 import { normalizePlaygroundCharts } from "./normalizePlaygroundCharts";
 import type { PlaygroundListItem } from "./PlaygroundsCard";
 
@@ -42,6 +36,10 @@ export function PlaygroundRow({ dashboard }: Props) {
 
   const chartCount = charts.length;
   const updated = formatDate(dashboard.updated_at);
+  // Query opens the dashboard as a board (lib/explorer-query/playground.ts).
+  // A dashboard with no chart that draws makes no board, so it gets no link.
+  const opensInQuery = React.useMemo(() => boardFromPlayground(dashboard) !== null, [dashboard]);
+  const [network, chain] = PLAYGROUND_SCOPE.split(":");
 
   return (
     <div className="pr-pg-row">
@@ -60,36 +58,21 @@ export function PlaygroundRow({ dashboard }: Props) {
             {dashboard.name || "Untitled dashboard"}
           </span>
           <div className="pr-pg-row__sub">
-            <span className="pr-pg-row__tag">
-              {dashboard.is_public ? (
-                <>
-                  <Globe size={12} /> Public
-                </>
-              ) : (
-                <>
-                  <Lock size={12} /> Private
-                </>
-              )}
-            </span>
             <span>
               {chartCount} chart{chartCount === 1 ? "" : "s"}
             </span>
             {updated && <span>Updated {updated}</span>}
-            <span className="pr-pg-row__tag">
-              <Heart size={12} /> {(dashboard.favorite_count ?? 0).toLocaleString()}
-            </span>
-            <span className="pr-pg-row__tag">
-              <Eye size={12} /> {(dashboard.view_count ?? 0).toLocaleString()}
-            </span>
           </div>
         </div>
-        <Link
-          href={`/stats/playground?id=${dashboard.id}`}
-          className="pr-btn pr-btn--sm pr-btn--outline pr-pg-row__open"
-        >
-          Open in Playground
-          <ExternalLink size={13} />
-        </Link>
+        {opensInQuery && (
+          <Link
+            href={boardHref(network, chain, playgroundBoardId(dashboard.id))}
+            className="pr-btn pr-btn--sm pr-btn--outline pr-pg-row__open"
+          >
+            Open in Query
+            <ExternalLink size={13} />
+          </Link>
+        )}
       </div>
 
       {expanded && (

@@ -50,7 +50,7 @@ type Tab =
   | "projects"
   | "achievements"
   | "settings"
-  | "playground"
+  | "query"
   | "insights"
   | "notifications";
 interface TabSpec {
@@ -61,7 +61,7 @@ const BASE_TABS: ReadonlyArray<TabSpec> = [
   { id: "personal", label: "Personal" },
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
-  { id: "playground", label: "Playground" },
+  { id: "query", label: "Query" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -204,8 +204,8 @@ export default function ProfilePage({ teamLabel }: Props) {
     };
   }, [session?.user?.id]);
 
-  // Saved playground dashboards (the user's own). Lightweight list — the heavy
-  // chart data only loads when a row is expanded in the Playground tab.
+  // The user's saved stats dashboards, each opened as its Query board. The
+  // list carries the charts, so a row expands with no second fetch.
   React.useEffect(() => {
     let cancelled = false;
     if (!session?.user?.id) return;
@@ -532,7 +532,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     projects: summary.projects.length,
     achievements: summary.badges.filter((badge) => badge.isUnlocked).length,
     settings: null,
-    playground: playgrounds.length || null,
+    query: playgrounds.length || null,
     insights: insightsData?.latest30DaySignups ?? null,
     notifications: null,
   };
@@ -675,7 +675,7 @@ export default function ProfilePage({ teamLabel }: Props) {
               />
             )}
             {tab === "settings" && <SettingsCard />}
-            {tab === "playground" && (
+            {tab === "query" && (
               <PlaygroundsCard
                 playgrounds={playgrounds}
                 loading={playgroundsLoading}

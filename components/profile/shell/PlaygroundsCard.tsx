@@ -2,14 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { LineChart, Plus } from "lucide-react";
+import { LineChart } from "lucide-react";
+import { boardsHref } from "@/lib/explorer-query/board-links";
 import { PlaygroundRow } from "./PlaygroundRow";
 
 /**
- * Shape returned by `GET /api/playground` (the user's own dashboards). The
- * `charts` column is the raw stored JSON — an object
- * `{ charts, globalStartTime, globalEndTime }` or a legacy bare array — and is
- * normalized lazily by each row when expanded.
+ * Shape returned by `GET /api/playground` (the user's own stats dashboards,
+ * which Query opens as boards). The `charts` column is the raw stored JSON:
+ * an object `{ charts, globalStartTime, globalEndTime }` or a legacy bare
+ * array. Each row normalizes it when expanded.
  */
 export interface PlaygroundListItem {
   id: string;
@@ -36,22 +37,19 @@ export function PlaygroundsCard({ playgrounds, loading = false }: Props) {
           <LineChart size={18} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3>Playground</h3>
+          <h3>Query</h3>
           <div className="pr-desc">
             {loading
               ? "Loading your dashboards..."
-              : playgrounds.length === 0
-                ? "Build custom metric dashboards in the Stats Playground."
-                : "Your saved dashboards — expand to preview, open to edit."}
+              : "Your saved stats dashboards. Each one opens as a board in Query."}
           </div>
         </div>
         <Link
-          href="/stats/playground"
+          href={boardsHref("mainnet", "c-chain")}
           className="pr-btn pr-btn--sm pr-btn--outline"
           style={{ flexShrink: 0, textDecoration: "none" }}
         >
-          <Plus size={14} />
-          New dashboard
+          Open Query
         </Link>
       </div>
       <div className="pr-body" style={{ gap: 12 }}>
@@ -88,16 +86,7 @@ export function PlaygroundsCard({ playgrounds, loading = false }: Props) {
             ))}
           </>
         ) : playgrounds.length === 0 ? (
-          <div className="pr-empty">
-            No dashboards yet.{" "}
-            <Link
-              href="/stats/playground"
-              style={{ color: "var(--pr-avax)", fontWeight: 600 }}
-            >
-              Create your first dashboard
-            </Link>
-            .
-          </div>
+          <div className="pr-empty">No saved dashboards.</div>
         ) : (
           playgrounds.map((p) => <PlaygroundRow key={p.id} dashboard={p} />)
         )}
