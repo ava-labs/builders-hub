@@ -241,7 +241,7 @@ export async function POST(req: Request) {
   const isAuthenticated = !!session?.user?.id;
   const identifier = isAuthenticated ? session.user.id : getClientIP(req);
 
-  const rateLimitResult = checkChatRateLimit(identifier, isAuthenticated);
+  const rateLimitResult = await checkChatRateLimit(identifier, isAuthenticated);
 
   if (!rateLimitResult.allowed) {
     const resetTimeFormatted = formatResetTime(rateLimitResult.resetTime);

@@ -235,7 +235,7 @@ export async function POST(req: Request) {
   const session = await getAuthSession();
   const isAuthenticated = !!session?.user?.id;
   const who = askerOf(req, session?.user?.id);
-  const limit = checkChatRateLimit(isAuthenticated ? session!.user!.id! : getClientIP(req), isAuthenticated);
+  const limit = await checkChatRateLimit(isAuthenticated ? session!.user!.id! : getClientIP(req), isAuthenticated);
   if (!limit.allowed) {
     // signed out, the reader can lift the limit now: the page offers sign-in
     const when = formatResetTime(limit.resetTime);
