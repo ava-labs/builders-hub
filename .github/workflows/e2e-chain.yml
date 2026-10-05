@@ -1,0 +1,150 @@
+name: E2E chain
+
+# The Console chain tests in tests/e2e/chain. Each night tier 1 drives build.avax.network/console through a fresh PoA
+# L1 on Fuji, with real transactions: Create Subnet, the Validator Manager on the C-Chain, Create Chain, Convert to L1
+# with a mock validator, Initialize Validator Set, then add, change weight, top up and remove a validator, and Disable.
+# The wallet signs in Node with a dedicated Fuji key; the page never holds the key. PRs do not run these tests (the
+# main config excludes chain/, and the PR selection ignores it). The target is production only: the workflow takes no
+# URL, so no run can send the wallet to another site.
+#
+# Secret: E2E_CHAIN_FUJI_KEY, a repository secret holding the private key of the Fuji test wallet. Fund it with
+# Fuji AVAX on the P-Chain (0.3 at least) and some on the C-Chain; a run spends about 0.0003 P-Chain AVAX. A workflow
+# on any branch of this repository can read a repository secret, so keep the balance small (about 2 AVAX). The job
+# runs on master only, and the signer refuses mainnet, any value transfer and any tx type that tier 1 does not send.
+#
+# One step writes the key to a file that only the runner user can read, and the later steps get only its path
+# (E2E_CHAIN_FUJI_KEY_FILE). So no later process environment holds the key: the test workers, Chromium and npx
+# inherit the environment.
+#
+# After the tests, with `if: always()`, chain/lib/teardown.ts disables every validator that the run's ledger names and
+# the P-Chain shows active, so a failed or cancelled run does not leave balances to burn. The ledger, the report and
+# the screenshots are artifacts. No traces: a trace records the requests and their headers, and the artifacts of a
+# public repo are public.
+
+on:
+  schedule:
+    # 08:23 UTC, after the nightly E2E run (06:43) and the explore hunt (07:17). GitHub can start a scheduled run late.
+    - cron: '23 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One key signs every transaction, so two runs must never overlap. A new run waits. A running one is never cancelled
+# by a new one: a cancel in the middle of a transaction leaves work for the teardown.
+concurrency:
+  group: e2e-chain
+  cancel-in-progress: false
+
+jobs:
+  tier1:
+    name: Tier 1 (PoA L1, manager on the C-Chain)
+    runs-on: ubuntu-latest
+    # The cron runs on master. A dispatch from another branch is skipped, so branch code never gets the key.
+    if: github.ref == 'refs/heads/master'
+    # The test step gets 200 minutes, the sum of the member caps in chain/poa-cchain.e2e.ts (a run took 3 minutes on
+    # 2026-10-04). The rest is for the teardown and the uploads.
+    timeout-minutes: 220
+    defaults:
+      run:
+        working-directory: tests/e2e
+    env:
+      E2E_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # umask 077 gives the file mode 0600; chain/lib/chain.ts refuses a key file that others can read. printf is a
+      # shell builtin, so the key is in no process argument list. An if: expression cannot read a secret, so the step
+      # checks it in the shell.
+      - name: Write the key file
+        id: key
+        env:
+          E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+        run: |
+          if [ -z "$E2E_CHAIN_FUJI_KEY" ]; then
+            echo "::error title=E2E chain::The repository has no E2E_CHAIN_FUJI_KEY secret."
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/e2e-chain"
+          printf '%s' "$E2E_CHAIN_FUJI_KEY" > "$RUNNER_TEMP/e2e-chain/fuji.key"
+          echo "E2E_CHAIN_FUJI_KEY_FILE=$RUNNER_TEMP/e2e-chain/fuji.key" >> "$GITHUB_ENV"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install dependencies
+        id: install
+        run: npm ci
+
+      # Prints the key's addresses and balances. Fails below 0.3 AVAX on the P-Chain: Convert to L1 and the validator
+      # tools lock AVAX there.
+      - name: Check the balances
+        timeout-minutes: 5
+        run: node chain/lib/preflight.ts --min-p-avax 0.3
+
+      # The wallet's refusals and the route's origin checks, with no transaction and no browser. A failure here stops
+      # the run before the key signs anything.
+      - name: Self-test the wallet
+        timeout-minutes: 5
+        run: node chain/wallet/selftest.ts
+
+      # The engine's own installer gets the Chromium of the Playwright version that @e2e-dev/web pins. The ubuntu image
+      # has the Chromium system libraries; --with-deps can hang on apt.
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: npx @e2e-dev/web install chromium
+
+      - name: Run tier 1
+        timeout-minutes: 200
+        env:
+          E2E_BASE_URL: https://build.avax.network
+        run: npm run test:chain
+
+      # Also after a failure or a cancel. It disables each validator of the ledger that the P-Chain shows active, and
+      # writes the result to the ledger and the job summary.
+      - name: Teardown
+        if: always() && steps.install.outcome == 'success' && steps.key.outcome == 'success'
+        timeout-minutes: 10
+        run: node chain/lib/teardown.ts
+
+      - name: Remove the key file
+        if: always() && steps.key.outcome != 'skipped'
+        run: rm -rf "$RUNNER_TEMP/e2e-chain"
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f chain/.e2e/summary.md ]; then cat chain/.e2e/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      # The ledger names the L1, its validators and every tx of the run. Kept 30 days: no later run reads it, but a
+      # person can download it and pass its folder to chain/lib/teardown.ts.
+      - name: Upload the ledger
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-chain-ledger-tier1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tests/e2e/chain/.run/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-chain-report-tier1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            tests/e2e/chain/.e2e/report.json
+            tests/e2e/chain/.e2e/junit.xml
+            tests/e2e/chain/.e2e/summary.md
+            tests/e2e/chain/.e2e/failures
+            tests/e2e/chain/.e2e/artifacts/**/*.png
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore

@@ -7,7 +7,7 @@ Tests for build.avax.network, run with [tester-army/e2e](https://e2e.tester.army
 - In-app browser tests in `webview/`. They run on a phone with the user agent of the Instagram or the LinkedIn in-app browser.
 - Agent tests in `ai/`. Claude does a step from a plain-language instruction. They need `ANTHROPIC_API_KEY` and skip without it.
 
-Console wallet flows have no tests yet. They need the Core wallet shim, and the framework cannot inject a script before page load (no `addInitScript`, [tester-army/e2e#696](https://github.com/tester-army/e2e/issues/696)). The old Playwright shim is in git history: `git show 6a1461e3a:e2e/wallet-shim/core-shim.ts` (with `e2e/fixtures.ts` for the injection).
+Console flows that send transactions are in `chain/`. They run only nightly, on Fuji (see "Console chain tests").
 
 ## Why a separate package
 
@@ -106,6 +106,45 @@ Rules for a new agent test:
 - Run it by hand on GitHub (Actions, E2E explore, Run workflow), with an optional target URL and charter keys.
 - Run one charter locally: `npx e2e explore '<goal>' --target desktop --output .e2e/explore/<key>`.
 - Without the `ANTHROPIC_API_KEY` secret the job skips.
+
+## Console chain tests
+
+`chain/` holds the Console flows that send real transactions on Fuji. They have their own config, `chain/e2e.config.ts`: desktop only (no phone size), one worker, no retries. The main config excludes the folder, so a PR never runs them. [`.github/workflows/e2e-chain.yml`](../../.github/workflows/e2e-chain.yml) runs them each night at 08:23 UTC on build.avax.network. To run them by hand on GitHub: Actions, E2E chain, Run workflow. The workflow takes no URL: CI tests production only.
+
+- Tier 1 (`chain/poa-cchain.e2e.ts`) makes a fresh PoA L1, one test per Console step: the questionnaire, Create Subnet, the Validator Manager and its proxy on the C-Chain, Initialize, Create Chain, Convert to L1 with mock validator V0, Initialize Validator Set. Then it runs the validator tools: add V1, change its weight, top up V0, remove V1. Disable V0 ends the run. The mock validators (`chain/lib/mock-validator.ts`) run no node: the Primary Network signs every Warp message for a C-Chain manager.
+- Every transaction goes out from a Console button. Node signs what the page asks for, makes the mock validators' credentials (the test pastes them into the page), and reads the chain to check each result. The one exception is `chain/lib/teardown.ts`, which disables left-over validators without the page.
+- The wallet signs in Node with the Fuji test key. The page half is an init script (`chain/wallet/provider.ts`, `web({ initScripts })` in `chain/e2e.config.ts`): a Core provider with no key, announced through EIP-6963. It posts each request to `/__e2e/wallet`. The `wallet` fixture (`chain/lib/fixtures.ts`) answers that path with a `browser.route`, from the signer. The key never goes into the page. The signer refuses mainnet.
+- As Core does, the wallet gives a site no account until it connects. The first test clicks 'Connect Wallet', then 'Core' (`connectCore`). After a reload or `app.open`, the Console connects again by itself.
+- `chain/lib/ledger.ts` writes `chain/.run/ledger.json` (gitignored) before and after each send. Before a send, a test reads the chain and skips a send whose result is already there. After a send, it polls the chain until a node shows the result.
+- `chain/lib/chain.ts` reads the public Fuji RPC and Glacier only. It sends at most 2 requests per second and stops at the first HTTP 429. The wallet's calls go through the same limit (`throttledFetch`).
+- `chain/lib/warp.ts` retries a Warp delivery up to 4 times, 15 s apart. Each attempt aggregates the signatures again.
+- `chain/lib/teardown.ts` disables each validator of the ledgers that the P-Chain shows active, and refunds its balance.
+
+### The key
+
+The tests read the key from the file that `E2E_CHAIN_FUJI_KEY_FILE` names. The file must have mode 0600 (or 0400): `chain/lib/chain.ts` refuses a file that others can read. A file keeps the key out of the environment that the test workers, Chromium and `npx` inherit. `E2E_CHAIN_FUJI_KEY` (the key itself) also works, but the file wins when both are set.
+
+- Never print, log, paste or commit the key. The config gives it to the framework as a secret, so the report masks it.
+- In CI the key is the repository secret `E2E_CHAIN_FUJI_KEY`. The job runs on `master` only. A workflow on any branch can read a repository secret, so keep about 2 Fuji AVAX on the key. The workflow writes it to a 0600 file and passes only the path.
+
+### Run them locally
+
+```bash
+cd tests/e2e
+export E2E_CHAIN_FUJI_KEY_FILE=~/.config/e2e-chain/fuji.key   # chmod 600
+node chain/wallet/selftest.ts               # the wallet's checks; no transaction, no browser
+node chain/lib/preflight.ts                 # the key's addresses and balances
+npm run test:chain                          # tier 1
+node chain/lib/teardown.ts --dry-run        # what the teardown would disable
+node chain/lib/teardown.ts                  # disable the validators that are still active
+```
+
+- Each run makes a new L1. The first test moves the last ledger to `chain/.run/archive/`, where the teardown still finds it. Run the teardown before the next run.
+- If your local key is the CI key, do not run while the nightly run is on (from 08:23 UTC). Both runs would sign with one key and conflict on C-Chain nonces and P-Chain UTXOs. The workflow's concurrency group covers CI runs only.
+- The public Fuji API is load-balanced, and its nodes accept a block at different times. A check after a tx polls until a node shows the result (`chainShows` in `chain/lib/chain.ts`).
+- The tests open `https://build.avax.network` by default. To test a preview locally, set `E2E_BASE_URL` and `VERCEL_AUTOMATION_BYPASS_SECRET` in the shell. The chain config does not read `.env.local`.
+
+In CI the job stops when the P-Chain balance is below 0.3 AVAX, or when the wallet self-test fails. The teardown also runs after a failure or a cancel. The artifacts are the ledger (30 days), and the report and the screenshots (14 days). They hold no traces. To tear down what a CI run left, download its ledger artifact and run `node chain/lib/teardown.ts <folder>` with the CI key.
 
 ## Known bugs
 

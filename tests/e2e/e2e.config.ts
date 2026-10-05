@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import type { E2EConfig } from 'e2e';
 import { web } from '@e2e-dev/web';
 import { anthropic } from '@ai-sdk/anthropic';
+import { bypassHeaders } from './lib/bypass.ts';
 
 // Local runs read ANTHROPIC_API_KEY from .env.local (gitignored). CI passes it as a secret.
 const envFile = new URL('.env.local', import.meta.url);
@@ -14,11 +15,9 @@ const agents = process.env.ANTHROPIC_API_KEY ? { default: { model: anthropic('cl
 // The site under test: a local dev server, or a Vercel preview in CI.
 const url = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
-// Vercel previews are behind SSO. The bypass header opens them, and the engine sends it only to the app's site.
-// Without the secret no header is set, because headers also turn off the HTTP cache and service workers.
-// lib/visitor.ts hides the Vercel Toolbar of a preview.
-const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-export const headers = bypass ? { 'x-vercel-protection-bypass': bypass } : undefined;
+// Vercel previews are behind SSO: the bypass header opens them (lib/bypass.ts). It is read after .env.local, which can
+// set the secret. lib/visitor.ts hides the Vercel Toolbar of a preview.
+export const headers = bypassHeaders();
 
 // One identity for every preview URL, so the replay cache keys stay stable.
 export const app = { url, identity: 'builders-hub' };
@@ -31,7 +30,8 @@ const PHONE_UA =
 export default {
   // API tests have their own config (api/e2e.config.ts), so they run once and not at each size.
   // In-app browser tests have their own targets (webview/e2e.config.ts).
-  tests: ['**/*.e2e.ts', '!api/**', '!webview/**'],
+  // The Console chain tests send Fuji transactions and run only nightly (chain/e2e.config.ts).
+  tests: ['**/*.e2e.ts', '!api/**', '!webview/**', '!chain/**'],
   targets: [
     { name: 'desktop', engine: web({ viewport: { width: 1440, height: 900 }, headers }), app },
     { name: 'phone', engine: web({ viewport: PHONE_VIEWPORT, userAgent: PHONE_UA, headers }), app },

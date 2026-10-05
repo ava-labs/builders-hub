@@ -155,6 +155,8 @@ export const RUN_ALL: readonly Pattern[] = [
   'prisma/',
   '.github/workflows/e2e.yml',
   'tests/e2e/e2e.config.ts',
+  // The bypass header of every config (e2e.config.ts imports it).
+  'tests/e2e/lib/bypass.ts',
   'tests/e2e/package.json',
   'tests/e2e/package-lock.json',
   'tests/e2e/tsconfig.json',
@@ -182,6 +184,8 @@ export const NO_PAGE: readonly Pattern[] = [
   /^scripts\/check-[^/]+$/,
   'scripts/explorer-size-ceilings.json',
   'tests/e2e/explore/',
+  // The Console chain tests send Fuji transactions. They run only from e2e-chain.yml, never on a PR.
+  'tests/e2e/chain/',
   'tests/e2e/.gitignore',
   /^\.github\/(?!workflows\/e2e\.yml$)/,
 ];
