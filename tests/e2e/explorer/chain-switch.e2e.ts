@@ -1,6 +1,6 @@
 import { test, type Browser } from '@e2e-dev/web';
 import { expect, type Locator, type Screen } from 'e2e';
-import { DATA, MULTI_PAGE, NAVIGATION, expectActiveTab, pathPattern } from './explorer-page';
+import { DATA, MULTI_PAGE, NAVIGATION, expectActiveTab, networkSwitch, pathPattern } from './explorer-page';
 import { waitForHydration } from '../lib/hydration';
 
 // Rule: the chain switcher keeps the tab the user is on where the target chain has it.
@@ -55,13 +55,15 @@ const CASES: ChainSwitchCase[] = [
   { from: '/explorer/fuji/c-chain/blocks', fromChain: 'C-Chain', fromTab: 'Blocks', to: 'Beam', toChain: 'Beam L1', expected: '/explorer/fuji/beam-l1/blocks', toTab: 'Blocks' },
 ];
 
-// The switcher is React state, so a tap before hydration does nothing.
+// The switcher is React state, so a tap before hydration does nothing. This reads the rail's copy, which hydrates
+// at every width: below 640 px it is hidden, and the copy in the site navbar mounts only after hydration.
 const TRIGGER = '[data-explorer-subnav] button[aria-haspopup]';
 
 // Opens the chain switcher on the current page and returns its menu.
 async function openSwitcher(screen: Screen, browser: Browser, chain: string): Promise<Locator> {
   await waitForHydration(browser, TRIGGER);
-  // The phone layout hides the chain name from view but keeps it as the button's accessible name.
+  // On a phone the button sits in the site navbar and shows the chain name, with the network under it. The rail's
+  // copy is hidden there and is not in the role tree, so the query finds one button at each width.
   const trigger = screen.getByRole('button', chain);
   await trigger.tap();
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
@@ -98,18 +100,18 @@ test('chain switch, then the Fuji switch, keeps the blocks tab', MULTI_PAGE, asy
   await switchTo(await openSwitcher(screen, browser, 'C-Chain'), 'P-Chain');
   await expect(browser).toHaveURL(pathPattern('/explorer/mainnet/p-chain/blocks'), NAVIGATION);
 
-  await screen.getByRole('link', 'Fuji').tap();
+  await (await networkSwitch(screen, browser)).getByRole('link', 'Fuji').tap();
   await expect(browser).toHaveURL(pathPattern('/explorer/fuji/p-chain/blocks'), NAVIGATION);
   await expectActiveTab(screen, browser, 'Blocks');
 });
 
 test('Fuji switch, then the chain switch, keeps the blocks tab', MULTI_PAGE, async ({ app, screen, browser }) => {
   await app.open('/explorer/mainnet/c-chain/blocks');
-  await screen.getByRole('link', 'Fuji').tap();
+  await (await networkSwitch(screen, browser)).getByRole('link', 'Fuji').tap();
   await expect(browser).toHaveURL(pathPattern('/explorer/fuji/c-chain/blocks'), NAVIGATION);
 
   await switchTo(await openSwitcher(screen, browser, 'C-Chain'), 'P-Chain');
   await expect(browser).toHaveURL(pathPattern('/explorer/fuji/p-chain/blocks'), NAVIGATION);
   await expectActiveTab(screen, browser, 'Blocks');
-  await expect(screen.getByRole('link', 'Fuji')).toHaveAttribute('aria-current', 'page');
+  await expect((await networkSwitch(screen, browser)).getByRole('link', 'Fuji')).toHaveAttribute('aria-current', 'page');
 });
