@@ -73,7 +73,7 @@ function absoluteCallback(route: WebRoute, callbackUrl: string | null): string {
 }
 
 // Registers the fake backend. Call it before the first app.open of the page under test.
-// A returning user (newUser false) signs in with the code and skips Terms and the profile setup.
+// A returning user (newUser false) signs in with the code and skips Terms.
 export async function fakeAuth(app: App, browser: Browser, { newUser = true } = {}): Promise<FakeAuthRecord> {
   if (!app.baseUrl) throw new Error('fake auth needs a web target with an app URL');
   const origin = escapeRegExp(new URL(app.baseUrl).origin);
@@ -124,8 +124,6 @@ export async function fakeAuth(app: App, browser: Browser, { newUser = true } = 
       if (user) user = { ...user, id: CREATED_USER_ID, is_new_user: false };
       return route.fulfill({ json: { id: CREATED_USER_ID, referralAttributed: Boolean(body.referral_attribution) } });
     }
-    // The profile setup reads the new user's profile to prefill its form.
-    if (path === `/api/profile/extended/${CREATED_USER_ID}`) return route.fulfill({ json: {} });
     if (path === '/api/oauth/authorize') return route.fulfill(htmlPage(TEAM1_HEADING));
     if (method === 'GET' || method === 'HEAD') return route.continue();
     // The engine aborts the request and fails the next step with this error. An expect.poll step retries past the
