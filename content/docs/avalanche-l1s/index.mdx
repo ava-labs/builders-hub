@@ -68,19 +68,19 @@ There are many advantages to running your own Avalanche L1. If you find one or m
 
 ### We Want Our Own Gas Token
 
-C-Chain is an Ethereum Virtual Machine (EVM) chain; it requires the gas fees to be paid in its native token. That is, the application may create its own utility tokens (ERC-20) on the C-Chain, but the gas must be paid in AVAX. In the meantime, [Subnet-EVM](https://github.com/ava-labs/subnet-evm) effectively creates an application-specific EVM-chain with full control over native(gas) coins. The operator can pre-allocate the native tokens in the chain genesis, and mint more using the [Subnet-EVM](https://github.com/ava-labs/subnet-evm) precompile contract. And these fees can be either burned (as AVAX burns in C-Chain) or configured to be sent to an address which can be a smart contract.
+C-Chain is an Ethereum Virtual Machine (EVM) chain; it requires the gas fees to be paid in its native token. That is, the application may create its own utility tokens (ERC-20) on the C-Chain, but the gas must be paid in AVAX. In the meantime, [Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm) effectively creates an application-specific EVM-chain with full control over native(gas) coins. The operator can pre-allocate the native tokens in the chain genesis, and mint more using the [Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm) precompile contract. And these fees can be either burned (as AVAX burns in C-Chain) or configured to be sent to an address which can be a smart contract.
 
 Note that the Avalanche L1 gas token is specific to the application in the chain, thus unknown to the external parties. Moving assets to other chains requires trusted bridge contracts (or upcoming cross Avalanche L1 communication feature).
 
 ### We Want Higher Throughput
 
-The primary goal of the gas limit on C-Chain is to restrict the block size and therefore prevent network saturation. If a block can be arbitrarily large, it takes longer to propagate, potentially degrading the network performance. The C-Chain gas limit acts as a deterrent against any system abuse but can be quite limiting for high throughput applications. Unlike C-Chain, Avalanche L1 can be single-tenant, dedicated to the specific application, and thus host its own set of validators with higher bandwidth requirements, which allows for a higher gas limit thus higher transaction throughput. Plus, [Subnet-EVM](https://github.com/ava-labs/subnet-evm) supports fee configuration upgrades that can be adaptive to the surge in application traffic.
+The primary goal of the gas limit on C-Chain is to restrict the block size and therefore prevent network saturation. If a block can be arbitrarily large, it takes longer to propagate, potentially degrading the network performance. The C-Chain gas limit acts as a deterrent against any system abuse but can be quite limiting for high throughput applications. Unlike C-Chain, Avalanche L1 can be single-tenant, dedicated to the specific application, and thus host its own set of validators with higher bandwidth requirements, which allows for a higher gas limit thus higher transaction throughput. Plus, [Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm) supports fee configuration upgrades that can be adaptive to the surge in application traffic.
 
 Avalanche L1 workloads are isolated from the Primary Network; which means, the noisy neighbor effect of one workload (for example NFT mint on C-Chain) cannot destabilize the Avalanche L1 or surge its gas price. This failure isolation model in the Avalanche L1 can provide higher application reliability.
 
 ### We Want Strict Access Control
 
-The C-Chain is open and permissionless where anyone can deploy and interact with contracts. However, for regulatory reasons, some applications may need a consistent access control mechanism for all on-chain transactions. With [Subnet-EVM](https://github.com/ava-labs/subnet-evm), an application can require that "only authorized users may deploy contracts or make transactions." Allow-lists are only updated by the administrators, and the allow list itself is implemented within the precompile contract, thus more transparent and auditable for compliance matters.
+The C-Chain is open and permissionless where anyone can deploy and interact with contracts. However, for regulatory reasons, some applications may need a consistent access control mechanism for all on-chain transactions. With [Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm), an application can require that "only authorized users may deploy contracts or make transactions." Allow-lists are only updated by the administrators, and the allow list itself is implemented within the precompile contract, thus more transparent and auditable for compliance matters.
 
 ### We Need EVM Customization
 
@@ -104,6 +104,6 @@ Of course, we're happy to talk to you about your architecture and help you choos
 
 ## Develop Your Own Avalanche L1
 
-Avalanche L1s on Avalanche are deployed by default with [Subnet-EVM](https://github.com/ava-labs/subnet-evm#subnet-evm), a fork of go-ethereum. It implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
+Avalanche L1s on Avalanche are deployed by default with [Subnet-EVM](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm#subnet-evm), a fork of go-ethereum. It implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
 To get started, check out our [L1 Toolbox](/tools/l1-toolbox) or the tutorials in the [Avalanche CLI](/docs/tooling/avalanche-cli) section.
