@@ -1,3 +1,6 @@
+import { hexToBytes } from 'viem';
+import { packWarpIntoAccessList, WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
+
 /**
  * Mapping of P-Chain transactions to platform-cli commands.
  * Source: https://github.com/ava-labs/platform-cli/blob/main/docs/pchain-operations.md
@@ -91,8 +94,20 @@ export const PCHAIN_COMMANDS = {
 // Cast command helpers for EVM transactions with warp access lists
 // ---------------------------------------------------------------------------
 
-/** Warp precompile address used in access lists */
-const WARP_PRECOMPILE = '0x0200000000000000000000000000000000000005';
+/**
+ * The --access-list JSON for a signed warp message. The Warp precompile reads
+ * the message from 32-byte storage keys: the message bytes, a 0xff terminator,
+ * then zero padding. The message can have a 0x prefix or not. A placeholder
+ * such as `<signed-hex>` stays a placeholder that says how to pack it.
+ */
+function warpAccessListJson(signedWarpMessage: string): string {
+  const hex = signedWarpMessage.startsWith('0x') ? signedWarpMessage : `0x${signedWarpMessage}`;
+  if (!/^0x(?:[0-9a-fA-F]{2})+$/.test(hex)) {
+    const name = signedWarpMessage.replace(/^<|>$/g, '');
+    return JSON.stringify([{ address: WARP_PRECOMPILE_ADDRESS, storageKeys: [`<${name} packed into 32-byte keys>`] }]);
+  }
+  return JSON.stringify(packWarpIntoAccessList(hexToBytes(hex as `0x${string}`)));
+}
 
 /**
  * Build a cast send command for an EVM transaction that includes a warp
@@ -107,9 +122,7 @@ export function buildCastCommand(opts: {
   signedWarpMessage?: string;
 }): string {
   const args = opts.args.join(' ');
-  const accessList = opts.signedWarpMessage
-    ? ` --access-list '[{"address":"${WARP_PRECOMPILE}","storageKeys":["${opts.signedWarpMessage}"]}]'`
-    : '';
+  const accessList = opts.signedWarpMessage ? ` --access-list '${warpAccessListJson(opts.signedWarpMessage)}'` : '';
 
   return `cast send ${opts.contractAddress} "${opts.functionSig}" ${args}${accessList} --rpc-url ${opts.rpcUrl} --private-key <your-private-key>`;
 }

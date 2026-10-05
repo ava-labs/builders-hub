@@ -64,7 +64,7 @@ const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
     },
   }),
   partialize: (state) => {
-    const { globalError, globalSuccess, subnetIdL1: _, ...rest } = state;
+    const { globalError, globalSuccess, ...rest } = state;
     return rest;
   },
 });

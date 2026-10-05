@@ -16,8 +16,9 @@ import Link from 'next/link';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Success } from '@/components/toolbox/components/Success';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts/parsePChainError';
 
 const metadata: ConsoleToolMetadata = {
@@ -55,6 +56,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
   const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [issuedTxId, setIssuedTxId] = useState('');
+  const [created, setCreated] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
   async function handleCreateSubnet() {
@@ -82,11 +84,13 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
       await waitForPChainConfirmation(txID, isTestnet);
 
       setSubnetID(txID);
+      setCreated(true);
     } catch (err) {
       // Keep an issued-but-unconfirmed txID visible so the user can track it and
       // paste it below once it commits. It stays out of the store on purpose:
       // downstream steps must not run against a subnet the P-Chain hasn't accepted.
-      if (txID) setIssuedTxId(txID);
+      // A dropped tx cannot commit, so its ID is not kept.
+      if (txID && !isPChainTxDropped(err)) setIssuedTxId(txID);
       setCreateError(parsePChainError(err));
     } finally {
       setIsConfirming(false);
@@ -102,7 +106,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         loading={isCreatingSubnet || isConfirming}
         loadingText={isConfirming ? 'Confirming...' : 'Creating...'}
         // A CreateSubnetTx is already out there: a second click would issue another one
-        disabled={!!issuedTxId}
+        disabled={!!issuedTxId || created}
         variant="primary"
         className="w-full"
         cliCommand={`platform-cli subnet create --network ${isTestnet ? 'fuji' : 'mainnet'}`}
@@ -126,12 +130,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
       {createError && (
         <Alert variant="error">
           {createError}
-          {issuedTxId && (
-            <p className="mt-2">
-              The transaction was issued and may still be committed on the P-Chain. Check the Subnet ID above before you
-              issue another one.
-            </p>
-          )}
+          {issuedTxId && <IssuedTxNote txId={issuedTxId} isTestnet={Boolean(isTestnet)} className="mt-2" />}
         </Alert>
       )}
 
@@ -147,7 +146,9 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
 
       {/* Paste Subnet ID — fallback for CLI users */}
       <div className="space-y-2">
-        <p className="text-sm font-medium">Already have a Subnet ID?</p>
+        <label htmlFor="create-subnet-id" className="block text-sm font-medium">
+          Already have a Subnet ID?
+        </label>
         <p className="text-xs text-muted-foreground">
           If you created a subnet via the platform-cli or already own one, paste the Subnet ID below.
         </p>

@@ -7,6 +7,7 @@ import { useAddValidatorStore } from '@/components/toolbox/stores/addValidatorSt
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { ManagerTypeBadge } from '../ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '../VmcChainSwitchBanner';
+import { StartOverButton } from '@/components/toolbox/console/shared/StartOverButton';
 
 export default function SelectSubnetStep() {
   const store = useAddValidatorStore();
@@ -36,6 +37,7 @@ export default function SelectSubnetStep() {
               isDetecting={isDetecting}
             />
           )}
+          {store.subnetIdL1 && <StartOverButton onStartOver={store.reset} className="ml-auto" />}
         </div>
         <p className="text-sm text-zinc-500 mb-4">
           Choose the L1 where you want to add a validator. We'll detect the validator manager type and adapt the next

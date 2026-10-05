@@ -26,6 +26,7 @@ import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
 
 type TokenType = 'native' | 'erc20';
 
@@ -38,6 +39,10 @@ interface CompleteValidatorRemovalProps {
   tokenType: TokenType;
   subnetIdL1: string;
   signingSubnetId?: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   pChainTxId?: string;
   onSuccess: (data: { txHash: string; message: string }) => void;
   onError: (message: string) => void;
@@ -62,7 +67,7 @@ interface CompleteValidatorRemovalProps {
  *      (GetRegistrationJustification walks the WarpMessenger event history)
  *   2. Pack L1ValidatorRegistration(validationID, registered=false) with
  *      sourceChainID = P-Chain (zero ID)
- *   3. Aggregate signatures against the L1's signing subnet
+ *   3. Aggregate signatures against the signing subnet: the subnet of the chain that hosts the Validator Manager
  *   4. Submit to StakingManager.completeValidatorRemoval with the signed warp
  */
 const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
@@ -71,6 +76,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   tokenType,
   subnetIdL1,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   pChainTxId: initialPChainTxId,
   onSuccess,
   onError,
@@ -123,6 +130,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       onError(msg);
       return;
     }
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setLocalError(signingSubnetWait);
+      onError(signingSubnetWait);
+      return;
+    }
 
     setIsAggregating(true);
     try {
@@ -150,7 +163,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
-        signingSubnetId: signingSubnetId || subnetIdL1,
+        signingSubnetId,
       });
 
       notify({ type: 'local', name: 'Aggregate P-Chain Signatures' }, aggregateSignaturePromise);
@@ -304,9 +317,15 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         )}
         {!step2Complete && step1Complete && !step3Complete && (
           <div className="mt-2">
+            <SigningSubnetStatus
+              signingSubnetId={signingSubnetId}
+              isLoading={signingSubnetLoading}
+              error={signingSubnetError}
+              className="mb-2"
+            />
             <Button
               onClick={handleAggregate}
-              disabled={isAggregating || !validationID}
+              disabled={isAggregating || !validationID || !signingSubnetId}
               loading={isAggregating}
               className="w-full"
             >

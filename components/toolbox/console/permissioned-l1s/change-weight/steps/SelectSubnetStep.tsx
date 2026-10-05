@@ -5,6 +5,7 @@ import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useChangeWeightStore } from '@/components/toolbox/stores/changeWeightStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
+import { StartOverButton } from '@/components/toolbox/console/shared/StartOverButton';
 
 export default function SelectSubnetStep() {
   const store = useChangeWeightStore();
@@ -14,7 +15,10 @@ export default function SelectSubnetStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+          {store.subnetIdL1 && <StartOverButton onStartOver={store.reset} className="ml-auto" />}
+        </div>
         <p className="text-sm text-zinc-500 mb-4">
           Choose the L1 subnet where you want to change the validator weight.
         </p>

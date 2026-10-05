@@ -103,7 +103,7 @@ const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } = creat
     },
   }),
   partialize: (state) => {
-    const { globalError, globalSuccess, subnetIdL1: _, ...rest } = state;
+    const { globalError, globalSuccess, ...rest } = state;
     return rest;
   },
 });

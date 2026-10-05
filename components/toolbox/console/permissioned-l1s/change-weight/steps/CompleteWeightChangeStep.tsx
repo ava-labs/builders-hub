@@ -33,6 +33,8 @@ export default function CompleteWeightChangeStep() {
               subnetIdL1={store.subnetIdL1}
               pChainTxId={store.pChainTxId}
               signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               updateType="ChangeWeight"
               managerAddress={vmcCtx.validatorManagerAddress}
               isContractOwner={isContractOwner}

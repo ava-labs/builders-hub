@@ -92,6 +92,7 @@ function OptionCard<T extends string>({
   return (
     <motion.button
       type="button"
+      aria-pressed={selected}
       onClick={() => onSelect(id)}
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
@@ -409,7 +410,7 @@ export default function CreateL1Questionnaire() {
                   onSelect={setPendingSetupMode}
                   icon={<Zap className="h-5 w-5" />}
                   title="Basic setup"
-                  description="One-click deploy with sensible defaults. Subnet, genesis, a managed validator node, and the Validator Manager — handled."
+                  description="One-click deploy with sensible defaults. Sets up the L1, its genesis, a managed validator node, and the Validator Manager. Fuji only. Needs a Builder Hub sign-in."
                   recommended
                 />
                 <OptionCard
@@ -752,7 +753,7 @@ export default function CreateL1Questionnaire() {
                     onSelect={setHosting}
                     icon={<CloudDeployIcon className="h-5 w-5" />}
                     title="Managed"
-                    description="One-click hosted nodes and relayer on Fuji testnet. Fastest way to get started."
+                    description="One-click hosted nodes and relayer on Fuji testnet. Fastest way to get started. Needs a Builder Hub sign-in."
                     recommended
                   />
                 )}

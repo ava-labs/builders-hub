@@ -375,7 +375,7 @@ export function getStepLabel(key: string): string {
   const labels: Record<string, string> = {
     // Chain creation
     'create-subnet': 'Create Subnet',
-    'create-chain': 'Create Chain + Genesis',
+    'create-chain': 'Create Chain',
     'convert-to-l1': 'Convert to L1',
     // Node hosting
     'managed-nodes': 'Setup Managed Nodes',
@@ -384,7 +384,7 @@ export function getStepLabel(key: string): string {
     'deploy-validator-manager': 'Deploy Validator Manager',
     'proxy-setup': 'Proxy Setup',
     'initialize-manager': 'Initialize Validator Manager',
-    'init-validator-set': 'Init Validator Set',
+    'init-validator-set': 'Initialize Validator Set',
     // PoS Native
     'deploy-native-staking': 'Deploy Native Staking Manager',
     'deploy-reward-calculator': 'Deploy Reward Calculator',

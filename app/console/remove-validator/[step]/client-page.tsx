@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 import StepFlow, { type StepDefinition } from "@/components/console/step-flow";
 import { steps as fullSteps } from "../steps";
 import { useRemoveValidatorStore } from "@/components/toolbox/stores/removeValidatorStore";
 import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManagerLayout";
+import { useSubnetIdQuery } from "@/components/toolbox/hooks/useSubnetIdQuery";
 import { useValidatorManagerContext } from "@/components/toolbox/contexts/ValidatorManagerContext";
 
 /**
@@ -49,13 +49,8 @@ function RemoveValidatorFlow({
 
 export default function RemoveValidatorClientPage({ currentStepKey }: { currentStepKey: string }) {
   const basePath = "/console/remove-validator";
-  const searchParams = useSearchParams();
   const { subnetIdL1, globalError, pChainTxId, setSubnetIdL1 } = useRemoveValidatorStore();
-
-  useEffect(() => {
-    const subnetId = searchParams.get("subnetId");
-    if (subnetId && subnetId !== subnetIdL1) setSubnetIdL1(subnetId);
-  }, [searchParams, setSubnetIdL1, subnetIdL1]);
+  useSubnetIdQuery(subnetIdL1, setSubnetIdL1);
 
   return (
     <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError}>

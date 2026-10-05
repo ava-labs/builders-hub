@@ -1,5 +1,5 @@
 import { Input, type Suggestion } from './Input';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { CB58ToHex, hexToCB58 } from '@avalanche-sdk/client/utils';
 import { L1ValidatorDetailsFull } from '@avalabs/avacloud-sdk/models/components';
 import { formatAvaxBalance } from '../coreViem/utils/format';
@@ -22,6 +22,21 @@ export type ValidationSelection = {
   validationId: string;
   nodeId: string;
 };
+
+/** The NodeID of a validation ID in CB58 or hex form, or '' when the mapping has neither form. */
+export function nodeIdForValidationId(mapping: Record<string, string>, validationId: string): string {
+  if (!validationId) return '';
+  if (mapping[validationId]) return mapping[validationId];
+  try {
+    const alternate = validationId.startsWith('0x')
+      ? hexToCB58(validationId as `0x${string}`)
+      : CB58ToHex(validationId);
+    return mapping[alternate] || '';
+  } catch {
+    // A partial or mistyped ID has no alternate form
+    return '';
+  }
+}
 
 /**
  * SelectValidationID Component
@@ -79,6 +94,9 @@ export default function SelectValidationID({
   const [validationIdToNodeId, setValidationIdToNodeId] = useState<Record<string, string>>({});
   // Map validationID (hex) -> on-chain status number
   const [validatorStatuses, setValidatorStatuses] = useState<Record<string, number>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // A validation ID that this mount sent to onChange with no NodeID, because the validator list had not loaded
+  const pendingNodeIdFor = useRef<string | null>(null);
 
   // Fetch validators from the API
   useEffect(() => {
@@ -86,6 +104,7 @@ export default function SelectValidationID({
       if (!subnetId) return;
 
       setIsLoading(true);
+      setLoadError(null);
       try {
         const result = await listL1Validators({
           subnetId: subnetId,
@@ -118,6 +137,9 @@ export default function SelectValidationID({
         setValidationIdToNodeId(mapping);
       } catch (error) {
         console.error('Error fetching validators:', error);
+        setLoadError(
+          `Could not load the validators of this L1: ${error instanceof Error ? error.message : String(error)}`,
+        );
       } finally {
         setIsLoading(false);
       }
@@ -202,14 +224,18 @@ export default function SelectValidationID({
   }, [chainPublicClient, validatorManagerAddress, validators]);
 
   // Get the currently selected node ID
-  const selectedNodeId = useMemo(() => {
-    return (
-      validationIdToNodeId[value] ||
-      (value && value.startsWith('0x') && validationIdToNodeId[value]) ||
-      (value && !value.startsWith('0x') && validationIdToNodeId[CB58ToHex(value)]) ||
-      ''
-    );
-  }, [value, validationIdToNodeId]);
+  const selectedNodeId = useMemo(
+    () => nodeIdForValidationId(validationIdToNodeId, value),
+    [value, validationIdToNodeId],
+  );
+
+  // A validation ID typed or pasted before the list loaded was sent with no NodeID: send it again with its NodeID.
+  // A stored ID that a remount shows was not sent by this mount, so it is not sent again.
+  useEffect(() => {
+    if (!selectedNodeId || pendingNodeIdFor.current !== value) return;
+    pendingNodeIdFor.current = null;
+    onChange({ validationId: value, nodeId: selectedNodeId });
+  }, [value, selectedNodeId, onChange]);
 
   const validationIDSuggestions: Suggestion[] = useMemo(() => {
     const result: Suggestion[] = [];
@@ -223,7 +249,6 @@ export default function SelectValidationID({
         const nodeId = validator.nodeId;
         const weightDisplay = validator.weight.toLocaleString();
         const balanceDisplay = formatAvaxBalance(validator.remainingBalance);
-        const isSelected = nodeId === selectedNodeId;
 
         // Resolve on-chain lifecycle status
         const onChainStatus = validatorStatuses[validator.validationId];
@@ -235,9 +260,9 @@ export default function SelectValidationID({
           try {
             const hexId = CB58ToHex(validator.validationId);
             result.push({
-              title: `${nodeId}${isSelected ? ' ✓' : ''}`,
+              title: nodeId,
               value: hexId,
-              description: `${statusPrefix}Weight: ${weightDisplay} | Balance: ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
+              description: `${statusPrefix}Weight: ${weightDisplay} | Balance: ${balanceDisplay}`,
             });
           } catch {
             // Skip if conversion fails
@@ -245,16 +270,16 @@ export default function SelectValidationID({
         } else {
           // Default to CB58 format
           result.push({
-            title: `${nodeId}${isSelected ? ' ✓' : ''}`,
+            title: nodeId,
             value: validator.validationId,
-            description: `${statusPrefix}Weight: ${weightDisplay} | ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
+            description: `${statusPrefix}Weight: ${weightDisplay} | ${balanceDisplay}`,
           });
         }
       }
     }
 
     return result;
-  }, [validators, format, selectedNodeId, validatorStatuses]);
+  }, [validators, format, validatorStatuses]);
 
   // Handle value change with format conversion
   const handleValueChange = (newValue: string) => {
@@ -274,16 +299,11 @@ export default function SelectValidationID({
       formattedValue = newValue;
     }
 
-    // Look up the nodeId for this validation ID
-    let nodeId = validationIdToNodeId[formattedValue] || '';
-
-    // If not found directly, try the alternate format
-    if (!nodeId) {
-      const alternateFormat = format === 'hex' ? hexToCB58(formattedValue as `0x${string}`) : CB58ToHex(formattedValue);
-      nodeId = validationIdToNodeId[alternateFormat] || '';
-    }
+    // Look up the nodeId for this validation ID, in either format
+    const nodeId = nodeIdForValidationId(validationIdToNodeId, formattedValue);
 
     // Return both the validation ID and node ID
+    pendingNodeIdFor.current = nodeId ? null : formattedValue;
     onChange({
       validationId: formattedValue,
       nodeId,
@@ -297,6 +317,7 @@ export default function SelectValidationID({
       onChange={handleValueChange}
       suggestions={validationIDSuggestions}
       error={error}
+      helperText={loadError ?? undefined}
       placeholder={isLoading ? 'Loading validators...' : `Enter validation ID in ${format.toUpperCase()} format`}
     />
   );

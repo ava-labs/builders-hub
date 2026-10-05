@@ -29,8 +29,17 @@ const DELIVERY_REMEDIATION: RemediationLink[] = [
  * never ran at the CALLED address. The conversion records the proxy
  * (0xfacade...) as the manager, while the setup flow can leave the user
  * initializing the freshly deployed implementation instead (issue #4464).
+ *
+ * InvalidWarpMessage on an idle L1 is a stale ProposerVM view of the
+ * P-Chain. A manager on the C-Chain (`managerOnCChain`) cannot have that
+ * cause: the C-Chain produces blocks all the time. Its P-Chain view can still
+ * be up to one 5-minute epoch old (proposervm.mdx), so the text says to wait.
  */
-export function parseInitValidatorSetError(err: unknown, managerAddress: string | null): MappedAggregationError | null {
+export function parseInitValidatorSetError(
+  err: unknown,
+  managerAddress: string | null,
+  managerOnCChain = false,
+): MappedAggregationError | null {
   const message = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
 
   if (message.includes('InvalidTotalWeight')) {
@@ -42,6 +51,16 @@ export function parseInitValidatorSetError(err: unknown, managerAddress: string 
         'Initialize step ran against a different address, for example the implementation contract instead of ' +
         `the proxy. Run the Initialize step against ${target}, then retry.`,
       remediation: SETUP_REMEDIATION,
+    };
+  }
+
+  if (message.includes('InvalidWarpMessage') && managerOnCChain) {
+    return {
+      message:
+        'The C-Chain rejected the signed conversion message. The C-Chain produces blocks all the time, so you do ' +
+        'not need to produce a block. Select Re-aggregate signatures, then retry. If it fails again, wait 5 ' +
+        'minutes, then retry.',
+      remediation: [],
     };
   }
 

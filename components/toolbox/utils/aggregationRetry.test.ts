@@ -8,9 +8,18 @@ function statusError(statusCode: number, message: string): Error {
 }
 
 describe('classifyAggregationError', () => {
-  it('classifies the aggregator threshold message as below-quorum and retryable', () => {
+  it('classifies the aggregator connect message as below-quorum, cause connect, and retryable', () => {
     const result = classifyAggregationError(new Error('failed to connect to a threshold of stake'));
     expect(result.kind).toBe('below-quorum');
+    expect(result.cause).toBe('connect');
+    expect(result.retryable).toBe(true);
+    expect(result.achievedPercent).toBeUndefined();
+  });
+
+  it('classifies the aggregator signatures message as below-quorum, cause sign, and retryable', () => {
+    const result = classifyAggregationError(new Error('failed to collect a threshold of signatures'));
+    expect(result.kind).toBe('below-quorum');
+    expect(result.cause).toBe('sign');
     expect(result.retryable).toBe(true);
     expect(result.achievedPercent).toBeUndefined();
   });
@@ -18,8 +27,14 @@ describe('classifyAggregationError', () => {
   it('extracts the achieved percentage from the signature-weight message', () => {
     const result = classifyAggregationError(new Error('signature weight is insufficient: 67*200 > 100*100'));
     expect(result.kind).toBe('below-quorum');
+    expect(result.cause).toBe('sign');
     expect(result.retryable).toBe(true);
     expect(result.achievedPercent).toBe(50);
+  });
+
+  it('gives no quorum cause to other kinds', () => {
+    expect(classifyAggregationError(new TypeError('Failed to fetch')).cause).toBeUndefined();
+    expect(classifyAggregationError(new Error('User rejected the request')).cause).toBeUndefined();
   });
 
   it('classifies network failures as transient', () => {

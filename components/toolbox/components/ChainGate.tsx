@@ -238,7 +238,9 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
       </div>
 
       {/* Still render children below — some users may want to read the step while switching */}
-      <div className="opacity-40 pointer-events-none">{children}</div>
+      <div inert className="opacity-40 pointer-events-none">
+        {children}
+      </div>
     </div>
   );
 }

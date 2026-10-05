@@ -178,6 +178,12 @@ const KNOWN_ERRORS: Record<string, string> = {
     'Reentrancy detected. The contract blocked a reentrant call for safety. Try the operation again.',
 };
 
+// The node's nonce phrases, and the short message of viem's nonce errors. viem maps the node errors 'already known'
+// and 'transaction already imported' to NonceTooLowError, whose message has none of the node phrases. None of these
+// phrases occur in the argument list of an error dump.
+const NONCE_ERROR =
+  /nonce too low|nonce too high|invalid nonce|nonce has already been used|Nonce provided for the transaction/i;
+
 /**
  * Parse a contract error into a human-readable message.
  * Checks for known revert selectors, common patterns, and falls back to the raw message.
@@ -195,16 +201,18 @@ export function parseContractError(err: unknown): string {
     return 'Insufficient funds for transaction';
   }
 
-  // Nonce errors
-  if (raw.includes('nonce')) {
-    return 'Transaction nonce error: the wallet signed with an already-used nonce. Retry the transaction; a fresh nonce is fetched from the chain automatically. Do not edit the nonce manually.';
-  }
-
-  // Check for known selectors and error names
+  // Check for known selectors and error names. This runs before the nonce
+  // check: viem error dumps list the request arguments, which can include
+  // a nonce, so a known revert must not read as a nonce error.
   for (const [key, message] of Object.entries(KNOWN_ERRORS)) {
     if (raw.includes(key)) {
       return message;
     }
+  }
+
+  // Nonce errors: match the node's phrases only, not any mention of a nonce.
+  if (NONCE_ERROR.test(raw)) {
+    return 'Transaction nonce error: the wallet signed with an already-used nonce. Retry the transaction; a fresh nonce is fetched from the chain automatically. Do not edit the nonce manually.';
   }
 
   // Generic revert with some context

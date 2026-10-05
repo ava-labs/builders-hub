@@ -629,6 +629,7 @@ console.log("Import tx:", txnResponse.txHash);`,
               </div>
               <AmountInput
                 label=""
+                aria-label="Amount"
                 value={amount}
                 onChange={setAmount}
                 type="number"

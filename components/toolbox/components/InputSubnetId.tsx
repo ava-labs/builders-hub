@@ -72,8 +72,11 @@ export default function InputSubnetId({
       // If we get here, the subnet exists
       setValidationError(null);
     } catch {
-      // Show validation error for invalid subnet IDs
-      setValidationError('Subnet ID not found or invalid');
+      // The ID is well formed. A miss means Glacier has not indexed a new subnet yet, or the ID is not a Subnet ID
+      // (for example, a blockchain ID).
+      setValidationError(
+        'Subnet ID not found. A new ID can take a minute to appear. Make sure this is a Subnet ID, not a blockchain ID.',
+      );
     }
   }, []);
 

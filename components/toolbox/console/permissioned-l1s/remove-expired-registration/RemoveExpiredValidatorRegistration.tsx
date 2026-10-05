@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { AbiEvent, Address, Log } from 'viem';
 import { bytesToHex, hexToBytes, encodeFunctionData, type Abi } from 'viem';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -47,6 +47,20 @@ import {
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 
+/** How far back a blank 'From Block' searches. */
+export const DEFAULT_LOOKBACK_BLOCKS = 100_000n;
+
+/**
+ * The first block of the event search. A blank field starts DEFAULT_LOOKBACK_BLOCKS before the latest block, or at
+ * block 0 on a shorter chain. 'Search All' fills in 0, which searches from genesis. Other input goes to BigInt, which
+ * throws on text that is not an integer.
+ */
+export function resolveSearchStartBlock(fromBlock: string, latest: bigint): bigint {
+  const trimmed = fromBlock.trim();
+  if (trimmed.length === 0) return latest > DEFAULT_LOOKBACK_BLOCKS ? latest - DEFAULT_LOOKBACK_BLOCKS : 0n;
+  return BigInt(trimmed);
+}
+
 type ParsedInitiatedRegistration = {
   validationId: string;
   registrationExpiry: bigint;
@@ -72,6 +86,7 @@ function RemoveExpiredValidatorRegistration() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fromBlock, setFromBlock] = useState<string>('');
+  const fromBlockId = useId();
   const [events, setEvents] = useState<ParsedInitiatedRegistration[]>([]);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState<boolean>(false);
   const [_isLoadingValidators, setIsLoadingValidators] = useState<boolean>(false);
@@ -191,8 +206,8 @@ function RemoveExpiredValidatorRegistration() {
     setEvents([]);
     setFetchProgress(null);
     try {
-      const startBlock = fromBlock && fromBlock.trim().length > 0 ? BigInt(fromBlock) : 0n;
       const latest = await chainPublicClient!.getBlockNumber();
+      const startBlock = resolveSearchStartBlock(fromBlock, latest);
       if (startBlock > latest) {
         setEvents([]);
         return;
@@ -511,11 +526,15 @@ function RemoveExpiredValidatorRegistration() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+              <label
+                htmlFor={fromBlockId}
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+              >
                 From Block <span className="text-zinc-400">(defaults to last 100k blocks)</span>
               </label>
               <div className="flex gap-2">
                 <input
+                  id={fromBlockId}
                   type="text"
                   value={fromBlock}
                   onChange={(e) => setFromBlock(e.target.value)}

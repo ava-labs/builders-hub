@@ -129,7 +129,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         );
         if (validationDetails.exceedsMaximum) {
           const currentWeightDisplay = validatorCurrentWeight?.toString() || '0';
-          const errorMessage = `The proposed weight change from ${currentWeightDisplay} to ${weight} represents ${validationDetails.percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This adjustment percentage must be less than 20%.`;
+          const errorMessage = `The proposed weight change from ${currentWeightDisplay} to ${weight} represents ${validationDetails.percentageChange.toFixed(2)}% of the current total L1 weight (${contractTotalWeight}). This adjustment percentage must be less than 20%.`;
           setErrorState(errorMessage);
           setIsProcessing(false);
           return;

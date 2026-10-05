@@ -149,7 +149,9 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
             key={`pchain-${l1State.resetKey}-${tokenType}`}
             subnetIdL1={l1State.subnetIdL1}
             initialEvmTxHash={initiateDelegationTxHash}
-            signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
+            signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             txHashLabel="Initiate Delegation Transaction Hash"
             txHashPlaceholder="Enter the transaction hash from Step 3 (0x...)"
             additionalInfo={
@@ -180,7 +182,9 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
             key={`complete-${l1State.resetKey}-${tokenType}`}
             subnetIdL1={l1State.subnetIdL1}
             pChainTxId={pChainTxId}
-            signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
+            signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             updateType="Delegation"
             managerAddress={validatorManagerDetails.contractOwner || ''}
             delegationID={delegationID}

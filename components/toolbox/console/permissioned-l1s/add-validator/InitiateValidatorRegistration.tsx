@@ -96,7 +96,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
       if (exceedsMaximum) {
         setErrorState(
-          `The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This must be less than 20%.`,
+          `The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 weight (${contractTotalWeight}). This must be less than 20%.`,
         );
         return false;
       }
@@ -169,7 +169,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           return;
         }
 
-        // Filter by emitter address rather than position — any intermediate
+        // Filter by emitter address rather than position: any intermediate
         // contract emitting a log would shift indices and cause us to read
         // wrong data (or throw on undefined).
         const warpLog = receipt.logs.find((l) => l.address.toLowerCase() === WARP_PRECOMPILE_ADDRESS.toLowerCase());
@@ -201,7 +201,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
         // Only attempt the resend fallback if the error suggests the node might already
         // have a pending registration (e.g. InvalidValidatorStatus or generic reverts).
-        // For user rejections, insufficient funds, bad BLS keys, etc. — surface directly.
+        // For user rejections, insufficient funds, bad BLS keys, etc., surface directly.
         const shouldAttemptFallback =
           primaryMessage.includes('reverted') ||
           primaryMessage.includes('Invalid validator status') ||
@@ -222,14 +222,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             nodeIdBytes,
           );
 
-          // No existing validation ID — the node was never registered, so the primary error is the real problem
+          // No existing validation ID: the node was never registered, so the primary error is the real problem
           if (validationId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
             setErrorState(`Transaction failed: ${primaryMessage}`);
             onError(`Transaction failed: ${primaryMessage}`);
             return;
           }
 
-          // Existing validation ID found — attempt to resend the registration message
+          // Existing validation ID found: attempt to resend the registration message
           const fallbackHash = await validatorManager.resendRegisterValidatorMessage(validationId);
 
           const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({

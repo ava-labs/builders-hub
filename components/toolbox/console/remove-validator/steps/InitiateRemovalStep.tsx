@@ -120,7 +120,8 @@ export default function InitiateRemovalStep() {
                 <SelectValidationID
                   value={store.validationId}
                   onChange={(selection) => {
-                    store.setValidationId(selection.validationId);
+                    // setValidationId clears the later progress: call it only for a new ID
+                    if (selection.validationId !== store.validationId) store.setValidationId(selection.validationId);
                     store.setNodeId(selection.nodeId);
                   }}
                   format="hex"

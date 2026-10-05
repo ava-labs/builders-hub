@@ -116,7 +116,7 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
           setBlockchainId('');
           setL1BlockchainId('');
           setSigningSubnetId('');
-          setError("Selected subnet is not an L1 or doesn\'t have a Validator Manager Contract.");
+          setError('This is not an L1, or it has no Validator Manager.');
           setChainMismatch(null);
           setIsLoading(false);
           return;

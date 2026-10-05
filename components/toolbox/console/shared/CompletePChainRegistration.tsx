@@ -37,6 +37,7 @@ import {
   parseAggregationError,
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
+import { SigningSubnetStatus, signingSubnetWaitText } from './SigningSubnetStatus';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -46,6 +47,10 @@ export interface CompletePChainRegistrationProps {
   pChainTxId?: string;
   validationID?: string;
   signingSubnetId?: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   onSuccess: (data: { txHash: string; message: string }) => void;
   onError: (message: string) => void;
 
@@ -71,6 +76,8 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
   pChainTxId,
   validationID,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   onSuccess,
   onError,
   managerType,
@@ -151,6 +158,12 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     if (!chainPublicClient) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      return false;
+    }
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setErrorState(signingSubnetWait);
+      onError(signingSubnetWait);
       return false;
     }
 
@@ -254,14 +267,13 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       }
 
       // Step 6: Aggregate P-Chain signature.
-      // The warp here is from P-Chain (its registration acknowledgement),
-      // signed by the validators who can attest to the validator's existence
-      // on P-Chain — the canonical aggregator routes by source chain when
-      // signingSubnetId is unset/falls-through.
+      // The warp here is from P-Chain (its registration acknowledgement). The
+      // validators of the subnet that hosts the Validator Manager sign it: the
+      // L1's own subnet, or the Primary Network for a manager on the C-Chain.
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(l1ValidatorRegistrationMessage),
         justification: bytesToHex(justification),
-        signingSubnetId: signingSubnetId || subnetIdL1,
+        signingSubnetId,
       });
 
       notify(
@@ -354,10 +366,12 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
   }
 
+  // A pending or completed tx is covered by isProcessing and registrationComplete. A reverted tx
+  // leaves the button enabled, so the user can try again.
   const isButtonDisabled =
     isProcessing ||
-    !!txHash ||
     !pChainTxIdState.trim() ||
+    !signingSubnetId ||
     isLoadingOwnership ||
     (isPoA && ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) ||
     (!isCoreWallet && !!pChainSignature);
@@ -450,6 +464,15 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Checking contract ownership...</p>
         )}
 
+        {step1Complete && !step2Complete && (
+          <SigningSubnetStatus
+            signingSubnetId={signingSubnetId}
+            isLoading={signingSubnetLoading}
+            error={signingSubnetError}
+            className="mt-2"
+          />
+        )}
+
         {pChainSignature && !step2Complete && (
           <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
             <Check className="w-3.5 h-3.5" />
@@ -468,15 +491,14 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
               onClick={handleCompleteRegistration}
               disabled={isButtonDisabled}
               loading={isProcessing}
+              loadingText="Processing..."
               className="w-full"
             >
               {isLoadingOwnership
                 ? 'Checking ownership...'
-                : isProcessing
-                  ? 'Processing...'
-                  : isCoreWallet
-                    ? 'Complete Validator Registration'
-                    : 'Aggregate Signatures'}
+                : isCoreWallet
+                  ? 'Complete Validator Registration'
+                  : 'Aggregate Signatures'}
             </Button>
           </div>
         ) : null}

@@ -1,4 +1,4 @@
-import { Check, Copy as CopyIcon, ExternalLink, Loader2, Send } from 'lucide-react';
+import { Check, Clock, Copy as CopyIcon, ExternalLink, Send } from 'lucide-react';
 import { useState } from 'react';
 import { isAddress } from 'viem';
 
@@ -7,7 +7,10 @@ interface SuccessProps {
   value: string;
   isTestnet?: boolean;
   xpChain?: 'P' | 'C';
-  /** When undefined: shows neutral "submitted" state. When true: green confirmed. When false: pending spinner. */
+  /**
+   * When undefined: neutral "submitted" state. When true: green confirmed. When false: issued but not confirmed, with a
+   * static icon. Nothing polls a "not confirmed" tx, so a spinner would never stop.
+   */
   confirmed?: boolean;
 }
 
@@ -40,18 +43,14 @@ export const Success = ({ label, value, isTestnet = true, xpChain = 'P', confirm
 
   // Visual state
   const isConfirmed = confirmed === true;
-  const isPending = confirmed === false;
+  const isUnconfirmed = confirmed === false;
   // When confirmed is undefined: neutral "submitted" state (default for backward compat)
 
   const containerClass = isConfirmed
     ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
     : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700';
 
-  const iconBgClass = isConfirmed
-    ? 'bg-green-100 dark:bg-green-900/30'
-    : isPending
-      ? 'bg-zinc-100 dark:bg-zinc-800'
-      : 'bg-zinc-100 dark:bg-zinc-800';
+  const iconBgClass = isConfirmed ? 'bg-green-100 dark:bg-green-900/30' : 'bg-zinc-100 dark:bg-zinc-800';
 
   const labelClass = isConfirmed ? 'text-green-800 dark:text-green-200' : 'text-zinc-700 dark:text-zinc-300';
 
@@ -59,8 +58,8 @@ export const Success = ({ label, value, isTestnet = true, xpChain = 'P', confirm
 
   const icon = isConfirmed ? (
     <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-  ) : isPending ? (
-    <Loader2 className="h-4 w-4 text-zinc-400 animate-spin" />
+  ) : isUnconfirmed ? (
+    <Clock className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
   ) : (
     <Send className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
   );

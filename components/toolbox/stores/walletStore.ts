@@ -40,6 +40,13 @@ interface WalletState {
     cChain: boolean;
     l1Chains: Record<string, boolean>; // Key: chainId, Value: loading state
   };
+  // Copies of balances.pChain, balances.cChain and isLoading for older readers.
+  // setBalance and setLoading write them. They must be plain fields: the first
+  // set() copies a getter's value into a plain field, and it never changes again.
+  pChainBalance: number;
+  cChainBalance: number;
+  isPChainBalanceLoading: boolean;
+  isCChainBalanceLoading: boolean;
   bootstrapped: boolean;
 
   // What kind of wallet is connected
@@ -83,15 +90,7 @@ interface WalletActions {
   updateAllBalances: () => Promise<void>;
   updateAllBalancesWithAllL1s: (l1List?: Array<{ evmChainId: number; rpcUrl?: string }>) => Promise<void>;
 
-  // Legacy balance getters for backward compatibility
-  pChainBalance: number;
-  l1Balance: number; // Returns balance for current wallet chain
-  cChainBalance: number;
-  isPChainBalanceLoading: boolean;
-  isL1BalanceLoading: boolean; // Returns loading state for current wallet chain
-  isCChainBalanceLoading: boolean;
-
-  // New getters for L1 chains
+  // Getters for L1 chains
   getL1Balance: (chainId: string) => number | null;
   getL1Loading: (chainId: string) => boolean;
 
@@ -103,6 +102,35 @@ interface WalletActions {
 }
 
 type WalletStore = WalletState & WalletActions;
+
+type BalanceUpdate = Pick<WalletState, 'balances'> & Partial<Pick<WalletState, 'pChainBalance' | 'cChainBalance'>>;
+type LoadingUpdate = Pick<WalletState, 'isLoading'> &
+  Partial<Pick<WalletState, 'isPChainBalanceLoading' | 'isCChainBalanceLoading'>>;
+
+/** The state change of setBalance. A P-Chain or C-Chain amount also goes to its copy field. */
+export function balanceUpdate(
+  balances: WalletState['balances'],
+  type: 'pChain' | 'cChain' | string,
+  amount: number | null,
+): BalanceUpdate {
+  // The P-Chain and C-Chain fetchers never produce null
+  if (type === 'pChain') return { balances: { ...balances, pChain: amount ?? 0 }, pChainBalance: amount ?? 0 };
+  if (type === 'cChain') return { balances: { ...balances, cChain: amount ?? 0 }, cChainBalance: amount ?? 0 };
+  // Handle L1 chainId
+  return { balances: { ...balances, l1Chains: { ...balances.l1Chains, [type]: amount } } };
+}
+
+/** The state change of setLoading. A P-Chain or C-Chain flag also goes to its copy field. */
+export function loadingUpdate(
+  isLoading: WalletState['isLoading'],
+  type: 'pChain' | 'cChain' | string,
+  loading: boolean,
+): LoadingUpdate {
+  if (type === 'pChain') return { isLoading: { ...isLoading, pChain: loading }, isPChainBalanceLoading: loading };
+  if (type === 'cChain') return { isLoading: { ...isLoading, cChain: loading }, isCChainBalanceLoading: loading };
+  // Handle L1 chainId
+  return { isLoading: { ...isLoading, l1Chains: { ...isLoading.l1Chains, [type]: loading } } };
+}
 
 export const useWalletStore = create<WalletStore>((set, get) => {
   // Initialize balance service with callbacks
@@ -133,6 +161,10 @@ export const useWalletStore = create<WalletStore>((set, get) => {
       cChain: false,
       l1Chains: {},
     },
+    pChainBalance: 0,
+    cChainBalance: 0,
+    isPChainBalanceLoading: false,
+    isCChainBalanceLoading: false,
     bootstrapped: false,
     walletType: null,
 
@@ -159,53 +191,11 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     },
 
     setBalance: (type: 'pChain' | 'cChain' | string, amount: number | null) => {
-      set((state) => {
-        if (type === 'pChain' || type === 'cChain') {
-          // Handle static chain types (these fetchers never produce null)
-          return {
-            balances: {
-              ...state.balances,
-              [type]: amount ?? 0,
-            },
-          };
-        } else {
-          // Handle L1 chainId
-          return {
-            balances: {
-              ...state.balances,
-              l1Chains: {
-                ...state.balances.l1Chains,
-                [type]: amount,
-              },
-            },
-          };
-        }
-      });
+      set((state) => balanceUpdate(state.balances, type, amount));
     },
 
     setLoading: (type: 'pChain' | 'cChain' | string, loading: boolean) => {
-      set((state) => {
-        if (type === 'pChain' || type === 'cChain') {
-          // Handle static chain types
-          return {
-            isLoading: {
-              ...state.isLoading,
-              [type]: loading,
-            },
-          };
-        } else {
-          // Handle L1 chainId
-          return {
-            isLoading: {
-              ...state.isLoading,
-              l1Chains: {
-                ...state.isLoading.l1Chains,
-                [type]: loading,
-              },
-            },
-          };
-        }
-      });
+      set((state) => loadingUpdate(state.isLoading, type, loading));
     },
 
     // Legacy individual setters for backward compatibility
@@ -227,31 +217,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     updateAllBalancesWithAllL1s: async (l1List?: Array<{ evmChainId: number }>) =>
       balanceService.updateAllBalancesWithAllL1s(l1List),
 
-    // Legacy balance getters for backward compatibility
-    get pChainBalance() {
-      return get().balances.pChain;
-    },
-    get l1Balance() {
-      const state = get();
-      const chainId = state.walletChainId.toString();
-      return state.balances.l1Chains[chainId] || 0;
-    },
-    get cChainBalance() {
-      return get().balances.cChain;
-    },
-    get isPChainBalanceLoading() {
-      return get().isLoading.pChain;
-    },
-    get isL1BalanceLoading() {
-      const state = get();
-      const chainId = state.walletChainId.toString();
-      return state.isLoading.l1Chains[chainId] || false;
-    },
-    get isCChainBalanceLoading() {
-      return get().isLoading.cChain;
-    },
-
-    // New getters for L1 chains. null = balance could not be fetched;
+    // Getters for L1 chains. null = balance could not be fetched;
     // absent chainId also reads as null (never fetched yet).
     getL1Balance: (chainId: string): number | null => {
       return get().balances.l1Chains[chainId] ?? null;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { cn } from '../utils';
 import { OwnerAddressesInput, type PChainOwner } from '../OwnerAddressesInput';
@@ -15,6 +16,17 @@ interface Props {
   l1TotalInitializedWeight?: bigint | null;
   userPChainBalanceNavax?: bigint | null;
   hideConsensusWeight?: boolean;
+}
+
+/**
+ * The warning for a validator weight of 20% or more of the current total L1 weight, or null.
+ * The submit refuses the same weights (validateStakePercentage).
+ */
+export function weightShareWarning(weight: bigint, l1TotalWeight: bigint | null): string | null {
+  if (!l1TotalWeight || l1TotalWeight <= 0n || weight <= 0n) return null;
+  const percent = Number((weight * 10000n) / l1TotalWeight) / 100;
+  if (percent < 20) return null;
+  return `This validator's weight is ${percent.toFixed(2)}% of the current total L1 weight. It must be less than 20%.`;
 }
 
 export function ValidatorItem({
@@ -33,13 +45,12 @@ export function ValidatorItem({
     insufficientBalanceError = `Validator balance (${(Number(validator.validatorBalance) / 1e9).toFixed(2)} AVAX) exceeds your P-Chain balance (${(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).`;
   }
 
-  const hasWeightError =
-    l1TotalInitializedWeight &&
-    l1TotalInitializedWeight > 0n &&
-    validator.validatorWeight > 0n &&
-    (validator.validatorWeight * 100n) / l1TotalInitializedWeight >= 20n;
+  const weightWarning = weightShareWarning(validator.validatorWeight, l1TotalInitializedWeight);
 
-  const hasError = !!insufficientBalanceError || !!hasWeightError;
+  const hasError = !!insufficientBalanceError || !!weightWarning;
+  const fieldId = useId();
+  // One name per card: a page with two validators has two remove buttons
+  const removeLabel = `Remove validator ${validator.nodeID || index + 1}`;
 
   return (
     <div
@@ -50,37 +61,41 @@ export function ValidatorItem({
     >
       <div
         className={cn(
-          'flex items-center justify-between p-3 cursor-pointer transition-colors',
+          'flex items-center gap-2 pr-3 transition-colors',
           hasError
             ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20'
             : 'hover:bg-zinc-50 dark:hover:bg-zinc-700',
         )}
-        onClick={() => onToggle(index)}
       >
-        <div className="flex-1 font-mono text-sm truncate">{validator.nodeID}</div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(index);
-            }}
-            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors text-red-500"
-            title="Remove validator"
-            type="button"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          onClick={() => onToggle(index)}
+          className="flex flex-1 min-w-0 items-center justify-between gap-2 p-3 text-left cursor-pointer"
+        >
+          {/* The fallback names the toggle when the Node ID field is empty */}
+          <span className="flex-1 font-mono text-sm truncate">{validator.nodeID || `Validator ${index + 1}`}</span>
           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </div>
+        </button>
+        <button
+          onClick={() => onRemove(index)}
+          className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors text-red-500"
+          title={removeLabel}
+          aria-label={removeLabel}
+          type="button"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
 
       {isExpanded && (
         <div className="p-3 border-t border-zinc-200 dark:border-zinc-700 space-y-3">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label htmlFor={`${fieldId}-node`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Node ID (must be unique)
             </label>
             <input
+              id={`${fieldId}-node`}
               type="text"
               value={validator.nodeID}
               onChange={(e) => onUpdate(index, { nodeID: e.target.value })}
@@ -98,8 +113,14 @@ export function ValidatorItem({
           <div className={cn('grid gap-3', hideConsensusWeight ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
             {!hideConsensusWeight && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Consensus Weight</label>
+                <label
+                  htmlFor={`${fieldId}-weight`}
+                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Consensus Weight
+                </label>
                 <input
+                  id={`${fieldId}-weight`}
                   type="number"
                   value={validator.validatorWeight.toString()}
                   onChange={(e) => onUpdate(index, { validatorWeight: BigInt(e.target.value || 0) })}
@@ -111,20 +132,18 @@ export function ValidatorItem({
                     'shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50',
                   )}
                 />
-                {hasWeightError && (
-                  <p className="text-xs mt-1 text-red-500 dark:text-red-400">
-                    Warning: This validator's weight is 20% or more of the current L1 total stake (
-                    {Number((validator.validatorWeight * 10000n) / l1TotalInitializedWeight / 100n).toFixed(2)}%).
-                    Recommended to be less than 20%.
-                  </p>
-                )}
+                {weightWarning && <p className="text-xs mt-1 text-red-500 dark:text-red-400">{weightWarning}</p>}
               </div>
             )}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label
+                htmlFor={`${fieldId}-balance`}
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
                 Validator Balance (P-Chain AVAX)
               </label>
               <input
+                id={`${fieldId}-balance`}
                 type="number"
                 step="0.000001"
                 min="0"
@@ -146,8 +165,8 @@ export function ValidatorItem({
                 )}
               />
               <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">
-                Will last for {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} with a fee
-                of 1.33 AVAX per month.
+                Will last for {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} at the
+                minimum fee of 1.33 AVAX per month.
               </p>
               {insufficientBalanceError && (
                 <p className="text-xs mt-1 text-red-500 dark:text-red-400">{insufficientBalanceError}</p>

@@ -67,13 +67,14 @@ export default function PChainRemovalStep() {
             <SubmitPChainTxWeightUpdate
               subnetIdL1={store.subnetIdL1}
               initialEvmTxHash={store.evmTxHash}
-              // The signing subnet for *any* warp from the StakingManager is the
-              // subnet that owns the chain where the StakingManager lives — i.e.
-              // the VMC's home chain's subnet. For inheritance-model L1s that's
-              // the L1's own subnet; for composition-model L1s (VMC on C-Chain)
-              // that's the Primary Network. `vmcCtx.signingSubnetId` is set to
-              // exactly that from useVMCAddress.
-              signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+              // The signing subnet for *any* warp from the manager is the subnet
+              // that owns the chain where the manager lives: the L1's own subnet
+              // for inheritance-model L1s, the Primary Network for a VMC on the
+              // C-Chain. useVMCAddress sets `vmcCtx.signingSubnetId` to exactly
+              // that. It is empty while the details load, and the step waits.
+              signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               txHashLabel="Initiate Removal Transaction Hash"
               onSuccess={(pChainTxId) => {
                 store.setPChainTxId(pChainTxId);

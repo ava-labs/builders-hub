@@ -339,7 +339,11 @@ function AvalanchegoDockerInner({
         }
       } catch {
         if (!abortController.signal.aborted) {
-          setSubnetIdError(`L1 not found on ${selectedNetwork}. Try switching networks.`);
+          const [here, other] = selectedNetwork === 'fuji' ? ['Fuji', 'Mainnet'] : ['Mainnet', 'Fuji'];
+          setSubnetIdError(
+            `L1 not found on ${here}. A new L1 can take a minute to appear. Make sure this is a Subnet ID, not a ` +
+              `blockchain ID. If the L1 is on ${other}, switch networks.`,
+          );
         }
       } finally {
         if (!abortController.signal.aborted) setIsLoading(false);
@@ -1317,9 +1321,11 @@ sudo ufw status`
 
                 <DynamicCodeBlock
                   lang="bash"
-                  code={`# Backup your validator credentials
+                  code={`# Back up your validator credentials
+# The node runs as root in Docker, so the key files belong to root
 mkdir -p ~/avalanche-backup
-cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo chown -R "$(id -u):$(id -g)" ~/avalanche-backup
 
 # Verify backup
 ls -la ~/avalanche-backup/staking/`}

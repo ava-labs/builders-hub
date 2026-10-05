@@ -67,7 +67,9 @@ export default function CompleteRemovalStep() {
                 stakingManagerAddress={stakingManagerAddress}
                 tokenType={tokenType}
                 subnetIdL1={store.subnetIdL1}
-                signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+                signingSubnetId={vmcCtx.signingSubnetId}
+                signingSubnetLoading={vmcCtx.isLoading}
+                signingSubnetError={vmcCtx.error}
                 pChainTxId={store.pChainTxId}
                 onSuccess={(data) => {
                   store.setGlobalSuccess(data.message);
@@ -84,6 +86,8 @@ export default function CompleteRemovalStep() {
                 isContractOwner={isContractOwner}
                 validatorManagerAddress={vmcCtx.validatorManagerAddress}
                 signingSubnetId={vmcCtx.signingSubnetId}
+                signingSubnetLoading={vmcCtx.isLoading}
+                signingSubnetError={vmcCtx.error}
                 contractOwner={vmcCtx.contractOwner}
                 isLoadingOwnership={vmcCtx.isLoadingOwnership}
                 ownerType={vmcCtx.ownerType}

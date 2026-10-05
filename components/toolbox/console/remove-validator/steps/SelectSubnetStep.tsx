@@ -7,6 +7,7 @@ import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValid
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { ManagerTypeBadge } from '@/components/toolbox/console/add-validator/ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
+import { StartOverButton } from '@/components/toolbox/console/shared/StartOverButton';
 
 export default function SelectSubnetStep() {
   const store = useRemoveValidatorStore();
@@ -31,6 +32,7 @@ export default function SelectSubnetStep() {
               isDetecting={isDetecting}
             />
           )}
+          {store.subnetIdL1 && <StartOverButton onStartOver={store.reset} className="ml-auto" />}
         </div>
         <p className="text-sm text-zinc-500 mb-4">
           Choose the L1 with the validator you want to remove. We'll detect the validator manager type — PoS attempts

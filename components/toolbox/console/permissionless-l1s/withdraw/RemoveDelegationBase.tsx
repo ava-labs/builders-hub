@@ -315,6 +315,8 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
             subnetIdL1={l1State.subnetIdL1}
             initialEvmTxHash={initiateRemovalTxHash}
             signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             txHashLabel="Initiate Removal Transaction Hash"
             txHashPlaceholder="Enter the transaction hash from the initiate removal step (0x...)"
             onSuccess={(txId) => {
@@ -348,6 +350,8 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
             tokenType={tokenType}
             subnetIdL1={l1State.subnetIdL1}
             signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             pChainTxId={pChainTxId}
             onSuccess={(data) => {
               setRemovalCompleteTxHash(data.txHash);

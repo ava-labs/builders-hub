@@ -22,7 +22,8 @@ import { SDKCodeViewer, SDKCodeSource } from '@/components/console/sdk-code-view
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
 import { PCHAIN_COMMANDS } from '@/components/toolbox/console/shared/pchainCommands';
 
 // TypeScript code showing the P-Chain disable operation
@@ -152,6 +153,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
 
     setIsProcessing(true);
     setError(null);
+    setTxHash(null);
 
     try {
       // Pass validation ID as-is - the SDK expects CB58 format from the P-Chain
@@ -163,16 +165,19 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
         notify('disableL1Validator', txPromise);
         return txPromise;
       });
+      // Keep the issued hash: when the confirmation wait fails, the tx can still commit.
+      setTxHash(hash);
 
       // Wait for P-Chain confirmation before declaring success
       await waitForPChainConfirmation(hash, isTestnet);
 
-      setTxHash(hash);
       setOperationSuccessful(true);
       onSuccess?.();
     } catch (err) {
       console.error('Error disabling validator:', err);
       setError(parsePChainError(err));
+      // A dropped tx cannot commit, so its hash is no longer pending.
+      if (isPChainTxDropped(err)) setTxHash(null);
     } finally {
       setIsProcessing(false);
     }
@@ -185,6 +190,8 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
     setAuthIndex(-1);
     setConfirmedEmergency(false);
   };
+
+  const explorerUrl = `/explorer/${isTestnet ? 'fuji' : 'mainnet'}/p-chain/tx/${txHash}`;
 
   if (operationSuccessful && txHash) {
     return (
@@ -237,12 +244,12 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Transaction</span>
               <a
-                href={`https://${isTestnet ? 'subnets-test' : 'subnets'}.avax.network/p-chain/tx/${txHash}`}
+                href={explorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-semibold text-red-500 hover:text-red-400 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
               >
-                View in Explorer
+                View transaction in the explorer
                 <ArrowUpRight className="w-4 h-4" />
               </a>
             </div>
@@ -367,7 +374,12 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
           </div>
         )}
 
-        {error && <Alert variant="error">{error}</Alert>}
+        {error && (
+          <Alert variant="error">
+            {error}
+            {txHash && <IssuedTxNote txId={txHash} isTestnet={isTestnet} className="mt-1" />}
+          </Alert>
+        )}
 
         {/* Explicit emergency confirmation — this operation is irreversible
             and bypasses the Validator Manager, so require the user to opt in

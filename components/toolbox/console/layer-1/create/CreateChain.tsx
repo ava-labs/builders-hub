@@ -19,8 +19,9 @@ import Link from 'next/link';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Success } from '@/components/toolbox/components/Success';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts/parsePChainError';
 
 // Import Genesis Wizard components
@@ -95,6 +96,7 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
   const [isCreatingChain, setIsCreatingChain] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [issuedTxId, setIssuedTxId] = useState('');
+  const [created, setCreated] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [localChainName, setLocalChainName] = useState<string>(generateRandomChainName());
   const [vmId, setVmId] = useState<string>(SUBNET_EVM_VM_ID);
@@ -147,12 +149,13 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
 
       setChainID(txID);
       setChainName(localChainName);
-      setLocalChainName(generateRandomChainName());
+      setCreated(true);
     } catch (err) {
       // Keep an issued-but-unconfirmed txID visible so the user can track it. It
       // stays out of the store on purpose: ConvertSubnetToL1 must not run against
-      // a chain the P-Chain hasn't accepted.
-      if (txID) setIssuedTxId(txID);
+      // a chain the P-Chain hasn't accepted. A dropped tx cannot commit, so its
+      // ID is not kept.
+      if (txID && !isPChainTxDropped(err)) setIssuedTxId(txID);
       setCreateError(parsePChainError(err));
     } finally {
       setIsConfirming(false);
@@ -315,7 +318,7 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
               loading={isCreatingChain || isConfirming}
               loadingText={isConfirming ? 'Confirming...' : 'Creating Chain...'}
               // A CreateChainTx is already out there: a second click would issue another one
-              disabled={!canCreateChain || !!issuedTxId}
+              disabled={!canCreateChain || !!issuedTxId || created}
               className="w-full"
               cliCommand={`platform-cli chain create --subnet-id ${subnetId || '<subnet-id>'} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ''} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
               downloadFile={genesisData ? { data: genesisData, filename: 'genesis.json' } : undefined}
@@ -350,12 +353,7 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
             <div className="mt-4">
               <Alert variant="error">
                 {createError}
-                {issuedTxId && (
-                  <p className="mt-2">
-                    The transaction was issued and may still be committed on the P-Chain. Check the CreateChainTx ID
-                    above before you issue another one.
-                  </p>
-                )}
+                {issuedTxId && <IssuedTxNote txId={issuedTxId} isTestnet={Boolean(isTestnet)} className="mt-2" />}
               </Alert>
             </div>
           )}
