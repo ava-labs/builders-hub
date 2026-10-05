@@ -16,6 +16,9 @@ import { parseRepos } from "@/components/audits/wizard/types";
 
 const LINK = "underline underline-offset-2";
 const URL_TEXT = "break-all font-mono text-xs";
+// The neutral bordered pill of StatusBadge, without the status dot.
+const SHARED_TAG =
+  "inline-flex items-center whitespace-nowrap rounded-full border border-zinc-300 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:border-white/15 dark:text-zinc-400";
 
 /** A link the project typed in. Only a realistic http(s) URL becomes an href;
     anything else a row could hold (another scheme, a value that does not
@@ -174,7 +177,17 @@ export function SubmissionDetails({ detail }: { detail: AdminRequestDetail }) {
                   </a>,
                 ]
               : []),
-            ...(detail.contact_handle ? [<ContactHandle key="handle" handle={detail.contact_handle} />] : []),
+            ...(detail.contact_handle
+              ? [
+                  <span key="handle" className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <ContactHandle handle={detail.contact_handle} />
+                    {/* The Telegram share: the project let the firms see it. */}
+                    {detail.contact_handle_shared_at ? (
+                      <span className={SHARED_TAG}>shared with firms</span>
+                    ) : null}
+                  </span>,
+                ]
+              : []),
           ]}
         />
       ),

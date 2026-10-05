@@ -55,6 +55,7 @@ const adminDetail = (over: Partial<AdminRequestDetail> = {}): AdminRequestDetail
     contact_handle: "@ada_glacier",
     contact_calendar_url: "https://cal.com/ada-glacierswap",
     contact_consent_at: new Date("2026-09-28T09:00:00Z"),
+    contact_handle_shared_at: null,
     status: "pending_review",
     accepted_quote_id: null,
     submitted_at: new Date("2026-09-28T09:00:00Z"),
@@ -170,6 +171,23 @@ describe("SubmissionDetails", () => {
       }),
     );
     expect(collecting).not.toContain("quotes close");
+  });
+
+  it("tags the Telegram handle the project shared with the firms, in any status", () => {
+    const sharedAt = new Date("2026-09-28T09:00:00Z");
+    expect(render(adminDetail({ contact_handle_shared_at: sharedAt }))).toContain(
+      "shared with firms",
+    );
+    expect(
+      render(
+        adminDetail({
+          contact_handle_shared_at: sharedAt,
+          status: "engaged",
+          display_status: "engaged",
+        }),
+      ),
+    ).toContain("shared with firms");
+    expect(render(adminDetail())).not.toContain("shared with firms");
   });
 
   it("names the Builder Hub account only when it differs from the contact", () => {

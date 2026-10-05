@@ -75,7 +75,7 @@ function buildSpecItems(view: AuditorRequestView): SpecItem[] {
                 ))}
                 {attachments.map((attachment) => (
                   <p key={attachment.href} className="break-all font-mono text-xs">
-                    <a href={attachment.href} rel="noreferrer" className="underline underline-offset-2">
+                    <a href={attachment.href} target="_blank" rel="noreferrer" className="underline underline-offset-2">
                       {attachment.name}
                     </a>
                   </p>
@@ -192,6 +192,25 @@ export function PortalRequestDetail({
         </div>
       ) : null}
 
+      {/* The Telegram share: before any acceptance, the one contact field the
+          project chose to show every firm it reached (visibility.ts). Never
+          together with the won block above. */}
+      {view.shared_handle ? (
+        <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className={MONO_LABEL_SM}>Project Telegram</span>
+            <ContactHandle
+              handle={view.shared_handle}
+              className="font-mono text-xs text-zinc-900 dark:text-zinc-100"
+            />
+          </p>
+          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Send your quote here: the program can only subsidize a quote the project accepts on
+            Builder Hub.
+          </p>
+        </div>
+      ) : null}
+
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div>
           <div className={`${CARD} p-5`}>
@@ -218,8 +237,9 @@ export function PortalRequestDetail({
           </div>
           <p className="mt-3.5 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
             <Lock aria-hidden className="h-3.5 w-3.5 shrink-0" />
-            Project contact is revealed only if your quote is accepted. Competing quotes are never
-            visible to you.
+            {view.shared_handle
+              ? "The project's name and email are revealed only if your quote is accepted. Competing quotes are never visible to you."
+              : "Project contact is revealed only if your quote is accepted. Competing quotes are never visible to you."}
           </p>
         </div>
 

@@ -34,7 +34,11 @@ export async function POST(request: NextRequest, context: RouteParams<{ id: stri
   }
 
   try {
-    const result = await submitRequestForReview(id, caller.userId);
+    const result = await submitRequestForReview(
+      id,
+      caller.userId,
+      consent.data.share_contact_handle,
+    );
     if (!result.success && result.code === "not_found") {
       return NextResponse.json(
         { success: false, message: "Draft not found or already submitted." },
