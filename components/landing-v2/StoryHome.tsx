@@ -18,6 +18,7 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import BuiltOnMarquee from "@/components/landing-v2/BuiltOnMarquee";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
+import HeroSplash from "@/components/landing-v2/HeroSplash";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import PillarsChapter from "@/components/landing-v2/PillarsChapter";
 import ChainDiagram from "@/components/landing-v2/diagrams/ChainDiagram";
@@ -320,8 +321,11 @@ function ChapterOne() {
         style={reducedMotion ? undefined : { opacity: exitOpacity }}
       >
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 text-center">
+        {/* the splash ends at the ecosystem tape, so the tape never crops it */}
+        <HeroSplash />
+        {/* phones: as large as the widest noun ("marketplace.", 7.53em) allows */}
         <motion.h1
-          className="v2-display text-[2.5rem] text-zinc-900 dark:text-zinc-50 md:text-[4rem] xl:text-[5rem]"
+          className="v2-display text-[clamp(2.5rem,calc((100vw_-_2.75rem)/7.6),3.5rem)] text-zinc-900 dark:text-zinc-50 md:text-[4rem] xl:text-[5rem]"
           {...rise(0.05)}
         >
           Build {article}{" "}
@@ -385,7 +389,8 @@ function ChapterOne() {
           <HoverPrefetchLink
             href="/docs/avalanche-l1s"
             onClick={() => track("home_cta_clicked", { section: "hero", label: "Read the architecture", href: "/docs/avalanche-l1s" })}
-            className="font-mono text-[11px] tracking-[0.18em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            // over the splash sky, zinc-500 and zinc-400 fall below AA contrast
+            className="font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
           >
             READ THE ARCHITECTURE →
           </HoverPrefetchLink>
