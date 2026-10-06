@@ -29,7 +29,7 @@ import {
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
 import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
-import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -120,8 +120,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       return;
     }
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager address is not set. Check L1 Subnet selection.');
-      onError('Validator Manager address is not set. Check L1 Subnet selection.');
+      setErrorState(INVALID_L1_SELECTED);
+      onError(INVALID_L1_SELECTED);
       return;
     }
     if (isContractOwner === false && !useMultisig) {
@@ -254,7 +254,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   const step1Complete = !!pChainTxId.trim();

@@ -31,6 +31,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { INVALID_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import {
   Search,
@@ -194,7 +195,7 @@ function RemoveExpiredValidatorRegistration() {
 
   const fetchEvents = async () => {
     if (!validatorManagerAddress) {
-      setError('Validator Manager address not found for selected subnet');
+      setError(INVALID_L1_SELECTED);
       return;
     }
     if (!initiatedEventAbi) {
@@ -478,9 +479,9 @@ function RemoveExpiredValidatorRegistration() {
 
         {error && <Alert variant="error">Error: {error}</Alert>}
 
-        {/* Subnet Selection */}
+        {/* L1 Selection */}
         <div className="p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3">1. Select Subnet</h3>
+          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3">1. Select L1</h3>
           <SelectSubnetId
             value={subnetId}
             onChange={setSubnetId}

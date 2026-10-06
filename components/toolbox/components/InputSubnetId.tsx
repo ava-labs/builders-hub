@@ -163,7 +163,7 @@ export default function InputSubnetId({
       result.push({
         title: createChainStoreSubnetId,
         value: createChainStoreSubnetId,
-        description: 'The Subnet that you have just created in the "Create Chain" tool',
+        description: 'The Subnet ID from the Create Subnet step.',
       });
       seen.add(createChainStoreSubnetId);
     }
@@ -181,7 +181,7 @@ export default function InputSubnetId({
       result.push({
         title: `${name} (${subnetId})`,
         value: subnetId,
-        description: l1.description || 'A subnet that was added to your L1 list.',
+        description: l1.description || 'An L1 from your L1 list.',
       });
 
       seen.add(subnetId);
@@ -203,7 +203,7 @@ export default function InputSubnetId({
       suggestions={readOnly || hideSuggestions ? [] : subnetIdSuggestions}
       error={combinedError}
       helperText={helperText}
-      placeholder={readOnly ? 'Automatically filled from Blockchain ID' : placeholder || 'Enter subnet ID'}
+      placeholder={readOnly ? 'Automatically filled from Blockchain ID' : placeholder || 'Enter a Subnet ID'}
       disabled={readOnly}
     />
   );

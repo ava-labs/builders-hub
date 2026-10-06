@@ -220,7 +220,7 @@ export default function ValidatorSelector({ subnetId, onSelect, selectedValidato
           {!isLoading && !error && validators.length === 0 && (
             <div className="py-6 text-center space-y-2">
               <Users className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto" />
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">No active validators found for this subnet.</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">This L1 has no active validators.</p>
               <Button variant="secondary" onClick={fetchValidators} className="text-xs">
                 Try Again
               </Button>

@@ -330,7 +330,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   const step1Complete = !!unsignedWarpMessage;
@@ -405,7 +405,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       <StepFlowCard
         step={2}
         title="Aggregate Signatures"
-        description="Collect BLS signatures from the signing subnet's validators (67% quorum required)"
+        description="Collect BLS signatures from the validators of the Validator Manager chain (67% quorum required)"
         isComplete={step2Complete}
         isActive={step1Complete && !step2Complete}
       >

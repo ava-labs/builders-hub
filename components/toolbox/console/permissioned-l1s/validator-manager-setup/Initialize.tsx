@@ -253,7 +253,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                   vmcData.validatorManagerAddress.toLowerCase() !== managerAddress.toLowerCase() && (
                     <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                       <p className="text-xs text-amber-700 dark:text-amber-400">
-                        The conversion for this subnet records the validator manager at{' '}
+                        The conversion of this L1 records the Validator Manager at{' '}
                         <span className="font-mono break-all">{vmcData.validatorManagerAddress}</span>. Initializing{' '}
                         <span className="font-mono break-all">{managerAddress}</span> stores settings at a different
                         address, and initializing the validator set against the recorded manager will fail. Use the
@@ -287,14 +287,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             </div>
           </div>
 
-          {/* Step 2: Select Subnet */}
+          {/* Step 2: Select L1 */}
           <div className="p-3 rounded-xl border transition-colors bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700">
             <div className="flex items-start gap-3">
               <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
                 2
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Select L1/Subnet</h3>
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Select L1</h3>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">The Subnet ID this manager will control</p>
                 <div className="mt-2">
                   <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />

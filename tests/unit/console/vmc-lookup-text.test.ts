@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DATA_API_ERROR,
+  INVALID_L1_SELECTED,
   NOT_AN_L1,
+  NO_L1_SELECTED,
   SUBNET_ID_FORMAT_ERROR,
   otherNetworkText,
   pageLookupErrorText,
@@ -141,5 +143,12 @@ describe('NOT_AN_L1', () => {
       'This is not an L1, or it has no Validator Manager. After a conversion, the Data API can take a few minutes ' +
         'to show the L1.',
     );
+  });
+});
+
+describe('NO_L1_SELECTED and INVALID_L1_SELECTED', () => {
+  it('ask for an L1, not a subnet', () => {
+    expect(NO_L1_SELECTED).toBe('Select an L1.');
+    expect(INVALID_L1_SELECTED).toBe('The Validator Manager address is not set. Select a valid L1.');
   });
 });

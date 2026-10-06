@@ -45,7 +45,7 @@ export default function SelectSubnetId({
       result.push({
         title: createChainStoreSubnetId,
         value: createChainStoreSubnetId,
-        description: 'The Subnet that you have just created in the "Create Chain" tool',
+        description: 'The Subnet ID from the Create Subnet step.',
       });
       seen.add(createChainStoreSubnetId);
     }

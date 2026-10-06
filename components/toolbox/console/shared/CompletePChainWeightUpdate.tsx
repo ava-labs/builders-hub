@@ -346,7 +346,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
   }
 
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   // A pending or completed tx is covered by isProcessing and updateComplete. A reverted tx

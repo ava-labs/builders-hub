@@ -7,6 +7,7 @@ import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -69,7 +70,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     }
 
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      setErrorState(INVALID_L1_SELECTED);
       return false;
     }
 
@@ -197,7 +198,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   // Prepare args for multisig
@@ -261,7 +262,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
             !validatorManagerAddress ||
             txSuccess !== null
           }
-          error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
+          error={!validatorManagerAddress && subnetId ? INVALID_L1_SELECTED : undefined}
         >
           {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
         </Button>

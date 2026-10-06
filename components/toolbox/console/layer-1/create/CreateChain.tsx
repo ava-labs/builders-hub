@@ -176,9 +176,9 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
         <div className="p-4 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-4">
           <AlertTriangle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
         </div>
-        <h3 className="text-sm font-semibold text-center mb-2">No Subnet Selected</h3>
+        <h3 className="text-sm font-semibold text-center mb-2">No Subnet ID</h3>
         <p className="text-sm text-muted-foreground text-center max-w-md">
-          Please create or select a subnet with the Create Subnet tool before configuring your chain.
+          Do the Create Subnet step first. In that step, create a Subnet or paste the ID of an existing Subnet.
         </p>
       </div>
     );

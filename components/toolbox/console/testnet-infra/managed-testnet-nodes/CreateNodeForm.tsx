@@ -77,11 +77,11 @@ export default function CreateNodeForm({
 
   const handleCreateNode = () => {
     if (!subnetId) {
-      onError('Missing Information', 'Please enter a subnet ID first');
+      onError('Missing Information', 'Enter a Subnet ID first.');
       return;
     }
     if (!selectedBlockchainId) {
-      onError('Missing Information', 'No blockchain found for this subnet');
+      onError('Missing Information', 'This Subnet ID has no blockchain.');
       return;
     }
     onSubmit(subnetId, selectedBlockchainId);

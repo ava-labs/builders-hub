@@ -6,6 +6,12 @@ import { utils } from '@avalabs/avalanchejs';
 /** The lookup error when no L1 is selected. The signing steps show it as is: it is an instruction, not a failure. */
 export const NO_L1_SELECTED = 'Select an L1.';
 
+/**
+ * The step error when an L1 is selected but its Validator Manager address is not known: the lookup still runs, or
+ * failed, or the L1 has no Validator Manager.
+ */
+export const INVALID_L1_SELECTED = 'The Validator Manager address is not set. Select a valid L1.';
+
 /** A failed Data API (Glacier) read. Its own text names a subnet and an HTTP status, which users cannot act on. */
 export const DATA_API_ERROR = 'Could not load the L1 from the Data API.';
 

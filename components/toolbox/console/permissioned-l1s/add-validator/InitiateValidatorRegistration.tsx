@@ -12,6 +12,7 @@ import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
 import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -120,7 +121,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
 
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      setErrorState(INVALID_L1_SELECTED);
       return;
     }
 
@@ -297,7 +298,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   // Don't render if no validators are added
@@ -354,10 +355,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         <Button
           onClick={handleInitiateValidatorRegistration}
           disabled={blocked}
-          error={
-            ownerProblem ??
-            (!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined)
-          }
+          error={ownerProblem ?? (!validatorManagerAddress && subnetId ? INVALID_L1_SELECTED : undefined)}
         >
           {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Validator Registration'}
         </Button>

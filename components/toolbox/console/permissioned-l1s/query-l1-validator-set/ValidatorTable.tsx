@@ -140,9 +140,7 @@ export function ValidatorTable({
         <div className="text-center py-8 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
           <Users className="h-6 w-6 text-zinc-400 mx-auto mb-2" />
           <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium mb-1">No validators found</p>
-          <p className="text-zinc-500 dark:text-zinc-500 text-xs">
-            Try changing the subnet ID or check your network connection
-          </p>
+          <p className="text-zinc-500 dark:text-zinc-500 text-xs">Check the Subnet ID and your network connection.</p>
         </div>
       )}
     </div>

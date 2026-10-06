@@ -232,7 +232,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
                 label="Validator Manager Address"
                 value={validatorManagerAddress || ''}
                 disabled={true}
-                placeholder="Auto-filled from selected subnet"
+                placeholder="Filled in from the selected L1"
               />
 
               <Button
