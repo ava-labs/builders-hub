@@ -74,6 +74,10 @@ for (const network of ['mainnet', 'fuji'] as const) {
       await app.open(`${root}/c-chain/txs`);
       const hash = screen.getByRole('link', TX_HASH).first();
       await expect(hash).toBeVisible(DATA);
+      // A new row slides in several times a second, so the first row never holds still for the tap's stability check.
+      // The list stops while the pointer is over it, so the pointer goes onto the list first. The list has no role or
+      // name; it fills almost all of the section that holds the view switch.
+      await browser.locator('section:has([aria-label="Transaction view"])').hover();
       await hash.tap();
       await expect(browser).toHaveURL(new RegExp(`${root}/c-chain/tx/0x[0-9a-f]{64}$`), NAVIGATION);
       await expectActiveTab(screen, browser, 'Transactions');
