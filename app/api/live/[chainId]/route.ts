@@ -66,6 +66,8 @@ function sourceOf(chainId: string): Source | null {
 const HEADS = LIVE_HEADS;
 /* heads one tick asks a public RPC for: a new window fills over a few ticks, never in one burst */
 const PUBLIC_HEADS = 12;
+/* heads an answer carries unless the reader asks for more with ?heads= (the panes' strip reads 12) */
+const ANSWER_HEADS = 12;
 /* blocks under the tip whose transactions the window carries */
 const TX_BLOCKS = 6;
 /* blocks whose receipts one tick pulls, oldest first, so execution reads in order */
@@ -377,14 +379,17 @@ async function windowOf(chainId: string, src: Source): Promise<LiveWindow | null
   return last ? Promise.race([st.pending, new Promise<LiveWindow>((r) => setTimeout(() => r({ ...last, stale: true }), WAIT_MS))]) : st.pending;
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ chainId: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ chainId: string }> }) {
   const { chainId } = await params;
   const src = /^\d+$/.test(chainId) ? sourceOf(chainId) : null;
   if (!src) return NextResponse.json({ error: "unknown chain" }, { status: 404 });
   const window = await windowOf(chainId, src);
   if (!window) return NextResponse.json({ error: "upstream unreachable" }, { status: 502, headers: { "cache-control": "no-store" } });
+  const asked = Number(new URL(req.url).searchParams.get("heads"));
+  const n = Number.isInteger(asked) && asked > 0 ? Math.min(asked, HEADS) : ANSWER_HEADS;
+  const body = window.heads.length > n ? { ...window, heads: window.heads.slice(0, n) } : window;
   const s = Math.max(1, Math.round(src.tickMs / 1000));
-  return NextResponse.json(window, {
+  return NextResponse.json(body, {
     headers: {
       // one origin read a tick for every viewer; a stale window is not kept
       "cache-control": window.stale ? "no-store" : `public, max-age=0, s-maxage=${s}, stale-while-revalidate=${s}`,

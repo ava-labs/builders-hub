@@ -4,7 +4,8 @@
    take rows from either feed. */
 
 /** the heads a window holds: about 45 s of a one-second chain, so the home
- *  page's lanes open full and a lane that rests misses no block */
+ *  page's lanes open full and a lane that rests 15 or 30 s misses no block.
+ *  An answer carries 12 unless the reader asks for more (?heads=) */
 export const LIVE_HEADS = 48;
 
 export interface LiveHead {

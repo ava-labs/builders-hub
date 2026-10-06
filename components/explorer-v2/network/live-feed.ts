@@ -6,9 +6,9 @@ import type { LiveHead, LiveTx, LiveWindow } from "@/lib/live-window";
 /* A chain's live feed for the city's panes, read from /api/live/[chainId]
    once a second, or at a pace the caller sets: the server holds the
    window and every viewer shares its read, so a pane costs the node
-   nothing of its own. The feed keeps a little more than the server sends,
-   so a block that has left the server's window stays on the strip until
-   it has slid off. Polls rest while the tab is hidden, and a feed that
+   nothing of its own. A pane's feed keeps a little more than the server
+   sends (12 heads), so a block that has left the answer stays on the
+   strip until it has slid off; a caller that keeps more asks for more. Polls rest while the tab is hidden, and a feed that
    stays silent stops and says so. */
 
 export interface LiveFeed {
@@ -91,7 +91,8 @@ export function useLiveFeed(chainId: string | undefined, armed = true, pace: Liv
     const poll = async () => {
       let wait = pace.pollMs;
       try {
-        const res = await fetch(`/api/live/${chainId}`, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
+        const ask = pace.keepHeads ? `?heads=${pace.keepHeads}` : "";
+        const res = await fetch(`/api/live/${chainId}${ask}`, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const w = (await res.json()) as LiveWindow;
         if (!alive) return;
