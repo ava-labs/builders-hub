@@ -326,14 +326,14 @@ function ChapterOne() {
   }, [noun]);
 
   // top-to-bottom load sequence: each block rises in after the one above it
-  const rise = (delay: number) =>
-    reducedMotion
-      ? {}
-      : {
-          initial: { opacity: 0, y: 16 },
-          animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
-        };
+  // The server cannot read reduced motion, so it always sends the hidden
+  // start. With reduced motion the client skips the start (initial false) but
+  // keeps animate, so framer writes the shown values over the server's
+  const rise = (delay: number) => ({
+    initial: reducedMotion ? (false as const) : { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
+  });
 
   return (
     // In-flow navbar (~3.5rem) sits above; subtract it so the section is one viewport.
