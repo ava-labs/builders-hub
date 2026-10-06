@@ -108,7 +108,7 @@ export function PipelineIntegration({ colors }: { colors: Colors }) {
       </p>
 
       {/* Pipeline diagram */}
-      <div className="flex-1 flex items-center justify-center py-4 pb-20 relative">
+      <div className="flex-1 flex items-center justify-center py-4 pb-32 relative">
         <div className="flex items-center gap-0 flex-wrap justify-center sm:flex-nowrap">
           {STAGES.map((stage, i) => {
             const isActive = activeStageIndex === i
