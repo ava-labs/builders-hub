@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Board, INK, LiveDot, MUTED, ROW, SectionHeader, feeInk } from "@/components/explorer-v2/ui";
 import { Belt, MotionRow, useFreeze } from "@/components/explorer-v2/evm/LiveBoards";
 import { ageShort, formatNumber } from "@/components/explorer-v2/format";
-import { AX, FACE, Instrument, Tip, XTicks, robustTop, useWidth } from "@/components/explorer-v2/gas/instruments";
+import { FACE, Instrument, Tip, XTicks, robustTop, useWidth } from "@/components/explorer-v2/gas/instruments";
 import { riseStyle, EASE_CSS } from "@/components/explorer-v2/motion";
 
 /* The C-Chain's burn this second. One feed, polled every few seconds,
@@ -265,18 +265,7 @@ export function LiveBurnPanel({ live, price }: { live: LiveBurns; price: number 
   const rows = useFreeze(live.blocks.slice(0, ROWS + 1), hover);
   // oldest left, newest right; one extra slot slides out on the left
   const strip = useMemo(() => live.blocks.slice(0, SLOTS + 1).reverse(), [live.blocks]);
-  const newest = strip[strip.length - 1];
   const usd = price > 0 && live.sum > 0 ? ` · $${(live.sum * price).toFixed(live.sum * price < 1 ? 4 : 2)}` : "";
-  // the right face carries the newest block's burn at the belt's scale
-  const side = newest ? (
-    <span className="absolute inset-x-0" style={{ bottom: AX, height: BELT_PX }}>
-      <span
-        className="absolute inset-x-0 bottom-0 border-t border-[#B20F2A] bg-[#E6212F]/70 transition-[height] duration-700"
-        style={{ height: beltH(newest.burned, beltScale(strip).top, BELT_PX - 8) }}
-      />
-    </span>
-  ) : null;
-
   return (
     <section className="flex min-w-0 flex-col gap-4">
       <SectionHeader
@@ -293,7 +282,6 @@ export function LiveBurnPanel({ live, price }: { live: LiveBurns; price: number 
         figure={<Odometer value={live.sum} decimals={6} />}
         unit="AVAX"
         sub={live.count ? `${live.count} block${live.count === 1 ? "" : "s"}${usd}` : live.failed ? "block feed unavailable" : "waiting for the next block"}
-        side={side}
       >
         <BurnBelt strip={strip} />
         <XTicks items={[{ at: 0.02, label: `${SLOTS} blocks ago` }, { at: 0.98, label: "latest" }]} />

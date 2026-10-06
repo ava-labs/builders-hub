@@ -52,11 +52,10 @@ const ACTIVITY_DAYS: Record<ExplorerRange, 7 | 30 | 90> = {
 /* the liquid's strengths: each layer poured translucent in its own ink so
    it still reads as fluid; a focused layer fills in, the rest recede */
 const POUR = 0.55;
-const SIDE_POUR = 0.8;
 const FOCUSED = 0.9;
 const RECEDED = 0.1;
 
-/* the liquid's height in CSS px; the right face fills on the same scale */
+/* the liquid's height in CSS px */
 const CHART_PX = 176;
 const W = 1000;
 
@@ -177,8 +176,7 @@ function ActivityBlock({
   const topLine = stacks.length ? monotonePath(pts(stacks[stacks.length - 1].hi)) : "";
   const last = days.length - 1;
 
-  const strength = (key: string, side = false) =>
-    focus === null ? (side ? SIDE_POUR : POUR) : focus === key ? FOCUSED : RECEDED;
+  const strength = (key: string) => (focus === null ? POUR : focus === key ? FOCUSED : RECEDED);
 
   const onMove = (e: React.MouseEvent) => {
     const r = plot.current?.getBoundingClientRect();
@@ -188,24 +186,9 @@ function ActivityBlock({
   };
   const hd = hover !== null ? days[hover] : null;
 
-  // the right face carries the last day's strata at the same scale
-  const side = (
-    <span className="absolute inset-x-0 bottom-0 flex flex-col-reverse" style={{ height: CHART_PX }}>
-      {layers.map((l, i) => (
-        <span
-          key={l.key}
-          className={cn("relative w-full shrink-0", i === layers.length - 1 && "border-t border-zinc-700/60 dark:border-zinc-300/60")}
-          style={{ height: days.length ? ((days[last].v[l.key] ?? 0) / max) * CHART_PX : 0 }}
-        >
-          <span className="absolute inset-0 transition-opacity" style={{ background: l.tone, opacity: strength(l.key, true) }} />
-        </span>
-      ))}
-    </span>
-  );
-
   return (
     <div className={cn("pr-2 pt-2 transition-opacity", stale && "opacity-60")}>
-      <ReadoutBlock href={href} side={side} className="flex-col">
+      <ReadoutBlock href={href} className="flex-col">
         {/* the window's readings: how much, how fast, and of what kind */}
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-x-8 gap-y-3 px-5 pt-3 md:px-6">
           <span className="flex min-w-0 flex-col gap-1.5">

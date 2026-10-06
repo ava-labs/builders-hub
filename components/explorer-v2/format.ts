@@ -123,3 +123,22 @@ export function hourLong(d: string | number): string {
   const day = t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   return `${day} · ${String(t.getUTCHours()).padStart(2, "0")}:00 UTC`;
 }
+
+/* An hourly series reads in the viewer's time zone: named in UTC, a western
+   viewer's evening reads as tomorrow. `timeZone` is for tests; unset, the
+   browser's own zone applies. */
+
+/** "Oct 5": an axis tick for an hour, in the viewer's time zone */
+export function localDayShort(d: string | number, timeZone?: string): string {
+  const t = asDate(d);
+  return Number.isNaN(t.getTime()) ? String(d) : t.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone });
+}
+
+/** "Mon, Oct 5 · 20:00 EDT": a tooltip's hour, in the viewer's time zone */
+export function localHourLong(d: string | number, timeZone?: string): string {
+  const t = asDate(d);
+  if (Number.isNaN(t.getTime())) return String(d);
+  const day = t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone });
+  const time = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone, timeZoneName: "short" });
+  return `${day} · ${time}`;
+}

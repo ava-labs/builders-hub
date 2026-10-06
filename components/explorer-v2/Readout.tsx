@@ -11,9 +11,7 @@ import {
   LABEL,
   ReadoutBlock,
   SUB,
-  SideLevel,
   SparkBand,
-  bandLevel,
 } from "@/components/explorer-v2/evm/EvmOverviewStats";
 
 /* One headline figure in the C-Chain home's voice: the extruded block,
@@ -41,7 +39,7 @@ export interface ReadoutProps {
 export function Readout({ label, value, unit, sub, delta = null, spark, live, href }: ReadoutProps) {
   const trace = spark && spark.length >= 2 ? spark : undefined;
   return (
-    <ReadoutBlock href={href} side={<SideLevel level={bandLevel(trace)} />} className={cn(BLOCK_FACE, !trace && "pb-5")}>
+    <ReadoutBlock href={href} className={cn(BLOCK_FACE, !trace && "pb-5")}>
       {live && <LiveDot className="mt-1.5 shrink-0" />}
       <span className="relative z-10 flex min-w-0 flex-col gap-1.5">
         <span className={LABEL}>{label}</span>
