@@ -1270,7 +1270,8 @@ function FinaleChapter({ reducedMotion }: { reducedMotion: boolean }) {
           <span className="text-[#E6212F] motion-safe:animate-[pulse_3s_ease-in-out_infinite]">.</span>
         </h2>
 
-        <div className="mt-14 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+        {/* a solid panel: the rows read on paper, not over the sheet's lattice */}
+        <div className="mt-14 divide-y divide-zinc-200 border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
           <FinaleRow
             href="/docs/primary-network"
             title="Build on the C-Chain"
