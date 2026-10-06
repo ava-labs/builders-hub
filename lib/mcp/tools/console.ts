@@ -12,7 +12,7 @@ import type { ToolDomain, ToolResult } from '../types';
 import { CLI } from './lib/platform-cli-commands';
 import { CONSOLE_BASE } from './lib/constants';
 
-const INTERCHAIN_KIT_DOCS = 'https://build.avax.network/docs/tooling/interchain-kit';
+const INTERCHAIN_KIT_DOCS = 'https://github.com/ava-labs/interchain-kit';
 
 interface ConsoleFlow {
   key: string;

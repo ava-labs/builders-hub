@@ -11,7 +11,6 @@ import {
   CircleDollarSign,
   Package,
   Terminal,
-  Milestone,
   Book,
   Eye,
   Bot,
@@ -156,26 +155,6 @@ export const toolingOptions: NavOption[] = [
     description: 'Temporary networks for local testing',
     icon: <Network className="w-5 h-5" />,
     url: '/docs/tooling/tmpnet',
-  },
-  {
-    title: 'Interchain Kit',
-    description: 'Local toolkit for testing ICM & ICTT',
-    badge: 'New',
-    icon: <Cable className="w-5 h-5" />,
-    url: '/docs/tooling/interchain-kit',
-  },
-  {
-    title: "Postman Collection",
-    description: 'Postman collection for Avalanche APIs',
-    icon: <Milestone className="w-5 h-5" />,
-    url: '/docs/tooling/avalanche-postman',
-  },
-  {
-    title: 'Avalanche-CLI',
-    description: 'Command-line interface for Avalanche',
-    badge: 'Deprecated',
-    icon: <Terminal className="w-5 h-5" />,
-    url: '/docs/tooling/avalanche-cli',
   },
 ];
 

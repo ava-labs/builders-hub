@@ -192,12 +192,12 @@ const config = {
       },
       {
         source: '/docs/tooling/cli-commands',
-        destination: '/docs/tooling/avalanche-cli/cli-commands',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
-        destination: '/docs/tooling/avalanche-cli/cli-commands',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -233,6 +233,46 @@ const config = {
       {
         source: '/docs/primary-network/validate/what-is-staking',
         destination: '/docs/primary-network/validate/how-to-stake',
+        permanent: true,
+      },
+      // ── Unused or deprecated tools removed from the docs ──
+      // Avalanche-CLI is deprecated and Platform CLI replaces it; its cross-chain
+      // tutorials go to the ICM and ICTT docs (the two ICM ones have near-copies
+      // there). The Postman collection issued node API calls. Interchain Kit was
+      // a local ICM/ICTT toolkit.
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-local-network',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/teleporter-devnet',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-devnet',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/teleporter-token-bridge',
+        destination: '/docs/cross-chain/interchain-token-transfer/overview',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain/:path*',
+        destination: '/docs/cross-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/:path*',
+        destination: '/docs/tooling/platform-cli',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/avalanche-postman/:path*',
+        destination: '/docs/rpcs/other/guides/issuing-api-calls',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/interchain-kit/:path*',
+        destination: '/docs/cross-chain',
         permanent: true,
       },
       // ── Renamed/moved pages ──
@@ -281,7 +321,7 @@ const config = {
       },
       {
         source: '/docs/avalanche-l1s/deploy-a-avalanche-l1',
-        destination: '/docs/tooling/avalanche-cli/cli-commands',
+        destination: '/docs/tooling/platform-cli',
         permanent: false,
       },
       {
@@ -362,41 +402,6 @@ const config = {
       {
         source: '/docs/rpcs/other/standards',
         destination: '/docs/rpcs/other/standards/avalanche-network-protocol',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/create-avalanche-nodes',
-        destination: '/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s',
-        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/cross-chain',
-        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-devnet',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/guides',
-        destination: '/docs/tooling/avalanche-cli/guides/import-avalanche-l1',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/maintain',
-        destination: '/docs/tooling/avalanche-cli/maintain/add-validator-l1',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/transactions',
-        destination: '/docs/tooling/avalanche-cli/transactions/native-send',
-        permanent: false,
-      },
-      {
-        source: '/docs/tooling/avalanche-cli/upgrade',
-        destination: '/docs/tooling/avalanche-cli/upgrade/avalanche-l1-precompile-config',
         permanent: false,
       },
       {
@@ -507,7 +512,7 @@ const config = {
       },
       {
         source: '/docs/subnets/create-a-subnet',
-        destination: '/docs/tooling/avalanche-cli/create-avalanche-l1',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -527,7 +532,7 @@ const config = {
       },
       {
         source: '/docs/avalanchego/tools/cli',
-        destination: '/docs/tooling/avalanche-cli',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -542,32 +547,32 @@ const config = {
       },
       {
         source: '/docs/tooling/cross-chain/teleporter-local-network',
-        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-local-network',
         permanent: true,
       },
       {
         source: '/docs/tooling/cross-chain',
-        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network',
+        destination: '/docs/cross-chain/icm-contracts/icm-contracts-on-local-network',
         permanent: true,
       },
       {
         source: '/docs/tooling/create-avalanche-l1',
-        destination: '/docs/tooling/avalanche-cli/create-avalanche-l1',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/tooling/create-deploy-avalanche-l1s/deploy-with-custom-vm',
-        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-with-custom-vm',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/tooling/create-deploy-avalanche-l1s/deploy-locally',
-        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
         source: '/docs/tooling/get-avalanche-cli',
-        destination: '/docs/tooling/avalanche-cli/get-avalanche-cli',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -692,7 +697,7 @@ const config = {
       },
       {
         source: '/docs/tooling/maintain/troubleshooting',
-        destination: '/docs/tooling/avalanche-cli/maintain/troubleshooting',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -701,13 +706,8 @@ const config = {
         permanent: true,
       },
       {
-        source: '/docs/tooling/avalanche-postman/add-postman-collection',
-        destination: '/docs/tooling/avalanche-postman',
-        permanent: true,
-      },
-      {
         source: '/docs/avalanche-l1s/validator-manager/add-validator',
-        destination: '/docs/tooling/avalanche-cli/maintain/add-validator-l1',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       },
       {
@@ -985,7 +985,7 @@ const config = {
         permanent: true,
       }, {
         source: '/docs/tooling/guides/get-avalanche-cli',
-        destination: '/docs/tooling/avalanche-cli/get-avalanche-cli',
+        destination: '/docs/tooling/platform-cli',
         permanent: true,
       }, {
         source: '/evm-l1s/validator-manager/poa-vs-pos',
@@ -1033,11 +1033,11 @@ const config = {
         permanent: true,
       }, {
         source: "/docs/tooling/avalanchego-postman-collection/setup",
-        destination: "/docs/tooling/avalanche-postman",
+        destination: "/docs/rpcs/other/guides/issuing-api-calls",
         permanent: true,
       }, {
         source: "/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet",
-        destination: "/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       }, {
         source: "/academy/l1-validator-management",
@@ -1460,7 +1460,7 @@ const config = {
       },
       {
         source: "/docs/subnets/create-a-local-subnet",
-        destination: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1475,12 +1475,7 @@ const config = {
       },
       {
         source: "/docs/subnets/upgrade/subnet-precompile-config",
-        destination: "/docs/tooling/avalanche-cli/upgrade/avalanche-l1-precompile-config",
-        permanent: true,
-      },
-      {
-        source: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-public-network",
-        destination: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1490,12 +1485,12 @@ const config = {
       },
       {
         source: "/docs/tooling/cross-chain/teleporter-token-bridge",
-        destination: "/docs/tooling/avalanche-cli/cross-chain/teleporter-token-bridge",
+        destination: "/docs/cross-chain/interchain-token-transfer/overview",
         permanent: true,
       },
       {
         source: "/docs/tooling/maintain/delete-avalanche-l1",
-        destination: "/docs/tooling/avalanche-cli/maintain/delete-avalanche-l1",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1588,7 +1583,7 @@ const config = {
       // Additional broken link redirects - round 2
       {
         source: "/docs/build/avalanche-cli/install",
-        destination: "/docs/tooling/avalanche-cli/get-avalanche-cli",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1653,7 +1648,7 @@ const config = {
       },
       {
         source: "/docs/avalanche-l1s/troubleshooting",
-        destination: "/docs/tooling/avalanche-cli/maintain/troubleshooting",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1703,12 +1698,12 @@ const config = {
       },
       {
         source: "/docs/tooling/create-avalanche-nodes/:path*",
-        destination: "/docs/tooling/avalanche-cli/create-avalanche-nodes/:path*",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
         source: "/docs/tooling/create-deploy-avalanche-l1s/:path*",
-        destination: "/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/:path*",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1724,7 +1719,7 @@ const config = {
       },
       {
         source: "/docs/tooling/avalanche-network-runner/:path*",
-        destination: "/docs/tooling/avalanche-cli",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -1760,11 +1755,6 @@ const config = {
       {
         source: "/docs/virtual-machines/rust-vms/:path*",
         destination: "/docs/avalanche-l1s/rust-vms/:path*",
-        permanent: true,
-      },
-      {
-        source: "/docs/tooling/avalanche-cli/create-wallet",
-        destination: "/docs/tooling/avalanche-cli",
         permanent: true,
       },
       {
@@ -1825,12 +1815,12 @@ const config = {
       },
       {
         source: "/docs/tooling/guides/import-avalanche-l1",
-        destination: "/docs/tooling/avalanche-cli/guides/import-avalanche-l1",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
         source: "/docs/tooling/maintain/view-avalanche-l1s",
-        destination: "/docs/tooling/avalanche-cli/maintain/view-avalanche-l1s",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
@@ -2124,7 +2114,7 @@ const config = {
       },
       {
         source: "/docs/tooling/transactions/:path*",
-        destination: "/docs/tooling/avalanche-cli/transactions/:path*",
+        destination: "/docs/tooling/platform-cli",
         permanent: true,
       },
       {
