@@ -9,5 +9,8 @@
 .e2e/cache/d0ab4e1eaa95866af6fe0b7426590d0f3a804ee1dfcd649d72dceecf00557b09.json
 # Replay entry that ends on the integrations directory, whose count ('234 integrations') changes with each listing.
 .e2e/cache/ea5fcc41fbfea7242264a6166130971cf3b803d3729586bd7a176e357eda12d3.json
+# Replay entry of the docs search step: two results share the name 'Add Validator', and their order changes
+# between deployments, so the recorded tap opens a different page.
+.e2e/cache/b4c9f0d3f8dd8470add72ba709f87b6a724f7a1d200345ce956f81c2adbf4d3e.json
 # The output of the Console explore runs (explore/console/e2e.config.ts), the cache folder too: those runs commit nothing.
 explore/console/.e2e/
