@@ -3,6 +3,10 @@
    and a tx here have the head stream's shape (useHeadStream), so a pane can
    take rows from either feed. */
 
+/** the heads a window holds: about 45 s of a one-second chain, so the home
+ *  page's lanes open full and a lane that rests misses no block */
+export const LIVE_HEADS = 48;
+
 export interface LiveHead {
   number: number;
   hash: string;

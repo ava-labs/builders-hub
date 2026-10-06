@@ -32,6 +32,8 @@ export interface LivePace {
    *  from the second stale answer in a row the feed waits these in turn, the last
    *  one repeating, until a fresh answer. None: it keeps the poll's pace */
   staleRestMs?: readonly number[];
+  /** heads the feed keeps; the panes' strip needs 14 */
+  keepHeads?: number;
 }
 
 /* the city's panes: once a second, stale or not */
@@ -74,7 +76,7 @@ export function useLiveFeed(chainId: string | undefined, armed = true, pace: Liv
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const publish = (live: boolean, down: boolean) => {
-      const hs = [...heads.values()].sort((a, b) => b.number - a.number).slice(0, KEEP_HEADS);
+      const hs = [...heads.values()].sort((a, b) => b.number - a.number).slice(0, pace.keepHeads ?? KEEP_HEADS);
       for (const h of heads.values()) if (h.number < (hs[hs.length - 1]?.number ?? 0)) heads.delete(h.number);
       const ts = [...txs.values()].sort(newer).slice(0, KEEP_TXS);
       if (txs.size > ts.length) {

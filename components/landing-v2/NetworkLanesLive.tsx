@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { useLiveFeed, type LivePace } from "@/components/explorer-v2/network/live-feed";
 import { formatNumber } from "@/components/explorer-v2/format";
 import type { LiveChain } from "@/components/explorer-v2/network/network-reads";
-import type { LiveHead } from "@/lib/live-window";
+import { LIVE_HEADS, type LiveHead } from "@/lib/live-window";
 import {
   LaneField,
   LaneHeight,
@@ -19,16 +19,15 @@ import {
    Each lane reads its chain's live window through useLiveFeed, the feed the
    Explorer's city panes read: the server holds the window and every viewer
    shares one read a tick, so the home page costs the chains' RPCs nothing
-   per visitor. A lane polls only while the section is on screen (and the
-   feed itself rests while the tab is hidden); with reduced motion each lane
-   reads once and holds still. */
+   per visitor. A lane polls only while the section is on screen or about
+   to be, so it opens full (and the feed itself rests while the tab is
+   hidden); with reduced motion each lane reads once and holds still. */
 
-/* The clock the lanes share. A block made at `ts` sits (ts - epoch) * k px
-   right of its track's origin, and the origin rides at the field's right
-   edge: the edge reads `delay` ms behind the browser's clock. A block
-   reaches the page 1 to 3 s after it was made, so with the edge 2 s in the
-   past most blocks slide in across it, and a late one lands a few px
-   short of it. */
+/* The clock the lanes share. A block drawn at `ts` (its own time, see
+   LAG_MS) sits (ts - epoch) * k px right of its track's origin, and the
+   origin rides at the field's right edge: the edge reads `delay` ms behind
+   the browser's clock, so blocks slide in across it, and a late one lands
+   a few px short of it. */
 interface Clock {
   epoch: number;
   delay: number;
@@ -37,14 +36,20 @@ interface Clock {
 /** how a lane's feed answered last: stale is a few missed reads, down is ten */
 type FeedState = "live" | "stale" | "down";
 
-// a block lands at NOW only if it arrives within this delay: one 2 s poll
-// gap plus the answer's own time
-const DELAY_MS = 4_000;
+/* A block reaches the page 1 to 3 s after it was made and a lane polls
+   every 2 s, so 4 s of delay lands each block at NOW. The other 4 s let a
+   lane draw a block early (LAG_MS) and still have it before it lands */
+const DELAY_MS = 8_000;
+/* A slot no validator fills leaves a hole of several seconds, which reads
+   as an outage. So a lane draws a block at most twice the chain's usual gap
+   (or that gap plus a second) after the one before it, up to LAG_MS before
+   its own time, and repays the lag over the next blocks */
+const LAG_MS = 4_000;
 /* The route's public tick is 2 s and the CDN serves a fresh window that
    long, so a faster ask buys nothing. A stale window is not cached: every
    ask of it is a function call, so a lane whose chain answers stale rests
    15 s, then 30 s, then each minute until a fresh answer */
-const LANE_PACE: LivePace = { pollMs: 2_000, staleRestMs: [15_000, 30_000, 60_000] };
+const LANE_PACE: LivePace = { pollMs: 2_000, staleRestMs: [15_000, 30_000, 60_000], keepHeads: LIVE_HEADS };
 /* The freshest block of the first seconds says whether the browser's clock
    agrees with the chains'. Out of this range it does not, and the edge
    follows that block instead */
@@ -57,6 +62,34 @@ const KEEP_MS = 90_000;
 /* one drift animation's span; the next starts where it ends */
 const DRIFT_MS = 10 * 60_000;
 const PHONE_QUERY = "(max-width: 767px)";
+
+/** a block with the time it is drawn at */
+type Drawn = LiveHead & { drawnMs: number };
+
+/** each block's drawn time: set once, when the block first arrives (see LAG_MS) */
+function place(sorted: LiveHead[], drawn: Map<number, number>): Drawn[] {
+  const gaps = sorted.slice(1).map((h, i) => h.timestampMs - sorted[i].timestampMs).sort((a, b) => a - b);
+  const usual = gaps[gaps.length >> 1] ?? 0;
+  const cap = Math.max(2 * usual, usual + 1_000);
+  let prev: number | undefined;
+  const out = sorted.map((h, i) => {
+    let d = drawn.get(h.number);
+    if (d === undefined) {
+      const t = h.timestampMs;
+      d = prev === undefined ? t : Math.max(t - LAG_MS, Math.min(t, prev + cap));
+      // a block filled in below one already drawn never passes it
+      const after = sorted[i + 1];
+      const next = after ? drawn.get(after.number) : undefined;
+      if (next !== undefined) d = Math.min(d, next);
+      drawn.set(h.number, d);
+    }
+    prev = d;
+    return { ...h, drawnMs: d };
+  });
+  const keep = new Set(sorted.map((h) => h.number));
+  for (const n of drawn.keys()) if (!keep.has(n)) drawn.delete(n);
+  return out;
+}
 
 /** a block's square: 6 px for one transaction, 16 px from about 30 */
 const side = (txCount: number) => Math.round(Math.min(16, Math.max(6, 4 + 2.4 * Math.log2(1 + txCount))));
@@ -101,7 +134,8 @@ function LiveLane({
   const polling = armed && !(still && read);
   const feed = useLiveFeed(polling ? chain.chainId : undefined, true, LANE_PACE);
   const held = useRef(new Map<number, LiveHead>());
-  const [heads, setHeads] = useState<LiveHead[]>([]);
+  const drawn = useRef(new Map<number, number>());
+  const [heads, setHeads] = useState<Drawn[]>([]);
 
   // the feed drops what it held when it pauses; the lane keeps every block it has seen
   useEffect(() => {
@@ -114,7 +148,7 @@ function LiveLane({
     for (const [n, h] of map) if (h.timestampMs < newest - KEEP_MS) map.delete(n);
     onArrive(Date.now() - Math.max(...fresh.map((h) => h.timestampMs)));
     setRead(true);
-    setHeads([...map.values()].sort((a, b) => a.number - b.number));
+    setHeads(place([...map.values()].sort((a, b) => a.number - b.number), drawn.current));
   }, [feed.heads, onArrive]);
 
   // A paused feed starts empty again, which is not news: the lane says how
@@ -173,7 +207,7 @@ function LiveLane({
   /* A block's red: it lands red and turns gray once it is across the edge,
      on the clock, so a block still short of the edge never takes the red
      from the one just in view. A still lane marks its newest block. */
-  const land = (el: HTMLSpanElement | null, h: LiveHead) => {
+  const land = (el: HTMLSpanElement | null, h: Drawn) => {
     if (!el) return;
     if (still) {
       el.style.opacity = h === newest ? "1" : "0";
@@ -181,7 +215,7 @@ function LiveLane({
     }
     if (el.dataset.landed) return;
     el.dataset.landed = "1";
-    const wait = h.timestampMs + clock.delay - Date.now();
+    const wait = h.drawnMs + clock.delay - Date.now();
     if (wait < -LAND_MS) {
       el.style.opacity = "0";
       return;
@@ -203,7 +237,7 @@ function LiveLane({
                 key={h.number}
                 className="absolute bg-[#A2AFB2] dark:bg-[#A2AFB2]/70"
                 style={{
-                  left: ((h.timestampMs - clock.epoch) * k) / 1000 - s / 2,
+                  left: ((h.drawnMs - clock.epoch) * k) / 1000 - s / 2,
                   top: `calc(50% - ${s / 2}px)`,
                   width: s,
                   height: s,
@@ -229,7 +263,7 @@ export default function NetworkLanesLive({
 }: {
   chains: LiveChain[];
   renderMark: RenderMark;
-  /** the section is on screen */
+  /** the section is on screen, or about to be */
   active: boolean;
   still: boolean;
 }) {

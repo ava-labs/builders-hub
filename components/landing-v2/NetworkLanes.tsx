@@ -6,15 +6,17 @@ import { rosterOf, type LiveChain, type RosterRow } from "@/components/explorer-
 
 /* The stats chapter's live element: one lane per busy chain (the C-Chain
    and the busiest L1s by 30-day transactions), where every block the
-   chain makes lands as a square at its own time and drifts left on a clock
-   the lanes share. A square's size follows its transactions. Every square
+   chain makes lands as a square at its own time (a missed slot's hole is
+   drawn shorter: NetworkLanesLive) and drifts left on a clock the lanes
+   share. A square's size follows its transactions. Every square
    is a real block read from the chain's live window (/api/live/[chainId]);
    nothing is simulated.
 
    This shell renders on the server with the lanes' names and their whole
    height, so nothing moves when the live part arrives. The live part
-   (NetworkLanesLive) loads as the section nears the viewport, polls only
-   while it is on screen, and shows one still read with reduced motion. */
+   (NetworkLanesLive) loads as the section nears the viewport, polls and
+   drifts from 600 px out, so the lanes open full, and shows one still read
+   with reduced motion. */
 
 export const LANES = 4;
 /** below md a phone reads the first two lanes, with no time axis: the
@@ -160,15 +162,16 @@ export default function NetworkLanes({
   }, [rows]);
 
   const root = useRef<HTMLDivElement>(null);
-  // near: load the live part. onScreen: let it poll and drift
+  // near: load the live part. onScreen: let it poll and drift, from early
+  // enough that a cold window has filled by the time the lanes are seen
   const [near, setNear] = useState(false);
   const [onScreen, setOnScreen] = useState(false);
   const hasLanes = chains.length > 0;
   useEffect(() => {
     const el = root.current;
     if (!el || !hasLanes) return;
-    const loader = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: "600px 0px" });
-    const watcher = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { rootMargin: "80px 0px" });
+    const loader = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: "1200px 0px" });
+    const watcher = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { rootMargin: "600px 0px" });
     loader.observe(el);
     watcher.observe(el);
     return () => {

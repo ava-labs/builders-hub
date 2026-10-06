@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import l1Chains from "@/constants/l1-chains.json";
-import type { LiveHead, LiveTx, LiveWindow } from "@/lib/live-window";
+import { LIVE_HEADS, type LiveHead, type LiveTx, type LiveWindow } from "@/lib/live-window";
 
 /* A chain's live window for the city's panes: its newest heads and the
    transactions of its newest executed blocks, in one answer. The server
@@ -63,7 +63,9 @@ function sourceOf(chainId: string): Source | null {
 }
 
 /* the window's size */
-const HEADS = 12;
+const HEADS = LIVE_HEADS;
+/* heads one tick asks a public RPC for: a new window fills over a few ticks, never in one burst */
+const PUBLIC_HEADS = 12;
 /* blocks under the tip whose transactions the window carries */
 const TX_BLOCKS = 6;
 /* blocks whose receipts one tick pulls, oldest first, so execution reads in order */
@@ -303,7 +305,7 @@ async function tick(src: Source, st: State): Promise<void> {
   const known = st.blocks;
   if (!known.has(tip)) known.set(tip, toBlock(latest));
   // with their transactions inside the tx window, as headers below it
-  const missing = missingHeads(st, tip);
+  const missing = missingHeads(st, tip).slice(0, src.own ? undefined : PUBLIC_HEADS);
   const headCalls: Call[] = missing.map((n) => ({ method: "eth_getBlockByNumber", params: [tag(n), n > tip - TX_BLOCKS] }));
   const keep = (got: (RpcBlock | null)[]) => got.forEach((b, i) => b && known.set(missing[i], toBlock(b)));
   if (src.own) {
