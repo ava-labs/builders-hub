@@ -19,9 +19,10 @@ import { rosterOf, type LiveChain, type RosterRow } from "@/components/explorer-
    with reduced motion. */
 
 export const LANES = 4;
-/** below md a phone reads the first two lanes, with no time axis: the
- *  chapter fits one phone screen */
-export const PHONE_LANES = 2;
+/** below md a phone reads the C-Chain's lane alone (the first), with no
+ *  time axis: the chapter fits one phone screen */
+export const PHONE_LANES = 1;
+const C_CHAIN = "43114";
 /** a block drifts this many px a second. The axis (md up) reads the wide
  *  pace from --k in LanesFrame's class list: keep the two in step */
 export const PX_PER_S = { phone: 20, wide: 30 };
@@ -156,7 +157,10 @@ export default function NetworkLanes({
   const rosterRef = useRef<LiveChain[]>([]);
   const chains = useMemo(() => {
     if (rosterRef.current.length) return rosterRef.current;
-    const roster = rosterOf(rows).slice(0, LANES);
+    // the C-Chain leads whatever its rank, so it is the lane a phone shows
+    const all = rosterOf(rows);
+    const c = all.findIndex((chain) => chain.chainId === C_CHAIN);
+    const roster = (c > 0 ? [all[c], ...all.slice(0, c), ...all.slice(c + 1)] : all).slice(0, LANES);
     if (roster.length) rosterRef.current = roster;
     return roster;
   }, [rows]);
