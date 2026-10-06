@@ -336,8 +336,14 @@ function ChapterOne() {
         };
 
   return (
-    // In-flow navbar (~3.5rem) sits above; subtract it so the section is one viewport
-    <section ref={sectionRef} data-chapter="hero" className="v2-snap-section relative flex min-h-[calc(100vh-3.5rem)] flex-col">
+    // In-flow navbar (~3.5rem) sits above; subtract it so the section is one viewport.
+    // The small viewport (svh): on a phone, 100vh is the screen with the browser's
+    // toolbars collapsed, so the ridge and the tape would start under them
+    <section
+      ref={sectionRef}
+      data-chapter="hero"
+      className="v2-snap-section relative flex min-h-[calc(100vh-3.5rem)] flex-col supports-[height:100svh]:min-h-[calc(100svh-3.5rem)]"
+    >
       <motion.div
         className="flex flex-1 flex-col"
         style={reducedMotion ? undefined : { opacity: exitOpacity }}
