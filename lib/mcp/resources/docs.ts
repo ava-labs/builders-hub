@@ -71,7 +71,7 @@ export const docsResources: ResourceDomain = {
     {
       uri: 'cli://index',
       name: 'CLI Documentation Index',
-      description: 'Index of Avalanche CLI, Platform CLI, and tmpnet documentation',
+      description: 'Index of Platform CLI and tmpnet documentation',
       mimeType: 'text/markdown',
     },
     {
@@ -153,7 +153,6 @@ export const docsResources: ResourceDomain = {
         const pages = toIndexPages(
           documentation.getPages().filter(
             (page) =>
-              page.url.startsWith('/docs/tooling/avalanche-cli') ||
               page.url.startsWith('/docs/tooling/platform-cli') ||
               page.url.startsWith('/docs/tooling/tmpnet')
           )
@@ -163,7 +162,7 @@ export const docsResources: ResourceDomain = {
             {
               uri,
               mimeType: 'text/markdown',
-              text: formatPageIndex('Avalanche CLI Documentation Index', pages),
+              text: formatPageIndex('CLI Documentation Index', pages),
             },
           ],
         };
