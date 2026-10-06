@@ -56,6 +56,18 @@ Helicon does not deprecate or disable any existing transaction type. Current val
 | `RewardValidatorTx` | Mint rewards after successful staking periods |
 | `TransformSubnetTx` | **Disabled since Etna.** Legacy Subnet transform, rejected with "TransformSubnetTx is not permitted post-Etna". Its type ID (`0x18`) stays registered for the same reason |
 
+### Add a validator to an L1
+
+An L1's validator manager contract decides who validates the L1, and the P-Chain records the result. Adding a validator takes one P-Chain transaction between two L1 transactions:
+
+1. On the L1, call `initiateValidatorRegistration` on the validator manager with the node's NodeID, BLS public key and weight. The contract emits a `RegisterL1ValidatorMessage` through the Warp precompile.
+2. Collect BLS signatures on that message from the L1 validators, until the signers hold at least 67% of the validator weight.
+3. On the P-Chain, issue `RegisterL1ValidatorTx` with the signed message and a balance for the continuous fee. The P-Chain records the validator.
+4. Collect the L1 validators' signatures on the P-Chain's `L1ValidatorRegistrationMessage`, which confirms the registration.
+5. On the L1, call `completeValidatorRegistration`. The signed message goes in the transaction's access list.
+
+[Add a Validator to an L1](/docs/avalanche-l1s/validator-manager/registration-flow) explains each step, shows the SDK call that runs all of them, and lists the errors you can get. The [Builder Console](/console/add-validator) runs the same flow in the browser.
+
 ## P-Chain APIs
 
 - Exposed at `/ext/bc/P` with namespaces such as `platform.getBlock`, `platform.getCurrentValidators`, `platform.issueTx`, `platform.getSubnets`, `platform.getBlockchains`. The full set is in the [P-Chain API reference](/docs/rpcs/p-chain).
