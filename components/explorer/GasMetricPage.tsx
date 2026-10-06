@@ -15,18 +15,17 @@ import {
   GasReservedBlock,
   HeliconNote,
   HistoryEmpty,
-  ProtocolTable,
   WeekBlock,
   feeTraceRows,
   fmtFee,
   fmtGas,
   fmtNano,
   nanoUnit,
-  protocolShareParts,
   selectorName,
   useFeeHistory,
   useGasHistory,
 } from "@/components/explorer/GasMarketPage";
+import { ProtocolTable, protocolShareParts } from "@/components/explorer-v2/gas/buyers";
 import { useContractNames } from "@/lib/sourcify-client";
 import { GAS_METRICS, type GasMetricKey } from "@/components/explorer/gas-metrics";
 import type { GasDayPoint, GasHistoryDays, GasHourPoint, GasMarket } from "@/lib/explorer-clickhouse";
