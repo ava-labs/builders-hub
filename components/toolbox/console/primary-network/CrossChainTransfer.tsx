@@ -47,6 +47,30 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
 // P-Chain (flat tx fee). MAX subtracts this so the user always has gas left.
 const EXPORT_FEE_BUFFER_NAVAX = 1_000_000n;
 
+const INVALID_AMOUNT_TEXT = 'Please enter a valid positive amount.';
+
+/**
+ * The error of the typed export amount, or null when the page can export it. maxSpendable: the balance less the fee
+ * buffer, in nAVAX (maxSpendableNanoAvax).
+ */
+export function exportAmountError(amount: string, maxSpendable: bigint): string | null {
+  const numericAmount = Number(amount);
+  if (isNaN(numericAmount) || numericAmount <= 0) return INVALID_AMOUNT_TEXT;
+
+  let amountNAvax: bigint;
+  try {
+    amountNAvax = toNanoAvax(amount);
+  } catch {
+    return INVALID_AMOUNT_TEXT;
+  }
+  // toNanoAvax rounds the 10th decimal, so an amount below 0.5 nAVAX becomes 0
+  if (amountNAvax <= 0n) return 'Amount is below the smallest exportable unit (1 nAVAX).';
+  if (amountNAvax > maxSpendable) {
+    return `Amount exceeds available balance of ${nanoAvaxText(maxSpendable)} AVAX (your balance less 0.001 AVAX for the fees).`;
+  }
+  return null;
+}
+
 // Public API nodes no longer serve avax.getAtomicTxStatus after Helicon, so the
 // SDK's waitForTxn fails for C-Chain atomic txs. Poll avax.getAtomicTx instead:
 // it returns blockHeight once the tx is accepted, and a "not found" error before.
@@ -105,7 +129,10 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   const [_completedExportXPChain, setCompletedExportXPChain] = useState<'P' | 'C'>('P');
   const [_completedImportXPChain, setCompletedImportXPChain] = useState<'P' | 'C'>('P');
   const [importTxId, setImportTxId] = useState<string | null>(null);
+  // The error of the export: the wallet, the network parameters, or the tx. The next Export click or a swap clears it.
   const [error, setError] = useState<string | null>(null);
+  // The error of the typed amount (exportAmountError). A new amount or a new direction clears it.
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   // The UTXOs of the next import: the wallet's own unlocked AVAX that one import takes, when the total is above the
   // import fee (sharedMemoryImport.ts). handleImport gives the SDK exactly these UTXOs.
@@ -152,7 +179,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   const { context: avalancheContext, error: contextError } = useAvalancheContext(Boolean(isTestnet));
 
   const sourceBalance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
-  // The most that the page exports: the balance less the fee buffer. The Max line, MAX and validateAmount use it.
+  // The most that the page exports: the balance less the fee buffer. The Max line, MAX and exportAmountError use it.
   const maxSpendable = maxSpendableNanoAvax(sourceBalance, EXPORT_FEE_BUFFER_NAVAX);
   const maxSpendableText = nanoAvaxText(maxSpendable);
 
@@ -280,8 +307,14 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     };
   }, [walletEVMAddress, pChainAddress, fetchUTXOs]);
 
+  // A new amount clears the error of the old amount. It keeps the error of the export.
+  const changeAmount = (value: string) => {
+    setAmount(value);
+    setAmountError(null);
+  };
+
   const handleMaxAmount = () => {
-    setAmount(maxSpendableText);
+    changeAmount(maxSpendableText);
   };
 
   // Handler to swap source and destination chains
@@ -290,37 +323,17 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setSourceChain(destinationChain);
     setDestinationChain(tempChain);
     setError(null);
+    setAmountError(null);
     setImportError(null);
-  };
-
-  const validateAmount = (): boolean => {
-    const numericAmount = Number(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      setError('Please enter a valid positive amount.');
-      return false;
-    }
-
-    let amountNAvax: bigint;
-    try {
-      amountNAvax = toNanoAvax(amount);
-    } catch {
-      setError('Please enter a valid positive amount.');
-      return false;
-    }
-    if (amountNAvax > maxSpendable) {
-      setError(
-        `Amount exceeds available balance of ${maxSpendableText} AVAX (your balance less 0.001 AVAX for the fees).`,
-      );
-      return false;
-    }
-
-    setError(null);
-    return true;
   };
 
   // Add handlers for buttons
   const handleExport = async () => {
-    if (!validateAmount()) return;
+    // A click starts a new attempt, so the error of the last attempt goes
+    setError(null);
+    const invalidAmount = exportAmountError(amount, maxSpendable);
+    setAmountError(invalidAmount);
+    if (invalidAmount) return;
     if (!coreWalletClient) {
       setError(
         'Cross-chain transfers require Core Wallet for P-Chain signing. Please connect with Core Wallet or use the CLI alternative below.',
@@ -337,19 +350,14 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     }
 
     setExportLoading(true);
-    setError(null);
     autoImportTriggeredRef.current = false;
 
     // P-Chain/X-Chain transfer amounts are nAVAX (1 AVAX = 1e9 nAVAX). Parse
     // the typed decimal: `BigInt(0.5)` and the float drift from `amount * 1e9`
     // (e.g. 1.005 * 1e9 = 1004999999.9999999) both throw, and the SDK's
-    // avaxToNanoAvax does exactly that multiplication.
+    // avaxToNanoAvax does exactly that multiplication. exportAmountError
+    // checked above that the amount parses to at least 1 nAVAX.
     const amountNAvax = toNanoAvax(amount);
-    if (amountNAvax <= 0n) {
-      setError('Amount is below the smallest exportable unit (1 nAVAX).');
-      setExportLoading(false);
-      return;
-    }
 
     const exportPromise = (async () => {
       if (sourceChain === 'c-chain') {
@@ -495,10 +503,12 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   const importSide = destinationChain === 'p-chain' ? 'P' : 'C';
   const blockedText = blockedUtxosText(blockedUtxos[importSide]);
   const moreText = moreUtxos[importSide] ? MORE_UTXOS_TEXT : null;
+  // One Export click sets at most one of the two: an amount error stops the click before the export starts
+  const exportError = amountError ?? error;
 
   // Step status logic with auto-collapse flow
   const getStep1Status = (): 'pending' | 'active' | 'waiting' | 'completed' | 'error' => {
-    if (error) return 'error';
+    if (exportError) return 'error';
     if (step1AutoCollapse) return 'completed';
     if (completedExportTxId) return 'waiting'; // Show as waiting after success, before auto-collapse
     if (exportLoading) return 'active';
@@ -558,13 +568,16 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   useEffect(() => {
     if (hasAutoSwitchedRef.current) return;
     if (!exportTxId && !completedExportTxId && !importTxId) {
+      // The page now offers the pending import, so an amount error of an earlier Export click goes
       if (cToP_UTXOs.length > 0 && pToC_UTXOs.length === 0) {
         setSourceChain('c-chain');
         setDestinationChain('p-chain');
+        setAmountError(null);
         hasAutoSwitchedRef.current = true;
       } else if (pToC_UTXOs.length > 0 && cToP_UTXOs.length === 0) {
         setSourceChain('p-chain');
         setDestinationChain('c-chain');
+        setAmountError(null);
         hasAutoSwitchedRef.current = true;
       }
     }
@@ -690,14 +703,14 @@ console.log("Import tx:", txnResponse.txHash);`,
                 label=""
                 aria-label="Amount"
                 value={amount}
-                onChange={setAmount}
+                onChange={changeAmount}
                 type="number"
                 min="0"
                 max={maxSpendableText}
                 step="0.000001"
                 required
                 disabled={exportLoading || importLoading}
-                error={error ?? undefined}
+                error={exportError ?? undefined}
                 button={
                   <Button onClick={handleMaxAmount} disabled={exportLoading || maxSpendable <= 0n} stickLeft>
                     MAX
@@ -745,7 +758,7 @@ console.log("Import tx:", txnResponse.txHash);`,
               <Button
                 variant="primary"
                 onClick={handleExport}
-                disabled={Number(amount) <= 0 || !!error}
+                disabled={Number(amount) <= 0 || !!amountError}
                 icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                 className="w-full"
               >
@@ -767,9 +780,9 @@ console.log("Import tx:", txnResponse.txHash);`,
             )}
 
             {/* Export error */}
-            {error && (
+            {exportError && (
               <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                <p className="text-sm text-destructive">{error}</p>
+                <p className="text-sm text-destructive">{exportError}</p>
               </div>
             )}
 
@@ -834,6 +847,7 @@ console.log("Import tx:", txnResponse.txHash);`,
                     setImportTxId(null);
                     setAmount('');
                     setError(null);
+                    setAmountError(null);
                     setImportError(null);
                     setStep1AutoCollapse(false);
                     setStep2AutoCollapse(false);
