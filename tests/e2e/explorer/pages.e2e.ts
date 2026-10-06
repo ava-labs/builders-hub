@@ -1,6 +1,6 @@
 import { describe, test } from '@e2e-dev/web';
 import { expect, type Screen } from 'e2e';
-import { DATA, MULTI_PAGE, NAVIGATION, OVERVIEW_BLOCK_ROW, expectActiveTab } from './explorer-page';
+import { DATA, MULTI_PAGE, NAVIGATION, OVERVIEW_BLOCK_ROW, VALIDATOR_ROW, expectActiveTab } from './explorer-page';
 
 // Explorer data is live, so these tests check structure only: tabs, labels, and that rows exist.
 
@@ -10,8 +10,6 @@ const BLOCK_ROW = /^[\d,]+ (Time )?\d{2}:\d{2}:\d{2}/;
 const TX_HASH = /^0x[0-9a-f]{6}…[0-9a-f]{4}$/;
 // A "Latest Transactions" row on an overview: it starts with a short hash such as "0x3405…ca50" or "2ViccB…vY1J".
 const OVERVIEW_TX_ROW = /^(0x)?[0-9A-Za-z]{4,6}…[0-9A-Za-z]{4}( |$)/;
-// A row of the Primary Network roster: the rank (desktop only), the title of the status dot once the status loads, then the NodeID.
-const VALIDATOR_ROW = /^(\d+ )?(Online |Offline |Connection not reported )?NodeID-[1-9A-HJ-NP-Za-km-z]+/;
 
 async function expectOverview(screen: Screen): Promise<void> {
   await expect(screen.getByText('Latest Blocks')).toBeVisible();

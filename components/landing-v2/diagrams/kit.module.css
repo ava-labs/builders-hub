@@ -1,0 +1,92 @@
+/* Diagram kit: color roles and motion control shared by every network
+   diagram on the home page and /solutions. The spec is in kit.tsx. */
+
+.root {
+  --dg-ground: #ffffff;
+  --dg-ink: #18181b;
+  --dg-line: #d4d4d8;
+  --dg-node: #3f3f46;
+  --dg-muted: #a1a1aa;
+  --dg-label: #71717a;
+  --dg-red: #e6212f;
+  overflow: visible;
+}
+
+:global(.dark) .root {
+  --dg-ground: #09090b;
+  --dg-ink: #f4f4f5;
+  --dg-line: #52525b;
+  --dg-node: #d4d4d8;
+  --dg-muted: #71717a;
+  --dg-label: #a2afb2;
+}
+
+/* the home pillar panels are always brand dark */
+.root.panel {
+  --dg-ground: #1f1f1f;
+}
+
+/* A diagram that is off screen, in an inactive panel, or under reduced
+   motion runs no animation: each part shows its base state, which is a
+   complete still of the story. "hold" applies the animations but pauses
+   them: step 1 before a start, the last frame after a stop. Going from
+   "off" to "hold" restarts every sequence at its first step. */
+.root[data-motion="off"] *,
+.root [data-motion="off"],
+.root [data-motion="off"] * {
+  animation: none !important;
+}
+.root[data-motion="hold"] * {
+  animation-play-state: paused !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .root * {
+    animation: none !important;
+  }
+}
+
+.ground {
+  fill: var(--dg-ground);
+}
+.inkStroke {
+  stroke: var(--dg-ink);
+}
+.inkFill {
+  fill: var(--dg-ink);
+}
+.lineStroke {
+  stroke: var(--dg-line);
+}
+.lineFill {
+  fill: var(--dg-line);
+}
+.nodeFill {
+  fill: var(--dg-node);
+}
+.nodeStroke {
+  stroke: var(--dg-node);
+}
+.mutedFill {
+  fill: var(--dg-muted);
+}
+.mutedStroke {
+  stroke: var(--dg-muted);
+}
+.redFill {
+  fill: var(--dg-red);
+}
+.redStroke {
+  stroke: var(--dg-red);
+}
+.label {
+  fill: var(--dg-label);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* scale and opacity pulses grow from the element's own center */
+.selfOrigin {
+  transform-box: fill-box;
+  transform-origin: center;
+}

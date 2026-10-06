@@ -109,7 +109,12 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
             ))}
             {attachments.map((attachment) => (
               <li key={attachment.href} className="font-mono text-xs">
-                <a href={attachment.href} rel="noreferrer" className="underline underline-offset-2">
+                <a
+                  href={attachment.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2"
+                >
                   {attachment.name}
                 </a>
               </li>
@@ -127,6 +132,13 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
         {[detail.contact_name, detail.contact_email, detail.contact_handle]
           .filter(Boolean)
           .join(" · ")}
+        {/* The Telegram share, recorded at submit, in every status: firms
+            that received the request may still hold the handle. */}
+        {detail.contact_handle && detail.contact_handle_shared_at ? (
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Telegram shared with the firms that receive this request
+          </p>
+        ) : null}
       </SummaryRow>
     </div>
   );

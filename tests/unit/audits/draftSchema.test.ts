@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditDraftSchema, auditSubmitSchema } from "@/types/audits";
+import { auditDraftSchema, auditSubmitSchema, submitRequestSchema } from "@/types/audits";
 import {
   STEP_FIELDS,
   wizardDefaults,
@@ -107,5 +107,30 @@ describe("auditDraftSchema · shortlist_auditor_ids", () => {
     expect(auditDraftSchema.safeParse({ status: "collecting" }).success).toBe(false);
     expect(auditDraftSchema.safeParse({ user_id: "u1" }).success).toBe(false);
     expect(auditDraftSchema.safeParse({ id: "r1" }).success).toBe(false);
+  });
+});
+
+describe("submitRequestSchema · Telegram share", () => {
+  it("passes consent alone and reads it as not sharing", () => {
+    expect(submitRequestSchema.safeParse({ contact_consent: true })).toMatchObject({
+      success: true,
+      data: { share_contact_handle: false },
+    });
+  });
+
+  it("carries the share choice next to the consent", () => {
+    for (const share of [true, false]) {
+      expect(
+        submitRequestSchema.safeParse({ contact_consent: true, share_contact_handle: share }),
+      ).toMatchObject({ success: true, data: { share_contact_handle: share } });
+    }
+  });
+
+  it("rejects a share choice that is not a boolean", () => {
+    for (const share of ["true", 1, null]) {
+      expect(
+        submitRequestSchema.safeParse({ contact_consent: true, share_contact_handle: share }).success,
+      ).toBe(false);
+    }
   });
 });

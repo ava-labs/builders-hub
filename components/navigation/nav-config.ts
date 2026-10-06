@@ -34,7 +34,7 @@ export const menuSections: NavSection[] = [
     title: 'Solutions',
     href: '/solutions',
     items: [
-      { text: 'Why Avalanche', href: '/solutions' },
+      { text: 'Why Avalanche', href: '/solutions', image: '/nav/solutions.webp' },
       { text: 'Interoperability', href: '/solutions/interoperability' },
       { text: 'Performance', href: '/solutions/performance' },
       { text: 'Privacy', href: '/solutions/privacy' },
@@ -50,20 +50,19 @@ export const menuSections: NavSection[] = [
     ],
   },
   {
+    // The faucet is the most tapped link of the phone menu, so it gets the second card.
     title: 'Console',
     href: '/console',
     items: [
-      { text: 'Console', href: '/console' },
-      { text: 'Interchain Messaging Tools', href: '/console/icm/setup' },
-      { text: 'Interchain Token Transfer Tools', href: '/console/ictt/setup' },
-      { text: 'Testnet Faucet', href: '/console/primary-network/faucet' },
+      { text: 'Console', href: '/console', image: '/nav/console.webp' },
+      { text: 'Testnet Faucet', href: '/console/primary-network/faucet', image: '/nav/faucet.webp' },
     ],
   },
   {
     title: 'Explorer',
     href: '/explorer/mainnet',
     items: [
-      { text: 'Block Explorer', href: '/explorer/mainnet' },
+      { text: 'Block Explorer', href: '/explorer/mainnet', image: '/nav/explorer.webp' },
       { text: 'Query', href: '/explorer/mainnet/query' },
       { text: 'C-Chain Explorer', href: '/explorer/mainnet/c-chain' },
       { text: 'Validators', href: '/explorer/mainnet/p-chain/validators' },
@@ -71,15 +70,15 @@ export const menuSections: NavSection[] = [
     ],
   },
   {
+    // The card opens the /ecosystem overview, which lists the links this section leaves out.
+    // One-word labels fit the column beside the card on a 360px phone.
     title: 'Ecosystem',
     href: '/ecosystem',
     items: [
-      { text: 'Hackathons & Events', href: '/events' },
-      { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true },
-      { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
-      { text: 'Grants & Funding', href: '/grants' },
-      { text: 'Security Audits', href: '/audits', badge: 'New' },
-      { text: 'Blog & Guides', href: '/guides' },
+      { text: 'Overview', href: '/ecosystem', image: '/nav/ecosystem.webp' },
+      { text: 'Events', href: '/events' },
+      { text: 'Grants', href: '/grants' },
+      { text: 'Audits', href: '/audits', badge: 'New' },
       { text: 'Integrations', href: '/integrations' },
     ],
   },

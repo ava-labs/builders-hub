@@ -1,8 +1,7 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useCallback } from "react";
 import {
   ChevronRight,
   Bell,
@@ -20,51 +19,6 @@ import { motion } from "framer-motion";
 import { EcosystemMarquee } from "@/components/console/ecosystem-marquee";
 import { AlphaSequence } from "@/components/console/alpha-sequence";
 import { boardContainer, boardItem } from "@/components/console/motion";
-
-function RedirectLogic() {
-  const { data: session, status } = useSession();
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    // Note: PostHog tracking is handled by the layout's TrackNewUser component
-    // This component only handles the redirect logic to avoid duplicate tracking
-    //
-    // IMPORTANT: Don't redirect if user is a "pending" user (hasn't accepted terms yet)
-    // The LoginModalWrapper will handle showing Terms and BasicProfile modals
-    // Only redirect after they've completed the full registration flow
-    if (status === "authenticated" && session?.user?.is_new_user) {
-      // Check if this is a pending user who hasn't accepted terms yet
-      const isPendingUser = session.user.id?.startsWith("pending_");
-      if (isPendingUser) {
-        // Let LoginModalWrapper handle the Terms/BasicProfile flow
-        // Don't redirect - the modals will appear
-        return;
-      }
-
-      // Redirect existing new users (who have accepted terms but notifications is null) to profile page
-      if (pathname !== "/profile") {
-        // Store the original URL with search params in localStorage
-        const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-        if (typeof window !== "undefined") {
-          localStorage.setItem("redirectAfterProfile", originalUrl);
-        }
-        router.replace("/profile");
-      }
-    }
-  }, [session, status, pathname, router, searchParams]);
-
-  return null;
-}
-
-function RedirectIfNewUser() {
-  return (
-    <Suspense fallback={null}>
-      <RedirectLogic />
-    </Suspense>
-  );
-}
 
 function BentoCard({
   href,
@@ -145,7 +99,7 @@ function CrossChainCard() {
         transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
         className="group relative h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-5 overflow-hidden transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg"
       >
-        {/* avax.network alpha_webm sequence. It replaces the cross-chain
+        {/* avax.network alpha_webm sequence: replaces the cross-chain
             SVG animation. Original preserved at
             components/console/cross-chain-animation-svg.tsx for revert. */}
         <div className="absolute right-4 top-4 bottom-4 w-[50%] pointer-events-none">
@@ -340,7 +294,7 @@ function ConsoleDashboard() {
         }
 
         /* OS-level reduce-motion preference. Framer-motion variants respect
-           this automatically; these raw CSS keyframes/transitions don't
+           this automatically: these raw CSS keyframes/transitions don't
            unless we silence them explicitly. */
         @media (prefers-reduced-motion: reduce) {
           .group:hover .bell-jingle,
@@ -549,7 +503,6 @@ function ConsoleDashboard() {
 export default function ConsolePage() {
   return (
     <>
-      <RedirectIfNewUser />
       <ConsoleDashboard />
     </>
   );

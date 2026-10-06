@@ -77,7 +77,7 @@ export function NavbarDropdown() {
               shows, the sheet ends above it, so the last items can scroll into view and be tapped.
               4rem is the sheet top (under the 3.5rem navbar) plus a small gap. */}
           <div
-            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[min(70vh,calc(100dvh-var(--fd-banner-height,0px)-var(--privacy-banner-inset,0px)-4rem))] overflow-y-auto"
+            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[calc(100dvh-var(--fd-banner-height,0px)-var(--privacy-banner-inset,0px)-4rem)] overflow-y-auto"
           >
             <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {/* Controls row: theme + login */}
@@ -152,11 +152,28 @@ export function NavbarDropdown() {
 
 /**
  * One section of the sheet: its title link, then a two-up row of picture
- * cards for items that carry an image, then text rows for the rest.
+ * cards for items that carry an image, then text rows for the rest. A
+ * section with one card puts its text rows in the column beside the card.
  */
 export function NavSectionBlock({ section }: { section: NavSection }) {
   const cards = section.items.filter((item): item is NavItem & { image: string } => Boolean(item.image));
   const rows = section.items.filter((item) => !item.image);
+  const beside = cards.length % 2 === 1 && rows.length > 0;
+  const rowLinks = rows.map((item) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      className={`inline-flex items-center gap-2 text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50 ${beside ? 'whitespace-nowrap py-1 text-[13px]' : 'py-1.5 text-sm'}`}
+      {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+    >
+      {item.text}
+      {item.badge ? (
+        <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
+          {item.badge}
+        </span>
+      ) : null}
+    </Link>
+  ));
   return (
     <div className="flex flex-col px-4 py-3">
       <Link
@@ -184,23 +201,12 @@ export function NavSectionBlock({ section }: { section: NavSection }) {
               <span>{item.text}</span>
             </Link>
           ))}
+          {beside ? (
+            <div className="flex flex-col border-l border-zinc-200 pl-3 dark:border-zinc-800">{rowLinks}</div>
+          ) : null}
         </div>
       ) : null}
-      {rows.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className="inline-flex items-center gap-2 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
-          {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-        >
-          {item.text}
-          {item.badge ? (
-            <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
-              {item.badge}
-            </span>
-          ) : null}
-        </Link>
-      ))}
+      {beside ? null : rowLinks}
     </div>
   );
 }

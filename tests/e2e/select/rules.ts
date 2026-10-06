@@ -35,7 +35,14 @@ export const AI_FILES: Record<string, readonly string[]> = {
     'site-navigation',
     'visual-explorer',
   ],
-  'ai:site': ['journey-site', 'site-navigation', 'visual-home', 'visual-phone-menu', 'visual-signup'],
+  'ai:site': [
+    'journey-profile',
+    'journey-site',
+    'site-navigation',
+    'visual-home',
+    'visual-phone-menu',
+    'visual-signup',
+  ],
 };
 
 // The units whose tests have their own config: the API tests (api/e2e.config.ts), and the in-app browser tests
@@ -81,7 +88,16 @@ export type GroupName = keyof typeof GROUPS;
 
 // The site pages that site/ and ai/ open by name. The routes sweep opens every other site page. site/ecosystem.e2e.ts
 // fetches every link of the ecosystem page, /audits included, so a removed or moved link target runs it.
-const SITE_CORE = ['/grants', '/events', '/solutions', '/validator-alerts', '/guides', '/ecosystem', '/audits'];
+const SITE_CORE = [
+  '/grants',
+  '/events',
+  '/solutions',
+  '/validator-alerts',
+  '/guides',
+  '/ecosystem',
+  '/audits',
+  '/profile',
+];
 // site/ and ai/ open the sign-up and login pages, and webview/ opens them in in-app browsers.
 const AUTH_PAGES = ['/signup', '/login'];
 const TEXT_ROUTES = ['/llms.txt', '/llms-full.txt', '/mcp-manifest', '/static.json', '/install'];

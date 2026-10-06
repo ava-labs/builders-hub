@@ -1,5 +1,5 @@
 {
-  "components/explorer-v2/network/city-app.tsx": 1976,
+  "components/explorer-v2/network/city-app.tsx": 1936,
   "components/explorer-v2/evm/QueryVisual.tsx": 1276,
   "components/explorer-v2/network/city3d/HubTower.tsx": 1299,
   "components/explorer-v2/evm/QueryBoard.tsx": 1265,
@@ -11,7 +11,7 @@
   "components/explorer-v2/staking/StakingMetricPage.tsx": 867,
   "components/explorer-v2/xchain/XchainPages.tsx": 817,
   "app/api/explorer/[chainId]/route.ts": 727,
-  "components/explorer-v2/gas/instruments.tsx": 726,
+  "components/explorer-v2/gas/instruments.tsx": 690,
   "components/explorer-v2/network/icm-map.tsx": 725,
   "components/explorer-v2/staking/PrimaryValidators.tsx": 716,
   "lib/explorer-clickhouse.ts": 713,

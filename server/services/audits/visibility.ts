@@ -349,10 +349,11 @@ export interface AuditorContacts {
 
 export async function getRequestForAuditor(auditorId: string, requestId: string) {
   // The fan-out delivery row IS the invitation: without it the request does
-  // not exist for this firm (routes 404).
+  // not exist for this firm (routes 404). The firm's active flag rides along
+  // for the Telegram share below.
   const delivery = await prisma.auditFanoutDelivery.findUnique({
     where: { request_id_auditor_id: { request_id: requestId, auditor_id: auditorId } },
-    select: { request_id: true },
+    select: { auditor: { select: { active: true } } },
   });
   if (!delivery) return null;
 
@@ -390,6 +391,21 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
     subsidy = decision?.state === "approved" ? decision : null;
   }
 
+  // The Telegram share: if the project opted in at submit, every active firm
+  // the request reached sees its Telegram handle, and nothing else of its
+  // contact, while the stored status is collecting (deciding and expired
+  // included). Acceptance, withdrawal or deactivation take it away. Read
+  // apart from AUDITOR_SAFE_REQUEST_SELECT, which stays contact-free.
+  let shared_handle: string | null = null;
+  if (request.status === "collecting" && delivery.auditor.active) {
+    const share = await prisma.auditRequest.findUnique({
+      where: { id: requestId },
+      select: { contact_handle: true, contact_handle_shared_at: true },
+    });
+    const handle = share?.contact_handle?.trim();
+    shared_handle = share?.contact_handle_shared_at && handle ? handle : null;
+  }
+
   return {
     ...request,
     // The store URL never leaves the server: a blob URL is a bearer token and
@@ -410,6 +426,7 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
         }
       : null,
     contacts,
+    shared_handle,
     subsidy,
     window_open: isQuoteWindowOpen(request),
   };

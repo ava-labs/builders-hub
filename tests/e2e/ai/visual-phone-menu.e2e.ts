@@ -17,11 +17,11 @@ test('phone menu lists its links without clipped or overlapping text', VISUAL, a
   await waitForStillScreen(browser);
   await agent.assert(
     [
-      'The screenshot shows an open navigation menu with links stacked one under another.',
-      'No link text is cut off at the left or right edge of the screen, and no link text overlaps another link.',
+      'The screenshot shows an open navigation menu. Each section has a small title, red picture cards with a label under each card, and some sections have short text links in a column beside their card.',
+      'No link text is cut off at the left or right edge of the screen, and no link text overlaps another link or a picture.',
       'The page behind the menu does not show through the menu or cover any part of it.',
-      // components/navigation/navbar-dropdown.tsx:76 caps the menu at 70% of the screen height and scrolls it.
-      'The menu box is shorter than the screen and scrolls, so links that continue below its bottom edge are normal.',
+      // components/navigation/navbar-dropdown.tsx:80 ends the menu above the bottom of the screen and scrolls it.
+      'The menu box ends above the bottom of the screen and scrolls, so sections that continue below its bottom edge are normal.',
     ].join(' '),
     SCREENSHOT_ONLY,
   );

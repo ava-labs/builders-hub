@@ -1,0 +1,208 @@
+/* Interop motion. Three messages, one at a time, in one 9 s cycle. The
+   windows start at 0 (the arc message), 2.9 and 5.5 s. Every part of a
+   message carries its start as --d (animation-delay), so the parts share
+   one clock and cannot drift. Percentages are t / 9 s.
+
+   Steps, in s from the window start:
+     0.00 to 0.40  sign: an ink disc flashes over each source validator,
+                   clockwise from the top, 50 ms apart, 0.15 s each
+     0.40 to 1.10  hop, straight: source core to the destination port
+     0.40 to 1.40  hop, arc: core to port, then along the arc
+   Then, from the arrival A (1.10 straight, 1.40 arc):
+     A      to A+0.1   verify: the P-Chain line lights from the
+                       receiver's record to the sender's, and the
+                       sender's record lights
+     A+0.1  to A+0.6   both hold lit while the traveler waits at the port
+     A+0.6  to A+0.7   both fade
+     A+0.7  to A+0.95  enter: port to core
+     A+0.95 to A+1.35  accept: the destination core pulses (kit spec:
+                       core + 2, scale 1.6, 0.4 s, ease-out)
+   The arc message ends at 2.75 s, the second at 5.35 s and the third at
+   7.95 s. Rests: 0.15 s, 0.15 s, then 1.05 s to the loop seam. The panel
+   change comes in that last rest: about 8.3 s into the run (9 s rotation,
+   0.7 s lead), and about 8.97 s on the first view (no lead). The read
+   and accept keyframes are on the straight clock. The arc message's read
+   and accept take a delay 0.3 s longer (ARC_LAG).
+
+   Base styles are the still: message 1's verify moment. The arc traveler
+   waits at PRIVATE's -120 degree port, and the P-Chain line is lit from
+   PRIVATE's record to PUBLIC's lit record (the read group's opacity
+   attribute). The 0 % frames are step 1: no traveler, nothing lit. */
+
+.sign,
+.read,
+.accept,
+.hop,
+.arcOut,
+.arcRide,
+.arcIn {
+  animation-duration: 9s;
+  animation-iteration-count: infinite;
+  animation-delay: var(--d, 0s);
+  animation-fill-mode: backwards;
+}
+
+/* sign: the disc grows over the validator and fades (0.15 s) */
+.sign {
+  opacity: 0;
+  animation-name: sign;
+}
+@keyframes sign {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+    animation-timing-function: ease-out;
+  }
+  0.778% {
+    opacity: 1;
+    transform: scale(1.35);
+    animation-timing-function: ease-in-out;
+  }
+  1.667%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* a straight message: the source core, both ports and the destination
+   core are on one line. The traveler is the core's state dot leaving and
+   coming home: it shows only between the two cores. */
+.hop {
+  opacity: 0;
+  animation-name: hop;
+}
+@keyframes hop {
+  0%,
+  4.433% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  4.444% {
+    opacity: 1;
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  12.222% {
+    opacity: 1;
+    transform: translateX(var(--hop));
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(var(--hop));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  22.778% {
+    opacity: 1;
+    transform: translateX(var(--enter));
+  }
+  22.789%,
+  100% {
+    opacity: 0;
+    transform: translateX(var(--enter));
+  }
+}
+
+/* the arc message: out to the port, around the arc center, in to the core.
+   The hop's easing is split where the port is (22.86 % of the 1.0 s, 13.7 %
+   of the path), so the two legs read as one eased hop. */
+.arcOut {
+  transform: translate(var(--out-x), var(--out-y));
+  animation-name: arcOut;
+}
+@keyframes arcOut {
+  0%,
+  4.444% {
+    transform: translate(0, 0);
+    animation-timing-function: cubic-bezier(0.458, 0, 0.762, 0.394);
+  }
+  6.984%,
+  100% {
+    transform: translate(var(--out-x), var(--out-y));
+  }
+}
+.arcRide {
+  transform: rotate(var(--sweep));
+  animation-name: arcRide;
+}
+@keyframes arcRide {
+  0%,
+  6.984% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.233, 0.317, 0.254, 1);
+  }
+  15.556%,
+  100% {
+    transform: rotate(var(--sweep));
+  }
+}
+.arcIn {
+  animation-name: arcIn;
+}
+@keyframes arcIn {
+  0%,
+  4.433% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  4.444%,
+  23.333% {
+    opacity: 1;
+    transform: translate(0, 0);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  26.111% {
+    opacity: 1;
+    transform: translate(var(--in-x), var(--in-y));
+  }
+  26.122%,
+  100% {
+    opacity: 0;
+    transform: translate(var(--in-x), var(--in-y));
+  }
+}
+
+/* verify: the stretch of the P-Chain line to the sender's record, and the
+   record (its validator set on the P-Chain), light together. No base
+   opacity here: the group's opacity attribute sets the still. */
+.read {
+  animation-name: read;
+}
+@keyframes read {
+  0%,
+  12.222% {
+    opacity: 0;
+    animation-timing-function: ease-out;
+  }
+  13.333%,
+  18.889% {
+    opacity: 1;
+    animation-timing-function: ease-in-out;
+  }
+  20%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* accept: the kit Pulse grows from the destination core's edge and fades */
+.accept {
+  animation-name: accept;
+}
+@keyframes accept {
+  0%,
+  22.767% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  22.778% {
+    opacity: 0.9;
+    transform: scale(1);
+    animation-timing-function: ease-out;
+  }
+  27.222%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}

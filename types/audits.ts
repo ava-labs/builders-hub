@@ -204,12 +204,14 @@ export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
 /**
  * Submission carries the consent explicitly rather than reading a stored
  * flag: consent is given at the moment of sending, so it is re-affirmed on
- * every submit and the server stamps the time itself.
+ * every submit and the server stamps the time itself. The Telegram share is
+ * chosen the same way; a body without it shares nothing.
  */
 export const submitRequestSchema = z.strictObject({
   contact_consent: z.literal(true, {
     message: "Confirm that your contact details can be shared with the audit firms",
   }),
+  share_contact_handle: z.boolean().default(false),
 });
 
 export const acceptQuoteSchema = z.strictObject({

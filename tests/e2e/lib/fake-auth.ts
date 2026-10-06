@@ -1,5 +1,5 @@
 import type { Browser, WebRoute } from '@e2e-dev/web';
-import type { App } from 'e2e';
+import type { App, JsonValue } from 'e2e';
 
 // The tests that sign in or sign up drive the real login UI against this fake backend. The fake answers the NextAuth
 // reads and each write of the login flow. Other reads go to the site. No write reaches NextAuth, the database, the
@@ -19,8 +19,8 @@ export const TEAM1_HEADING = 'Team1 authorize resumed';
 
 // The ids NextAuth gives a new email user before Terms (lib/auth/authOptions.ts), after Terms, and a returning user.
 const PENDING_USER_ID = `pending_${TEST_EMAIL}`;
-const CREATED_USER_ID = 'signup-test-user';
-const RETURNING_USER_ID = 'returning-test-user';
+export const CREATED_USER_ID = 'signup-test-user';
+export const RETURNING_USER_ID = 'returning-test-user';
 
 const PROVIDERS = {
   credentials: { id: 'credentials', name: 'Email', type: 'credentials' },
@@ -72,13 +72,34 @@ function absoluteCallback(route: WebRoute, callbackUrl: string | null): string {
   return new URL(callbackUrl, route.request.url).href;
 }
 
+// The answers a test adds for the pages behind the login, by "METHOD /path": a JSON body, or a status and a body.
+export type FakeAnswers = Record<string, JsonValue | { status: number; json: JsonValue }>;
+
+function isStatusAnswer(answer: FakeAnswers[string]): answer is { status: number; json: JsonValue } {
+  return (
+    typeof answer === 'object' && answer !== null && !Array.isArray(answer) && 'status' in answer && 'json' in answer
+  );
+}
+
 // Registers the fake backend. Call it before the first app.open of the page under test.
-// A returning user (newUser false) signs in with the code and skips Terms and the profile setup.
-export async function fakeAuth(app: App, browser: Browser, { newUser = true } = {}): Promise<FakeAuthRecord> {
+// A returning user (newUser false) signs in with the code and skips Terms.
+// signedIn starts the session as the returning user, for a page behind the login (the profile).
+// answers holds the API answers of that page; a write in it is answered too, so it is not recorded as unanswered.
+export async function fakeAuth(
+  app: App,
+  browser: Browser,
+  {
+    newUser = true,
+    signedIn = false,
+    answers = {},
+  }: { newUser?: boolean; signedIn?: boolean; answers?: FakeAnswers } = {},
+): Promise<FakeAuthRecord> {
   if (!app.baseUrl) throw new Error('fake auth needs a web target with an app URL');
   const origin = escapeRegExp(new URL(app.baseUrl).origin);
   const record: FakeAuthRecord = { social: {}, unanswered: [] };
-  let user: SessionUser | null = null;
+  let user: SessionUser | null = signedIn
+    ? { id: RETURNING_USER_ID, email: TEST_EMAIL, is_new_user: false, custom_attributes: [] }
+    : null;
 
   const answer = async (route: WebRoute): Promise<void> => {
     const { method, url, postData } = route.request;
@@ -124,9 +145,13 @@ export async function fakeAuth(app: App, browser: Browser, { newUser = true } = 
       if (user) user = { ...user, id: CREATED_USER_ID, is_new_user: false };
       return route.fulfill({ json: { id: CREATED_USER_ID, referralAttributed: Boolean(body.referral_attribution) } });
     }
-    // The profile setup reads the new user's profile to prefill its form.
-    if (path === `/api/profile/extended/${CREATED_USER_ID}`) return route.fulfill({ json: {} });
     if (path === '/api/oauth/authorize') return route.fulfill(htmlPage(TEAM1_HEADING));
+    const answer = answers[`${method} ${path}`];
+    if (answer !== undefined) {
+      return isStatusAnswer(answer)
+        ? route.fulfill({ status: answer.status, json: answer.json })
+        : route.fulfill({ json: answer });
+    }
     if (method === 'GET' || method === 'HEAD') return route.continue();
     // The engine aborts the request and fails the next step with this error. An expect.poll step retries past the
     // error, so the test also checks `unanswered` at its end.

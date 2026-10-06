@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T00:02:04.745Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Console history\"",
+        "target": {
+          "role": "link",
+          "name": "Console history"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-profile.e2e.ts::a%20new%20visitor%20signs%20up%2C%20then%20finds%20their%20Academy%20progress%20and%20Console%20history",
+      "targetId": "desktop",
+      "instructionDigest": "a5b449fc48c045bff9a10976996b79cef8a005774b66bd0f3687a3168b81dbb9"
+    },
+    "summary": "Tapped \"Console history\" in the profile sidebar. The page is now /profile?tab=console with a \"Console history\" heading and an Activity list showing one entry: \"Chain created, Fuji, Oct 1, 2026, 8:00 AM\".",
+    "startPath": "/profile?tab=achievements",
+    "endPath": "/profile?tab=console",
+    "endAnchors": [
+      {
+        "role": "heading",
+        "name": "Console history"
+      },
+      {
+        "role": "link",
+        "name": "Open Console"
+      },
+      {
+        "role": "heading",
+        "name": "Activity"
+      },
+      {
+        "text": "Chain created"
+      },
+      {
+        "text": "Fuji"
+      },
+      {
+        "role": "region",
+        "name": "Activity"
+      },
+      {
+        "role": "list",
+        "name": "Console activity"
+      }
+    ],
+    "endWaitMs": 12125
+  }
+}

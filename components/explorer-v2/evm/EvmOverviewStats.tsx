@@ -119,21 +119,9 @@ function bucket(values: number[], max: number): number[] {
 const BAND_PX = 40;
 const BAND_H = 40;
 
-/** where a series ends inside the band, as a share of the band's height:
- *  the block's right face fills to this level so the trace reads as a
- *  solid passing through the box, not a picture on its front */
-export function bandLevel(values: number[] | undefined): number | null {
-  if (!values || values.length < 2) return null;
-  const pts = bucket(values, SPARK_MAX_POINTS);
-  const min = Math.min(...pts);
-  const span = Math.max(...pts) - min || 1;
-  return ((pts[pts.length - 1] - min) / span) * ((BAND_H - 4) / BAND_H) + 1 / BAND_H;
-}
-
 /** the trace as the block's liquid: the area under the line filled in
- *  the tape's block gray, one flat tone, a crisp top edge, the level
- *  carried onto the shaded right face. The same vessel the block tape
- *  draws, poured to a curve instead of a line. */
+ *  the tape's block gray, one flat tone, a crisp top edge. The same
+ *  vessel the block tape draws, poured to a curve instead of a line. */
 export function SparkBand({ values }: { values: number[] }) {
   const pts = bucket(values, SPARK_MAX_POINTS);
   if (pts.length < 2) return null;
@@ -157,18 +145,15 @@ export function SparkBand({ values }: { values: number[] }) {
 const DEPTH = "0.5rem";
 
 /** One reading as an extruded block: a lit top face, a shaded right
- *  face, the front face holding the content. `side` pours into the right
- *  face from the bottom, so a trace inside reads as a solid passing
- *  through the box. The whole block lifts on hover when it is a door. */
+ *  face, the front face holding the content. The faces are the frame and
+ *  carry no data: a series drawn onto the right face reads as a mark cut
+ *  by the frame. The whole block lifts on hover when it is a door. */
 export function ReadoutBlock({
   href,
-  side,
   className,
   children,
 }: {
   href?: string;
-  /** what fills the right face, anchored to its bottom */
-  side?: React.ReactNode;
   /** the front face's layout and padding */
   className?: string;
   children: React.ReactNode;
@@ -188,11 +173,9 @@ export function ReadoutBlock({
       {/* right face, shaded */}
       <span
         aria-hidden
-        className="absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] overflow-hidden border border-l-0 border-zinc-200 bg-zinc-200 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900"
+        className="absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] border border-l-0 border-zinc-200 bg-zinc-200 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900"
         style={{ width: DEPTH }}
-      >
-        {side}
-      </span>
+      />
       {href ? (
         <Link href={href} className={cn(face, "hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
           {children}
@@ -204,17 +187,6 @@ export function ReadoutBlock({
   );
 }
 
-/** the trace's end level carried onto the right face */
-export function SideLevel({ level }: { level: number | null }) {
-  if (level === null) return null;
-  return (
-    <span
-      className="absolute inset-x-0 bottom-0 border-t border-zinc-700/60 bg-[#A2AFB2]/70 dark:border-zinc-300/60 dark:bg-[#A2AFB2]/50"
-      style={{ height: Math.round(level * BAND_PX) }}
-    />
-  );
-}
-
 /* the readings' shared voices */
 export const LABEL = "font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400";
 export const FIGURE =
@@ -222,6 +194,18 @@ export const FIGURE =
 export const FIG_UNIT = "ml-1 font-mono text-[12px] font-normal tracking-normal text-zinc-400 dark:text-zinc-500";
 export const SUB = "font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
 export const BLOCK_FACE = "items-start gap-3 px-5 pb-12 pt-3 md:px-6";
+
+/** a long figure, such as a chain height on a phone, shrinks to its
+ *  block's width instead of running under the edge. The text column is
+ *  the container. In FIGURE's font a digit takes about 0.62 em, a capital
+ *  or % 0.8 em and a comma or point 0.3 em; a unit in FIG_UNIT's 12 px
+ *  mono takes about 7.3 px a character after its 4 px margin. */
+function fitFigure(value: React.ReactNode, unit?: string): React.CSSProperties | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  const em = [...value].reduce((sum, ch) => sum + (/[,.:]/.test(ch) ? 0.3 : /[A-Z%]/.test(ch) ? 0.8 : 0.62), 0);
+  const unitPx = unit ? 4 + unit.length * 7.3 : 0;
+  return { fontSize: `min(22px, calc((100cqi - ${unitPx}px) / ${em.toFixed(2)}))` };
+}
 
 /* The live readout: what is true this second, as a row of blocks. It
    sits between the search and the live boards, so the page reads:
@@ -245,12 +229,12 @@ export function LiveReadoutAt({ chainId, cells, days }: { chainId: string; cells
         const spark = c.values ?? (c.series ? market?.[c.series] : undefined);
         const move = c.series ? windowMove(c, n, market?.[c.series]) : null;
         return (
-          <ReadoutBlock key={c.label} href={c.href} side={<SideLevel level={bandLevel(spark)} />} className={BLOCK_FACE}>
+          <ReadoutBlock key={c.label} href={c.href} className={BLOCK_FACE}>
             {c.live && <LiveDot className="mt-1.5 shrink-0" />}
-            <span className="relative z-10 flex min-w-0 flex-col gap-1">
+            <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-1 @container">
               <span className={LABEL}>{c.label}</span>
               <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                <span className={FIGURE}>
+                <span className={FIGURE} style={fitFigure(c.value, c.unit)}>
                   {c.value}
                   {c.unit && <span className={FIG_UNIT}>{c.unit}</span>}
                 </span>
@@ -388,7 +372,7 @@ export function EvmOverviewStats({
     const delta = pctOf(p);
     const spark = opts.spark && opts.spark.length >= 2 ? opts.spark : undefined;
     return (
-      <ReadoutBlock key={label} href={href} side={<SideLevel level={bandLevel(spark)} />} className={BLOCK_FACE}>
+      <ReadoutBlock key={label} href={href} className={BLOCK_FACE}>
         <span className="relative z-10 flex min-w-0 flex-col gap-1.5">
           <span className={LABEL}>{label}</span>
           <span className={cn(FIGURE, "truncate")}>

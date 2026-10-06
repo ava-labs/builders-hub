@@ -60,3 +60,52 @@ test('privacy banner leaves the end of the phone menu tappable', async ({ app, s
   await links.getByRole('link', 'Integrations').tap({ timeout: 10_000 });
   await expect(browser).toHaveURL('/integrations', { timeout: NAVIGATION_TIMEOUT });
 });
+
+// The phone sheet gives every section at least one picture card (components/navigation/nav-config.ts).
+// A section with one card shows its text links in a column beside the card.
+const PHONE_SECTIONS = ['Solutions', 'Developers', 'Console', 'Explorer', 'Ecosystem'];
+
+test('phone menu shows a picture card in every section, and its links fit their column', async ({
+  app,
+  screen,
+  browser,
+}) => {
+  await openAsReturningVisitor(app, browser, '/');
+  await phoneOnly(browser);
+  const sheet = await openSiteMenu(screen, browser, 'Solutions');
+  for (const title of PHONE_SECTIONS) {
+    // The Console card has the same name as the Console title. The title comes first.
+    await expect(sheet.getByRole('link', title).first()).toBeVisible();
+  }
+  await expect(sheet.getByRole('link', 'Testnet Faucet')).toHaveAttribute('href', '/console/primary-network/faucet');
+
+  // The sections have no landmark, so read them from the page: a section is the parent of its title link,
+  // and a picture card is a link that holds an image.
+  const sections = await browser.evaluate((titles: string[]) => {
+    const links = [...document.querySelectorAll('[data-navbar-dropdown] a')];
+    return titles.map((title) => {
+      const heading = links.find((a) => !a.querySelector('img') && (a.textContent ?? '').trim() === title);
+      const block = heading?.parentElement;
+      const cards = block ? [...block.querySelectorAll('a')].filter((a) => a.querySelector('img')) : [];
+      return { title, cards: cards.map((a) => a.getAttribute('href') ?? '') };
+    });
+  }, PHONE_SECTIONS);
+  for (const { title, cards } of sections) expect(cards.length, `picture cards in ${title}`).toBeGreaterThan(0);
+  expect(sections.find((section) => section.title === 'Console')?.cards).toContain('/console/primary-network/faucet');
+
+  // A link wider than its column is cut off or pushes the sheet sideways. The labels beside a card do not wrap.
+  const fit = await browser.evaluate(() => {
+    const panel = document.querySelector('[data-navbar-dropdown] > div');
+    if (!panel) return null;
+    const label = (a: Element) => (a.textContent ?? '').trim();
+    return {
+      beside: [...panel.querySelectorAll('a:has(img) ~ div a')].map(label),
+      tooWide: [...panel.querySelectorAll('a')].filter((a) => a.scrollWidth > a.clientWidth).map(label),
+      scrollsSideways: panel.scrollWidth > panel.clientWidth,
+    };
+  });
+  expect(fit, 'the open sheet').not.toBeNull();
+  expect(fit!.beside.length, 'links in a column beside a card').toBeGreaterThan(0);
+  expect(fit!.tooWide, 'links wider than their column').toEqual([]);
+  expect(fit!.scrollsSideways, 'the sheet scrolls sideways').toBe(false);
+});
