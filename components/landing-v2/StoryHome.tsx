@@ -14,11 +14,11 @@ import {
 } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { GlobeData } from "@/components/landing/globe";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import BuiltOnMarquee from "@/components/landing-v2/BuiltOnMarquee";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import HeroSplash from "@/components/landing-v2/HeroSplash";
+import AvaxCoin from "@/components/landing-v2/AvaxCoin";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import PillarsChapter from "@/components/landing-v2/PillarsChapter";
 import ChainDiagram from "@/components/landing-v2/diagrams/ChainDiagram";
@@ -718,7 +718,7 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
               25% and 75% of the board, so the wire spans the middle half. */}
           <div
             aria-hidden
-            className="pointer-events-none absolute left-[calc(25%+28px)] right-[calc(25%+28px)] top-[68px] hidden lg:block"
+            className="pointer-events-none absolute left-[calc(25%+32px)] right-[calc(25%+32px)] top-[72px] hidden lg:block"
           >
             <div className="h-px w-full bg-zinc-300 dark:bg-zinc-700" />
             <span className="v2-wire-dot absolute -top-[3px] h-[7px] w-[7px] rounded-full bg-[#E6212F]" />
@@ -738,12 +738,9 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
             >
               {/* the known chain wears the mark; yours is still to be drawn */}
               {offering.mark === "avax" ? (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E6212F]">
-                  {/* the mark's paths carry hardcoded red fills; force them white on the disc */}
-                  <AvalancheLogo className="size-6 [&_path]:fill-white" />
-                </span>
+                <AvaxCoin />
               ) : (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-400 dark:border-zinc-500">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-400 dark:border-zinc-500">
                   <span className="font-mono text-base text-zinc-500 dark:text-zinc-400">?</span>
                 </span>
               )}
