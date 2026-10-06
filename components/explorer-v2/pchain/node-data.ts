@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PRIMARY_SUBNET_ID, getBlockTime, getCurrentValidators, getL1Validator, getPrimaryTotalStake, getValidatorFeeState, type CurrentValidator } from "@/lib/pchain-node";
 import type { ConversionResponse, NodeResponse, ValidationsResponse } from "@/lib/pchain-explorer";
 import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
+import { DAY } from "@/lib/explorer-query/values";
 import type { SettledBalance } from "./seat-balance";
 
 /* The node page's reads beyond the indexer's node document, and the
@@ -61,6 +62,13 @@ export interface P2PDetail {
   uptime: { bucket: string; p50_uptime: number }[];
   blocks: { hour: string; proposed: number; missed: number }[];
   slots: { slot: number; cnt: number }[];
+}
+
+/** the feed's daily block buckets less the UTC day still running: the chart
+ *  shows whole days only, as the explorer's other daily charts do, so it
+ *  never names a day that has not begun for a viewer west of UTC */
+export function wholeDays<T extends { hour: string }>(days: T[], now: number): T[] {
+  return days.filter((d) => Date.parse(d.hour) + DAY <= now);
 }
 
 export function useP2PDetail(nodeId: string, enabled: boolean) {

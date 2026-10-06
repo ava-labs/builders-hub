@@ -2,9 +2,9 @@
 
 import { StackBlock, TraceBlock, type StackCol, type StackLayer, type TraceRow } from "@/components/explorer-v2/gas/instruments";
 import { SectionHeader } from "@/components/explorer-v2/ui";
-import { dayLong, dayShort, formatNumber, hourLong } from "@/components/explorer-v2/format";
+import { dayLong, dayShort, formatNumber, localDayShort, localHourLong } from "@/components/explorer-v2/format";
 import type { NodeResponse } from "@/lib/pchain-explorer";
-import type { P2PDetail } from "./node-data";
+import { wholeDays, type P2PDetail } from "./node-data";
 
 /* How a validator has done: its peers' median view of its uptime, hour by
    hour, and the blocks it proposed and missed, day by day, as the gas
@@ -30,16 +30,18 @@ const BLOCK_LAYERS: StackLayer[] = [
 const pct = (v: number, digits = 2) => `${v.toFixed(digits)}%`;
 
 export function NodePerformance({ n, p2p, uptimeReq }: { n: NodeResponse; p2p: P2PDetail | null; uptimeReq: number }) {
-  // the observatory's hourly median, else the node document's own snapshots
+  // the observatory's hourly median, else the node document's own snapshots,
+  // each hour in the viewer's time zone
   const uptime: TraceRow[] = p2p?.uptime?.length
-    ? p2p.uptime.map((u) => ({ key: u.bucket, long: hourLong(u.bucket.slice(0, 16)), tick: dayShort(u.bucket.slice(0, 10)), mid: u.p50_uptime }))
+    ? p2p.uptime.map((u) => ({ key: u.bucket, long: localHourLong(u.bucket.slice(0, 16)), tick: localDayShort(u.bucket.slice(0, 16)), mid: u.p50_uptime }))
     : (n.uptimeHistory ?? []).map((h, i) => {
         const dated = /^\d{4}-/.test(h.bucket ?? "");
-        return { key: `${i}`, long: dated ? hourLong(h.bucket.slice(0, 16)) : "snapshot", tick: dated ? dayShort(h.bucket.slice(0, 10)) : `#${i + 1}`, mid: h.p50Uptime };
+        return { key: `${i}`, long: dated ? localHourLong(h.bucket.slice(0, 16)) : "snapshot", tick: dated ? localDayShort(h.bucket.slice(0, 16)) : `#${i + 1}`, mid: h.p50Uptime };
       });
-  const blocks: StackCol[] = (p2p?.blocks ?? []).map((b) => ({
+  // the feed counts blocks by UTC day, so a day keeps its UTC name
+  const blocks: StackCol[] = wholeDays(p2p?.blocks ?? [], Date.now()).map((b) => ({
     key: b.hour,
-    long: dayLong(b.hour.slice(0, 10)),
+    long: `${dayLong(b.hour.slice(0, 10))} · UTC day`,
     tick: dayShort(b.hour.slice(0, 10)),
     parts: { proposed: b.proposed, missed: b.missed },
   }));
