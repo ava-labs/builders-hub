@@ -14,7 +14,7 @@ test('home page hero is laid out without clipped or overlapping content', VISUAL
   // The last word of the heading changes every few seconds. Match the shape of the sentence.
   await expect(screen.getByRole('heading', /^Build an? [a-z]+ ?\.$/, { level: 1 })).toBeVisible();
   await waitForStillScreen(browser);
-  // components/landing-v2/StoryHome.tsx:283 swaps the last word every 2.8 s, and a script slides it for about 0.6 s,
+  // ChapterOne in components/landing-v2/StoryHome.tsx swaps the last word every 2.8 s, and a script slides it for about 0.6 s,
   // which waitForStillScreen cannot see. Wait for a swap and its slide, so the screenshot shows a still word.
   await browser.evaluate(
     () =>
@@ -34,6 +34,8 @@ test('home page hero is laid out without clipped or overlapping content', VISUAL
     layoutIsIntact('the site header and the main heading, which starts with "Build", both fully visible', [
       // components/landing-v2/BuiltOnMarquee.tsx slides the logos sideways without end.
       'The rows of partner logos near the bottom slide sideways, so the logos at both screen edges are cut on purpose.',
+      // components/landing-v2/HeroSplash.tsx paints the hero's background.
+      'The heading and the buttons sit on a full-width photo of snowy mountains behind them. That is the background, not an overlap.',
     ]),
     SCREENSHOT_ONLY,
   );
