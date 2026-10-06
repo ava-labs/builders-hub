@@ -27,7 +27,8 @@ export default function PillarsChapter({ reducedMotion }: { reducedMotion: boole
   const [cycle, setCycle] = useState(0);
 
   // The section is complete on arrival; the stage walks the four guarantees
-  // on its own while in view. Scrolling only ever moves between sections.
+  // on its own while in view. A vertical scroll only moves between sections;
+  // a sideways trackpad swipe steps the stage (below).
   useEffect(() => {
     if (reducedMotion || !inView) return;
     const timer = setInterval(() => setActiveIdx((i) => (i + 1) % PILLARS.length), ROTATE_MS);

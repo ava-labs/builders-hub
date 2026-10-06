@@ -5,7 +5,7 @@
 // price moves. Counts under 10,000 stay exact, because "1,177" is already
 // short and "1.18K" would hide a real count.
 
-export type FigureUnit = "count" | "usd";
+type FigureUnit = "count" | "usd";
 
 const EXACT_BELOW = 10_000;
 

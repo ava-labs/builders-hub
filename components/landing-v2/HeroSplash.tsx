@@ -6,14 +6,15 @@ import { preload } from "react-dom";
 /* ------------------------------------------------------------------ */
 /* Hero splash: a 4K still with the moving snow laid over it          */
 /*                                                                      */
-/* The still is painted from SSR as a CSS background (one per theme     */
-/* and size, so only one downloads). The snow is a 60 fps loop of only  */
-/* the region where it moves, cut from the same frame and graded the    */
-/* same way, so it sits on the still without a seam. It mounts after    */
-/* hydration, plays only while the hero is on a visible tab, and fades  */
-/* in once frames arrive. Reduced motion, Save-Data and touch tablets   */
-/* keep the still. Assets: public/home/splash (generated, then graded   */
-/* and encoded offline; see the PR that added them).                    */
+/* The still is painted from SSR as a CSS background (one per theme and */
+/* size; the other theme's loads after 2 s, for the toggle). The snow   */
+/* is a 60 fps loop of only the region where it moves, cut from the     */
+/* same frame and graded the same way, so it sits on the still without  */
+/* a seam. It mounts after hydration, plays only while the hero is on a */
+/* visible tab, and fades in once frames arrive. Reduced motion,        */
+/* Save-Data and touch tablets keep the still. Assets:                  */
+/* public/home/splash (generated, then graded and encoded offline; see  */
+/* the PR that added them).                                             */
 /* ------------------------------------------------------------------ */
 
 const DIR = "/home/splash";

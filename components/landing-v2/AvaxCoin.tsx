@@ -12,7 +12,7 @@
 
 export default function AvaxCoin() {
   return (
-    <span className="relative size-12 shrink-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_34%_26%,#ff5c66_0%,#e6212f_46%,#a10f1a_100%)] shadow-[inset_0_1px_1px_rgb(255_255_255/0.45),inset_0_-3px_5px_rgb(0_0_0/0.3),0_8px_16px_-6px_rgb(230_33_47/0.6),0_1px_2px_rgb(0_0_0/0.25)]">
+    <span aria-hidden className="relative size-12 shrink-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_34%_26%,#ff5c66_0%,#e6212f_46%,#a10f1a_100%)] shadow-[inset_0_1px_1px_rgb(255_255_255/0.45),inset_0_-3px_5px_rgb(0_0_0/0.3),0_8px_16px_-6px_rgb(230_33_47/0.6),0_1px_2px_rgb(0_0_0/0.25)]">
       {/* the gloss: light falling on the disc's upper half */}
       <span className="absolute inset-x-[16%] top-[5%] h-[42%] rounded-[50%] bg-gradient-to-b from-white/35 to-transparent" />
       <svg

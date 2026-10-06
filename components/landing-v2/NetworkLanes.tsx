@@ -18,7 +18,7 @@ import { rosterOf, type LiveChain, type RosterRow } from "@/components/explorer-
    drifts from 600 px out, so the lanes open full, and shows one still read
    with reduced motion. */
 
-export const LANES = 4;
+const LANES = 4;
 /** below md a phone reads the C-Chain's lane alone (the first), with no
  *  time axis: the chapter fits one phone screen */
 export const PHONE_LANES = 1;
