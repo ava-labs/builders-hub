@@ -66,10 +66,11 @@ const boxStyle = (size: Size) => {
 const poster = (theme: Theme, size: Size) =>
   `background-image: url(${DIR}/${theme}-still-${size}.webp?v=${REV});` +
   `background-image: image-set(url(${DIR}/${theme}-still-${size}.avif?v=${REV}) type("image/avif"), url(${DIR}/${theme}-still-${size}.webp?v=${REV}) type("image/webp"));`;
-// As a CSS background, the still is found late and fetched behind the
-// scripts, yet on a phone it is the largest paint. So each size preloads it
-// early. The theme follows the system until the reader picks one, so the
-// color-scheme query picks the still most readers see.
+// As a CSS background, the still is found late (after the stylesheet, and
+// on a slow phone behind the scripts), yet it is the hero's largest paint.
+// So each size preloads it, and it paints without a fade: it is ready in the
+// first frame. The theme follows the system until the reader picks one, so
+// the color-scheme query picks the still most readers see.
 const preloadStills = () => {
   for (const size of ["desk", "phone"] as const)
     for (const theme of ["dark", "light"] as const)
@@ -80,6 +81,7 @@ const preloadStills = () => {
         media: `(${size === "desk" ? "min-width: 768px" : "max-width: 767px"}) and (prefers-color-scheme: ${theme})`,
       });
 };
+
 // A loop shows once it plays, only while its theme and size match the page,
 // and only once its theme's still is decoded: a loop over a still that is
 // still loading shows as a box.
@@ -115,7 +117,6 @@ const STYLE =
   `@media (prefers-reduced-motion: no-preference){.v2-hero-splash-loop[data-ready]{animation:v2-hero-splash-in 0.5s ease-out}}` +
   `@media (max-width: 767px){.v2-hero-splash{${frameVars(FRAME.phone)}}` +
   `.v2-hero-splash-poster{${poster("light", "phone")}}.dark .v2-hero-splash-poster{${poster("dark", "phone")}}}` +
-  `@media (prefers-reduced-motion: no-preference){.v2-hero-splash-poster{animation:v2-hero-splash-in 0.7s ease-out both}}` +
   `@keyframes v2-hero-splash-in{from{opacity:0}}`;
 
 const AV1_FIRST = ["av1", "avc"] as const;

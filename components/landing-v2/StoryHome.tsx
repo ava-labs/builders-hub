@@ -1369,12 +1369,7 @@ export default function StoryHome({
   }, []);
 
   return (
-    <motion.main
-      className="relative bg-white dark:bg-zinc-950"
-      initial={reducedMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-    >
+    <main className="relative bg-white dark:bg-zinc-950">
       <SheetBackdrop />
       <div className="relative">
         <ChapterOne />
@@ -1385,6 +1380,6 @@ export default function StoryHome({
         <LiveChainsChapter globeData={liveGlobeData} kiteTxCount={kiteTxCount} reducedMotion={!!reducedMotion} />
         <FinaleChapter reducedMotion={!!reducedMotion} />
       </div>
-    </motion.main>
+    </main>
   );
 }
