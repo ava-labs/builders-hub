@@ -22,7 +22,9 @@ import HeroSplash from "@/components/landing-v2/HeroSplash";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import PillarsChapter from "@/components/landing-v2/PillarsChapter";
 import ChainDiagram from "@/components/landing-v2/diagrams/ChainDiagram";
-import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
+import { formatCompact, formatCompactIn, formatExact } from "@/components/landing-v2/compactFigure";
+import NetworkLanes from "@/components/landing-v2/NetworkLanes";
+import { rosterOf } from "@/components/explorer-v2/network/network-reads";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ROTATE_MS, SCRUB_SPRING } from "@/components/landing-v2/scrub";
 import { track } from "@/components/landing-v2/track";
@@ -64,110 +66,107 @@ const DAY_SECONDS = 86_400;
 // every flow metric on the page reads over the same 30-day window
 const MONTH_SECONDS = 30 * DAY_SECONDS;
 
-// Money is set to the cent, always — a ledger doesn't round its own entries.
-const fmtUsd = (n: number) =>
-  `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
 // Extrapolated live counter for FLOW metrics (transactions, messages,
 // volume): the figure climbs at the average rate the aggregate implies,
 // then re-anchors when fresh data arrives. Levels (validators, stake)
 // must never use this — a ticking level would be fiction.
 // Re-anchoring never steps the visible figure backwards unless the
 // measurement window clearly rolled (new value well below what's shown).
-// integer=false keeps the raw float for money figures, whose cents tick live
-function useExtrapolatedCount(value: number, periodSeconds?: number, integer = true): number {
+function useExtrapolatedCount(value: number, periodSeconds?: number): number {
   const [display, setDisplay] = useState(value);
   const shownRef = useRef(value);
 
   useEffect(() => {
     shownRef.current =
       value < shownRef.current * 0.95 ? value : Math.max(shownRef.current, value);
-    setDisplay(integer ? Math.floor(shownRef.current) : shownRef.current);
+    setDisplay(Math.floor(shownRef.current));
     if (!periodSeconds || value <= 0) return;
     const rate = value / periodSeconds;
     const timer = setInterval(() => {
       shownRef.current += rate * 0.25;
-      setDisplay(integer ? Math.floor(shownRef.current) : shownRef.current);
+      setDisplay(Math.floor(shownRef.current));
     }, 250);
     return () => clearInterval(timer);
-  }, [value, periodSeconds, integer]);
+  }, [value, periodSeconds]);
 
   return display;
 }
 
-function LedgerFigure({
-  value,
-  animateIn,
-  tickPeriod,
-}: {
-  value: number;
-  animateIn: boolean;
-  /** seconds the aggregate covers; set only for flow metrics that should tick */
-  tickPeriod?: number;
-}) {
+// Compact on screen; the exact figure in the hover title and for screen
+// readers. The exact copy is unselectable, so a copied figure is the one shown.
+function Figure({ shown, exact, className }: { shown: string; exact: string; className?: string }) {
+  return (
+    <span className={className} title={exact}>
+      <span aria-hidden>{shown}</span>
+      <span className="sr-only select-none">{exact}</span>
+    </span>
+  );
+}
+
+const FIGURE_CLASS =
+  "font-mono text-2xl tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem] md:leading-8";
+// the dominant figure takes the display face: in mono, its decimal point
+// fills a whole cell at this size and splits the figure in two
+const STAKE_CLASS =
+  "v2-heading text-5xl tabular-nums leading-none text-zinc-900 dark:text-zinc-50 md:text-7xl xl:text-8xl";
+
+// Board figures are compact (three significant digits), so a live tick
+// would not move them. Transactions and validators refresh with the 60 s
+// poll; the other figures refresh when the page revalidates.
+function LedgerFigure({ value, animateIn }: { value: number; animateIn: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const [display, setDisplay] = useState(animateIn ? 0 : value);
   // live refreshes count from the last shown figure, not from zero again
   const shownRef = useRef(0);
-  const settledRef = useRef(!animateIn);
 
   useEffect(() => {
     if (!animateIn) {
-      shownRef.current = Math.max(shownRef.current, value);
-      setDisplay(Math.round(shownRef.current));
+      shownRef.current = value;
+      setDisplay(value);
       return;
     }
     if (!inView) return;
-    const from = shownRef.current;
-    const to = value < from * 0.95 ? value : Math.max(value, from);
-    const controls = animate(from, to, {
+    const controls = animate(shownRef.current, value, {
       duration: 1.4,
-      ease: [0.22, 1, 0.36, 1],
+      ease: EASE_OUT,
       onUpdate: (v) => {
         shownRef.current = v;
-        setDisplay(Math.round(v));
+        setDisplay(v);
       },
+      // land on the exact target, so the last frame is the compact figure
       onComplete: () => {
-        settledRef.current = true;
+        shownRef.current = value;
+        setDisplay(value);
       },
     });
     return () => controls.stop();
   }, [inView, value, animateIn]);
 
-  // after the entrance settles, flow metrics keep climbing in real time
-  useEffect(() => {
-    if (!tickPeriod || value <= 0) return;
-    const rate = value / tickPeriod;
-    const timer = setInterval(() => {
-      if (!settledRef.current) return;
-      shownRef.current += rate * 0.25;
-      setDisplay(Math.floor(shownRef.current));
-    }, 250);
-    return () => clearInterval(timer);
-  }, [value, tickPeriod]);
-
   return (
-    <span ref={ref} className="font-mono text-2xl md:text-[1.75rem] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
-      {display.toLocaleString("en-US")}
+    <span ref={ref}>
+      <Figure shown={formatCompactIn(display, value)} exact={formatExact(value)} className={FIGURE_CLASS} />
     </span>
   );
 }
 
 function LedgerCell({
   label,
+  period,
   children,
   live = false,
   href,
   className = "",
 }: {
   label: string;
+  /** the window a flow figure covers ("30D"); phones set it on its own line */
+  period?: string;
   children: React.ReactNode;
   live?: boolean;
   href?: string;
   className?: string;
 }) {
-  const cellClass = `flex flex-col gap-1.5 px-5 py-5 md:px-6 ${className}`;
+  const cellClass = `flex flex-col gap-1.5 px-5 py-3 md:px-6 md:py-5 ${className}`;
   const content = (
     <>
       <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400 lg:whitespace-nowrap">
@@ -177,7 +176,15 @@ function LedgerCell({
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
           </span>
         )}
-        {label}
+        <span>
+          {label}
+          {period && (
+            <>
+              <span className="max-sm:hidden"> · </span>
+              <span className="max-sm:block">{period}</span>
+            </>
+          )}
+        </span>
       </span>
       {children}
     </>
@@ -194,6 +201,8 @@ function LedgerCell({
   }
   return <div className={cellClass}>{content}</div>;
 }
+
+const FIRST_ROW_OF_TWO = "max-lg:border-b max-lg:border-zinc-200 dark:max-lg:border-zinc-800";
 
 function LedgerStrip({
   globeData,
@@ -215,16 +224,24 @@ function LedgerStrip({
     // chrome (border/background) is owned by the parent board
     <div className="w-full">
       <div className="mx-auto grid max-w-7xl grid-cols-2 lg:grid-cols-4 divide-x divide-zinc-200 dark:divide-zinc-800">
-        <LedgerCell label="TRANSACTIONS · 30D" live href="/explorer/mainnet">
+        {/* below lg the strip is two rows of two: a hairline closes the first row */}
+        <LedgerCell label="TRANSACTIONS" period="30D" live href="/explorer/mainnet" className={FIRST_ROW_OF_TWO}>
           {agg ? (
-            <LedgerFigure value={agg.totalTxCount} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
+            <LedgerFigure value={agg.totalTxCount} animateIn={animateIn} />
           ) : (
             <LedgerDash />
           )}
         </LedgerCell>
-        <LedgerCell label="CROSS-CHAIN MSGS · 30D" live href="/explorer/mainnet/chains">
+        {/* ends the first row of two below lg: no divider at the screen edge */}
+        <LedgerCell
+          label="CROSS-CHAIN MSGS"
+          period="30D"
+          live
+          href="/explorer/mainnet/chains"
+          className={`${FIRST_ROW_OF_TWO} max-lg:border-r-0`}
+        >
           {icmTotal30d > 0 ? (
-            <LedgerFigure value={icmTotal30d} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
+            <LedgerFigure value={icmTotal30d} animateIn={animateIn} />
           ) : (
             <LedgerDash />
           )}
@@ -238,6 +255,11 @@ function LedgerStrip({
       </div>
     </div>
   );
+}
+
+function UsdFigure({ value }: { value: number | null }) {
+  if (value === null) return <LedgerDash />;
+  return <Figure shown={formatCompact(value, "usd")} exact={formatExact(value, "usd")} className={FIGURE_CLASS} />;
 }
 
 function LedgerDash() {
@@ -432,6 +454,56 @@ function TokenStack({ srcs }: { srcs: string[] }) {
 /* Chapter 2 — proof: one dominant figure and its quiet receipts       */
 /* ------------------------------------------------------------------ */
 
+// The dominant figure: stake in USD, or in AVAX when the price is down
+function StakeFigure({
+  primaryStakeAvax,
+  primaryStakeUsd,
+  supplyStakedPct,
+}: {
+  primaryStakeAvax: number | null;
+  primaryStakeUsd: number | null;
+  supplyStakedPct: number | null;
+}) {
+  const avax =
+    primaryStakeAvax !== null
+      ? { shown: `${formatCompact(primaryStakeAvax)} AVAX`, exact: `${formatExact(primaryStakeAvax)} AVAX` }
+      : null;
+  return (
+    <Link
+      href="/explorer/mainnet/p-chain/validators"
+      className="group flex flex-col gap-2 md:gap-3 lg:items-end lg:text-right"
+    >
+      {/* the same link grammar as the page's other mono links: text plus arrow */}
+      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 transition-colors group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100">
+        STAKE SECURING THE NETWORK
+        <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+      </span>
+      {primaryStakeUsd !== null ? (
+        <Figure shown={formatCompact(primaryStakeUsd, "usd")} exact={formatExact(primaryStakeUsd, "usd")} className={STAKE_CLASS} />
+      ) : avax ? (
+        <Figure shown={avax.shown} exact={avax.exact} className={STAKE_CLASS} />
+      ) : (
+        <LedgerDash />
+      )}
+      {primaryStakeUsd !== null && avax && (
+        // one line on phones too, at a tighter tracking: the chapter fits one phone screen
+        <span className="font-mono text-[11px] tracking-[0.06em] text-zinc-600 sm:text-xs sm:tracking-[0.16em] dark:text-zinc-300">
+          <span className="whitespace-nowrap">
+            <Figure shown={avax.shown} exact={avax.exact} />
+            {supplyStakedPct !== null && <span> ·</span>}
+          </span>
+          {supplyStakedPct !== null && (
+            <>
+              {" "}
+              <span className="whitespace-nowrap">{supplyStakedPct.toFixed(1)}% OF CIRCULATING SUPPLY</span>
+            </>
+          )}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function StatsChapter({
   globeData,
   l1Count,
@@ -452,29 +524,31 @@ function StatsChapter({
   reducedMotion: boolean;
 }) {
   const staticMode = reducedMotion;
-  // DEX volume is a flow, so it ticks like the transaction counters — kept
-  // as a float so the cents visibly move with it
-  const liveDexVolume = useExtrapolatedCount(defi.dexVolume30dUsd ?? 0, MONTH_SECONDS, false);
+  // the lanes row is decided at first render: with no chains it stays out
+  // for the visit, since a row that came with a later poll would push the board down
+  const [lanesRow] = useState(() => rosterOf(globeData?.metrics?.chains ?? []).length > 0);
 
   return (
     // One panel: ledger, figures, and table are rows of the same board.
     // The whole board loads when the section snaps into view — rows cascade
     // in; nothing is gated behind further scrolling.
-    <section data-chapter="stats" className="v2-snap-section relative flex flex-col justify-center py-16 lg:min-h-[calc(100vh-3.5rem)] lg:py-0">
-      {/* reference-hero structure: arrowed eyebrow, measured headline on
-          the left, small mono caption holding the opposite corner */}
-      <div className="mx-auto mb-8 w-full max-w-7xl px-5 md:px-6">
+    <section data-chapter="stats" className="v2-snap-section relative flex flex-col justify-center pt-8 md:py-16 lg:min-h-[calc(100vh-3.5rem)] lg:py-0">
+      {/* the claim on the left, its proof on the right: the stake that
+          secures the network, the figure institutions underwrite */}
+      <div className="mx-auto mb-6 w-full max-w-7xl px-5 md:mb-10 md:px-6">
         <motion.div
-          className="flex items-center justify-between gap-10"
+          className="flex flex-col gap-5 md:gap-10 lg:flex-row lg:items-end lg:justify-between"
           initial={staticMode ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.6, ease: EASE_OUT }}
         >
           {/* staircase stack per the /solutions hero: lines step right,
-              the red period closes the set; the validator globe holds the
-              other end of the line */}
-          <h2 className="v2-display text-3xl text-zinc-900 dark:text-zinc-50 md:text-5xl xl:text-6xl">
+              the red period closes the set. The page's largest claim after
+              the hero: fluid with the width, so "TECHNOLOGY" plus the stake
+              figure fit one row from lg up, and with the height, so the
+              chapter fits one laptop screen */}
+          <h2 className="v2-display text-[clamp(2.5rem,11.5vw,3.25rem)] text-zinc-900 dark:text-zinc-50 md:text-[clamp(3.5rem,min(0.5rem_+_6vw,10vh),6.75rem)]">
             <span className="block">Technology</span>
             <span className="block" style={{ marginLeft: "0.6em" }}>
               built for
@@ -483,7 +557,11 @@ function StatsChapter({
               business<span className="text-[#E6212F]">.</span>
             </span>
           </h2>
-          <NetworkGlobe />
+          <StakeFigure
+            primaryStakeAvax={primaryStakeAvax}
+            primaryStakeUsd={primaryStakeUsd}
+            supplyStakedPct={supplyStakedPct}
+          />
         </motion.div>
       </div>
       <motion.div
@@ -493,43 +571,29 @@ function StatsChapter({
         whileInView="show"
         viewport={{ once: true, amount: 0.35 }}
       >
+        {/* the network now: every block the busiest chains make, as it lands */}
+        {lanesRow && (
+          <motion.div variants={ROW_VARIANTS}>
+            <div className="mx-auto w-full max-w-7xl px-5 py-3 md:px-6 md:pt-4">
+              <NetworkLanes
+                rows={globeData?.metrics?.chains ?? []}
+                reducedMotion={reducedMotion}
+                renderMark={(c) => <ChainMark chain={{ chainId: c.chainId, chainName: c.name, chainLogoURI: c.logo }} />}
+              />
+            </div>
+          </motion.div>
+        )}
         <motion.div variants={ROW_VARIANTS}>
           <LedgerStrip globeData={globeData} l1Count={l1Count} animateIn={!reducedMotion} />
         </motion.div>
 
-        {/* key stat: the economic security institutions underwrite. Row
-            wrappers stay full-width so the board's dividers run full-bleed;
-            content insets to the 7xl measure inside. */}
+        {/* on-chain capital. Row wrappers stay full-width so the board's
+            dividers run full-bleed; content insets to the 7xl measure. */}
         <motion.div variants={ROW_VARIANTS}>
-          <Link
-            href="/explorer/mainnet/p-chain/validators"
-            className="mx-auto flex w-full max-w-7xl flex-col justify-center gap-4 px-5 py-10 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900 lg:py-12"
-          >
-            <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-              STAKE SECURING THE NETWORK
-            </span>
-            <span className="font-mono text-4xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl md:text-6xl xl:text-8xl">
-              {primaryStakeUsd !== null
-                ? fmtUsd(primaryStakeUsd)
-                : primaryStakeAvax !== null
-                  ? `${primaryStakeAvax.toLocaleString("en-US")} AVAX`
-                  : "—"}
-            </span>
-            {primaryStakeUsd !== null && primaryStakeAvax !== null && (
-              <span className="font-mono text-xs tracking-[0.16em] text-zinc-600 dark:text-zinc-300">
-                {primaryStakeAvax.toLocaleString("en-US")} AVAX
-                {supplyStakedPct !== null && ` · ${supplyStakedPct.toFixed(1)}% OF CIRCULATING SUPPLY`}
-              </span>
-            )}
-          </Link>
-        </motion.div>
-
-        {/* on-chain capital */}
-        <motion.div variants={ROW_VARIANTS}>
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 divide-y divide-zinc-200 dark:divide-zinc-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0 lg:divide-zinc-200 dark:lg:divide-zinc-800">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-2 lg:grid-cols-3 lg:divide-x lg:divide-zinc-200 dark:lg:divide-zinc-800">
           <Link
             href="/explorer/mainnet/c-chain/defi/stablecoins"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
+            className="flex flex-col justify-between gap-1 px-5 py-3 transition-colors hover:bg-zinc-100 md:gap-1.5 md:px-6 md:py-6 dark:hover:bg-zinc-900 border-zinc-200 max-lg:col-span-2 max-lg:border-b dark:border-zinc-800"
           >
             <span className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -537,13 +601,11 @@ function StatsChapter({
               </span>
               <TokenStack srcs={["/logos/tokens/usdc.png", "/logos/tokens/usdt.png", "/logos/tokens/eurc.png", "/logos/tokens/jpyc.png", "/logos/tokens/xsgd.png"]} />
             </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem]">
-              {defi.stablesUsd !== null ? fmtUsd(defi.stablesUsd) : "—"}
-            </span>
+            <UsdFigure value={defi.stablesUsd} />
           </Link>
           <Link
             href="/explorer/mainnet/c-chain/defi"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
+            className="flex flex-col justify-between gap-1 px-5 py-3 transition-colors hover:bg-zinc-100 md:gap-1.5 md:px-6 md:py-6 dark:hover:bg-zinc-900 border-zinc-200 max-lg:border-r dark:border-zinc-800"
           >
             <span className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -551,13 +613,11 @@ function StatsChapter({
               </span>
               <TokenStack srcs={["/logos/tokens/aave.png", "/logos/tokens/benqi.png", "/logos/tokens/gmx.png"]} />
             </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem]">
-              {defi.tvlUsd !== null ? fmtUsd(defi.tvlUsd) : "—"}
-            </span>
+            <UsdFigure value={defi.tvlUsd} />
           </Link>
           <Link
             href="/explorer/mainnet/c-chain/defi"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
+            className="flex flex-col justify-between gap-1 px-5 py-3 transition-colors hover:bg-zinc-100 md:gap-1.5 md:px-6 md:py-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -565,13 +625,14 @@ function StatsChapter({
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
                 </span>
-                DEX VOLUME · 30D
+                <span>
+                  DEX VOLUME<span className="max-sm:hidden"> · </span>
+                  <span className="max-sm:block">30D</span>
+                </span>
               </span>
               <TokenStack srcs={["/logos/tokens/uniswap.png", "/logos/tokens/lfj.png", "/logos/tokens/pharaoh.png"]} />
             </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem]">
-              {liveDexVolume > 0 ? fmtUsd(liveDexVolume) : "—"}
-            </span>
+            <UsdFigure value={defi.dexVolume30dUsd} />
           </Link>
         </div>
         </motion.div>
@@ -581,7 +642,7 @@ function StatsChapter({
           <HoverPrefetchLink
             href="/explorer"
             onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore the network", href: "/explorer" })}
-            className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-5"
+            className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-4 md:py-5"
           >
             <span
               aria-hidden
