@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-05T00:02:04.744Z",
+  "createdAt": "2026-10-06T02:49:21.140Z",
   "payload": {
     "actions": [
       {
@@ -20,9 +20,12 @@
     "recordedFor": {
       "testId": "ai/journey-profile.e2e.ts::a%20new%20visitor%20signs%20up%2C%20then%20finds%20their%20Academy%20progress%20and%20Console%20history",
       "targetId": "desktop",
-      "instructionDigest": "39746c007146270eb40d281a2161bdade052a5b944eeff8225f413db291d2eab"
+      "instructionDigest": "39746c007146270eb40d281a2161bdade052a5b944eeff8225f413db291d2eab",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
     },
-    "summary": "Opened Achievements tab on /profile (?tab=achievements). The Academy region shows Progress \"2 of 13 courses\" with an \"Academy courses completed\" progressbar. Badges: Avalanche Fundamentals earned, Interchain Messaging not yet earned.",
+    "summary": "Opened Profile > Achievements (/profile?tab=achievements). Academy section shows Progress \"2 of 13 courses\" with progress bar; badges: Avalanche Fundamentals earned, Interchain Messaging not yet earned.",
     "startPath": "/profile",
     "endPath": "/profile?tab=achievements",
     "endAnchors": [
@@ -55,6 +58,38 @@
         "text": "Earned"
       }
     ],
-    "endWaitMs": 12284
+    "goneAnchors": [
+      {
+        "role": "heading",
+        "name": "Personal info"
+      },
+      {
+        "role": "heading",
+        "name": "Profile"
+      },
+      {
+        "text": "Full name"
+      },
+      {
+        "role": "textbox",
+        "name": "Full name",
+        "value": "Test Builder"
+      },
+      {
+        "text": "Bio"
+      },
+      {
+        "role": "textbox",
+        "name": "Bio",
+        "value": "I build L1s for payments."
+      },
+      {
+        "text": "What you build, in a sentence or two."
+      },
+      {
+        "text": "25/250"
+      }
+    ],
+    "endWaitMs": 12380
   }
 }

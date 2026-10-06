@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-05T03:20:49.263Z",
+  "createdAt": "2026-10-06T02:50:34.629Z",
   "payload": {
     "actions": [
       {
@@ -13,11 +13,11 @@
       },
       {
         "name": "tap",
-        "summary": "tap link \"P-Chain\" in \"All Networks\"",
+        "summary": "tap link \"P-Chain\" in \"Network\"",
         "target": {
           "role": "link",
           "name": "P-Chain",
-          "within": "All Networks"
+          "within": "Network"
         }
       }
     ],
@@ -33,16 +33,16 @@
       "callIndex": 0,
       "agent": "default"
     },
-    "summary": "Switched the explorer chain selector from C-Chain to P-Chain. The page is now /explorer/mainnet/p-chain/blocks, headed \"P-Chain Explorer\", and lists P-Chain blocks (e.g. 25,618,190).",
+    "summary": "Opened the chain switcher and chose \"P-Chain\". The explorer is now at /explorer/mainnet/p-chain/blocks. The heading reads \"P-Chain Explorer\" and the chain button shows \"P-Chain\".",
     "startPath": "/explorer/mainnet/c-chain/blocks",
     "endPath": "/explorer/mainnet/p-chain/blocks",
     "endAnchors": [
       {
-        "role": "heading",
-        "name": "P-Chain Explorer"
+        "text": "P-Chain"
       },
       {
-        "text": "P-Chain"
+        "role": "heading",
+        "name": "P-Chain Explorer"
       },
       {
         "role": "link",
@@ -74,11 +74,11 @@
     ],
     "goneAnchors": [
       {
-        "role": "heading",
-        "name": "Avalanche C-Chain Explorer"
+        "text": "C-Chain"
       },
       {
-        "text": "C-Chain"
+        "role": "heading",
+        "name": "Avalanche C-Chain Explorer"
       },
       {
         "role": "link",
@@ -104,6 +104,6 @@
         "text": "Block Time"
       }
     ],
-    "endWaitMs": 12524
+    "endWaitMs": 12876
   }
 }
