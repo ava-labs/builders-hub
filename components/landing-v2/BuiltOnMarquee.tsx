@@ -84,15 +84,24 @@ function TapeRow({
             rel="noopener noreferrer"
             className="flex shrink-0 items-center gap-3 border-r border-zinc-200 px-5 py-3.5 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900 lg:gap-3.5 lg:px-8 lg:py-5"
           >
-            <img
-              src={chain.image}
-              alt=""
-              className="h-6 w-6 rounded-full object-contain lg:h-7 lg:w-7"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
+            {/* one fit rule for every logo: a round chip in the brand's
+                color, the mark pre-padded inside its square asset (see
+                builtOnChains.ts), a hairline ring so light chips hold
+                their edge on the light sheet and dark chips on the dark */}
+            <span
+              className="h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-inset ring-zinc-950/10 dark:ring-white/15 lg:h-7 lg:w-7"
+              style={{ background: chain.chip }}
+            >
+              <img
+                src={chain.image}
+                alt=""
+                className="h-full w-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </span>
             <span className="whitespace-nowrap text-sm font-medium text-zinc-800 dark:text-zinc-200 lg:text-base">
               {chain.name}
             </span>
