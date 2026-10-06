@@ -22,6 +22,7 @@ import { ShareMap } from "@/components/explorer-v2/ShareMap";
 import { dayLong, dayShort, hourLong } from "@/components/explorer-v2/format";
 import { ColumnsBlock, TraceBlock, WeekGrid, cellName, type TraceRow } from "@/components/explorer-v2/gas/instruments";
 import { protocolShareParts } from "@/components/explorer-v2/gas/buyers";
+import { GasBurn } from "@/components/explorer-v2/gas/burn";
 
 /* The chain's gas market as one instrument, in depth: what a unit of
    blockspace costs right now (RPC, live), what your transaction costs in
@@ -509,6 +510,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
           />
         </div>
       )}
+
+      {/* the AVAX the gas cost: burned per day, and who paid the most of it */}
+      <GasBurn chainId={evmChainId} base={base} range={range} usd={usd} />
 
       {/* the longer record, and when blockspace is cheap */}
       <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">

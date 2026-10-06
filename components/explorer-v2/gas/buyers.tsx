@@ -110,9 +110,9 @@ export function ProtocolTable({
   );
 }
 
-const PTH =
+export const PTH =
   "px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-6";
-const PTD = "px-5 py-3 text-[13px] md:px-6";
+export const PTD = "px-5 py-3 text-[13px] md:px-6";
 
 /** the buyers as share-map parts; the long-tail group is a remainder, so it closes the strip */
 export function protocolShareParts(protocols: GasProtocol[], names: Map<string, string>, base: string) {
