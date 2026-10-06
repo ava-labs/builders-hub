@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { PILLARS } from "@/components/landing-v2/pillars";
@@ -34,11 +34,46 @@ export default function PillarsChapter({ reducedMotion }: { reducedMotion: boole
     return () => clearInterval(timer);
   }, [reducedMotion, inView, cycle]);
 
-  const select = (slug: PillarSlug) => {
-    track("home_pillar_selected", { pillar: slug });
+  const select = useCallback((slug: PillarSlug, via: "click" | "swipe" = "click") => {
+    track("home_pillar_selected", { pillar: slug, via });
     setCycle((c) => c + 1);
     setActiveIdx(PILLARS.findIndex((p) => p.slug === slug));
-  };
+  }, []);
+
+  // A sideways two-finger swipe on a trackpad steps to the next or previous
+  // guarantee: one step per swipe (its momentum events are swallowed until
+  // the wheel goes quiet), and the browser never takes it as back/forward.
+  // Vertical scrolling passes through to the page.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(activeIdx);
+  activeRef.current = activeIdx;
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    let travel = 0;
+    let locked = false;
+    let quiet = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      window.clearTimeout(quiet);
+      quiet = window.setTimeout(() => {
+        travel = 0;
+        locked = false;
+      }, 220);
+      if (locked) return;
+      travel += e.deltaX;
+      if (Math.abs(travel) < 40) return;
+      locked = true;
+      const next = (activeRef.current + (travel > 0 ? 1 : -1) + PILLARS.length) % PILLARS.length;
+      select(PILLARS[next].slug, "swipe");
+    };
+    stage.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      stage.removeEventListener("wheel", onWheel);
+      window.clearTimeout(quiet);
+    };
+  }, [select]);
 
   return (
     <section
@@ -57,7 +92,7 @@ export default function PillarsChapter({ reducedMotion }: { reducedMotion: boole
           {/* brand accordion: the active guarantee expands, the rest wait as
               numbered strips. Panels are always brand-dark (#1F1F1F), so the
               diagram wrapper carries `dark` to flip its palette locally. */}
-          <div className="flex h-[min(74vh,680px)] flex-col gap-3 lg:flex-row">
+          <div ref={stageRef} className="flex h-[min(74vh,680px)] flex-col gap-3 lg:flex-row">
             {PILLARS.map((pillar, i) => {
               const isActive = i === activeIdx;
               const number = `0${i + 1}`;
