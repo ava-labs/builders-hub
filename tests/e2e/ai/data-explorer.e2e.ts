@@ -5,7 +5,8 @@ import { DATA } from '../explorer/explorer-page';
 import { desktopOnly, needsModel } from '../lib/skip';
 
 // Data tests: the agent reads facts off a page, and plain code compares them with the known truth.
-// Explorer data is live, so these read only facts that never change: chain identity and past blocks.
+// Explorer data is live. Most tests here read facts that never change: chain identity and past blocks. The gas page
+// test reads live burn figures and checks only relations that always hold between them.
 
 // The chain record at the foot of a C-Chain overview (components/explorer/EvmChainDetails.tsx).
 const CHAINS = [
@@ -90,3 +91,78 @@ for (const block of BLOCKS) {
     expect({ ...facts, hash: facts.hash.toLowerCase(), parentHash: facts.parentHash.toLowerCase() }).toEqual(truth);
   });
 }
+
+// A compact figure as the explorer writes it ("10.8K", "1.2M", "985", also with its unit after it) as a number.
+function compactValue(text: string): number {
+  const m = /^\$?([\d,.]+)\s*([KMB]?)/.exec(text.trim());
+  if (!m) return Number.NaN;
+  return Number(m[1].replace(/,/g, '')) * ({ K: 1e3, M: 1e6, B: 1e9 }[m[2]] ?? 1);
+}
+
+// The value of a compact figure's last digit: "10.8K" steps by 100, "985" by 1.
+function compactStep(text: string): number {
+  const m = /^\$?[\d,]+(?:\.(\d+))?\s*([KMB]?)/.exec(text.trim());
+  return 10 ** -(m?.[1]?.length ?? 0) * ({ K: 1e3, M: 1e6, B: 1e9 }[m?.[2] ?? ''] ?? 1);
+}
+
+// The burn sections of the C-Chain gas page (components/explorer-v2/gas/burn.tsx) on the week clock. The burn is
+// live, so the test checks relations that always hold. The chart reads the burn address's daily gain, and the board
+// adds up the indexed transactions, which read up to about 0.5% high since Helicon. When both blocks name the same
+// days, their totals agree to within that and the rounding of the figures. For some hours after midnight the chart
+// can still end a day earlier than the board; the test then skips that one check.
+test('mainnet c-chain gas page burn figures are positive and agree with each other', async (fixtures) => {
+  needsModel();
+  const { app, agent, browser, screen } = fixtures;
+  await app.open('/explorer/mainnet/c-chain/gas');
+  await desktopOnly(browser, 'the figures are the same at both sizes');
+  // The page opens on the month clock. The week board replaces the month board when its read lands.
+  const boardWindow = screen.getByText(/^paid [\d.]+[KM]? AVAX · /);
+  await expect(boardWindow).toBeVisible(DATA);
+  const monthWindow = await boardWindow.textContent();
+  await screen.getByRole('radio', '1W').tap();
+  await expect(boardWindow).not.toHaveText(monthWindow ?? '', DATA);
+  await expect(screen.getByText(/ per day · [A-Z][a-z]{2} \d{1,2}(, \d{4})? to [A-Z][a-z]{2} \d{1,2}(, \d{4})?$/)).toBeVisible(DATA);
+  await expect(screen.getByRole('table', 'Top burners').getByRole('row')).toHaveCount(11);
+
+  const facts = await agent.extract(
+    'Read the two burn blocks of this gas page. From the "AVAX Burned" block, copy its large figure, the amount ' +
+      'it says is burned per day, and the days it covers (for example "Sep 29 to Oct 5"). From the "Top Burners" ' +
+      'block, copy the AVAX amount after the word "paid", the days after it, and each of the ten table rows: its AVAX ' +
+      'burned, its share in percent and its transaction count, as plain numbers without separators. Copy the two ' +
+      'figures and the per-day amount as the page writes them, with their K or M and without the word AVAX.',
+    {
+      schema: z.object({
+        burnedFigure: z.string(),
+        perDay: z.string(),
+        chartDays: z.string(),
+        boardPaid: z.string(),
+        boardDays: z.string(),
+        rows: z.array(z.object({ avaxBurned: z.number(), sharePercent: z.number(), txs: z.number().int() })),
+      }),
+    },
+  );
+  const burned = compactValue(facts.burnedFigure);
+  const paid = compactValue(facts.boardPaid);
+  expect(burned).toBeGreaterThan(0);
+  expect(paid).toBeGreaterThan(0);
+  expect(compactValue(facts.perDay)).toBeGreaterThan(0);
+  expect(facts.rows).toHaveLength(10);
+  for (const [i, row] of facts.rows.entries()) {
+    expect(row.avaxBurned).toBeGreaterThan(0);
+    expect(row.txs).toBeGreaterThan(0);
+    expect(row.sharePercent).toBeGreaterThan(0);
+    expect(row.sharePercent).toBeLessThan(100);
+    // the rank follows the burn
+    if (i > 0) expect(row.avaxBurned).toBeLessThanOrEqual(facts.rows[i - 1].avaxBurned);
+    // a share is the row's burn over the window's total, to the rounding of the shown total and of the share
+    expect(Math.abs(row.sharePercent - (row.avaxBurned / paid) * 100)).toBeLessThan(
+      0.06 + row.sharePercent * (compactStep(facts.boardPaid) / 2 / paid + 0.01),
+    );
+  }
+  expect(facts.rows.reduce((s, r) => s + r.sharePercent, 0)).toBeLessThan(100);
+
+  // The window totals agree when both blocks count the same days.
+  test.skip(facts.chartDays.trim() !== facts.boardDays.trim(), `the chart covers ${facts.chartDays} and the board ${facts.boardDays}`);
+  const step = Math.max(compactStep(facts.burnedFigure), compactStep(facts.boardPaid));
+  expect(Math.abs(paid - burned)).toBeLessThanOrEqual(step + 0.005 * burned);
+});

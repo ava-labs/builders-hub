@@ -213,6 +213,12 @@ export interface FeeBucket {
   icmFees: number;
 }
 
+/** the burn's red: a stack layer's faces and its key's swatch */
+export const BURN_RED = {
+  faces: ["fill-[#EE5A65] dark:fill-[#B8232F]", "fill-[#F8A5AB] dark:fill-[#D9434E]", "fill-[#C42331] dark:fill-[#7A1119]"],
+  swatch: "bg-[#EE5A65] dark:bg-[#B8232F]",
+} as const;
+
 const BURN_LAYERS: StackLayer[] = [
   {
     key: "icm",
@@ -221,17 +227,11 @@ const BURN_LAYERS: StackLayer[] = [
     faces: ["fill-[#F6BDC1] dark:fill-[#6E2A30]", "fill-[#FBDDE0] dark:fill-[#8A3B42]", "fill-[#E08E95] dark:fill-[#4E1A1F]"],
     swatch: "bg-[#F6BDC1] dark:bg-[#6E2A30]",
   },
-  {
-    key: "rest",
-    label: "Other",
-    what: "every other C-Chain transaction",
-    faces: ["fill-[#EE5A65] dark:fill-[#B8232F]", "fill-[#F8A5AB] dark:fill-[#D9434E]", "fill-[#C42331] dark:fill-[#7A1119]"],
-    swatch: "bg-[#EE5A65] dark:bg-[#B8232F]",
-  },
+  { key: "rest", label: "Other", what: "every other C-Chain transaction", ...BURN_RED },
 ];
 
 /* the Helicon upgrade: fees follow max(gas used, half the limit) from here */
-const HELICON = "2026-09-22";
+export const HELICON = "2026-09-22";
 
 export function BurnHistory({
   buckets,
