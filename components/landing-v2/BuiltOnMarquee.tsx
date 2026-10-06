@@ -112,6 +112,10 @@ function TapeRow({
   );
 }
 
+// Seconds per half-track loop of each row: slow enough to read a name as it
+// passes, and different per row so the three never move in step.
+const ROW_SECONDS = [112, 141, 163] as const;
+
 export default function BuiltOnMarquee({ embedded = false }: { embedded?: boolean }) {
   if (embedded) {
     // hero fold band: no header, three tapes
@@ -119,9 +123,9 @@ export default function BuiltOnMarquee({ embedded = false }: { embedded?: boolea
     BUILT_ON_CHAINS.forEach((chain, i) => rows[i % 3].push(chain));
     return (
       <div className="w-full divide-y divide-zinc-200 border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
-        <TapeRow chains={rows[0]} direction="left" speed={70} />
-        <TapeRow chains={rows[1]} direction="right" speed={88} />
-        <TapeRow chains={rows[2]} direction="left" speed={102} />
+        <TapeRow chains={rows[0]} direction="left" speed={ROW_SECONDS[0]} />
+        <TapeRow chains={rows[1]} direction="right" speed={ROW_SECONDS[1]} />
+        <TapeRow chains={rows[2]} direction="left" speed={ROW_SECONDS[2]} />
       </div>
     );
   }
@@ -146,9 +150,9 @@ export default function BuiltOnMarquee({ embedded = false }: { embedded?: boolea
       </div>
 
       <div className="divide-y divide-zinc-200 border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
-        <TapeRow chains={rows[0]} direction="left" speed={70} />
-        <TapeRow chains={rows[1]} direction="right" speed={88} />
-        <TapeRow chains={rows[2]} direction="left" speed={102} />
+        <TapeRow chains={rows[0]} direction="left" speed={ROW_SECONDS[0]} />
+        <TapeRow chains={rows[1]} direction="right" speed={ROW_SECONDS[1]} />
+        <TapeRow chains={rows[2]} direction="left" speed={ROW_SECONDS[2]} />
       </div>
     </section>
   );
