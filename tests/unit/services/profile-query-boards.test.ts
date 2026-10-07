@@ -16,7 +16,7 @@ vi.mock("@/lib/auth/authSession", () => ({ getAuthSession }));
 
 import { NextRequest } from "next/server";
 import { boardFromPlayground, PLAYGROUND_SCOPE, playgroundBoardId } from "@/lib/explorer-query/playground";
-import { MAX_TILES } from "@/lib/explorer-query/board-wire";
+import { MAX_TILES } from "@/lib/explorer-query/board-limits";
 import { chainLabelOf, getProfileBoards, MAX_PROFILE_BOARDS, playgroundCharts } from "@/server/services/query-boards";
 import { GET } from "@/app/api/profile/query-boards/route";
 

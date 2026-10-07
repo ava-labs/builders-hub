@@ -1,7 +1,8 @@
 import { prisma } from "@/prisma/prisma";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { boardHref, playgroundBoardId } from "@/lib/explorer-query/board-links";
-import { boardIdSchema, MAX_TILES, scopeSchema } from "@/lib/explorer-query/board-wire";
+import { boardIdSchema, scopeSchema } from "@/lib/explorer-query/board-wire";
+import { MAX_TILES } from "@/lib/explorer-query/board-limits";
 import { isMetricKey, METRIC_CHAIN } from "@/lib/explorer-query/stats-metrics";
 
 /* The Query boards of one user, in every scope, for the profile. A
