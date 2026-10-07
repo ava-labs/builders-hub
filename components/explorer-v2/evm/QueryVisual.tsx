@@ -11,13 +11,13 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names, Totals } from "@/lib/explorer-query/types";
 import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPick, type Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
-import { MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
+import { isTime } from "@/lib/explorer-query/values";
 import { wholeFigure } from "@/lib/explorer-query/stat-label";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 import { rowCount, SAID_PARTIAL } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
-import { fmt, fmtX, nameFor, spanOf, type Span } from "./query-format";
+import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, xText } from "./query-format";
 
 export { fmt, fmtX, nameFor, spanOf } from "./query-format";
 
@@ -42,47 +42,11 @@ const DIM = 0.22;
 const DOT_INK = { "--qv-on": 1, "--qv-off": 0.35 } as CSSProperties;
 
 type Row = Record<string, unknown>;
-const clip = (t: string, n = 26) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
-
-function xText(names: Names, x: string | undefined, v: unknown, span: Span): string {
-  const name = nameFor(names, x, v);
-  if (name) return clip(name);
-  if (isAddress(v) || isHash(v)) return truncate(v, 6);
-  if (typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v)) return v.toLowerCase();
-  return clip(fmtX(v, span));
-}
-
 /* ------------------------------------------------------------------ */
 /* selection helpers                                                   */
 
 const inSelection = (sel: Selection, r: Row) => sel.every((p) => matches(r, p));
 const pickValue = (v: unknown): string | number => (typeof v === "number" ? v : String(v ?? ""));
-
-/** a time as a person says it: "Sep 3", or "Sep 3 14:00" inside a day */
-function when(v: string): { day: string; hm: string } {
-  const d = new Date(order(v) as number);
-  const hm = v.length > 10 ? v.replace("T", " ").slice(11, 16) : "";
-  return { day: `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}`, hm: hm === "00:00" ? "" : hm };
-}
-
-function chipValue(names: Names, column: string, v: string | number): string {
-  if (typeof v === "string" && isTime(v)) {
-    const w = when(v);
-    return w.hm ? `${w.day} ${w.hm}` : w.day;
-  }
-  return xText(names, column, v, "other");
-}
-
-function chipRange(names: Names, column: string, from: string | number, to: string | number): string {
-  if (from === to) return chipValue(names, column, from);
-  if (typeof from === "string" && typeof to === "string" && isTime(from) && isTime(to)) {
-    const a = when(from);
-    const b = when(to);
-    if (a.day === b.day) return a.hm || b.hm ? `${a.day} ${a.hm || "00:00"} to ${b.hm || "24:00"}` : a.day;
-    return `${a.hm ? `${a.day} ${a.hm}` : a.day} to ${b.hm ? `${b.day} ${b.hm}` : b.day}`;
-  }
-  return `${chipValue(names, column, from)} to ${chipValue(names, column, to)}`;
-}
 
 /* ------------------------------------------------------------------ */
 /* the selection, as chips                                             */

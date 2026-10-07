@@ -1,12 +1,13 @@
-import { formatNumber } from "@/components/explorer-v2/format";
+import { formatNumber, truncate } from "@/components/explorer-v2/format";
+import { order } from "@/lib/explorer-query/selection";
 import type { Names } from "@/lib/explorer-query/types";
 import type { Format } from "@/lib/explorer-query/visual";
-import { isTime } from "@/lib/explorer-query/values";
+import { MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 
 /* A query answer's figures and times as the page writes them: in the
-   unit the designer named, in a table or on an axis, and the name a
-   decoded value reads as. Shared by the answer's charts, its rows, its
-   inspector and the city's answer window. */
+   unit the designer named, in a table, on an axis or on a selection
+   chip, and the name a decoded value reads as. Shared by the answer's
+   charts, its rows, its inspector and the city's answer window. */
 
 export type Span = "minutes" | "hours" | "days" | "other";
 
@@ -75,4 +76,40 @@ function fixed(v: number, format: Format, sym: string, axis: boolean): string {
 
 export function nameFor(names: Names, col: string | undefined, v: unknown): string | undefined {
   return col && typeof v === "string" ? names[col]?.[v.toLowerCase()] : undefined;
+}
+
+const clip = (t: string, n = 26) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+
+export function xText(names: Names, x: string | undefined, v: unknown, span: Span): string {
+  const name = nameFor(names, x, v);
+  if (name) return clip(name);
+  if (isAddress(v) || isHash(v)) return truncate(v, 6);
+  if (typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v)) return v.toLowerCase();
+  return clip(fmtX(v, span));
+}
+
+/** a time as a person says it: "Sep 3", or "Sep 3 14:00" inside a day */
+function when(v: string): { day: string; hm: string } {
+  const d = new Date(order(v) as number);
+  const hm = v.length > 10 ? v.replace("T", " ").slice(11, 16) : "";
+  return { day: `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}`, hm: hm === "00:00" ? "" : hm };
+}
+
+export function chipValue(names: Names, column: string, v: string | number): string {
+  if (typeof v === "string" && isTime(v)) {
+    const w = when(v);
+    return w.hm ? `${w.day} ${w.hm}` : w.day;
+  }
+  return xText(names, column, v, "other");
+}
+
+export function chipRange(names: Names, column: string, from: string | number, to: string | number): string {
+  if (from === to) return chipValue(names, column, from);
+  if (typeof from === "string" && typeof to === "string" && isTime(from) && isTime(to)) {
+    const a = when(from);
+    const b = when(to);
+    if (a.day === b.day) return a.hm || b.hm ? `${a.day} ${a.hm || "00:00"} to ${b.hm || "24:00"}` : a.day;
+    return `${a.hm ? `${a.day} ${a.hm}` : a.day} to ${b.hm ? `${b.day} ${b.hm}` : b.day}`;
+  }
+  return `${chipValue(names, column, from)} to ${chipValue(names, column, to)}`;
 }
