@@ -12,11 +12,11 @@ import { monitorFor } from "@/lib/explorer-query/monitor-feed";
 import { answerQuestion, drillSql, keptWords, type QueryEvent } from "@/lib/explorer-query/answer";
 import { totalsOf } from "@/lib/explorer-query/cut";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
-import { runKept } from "@/lib/explorer-query/run-cache";
+import { isKept, runKept } from "@/lib/explorer-query/run-cache";
 import { profileSql, type DrillProfile } from "@/lib/explorer-query/drill-profile";
 import { sourceNotes } from "@/lib/explorer-query/sources";
 import { targetOf } from "@/lib/explorer-query/target";
-import { checkChatRateLimit, formatResetTime, getClientIP } from "@/lib/chat/rateLimit";
+import { checkChatRateLimit, formatResetTime, getClientIP, type RateLimits } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { TRACE, askerOf, sendQuestion, sendStage, sourceOf, type Asked, type Asker, type Stage } from "@/lib/explorer-query/analytics";
 import type { ModelCall } from "@/lib/explorer-query/meter";
@@ -63,6 +63,18 @@ function keepRead(key: string, read: Read) {
   reads.delete(key);
   reads.set(key, { ...read, at: Date.now() });
   while (reads.size > READS_MAX) reads.delete(reads.keys().next().value as string);
+}
+
+/** reads with no model in front of them (an edited query, a board's tile, a drill), per address an hour, counted only
+    when no kept run answers them: a cold board takes one per tile, and its next readers take none. By address alone,
+    so no read waits on a session */
+const READS: RateLimits = { anonymous: { maxRequests: 120, windowMs: 3600_000 }, authenticated: { maxRequests: 120, windowMs: 3600_000 } };
+
+/** a 429 when this address has run too many reads the run cache did not answer; null when the read may run */
+function overReads(req: Request, sql: string, chainId: number): NextResponse | null {
+  if (isKept(sql, chainId)) return null;
+  const limit = checkChatRateLimit(getClientIP(req), false, READS, "query-read");
+  return limit.allowed ? null : NextResponse.json({ error: `This address has run ${limit.limit} queries this hour. Try again ${formatResetTime(limit.resetTime)}.` }, { status: 429 });
 }
 
 /** the answer's read while it is fresh, else the kept SQL read again with its names and totals */
@@ -122,6 +134,8 @@ export async function POST(req: Request) {
   if (body.drill && typeof body.drill.sql === "string" && body.drill.row && typeof body.drill.row === "object") {
     const d = drillSql(body.drill.sql, body.drill.row, chainId);
     if (!d.ok) return NextResponse.json({ error: d.error }, { status: 400 });
+    const over = overReads(req, d.sql, chainId);
+    if (over) return over;
     try {
       // the bucket's bins read beside the records: two queries, the most one request holds on stats-api
       const [run, profile] = await Promise.all([runKept(d.sql, chainId), binsOf(d.sql, body.drill.span, chainId)]);
@@ -137,6 +151,8 @@ export async function POST(req: Request) {
   if (typeof body.sql === "string" && !body.prompt) {
     const g = guardSql(body.sql, chainId);
     if (!g.ok) return NextResponse.json({ error: g.error }, { status: 400 });
+    const over = overReads(req, g.sql, chainId);
+    if (over) return over;
     try {
       // a board's tiles: many readers, one run a minute per query
       const run = await runKept(g.sql, chainId);
