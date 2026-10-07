@@ -125,7 +125,7 @@ export function knownChainName(cb58?: string): string | undefined {
 export function classifyLocally(q: string): { type: "block" | "node" | "address"; id: string } | null {
   if (/^\d+$/.test(q)) return { type: "block", id: q };
   if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) return { type: "node", id: q };
-  if (/^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
+  if (/^([XP]-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
   return null;
 }
 
