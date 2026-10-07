@@ -6,8 +6,8 @@
 import { withQuerySlot } from "@/lib/clickhouse/client";
 import { MAX_ROWS } from "./guard";
 import { headTime } from "./head";
-import { refSchema, withSources } from "./sources";
-import { targetOf } from "./target";
+import { networkChains, refSchema, withSources, type NetworkChain } from "./sources";
+import { NETWORK_ID, targetOf } from "./target";
 import type { SourceNote } from "./types";
 
 export interface ColumnMeta {
@@ -401,8 +401,9 @@ async function queryCoverage(chainId: number): Promise<Coverage | null> {
   return value;
 }
 
-/** what window of this chain the database holds */
+/** what window of this chain the database holds; null for the network, whose chains each hold their own */
 export async function coverage(chainId: number): Promise<Coverage | null> {
+  if (chainId === NETWORK_ID) return null;
   try {
     return await readCoverage(chainId);
   } catch {
@@ -413,12 +414,56 @@ export async function coverage(chainId: number): Promise<Coverage | null> {
 /** for the page: the chain's window, "empty" when nothing is indexed, or
     null when the database did not answer in time (the page then says nothing) */
 export async function indexState(chainId: number, timeoutMs = 4000): Promise<Coverage | "empty" | null> {
+  if (chainId === NETWORK_ID) return null;
   const read = readCoverage(chainId).then(
     (c) => c ?? ("empty" as const),
     () => null,
   );
   const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
   return Promise.race([read, late]);
+}
+
+/** every network chain's window, from one read of raw_blocks grouped by chain; each seeds that chain's own window, so
+    the network costs one read where its chains would cost one each. Kept as a chain's own is */
+let networkRead: { at: number; value: Promise<Map<number, Coverage>> } | null = null;
+function networkCoverage(chains: readonly NetworkChain[]): Promise<Map<number, Coverage>> {
+  if (networkRead && Date.now() - networkRead.at < COVERAGE_TTL_MS) return networkRead.value;
+  const value = runQuery(
+    `SELECT chain_id, toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id IN (${chains.map((c) => c.chainId).join(", ")}) GROUP BY chain_id`,
+  ).then((r) => {
+    const by = new Map<number, Coverage>();
+    for (const row of r.rows) {
+      const c = { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
+      by.set(Number(row.chain_id), c);
+      coverageCache.set(Number(row.chain_id), { at: Date.now(), value: c });
+    }
+    return by;
+  });
+  networkRead = { at: Date.now(), value };
+  value.catch(() => {
+    if (networkRead?.value === value) networkRead = null;
+  });
+  return value;
+}
+
+/** what the network's prompt says of its windows: the chains that stop more than a day before the C-Chain, and those
+    with no rows. Null when the database does not answer */
+export async function networkCoverageText(): Promise<string | null> {
+  const chains = await networkChains();
+  try {
+    const by = await networkCoverage(chains);
+    const c = by.get(43114);
+    if (!c) return null;
+    const behind = chains.filter((x) => (by.get(x.chainId)?.untilUnix ?? Infinity) < c.untilUnix - 86_400);
+    const empty = chains.filter((x) => !by.has(x.chainId));
+    const day = (x: NetworkChain) => by.get(x.chainId)!.until.slice(0, 10);
+    return [
+      `raw_blocks holds the network's ${by.size} chains to within a day of the C-Chain's last block (${c.until} UTC)${behind.length ? `, except these, whose index stops earlier: ${behind.map((x) => `${x.name} (${x.chainId}) on ${day(x)}`).join("; ")}` : ""}.`,
+      empty.length ? `No rows for: ${empty.map((x) => `${x.name} (${x.chainId})`).join(", ")}.` : "",
+    ].join(" ").trim();
+  } catch {
+    return null;
+  }
 }
 
 export function coverageText(chainId: number, c: Coverage): string {
@@ -442,8 +487,10 @@ export async function anchored(sql: string, chainId: number): Promise<{ sql: str
     window such as the last hour would end past the data and come back
     empty; so now() is read as the time of the last indexed block. The
     query as written keeps now(), so it stays right once the index is live. */
-async function anchorNow(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null }> {
+async function anchorNow(sql: string, target: number): Promise<{ sql: string; anchor: string | null }> {
   if (!/\bnow\(\s*\)/i.test(sql)) return { sql, anchor: null };
+  // the network reads every chain over one window, the C-Chain's
+  const chainId = target === NETWORK_ID ? 43114 : target;
   const c = await coverage(chainId);
   if (!c) return { sql, anchor: null };
   if (!Number.isFinite(c.untilUnix) || Date.now() / 1000 - c.untilUnix < LAG_S) return { sql, anchor: null };

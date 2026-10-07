@@ -12,6 +12,7 @@ import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
 import { exprOf, uniqAliases } from "./aliases";
+import { ownTokens } from "./checks";
 import { basicVisual } from "./draft";
 import { averageLabel, labelError } from "./stat-label";
 
@@ -467,6 +468,11 @@ export function figures(input: Seen): string[] {
     if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? (staleOf(input.anchor) ? "cut where the index ends" : "still filling") : "complete"}.`);
   }
   for (const c of columns) {
+    // a native amount on the network's rows is in each chain's own token: 9.21 GUN is not more than 3.73 AVAX
+    if (rows.length > 1 && ownTokens(c.name, rows)) {
+      out.push(`${c.name} (${c.type}): each row is in its own chain's native token (its token column), so no total, highest, lowest or share spans the rows: quote each chain's amount in its own token, and never set two chains' amounts against each other or call one the largest`);
+      continue;
+    }
     const nums: { r: Row; v: number }[] = [];
     for (const r of rows) {
       const v = numOf(c, r[c.name]);

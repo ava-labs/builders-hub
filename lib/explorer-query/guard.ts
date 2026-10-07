@@ -11,7 +11,7 @@ import { FAMILY_EVENTS, familyHex } from "./families";
 import { LENDING_EVENTS, strayHex, typedLending } from "./lending";
 import { expandMacros } from "./macros";
 import { DEX_TOPICS } from "./protocols";
-import { isFuji, targetOf } from "./target";
+import { NETWORK_ID, isFuji, targetOf } from "./target";
 import { DAY } from "./values";
 
 export type AllowedTable = string;
@@ -364,11 +364,14 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   if (top) return { ok: false, error: top };
 
   // one chain, as the writer is told to write it: the server reads each table as this chain's rows whatever the
-  // query writes (sources.ts), and a query that names its chain reads it by the sort key's first column itself
-  const chainRe = new RegExp(`\\bchain_id\\s*(=|==)\\s*${chainId}\\b`);
-  if (!chainRe.test(sql)) return { ok: false, error: `filter every table on chain_id = ${chainId}` };
-  const otherChain = sql.match(/\bchain_id\s*(=|==)\s*(\d+)/g)?.find((s) => !new RegExp(`\\b${chainId}\\b`).test(s));
-  if (otherChain) return { ok: false, error: `only chain_id = ${chainId} is readable on this page` };
+  // query writes (sources.ts), and a query that names its chain reads it by the sort key's first column itself. A
+  // network query names the chains it reads, or none: the server reads each table as the network's chains alone
+  if (chainId !== NETWORK_ID) {
+    const chainRe = new RegExp(`\\bchain_id\\s*(=|==)\\s*${chainId}\\b`);
+    if (!chainRe.test(sql)) return { ok: false, error: `filter every table on chain_id = ${chainId}` };
+    const otherChain = sql.match(/\bchain_id\s*(=|==)\s*(\d+)/g)?.find((s) => !new RegExp(`\\b${chainId}\\b`).test(s));
+    if (otherChain) return { ok: false, error: `only chain_id = ${chainId} is readable on this page` };
+  }
 
   // the big tables hold years; a read with no window scans all of them. A range on the hash raw_txs or raw_traces sorts
   // by reads only its share of the table, so it bounds the read too

@@ -4,8 +4,10 @@ import { redis } from "@/lib/redis";
 import { familyQuestion } from "./families";
 import { mevQuestion, mevTurn } from "./mev";
 import { lendingQuestion } from "./lending";
+import { networkVersion } from "./network-prompt";
 import { dexQuestion, promptVersion } from "./prompt";
 import { registryTurn } from "./registry-turn";
+import { NETWORK_ID } from "./target";
 import type { ChartSpec, Drill, Turn } from "./types";
 import type { VisualSpec } from "./visual";
 
@@ -42,7 +44,8 @@ const local = new Map<string, Recipe>();
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
-  const version = promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history), familyQuestion(chainId, prompt, history), mevQuestion(chainId, prompt, history));
+  const version =
+    chainId === NETWORK_ID ? networkVersion() : promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history), familyQuestion(chainId, prompt, history), mevQuestion(chainId, prompt, history));
   const named = `${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}`;
   return createHash("sha256").update(`${chainId}\n${version}\n${norm}\n${past}${named && `\n${named}`}`).digest("hex").slice(0, 32);
 }

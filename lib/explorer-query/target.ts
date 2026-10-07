@@ -36,6 +36,16 @@ const FUJI_REFS = PCHAIN_REFS.filter((r) => r !== "p_avax_supply");
     kinds. Mainnet only, so Fuji has none */
 export const CCHAIN_REFS = ["dex_factories", "dex_tokens", "lending_markets", "lending_tokens"] as const;
 
+/** the network: the C-Chain and every mainnet L1 the database indexes, asked as one target. No chain uses id 0, and
+    the server reads each table as those chains' rows alone (sources.ts), so a network query reads no Fuji, testnet
+    or unlisted chain */
+export const NETWORK_ID = 0;
+/** the slug the network's Query page and its links name it by; no catalog chain has it */
+export const NETWORK_SLUG = "all";
+/** the network's reference table, built by our server: each chain's id, name and native token */
+export const NETWORK_REFS = ["chain_names"] as const;
+
+
 /** P-Chain tables that hold rows a re-ingest wrote twice, never merged:
     every read of them goes through FINAL (sources.ts). Counted on
     2026-09-27; the data fix belongs to the box */
@@ -91,7 +101,7 @@ export function targetOf(chainId: number): Target {
     kind: "evm",
     chainId,
     tables: EVM_TABLES,
-    refs: chainId === 43114 ? CCHAIN_REFS : [],
+    refs: chainId === 43114 ? CCHAIN_REFS : chainId === NETWORK_ID ? NETWORK_REFS : [],
     final: [],
     wide: ["raw_txs", "raw_logs", "raw_traces"],
     bound: /\b(block_time|block_number)\s*(>=|>|<=|<|=|==|BETWEEN|IN)/i,
