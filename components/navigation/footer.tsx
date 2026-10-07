@@ -90,7 +90,7 @@ export function Footer() {
 
           <FooterSection title="MORE">
             <ul className="flex flex-col gap-2.5">
-              <FooterLink href="https://www.avax.network/legal" external>Legal</FooterLink>
+              <FooterLink href="https://www.avalanche.com/legal/terms-of-use" external>Legal</FooterLink>
               <FooterLink href="/llms-full.txt" external>LLMs</FooterLink>
             </ul>
           </FooterSection>
