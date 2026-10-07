@@ -98,7 +98,7 @@ describe('DEX tables', () => {
 
   it('are defined in front of a query that reads them, pass the query service screen, and say where they come from', async () => {
     const out = await withSources(POOLS, 43114);
-    expect(out.sql.startsWith('WITH dex_factories AS (SELECT toUInt64(43114) AS chain_id')).toBe(true);
+    expect(out.sql.startsWith('WITH raw_logs AS (SELECT * FROM raw_logs WHERE chain_id = 43114), dex_factories AS (SELECT toUInt64(43114) AS chain_id')).toBe(true);
     expect(out.sql).not.toContain('dex_tokens AS');
     expect(out.sql).toContain(`'${packed(DEX_FACTORIES[0].factory)}'`);
     expect(out.sql).toContain('base64Decode(tupleElement(r, 4)) AS factory');

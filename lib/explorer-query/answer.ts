@@ -15,7 +15,7 @@ import { dexQuestion, pchainPrompt, systemPrompt, userTurn } from "./prompt";
 import { isCChain, isFuji, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey, type Recipe } from "./cache";
 import { fixedRecipe, fixedRoute } from "./fixed";
-import { versionLines } from "./sources";
+import { versionLines, withSources } from "./sources";
 import { codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
 import { basicVisual } from "./draft";
 import { labelError } from "./stat-label";
@@ -155,7 +155,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     const visual = stale ? null : recipe.visual;
     const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);
     // a snapshot's figures stand at its time, read after the rows and their totals, beside no other query
-    const span = said.span ?? (isFuji(a.chainId) ? null : await snapshotSpan(run.sql));
+    const span = said.span ?? (isFuji(a.chainId) ? null : await snapshotSpan(run.sql, a.chainId));
     return {
       anchor: run.anchor,
       sources: run.sources,
@@ -179,13 +179,13 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
   }
 }
 
-/** the time a snapshot answer's figures stand at, read by the snapshot's own subquery run alone; null for an answer
-    that reads no snapshot, and when the read fails */
-async function snapshotSpan(sql: string): Promise<string | null> {
+/** the time a snapshot answer's figures stand at, read by the snapshot's own subquery run alone, its tables defined
+    as the run's are; null for an answer that reads no snapshot, and when the read fails */
+async function snapshotSpan(sql: string, chainId: number): Promise<string | null> {
   const pick = snapshotSql(sql);
   if (!pick) return null;
   try {
-    const t = msOf((await runQuery(pick)).rows[0]?.at);
+    const t = msOf((await runQuery((await withSources(pick, chainId)).sql)).rows[0]?.at);
     return t > 0 ? asOfWords(t, Date.now()) : null;
   } catch {
     return null;
@@ -510,7 +510,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
           const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now, Date.now());
-          final = { title: said.title, note: said.note, span: fuji ? null : (windowSpan(read, rows.rows, chart.x, now, Date.now()) ?? (await snapshotSpan(ran.sql))), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
+          final = { title: said.title, note: said.note, span: fuji ? null : (windowSpan(read, rows.rows, chart.x, now, Date.now()) ?? (await snapshotSpan(ran.sql, a.chainId))), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };

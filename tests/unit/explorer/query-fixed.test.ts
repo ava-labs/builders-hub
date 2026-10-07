@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const runQuery = vi.hoisted(() => vi.fn());
+const withSources = vi.hoisted(() => vi.fn(async (sql: string) => ({ sql, sources: [] })));
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 vi.mock('@/lib/explorer-query/clickhouse', () => ({
   runQuery,
@@ -12,7 +13,7 @@ vi.mock('@/lib/explorer-query/clickhouse', () => ({
 vi.mock('@/lib/explorer-query/cache', () => ({ getRecipe: vi.fn(async () => null), putRecipe: vi.fn(async () => {}), recipeKey: vi.fn(() => 'key') }));
 vi.mock('@/lib/explorer-query/enrich', () => ({ fillDrill: vi.fn(), nameRows: vi.fn(async () => ({})) }));
 vi.mock('@/lib/explorer-query/cut', () => ({ cutOf: vi.fn(() => null), newestSql: vi.fn(() => null), totalsOf: vi.fn(async () => null) }));
-vi.mock('@/lib/explorer-query/sources', () => ({ versionLines: vi.fn(async () => []) }));
+vi.mock('@/lib/explorer-query/sources', () => ({ versionLines: vi.fn(async () => []), withSources }));
 
 import { generateText } from 'ai';
 import { answerQuestion } from '@/lib/explorer-query/answer';
@@ -108,7 +109,10 @@ describe('a suggestion asked', () => {
     const a = await ask(1, 'L1s by active validators, with the balance left for fees');
     expect(a?.span).toBe('as of 11:45 UTC');
     // one query at a time: the rows, then the time
-    expect(runQuery.mock.calls.map(([sql]) => sql)).toEqual([a?.sql, 'SELECT (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY) AS at']);
+    const pick = 'SELECT (SELECT max(snapshot_time) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND snapshot_time <= now() - INTERVAL 15 MINUTE AND snapshot_time >= now() - INTERVAL 1 DAY) AS at';
+    expect(runQuery.mock.calls.map(([sql]) => sql)).toEqual([a?.sql, pick]);
+    // the time's own read has its tables defined as the run's are (sources.ts)
+    expect(withSources).toHaveBeenCalledWith(pick, 1);
     // a snapshot a day old names its day, and a time that fails to come names none
     runQuery.mockImplementation(async (sql: string) => (sql.startsWith('SELECT (SELECT') ? time('2026-09-27 11:45:00') : ROWS));
     expect((await ask(1, 'Validators whose staking period ends in the next 7 days'))?.span).toBe('as of September 27, 11:45 UTC');

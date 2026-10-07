@@ -156,21 +156,31 @@ describe('guard', () => {
 });
 
 describe('withSources', () => {
-  it('sends a query that reads no server table unchanged', async () => {
+  it("defines each chain table a query names as its chain's rows, and builds no reference table it does not read", async () => {
     const sql = 'SELECT count() FROM p_validator_snapshots WHERE chain_id = 1 AND snapshot_time >= now() - INTERVAL 1 DAY';
-    expect(await (await fresh()).withSources(sql, 1)).toEqual({ sql, sources: [] });
+    expect(await (await fresh()).withSources(sql, 1)).toEqual({ sql: `WITH p_validator_snapshots AS (SELECT * FROM p_validator_snapshots WHERE chain_id = 1) SELECT * FROM (\n${sql}\n)`, sources: [] });
     const evm = 'SELECT count() FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 DAY';
-    expect(await (await fresh()).withSources(evm, 43114)).toEqual({ sql: evm, sources: [] });
+    expect(await (await fresh()).withSources(evm, 43114)).toEqual({ sql: `WITH raw_txs AS (SELECT * FROM raw_txs WHERE chain_id = 43114) SELECT * FROM (\n${evm}\n)`, sources: [] });
     expect(calls).toEqual([]);
+  });
+
+  it('defines every chain table the query names, however it names it, and reads only server tables otherwise', async () => {
+    const sql = "SELECT count() FROM raw_txs AS t INNER JOIN raw_logs AS l ON l.transaction_hash = t.hash WHERE t.chain_id = 43114 AND t.block_time >= now() - INTERVAL 1 HOUR AND hash IN (SELECT transaction_hash FROM raw_traces WHERE block_time >= now() - INTERVAL 1 HOUR)";
+    const out = await (await fresh()).withSources(sql, 43114);
+    expect(out.sql.startsWith('WITH raw_txs AS (SELECT * FROM raw_txs WHERE chain_id = 43114), raw_logs AS (SELECT * FROM raw_logs WHERE chain_id = 43114), raw_traces AS (SELECT * FROM raw_traces WHERE chain_id = 43114) SELECT * FROM (')).toBe(true);
+    // a table the query names nowhere is not defined
+    expect(out.sql).not.toContain('raw_blocks');
+    // the P-Chain's own tables, on its own chain id
+    expect((await (await fresh()).withSources('SELECT count() FROM raw_p_blocks WHERE chain_id = 5', 5)).sql).toContain('raw_p_blocks AS (SELECT * FROM raw_p_blocks WHERE chain_id = 5)');
   });
 
   it('reads the tables with duplicate rows through FINAL, under their own names', async () => {
     const sql = 'SELECT tx_type, count() AS txs FROM decoded_p_txs WHERE chain_id = 1 AND block_time >= now() - INTERVAL 7 DAY GROUP BY tx_type';
     const out = await (await fresh()).withSources(sql, 1);
-    expect(out.sql).toBe(`WITH decoded_p_txs AS (SELECT * FROM decoded_p_txs FINAL) SELECT * FROM (\n${sql}\n)`);
+    expect(out.sql).toBe(`WITH decoded_p_txs AS (SELECT * FROM decoded_p_txs FINAL WHERE chain_id = 1) SELECT * FROM (\n${sql}\n)`);
     expect(out.sources).toEqual([]);
     const both = await (await fresh()).withSources('SELECT count() FROM p_utxos_created AS c LEFT JOIN p_utxos_spent AS s ON s.utxo_id = c.utxo_id WHERE c.chain_id = 1 AND c.created_time >= now() - INTERVAL 1 DAY', 1);
-    expect(both.sql.startsWith('WITH p_utxos_created AS (SELECT * FROM p_utxos_created FINAL), p_utxos_spent AS (SELECT * FROM p_utxos_spent FINAL) SELECT * FROM (')).toBe(true);
+    expect(both.sql.startsWith('WITH p_utxos_created AS (SELECT * FROM p_utxos_created FINAL WHERE chain_id = 1), p_utxos_spent AS (SELECT * FROM p_utxos_spent FINAL WHERE chain_id = 1) SELECT * FROM (')).toBe(true);
   });
 
   it('defines the versions in front of the query and states what they cover and how recent they are', async () => {
