@@ -1,5 +1,6 @@
 import type { Browser } from '@e2e-dev/web';
 import { expect, type Locator, type Screen } from 'e2e';
+import { waitForHydration } from '../lib/hydration';
 
 // A click renders the next page on the server, and the URL changes only when the server answers.
 // Under load the dev server takes up to 40 s for a tx page. The docs and academy folders use the same budget.
@@ -39,6 +40,22 @@ export async function networkSwitch(screen: Screen, browser: Browser): Promise<S
   if (!(await switcherInNavbar(browser))) return screen;
   // The closed menu has no buttons, so the trigger is the only button in the slot.
   const trigger = navbarSlot(browser).getByRole('button');
+  await trigger.tap();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  return screen.getByRole('dialog', 'Switch chain');
+}
+
+// The chain switcher is React state, so a tap before hydration does nothing. This reads the rail's copy, which hydrates
+// at every width: below 640 px it is hidden, and the copy in the site navbar mounts only after hydration.
+const SWITCHER_TRIGGER = '[data-explorer-subnav] button[aria-haspopup]';
+
+// Opens the chain switcher on the current page and returns its menu. `chain` is the name of the switcher button: the
+// current chain, or All Networks.
+export async function openChainSwitcher(screen: Screen, browser: Browser, chain: string): Promise<Locator> {
+  await waitForHydration(browser, SWITCHER_TRIGGER);
+  // On a phone the button sits in the site navbar and shows the chain name, with the network under it. The rail's
+  // copy is hidden there and is not in the role tree, so the query finds one button at each width.
+  const trigger = screen.getByRole('button', chain);
   await trigger.tap();
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
   return screen.getByRole('dialog', 'Switch chain');

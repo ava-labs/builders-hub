@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-07T05:34:19.693Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Fuji\"",
+        "target": {
+          "role": "link",
+          "name": "Fuji"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-explorer-fuji-network.e2e.ts::visitor%20switches%20All%20Networks%20to%20Fuji%20and%20sees%20only%20Fuji%20chains%20there%20and%20in%20the%20City",
+      "targetId": "desktop",
+      "instructionDigest": "34a335b41d0319fec07ca124948124055a9d90e54aef9e0b340c367ac83c5980"
+    },
+    "summary": "The explorer is on /explorer/fuji. The page title reads \"Fuji All Networks | Avalanche Explorer\". The Explorer and City links, latest blocks and latest transactions all point to /explorer/fuji/... paths, and the stats say \"Test tokens have no price\". I did not take a screenshot to check how the Fuj…",
+    "startPath": "/explorer/mainnet",
+    "endPath": "/explorer/fuji",
+    "endAnchors": [
+      {
+        "role": "textbox",
+        "name": "Search",
+        "placeholder": "Search chains by name or ID, block height, tx hash, NodeID, or any address"
+      },
+      {
+        "text": "No data"
+      },
+      {
+        "text": "Test tokens have no price"
+      },
+      {
+        "text": "9.4% of supply"
+      },
+      {
+        "text": "No feed counts Fuji burns"
+      },
+      {
+        "text": "59,126,812"
+      },
+      {
+        "name": "0.2% of gas limit"
+      },
+      {
+        "text": "59,126,811"
+      }
+    ],
+    "endWaitMs": 44482
+  }
+}

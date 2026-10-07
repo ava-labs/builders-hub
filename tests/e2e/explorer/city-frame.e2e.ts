@@ -51,7 +51,11 @@ test('the city on a phone has no overlapping controls', MULTI_PAGE, async ({ app
   await phoneOnly(browser, 'the phone layout of the city');
   await answerFirstVisitPrompts(browser);
   await app.open(CITY);
-  await expect(screen.getByRole('tab', /^Mainnet/)).toBeVisible(DATA);
+  // The list's network tabs: this City is current, and the other network's City is a link. CSS sets their text in
+  // upper case, and a text query reads the rendered text.
+  const networks = screen.getByRole('group', 'Network');
+  await expect(networks.getByText(/^Mainnet/i)).toHaveAttribute('aria-current', 'page', DATA);
+  await expect(networks.getByRole('link', 'Fuji')).toHaveAttribute('href', '/explorer/fuji/chains');
   await expect(screen.getByRole('button', 'News from Avalanche and the Builder Hub')).toBeHidden();
   await expect.poll(() => browser.evaluate(phoneOverlaps)).toEqual([]);
 });

@@ -1,7 +1,6 @@
-import { test, type Browser } from '@e2e-dev/web';
-import { expect, type Locator, type Screen } from 'e2e';
-import { DATA, MULTI_PAGE, NAVIGATION, expectActiveTab, networkSwitch, pathPattern } from './explorer-page';
-import { waitForHydration } from '../lib/hydration';
+import { test } from '@e2e-dev/web';
+import { expect, type Locator } from 'e2e';
+import { DATA, MULTI_PAGE, NAVIGATION, expectActiveTab, networkSwitch, openChainSwitcher, pathPattern } from './explorer-page';
 
 // Rule: the chain switcher keeps the tab the user is on where the target chain has it.
 // The targets come from chainSwitchTarget in components/explorer-v2/network-switch.ts. The Mainnet/Fuji switch
@@ -14,10 +13,8 @@ interface ChainSwitchCase {
   fromChain: string;
   /** The tab that is active on that page. */
   fromTab: string;
-  /** The switcher row the user taps. */
+  /** The switcher row the user taps. The switcher button names this chain after the switch. */
   to: string;
-  /** The name of the switcher button after the switch, where it is not the row's name. */
-  toChain?: string;
   /** The path the user must land on. */
   expected: string;
   /** The tab that must be active after the switch. */
@@ -51,24 +48,11 @@ const CASES: ChainSwitchCase[] = [
   // A switch on Fuji stays on Fuji where the target chain runs there
   { from: '/explorer/fuji/p-chain/blocks', fromChain: 'P-Chain', fromTab: 'Blocks', to: 'C-Chain', expected: '/explorer/fuji/c-chain/blocks', toTab: 'Blocks' },
   { from: '/explorer/fuji/c-chain/txs', fromChain: 'C-Chain', fromTab: 'Transactions', to: 'X-Chain', expected: '/explorer/fuji/x-chain/txs', toTab: 'Transactions' },
-  // Beam runs on Fuji as beam-l1
-  { from: '/explorer/fuji/c-chain/blocks', fromChain: 'C-Chain', fromTab: 'Blocks', to: 'Beam', toChain: 'Beam L1', expected: '/explorer/fuji/beam-l1/blocks', toTab: 'Blocks' },
+  // The Fuji menu lists the Fuji L1s with their Fuji names: Beam runs on Fuji as beam-l1, named Beam L1
+  { from: '/explorer/fuji/c-chain/blocks', fromChain: 'C-Chain', fromTab: 'Blocks', to: 'Beam L1', expected: '/explorer/fuji/beam-l1/blocks', toTab: 'Blocks' },
+  // Fuji has its own network scope (All Networks), so the switch stays on Fuji
+  { from: '/explorer/fuji/p-chain/blocks', fromChain: 'P-Chain', fromTab: 'Blocks', to: 'All Networks', expected: '/explorer/fuji', toTab: 'Explorer' },
 ];
-
-// The switcher is React state, so a tap before hydration does nothing. This reads the rail's copy, which hydrates
-// at every width: below 640 px it is hidden, and the copy in the site navbar mounts only after hydration.
-const TRIGGER = '[data-explorer-subnav] button[aria-haspopup]';
-
-// Opens the chain switcher on the current page and returns its menu.
-async function openSwitcher(screen: Screen, browser: Browser, chain: string): Promise<Locator> {
-  await waitForHydration(browser, TRIGGER);
-  // On a phone the button sits in the site navbar and shows the chain name, with the network under it. The rail's
-  // copy is hidden there and is not in the role tree, so the query finds one button at each width.
-  const trigger = screen.getByRole('button', chain);
-  await trigger.tap();
-  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-  return screen.getByRole('dialog', 'Switch chain');
-}
 
 // Taps a row of the open switcher. L1 rows come from a live feed, so the filter brings the row into view first.
 async function switchTo(menu: Locator, chain: string): Promise<void> {
@@ -85,19 +69,19 @@ for (const c of CASES) {
     await app.open(c.from);
     await expectActiveTab(screen, browser, c.fromTab);
 
-    await switchTo(await openSwitcher(screen, browser, c.fromChain), c.to);
+    await switchTo(await openChainSwitcher(screen, browser, c.fromChain), c.to);
 
     await expect(browser).toHaveURL(pathPattern(c.expected), NAVIGATION);
     await expectActiveTab(screen, browser, c.toTab);
     // The switcher names the chain the user switched to.
-    await expect(screen.getByRole('button', c.toChain ?? c.to)).toBeVisible();
+    await expect(screen.getByRole('button', c.to)).toBeVisible();
   });
 }
 
 // The chain switch and the Mainnet/Fuji switch compose: both orders land on the same page.
 test('chain switch, then the Fuji switch, keeps the blocks tab', MULTI_PAGE, async ({ app, screen, browser }) => {
   await app.open('/explorer/mainnet/c-chain/blocks');
-  await switchTo(await openSwitcher(screen, browser, 'C-Chain'), 'P-Chain');
+  await switchTo(await openChainSwitcher(screen, browser, 'C-Chain'), 'P-Chain');
   await expect(browser).toHaveURL(pathPattern('/explorer/mainnet/p-chain/blocks'), NAVIGATION);
 
   await (await networkSwitch(screen, browser)).getByRole('link', 'Fuji').tap();
@@ -110,7 +94,7 @@ test('Fuji switch, then the chain switch, keeps the blocks tab', MULTI_PAGE, asy
   await (await networkSwitch(screen, browser)).getByRole('link', 'Fuji').tap();
   await expect(browser).toHaveURL(pathPattern('/explorer/fuji/c-chain/blocks'), NAVIGATION);
 
-  await switchTo(await openSwitcher(screen, browser, 'C-Chain'), 'P-Chain');
+  await switchTo(await openChainSwitcher(screen, browser, 'C-Chain'), 'P-Chain');
   await expect(browser).toHaveURL(pathPattern('/explorer/fuji/p-chain/blocks'), NAVIGATION);
   await expectActiveTab(screen, browser, 'Blocks');
   await expect((await networkSwitch(screen, browser)).getByRole('link', 'Fuji')).toHaveAttribute('aria-current', 'page');
