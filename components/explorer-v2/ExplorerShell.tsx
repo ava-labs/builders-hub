@@ -29,7 +29,7 @@ import {
   type ChainHit,
   type EntityTargets,
 } from "@/components/explorer-v2/chain-search";
-import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
+import { useIndexedChainIds, useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import { Rise } from "@/components/explorer-v2/ui";
 import { AskingFrame, useAskTo } from "@/components/explorer-v2/evm/query-asking";
 import { PCHAIN_COLUMN, QueryWorking } from "@/components/explorer-v2/evm/QueryWorking";
@@ -68,7 +68,8 @@ function truncateId(id: string, max = 34) {
    focus, recents on focus, API classification only for ambiguous hashes.
    Exported for the network-scope shell: with chain="p-chain" it already
    routes every identifier to the right chain (P-Chain entities home, EVM
-   addresses to the C-Chain, tx hashes raced across every indexed chain). */
+   addresses to the C-Chain, tx hashes raced across the network's indexed
+   chains). */
 export function SearchBox({
   chain,
   network,
@@ -92,8 +93,8 @@ export function SearchBox({
   const [sel, setSel] = useState(-1);
 
   const base = `/explorer/${network}/${chain}`;
-  // the P-Chain's tables cover mainnet and Fuji
-  const askable = (ask || !!askAt) && (network === "mainnet" || network === "fuji");
+  // the P-Chain's tables cover mainnet and Fuji; the network's Query page is mainnet only
+  const askable = (ask && (network === "mainnet" || network === "fuji")) || (!!askAt && network === "mainnet");
   const queryPage = askAt ?? `${base}/query`;
   // the network box asks about any chain: both indexes' recents and starters
   const starters = (askAt ? [...EXAMPLES.slice(0, 1), ...PCHAIN_EXAMPLES.slice(0, 1)] : PCHAIN_EXAMPLES).flatMap((g) => g.items.map((i) => i.q));
@@ -106,8 +107,12 @@ export function SearchBox({
   // chain suggestions — same engine and rows as the portal's search, so a
   // name, chain ID, subnet ID, or blockchain ID finds its chain from any
   // page. Liveness (for ranking + the validators figure) loads on demand.
-  const { live: liveValidators } = useLiveValidatorCounts("mainnet", q.trim().length >= 2);
-  const hits = useMemo(() => matchChains(q, liveValidators), [q, liveValidators]);
+  // A Fuji box lists Fuji chains only, so it also reads the indexed set.
+  const net = isPchainNetwork(network) ? network : "mainnet";
+  const typed = q.trim().length >= 2;
+  const { live: liveValidators } = useLiveValidatorCounts(net, typed);
+  const indexed = useIndexedChainIds(net === "fuji" && typed);
+  const hits = useMemo(() => matchChains(q, liveValidators, net, indexed), [q, liveValidators, net, indexed]);
 
   // what the identifier in the box resolves to — tx hashes race every
   // chain live, so the dropdown names the chain before Enter is pressed
@@ -242,11 +247,12 @@ export function SearchBox({
           return;
         }
       }
-      if (network === "mainnet" && /^0x[a-fA-F0-9]{64}$/.test(query)) {
-        // same cache the dropdown's entity row fills — usually instant
-        const result = await lookupTxAcrossChainsCached(query);
+      if (/^0x[a-fA-F0-9]{64}$/.test(query)) {
+        // the dropdown's entity row fills the same cache, so this is usually
+        // instant. The race stays on this box's network.
+        const result = await lookupTxAcrossChainsCached(query, net);
         if (result.found && result.chain) {
-          router.push(buildTxUrl(`/explorer/mainnet/${result.chain.slug}`, query));
+          router.push(buildTxUrl(`/explorer/${net}/${result.chain.slug}`, query));
           return;
         }
       }

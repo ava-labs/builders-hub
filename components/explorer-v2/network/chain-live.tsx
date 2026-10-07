@@ -67,9 +67,10 @@ const PULSE_KEEP = 200;
 /* the tape's curve: sharp attack, long decay */
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-const CATALOG = (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true);
+/* both networks' chains: no EVM chain ID and no L1's subnet is on both, so a lookup needs no network */
+const CATALOG = l1ChainsData as L1Chain[];
 
-/* the card's chain in the catalog: by EVM chain ID, or by subnet for a set the city stands as a guest */
+/* the card's chain in the catalog, mainnet or Fuji: by EVM chain ID, or by subnet for a set the city stands as a guest */
 function catalogEntry(id: string): L1Chain | undefined {
   return id.startsWith("p:") ? CATALOG.find((c) => c.subnetId === id.slice(2)) : CATALOG.find((c) => String(c.chainId) === id);
 }

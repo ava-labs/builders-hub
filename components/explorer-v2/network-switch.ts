@@ -1,5 +1,5 @@
-import { NETWORK_HOME, buildTabs } from "@/components/explorer-v2/subnav-tabs";
-import { TESTNET_COUNTERPART, wantsTestnet } from "@/lib/explorer-catalog";
+import { buildTabs, networkHome } from "@/components/explorer-v2/subnav-tabs";
+import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { getExplorerChain } from "@/lib/pchain-explorer";
 
 /* Where a switch lands. The Mainnet/Fuji switch (a chain to its counterpart)
@@ -13,7 +13,10 @@ import { getExplorerChain } from "@/lib/pchain-explorer";
    - A tab the target does not have, or a page that lights no tab (genesis,
      an X-Chain asset), lands on the target's home. Staking and L1s land on
      Validators, where Fuji's Staking and L1s routes redirect.
-   - A switch to the scope the reader is on links to the page itself. */
+   - A switch to the scope the reader is on links to the page itself.
+   - The network scope runs on both networks. AVAX and Query are mainnet's,
+     so a switch from them lands on the Fuji home. The City keeps its open
+     chain where the other network has it (cityChainOn). */
 
 /* Views below a tab's list that only some targets serve. Elsewhere their URL
    is a 404 or a redirect, so the switch lands on the tab's list. */
@@ -34,7 +37,7 @@ const SAME_PAGE: [string, string][] = [["staking", "validators/staking"]];
 const under = (path: string, head: string) => path === head || path.startsWith(`${head}/`);
 
 function scopeBase(network: string, chain: string | undefined): string {
-  return chain ? `/explorer/${network}/${chain}` : NETWORK_HOME;
+  return chain ? `/explorer/${network}/${chain}` : networkHome(network);
 }
 
 /** The target of a switch from `pathname` (on `fromChain`, or the network scope) to `chain` on `network`. */
@@ -66,9 +69,29 @@ export function switchTarget(pathname: string, fromChain: string | undefined, ne
   return landing ? `${base}/${landing}` : base;
 }
 
-/** The chain switch keeps the network where the chain runs on it: the C-, P- and X-Chain run on both, and an L1
- *  runs on Fuji under its counterpart's slug (beam-l1 for beam). Any other L1, and the network scope, are mainnet's. */
+/** The slug of `chain` on Fuji: the P- and X-Chain keep their slug, and an L1 takes the slug of its Fuji catalog entry.
+ *  That entry is the chain itself (beam-l1, kula-testnet) or its counterpart (beam-l1 for beam). Any other chain gives
+ *  undefined: Fuji does not have it. */
+function fujiSlugOf(chain: string): string | undefined {
+  if (getExplorerChain(chain)) return chain;
+  const entry = resolveCatalogChain("fuji", chain);
+  return entry?.isTestnet === true ? entry.slug : undefined;
+}
+
+/** The chain switch keeps the network where the chain runs on it: the network scope and the C-, P- and X-Chain run on
+ *  both, and an L1 runs on Fuji under its Fuji slug (fujiSlugOf). Any other L1 is mainnet's. */
 export function chainSwitchTarget(pathname: string, fromChain: string | undefined, network: string, chain: string | undefined): string {
-  const fujiSlug = chain && wantsTestnet(network) ? (getExplorerChain(chain) ? chain : TESTNET_COUNTERPART[chain]) : undefined;
+  if (!chain) return switchTarget(pathname, fromChain, network, undefined);
+  const fujiSlug = wantsTestnet(network) ? fujiSlugOf(chain) : undefined;
   return fujiSlug ? switchTarget(pathname, fromChain, network, fujiSlug) : switchTarget(pathname, fromChain, "mainnet", chain);
+}
+
+/** The City's open chain (its ?chain= key) on `network`, the network the switch goes to. The P-Chain and the C-Chain
+ *  run on both networks, and an L1 with a counterpart runs on the other network under that slug (beam-l1 for beam).
+ *  Any other key gives undefined: the other network does not have that chain. */
+export function cityChainOn(key: string, network: string): string | undefined {
+  if (key === "p-chain") return key;
+  const pairs = wantsTestnet(network) ? TESTNET_COUNTERPART : MAINNET_COUNTERPART;
+  // the key comes from the URL: read only the table's own entries, never a name such as "constructor"
+  return Object.hasOwn(pairs, key) ? pairs[key] : undefined;
 }

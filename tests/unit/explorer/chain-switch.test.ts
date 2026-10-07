@@ -39,16 +39,17 @@ const MATRIX: Row[] = [
   ['mainnet/c-chain/validators/staking/apy', 'c-chain', ['mainnet', 'mainnet/c-chain/validators/staking/apy', 'mainnet/p-chain/staking/apy', 'mainnet/x-chain/validators', 'mainnet/beam/validators', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
   ['mainnet/c-chain/genesis', 'c-chain', ['mainnet', 'mainnet/c-chain/genesis', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
   ['mainnet/c-chain/verify/0xabc', 'c-chain', ['mainnet', 'mainnet/c-chain/verify/0xabc', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
-  // C-Chain, Fuji: the C-, P- and X-Chain and Beam keep Fuji; Gunzilla and AIB are Mainnet chains
-  ['fuji/c-chain', 'c-chain', ['mainnet', 'fuji/c-chain', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
-  ['fuji/c-chain/blocks', 'c-chain', ['mainnet', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
-  ['fuji/c-chain/block/123', 'c-chain', ['mainnet', 'fuji/c-chain/block/123', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
-  ['fuji/c-chain/txs', 'c-chain', ['mainnet', 'fuji/c-chain/txs', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
-  ['fuji/c-chain/txs/atomic', 'c-chain', ['mainnet', 'fuji/c-chain/txs/atomic', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
-  ['fuji/c-chain/gas/utilization', 'c-chain', ['mainnet', 'fuji/c-chain/gas/utilization', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1/gas/utilization', 'mainnet/gunzilla/gas/utilization', 'mainnet/aibmainnet']],
-  ['fuji/c-chain/query', 'c-chain', ['mainnet/query', 'fuji/c-chain/query', 'fuji/p-chain/query', 'fuji/x-chain', 'fuji/beam-l1/query', 'mainnet/gunzilla/query', 'mainnet/aibmainnet']],
-  ['fuji/c-chain/accounts', 'c-chain', ['mainnet', 'fuji/c-chain/accounts', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1/accounts', 'mainnet/gunzilla/accounts', 'mainnet/aibmainnet/accounts']],
-  ['fuji/c-chain/validators', 'c-chain', ['mainnet', 'fuji/c-chain/validators', 'fuji/p-chain/validators', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
+  // C-Chain, Fuji: All Networks, the C-, P- and X-Chain and Beam keep Fuji; Gunzilla and AIB are Mainnet chains.
+  // The Fuji scope has no Query tab, so Query lands on the Fuji home
+  ['fuji/c-chain', 'c-chain', ['fuji', 'fuji/c-chain', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
+  ['fuji/c-chain/blocks', 'c-chain', ['fuji', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
+  ['fuji/c-chain/block/123', 'c-chain', ['fuji', 'fuji/c-chain/block/123', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
+  ['fuji/c-chain/txs', 'c-chain', ['fuji', 'fuji/c-chain/txs', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
+  ['fuji/c-chain/txs/atomic', 'c-chain', ['fuji', 'fuji/c-chain/txs/atomic', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
+  ['fuji/c-chain/gas/utilization', 'c-chain', ['fuji', 'fuji/c-chain/gas/utilization', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1/gas/utilization', 'mainnet/gunzilla/gas/utilization', 'mainnet/aibmainnet']],
+  ['fuji/c-chain/query', 'c-chain', ['fuji', 'fuji/c-chain/query', 'fuji/p-chain/query', 'fuji/x-chain', 'fuji/beam-l1/query', 'mainnet/gunzilla/query', 'mainnet/aibmainnet']],
+  ['fuji/c-chain/accounts', 'c-chain', ['fuji', 'fuji/c-chain/accounts', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1/accounts', 'mainnet/gunzilla/accounts', 'mainnet/aibmainnet/accounts']],
+  ['fuji/c-chain/validators', 'c-chain', ['fuji', 'fuji/c-chain/validators', 'fuji/p-chain/validators', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
   // P-Chain, Mainnet: Staking is the C-Chain's Validators > Staking view; Staking and L1s land on Validators elsewhere
   ['mainnet/p-chain', 'p-chain', ['mainnet', 'mainnet/c-chain', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
   ['mainnet/p-chain/address/P-avax1abc', 'p-chain', ['mainnet', 'mainnet/c-chain', 'mainnet/p-chain/address/P-avax1abc', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
@@ -67,13 +68,13 @@ const MATRIX: Row[] = [
   ['mainnet/p-chain/query/boards', 'p-chain', ['mainnet/query', 'mainnet/c-chain/query/boards', 'mainnet/p-chain/query/boards', 'mainnet/x-chain', 'mainnet/beam/query/boards', 'mainnet/gunzilla/query/boards', 'mainnet/aibmainnet']],
   ['mainnet/p-chain/query/boards/b-1', 'p-chain', ['mainnet/query', 'mainnet/c-chain/query/boards', 'mainnet/p-chain/query/boards/b-1', 'mainnet/x-chain', 'mainnet/beam/query/boards', 'mainnet/gunzilla/query/boards', 'mainnet/aibmainnet']],
   // P-Chain, Fuji
-  ['fuji/p-chain', 'p-chain', ['mainnet', 'fuji/c-chain', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
-  ['fuji/p-chain/blocks', 'p-chain', ['mainnet', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
-  ['fuji/p-chain/txs', 'p-chain', ['mainnet', 'fuji/c-chain/txs', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
-  ['fuji/p-chain/validators', 'p-chain', ['mainnet', 'fuji/c-chain/validators', 'fuji/p-chain/validators', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
-  ['fuji/p-chain/validators/l1s', 'p-chain', ['mainnet', 'fuji/c-chain/validators', 'fuji/p-chain/validators/l1s', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
-  ['fuji/p-chain/node/NodeID-7Xhw', 'p-chain', ['mainnet', 'fuji/c-chain/validators', 'fuji/p-chain/node/NodeID-7Xhw', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
-  ['fuji/p-chain/query', 'p-chain', ['mainnet/query', 'fuji/c-chain/query', 'fuji/p-chain/query', 'fuji/x-chain', 'fuji/beam-l1/query', 'mainnet/gunzilla/query', 'mainnet/aibmainnet']],
+  ['fuji/p-chain', 'p-chain', ['fuji', 'fuji/c-chain', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
+  ['fuji/p-chain/blocks', 'p-chain', ['fuji', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
+  ['fuji/p-chain/txs', 'p-chain', ['fuji', 'fuji/c-chain/txs', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
+  ['fuji/p-chain/validators', 'p-chain', ['fuji', 'fuji/c-chain/validators', 'fuji/p-chain/validators', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
+  ['fuji/p-chain/validators/l1s', 'p-chain', ['fuji', 'fuji/c-chain/validators', 'fuji/p-chain/validators/l1s', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
+  ['fuji/p-chain/node/NodeID-7Xhw', 'p-chain', ['fuji', 'fuji/c-chain/validators', 'fuji/p-chain/node/NodeID-7Xhw', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
+  ['fuji/p-chain/query', 'p-chain', ['fuji', 'fuji/c-chain/query', 'fuji/p-chain/query', 'fuji/x-chain', 'fuji/beam-l1/query', 'mainnet/gunzilla/query', 'mainnet/aibmainnet']],
   // X-Chain, Mainnet
   ['mainnet/x-chain', 'x-chain', ['mainnet', 'mainnet/c-chain', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
   ['mainnet/x-chain/address/X-avax1abc', 'x-chain', ['mainnet', 'mainnet/c-chain', 'mainnet/p-chain', 'mainnet/x-chain/address/X-avax1abc', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
@@ -85,8 +86,8 @@ const MATRIX: Row[] = [
   ['mainnet/x-chain/node/NodeID-7Xhw', 'x-chain', ['mainnet', 'mainnet/c-chain/validators', 'mainnet/p-chain/validators', 'mainnet/x-chain/node/NodeID-7Xhw', 'mainnet/beam/validators', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
   ['mainnet/x-chain/asset/2Abc', 'x-chain', ['mainnet', 'mainnet/c-chain', 'mainnet/p-chain', 'mainnet/x-chain/asset/2Abc', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
   // X-Chain, Fuji
-  ['fuji/x-chain/blocks', 'x-chain', ['mainnet', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
-  ['fuji/x-chain/validators', 'x-chain', ['mainnet', 'fuji/c-chain/validators', 'fuji/p-chain/validators', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
+  ['fuji/x-chain/blocks', 'x-chain', ['fuji', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam-l1/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
+  ['fuji/x-chain/validators', 'x-chain', ['fuji', 'fuji/c-chain/validators', 'fuji/p-chain/validators', 'fuji/x-chain/validators', 'fuji/beam-l1', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
   // An L1 with an RPC and a Fuji counterpart (Beam)
   ['mainnet/beam', 'beam', ['mainnet', 'mainnet/c-chain', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
   ['mainnet/beam/blocks', 'beam', ['mainnet', 'mainnet/c-chain/blocks', 'mainnet/p-chain/blocks', 'mainnet/x-chain/blocks', 'mainnet/beam/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
@@ -101,8 +102,8 @@ const MATRIX: Row[] = [
   ['mainnet/beam/accounts', 'beam', ['mainnet', 'mainnet/c-chain/accounts', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam/accounts', 'mainnet/gunzilla/accounts', 'mainnet/aibmainnet/accounts']],
   ['mainnet/beam/validators', 'beam', ['mainnet', 'mainnet/c-chain/validators', 'mainnet/p-chain/validators', 'mainnet/x-chain/validators', 'mainnet/beam/validators', 'mainnet/gunzilla/validators', 'mainnet/aibmainnet/validators']],
   // Beam on Fuji: its slug is beam-l1, and /explorer/fuji/beam is an alias URL of it
-  ['fuji/beam/blocks', 'beam-l1', ['mainnet', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
-  ['fuji/beam-l1/txs', 'beam-l1', ['mainnet', 'fuji/c-chain/txs', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
+  ['fuji/beam/blocks', 'beam-l1', ['fuji', 'fuji/c-chain/blocks', 'fuji/p-chain/blocks', 'fuji/x-chain/blocks', 'fuji/beam/blocks', 'mainnet/gunzilla/blocks', 'mainnet/aibmainnet']],
+  ['fuji/beam-l1/txs', 'beam-l1', ['fuji', 'fuji/c-chain/txs', 'fuji/p-chain/txs', 'fuji/x-chain/txs', 'fuji/beam-l1/txs', 'mainnet/gunzilla/txs', 'mainnet/aibmainnet']],
   // An L1 with no RPC: Overview, Accounts and Validators only
   ['mainnet/aibmainnet', 'aibmainnet', ['mainnet', 'mainnet/c-chain', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
   ['mainnet/aibmainnet/accounts', 'aibmainnet', ['mainnet', 'mainnet/c-chain/accounts', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam/accounts', 'mainnet/gunzilla/accounts', 'mainnet/aibmainnet/accounts']],
@@ -114,6 +115,9 @@ const MATRIX: Row[] = [
   ['mainnet/query', undefined, ['mainnet/query', 'mainnet/c-chain/query', 'mainnet/p-chain/query', 'mainnet/x-chain', 'mainnet/beam/query', 'mainnet/gunzilla/query', 'mainnet/aibmainnet']],
   ['mainnet/icm/0xmsg', undefined, ['mainnet/icm/0xmsg', 'mainnet/c-chain', 'mainnet/p-chain', 'mainnet/x-chain', 'mainnet/beam', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
   ['fuji/icm/0xmsg', undefined, ['fuji/icm/0xmsg', 'fuji/c-chain', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
+  // The network scope on Fuji: Explorer and City
+  ['fuji', undefined, ['fuji', 'fuji/c-chain', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
+  ['fuji/chains', undefined, ['fuji/chains', 'fuji/c-chain', 'fuji/p-chain', 'fuji/x-chain', 'fuji/beam-l1', 'mainnet/gunzilla', 'mainnet/aibmainnet']],
 ];
 
 describe('chainSwitchTarget', () => {
@@ -125,11 +129,34 @@ describe('chainSwitchTarget', () => {
   }
 });
 
+/* On Fuji the switcher's L1 rows are Fuji catalog chains, under their Fuji slugs. A Fuji slug stays on Fuji, the
+   slugs with no counterpart too (kula-testnet), and so does a slug that both networks use (watr). */
+const FUJI_ROWS: [from: string, fromChain: string | undefined, chain: string, expected: string][] = [
+  ['fuji', undefined, 'beam-l1', 'fuji/beam-l1'],
+  ['fuji/c-chain/blocks', 'c-chain', 'beam-l1', 'fuji/beam-l1/blocks'],
+  ['fuji/p-chain/txs', 'p-chain', 'dexalot-l1', 'fuji/dexalot-l1/txs'],
+  ['fuji/x-chain/blocks', 'x-chain', 'dexalot-l1', 'fuji/dexalot-l1/blocks'],
+  ['fuji/beam-l1/txs', 'beam-l1', 'dexalot-l1', 'fuji/dexalot-l1/txs'],
+  ['fuji/dexalot-l1/blocks', 'dexalot-l1', 'beam-l1', 'fuji/beam-l1/blocks'],
+  ['fuji/c-chain', 'c-chain', 'kula-testnet', 'fuji/kula-testnet'],
+  ['fuji', undefined, 'kula-testnet', 'fuji/kula-testnet'],
+  ['fuji', undefined, 'watr', 'fuji/watr'],
+  // Mainnet does not have a Fuji slug: the switch keeps Mainnet, as for any other slug
+  ['mainnet', undefined, 'gunzilla', 'mainnet/gunzilla'],
+];
+
+describe('chainSwitchTarget on Fuji', () => {
+  it.each(FUJI_ROWS)('switches %s (%s) to %s: %s', (from, fromChain, chain, expected) => {
+    expect(chainSwitchTarget(`/explorer/${from}`, fromChain, from.split('/')[0], chain)).toBe(`/explorer/${expected}`);
+  });
+});
+
 /* The rule, read from the tabs themselves, so a new tab needs no new MATRIX row: from each tab of each
    scope, a switch to a scope with a tab of the same name lands on that tab, and a switch to any other
    scope lands on a page that one of its tabs lights. */
 const SCOPES: [network: string, chain: string | undefined][] = [
   ['mainnet', undefined],
+  ['fuji', undefined],
   ['mainnet', 'c-chain'],
   ['fuji', 'c-chain'],
   ['mainnet', 'p-chain'],

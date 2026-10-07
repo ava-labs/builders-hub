@@ -10,10 +10,12 @@ import { cn } from "@/lib/utils";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { EntityHitRow, looksLikeIdentifier, useSearchEntity, type EntityTargets } from "@/components/explorer-v2/chain-search";
 import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
-import { classifyLocally } from "@/lib/pchain-explorer";
+import { NETWORK_LABEL, PCHAIN_NETWORKS, classifyLocally, type PchainNetwork } from "@/lib/pchain-explorer";
+import { catalogBySubnet, catalogOf } from "@/lib/explorer-catalog";
+import { networkHome } from "@/components/explorer-v2/subnav-tabs";
 import { DISTRICT_GLASS, GroundKey, Logo, Tower, mixTotal, type CameraHandle, type Inset, type Node, type VersionMix } from "@/components/explorer-v2/network/icm-map";
 import type { CityData } from "@/components/explorer-v2/network/city-data";
-import { BackButton, BigLogo, ChainView, Eyebrow, NewBadge, PChainView, Pct, PrivateBadge, REQUEST_LISTING_URL } from "@/components/explorer-v2/network/chain-view";
+import { BigLogo, ChainView, Eyebrow, NetSwitch, NewBadge, PChainView, PaneTop, Pct, PrivateBadge, REQUEST_LISTING_URL } from "@/components/explorer-v2/network/chain-view";
 import { DISTRICTS, LIST_ORDER, districtAbout, districtLabel, type District } from "@/components/explorer-v2/network/districts";
 import { CityKey, KEY_W, type Lens } from "@/components/explorer-v2/network/city-key";
 import { isPrivateChain } from "@/components/explorer-v2/network/private";
@@ -55,18 +57,14 @@ const City3D = memo(dynamic(() => import("@/components/explorer-v2/network/city3
 // specifier as the dynamic() above, so both ask for one chunk; a chunk that fails is the fence's to show
 if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) import("@/components/explorer-v2/network/city3d/City3D").catch(() => {});
 
-/* where the box sends an identifier: the pages the network search sends it to */
-const SEARCH_TARGETS: EntityTargets = {
-  network: "mainnet",
-  blockBase: "/explorer/mainnet/p-chain",
-  blockChainName: "P-Chain",
-  evmAddressBase: "/explorer/mainnet/c-chain",
-  evmAddressChainName: "C-Chain",
-};
-/* on a phone a question opens the network's Query page, which answers from the chain it names; a large screen answers it over the city (ask-window.tsx) */
+/* where the box sends an identifier: the pages the network search sends it to, on the City's network */
+const SEARCH_TARGETS = Object.fromEntries(
+  PCHAIN_NETWORKS.map((n) => [n, { network: n, blockBase: `/explorer/${n}/p-chain`, blockChainName: "P-Chain", evmAddressBase: `/explorer/${n}/c-chain`, evmAddressChainName: "C-Chain" }]),
+) as Record<PchainNetwork, EntityTargets>;
+/* on a phone a question opens the network's Query page, which answers from the chain it names; a large screen answers it over the city (ask-window.tsx).
+   Query is mainnet's: a Fuji City asks no questions */
 const ASK_AT = "/explorer/mainnet/query";
 
-type Net = "mainnet" | "testnet";
 /** what a chip, or a figure in the strip, cuts the list to */
 type Cut = "talking" | "indexed" | "behind" | "new" | null;
 type Sort = "district" | "validators" | "tx" | "icm" | "name";
@@ -281,6 +279,7 @@ export function CityApp({
   catalog,
   indexedChainIds,
   wide,
+  network,
 }: {
   data: CityData;
   /** what the buildings' heights count */
@@ -302,8 +301,11 @@ export function CityApp({
   indexedChainIds: string[] | null;
   /** a large screen: the canvas; else the district browser */
   wide: boolean;
+  /** the City's network: each City stands one network's chains, and reads and links on it */
+  network: PchainNetwork;
 }) {
-  const [net, setNet] = useState<Net>("mainnet");
+  // Query is mainnet's: on Fuji the search takes no question, and no chip or window asks one
+  const asks = network === "mainnet";
   const [query, setQuery] = useState("");
   const [cut, setCut] = useState<Cut>(null);
   const [sort, setSort] = useState<Sort>("district");
@@ -384,7 +386,7 @@ export function CityApp({
      follow-up, &on= the chain), so a reload or a link opens it again; n
      counts the questions, so a new one opens a fresh window */
   const [ask, setAsk] = useState<(AskThread & { n: number }) | null>(() => {
-    if (typeof window === "undefined" || !wide) return null;
+    if (typeof window === "undefined" || !wide || !asks) return null;
     const p = new URLSearchParams(window.location.search);
     const q = p.get("ask");
     return q ? { q, then: p.getAll("then"), on: p.get("on") ?? "c-chain", for: p.get("for"), n: 1 } : null;
@@ -420,7 +422,7 @@ export function CityApp({
   const painted = versionLens && !!versions;
 
   // every public chain's newest block, from its own RPC: it says which chains are live, and how busy
-  const livePulse = useChainPulse();
+  const livePulse = useChainPulse(network);
   const lastBlockOf = (id: string) => {
     const p = livePulse?.get(id);
     return p?.ok && p.lastBlockAt ? p.lastBlockAt : null;
@@ -428,15 +430,15 @@ export function CityApp({
   const indexedSet = useMemo(() => (indexedChainIds ? new Set(indexedChainIds) : null), [indexedChainIds]);
   // indexed: the explorer indexes it, so it has its own explorer page
   const indexedOf = (c: L1Chain) => (indexedSet ? indexedSet.has(toStatsChainId(String(c.chainId))) : c.isIndexed !== false);
-  const explorerOf = (c: L1Chain) => (indexedOf(c) ? `/explorer/${c.isTestnet ? "fuji" : "mainnet"}/${c.slug}` : null);
-  const mainnetById = useMemo(() => new Map(catalog.filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c])), [catalog]);
-  const bySubnet = useMemo(() => new Map(catalog.filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [String(c.subnetId), c])), [catalog]);
+  const explorerOf = (c: L1Chain) => (indexedOf(c) ? `/explorer/${network}/${c.slug}` : null);
+  // the network's catalog, by chain ID; a guest (an L1 the feed does not list) finds its entry by its subnet
+  const byChainId = catalogOf(network);
 
-  /* every chain the app lists: the city's sets, then the catalog's quiet mainnet chains, and Fuji's */
+  /* every chain the app lists: the city's sets, then the network's quiet chains in the catalog */
   const cityRows = useMemo<Row[]>(
     () =>
       data.nodes.map((n) => {
-        const chain = n.guest ? bySubnet.get(n.id.slice(2)) ?? null : mainnetById.get(n.id) ?? null;
+        const chain = byChainId.get(n.id) ?? (n.guest && n.subnetId ? catalogBySubnet(network).get(n.subnetId) : undefined) ?? null;
         const mix = versions?.get(n.id) ?? null;
         return {
           id: n.id,
@@ -457,23 +459,16 @@ export function CityApp({
       }),
     // txOf and lastBlockOf read the feeds the page and the pulse pass in
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.nodes, versions, mainnetById, bySubnet, txOf, livePulse],
+    [data.nodes, versions, byChainId, network, txOf, livePulse],
   );
   const quietRows = useMemo<Row[]>(() => {
     const standing = new Set(data.nodes.map((n) => n.id));
-    return catalog
-      .filter((c) => c.isTestnet !== true && !standing.has(String(c.chainId)))
+    return [...byChainId.values()]
+      .filter((c) => !standing.has(String(c.chainId)))
       .map((c) => ({ id: String(c.chainId), name: c.chainName, logo: c.chainLogoURI ?? "", district: null, node: null, chain: c, validators: 0, mix: null, pct: null, tx: txOf(String(c.chainId)), out: 0, in: 0, newAt: null, lastBlockAt: null }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalog, data.nodes, txOf]);
-  const fujiRows = useMemo<Row[]>(
-    () =>
-      catalog
-        .filter((c) => c.isTestnet === true)
-        .map((c) => ({ id: `fuji:${c.chainId}`, name: c.chainName, logo: c.chainLogoURI ?? "", district: null, node: null, chain: c, validators: 0, mix: null, pct: null, tx: null, out: 0, in: 0, newAt: null, lastBlockAt: null })),
-    [catalog],
-  );
-  const allRows = useMemo(() => [...cityRows, ...quietRows, ...fujiRows], [cityRows, quietRows, fujiRows]);
+  }, [byChainId, data.nodes, txOf]);
+  const allRows = useMemo(() => [...cityRows, ...quietRows], [cityRows, quietRows]);
   const rowById = useMemo(() => new Map(allRows.map((r) => [r.id, r])), [allRows]);
   // the P-Chain's view reads the Primary Network's validators from the C-Chain's row: one set runs both
   const hubRow = useMemo(() => allRows.find((r) => r.node?.role === "hub") ?? null, [allRows]);
@@ -485,7 +480,7 @@ export function CityApp({
   }, [allRows]);
   const twinTag = (r: Row) => (twinNames.has(r.name) ? (r.chain?.blockchainId ?? r.id).replace(/^0x/, "").slice(0, 4) : undefined);
 
-  /* the list the panel shows: the network, the search, and the cut */
+  /* the list the panel shows: the search, and the cut */
   const trimmed = query.trim();
   const q = trimmed.toLowerCase();
   const matches = (r: Row) =>
@@ -502,13 +497,12 @@ export function CityApp({
     (cut === "talking" ? r.out + r.in > 0 : cut === "indexed" ? isIndexed(r) : cut === "new" ? r.newAt !== null : r.mix ? r.mix.near + r.mix.stale > 0 : false);
   const rows = useMemo(() => {
     // a search reaches the chains the list hides, so any chain in the directory can be found
-    const base =
-      net === "testnet" ? fujiRows.filter((r) => inactive || q || Boolean(r.chain?.rpcUrl)) : inactive || q ? [...cityRows, ...quietRows] : cityRows;
+    const base = inactive || q ? [...cityRows, ...quietRows] : cityRows;
     const value = (r: Row) => (sort === "tx" ? r.tx ?? -1 : sort === "icm" ? r.out + r.in : r.validators);
     return base
-      .filter((r) => matches(r) && (net === "testnet" || cutOk(r)))
+      .filter((r) => matches(r) && cutOk(r))
       .sort((a, b) =>
-        sort === "name" || net === "testnet"
+        sort === "name"
           ? a.name.localeCompare(b.name)
           : sort === "district"
             ? // the chains the city does not stand close the list
@@ -522,9 +516,9 @@ export function CityApp({
       );
     // matches and cutOk read the query and the cut, both listed
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [net, fujiRows, cityRows, quietRows, inactive, sort, q, cut]);
+  }, [cityRows, quietRows, inactive, sort, q, cut]);
 
-  // the city lights what the search or a cut points at, whatever network the list shows; an address or a tx names no chain, so it dims nothing
+  // the city lights what the search or a cut points at; an address or a tx names no chain, so it dims nothing
   const idShape = looksLikeIdentifier(trimmed) || !!classifyLocally(trimmed);
   const cityHits = useMemo(
     () => (q || cut ? cityRows.filter((r) => matches(r) && cutOk(r)) : null),
@@ -618,9 +612,9 @@ export function CityApp({
     setPanelOpen(false);
   };
   const selectedRow = selected ? rowById.get(selected) ?? null : null;
-  // a mainnet chain with a feed has a live view: the C-Chain, or an L1 with a public RPC
+  // a chain with a feed has a live view: the C-Chain, or an L1 with a public RPC
   const liveOf = (r: Row | null): LiveTarget | null =>
-    r && net === "mainnet" && (r.node?.role === "hub" || r.chain?.rpcUrl)
+    r && (r.node?.role === "hub" || r.chain?.rpcUrl)
       ? {
           chainId: r.id,
           name: r.node?.role === "hub" ? "C-Chain" : r.name,
@@ -696,7 +690,7 @@ export function CityApp({
     return row && top ? { row, messages: top[1] } : null;
   }, [selectedRow, data.routes, rowById]);
 
-  /* the URL carries the open chain and district, so a link opens them */
+  /* the URL carries the open chain and district, so a link opens them; a chain key opens this network's chain only */
   const restored = useRef(false);
   useEffect(() => {
     if (restored.current || !data.nodes.length) return;
@@ -783,7 +777,7 @@ export function CityApp({
   }, [ask, wide]);
   // a link to an answer, opened on a phone: the Query page answers it, as the search there does
   useEffect(() => {
-    if (wide) return;
+    if (wide || !asks) return;
     const p = new URLSearchParams(window.location.search);
     const q = p.get("ask");
     if (q) router.current?.replace(queryHref({ q, then: p.getAll("then"), on: p.get("on") ?? "c-chain", for: p.get("for") }, askChains));
@@ -813,29 +807,17 @@ export function CityApp({
 
   const maxValidators = Math.max(1, ...cityRows.map((r) => r.validators));
   const metricOf = (r: Row) =>
-    net === "testnet"
-      ? r.chain?.networkToken?.symbol ?? ""
-      : sort === "tx"
-        ? r.tx === null
-          ? "—"
-          : fmtCompact(r.tx)
-        : sort === "icm"
-          ? r.out + r.in > 0
-            ? fmtCompact(r.out + r.in)
-            : "—"
-          : r.validators > 0
-            ? `${r.validators}`
-            : "—";
+    sort === "tx" ? (r.tx === null ? "—" : fmtCompact(r.tx)) : sort === "icm" ? (r.out + r.in > 0 ? fmtCompact(r.out + r.in) : "—") : r.validators > 0 ? `${r.validators}` : "—";
 
   /* the explorer's search, over the city: a name, a district or a chain
      ID picks its chains, on any network; an address, a tx, a block or a
      NodeID resolves to its page, as the network search resolves it; a
-     question opens Query */
-  const entity = useSearchEntity(query, SEARCH_TARGETS);
-  // the chains the words name: the city's first, then the directory's quiet ones, then Fuji's
+     question opens Query, on mainnet */
+  const entity = useSearchEntity(query, SEARCH_TARGETS[network]);
+  // the chains the words name: the city's first, then the directory's quiet ones
   const hits = useMemo(() => {
     if (!q) return [];
-    const where = (r: Row) => (r.node ? 0 : r.chain?.isTestnet ? 2 : 1);
+    const where = (r: Row) => (r.node ? 0 : 1);
     const name = (r: Row) => (r.node?.role === "hub" ? "c-chain" : r.name.toLowerCase());
     return allRows
       .filter(matches)
@@ -844,8 +826,8 @@ export function CityApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allRows, q]);
   const picks = hits.slice(0, 6);
-  const question = entity.length === 0 && looksLikeQuestion(trimmed, { identifier: idShape, chainHit: hits.length > 0 });
-  const canAsk = entity.length === 0 && canAskPhrase(trimmed, idShape);
+  const question = asks && entity.length === 0 && looksLikeQuestion(trimmed, { identifier: idShape, chainHit: hits.length > 0 });
+  const canAsk = asks && entity.length === 0 && canAskPhrase(trimmed, idShape);
   const askHref = `${ASK_AT}?q=${encodeURIComponent(trimmed)}`;
   // a question's Query page: the page around the city draws its first frame at once
   const askTo = useAskTo();
@@ -856,7 +838,7 @@ export function CityApp({
     else router.current?.push(href);
   };
   // where a question goes: the chain it names, the P-Chain for staking (for the L1 picked, when one is), the chain picked, else the C-Chain
-  const pickedAsk = selected === PCHAIN_PICK ? "p-chain" : selectedRow?.chain?.isTestnet ? null : selectedRow?.node?.role === "hub" ? "c-chain" : (selectedRow?.chain?.slug ?? null);
+  const pickedAsk = selected === PCHAIN_PICK ? "p-chain" : selectedRow?.node?.role === "hub" ? "c-chain" : (selectedRow?.chain?.slug ?? null);
   const askRoute = wide && canAsk ? routeFor(trimmed, pickedAsk, askChains) : null;
   const askOn = askRoute ? (askChains.find((c) => c.slug === askRoute.on) ?? null) : null;
   const askScope = askRoute?.for ? (askChains.find((c) => c.slug === askRoute.for) ?? null) : null;
@@ -886,7 +868,6 @@ export function CityApp({
     setQuery("");
     setHi(-1);
     searchRef.current?.blur();
-    if (r.chain?.isTestnet) setNet("testnet");
     open(r, "list");
   };
   // Enter: a chain ID's chain, the page an identifier resolves to, a question, then the first chain named
@@ -928,8 +909,8 @@ export function CityApp({
             else submit();
           }
         }}
-        placeholder={wide ? "Search or ask a question about Avalanche" : "Search or ask a question"}
-        aria-label="Search or ask a question about Avalanche"
+        placeholder={!asks ? "Search Fuji" : wide ? "Search or ask a question about Avalanche" : "Search or ask a question"}
+        aria-label={asks ? "Search or ask a question about Avalanche" : "Search the chains, addresses and transactions of Fuji"}
         spellCheck={false}
         className={cn(
           // a faint blue at the right end: the box also takes questions
@@ -959,32 +940,22 @@ export function CityApp({
     </label>
   );
 
-  /* the list's network: tabs with their counts, in the subnav's grammar */
+  /* the list's network, in the subnav's grammar: this City with its count, and a link to the other network's City */
   const netTabs = (
-    <div role="tablist" aria-label="Network" className="flex items-center gap-4">
-      {(["mainnet", "testnet"] as const).map((v) => {
-        const on = net === v;
-        return (
-          <button
-            key={v}
-            type="button"
-            role="tab"
-            aria-selected={on}
-            onClick={() => {
-              setNet(v);
-              setSelected(null);
-            }}
-            className={cn(
-              "relative flex items-baseline gap-1.5 py-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] transition-colors",
-              on ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
-            )}
-          >
-            {v === "mainnet" ? "Mainnet" : "Fuji"}
-            <span className="font-normal tabular-nums text-zinc-400 dark:text-zinc-500">{v === "mainnet" ? cityRows.length : fujiRows.filter((r) => r.chain?.rpcUrl).length}</span>
-            {on && <span aria-hidden className="absolute inset-x-0 -bottom-[9px] h-[2px] bg-[#E6212F]" />}
-          </button>
-        );
-      })}
+    <div role="group" aria-label="Network" className="flex items-center gap-4">
+      {PCHAIN_NETWORKS.map((v) =>
+        v === network ? (
+          <span key={v} aria-current="page" className="relative flex items-baseline gap-1.5 py-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-50">
+            {NETWORK_LABEL[v]}
+            <span className="font-normal tabular-nums text-zinc-400 dark:text-zinc-500">{cityRows.length}</span>
+            <span aria-hidden className="absolute inset-x-0 -bottom-[9px] h-[2px] bg-[#E6212F]" />
+          </span>
+        ) : (
+          <Link key={v} href={`${networkHome(v)}/chains`} className="py-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100">
+            {NETWORK_LABEL[v]}
+          </Link>
+        ),
+      )}
     </div>
   );
   const sortControl = (
@@ -1051,7 +1022,7 @@ export function CityApp({
   );
 
   /* questions to ask, under the search: a click opens the answer over the city, a second click on the open one lets it go */
-  const askChips = (
+  const askChips = asks && (
     <div role="group" aria-label="Questions to ask" className="flex flex-wrap justify-center gap-1.5">
       {SUGGESTED.map((s) => {
         const on = ask?.q === s.q && ask.then.length === 0;
@@ -1080,15 +1051,15 @@ export function CityApp({
     </div>
   );
 
-  // the chains the list leaves out until asked: mainnet's with no active validators, Fuji's with no public RPC
-  const hiddenCount = net === "testnet" ? fujiRows.filter((r) => !r.chain?.rpcUrl).length : quietRows.length;
+  // the chains the list leaves out until asked: those with no active validators
+  const hiddenCount = quietRows.length;
   const inactiveToggle =
     !q && hiddenCount > 0 ? (
       <button
         type="button"
         onClick={() => setInactive((v) => !v)}
         aria-pressed={inactive}
-        title={net === "testnet" ? "Fuji chains with no public RPC" : "Chains in the directory with no active validators"}
+        title="Chains in the directory with no active validators"
         className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
       >
         {inactive ? "Hide" : "Show"} {hiddenCount} inactive
@@ -1096,7 +1067,7 @@ export function CityApp({
     ) : null;
 
   /* the directory: the districts in the city's order, or one list sorted */
-  const grouped = net === "mainnet" && sort === "district";
+  const grouped = sort === "district";
   const groups = useMemo(() => {
     if (!grouped) return [{ key: "all", district: null as District | null, rows }];
     const out: { key: string; district: District | null; rows: Row[] }[] = [];
@@ -1136,17 +1107,15 @@ export function CityApp({
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-100 bg-white/95 px-4 py-2 backdrop-blur dark:border-zinc-900 dark:bg-zinc-950/95">
         {netTabs}
         <span className="flex-1" />
-        {/* Fuji has no sort: its height stays, so the row stands as tall on both networks */}
-        {net === "mainnet" ? sortControl : <span aria-hidden className="h-7" />}
+        {sortControl}
       </div>
       {/* the cuts: each lights the chains it names in the city, and cuts the list to them */}
-      {net === "mainnet" && <div className="px-4 pt-3">{cutChipsOf(false)}</div>}
-      {(q || (cut && net === "mainnet")) && (
-      <div className="flex items-center justify-between gap-3 px-4 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-          {rows.length} {rows.length === 1 ? "chain matches" : "chains match"}
-        </span>
-        {(q || cut) && (
+      <div className="px-4 pt-3">{cutChipsOf(false)}</div>
+      {(q || cut) && (
+        <div className="flex items-center justify-between gap-3 px-4 pt-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            {rows.length} {rows.length === 1 ? "chain matches" : "chains match"}
+          </span>
           <button
             type="button"
             onClick={() => {
@@ -1157,16 +1126,14 @@ export function CityApp({
           >
             Clear
           </button>
-        )}
-      </div>
+        </div>
       )}
-      {net === "testnet" && <p className="px-4 pt-1 text-[11.5px] text-zinc-500 dark:text-zinc-400">The city stands mainnet; Fuji's chains are listed here.</p>}
       {groups.map((g) => (
         <section key={g.key}>
           {groupHead(g)}
           <ul>
             {g.rows.map((r) => (
-              <RowButton key={r.id} row={r} tag={twinTag(r)} metric={metricOf(r)} painted={painted && net === "mainnet"} on={selected === r.id} onOpen={openFromList} onHover={setRowHover} />
+              <RowButton key={r.id} row={r} tag={twinTag(r)} metric={metricOf(r)} painted={painted} on={selected === r.id} onOpen={openFromList} onHover={setRowHover} />
             ))}
           </ul>
         </section>
@@ -1231,7 +1198,7 @@ export function CityApp({
       )}
     </button>
   );
-  const whereOf = (r: Row) => (r.node?.role === "hub" ? "Downtown" : r.district ? districtLabel(r.district) : r.chain?.isTestnet ? "Fuji" : "Inactive");
+  const whereOf = (r: Row) => (r.node?.role === "hub" ? "Downtown" : r.district ? districtLabel(r.district) : "Inactive");
   const picksPanel = searching && !!trimmed && (
     <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[min(26rem,55vh)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200/90 bg-white shadow-[0_24px_60px_-28px_rgba(30,27,58,0.5)] dark:border-zinc-800/90 dark:bg-zinc-950">
       {entity.map((hit) => <EntityHitRow key={hit.href ?? hit.status} hit={hit} onSelect={go} />)}
@@ -1281,7 +1248,7 @@ export function CityApp({
     return (
       <div className="pb-4 pt-3">
         <div className="px-4">
-          <BackButton onClick={back}>All chains</BackButton>
+          <PaneTop network={network} onBack={back} backLabel="All chains" />
           <Eyebrow className="mt-3">District</Eyebrow>
           <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{districtLabel(d)}</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">{districtAbout(d)}</p>
@@ -1315,9 +1282,7 @@ export function CityApp({
     );
   };
 
-  const pchainView = () => (
-    <PChainView primary={hubRow} pulse={data.pulse} target={target} onBack={back} backLabel={openedFrom === "district" && focus ? districtLabel(focus) : "All chains"} />
-  );
+  const pchainView = () => <PChainView primary={hubRow} pulse={data.pulse} target={target} network={network} onBack={back} backLabel={openedFrom === "district" && focus ? districtLabel(focus) : "All chains"} />;
 
   // a picked route's two ends, as the panel names them; each opens its own chain's view
   const routeEnd = (id: string): RouteEnd | null => {
@@ -1327,18 +1292,23 @@ export function CityApp({
   const routeView = (pair: string) => {
     const [a, b] = pair.split("~").map(routeEnd);
     if (!a || !b) return null;
+    // the network switch, at the right of the route's back button, as the other panes' PaneTop has it
     return (
-      <RouteView
-        key={pair}
-        a={a}
-        b={b}
-        onBack={() => setRoute(null)}
-        backLabel={focus ? districtLabel(focus) : "All chains"}
-        onChain={(id) => {
-          const r = rowById.get(id);
-          if (r) open(r);
-        }}
-      />
+      <div className="relative">
+        <div className="absolute right-4 top-3 flex h-5 items-center"><NetSwitch network={network} /></div>
+        <RouteView
+          key={pair}
+          a={a}
+          b={b}
+          network={network}
+          onBack={() => setRoute(null)}
+          backLabel={focus ? districtLabel(focus) : "All chains"}
+          onChain={(id) => {
+            const r = rowById.get(id);
+            if (r) open(r);
+          }}
+        />
+      </div>
     );
   };
 
@@ -1346,6 +1316,7 @@ export function CityApp({
     <ChainView
       row={r}
       target={target}
+      network={network}
       windowShort={windowShort}
       explorerOf={explorerOf}
       partner={partner}
@@ -1366,7 +1337,7 @@ export function CityApp({
   );
 
   /* the figures, a strip at the city's foot */
-  const hudFigure = (label: string, value: string, sub: ReactNode, phone = false, className?: string, href?: string, title?: string) => {
+  const hudFigure = (label: string, value: ReactNode, sub: ReactNode, phone = false, className?: string, href?: string, title?: string) => {
     // each figure holds the width of its widest reading, its placeholder or its figure, so the strip does not move as they come in
     const [valueCh, subCh] = figureMin(label);
     const body = (
@@ -1393,8 +1364,11 @@ export function CityApp({
   };
   const usd = (v: number) => `$${fmtCompact(v)}`;
   const change = market?.change24h ?? null;
-  // AVAX leads the strip, its price and its market cap; they open the token's page
-  const marketCells = (phone: boolean) => [
+  // with less room at the city's foot, the strip drops cells by STRIP_FIT: mainnet's market cap first, Fuji's AVAX first; a phone keeps them all
+  const fit = STRIP_FIT[network];
+  // AVAX leads the strip, its price and its market cap; they open the token's page. Test AVAX has no price, so Fuji says so
+  const marketCells = (phone: boolean) =>
+    network === "fuji" ? [hudFigure("AVAX", <span className="text-zinc-500">No price</span>, "Test AVAX has no market", phone, fit.avax)] : [
     hudFigure(
       "AVAX",
       market ? `$${market.price.toFixed(2)}` : "—",
@@ -1410,13 +1384,12 @@ export function CityApp({
       undefined,
       "/explorer/mainnet/token",
     ),
-    hudFigure("Market cap", market?.marketCap ? usd(market.marketCap) : "—", market ? `FDV ${usd(market.price * AVAX_CAP)}` : "fully diluted —", phone, STRIP_FIT.marketCap, "/explorer/mainnet/token"),
+    hudFigure("Market cap", market?.marketCap ? usd(market.marketCap) : "—", market ? `FDV ${usd(market.price * AVAX_CAP)}` : "fully diluted —", phone, fit.marketCap, "/explorer/mainnet/token"),
   ];
-  // with less room at the city's foot, the strip drops the market cap, then the chains and the validators (STRIP_FIT); a phone keeps all six
   const hud = (phone = false) => [
     ...marketCells(phone),
-    hudFigure("Chains", figures.chains.toLocaleString("en-US"), `${figures.districts} districts`, phone, STRIP_FIT.chains),
-    hudFigure("Validators", fmtCompact(figures.validators), figures.onShare === null ? "versions unknown" : `${figures.onShare.toFixed(0)}% on ${target}+`, phone, STRIP_FIT.validators),
+    hudFigure("Chains", figures.chains.toLocaleString("en-US"), `${figures.districts} districts`, phone, fit.chains),
+    hudFigure("Validators", fmtCompact(figures.validators), figures.onShare === null ? "versions unknown" : `${figures.onShare.toFixed(0)}% on ${target}+`, phone, fit.validators),
     hudFigure(
       `ICM · ${windowShort}`,
       fmtCompact(figures.icm),
@@ -1430,7 +1403,7 @@ export function CityApp({
   ];
   // the large screen's strip, built again only when its figures change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const strip = useMemo(() => hud(), [market, figures, target, windowShort, windowLabel]);
+  const strip = useMemo(() => hud(), [market, figures, target, windowShort, windowLabel, network]);
 
   /* the city's callbacks stay the same objects, and its room the same object while its numbers hold, so the city renders
      again only when what it draws changes */
@@ -1462,20 +1435,21 @@ export function CityApp({
   /* phones: the district browser                                      */
   /* ---------------------------------------------------------------- */
   if (!wide) {
-    const phoneGroups = net === "testnet" ? [{ key: "fuji", district: null as District | null, rows }] : groups.length && grouped ? groups : [{ key: "all", district: null, rows }];
-    const chips = net === "mainnet" ? DISTRICTS.filter((d) => cityRows.some((r) => r.district === d.key)).sort((a, b) => districtRank(a.key) - districtRank(b.key)) : [];
+    const phoneGroups = groups.length && grouped ? groups : [{ key: "all", district: null, rows }];
+    const chips = DISTRICTS.filter((d) => cityRows.some((r) => r.district === d.key)).sort((a, b) => districtRank(a.key) - districtRank(b.key));
     const routes = [...data.routes].sort((a, b) => b.messages - a.messages).slice(0, 12);
     const topRoute = routes[0]?.messages ?? 1;
+    // the figures stand two to a row; an odd count of them (Fuji has five) gives the last one both columns
     return (
       <div className="flex flex-col gap-5 pb-12 pt-4">
         <RouterRef into={router} />
-        <div className="grid grid-cols-2 gap-2">{hud(true)}</div>
+        <div className="grid grid-cols-2 gap-2 [&>:last-child:nth-child(odd)]:col-span-2">{hud(true)}</div>
         <div className="flex flex-col gap-2.5">
           {searchField}
-          {net === "mainnet" && cutChipsOf(false)}
+          {cutChipsOf(false)}
           <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2 dark:border-zinc-900">
             {netTabs}
-            {net === "mainnet" && sortControl}
+            {sortControl}
           </div>
           {chips.length > 0 && grouped && !trimmed && (
             <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -1528,8 +1502,8 @@ export function CityApp({
                       {r.node?.role === "hub" ? "C-Chain" : r.name}
                     </span>
                     <span className="mt-auto flex items-center gap-2 font-mono text-[10.5px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {net === "testnet" ? r.chain?.networkToken?.symbol ?? "" : `${metricOf(r)}${sort === "tx" ? " tx" : sort === "icm" ? " msgs" : " val"}`}
-                      {painted && net === "mainnet" && r.node && <Pct row={r} />}
+                      {`${metricOf(r)}${sort === "tx" ? " tx" : sort === "icm" ? " msgs" : " val"}`}
+                      {painted && r.node && <Pct row={r} />}
                       {isPrivateChain(r.chain) && <PrivateBadge />}
                       {r.newAt !== null && <NewBadge />}
                     </span>
@@ -1542,7 +1516,7 @@ export function CityApp({
         {rows.length === 0 && entity.length === 0 && !canAsk && <p className="py-6 text-center text-[13px] text-zinc-500">No chain matches.</p>}
         {inactiveToggle && <div className="flex justify-center">{inactiveToggle}</div>}
 
-        {net === "mainnet" && routes.length > 0 && (
+        {routes.length > 0 && (
           <section>
             <span className="flex items-baseline gap-2">
               <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.16em] text-zinc-900 dark:text-zinc-100">Traffic</span>
@@ -1575,7 +1549,7 @@ export function CityApp({
         )}
 
         <div className="-mx-5 overflow-hidden border-y border-zinc-200 dark:border-zinc-800">
-          <GroundKey pulse={data.pulse} arrivals={data.newcomers} />
+          <GroundKey pulse={data.pulse} arrivals={data.newcomers} network={network} />
         </div>
 
         {/* the open chain, in a sheet over the browser */}
@@ -1619,12 +1593,12 @@ export function CityApp({
   // the panel stands while the list is asked for, or while a chain or a district is open
   // without WebGL 2 the list stands open: it is the way to the chains while the city cannot
   // the P-Chain picked (its wing downtown) opens its own view in the panel, and its newest txs at the right
-  const pchainOpen = net === "mainnet" && selected === PCHAIN_PICK;
+  const pchainOpen = selected === PCHAIN_PICK;
   // the card's other view, the 2D explorer: the open chain's own home when it has one, else the whole network's
-  const explorer2d = (selectedRow?.chain && explorerOf(selectedRow.chain)) || (pchainOpen ? "/explorer/mainnet/p-chain" : "/explorer/mainnet");
+  const explorer2d = (selectedRow?.chain && explorerOf(selectedRow.chain)) || (pchainOpen ? `${networkHome(network)}/p-chain` : networkHome(network));
   // an ICM route picked on its street opens its own view in the panel
-  const routeOpen = net === "mainnet" && route !== null;
-  const showPanel = panelOpen || !webgl || !!selectedRow || pchainOpen || routeOpen || (!!focus && net === "mainnet");
+  const routeOpen = route !== null;
+  const showPanel = panelOpen || !webgl || !!selectedRow || pchainOpen || routeOpen || !!focus;
   if (showPanel && !listed) setListed(true);
   /* the key (city-key.tsx), built again only when what it shows changes: its switches' own renders measure their
      layout, a forced layout on every render of the app. With the panel open it is the panel's foot, and the list keeps
@@ -1660,8 +1634,9 @@ export function CityApp({
   const paneOpen = !ask && (!!liveTarget || pchainOpen);
   const rightW = ask ? askW : paneOpen ? LIVE_W : 0;
   // the search's box: 34rem at most, centred on the window, its left edge held between the card's edge and what stands at the
-  // right: the open pane, else the key (hidden while the panel is open)
-  const searchLeft = `calc(${PANEL_W}px + 2 * var(--frame))`;
+  // right: the open pane, else the key (hidden while the panel is open). Shut, the sidebar's head can be wider than the
+  // sidebar: it measures its three cards into --head (city-frame.tsx)
+  const searchLeft = `calc(${showPanel ? `${PANEL_W}px` : `max(${PANEL_W}px, var(--head, 0px))`} + 2 * var(--frame))`;
   const searchRight = `calc(${rightW}px + 2 * var(--frame))`;
   const searchW = `min(34rem, calc(100% - ${searchLeft} - ${searchRight}))`;
   const searchBox = { left: `clamp(${searchLeft}, calc(50% - ${searchW} / 2), calc(100% - ${searchRight} - ${searchW}))`, width: searchW };
@@ -1687,12 +1662,13 @@ export function CityApp({
           paint: painted,
           activity,
           windowLabel,
-          selected: net === "mainnet" ? selected : null,
+          network,
+          selected,
           onSelect: onCityPick,
           focus,
           onFocus: onCityFocus,
           // a picked route lets the chain view go, and its own light replaces an answer's or a search's while it is open
-          route: net === "mainnet" ? route : null,
+          route,
           onRoute: onCityRoute,
           lit: route ? null : (lit ?? askLit),
           hovered: askHover ?? rowHover,
@@ -1714,12 +1690,14 @@ export function CityApp({
         );
       })()}
 
-      {/* the sidebar's head (city-frame.tsx): the list's door and the toggle to the 2D explorer, two cards in the corner,
-          and the sidebar's head row while it is open */}
+      {/* the sidebar's head (city-frame.tsx): the list's door, the toggle to the 2D explorer and the network, three cards in
+          the corner, and the sidebar's head row while it is open */}
       <SidebarHead
         open={showPanel}
+        filtered={dimmed && !!cityHits}
         count={dimmed && cityHits ? `${cityHits.length} of ${cityRows.length}` : String(cityRows.length)}
         explorer={explorer2d}
+        network={network}
         onDoor={() => (showPanel ? shut() : setPanelOpen(true))}
       />
 
@@ -1735,7 +1713,7 @@ export function CityApp({
       >
         <div aria-hidden className={HEAD_ROW} />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" style={{ paddingBottom: webgl ? keyH : undefined }}>
-          {routeOpen && route ? routeView(route) : selectedRow ? (shownRow && shown ? chainView(shownRow) : chainView(selectedRow, false, true)) : pchainOpen ? pchainView() : focus && net === "mainnet" ? districtView(focus) : listed || showPanel ? directory() : null}
+          {routeOpen && route ? routeView(route) : selectedRow ? (shownRow && shown ? chainView(shownRow) : chainView(selectedRow, false, true)) : pchainOpen ? pchainView() : focus ? districtView(focus) : listed || showPanel ? directory() : null}
         </div>
       </aside>
 
@@ -1762,7 +1740,7 @@ export function CityApp({
       >
         {liveTarget && shown && !ask && <ChainLive key={liveTarget.chainId} chain={liveTarget} armed={landed} onTip={tipOf(liveTarget.chainId)} onClose={() => setShutFor(selected)} />}
         {pchainOpen && !ask && (
-          <PChainLive pulse={data.pulse} l1Of={l1Of} onClose={() => setSelected(null)} onTarget={(subnet) => setRowHover(subnet ? (idBySubnet.get(subnet) ?? null) : null)} />
+          <PChainLive pulse={data.pulse} network={network} l1Of={l1Of} onClose={() => setSelected(null)} onTarget={(subnet) => setRowHover(subnet ? (idBySubnet.get(subnet) ?? null) : null)} />
         )}
       </aside>
 
@@ -1816,7 +1794,7 @@ export function CityApp({
       <NewsFeed away={rightW > 0} className="absolute bottom-(--frame) right-(--frame) z-30" />
 
       {/* the figures, centred on the window at the city's foot whatever is open (city-frame.tsx) */}
-      <FigureStrip sidebar={showPanel} legend={webgl} right={rightW}>
+      <FigureStrip sidebar={showPanel} legend={webgl} right={rightW} network={network}>
         {strip}
       </FigureStrip>
     </div>

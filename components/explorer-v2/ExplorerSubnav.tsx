@@ -10,7 +10,14 @@ import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
-import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
+import {
+  MAINNET_COUNTERPART,
+  TESTNET_COUNTERPART,
+  catalogOf,
+  isUnindexedChain,
+  resolveCatalogChain,
+  wantsTestnet,
+} from "@/lib/explorer-catalog";
 import { isPrivateChain } from "@/components/explorer-v2/network/private";
 import { ExplorerRangeControl, useRangeConsumersPresent } from "@/components/explorer-v2/time-range";
 import { NavbarSlot } from "@/components/explorer-v2/navbar-slot";
@@ -21,6 +28,7 @@ import { chainSwitchTarget, switchTarget } from "@/components/explorer-v2/networ
 import { useAskedPath } from "@/components/explorer-v2/evm/query-asking";
 import {
   NETWORK_LABEL,
+  PCHAIN_NETWORKS,
   getExplorerChain,
   hasRealChainLogo,
   type PchainNetwork,
@@ -62,8 +70,6 @@ interface ExplorerSubnavProps {
   chainSlug?: string;
   chainName?: string;
   chainLogoURI?: string;
-  /** the page switches networks itself, as the Chains app's list does */
-  hideNetwork?: boolean;
   /** classes for the page clock, such as hiding it where the page draws its own */
   rangeClassName?: string;
   className?: string;
@@ -72,8 +78,9 @@ interface ExplorerSubnavProps {
 /* Chain switcher: the dropdown that holds the whole ecosystem. The two
    system chains are pinned; the L1 list is validated against the P-Chain
    (a chain appears only if its subnet has stake-backed validators right
-   now), fetched lazily the first time the menu opens. A row keeps the
-   reader's tab where its chain has it (chainSwitchTarget). In the phone
+   now), fetched lazily the first time the menu opens. On Fuji the list
+   holds the Fuji L1s only. A row keeps the reader's tab where its chain
+   has it (chainSwitchTarget). In the phone
    navbar (inNavbar) the button names the chain with the network under it,
    and the menu leads with the network control (networkRow). */
 function ChainSwitcher({
@@ -110,8 +117,11 @@ function ChainSwitcher({
     setOpen(false);
   }, [pathname]);
 
+  // the menu lists the L1s of the page's network: on Fuji, the Fuji catalog entries, with their Fuji names and links
+  const net: PchainNetwork = wantsTestnet(network) ? "fuji" : "mainnet";
+
   // validate lazily, on first open (the shared feed dedupes the request)
-  const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts("mainnet", open);
+  const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts(net, open);
   const indexedChainIds = useIndexedChainIds(open);
 
   // close on outside click or Escape
@@ -139,12 +149,10 @@ function ChainSwitcher({
   ];
 
   const l1s = useMemo<SwitcherEntry[] | null>(() => {
-    const mainnet = (l1ChainsData as L1Chain[]).filter(
-      (c) => c.isTestnet !== true && c.slug !== "c-chain",
-    );
+    const chains = [...catalogOf(net).values()].filter((c) => c.slug !== "c-chain");
 
     if (indexedChainIds) {
-      const picked = mainnet
+      const picked = chains
         .filter((c) => indexedChainIds.has(toStatsChainId(String(c.chainId))))
         .sort(
           (a, b) =>
@@ -160,7 +168,7 @@ function ChainSwitcher({
       }));
     }
 
-    const all = mainnet.filter((c) => c.rpcUrl && hasRealChainLogo(c.chainLogoURI));
+    const all = chains.filter((c) => c.rpcUrl && hasRealChainLogo(c.chainLogoURI));
     let picked: L1Chain[];
     if (liveValidators) {
       picked = all
@@ -176,7 +184,7 @@ function ChainSwitcher({
       name: c.chainName,
       logo: c.chainLogoURI,
     }));
-  }, [liveValidators, feedFailed, indexedChainIds]);
+  }, [net, liveValidators, feedFailed, indexedChainIds]);
 
   const q = filter.trim().toLowerCase();
   const matches = (e: SwitcherEntry) => !q || e.name.toLowerCase().includes(q) || e.slug.includes(q);
@@ -185,7 +193,7 @@ function ChainSwitcher({
 
   const row = (entry: SwitcherEntry) => {
     const href = chainSwitchTarget(pathname, chainSlug, network, entry.slug === "all-networks" ? undefined : entry.slug);
-    // the row of the chain on screen (on Fuji, Beam's row too) links to this page; a tap keeps the
+    // the row of the chain on screen links to this page; a tap keeps the
     // page as it is, query string included, and only closes the menu
     const current = href === pathname;
     return (
@@ -343,9 +351,9 @@ function tabText(tab: Tab): React.ReactNode {
    comes online. */
 const UNAVAILABLE_TESTNET: Record<string, string> = {};
 
-/* Network control: the P-Chain spans networks, so it gets the segmented
-   switcher; EVM chains get a Mainnet/Fuji toggle when a verified
-   counterpart chain exists, and a static label otherwise. */
+/* Network control: the P-Chain and the network scope span networks, so they
+   get the segmented switcher; EVM chains get a Mainnet/Fuji toggle when a
+   verified counterpart chain exists, and a static label otherwise. */
 function NetworkControl({
   network,
   chainSlug,
@@ -356,10 +364,11 @@ function NetworkControl({
   pathname: string;
 }) {
   const c = chainSlug ? getExplorerChain(chainSlug) : undefined;
-  if (chainSlug && c && c.kind === "pchain") {
+  if (!chainSlug || c?.kind === "pchain") {
+    // the network scope keeps its view on both networks; the P-Chain and the X-Chain list their own
     return (
       <div className="inline-flex self-center border border-zinc-200 dark:border-zinc-800">
-        {c.networks.map((n) => {
+        {(c?.networks ?? PCHAIN_NETWORKS).map((n) => {
           const active = n === network;
           return (
             <Link
@@ -381,17 +390,6 @@ function NetworkControl({
       </div>
     );
   }
-  if (!chainSlug) {
-    // A label, not a toggle: the network-scope aggregates are mainnet-only, so
-    // there is nowhere to switch to. It still has to name the network actually
-    // being viewed: a single message is network-agnostic and can be a Fuji one.
-    return (
-      <span className="self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-        {NETWORK_LABEL[network as PchainNetwork] ?? network}
-      </span>
-    );
-  }
-
   // EVM chain with a verified Fuji counterpart: a real toggle.
   // Which network we are on comes from the route, not the slug: a pair shares
   // one slug, so `chainSlug in MAINNET_COUNTERPART` is true on both sides.
@@ -463,7 +461,6 @@ export function ExplorerSubnav({
   chainSlug,
   chainName,
   chainLogoURI,
-  hideNetwork = false,
   rangeClassName,
   className,
 }: ExplorerSubnavProps) {
@@ -530,8 +527,8 @@ export function ExplorerSubnav({
         chainName={chainName}
         chainLogoURI={chainLogoURI}
         pathname={pathname}
-        caption={hideNetwork ? undefined : (NETWORK_LABEL[network as PchainNetwork] ?? network)}
-        networkRow={hideNetwork ? undefined : <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
+        caption={NETWORK_LABEL[network as PchainNetwork] ?? network}
+        networkRow={<NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
       />
     </NavbarSlot>
     <div data-explorer-subnav
@@ -618,11 +615,9 @@ export function ExplorerSubnav({
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
         {asked === null && <ExplorerRangeControl className={rangeClassName} />}
-        {!hideNetwork && (
-          <div className="flex max-sm:hidden">
-            <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />
-          </div>
-        )}
+        <div className="flex max-sm:hidden">
+          <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />
+        </div>
       </div>
     </div>
     </>

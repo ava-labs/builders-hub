@@ -8,9 +8,10 @@ import { HUB_PLINTH } from "@/components/explorer-v2/network/hub-tower";
 import { HUB_W, TILT } from "@/components/explorer-v2/network/city-geometry";
 import { planCity, streetRoute, turn, type City, type Stop, type Street } from "@/components/explorer-v2/network/city";
 import { districtOf } from "@/components/explorer-v2/network/districts";
-import { CITY_REACH, CX, CY, H_MAX, H_MIN, H_TOP_MIN, HUB_ID, validatorHeight, type Node, type Route, type SizeBy } from "@/components/explorer-v2/network/icm-map";
+import { CITY_REACH, CX, CY, H_MAX, H_MIN, H_TOP_MIN, validatorHeight, type Node, type Route, type SizeBy } from "@/components/explorer-v2/network/icm-map";
 import { overviewStatsUrl } from "@/components/explorer-v2/network/network-reads";
-import { MAINNET_COUNTERPART, catalogOf, resolveCatalogChain } from "@/lib/explorer-catalog";
+import { truncate } from "@/components/explorer-v2/format";
+import { C_CHAIN_ID, MAINNET_COUNTERPART, catalogBySubnet, catalogOf, resolveCatalogChain } from "@/lib/explorer-catalog";
 import type { PchainNetwork } from "@/lib/pchain-explorer";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { L1Chain } from "@/types/stats";
@@ -38,19 +39,9 @@ interface FlowRoute {
   messageCount: number;
 }
 
-/* downtown's chain: the network's C-Chain, which the Primary Network runs */
-const hubOf = (network: PchainNetwork) => (network === "fuji" ? "43113" : HUB_ID);
-
-/* the network's catalog chains by subnet, from the one catalog map by chain id */
-const subnetCatalogs = new Map<PchainNetwork, Map<string, L1Chain>>();
-function subnetCatalogOf(network: PchainNetwork): Map<string, L1Chain> {
-  let bySubnet = subnetCatalogs.get(network);
-  if (!bySubnet) {
-    bySubnet = new Map([...catalogOf(network).values()].filter((c) => c.subnetId).map((c) => [String(c.subnetId), c]));
-    subnetCatalogs.set(network, bySubnet);
-  }
-  return bySubnet;
-}
+/* a chain's name: the feed's, else the catalog's, else its ID made short (the first 6 and the last 4 characters). The
+   feed leaves the names of some Fuji chains blank */
+const nameOf = (name: string, cat: L1Chain | undefined, id: string) => name || cat?.chainName || truncate(id, 6);
 
 /* the category that picks a chain's district. The catalog gives Fuji chains
    none: a Fuji chain takes its mainnet counterpart's, else none (the Frontier) */
@@ -164,7 +155,8 @@ export function useCityData({ days, sizeBy, network = "mainnet" }: { days: numbe
   const pulse = usePchainPulse(network);
   // the week's new L1s, and every set the P-Chain runs now, from the P-Chain
   const { newcomers, residents, sites } = useNewcomers(pulse.txs, network);
-  const hubId = hubOf(network);
+  // downtown's chain: the network's C-Chain, which the Primary Network runs
+  const hubId = C_CHAIN_ID[network];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -206,7 +198,7 @@ export function useCityData({ days, sizeBy, network = "mainnet" }: { days: numbe
   const byMessages = sizeBy === "messages";
   const { nodes, routes, city } = useMemo(() => {
     const catalogByChainId = catalogOf(network);
-    const catalogBySubnet = subnetCatalogOf(network);
+    const bySubnet = catalogBySubnet(network);
     const known = new Map((chains ?? []).map((c) => [String(c.chainId), c]));
     // only routes between chains the overview knows on this network
     const merged = new Map<string, { from: string; to: string; messages: number }>();
@@ -236,9 +228,10 @@ export function useCityData({ days, sizeBy, network = "mainnet" }: { days: numbe
         const cat = catalogByChainId.get(id);
         const subnet = id === hubId ? null : cat?.subnetId;
         const counted = typeof c.validatorCount === "number" && c.validatorCount > 0 ? c.validatorCount : (id === hubId ? primary : subnet ? residentCount.get(subnet) : undefined) ?? 0;
+        const blockchainId = subnet ? chainOf.get(subnet) ?? null : null;
         return {
           id,
-          name: c.chainName,
+          name: nameOf(c.chainName, cat, blockchainId ?? id),
           // the feed leaves many logos blank; the catalog knows most of them
           logo: realLogo(c.chainLogoURI) || realLogo(cat?.chainLogoURI ?? ""),
           validators: counted,
@@ -250,7 +243,7 @@ export function useCityData({ days, sizeBy, network = "mainnet" }: { days: numbe
           newAt: null as number | null,
           guest: false,
           subnetId: (id === hubId ? PRIMARY_SUBNET_ID : subnet ?? null) as string | null,
-          blockchainId: (subnet ? chainOf.get(subnet) ?? null : null) as string | null,
+          blockchainId,
         };
       })
       .filter((c) => c.validators > 0 || c.out + c.in > 0);
@@ -260,15 +253,15 @@ export function useCityData({ days, sizeBy, network = "mainnet" }: { days: numbe
     const freshAt = new Map<string, number>();
     const guests: typeof listed = [];
     for (const nc of newcomers) {
-      const cat = catalogBySubnet.get(nc.subnetId);
+      const cat = bySubnet.get(nc.subnetId);
       const id = cat ? String(cat.chainId) : null;
       if (id && listedIds.has(id)) {
         freshAt.set(id, nc.joinedAt);
         continue;
       }
       guests.push({
-        id: `p:${nc.subnetId}`,
-        name: nc.name,
+        id: id ?? `p:${nc.subnetId}`,
+        name: nameOf(nc.name, cat, nc.blockchainId ?? nc.subnetId),
         logo: realLogo(cat?.chainLogoURI ?? "") || (GUEST_LOGOS[nc.subnetId] ?? ""),
         // a join seen live stands on its first validator until the registry counts it
         validators: nc.validators ?? 1,
@@ -286,13 +279,14 @@ export function useCityData({ days, sizeBy, network = "mainnet" }: { days: numbe
     }
     // every other set the P-Chain runs now stands too, with no NEW mark: a
     // private L1 the catalog does not list stands on the Frontier
-    const standing = new Set([...listed.map((c) => catalogByChainId.get(c.id)?.subnetId), ...guests.map((g) => g.id.slice(2))]);
+    const standing = new Set([...listed.map((c) => catalogByChainId.get(c.id)?.subnetId), ...guests.map((g) => g.subnetId)]);
     for (const r of residents) {
       if (standing.has(r.subnetId)) continue;
-      const cat = catalogBySubnet.get(r.subnetId);
+      const cat = bySubnet.get(r.subnetId);
       guests.push({
-        id: `p:${r.subnetId}`,
-        name: r.name,
+        // a set the catalog names keeps its chain ID, the one its row has once the chain feed lands: a linked chain stays open
+        id: cat ? String(cat.chainId) : `p:${r.subnetId}`,
+        name: nameOf(r.name, cat, r.blockchainId),
         logo: realLogo(cat?.chainLogoURI ?? "") || (GUEST_LOGOS[r.subnetId] ?? ""),
         validators: r.validators,
         out: 0,
@@ -349,7 +343,7 @@ export function useCityData({ days, sizeBy, network = "mainnet" }: { days: numbe
         // the traffic drives the streets: out of the sender's lot, round and in, to the receiver's
         const street = onScreen(streetRoute(a, b, city.core, HUB_W * HUB_PLINTH[0]));
         const heat = Math.sqrt(r.messages / maxMsgs);
-        return [{ key: `${r.from}>${r.to}`, from: r.from, to: r.to, messages: r.messages, d: street.d, width: 0.9 + 2.1 * heat, heat, crown: street.mid, length: street.length }];
+        return [{ key: `${r.from}>${r.to}`, from: r.from, to: r.to, messages: r.messages, d: street.d, width: 0.9 + 2.1 * heat, heat, crown: street.mid, length: street.length, hub: r.from === hubId || r.to === hubId }];
       });
     return { nodes: placed, routes: drawn, city };
   }, [chains, flows, byMessages, newcomers, residents, network, hubId]);

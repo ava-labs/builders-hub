@@ -10,6 +10,7 @@ import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import type { RouteHistory, Side } from "@/app/api/icm-route/route";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 
 /* An ICM route's own view, in the panel's grammar (the chain and P-Chain
    views in chain-view.tsx): the two chains it joins, its messages each way
@@ -81,23 +82,25 @@ function EndLogo({ end, size = 36 }: { end: RouteEnd; size?: number }) {
 }
 
 /* the route's history and share for a window: each fetch lets go of the last one's answer. The share is the city's
-   own, from its flows both ways: each direction counted once, when sent or when delivered, as the counts here are */
-function useRouteData(a: string, b: string, days: Days) {
+   own, from its flows both ways: each direction counted once, when sent or when delivered, as the counts here are. Both
+   reads stay on the route's network */
+function useRouteData(a: string, b: string, days: Days, network: PchainNetwork) {
   const [history, setHistory] = useState<RouteHistory | "failed" | null>(null);
   const [share, setShare] = useState<Share | null>(null);
+  const net = network === "fuji" ? "&network=fuji" : "";
   useEffect(() => {
     const controller = new AbortController();
     setHistory(null);
-    fetch(`/api/icm-route?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&days=${days}`, { signal: controller.signal })
+    fetch(`/api/icm-route?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&days=${days}${net}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((d: RouteHistory | { error: string }) => setHistory("error" in d ? "failed" : d))
       .catch((e: Error) => e.name !== "AbortError" && setHistory("failed"));
     return () => controller.abort();
-  }, [a, b, days]);
+  }, [a, b, days, net]);
   useEffect(() => {
     const controller = new AbortController();
     setShare(null);
-    fetch(`/api/icm-flow?days=${days}&sides=both`, { signal: controller.signal })
+    fetch(`/api/icm-flow?days=${days}&sides=both${net}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((d: { flows?: Flow[]; last_updated?: number }) => {
         const flows = d.flows ?? [];
@@ -108,13 +111,13 @@ function useRouteData(a: string, b: string, days: Days) {
       })
       .catch(() => undefined);
     return () => controller.abort();
-  }, [a, b, days]);
+  }, [a, b, days, net]);
   return { history, share };
 }
 
-export function RouteView({ a, b, onBack, backLabel, onChain }: { a: RouteEnd; b: RouteEnd; onBack: () => void; backLabel: string; onChain: (id: string) => void }) {
+export function RouteView({ a, b, network, onBack, backLabel, onChain }: { a: RouteEnd; b: RouteEnd; network: PchainNetwork; onBack: () => void; backLabel: string; onChain: (id: string) => void }) {
   const [days, setDays] = useState<Days>("1");
-  const { history, share } = useRouteData(a.id, b.id, days);
+  const { history, share } = useRouteData(a.id, b.id, days, network);
   // the figures' ages move on while the panel stays open
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -269,7 +272,7 @@ export function RouteView({ a, b, onBack, backLabel, onChain }: { a: RouteEnd; b
           <ul className="mt-1.5 divide-y divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-900 dark:border-zinc-800">
             {h.latest.map((m) => (
               <li key={m.messageId}>
-                <Link href={`/explorer/mainnet/icm/${m.messageId}`} className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
+                <Link href={`/explorer/${network}/icm/${m.messageId}`} className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
                   <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", m.dir === "ab" ? "bg-zinc-900 dark:bg-zinc-100" : "")} style={m.dir === "ba" ? { background: BLUE } : undefined} />
                   <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-zinc-800 dark:text-zinc-200">{truncate(m.messageId, 8)}</span>
                   <span className="shrink-0 truncate font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{m.dir === "ab" ? `${a.name} → ${b.name}` : `${b.name} → ${a.name}`}</span>

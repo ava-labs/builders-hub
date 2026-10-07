@@ -5,7 +5,7 @@ import { RouterRef, type Router } from "@/components/explorer-v2/router-ref";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { PCFSoftShadowMap, Vector3, type DirectionalLight } from "three";
-import { CX, CY, HUB_ID, Logo, PLATE, PLATE_T, RING_IN, floorsOf, mixTotal, type Glass } from "@/components/explorer-v2/network/icm-map";
+import { CX, CY, Logo, PLATE, PLATE_T, RING_IN, floorsOf, mixTotal, type Glass } from "@/components/explorer-v2/network/icm-map";
 import type { CityViewProps } from "@/components/explorer-v2/network/icm-map";
 import { PCHAIN_LOGO, PCHAIN_PICK } from "@/components/explorer-v2/network/city-model";
 import { groundOf } from "@/components/explorer-v2/network/ground";
@@ -240,10 +240,10 @@ function flashesOf(model: CityModel, activity: Map<string, number> | null | unde
   return { ribbons, bands };
 }
 
-export default function City3D({ data: incoming, versions = null, target = "", sizeBy, paint, activity = null, windowLabel, selected, onSelect, focus, onFocus, lit: litSet = null, hovered = null, onHover, inset, cameraRef, labels: labelsProp, route = null, onRoute }: City3DProps) {
+export default function City3D({ data: incoming, network, versions = null, target = "", sizeBy, paint, activity = null, windowLabel, selected, onSelect, focus, onFocus, lit: litSet = null, hovered = null, onHover, inset, cameraRef, labels: labelsProp, route = null, onRoute }: City3DProps) {
   // a plan that comes in while the column rises waits until it has landed (warmup.tsx), so its mount holds no frame of the rise
   const data = useSteady(incoming);
-  const { nodes, routes, byId, city, pulse, sites } = data;
+  const { nodes, routes, byId, city, pulse, sites, hubId } = data;
   const rules = useLabels(labelsProp) === "rules";
   const monoLogos = useMonoLogos();
   const regionRef = useRef<HTMLDivElement>(null);
@@ -414,7 +414,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
     };
   }, [dragging]);
   const pickedId = selected && byId.has(selected) ? selected : null;
-  const closeUp = pickedId === HUB_ID && focus === null;
+  const closeUp = pickedId === hubId && focus === null;
   // the P wing picked: the P-Chain's own close-up, as the C wing has the C-Chain's
   const pClose = selected === PCHAIN_PICK && focus === null;
   // a picked ICM route: its two ends, and its ways by key, one each way it runs
@@ -787,7 +787,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
     const head = pulse.txs[0] ?? null;
     const tipHeight = Math.max(s?.tipHeight ?? 0, head?.height ?? 0) || null;
     const tipAt = s && s.tipHeight >= (head?.height ?? 0) ? s.tipTimestamp : (head?.ts ?? null);
-    const primary = byId.get(HUB_ID);
+    const primary = byId.get(hubId);
     tip = (
       <TipPlate>
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-zinc-900 dark:text-zinc-100">
@@ -931,7 +931,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
           />
         )}
         </Stage>
-        <Stage at={5}>{model.buildings.length > 0 && <Helicopters model={model} pulse={pulse} theme={theme} still={still} liveAt={schedule.liveAt} />}</Stage>
+        <Stage at={5}>{model.buildings.length > 0 && <Helicopters model={model} pulse={pulse} theme={theme} still={still} liveAt={schedule.liveAt} network={network} />}</Stage>
         <Stage at={3}>
         <Streetlights city={city} theme={theme} glow={rich} model={model} rise={schedule.rise} />
         <Sites
@@ -943,7 +943,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
           onSite={(site) => {
             if (!flyingRef.current) setHoverSite(site);
           }}
-          onOpenSite={(site) => router.current?.push(`/explorer/mainnet/p-chain/chain/${site.blockchainId}`)}
+          onOpenSite={(site) => router.current?.push(`/explorer/${network}/p-chain/chain/${site.blockchainId}`)}
         />
         </Stage>
         <Stage at={4}>
@@ -1042,7 +1042,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
             const m = versions?.get(n.id);
             const known = m ? m.on + m.near + m.stale : 0;
             const pct = m && target && known > 0 ? Math.round((m.on / mixTotal(m)) * 100) : null;
-            const name = n.id === HUB_ID ? "C-Chain" : n.name.length > 16 ? `${n.name.slice(0, 15)}…` : n.name;
+            const name = n.id === hubId ? "C-Chain" : n.name.length > 16 ? `${n.name.slice(0, 15)}…` : n.name;
             return (
               // a leader's figures in the page's mono, flown as a flag on a 1 px leader line from its plaque, out from the city's middle
               <div key={n.id} ref={tagRef(`t:${n.id}`)} className="group absolute left-0 top-0 transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ visibility: "hidden", opacity: 0 }}>

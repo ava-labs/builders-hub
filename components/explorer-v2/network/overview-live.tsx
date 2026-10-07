@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 import { MotionConfig } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
+import { Board, EmptyRow, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { Belt, GasBar, Height, MotionRow, Party, fmtAmount } from "@/components/explorer-v2/evm/LiveBoards";
 import { useTicker } from "./ticker";
 import { methodLabel } from "@/components/explorer-v2/evm/bits";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { useSignatures } from "@/lib/token-list";
-import { hasRealChainLogo } from "@/lib/pchain-explorer";
+import { hasRealChainLogo, type PchainNetwork } from "@/lib/pchain-explorer";
 import { readJson, recall } from "@/components/explorer-v2/page-data";
 import { SOFT_READ, isOk, statusOf } from "@/lib/explorer-soft-status";
 import { RATE_WINDOW_MS, chainClock, coverRates, extendCover, type Cover } from "./throughput";
@@ -109,10 +109,12 @@ const txNewer = (a: LiveTx, b: LiveTx) => b.at - a.at || b.blockNumber - a.block
 
 /* The boards a visit leaves behind: the overview opened again within
    MEMORY_MS (the back button from a chain) starts from them, and asks each
-   chain only for what came after. */
+   chain only for what came after. They hold their network, so a visit to
+   the other network does not open on them. */
 const MEMORY_MS = 30_000;
-let left: { blocks: LiveBlock[]; txs: LiveTx[]; at: number } | null = null;
-const recallBoards = () => (left && Date.now() - left.at < MEMORY_MS ? left : null);
+let left: { network: PchainNetwork; blocks: LiveBlock[]; txs: LiveTx[]; at: number } | null = null;
+const recallBoards = (network: PchainNetwork) =>
+  left && left.network === network && Date.now() - left.at < MEMORY_MS ? left : null;
 
 /* The boards a hovered link's reads hold (the page memory): the overview
    opens on them as on the boards a visit left, once half the chains are
@@ -140,18 +142,25 @@ async function readFeed<T>(url: string, viaMemory: boolean): Promise<T> {
   return (await res.json()) as T;
 }
 
-function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, number>) => void) {
-  const [opening] = useState(() => recallBoards() ?? warmBoards(chains));
+/* `chains` is null until the overview feed names the roster */
+function useNetworkLive(
+  chains: LiveChain[] | null,
+  network: PchainNetwork,
+  onRates?: (rates: Map<string, number>) => void,
+) {
+  const [opening] = useState(() => recallBoards(network) ?? warmBoards(chains ?? []));
   const [blocks, setBlocks] = useState<LiveBlock[]>(opening?.blocks ?? []);
   const [txs, setTxs] = useState<LiveTx[]>(opening?.txs ?? []);
   const [settled, setSettled] = useState(!!opening);
 
   useEffect(() => {
-    if (blocks.length || txs.length) left = { blocks, txs, at: Date.now() };
-  }, [blocks, txs]);
+    if (blocks.length || txs.length) left = { network, blocks, txs, at: Date.now() };
+  }, [network, blocks, txs]);
 
   useEffect(() => {
-    if (chains.length === 0) return;
+    // no roster yet, or an empty one: no chain to read (the boards say which)
+    if (!chains?.length) return;
+    const roster = chains;
     let cancelled = false;
     let sweepN = 0;
     // the chains whose reads are still out
@@ -161,7 +170,7 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
     const idle = new Map<string, number>();
     const failures = new Map<string, number>();
     // from the boards left behind: each chain is asked for what came after
-    const was = recallBoards();
+    const was = recallBoards(network);
     for (const b of was?.blocks ?? []) lastBlock.set(b.chain.chainId, Math.max(lastBlock.get(b.chain.chainId) ?? 0, b.height));
     // every fresh block feeds its chain's run, so the reading is real
     // throughput, not what the board chooses to show
@@ -246,7 +255,7 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       };
       const wait = first ? setTimeout(open, OPEN_WAIT_MS) : undefined;
       await Promise.all(
-        chains.map(async (chain) => {
+        roster.map(async (chain) => {
           if (busy.has(chain.chainId)) return;
           busy.add(chain.chainId);
           const { b, t } = await readChain(chain, first);
@@ -254,7 +263,7 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
           if (opened) publish(b, t);
           else {
             early.push({ b, t });
-            if (early.length * 2 >= chains.length) open();
+            if (early.length * 2 >= roster.length) open();
           }
         }),
       );
@@ -279,7 +288,7 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [chains, onRates]);
+  }, [chains, network, onRates]);
 
   return { blocks, txs, settled };
 }
@@ -287,9 +296,9 @@ function useNetworkLive(chains: LiveChain[], onRates?: (rates: Map<string, numbe
 /* ------------------------------------------------------------------ */
 
 /* the network prefix is noise in a narrow column: "C-Chain", not
-   "Avalanche C-Chain" */
+   "Avalanche C-Chain". Fuji's catalog writes "Avalanche (C-Chain)" */
 function displayName(name: string): string {
-  return name.replace(/^Avalanche\s+/i, "");
+  return name.replace(/^Avalanche\s+/i, "").replace(/^\((.*)\)$/, "$1");
 }
 
 /** the chain a row came from: its round logo, else a letter tile */
@@ -329,7 +338,15 @@ function ViewAll({ href }: { href: string }) {
   );
 }
 
-const chainBase = (c: LiveChain) => `/explorer/mainnet/${c.slug}`;
+const chainBase = (c: LiveChain, network: PchainNetwork) => `/explorer/${network}/${c.slug}`;
+
+interface BoardProps<T> {
+  rows: T[];
+  loading: boolean;
+  /** the message in place of rows when the roster has no chain */
+  empty?: string;
+  network: PchainNetwork;
+}
 
 /* Both boards play the rows of each sweep over most of the sweep's
    interval, so a row enters about every second instead of a clump of rows
@@ -338,7 +355,7 @@ const chainBase = (c: LiveChain) => `/explorer/mainnet/${c.slug}`;
    their rows in time order (`merged`). Every row goes in at the top: one
    older than the top row when it lands (a slow read's) is let go, not
    slotted in under it, so the board only ever moves down. */
-function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading: boolean }) {
+function NetworkBlocksBoard({ rows: blocks, loading, empty, network }: BoardProps<LiveBlock>) {
   // the belt holds still under the pointer so a row can be clicked
   const [hover, setHover] = useState(false);
   const rows = useTicker(blocks, ROWS + 1, {
@@ -351,7 +368,7 @@ function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading:
   const cols = "md:grid-cols-[minmax(0,8rem)_6.5rem_2.5rem_minmax(0,1fr)_2.5rem]";
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader label="Latest Blocks" action={<ViewAll href="/explorer/mainnet/chains" />} />
+      <SectionHeader label="Latest Blocks" action={<ViewAll href={`/explorer/${network}/chains`} />} />
       <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span>Chain</span>
@@ -361,10 +378,12 @@ function NetworkBlocksBoard({ blocks, loading }: { blocks: LiveBlock[]; loading:
           <span className="text-right">Age</span>
         </div>
         {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
-        <Belt>
+        {empty && rows.length === 0 && <EmptyRow>{empty}</EmptyRow>}
+        {/* an empty roster keeps no room for rows */}
+        <Belt rows={empty ? 0 : ROWS}>
           {rows.map((b, i) => (
             <MotionRow key={b.hash} animateIn overflow={i >= ROWS}>
-              <Link href={`${chainBase(b.chain)}/block/${b.height}`} className={cn(ROW, cols)}>
+              <Link href={`${chainBase(b.chain, network)}/block/${b.height}`} className={cn(ROW, cols)}>
                 <ChainMark chain={b.chain} />
                 <span className="max-md:text-right">
                   <Height value={b.height} />
@@ -405,7 +424,7 @@ function useMethodLabels(rows: LiveTx[]) {
   };
 }
 
-function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) {
+function NetworkTxsBoard({ rows: txs, loading, empty, network }: BoardProps<LiveTx>) {
   const [hover, setHover] = useState(false);
   const rows = useTicker(txs, ROWS + 1, {
     key: (t) => t.hash,
@@ -419,7 +438,7 @@ function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) 
     "md:grid-cols-[0.75rem_minmax(0,6.5rem)_6rem_minmax(0,6rem)_minmax(0,1fr)_minmax(0,6.5rem)_2.5rem]";
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader label="Latest Transactions" action={<ViewAll href="/explorer/mainnet/chains" />} />
+      <SectionHeader label="Latest Transactions" action={<ViewAll href={`/explorer/${network}/chains`} />} />
       <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
         <div className="overflow-x-auto">
@@ -434,9 +453,10 @@ function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) 
               <span className="text-right">Age</span>
             </div>
             {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
-            <Belt>
+            {empty && rows.length === 0 && <EmptyRow>{empty}</EmptyRow>}
+            <Belt rows={empty ? 0 : ROWS}>
               {rows.map((t, i) => {
-                const base = chainBase(t.chain);
+                const base = chainBase(t.chain, network);
                 const m = method(t);
                 const value = Number(t.value);
                 return (
@@ -495,26 +515,35 @@ function NetworkTxsBoard({ txs, loading }: { txs: LiveTx[]; loading: boolean }) 
 
 /** Both boards side by side, fed by one poller. Reports each chain's
  *  transactions a second off the block feed, once the feed covers enough
- *  of that chain (see throughput.ts). */
+ *  of that chain (see throughput.ts). `chains` is null while the overview
+ *  feed loads; an empty roster shows a message in place of rows. */
 export function OverviewLiveBoards({
   chains,
+  network = "mainnet",
   onRates,
 }: {
-  chains: LiveChain[];
+  chains: LiveChain[] | null;
+  network?: PchainNetwork;
   onRates?: (rates: Map<string, number>) => void;
 }) {
-  const { blocks, txs, settled } = useNetworkLive(chains, onRates);
+  const { blocks, txs, settled } = useNetworkLive(chains, network, onRates);
+  const none = chains?.length === 0;
   // every chain failed: the boards bow out rather than sit empty
-  if (settled && blocks.length === 0 && txs.length === 0) return null;
-  const loading = !settled;
+  if (settled && !none && blocks.length === 0 && txs.length === 0) return null;
+  const loading = !settled && !none;
+  const empty = none
+    ? network === "fuji"
+      ? "No chain on Fuji has transactions in this window"
+      : "No chain has transactions in this window"
+    : undefined;
   // a row enters about every second for as long as the page is open: with
   // reduced motion it fades in where it lands, and the rows below it step
   // down without sliding
   return (
     <MotionConfig reducedMotion="user">
       <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <NetworkBlocksBoard blocks={blocks} loading={loading} />
-        <NetworkTxsBoard txs={txs} loading={loading} />
+        <NetworkBlocksBoard rows={blocks} loading={loading} empty={empty} network={network} />
+        <NetworkTxsBoard rows={txs} loading={loading} empty={empty} network={network} />
       </div>
     </MotionConfig>
   );

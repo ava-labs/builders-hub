@@ -13,10 +13,13 @@ import { districtLabel, type District } from "@/components/explorer-v2/network/d
 import { isPrivateChain, PRIVATE_NOTE } from "@/components/explorer-v2/network/private";
 import { ValidatorList, blockchainIdOf } from "@/components/explorer-v2/network/chain-quick-info";
 import { useClock, type LiveTip } from "@/components/explorer-v2/network/chain-live";
-import { PCHAIN_LOGO } from "@/components/explorer-v2/network/city-model";
+import { PCHAIN_LOGO, PCHAIN_PICK } from "@/components/explorer-v2/network/city-model";
 import type { PchainPulse } from "@/components/explorer-v2/network/pchain-pulse";
 import type { Row } from "@/components/explorer-v2/network/city-app";
+import { networkHome } from "@/components/explorer-v2/subnav-tabs";
+import { cityChainOn } from "@/components/explorer-v2/network-switch";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+import { NETWORK_LABEL, PCHAIN_NETWORKS, type PchainNetwork } from "@/lib/pchain-explorer";
 import type { L1Chain } from "@/types/stats";
 
 /* A chain, opened in the Chains app (city-app.tsx): its view in the app's
@@ -33,7 +36,7 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
   return <p className={cn("font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400", className)}>{children}</p>;
 }
 
-export function BackButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+function BackButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -108,6 +111,45 @@ export function Pct({ row, className }: { row: Row; className?: string }) {
   return <span className={cn("font-mono text-[10.5px] tabular-nums", pctInk(row.mix, row.pct), className)}>{row.pct === null ? "—" : `${row.pct}%`}</span>;
 }
 
+/* the network switch of a pane in the city: the subnav's Mainnet | Fuji segment, small; this network's segment is filled.
+   The other segment opens the other network's City. With a chain key, it opens that chain there when the other network
+   has it (cityChainOn): the P-Chain, the C-Chain and the L1s with a counterpart. Else it opens the other City with no chain */
+export function NetSwitch({ network, chainKey }: { network: PchainNetwork; chainKey?: string }) {
+  const there = chainKey ? cityChainOn(chainKey, network === "mainnet" ? "fuji" : "mainnet") : undefined;
+  const seg = "px-1.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] transition-colors";
+  return (
+    <div role="group" aria-label="Network" className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
+      {PCHAIN_NETWORKS.map((n) =>
+        n === network ? (
+          <span key={n} aria-current="page" className={cn(seg, "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900")}>
+            {NETWORK_LABEL[n]}
+          </span>
+        ) : (
+          <Link
+            key={n}
+            href={`${networkHome(n)}/chains${there ? `?chain=${there}` : ""}`}
+            title={there ? `Open this chain on ${NETWORK_LABEL[n]}` : `Open the ${NETWORK_LABEL[n]} City`}
+            className={cn(seg, "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900")}
+          >
+            {NETWORK_LABEL[n]}
+          </Link>
+        ),
+      )}
+    </div>
+  );
+}
+
+/* a pane's top row: its back button at the left and the network switch at the right. A phone's sheet has no back
+   button and has its close button at the top right, so there the switch stands at the left */
+export function PaneTop({ network, chainKey, onBack, backLabel }: { network: PchainNetwork; chainKey?: string; onBack?: () => void; backLabel: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      {onBack && <BackButton onClick={onBack}>{backLabel}</BackButton>}
+      <NetSwitch network={network} chainKey={chainKey} />
+    </div>
+  );
+}
+
 /* the open chain's newest block, its age ticking: the live pane's tip while
    the pane streams, else the chain pulse's reading, which can be minutes
    old, so past 90 s it says it is stale rather than pass for fresh */
@@ -140,6 +182,7 @@ function LastBlock({ live, pulseAt }: { live: LiveTip | null; pulseAt: number | 
 export function ChainView({
   row,
   target,
+  network,
   windowShort,
   explorerOf,
   partner,
@@ -152,6 +195,8 @@ export function ChainView({
 }: {
   row: Row;
   target: string;
+  /** the City's network: a Fuji L1 the catalog does not list has no entry to say it */
+  network: PchainNetwork;
   windowShort: string;
   explorerOf: (c: L1Chain) => string | null;
   partner: { row: Row; messages: number } | null;
@@ -171,14 +216,13 @@ export function ChainView({
   const evmId = c && /^\d+$/.test(String(c.chainId)) ? Number(c.chainId) : undefined;
   // the wallet asks the RPC for its chain ID when the catalog has none; a chain the catalog marks non-EVM has no wallet
   const canAdd = Boolean(c?.rpcUrl) && (c as { isEvm?: boolean } | null)?.isEvm !== false;
-  const net = c?.isTestnet ? "fuji" : "mainnet";
   const pchain = c?.blockchainId ? null : row.node?.href ?? null;
   // the P-Chain's IDs as it spells them, CB58: the catalog's, else the registry's
   const subnetId = c?.subnetId || row.node?.subnetId || null;
   const blockchainId = (c ? blockchainIdOf(c) : null) ?? row.node?.blockchainId ?? null;
   // the Primary Network has no creating tx, and its set is the whole network: its door is the P-Chain's validators page
   const primary = subnetId === PRIMARY_SUBNET_ID;
-  const pBase = `/explorer/${net}/p-chain`;
+  const pBase = `/explorer/${network}/p-chain`;
   const figure = (label: string, value: ReactNode, sub?: ReactNode, wide = false) => (
     <div className={cn("flex min-w-0 flex-col gap-0.5 bg-white px-3 py-2.5 dark:bg-zinc-950", wide && "col-span-2")}>
       <dt className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{label}</dt>
@@ -195,10 +239,11 @@ export function ChainView({
   const behind = row.mix ? row.mix.near + row.mix.stale : 0;
   const head = (
     <>
-      {onBack && <BackButton onClick={onBack}>{backLabel}</BackButton>}
+      {/* the City's ?chain= key for this row */}
+      <PaneTop network={network} chainKey={c?.slug ?? row.id} onBack={onBack} backLabel={backLabel} />
       <div className="mt-3 flex items-center gap-3">
         <BigLogo uri={row.logo} name={row.name} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate text-[20px] font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">{hub ? "C-Chain" : row.name}</h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
             {hub ? (
@@ -212,7 +257,7 @@ export function ChainView({
                 <span>{districtLabel(row.district)}</span>
               )
             ) : (
-              <span>{c?.isTestnet ? "Fuji" : "Not in the city"}</span>
+              <span>Not in the city</span>
             )}
             {c?.category && !hub && c.category.toLowerCase() !== (row.district ? districtLabel(row.district).toLowerCase() : "") && <span>· {c.category}</span>}
             {isPrivateChain(c) && <PrivateBadge />}
@@ -295,7 +340,7 @@ export function ChainView({
           !isPrivateChain(c) &&
           fact(
             "Accounts",
-            <Link href={`/explorer/${net}/${c.slug}/accounts`} className="inline-flex items-center gap-1 font-mono text-[11.5px] text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50">
+            <Link href={`/explorer/${network}/${c.slug}/accounts`} className="inline-flex items-center gap-1 font-mono text-[11.5px] text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50">
               Holders and activity
               <ArrowRight className="h-3 w-3" />
             </Link>,
@@ -305,8 +350,8 @@ export function ChainView({
 
       {subnetId && !primary && (
         <ValidatorList
-          key={`${net}:${subnetId}`}
-          network={net}
+          key={`${network}:${subnetId}`}
+          network={network}
           subnetId={subnetId}
           expected={row.validators}
           allHref={explorer ? `${explorer}/validators` : blockchainId ? `${pBase}/chain/${blockchainId}` : null}
@@ -330,12 +375,13 @@ export function ChainView({
    stakes it; then its explorer, its figures and its facts. Its validators
    are the Primary Network's, the set that runs the C-Chain too */
 const CORE_DOWNLOAD = "https://core.app/download";
-const PCHAIN_RPC = "https://api.avax.network/ext/bc/P";
+const PCHAIN_RPC: Record<PchainNetwork, string> = { mainnet: "https://api.avax.network/ext/bc/P", fuji: "https://api.avax-test.network/ext/bc/P" };
 
 export function PChainView({
   primary,
   pulse,
   target,
+  network,
   onBack,
   backLabel,
 }: {
@@ -343,6 +389,7 @@ export function PChainView({
   primary: Row | null;
   pulse: PchainPulse;
   target: string;
+  network: PchainNetwork;
   onBack?: () => void;
   backLabel: string;
 }) {
@@ -351,7 +398,7 @@ export function PChainView({
   // the stats' tip when it is newer, else the newest tx's block, as the P wing's card reads it
   const height = Math.max(s?.tipHeight ?? 0, head?.height ?? 0) || null;
   const at = s && s.tipHeight >= (head?.height ?? 0) ? s.tipTimestamp : (head?.ts ?? null);
-  const pBase = "/explorer/mainnet/p-chain";
+  const pBase = `/explorer/${network}/p-chain`;
   const behind = primary?.mix ? primary.mix.near + primary.mix.stale : 0;
   const figure = (label: string, value: ReactNode, sub?: ReactNode) => (
     <div className="flex min-w-0 flex-col gap-0.5 bg-white px-3 py-2.5 dark:bg-zinc-950">
@@ -368,10 +415,10 @@ export function PChainView({
   );
   return (
     <div className="px-4 pb-6 pt-3">
-      {onBack && <BackButton onClick={onBack}>{backLabel}</BackButton>}
+      <PaneTop network={network} chainKey={PCHAIN_PICK} onBack={onBack} backLabel={backLabel} />
       <div className="mt-3 flex items-center gap-3">
         <BigLogo uri={PCHAIN_LOGO} name="P-Chain" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate text-[20px] font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">P-Chain</h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
             <span>Downtown · Primary Network</span>
@@ -416,7 +463,7 @@ export function PChainView({
         {/* the P-Chain's ID is the empty ID, which is the Primary Network's subnet ID too */}
         {fact("Blockchain ID", <CopyValue value={PRIMARY_SUBNET_ID} shown={truncate(PRIMARY_SUBNET_ID, 8)} href={pBase} />)}
         {fact("Token", <span className="font-mono text-[11.5px] text-zinc-700 dark:text-zinc-300">AVAX</span>)}
-        {fact("Public RPC", <CopyValue value={PCHAIN_RPC} shown={PCHAIN_RPC.replace(/^https?:\/\//, "")} />)}
+        {fact("Public RPC", <CopyValue value={PCHAIN_RPC[network]} shown={PCHAIN_RPC[network].replace(/^https?:\/\//, "")} />)}
         {at !== null && fact("Last block", <LastBlock live={null} pulseAt={at * 1000} />)}
         {fact(
           "Validators",

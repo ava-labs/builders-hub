@@ -24,6 +24,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { famOf } from "@/components/explorer-v2/network/icm-map";
 import type { PchainPulse, PulseTx } from "@/components/explorer-v2/network/pchain-pulse";
 import { useTxTargets } from "@/components/explorer-v2/network/tx-targets";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 import type { CityModel } from "./model";
 import type { Theme } from "./palette";
 import { HUB_REACH, cDropAt, padAt } from "./HubTower";
@@ -245,9 +246,12 @@ export function Helicopters({
   theme,
   still,
   liveAt,
+  network,
 }: {
   model: CityModel;
   pulse: PchainPulse;
+  /** the P-Chain the drones fly for, whose txs name their L1s */
+  network: PchainNetwork;
   theme: Theme;
   still: boolean;
   /** when the city stands, on the city's clock: none flies before it */
@@ -261,7 +265,7 @@ export function Helicopters({
   const cDrop = useMemo(() => (hub ? new Vector3(...cDropAt(model)) : null), [model, hub]);
   // only the txs that fly need their L1 named
   const flying = useMemo(() => pulse.txs.filter((t) => t.fresh), [pulse.txs]);
-  const targets = useTxTargets(flying);
+  const targets = useTxTargets(flying, network);
   const targetsRef = useRef(targets);
   targetsRef.current = targets;
 

@@ -17,6 +17,7 @@ import { BLOCK_GRAY, PICK_BLUE } from "@/components/explorer-v2/network/icm-part
 import type { City } from "@/components/explorer-v2/network/city";
 import type { District } from "@/components/explorer-v2/network/districts";
 import type { CityData } from "@/components/explorer-v2/network/city-data";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 
 export interface Node {
   id: string;
@@ -67,6 +68,8 @@ export interface Route {
   crown: [number, number];
   /** the route's length on screen, which sets how long a packet takes to drive it */
   length: number;
+  /** one end is downtown, the network's C-Chain: its traffic drives in the brand's red */
+  hub: boolean;
 }
 
 /* what the towers say: validator count, message count, or validator
@@ -106,7 +109,6 @@ export const H_TOP_MIN = 100;
 export function validatorHeight(validators: number, top: number): number {
   return H_MIN + ((H_MAX - H_MIN) * Math.log1p(Math.max(0, validators) / H_KNEE)) / Math.log1p(top / H_KNEE);
 }
-export const HUB_ID = "43114";
 
 export const TONE = {
   gray: { top: "#DCE1E2", left: BLOCK_GRAY, right: "#7E8C8F", edge: "#5E6B6E" },
@@ -401,7 +403,7 @@ export function pctInk(mix: VersionMix | null | undefined, pct: number | null): 
    comes out of the seam's open place as the oldest fades into it. Two
    layers make the tiles solid: the lip at plate level, the face
    RING_LIFT above it. */
-export function GroundKey({ pulse, arrivals }: { pulse: PchainPulse; arrivals: Newcomer[] }) {
+export function GroundKey({ pulse, arrivals, network }: { pulse: PchainPulse; arrivals: Newcomer[]; network: PchainNetwork }) {
   const { txs, stats } = pulse;
   const counts = new Map<Fam, number>();
   for (const t of txs) counts.set(famOf(t.type), (counts.get(famOf(t.type)) ?? 0) + 1);
@@ -441,7 +443,7 @@ export function GroundKey({ pulse, arrivals }: { pulse: PchainPulse; arrivals: N
             </span>
           ))}
           <Link
-            href="/explorer/mainnet/p-chain"
+            href={`/explorer/${network}/p-chain`}
             className={cn("inline-flex shrink-0 items-center gap-1 font-bold tracking-[0.14em] transition-opacity hover:opacity-70", P_INK)}
           >
             P-Chain explorer
@@ -457,7 +459,7 @@ export function GroundKey({ pulse, arrivals }: { pulse: PchainPulse; arrivals: N
             L1s · last {NEW_DAYS} days
           </span>
           {arrivals.map((a) => {
-            const href = a.blockchainId ? `/explorer/mainnet/p-chain/chain/${a.blockchainId}` : a.tx ? `/explorer/mainnet/p-chain/tx/${a.tx}` : null;
+            const href = a.blockchainId ? `/explorer/${network}/p-chain/chain/${a.blockchainId}` : a.tx ? `/explorer/${network}/p-chain/tx/${a.tx}` : null;
             const body = (
               <>
                 <span className="text-zinc-900 dark:text-zinc-100">{a.name}</span> <span className="tabular-nums text-zinc-400 dark:text-zinc-500">{ageShort(a.joinedAt)}</span>
@@ -495,6 +497,8 @@ export type CameraHandle = {
 /** what the city's view is given: the app's data and the reader's picks, the same for the 3D view and any other */
 export interface CityViewProps {
   data: CityData;
+  /** the network the city stands for: its links and its reads */
+  network: PchainNetwork;
   /** each chain's nodes by client version, by EVM chain ID; the Versions view paints them */
   versions?: Map<string, VersionMix> | null;
   /** the version the mix is measured against */
