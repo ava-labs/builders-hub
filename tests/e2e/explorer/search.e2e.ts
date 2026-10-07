@@ -35,3 +35,51 @@ test('all networks search keeps a p-chain height on the p-chain', MULTI_PAGE, as
   await expect(screen.getByText('Parent')).toBeVisible(DATA);
   await expect(screen.getByText('Block not found')).toBeHidden();
 });
+
+// Rule: a CB58 id the P-Chain search does not claim can still be an X-Chain
+// transaction or genesis asset — the x-api has no search endpoint, so the
+// search probes tx/{id} then asset/{id} (xchainSearchCached in
+// components/explorer-v2/chain-search.tsx). Two fixed, immutable ids.
+
+const X_CHAIN_TX = '5ZUur5o2BWQtwuF8xrVevbXHEt7HQGS9tFCka4TCJhEJ2x1Vo';
+const P_CHAIN_TX = '2o2g8ysLJvuUdn8LziSZGN8cdEeEgbejTWWTfu4XRnqJzaPZZD';
+
+// The entity row names the chain the identifier resolved to before Enter opens it.
+const TX_ROW = /^Transaction .+ X-Chain$/;
+
+test('all networks search opens an x-chain tx id on the x-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
+  await app.open('/explorer/mainnet');
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
+  const box = screen.getByRole('textbox', 'Search or ask a question');
+  await box.fill(X_CHAIN_TX);
+  await expect(screen.getByRole('button', TX_ROW)).toBeVisible(DATA);
+  await box.press('Enter');
+  await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/tx/${X_CHAIN_TX}`, NAVIGATION);
+  await expect(screen.getByText('Hash')).toBeVisible(DATA);
+  await expect(screen.getByText('Transaction not found')).toBeHidden();
+});
+
+test('x-chain search opens an x-chain tx id on the x-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
+  await app.open('/explorer/mainnet/x-chain/txs');
+  // A tx row in the list shows the page has hydrated and the box is live.
+  await expect(screen.getByRole('link', /Tx #/).first()).toBeVisible(DATA);
+  const box = screen.getByRole('textbox', 'Search');
+  await box.fill(X_CHAIN_TX);
+  await expect(screen.getByRole('button', TX_ROW)).toBeVisible(DATA);
+  await box.press('Enter');
+  await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/tx/${X_CHAIN_TX}`, NAVIGATION);
+  await expect(screen.getByText('Hash')).toBeVisible(DATA);
+  await expect(screen.getByText('Transaction not found')).toBeHidden();
+});
+
+test('all networks search keeps a p-chain tx id on the p-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
+  await app.open('/explorer/mainnet');
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
+  const box = screen.getByRole('textbox', 'Search or ask a question');
+  await box.fill(P_CHAIN_TX);
+  await expect(screen.getByRole('button', /^Transaction .+ P-Chain$/)).toBeVisible(DATA);
+  await box.press('Enter');
+  await expect(browser).toHaveURL(`/explorer/mainnet/p-chain/tx/${P_CHAIN_TX}`, NAVIGATION);
+  await expect(screen.getByText(P_CHAIN_TX).first()).toBeVisible(DATA);
+  await expect(screen.getByText('Transaction not found')).toBeHidden();
+});

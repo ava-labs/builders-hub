@@ -16,6 +16,7 @@ import {
   matchChains,
   looksLikeIdentifier,
   useSearchEntity,
+  xchainSearchCached,
   type ChainHit,
 } from "@/components/explorer-v2/chain-search";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
@@ -239,6 +240,16 @@ export function ExplorerLayout({
       if (r.type !== "none") {
         router.push(`/explorer/${network}/p-chain/${r.type}/${r.id}`);
         return;
+      }
+
+      // a CB58 id the P-Chain does not claim can still be an X-Chain tx or
+      // genesis asset — the x-api has no search endpoint, so probe it
+      if (/^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(query) && !/^(P-)?(avax|fuji|custom)1/i.test(query)) {
+        const x = await xchainSearchCached(network, query);
+        if (x.type !== "none") {
+          router.push(`/explorer/${network}/x-chain/${x.type}/${x.id}`);
+          return;
+        }
       }
 
       // Show error for unrecognized format
