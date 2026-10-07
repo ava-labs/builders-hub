@@ -325,6 +325,25 @@ function ChapterOne() {
     return () => window.removeEventListener("resize", measure);
   }, [noun]);
 
+  // Some phone browsers (Brave on iOS, for one) resize the page when their
+  // toolbar hides, which changes svh too, so the hero would grow on the first
+  // scroll. On a touch screen the hero keeps the height it loaded with, and
+  // follows only a change of width (a rotation)
+  useLayoutEffect(() => {
+    const el = sectionRef.current;
+    if (!el || !window.matchMedia("(pointer: coarse)").matches) return;
+    let width = window.innerWidth;
+    const hold = () => el.style.setProperty("--v2-hero-h", `${window.innerHeight}px`);
+    hold();
+    const onResize = () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      hold();
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   // top-to-bottom load sequence: each block rises in after the one above it
   // The server cannot read reduced motion, so it always sends the hidden
   // start. With reduced motion the client skips the start (initial false) but
@@ -342,7 +361,7 @@ function ChapterOne() {
     <section
       ref={sectionRef}
       data-chapter="hero"
-      className="v2-snap-section relative flex min-h-[calc(100vh-3.5rem)] flex-col supports-[height:100svh]:min-h-[calc(100svh-3.5rem)]"
+      className="v2-snap-section relative flex min-h-[calc(100vh-3.5rem)] flex-col supports-[height:100svh]:min-h-[calc(var(--v2-hero-h,100svh)-3.5rem)]"
     >
       <motion.div
         className="flex flex-1 flex-col"
@@ -417,8 +436,9 @@ function ChapterOne() {
           <HoverPrefetchLink
             href="/docs/avalanche-l1s"
             onClick={() => track("home_cta_clicked", { section: "hero", label: "Read the architecture", href: "/docs/avalanche-l1s" })}
-            // over the splash sky, zinc-500 and zinc-400 fall below AA contrast
-            className="font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+            // over the splash sky, zinc-500 and zinc-400 fall below AA contrast. On a
+            // phone the ridge and the plume rise behind the link, so it sits on a chip
+            className="font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 max-md:bg-white/95 max-md:px-3 max-md:py-2 dark:text-zinc-300 dark:hover:text-zinc-100 dark:max-md:bg-zinc-950/95"
           >
             READ THE ARCHITECTURE →
           </HoverPrefetchLink>

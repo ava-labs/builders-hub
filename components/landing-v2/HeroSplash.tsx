@@ -33,18 +33,21 @@ const CODECS: Record<Size, { av1: string; avc: string }> = {
   phone: { av1: "av01.0.08M.08", avc: "avc1.64002A" },
 };
 
-// Each size: the frame's aspect, half the copy's height below center, and
-// the snow loop's box inside the frame (fractions of the frame).
+// Each size: the frame's aspect, how far below center the snow must stay
+// clear (copyHalf), and the snow loop's box inside the frame (fractions of
+// the frame). Desktop keeps the whole copy clear. On a phone the stacked
+// copy fills most of the box, and clearing it would drop the ridge and the
+// plume out of view, so only the headline is kept clear: the snow rises
+// behind the buttons.
 const FRAME: Record<Size, { aspect: number; copyHalf: number; box: [number, number, number, number] }> = {
   desk: { aspect: 3840 / 1648, copyHalf: 108, box: [720 / 3840, 864 / 1648, 3120 / 3840, 784 / 1648] },
-  phone: { aspect: 1080 / 1920, copyHalf: 144, box: [0, 864 / 1648, 1, 784 / 1648] },
+  phone: { aspect: 1080 / 1920, copyHalf: 24, box: [0, 864 / 1648, 1, 784 / 1648] },
 };
 
 // Ridge placement. The splash box ends at the ecosystem tape's top edge and
 // the copy is centered in it. The frame covers the box, sits on that edge,
 // and drops only as far as it must for the snow, which starts SPIN of the
-// frame height from the top, to clear the copy (copyHalf below center) by
-// GAP. Tall screens see the whole ridge; short ones lose its foot. The
+// frame height from the top, to clear copyHalf below center by GAP. Tall screens see the whole ridge; short ones lose its foot. The
 // still and the loop both read --fx/--fy/--fw/--fh, so they always line up.
 // Container units keep this exact at any viewport.
 const SPIN = 0.6;
