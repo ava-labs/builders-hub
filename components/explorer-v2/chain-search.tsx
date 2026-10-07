@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeftRight, ArrowRight, Box, Hash, Server, Wallet } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Box, Coins, Hash, Server, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ICM_STATUS_LABEL, type IcmMessage } from "@/lib/icm-message";
@@ -175,8 +175,9 @@ function ChainLogo({ uri, name }: { uri?: string; name: string }) {
 /* Entity suggestions — the dropdown's answer to "what will Enter do?" */
 /* Unambiguous shapes (heights, NodeIDs, addresses) resolve instantly; */
 /* tx hashes race every chain's RPC and CB58 IDs ask the P-Chain       */
-/* search API, both debounced and cached per query so a pasted hash    */
-/* costs one lookup total — the Enter key reuses the same cache.       */
+/* search API, then the X-Chain's tx/asset probes on a miss — all      */
+/* debounced and cached per query so a pasted hash costs one lookup    */
+/* total and the Enter key reuses the same cache.                      */
 /* ------------------------------------------------------------------ */
 
 /* How a P-Chain search result renders. "chain" comes from a CreateChainTx
@@ -190,7 +191,7 @@ const PCHAIN_HIT: Record<string, { icon: EntityHit["icon"]; label: string }> = {
 };
 
 export interface EntityHit {
-  icon: "tx" | "block" | "address" | "node" | "icm";
+  icon: "tx" | "block" | "address" | "node" | "icm" | "asset";
   label: string;
   id: string;
   /** null while searching or when nothing claimed the identifier */
@@ -222,6 +223,48 @@ export function lookupTxAcrossChainsCached(hash: string) {
     txRaceCache.set(key, p);
   }
   return p;
+}
+
+/* What the X-Chain API can tell a CB58 id is: tx or genesis asset. There is
+   no x-api "search" resource, so the id is probed as a tx first and an
+   asset second — a CreateAssetTx id names an asset that has no tx page. */
+export interface XchainHit {
+  type: "tx" | "asset" | "none";
+  id: string;
+}
+
+const XCHAIN_HIT: Record<"tx" | "asset", { icon: EntityHit["icon"]; label: string }> = {
+  tx: { icon: "tx", label: "Transaction" },
+  asset: { icon: "asset", label: "Asset" },
+};
+
+const xchainSearchCache = new Map<string, Promise<XchainHit>>();
+/** One probe pair per id per session, shared by the dropdown row and Enter. */
+export function xchainSearchCached(network: string, q: string): Promise<XchainHit> {
+  const key = `${network}:${q}`;
+  let p = xchainSearchCache.get(key);
+  if (!p) {
+    const has = (resource: "tx" | "asset") =>
+      fetch(`/api/xchain/${network}/${resource}/${encodeURIComponent(q)}`, SOFT_READ).then((res) => isOk(res));
+    p = has("tx")
+      .then(async (tx): Promise<XchainHit> => (tx ? { type: "tx", id: q } : { type: (await has("asset")) ? "asset" : "none", id: q }))
+      .catch(() => ({ type: "none" as const, id: q }));
+    xchainSearchCache.set(key, p);
+  }
+  return p;
+}
+
+/** The X-Chain's answer to a CB58 id as an entity row. */
+export function xchainHit(q: string, network: string, found: XchainHit): EntityHit {
+  return found.type === "none"
+    ? { icon: "tx", label: "Chain ID", id: q, href: null, detail: "Nothing matched", status: "notfound" }
+    : {
+        ...XCHAIN_HIT[found.type],
+        id: q,
+        href: `/explorer/${network}/x-chain/${found.type}/${found.id}`,
+        detail: "X-Chain",
+        status: "ready",
+      };
 }
 
 const pchainSearchCache = new Map<string, Promise<SearchResult>>();
@@ -344,14 +387,20 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
             : { icon: "tx", label: "Transaction", id: q, href: null, detail: "No chain claims this hash", status: "notfound" },
         });
       } else {
+        // CB58 — a P-Chain or X-Chain id: the search API answers for the
+        // P-Chain; on a miss the X-Chain's tx/asset probes take over
         const r = await pchainSearchCached(targets.network, q);
         if (cancelled) return;
-        setResolved({
-          q,
-          hit: r.type !== "none"
-            ? { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
-            : { icon: "tx", label: "P-Chain ID", id: q, href: null, detail: "Nothing matched", status: "notfound" },
-        });
+        if (r.type !== "none") {
+          setResolved({
+            q,
+            hit: { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" },
+          });
+          return;
+        }
+        const x = await xchainSearchCached(targets.network, q);
+        if (cancelled) return;
+        setResolved({ q, hit: xchainHit(q, targets.network, x) });
       }
     }, ENTITY_DEBOUNCE_MS);
     return () => {
@@ -379,17 +428,17 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
     if (resolved && resolved.q === q) return resolved.hit;
     return {
       icon: isAskedHeight ? "block" : "tx",
-      label: isTxHash ? "Transaction" : isAskedHeight ? "Block" : "P-Chain ID",
+      label: isTxHash ? "Transaction" : isAskedHeight ? "Block" : "Chain ID",
       id: q,
       href: null,
-      detail: isTxHash ? "Searching every chain…" : "Searching the P-Chain…",
+      detail: isTxHash ? "Searching every chain…" : isAskedHeight ? "Searching the P-Chain…" : "Searching the P-Chain and X-Chain…",
       status: "searching",
     };
   }
   return null;
 }
 
-const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server, icm: ArrowLeftRight } as const;
+const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server, icm: ArrowLeftRight, asset: Coins } as const;
 
 /** The entity row: what the identifier in the box resolves to, and where
  *  Enter (or a click) lands. Sits above the chain suggestions. */

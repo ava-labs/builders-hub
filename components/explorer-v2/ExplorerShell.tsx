@@ -24,6 +24,7 @@ import {
   looksLikeIdentifier,
   lookupTxAcrossChainsCached,
   useSearchEntity,
+  xchainSearchCached,
   type ChainHit,
   type EntityTargets,
 } from "@/components/explorer-v2/chain-search";
@@ -110,7 +111,7 @@ export function SearchBox({
   const targets: EntityTargets = {
     network,
     blockBase: base,
-    blockChainName: "P-Chain",
+    blockChainName: getExplorerChain(chain)?.name ?? "P-Chain",
     evmAddressBase: `/explorer/${network}/c-chain`,
     evmAddressChainName: "C-Chain",
     // the network box: a height the P-Chain lacks is a C-Chain height, as in the page's Latest Blocks
@@ -212,6 +213,15 @@ export function SearchBox({
       if (r.type !== "none") {
         go(r.type, r.id);
         return;
+      }
+      // a CB58 id the P-Chain does not claim can still be an X-Chain tx or
+      // genesis asset — the x-api has no search endpoint, so probe it
+      if (/^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(query) && !/^(P-)?(avax|fuji|custom)1/i.test(query)) {
+        const x = await xchainSearchCached(network, query);
+        if (x.type !== "none") {
+          goToHref(`/explorer/${network}/x-chain/${x.type}/${x.id}`);
+          return;
+        }
       }
       if (network === "mainnet" && /^0x[a-fA-F0-9]{64}$/.test(query)) {
         // same cache the dropdown's entity row fills — usually instant
