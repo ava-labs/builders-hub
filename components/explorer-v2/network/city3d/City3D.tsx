@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { RouterRef, type Router } from "@/components/explorer-v2/router-ref";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { PCFSoftShadowMap, Vector3, type DirectionalLight } from "three";
@@ -195,17 +195,6 @@ function Clock({ t0, still }: { t0: { current: number | null }; still: boolean }
 function CameraNow() {
   const camera = useThree((s) => s.camera);
   useFrame(() => camera.updateMatrixWorld(), -0.5);
-  return null;
-}
-
-/* Next's router, kept in a ref by a child that renders nothing (as city-app's RouterRef): useRouter reads the layout's
-   context, which changes with every change of the URL, so a city that called it would render again for each one */
-type Router = ReturnType<typeof useRouter>;
-function RouterRef({ into }: { into: { current: Router | null } }) {
-  const router = useRouter();
-  useEffect(() => {
-    into.current = router;
-  }, [into, router]);
   return null;
 }
 
