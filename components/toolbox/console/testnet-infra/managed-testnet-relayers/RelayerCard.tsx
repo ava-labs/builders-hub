@@ -355,9 +355,11 @@ export default function RelayerCard({
                   <div>
                     <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{chainInfo.name}</div>
                     <div className="flex items-center gap-1 text-sm text-zinc-500">
-                      {balances[config.blockchainId] !== undefined
-                        ? `${parseFloat(balances[config.blockchainId]).toFixed(4)} ${chainInfo.coinName}`
-                        : 'Loading...'}
+                      {balances[config.blockchainId] === undefined
+                        ? 'Loading...'
+                        : balances[config.blockchainId] === 'Error'
+                          ? "Couldn't read balance: the chain's RPC didn't answer"
+                          : `${parseFloat(balances[config.blockchainId]).toFixed(4)} ${chainInfo.coinName}`}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -79,6 +79,11 @@ export function generate6DigitCode(): string {
   return randomInt(100000, 1000000).toString();
 }
 
+// Without a configured secret, next-auth derives one from the options. getServerSession strips the
+// providers before deriving it, so it can't read the session cookie the auth route set and every
+// protected route answers 401. Local `next dev` gets a fixed secret instead; production is unchanged.
+const DEV_FALLBACK_SECRET = process.env.NODE_ENV === 'development' ? 'builders-hub-local-development-only' : undefined;
+
 const authUserSelect = {
   id: true,
   email: true,
@@ -241,7 +246,7 @@ export const AuthOptions: NextAuthOptions = {
       session.user.is_new_user = !!token.is_new_user;
       session.user.authentication_mode = token.authentication_mode ?? '';
       session.user.team_id = (token.team_id as string | null) ?? null;
-      return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? '', token: token })}
+      return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? DEV_FALLBACK_SECRET ?? '', token: token })}
     },
     async redirect({ url, baseUrl }) {
       // If the URL is relative, convert it to absolute
@@ -254,7 +259,7 @@ export const AuthOptions: NextAuthOptions = {
 
 
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET ?? DEV_FALLBACK_SECRET,
   pages: {
     signIn: '/login',
   },
