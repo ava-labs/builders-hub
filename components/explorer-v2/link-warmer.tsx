@@ -26,6 +26,13 @@ function explorerHref(target: EventTarget | null): string | null {
   return href?.startsWith("/explorer/") ? href : null;
 }
 
+/* a search box names the Query page its questions open (data-asks): a
+   focused box may send a question next, so focus warms that page too */
+function asksHref(target: EventTarget | null): string | null {
+  const href = target instanceof Element ? target.closest("[data-asks]")?.getAttribute("data-asks") : null;
+  return href?.startsWith("/explorer/") ? href : null;
+}
+
 export function LinkWarmer() {
   const router = useRouter();
   useEffect(() => {
@@ -46,7 +53,7 @@ export function LinkWarmer() {
       if (href) rest = setTimeout(() => warm(href), e.pointerType === "mouse" ? REST_MS : 0);
     };
     const now = (e: Event) => {
-      const href = explorerHref(e.target);
+      const href = explorerHref(e.target) ?? (e.type === "focusin" ? asksHref(e.target) : null);
       if (href) warm(href);
     };
     document.addEventListener("pointerover", onOver, { passive: true });

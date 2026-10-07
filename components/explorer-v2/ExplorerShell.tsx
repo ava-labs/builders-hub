@@ -308,6 +308,8 @@ export function SearchBox({
           onBlur={() => setFocused(false)}
           onKeyDown={onKeyDown}
           placeholder={askable ? "Search an address, tx, block, NodeID or chain, or ask a question…" : "Search chains by name or ID, block height, tx hash, NodeID, or any address"}
+          // focus warms the P-Chain Query page; not the network one, which reads every chain's coverage
+          data-asks={askable && !askAt ? queryPage : undefined}
           aria-label={askable ? "Search or ask a question" : "Search"}
           spellCheck={false}
           className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"

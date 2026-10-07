@@ -136,6 +136,7 @@ export function EvmSearchBox({
           }}
           ref={inputRef}
           placeholder={askable ? "Search an address, tx, block or chain, or ask a question…" : "Search by address, tx hash, block, or chain…"}
+          data-asks={askable ? `${base}/query` : undefined}
           aria-label={askable ? "Search the chain or ask a question about it" : "Search the chain"}
           spellCheck={false}
           className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"
