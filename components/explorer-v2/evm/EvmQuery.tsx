@@ -78,15 +78,30 @@ export type IndexState = Coverage | "empty" | null;
 /** a window that ends more than a day ago is named on the page */
 const STALE_S = 24 * 3600;
 
-/** an EVM chain's Query page, inside the chain's own layout and shell */
-export function EvmQuery({ network, index = null }: { network: string; index?: IndexState }) {
+/** a value the server streams in after the page: null until it lands */
+function useStreamed<T>(p: Promise<T> | null): T | null {
+  const [v, setV] = useState<T | null>(null);
+  useEffect(() => {
+    let live = true;
+    p?.then((x) => live && setV(x), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, [p]);
+  return v;
+}
+
+/** an EVM chain's Query page, inside the chain's own layout and shell. What
+    the database holds of the chain streams in after the page, so the page
+    never waits on that read */
+export function EvmQuery({ network, index = null }: { network: string; index?: Promise<IndexState> | null }) {
   const c = useChainContext();
   return (
     <QueryPage
       network={network}
       c={{ chainId: c.chainId, chainSlug: c.chainSlug, chainName: c.chainName, nativeToken: c.nativeToken, kind: "evm" }}
       examples={examplesFor(c.chainId)}
-      index={index}
+      index={useStreamed(index)}
     />
   );
 }
@@ -108,7 +123,6 @@ export interface NetworkQueryChain extends QueryChain {
   /** how the picker names the chain */
   label: string;
   logo?: string;
-  index: IndexState;
 }
 
 /* which chain a question names, by its name or slug as a whole word; the
@@ -129,9 +143,11 @@ function chainNamed(q: string, chains: NetworkQueryChain[]): string | null {
 }
 
 /* the network page's suggestions: the C-Chain's, then one for the P-Chain
-   and one naming an L1, so a reader sees a question can name its chain */
+   and one naming an L1, so a reader sees a question can name its chain. The
+   L1 is Beam, a busy one, so the card reads the same before and after the
+   database's coverage streams in; another L1 only if Beam has no rows */
 function networkExamples(chains: NetworkQueryChain[]): typeof EXAMPLES {
-  const l1 = chains.find((c) => c.kind === "evm" && c.chainSlug !== "c-chain");
+  const l1 = chains.find((c) => c.chainSlug === "beam") ?? chains.find((c) => c.kind === "evm" && c.chainSlug !== "c-chain");
   return [
     ...EXAMPLES,
     {
@@ -150,14 +166,26 @@ function networkExamples(chains: NetworkQueryChain[]): typeof EXAMPLES {
    routes those), and to the C-Chain otherwise; the chip shows which chain
    answers and can change the default. The page remounts on a new chain,
    so no answer carries across. */
-export function NetworkQuery({ network, chains }: { network: string; chains: NetworkQueryChain[] }) {
+export function NetworkQuery({ network, chains, index }: { network: string; chains: NetworkQueryChain[]; index: Promise<IndexState[]> }) {
   const params = useSearchParams();
   const router = useRouter();
   const [slug, setSlug] = useState(() => {
     const asked = params.get("chain");
     return chains.some((c) => c.chainSlug === asked) ? asked! : "c-chain";
   });
-  const c = chains.find((x) => x.chainSlug === slug) ?? chains[0];
+  // what the database holds of each chain streams in after the page. A
+  // chain it holds no rows of leaves the picker and is never asked, as when
+  // the server left it out: its questions and links go to the C-Chain, the default
+  const states = useStreamed(index);
+  const listed = states ? chains.filter((x, i) => states[i] !== "empty" || x.chainSlug === "c-chain") : chains;
+  const c = listed.find((x) => x.chainSlug === slug) ?? listed[0];
+  // the chain a question names; a name other than the C-Chain's or the P-Chain's waits for the states
+  const resolve = async (q: string) => {
+    const hit = chainNamed(q, chains);
+    if (!hit || hit === "c-chain" || hit === "p-chain") return hit;
+    const s = states ?? (await index);
+    return chainNamed(q, chains.filter((x, i) => s[i] !== "empty" || x.chainSlug === "c-chain"));
+  };
 
   // the pick rides in the URL, so a shared question lands on its chain
   const pick = (next: string, q?: string, from?: string) => {
@@ -178,15 +206,15 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
         <PickFace label={c.label} logo={c.logo} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 w-64 overflow-y-auto">
-        {chains.map((x) => (
-          <DropdownMenuItem key={x.chainSlug} onSelect={() => x.chainSlug !== slug && pick(x.chainSlug)} className="gap-3">
+        {listed.map((x) => (
+          <DropdownMenuItem key={x.chainSlug} onSelect={() => x.chainSlug !== c.chainSlug && pick(x.chainSlug)} className="gap-3">
             {x.logo ? (
               <img src={x.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
             ) : (
               <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
             )}
             <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{x.label}</span>
-            {x.chainSlug === slug && <span aria-label="Current chain" className="h-1.5 w-1.5 shrink-0 bg-[#E6212F]" />}
+            {x.chainSlug === c.chainSlug && <span aria-label="Current chain" className="h-1.5 w-1.5 shrink-0 bg-[#E6212F]" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -199,14 +227,14 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
       scope="network"
       network={network}
       c={c}
-      examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : c.chainSlug === "c-chain" ? networkExamples(chains) : examplesFor(c.chainId)}
-      index={c.index}
+      examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : c.chainSlug === "c-chain" ? networkExamples(listed) : examplesFor(c.chainId)}
+      index={states ? states[chains.indexOf(c)] : null}
       picker={picker}
-      resolve={(q) => chainNamed(q, chains)}
+      resolve={resolve}
       // a question about another chain's data moves the picker, not the page
       // no "asked on" note here: the chip already says which chain answers
       onRoute={(route, q) =>
-        chains.some((x) => x.chainSlug === route)
+        listed.some((x) => x.chainSlug === route)
           ? pick(route, q)
           : router.push(`/explorer/${network}/${route}/query?q=${encodeURIComponent(q)}&from=${c.chainSlug}`)
       }
@@ -257,7 +285,7 @@ function QueryPage({
   /** where a question about another chain goes; the default navigates to that chain's page */
   onRoute?: (route: string, q: string) => void;
   /** the chain a new question names, read before it is asked */
-  resolve?: (q: string) => string | null;
+  resolve?: (q: string) => string | null | Promise<string | null>;
 }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
@@ -376,7 +404,7 @@ function QueryPage({
       const text = q.trim();
       if (!text) return null;
       // a new question that names another chain is asked there; a follow-up stays on this chain
-      const named = !refine && resolve && onRoute ? resolve(text) : null;
+      const named = !refine && resolve && onRoute ? await resolve(text) : null;
       if (named && named !== c.chainSlug) {
         onRoute!(named, text);
         return null;

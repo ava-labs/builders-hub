@@ -6,7 +6,7 @@
   "components/explorer-v2/staking/PrimaryStaking.tsx": 1074,
   "components/explorer-v2/network/city3d/City3D.tsx": 1011,
   "components/explorer-v2/evm/EvmTrace.tsx": 981,
-  "components/explorer-v2/evm/EvmQuery.tsx": 944,
+  "components/explorer-v2/evm/EvmQuery.tsx": 962,
   "components/explorer-v2/network/city3d/Backdrop.tsx": 963,
   "components/explorer-v2/staking/StakingMetricPage.tsx": 826,
   "components/explorer-v2/xchain/XchainPages.tsx": 817,
