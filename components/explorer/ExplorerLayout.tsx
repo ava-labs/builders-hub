@@ -13,9 +13,11 @@ import { classifyLocally, pchainApiPath, type SearchResult } from "@/lib/pchain-
 import {
   ChainHitRow,
   EntityHitRow,
+  bech32AddressCached,
   matchChains,
   looksLikeIdentifier,
   useSearchEntity,
+  xchainSearchCached,
   type ChainHit,
 } from "@/components/explorer-v2/chain-search";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
@@ -101,7 +103,7 @@ export function ExplorerLayout({
     evmAddressBase: `/explorer/${network}/${chainSlug}`,
     evmAddressChainName: chainName,
   });
-  const showHits = searchFocused && !!searchQuery.trim() && (hits.length > 0 || entity !== null);
+  const showHits = searchFocused && !!searchQuery.trim() && (hits.length > 0 || entity.length > 0);
 
   const goToHref = (href: string) => {
     setSearchQuery("");
@@ -227,6 +229,13 @@ export function ExplorerLayout({
       // One search, whole platform: P-Chain shapes (NodeID-, P-avax1…)
       // route straight to the P-Chain explorer…
       const pchain = classifyLocally(query);
+      // a bech32 address asks the chains which hold it: a prefix selects the
+      // chain, a bare address lands on the chain with the account
+      if (pchain?.type === "address") {
+        const [h] = await bech32AddressCached(network, pchain.id);
+        router.push(`/explorer/${network}/${h.chain}/address/${h.id}`);
+        return;
+      }
       if (pchain && pchain.type !== "block") {
         router.push(`/explorer/${network}/p-chain/${pchain.type}/${pchain.id}`);
         return;
@@ -239,6 +248,16 @@ export function ExplorerLayout({
       if (r.type !== "none") {
         router.push(`/explorer/${network}/p-chain/${r.type}/${r.id}`);
         return;
+      }
+
+      // a CB58 id the P-Chain does not claim can still be an X-Chain tx or
+      // genesis asset — the x-api has no search endpoint, so probe it
+      if (/^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(query) && !/^(P-)?(avax|fuji|custom)1/i.test(query)) {
+        const x = await xchainSearchCached(network, query);
+        if (x.type !== "none") {
+          router.push(`/explorer/${network}/x-chain/${x.type}/${x.id}`);
+          return;
+        }
       }
 
       // Show error for unrecognized format
@@ -356,7 +375,9 @@ export function ExplorerLayout({
                     then the shared chain rows every explorer search uses */}
                 {showHits && (
                   <div className="absolute left-0 right-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                    {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
+                    {entity.map((hit) => (
+                      <EntityHitRow key={hit.href ?? hit.status} hit={hit} onSelect={goToHref} />
+                    ))}
                     {hits.map((hit, i) => (
                       <ChainHitRow
                         key={hit.chain.href}

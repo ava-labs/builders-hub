@@ -1261,8 +1261,8 @@ export function CityApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allRows, q]);
   const picks = hits.slice(0, 6);
-  const question = !entity && looksLikeQuestion(trimmed, { identifier: idShape, chainHit: hits.length > 0 });
-  const canAsk = !entity && canAskPhrase(trimmed, idShape);
+  const question = entity.length === 0 && looksLikeQuestion(trimmed, { identifier: idShape, chainHit: hits.length > 0 });
+  const canAsk = entity.length === 0 && canAskPhrase(trimmed, idShape);
   const askHref = `${ASK_AT}?q=${encodeURIComponent(trimmed)}`;
   const go = (href: string) => {
     setQuery("");
@@ -1289,9 +1289,9 @@ export function CityApp({
   };
   // Enter on a tx hash that is still racing every chain lands when the race does
   useEffect(() => {
-    if (!pending || !entity || entity.id !== pending) return;
-    if (entity.href) go(entity.href);
-    else if (entity.status === "notfound") setPending(null);
+    if (!pending || entity[0]?.id !== pending) return;
+    if (entity[0].href) go(entity[0].href);
+    else if (entity[0].status === "notfound") setPending(null);
     // go only reads the router
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, entity]);
@@ -1308,9 +1308,9 @@ export function CityApp({
     if (!trimmed) return;
     const exact = hits.find((r) => String(r.chain?.chainId ?? "") === trimmed);
     if (exact) pick(exact);
-    else if (entity) {
-      if (entity.href) go(entity.href);
-      else if (entity.status === "searching") setPending(trimmed);
+    else if (entity.length > 0) {
+      if (entity[0].href) go(entity[0].href);
+      else if (entity[0].status === "searching") setPending(trimmed);
     } else if (question) askIt();
     else if (hits[0]) pick(hits[0]);
     else if (canAsk) askIt();
@@ -1648,7 +1648,7 @@ export function CityApp({
   const whereOf = (r: Row) => (r.node?.role === "hub" ? "Downtown" : r.district ? districtLabel(r.district) : r.chain?.isTestnet ? "Fuji" : "Inactive");
   const picksPanel = searching && !!trimmed && (
     <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[min(26rem,55vh)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200/90 bg-white shadow-[0_24px_60px_-28px_rgba(30,27,58,0.5)] dark:border-zinc-800/90 dark:bg-zinc-950">
-      {entity && <EntityHitRow hit={entity} onSelect={go} />}
+      {entity.map((hit) => <EntityHitRow key={hit.href ?? hit.status} hit={hit} onSelect={go} />)}
       {canAsk && askRow}
       {picks.map((r, i) => (
         <button
@@ -1680,7 +1680,7 @@ export function CityApp({
           <ArrowRight className="h-3 w-3" />
         </button>
       )}
-      {!entity && !canAsk && hits.length === 0 && <p className="px-4 py-3 text-[13px] text-zinc-500 dark:text-zinc-400">No chain matches.</p>}
+      {entity.length === 0 && !canAsk && hits.length === 0 && <p className="px-4 py-3 text-[13px] text-zinc-500 dark:text-zinc-400">No chain matches.</p>}
     </div>
   );
 
@@ -1907,9 +1907,9 @@ export function CityApp({
           )}
         </div>
 
-        {trimmed && (entity || canAsk) && (
+        {trimmed && (entity.length > 0 || canAsk) && (
           <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 [&>button:last-child]:border-b-0">
-            {entity && <EntityHitRow hit={entity} onSelect={go} />}
+            {entity.map((hit) => <EntityHitRow key={hit.href ?? hit.status} hit={hit} onSelect={go} />)}
             {canAsk && askRow}
           </div>
         )}
@@ -1953,7 +1953,7 @@ export function CityApp({
             </ul>
           </section>
         ))}
-        {rows.length === 0 && !entity && !canAsk && <p className="py-6 text-center text-[13px] text-zinc-500">No chain matches.</p>}
+        {rows.length === 0 && entity.length === 0 && !canAsk && <p className="py-6 text-center text-[13px] text-zinc-500">No chain matches.</p>}
         {inactiveToggle && <div className="flex justify-center">{inactiveToggle}</div>}
 
         {net === "mainnet" && routes.length > 0 && (

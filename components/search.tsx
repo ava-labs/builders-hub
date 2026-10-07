@@ -177,13 +177,14 @@ export default function CustomSearchDialog(props: SharedProps) {
 
   useEffect(() => {
     if (pending === null) return;
-    if (pending !== query || !entity || entity.status === "notfound") {
+    const first = entity[0];
+    if (pending !== query || !first || first.status === "notfound") {
       setPending(null);
-    } else if (entity.href) {
-      go(entity.href);
+    } else if (first.href) {
+      go(first.href);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, query, entity?.href, entity?.status]);
+  }, [pending, query, entity]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open && holdOpen.current) {
@@ -203,18 +204,19 @@ export default function CustomSearchDialog(props: SharedProps) {
       list.push({ id, type: "action", node: null, onSelect });
     };
 
-    if (entity) {
-      const hit = entity;
-      push(top, ENTITY_ITEM_ID, { kind: "entity", hit }, () => {
+    // an identifier can earn more than one row — a bare bech32 address
+    // both chains claim offers a row per chain
+    entity.forEach((hit, i) => {
+      push(top, `${ENTITY_ITEM_ID}:${i}`, { kind: "entity", hit }, () => {
         if (hit.href) {
           router.push(hit.href);
           return;
         }
-        // nothing to open yet: the dialog stays, and a resolving hash opens itself
+        // nothing to open yet: the dialog stays, and a resolving id opens itself
         holdOpen.current = true;
         if (hit.status === "searching") setPending(hit.id);
       });
-    }
+    });
 
     const identifier = looksLikeIdentifier(query);
     for (const m of chains) {
@@ -229,7 +231,7 @@ export default function CustomSearchDialog(props: SharedProps) {
     explorerRows.current = rows;
     return [...top, ...(results ?? []), ...bottom];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, entity?.href, entity?.status, entity?.detail, chains, results]);
+  }, [query, entity, chains, results]);
 
   useEffect(() => {
     if (search.trim().length === 0) {

@@ -17,7 +17,9 @@ export async function GET(
   const resource = (path ?? []).map(encodeURIComponent).join("/");
   const qs = req.nextUrl.search;
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 8000);
+  // an address read walks its history upstream: an active address can take
+  // ~6s, past the general 8s cap — give it room
+  const t = setTimeout(() => controller.abort(), resource.startsWith("address/") ? 15000 : 8000);
   try {
     const upstream = await fetch(`${EXPLORER_API_BASE}/x-api/${network}/${resource}${qs}`, {
       cache: "no-store", signal: controller.signal, headers: { accept: "application/json" },

@@ -19,11 +19,13 @@ import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import {
   ChainHitRow,
   EntityHitRow,
+  bech32AddressCached,
   heightHitCached,
   matchChains,
   looksLikeIdentifier,
   lookupTxAcrossChainsCached,
   useSearchEntity,
+  xchainSearchCached,
   type ChainHit,
   type EntityTargets,
 } from "@/components/explorer-v2/chain-search";
@@ -110,7 +112,7 @@ export function SearchBox({
   const targets: EntityTargets = {
     network,
     blockBase: base,
-    blockChainName: "P-Chain",
+    blockChainName: getExplorerChain(chain)?.name ?? "P-Chain",
     evmAddressBase: `/explorer/${network}/c-chain`,
     evmAddressChainName: "C-Chain",
     // the network box: a height the P-Chain lacks is a C-Chain height, as in the page's Latest Blocks
@@ -188,6 +190,19 @@ export function SearchBox({
     }
 
     const local = classifyLocally(query);
+    // a bech32 address asks the chains which hold it: a prefix selects the
+    // chain, a bare address lands on the chain with the account
+    if (local?.type === "address") {
+      setBusy(true);
+      try {
+        const [h] = await bech32AddressCached(network, local.id);
+        setRecents(saveRecent(network, { type: "address", id: h.id }));
+        goToHref(`/explorer/${network}/${h.chain}/address/${h.id}`);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (local) {
       go(local.type, local.id);
       return;
@@ -213,6 +228,15 @@ export function SearchBox({
         go(r.type, r.id);
         return;
       }
+      // a CB58 id the P-Chain does not claim can still be an X-Chain tx or
+      // genesis asset — the x-api has no search endpoint, so probe it
+      if (/^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(query) && !/^(P-)?(avax|fuji|custom)1/i.test(query)) {
+        const x = await xchainSearchCached(network, query);
+        if (x.type !== "none") {
+          goToHref(`/explorer/${network}/x-chain/${x.type}/${x.id}`);
+          return;
+        }
+      }
       if (network === "mainnet" && /^0x[a-fA-F0-9]{64}$/.test(query)) {
         // same cache the dropdown's entity row fills — usually instant
         const result = await lookupTxAcrossChainsCached(query);
@@ -230,11 +254,11 @@ export function SearchBox({
   };
 
   const identifier = looksLikeIdentifier(q.trim()) || !!classifyLocally(q.trim());
-  const question = askable && !entity && looksLikeQuestion(q, { identifier, chainHit: hits.length > 0 });
-  const canAsk = askable && !entity && canAskPhrase(q, identifier);
+  const question = askable && entity.length === 0 && looksLikeQuestion(q, { identifier, chainHit: hits.length > 0 });
+  const canAsk = askable && entity.length === 0 && canAskPhrase(q, identifier);
   const askHref = `${queryPage}?q=${encodeURIComponent(q.trim())}`;
   const showRecents = focused && !q && (recents.length > 0 || askable);
-  const showHits = focused && !!q.trim() && (hits.length > 0 || entity !== null || canAsk);
+  const showHits = focused && !!q.trim() && (hits.length > 0 || entity.length > 0 || canAsk);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!showHits || hits.length === 0) return;
@@ -314,7 +338,9 @@ export function SearchBox({
           shared chain rows every explorer search uses */}
       {showHits && (
         <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_40px_-20px_rgba(24,24,27,0.35)] dark:border-zinc-800 dark:bg-zinc-950">
-          {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
+          {entity.map((hit) => (
+            <EntityHitRow key={hit.href ?? hit.status} hit={hit} onSelect={goToHref} />
+          ))}
           {canAsk && (
             <button
               type="button"
