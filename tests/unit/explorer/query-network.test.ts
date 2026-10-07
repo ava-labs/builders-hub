@@ -6,7 +6,7 @@ import { figures } from '@/lib/explorer-query/visual';
 import { guardSql } from '@/lib/explorer-query/guard';
 import { networkPrompt, networkVersion } from '@/lib/explorer-query/network-prompt';
 import { promptVersion } from '@/lib/explorer-query/prompt';
-import { NETWORK_ID, NETWORK_SLUG, targetOf } from '@/lib/explorer-query/target';
+import { NETWORK_ID, NETWORK_SLUG, rowBase, targetOf } from '@/lib/explorer-query/target';
 
 /* The network target: the C-Chain and every mainnet L1 stats-api indexes, asked as one. The server reads each table
    as those chains' rows alone, so the target reads no Fuji, testnet or unlisted chain whatever its SQL writes. */
@@ -120,6 +120,23 @@ describe("a network answer's rows", () => {
   it('put each record on its chain', () => {
     expect(mixedChains(rows(['address', 'txs']))).toMatch(/^the rows name records \(address\) with no chain_id/);
     expect(mixedChains(rows(['chain_id', 'tx_hash', 'fee_native']))).toBeNull();
+  });
+});
+
+describe("a network row's links", () => {
+  it("open on the chain the row's chain_id names, and nowhere for a row that names none", () => {
+    expect(rowBase('/explorer/mainnet/all', { chain_id: '43114' })).toBe('/explorer/mainnet/c-chain');
+    expect(rowBase('/explorer/mainnet/all', { chain_id: 4337 })).toBe('/explorer/mainnet/beam');
+    // KiteAI's catalog id is its blockchain ID; its rows carry 2366
+    expect(rowBase('/explorer/mainnet/all', { chain_id: 2366 })).toBe('/explorer/mainnet/kite');
+    expect(rowBase('/explorer/mainnet/all', { chain_id: 999001 })).toBeNull();
+    expect(rowBase('/explorer/mainnet/all', { tx_hash: '0x1' })).toBeNull();
+    expect(rowBase('/explorer/mainnet/all')).toBeNull();
+  });
+
+  it("keep a chain page's own base, whatever the row holds", () => {
+    expect(rowBase('/explorer/mainnet/beam', { chain_id: 43114 })).toBe('/explorer/mainnet/beam');
+    expect(rowBase('/explorer/mainnet/c-chain')).toBe('/explorer/mainnet/c-chain');
   });
 });
 

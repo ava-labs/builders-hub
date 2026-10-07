@@ -18,20 +18,21 @@ import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 import { CARD, QueryVisual, fmt, nameFor, tipX, zoneOf } from "./QueryVisual";
-import { type Row, NoteText, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isTxList, rowDoor, toUnix } from "./QueryRows";
+import { type Row, NoteText, PanelRows, doorFor, downloadCsv, duration, fillTitle, formatOf, header, isTxList, rowDoor, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { bucketOf } from "./drill-plot";
 import { QueryLoader } from "./QueryLoader";
-import { PCHAIN_COLUMN, PromptBox, ThreadLine, placeholderOf } from "./QueryWorking";
+import { PCHAIN_COLUMN, PromptBox, ThreadLine, placeholderOf, sqlScopeOf } from "./QueryWorking";
 import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
 import { QueryMonitor } from "./QueryMonitor";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
 import { askHref } from "@/lib/explorer-query/board-links";
+import { NETWORK_SLUG, rowBase } from "@/lib/explorer-query/target";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 /* A question about the chain, answered as a sheet in the explorer's
@@ -164,6 +165,8 @@ export function QueryPage({
 }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
+  // a board's SQL is bound to one chain: All chains pins nothing
+  const pinnable = !!c.chainSlug && c.chainSlug !== NETWORK_SLUG;
   const params = useSearchParams();
 
   const [prompt, setPrompt] = useState("");
@@ -399,7 +402,8 @@ export function QueryPage({
           kind: "records",
           title,
           brief: [`Open on the Query page: ${title} (${out.result.rowCount} rows), from:`, out.sql, "Rows:", ...out.result.rows.slice(0, 12).map((r) => "- " + out.result.columns.map((k) => `${k.name}=${String(r[k.name])}`).join(" "))].join("\n"),
-          hrefs: out.result.rows.slice(0, 8).map((r) => `${base}/tx/${String(r.tx_hash ?? "")}`),
+          // on the network's page, a record opens on the chain its row or the opened row names
+          hrefs: out.result.rows.slice(0, 8).flatMap((r) => doorFor("tx_hash", r.tx_hash, rowBase(base, row) ?? base, r) ?? []),
         });
       } catch (e) {
         setDrill((d) => (d && d.index === index ? { ...d, error: e instanceof Error ? e.message : "The transactions did not load." } : d));
@@ -678,7 +682,7 @@ export function QueryPage({
               )}
               <div className="flex items-start justify-between gap-4">
                 <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
-                {c.chainSlug && !laying && !answer.monitor && <PinToBoard chain={c.chainSlug} network={network} answer={answer} thread={history.map((t) => t.prompt)} className="mt-1 shrink-0" />}
+                {pinnable && !laying && !answer.monitor && <PinToBoard chain={c.chainSlug!} network={network} answer={answer} thread={history.map((t) => t.prompt)} className="mt-1 shrink-0" />}
               </div>
               {!laying && reading && (
                 <span aria-busy="true" aria-label="Writing the reading" className="flex max-w-3xl flex-col gap-1.5 pt-1">
@@ -733,7 +737,7 @@ export function QueryPage({
                   <QueryMonitor spec={answer.monitor} base={base} />
                 ) : drill ? (
                   <div className={cn(CARD, "px-4 py-4 sm:px-5 sm:py-5")}>
-                    <DrillView drill={drill} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
+                    <DrillView drill={drill} base={rowBase(base, drill.row) ?? base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
                   </div>
                 ) : laying ? (
                   // one draw: the loader holds the space until the layout is final
@@ -760,7 +764,7 @@ export function QueryPage({
                     onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
                     selection={sel}
                     onSelection={setSel}
-                    panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} thread={history.map((t) => t.prompt)} /> : undefined}
+                    panelAction={pinnable ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} thread={history.map((t) => t.prompt)} /> : undefined}
                     // the designer's tables: the rows in its columns, each row a door
                     renderTable={(p) => (
                       <PanelRows
@@ -934,9 +938,7 @@ export function QueryPage({
                             />
                             <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
                               <span className="text-zinc-400 dark:text-zinc-500">
-                                {c.kind === "pchain"
-                                  ? `One SELECT over the P-Chain tables (decoded_p_txs, the UTXO and snapshot tables), with chain_id = ${c.chainId}. At most 2,000 rows.`
-                                  : `One SELECT over raw_blocks, raw_txs, raw_logs or raw_traces, with chain_id = ${c.chainId}. At most 2,000 rows.`}
+                                {sqlScopeOf(c)}
                               </span>
                               <button type="button" onClick={() => void runSql()} disabled={busy || sqlDraft.trim() === answer.sql.trim()} className="rounded-full bg-zinc-900 px-3.5 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">
                                 Run

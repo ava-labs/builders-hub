@@ -56,6 +56,18 @@ export function askChainsOf(catalog: L1Chain[]): AskChain[] {
 const PCHAIN_WORDS = /\b(validat\w*|stak(e|es|ed|er|ers|ing)|delegat\w*|uptime|l1s?|subnets?|issuance)\b|\bavax supply\b|\bfee balances?\b|\bbalances? (left )?for fees\b|\bcontinuous fees?\b/i;
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/* a question about every chain at once: all, every or each chain or L1, across chains, per or by chain, the whole
+   network, network-wide, the C-Chain and all L1s, between chains, a ranking of chains, or one that opens with "network". A P-Chain
+   topic other than the word L1 wins (validators across all L1s are the P-Chain's), and the Primary Network names no
+   network question */
+const NETWORK_WORDS =
+  /\b(?:all|every|each|across(?: all)?)\s+(?:the\s+)?(?:avalanche\s+)?(?:chains?|l1s?)\b|\b(?:per|by)\s+(?:chain|l1)\b|\b(?:whole|entire)\s+(?:avalanche\s+)?network\b|\bnetwork[- ]wide\b|\bc[- ]?chain\s*(?:and|\+|&)\s*(?:all|every|the)\s+(?:other\s+)?l1s?\b|\b(?:chains|l1s)\s+(?:ranked|by)\b|\bbetween\s+(?:the\s+)?(?:chains|l1s)\b|\b(?:top|busiest|which)\s+(?:\d+\s+)?(?:chains|l1s)\b|^\s*network\b/i;
+
+/** whether a question is about the whole network, the C-Chain and every L1 at once */
+export function networkAsked(q: string): boolean {
+  return NETWORK_WORDS.test(q) && !PCHAIN_WORDS.test(q.replace(/\bl1s?\b/gi, " ")) && !/\bprimary network\b/i.test(q);
+}
+
 /** where a question asked in the city goes: the chain, and the L1 a P-Chain question is for, by slug */
 export interface AskRoute {
   on: string;

@@ -5,6 +5,7 @@
    target. */
 
 import l1ChainsData from "@/constants/l1-chains.json";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 
 export type TargetKind = "evm" | "pchain";
 
@@ -45,6 +46,21 @@ export const NETWORK_SLUG = "all";
 /** the network's reference table, built by our server: each chain's id, name and native token */
 export const NETWORK_REFS = ["chain_names"] as const;
 
+/** each mainnet chain's explorer slug, by the chain_id its rows carry (KiteAI's catalog id is its blockchain ID). A
+    catalog id that is still a blockchain ID names no rows: Number() of it is NaN, which a Map would match */
+const SLUG_OF = new Map(
+  (l1ChainsData as { slug: string; chainId: string; isTestnet?: boolean }[])
+    .filter((c) => c.isTestnet !== true && /^\d+$/.test(toStatsChainId(c.chainId)))
+    .map((c) => [Number(toStatsChainId(c.chainId)), c.slug]),
+);
+
+/** where a row's links open: the page's chain, or on the network's page the chain the row's chain_id names; null
+    for a network row that names no chain the explorer has pages for */
+export function rowBase(base: string, row?: Record<string, unknown>): string | null {
+  if (!base.endsWith(`/${NETWORK_SLUG}`)) return base;
+  const slug = SLUG_OF.get(Number(row?.chain_id));
+  return slug ? `${base.slice(0, -NETWORK_SLUG.length)}${slug}` : null;
+}
 
 /** P-Chain tables that hold rows a re-ingest wrote twice, never merged:
     every read of them goes through FINAL (sources.ts). Counted on

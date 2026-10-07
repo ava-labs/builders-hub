@@ -11,6 +11,7 @@ import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { isAddress, isTime } from "@/lib/explorer-query/values";
+import { rowBase } from "@/lib/explorer-query/target";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { LEDGER_KNOWN, ResultTable, type Row, doorFor, downloadCsv, formatOf, header, isTxList, toUnix } from "./QueryRows";
 
@@ -48,6 +49,8 @@ export function shapeOf(columns: ColumnMeta[], rows: Row[], visual: VisualSpec |
 /* ------------------------------------------------------------------ */
 /* transactions, one card each                                          */
 
+const CARD = "flex flex-col gap-1 rounded-xl px-3 py-2.5 transition-colors hover:bg-zinc-100/80 focus-visible:bg-zinc-100/80 focus-visible:outline-none dark:hover:bg-zinc-900 dark:focus-visible:bg-zinc-900";
+
 export function TxCards({ rows, names, visual, base, sym, step = 40 }: { rows: Row[]; names: Names; visual: VisualSpec | null; base: string; sym: string; step?: number }) {
   const [shown, setShown] = useState(step);
   const keys = Object.keys(rows[0] ?? {});
@@ -63,31 +66,42 @@ export function TxCards({ rows, names, visual, base, sym, step = 40 }: { rows: R
         const mName = nameFor(names, "method_id", r.method_id);
         const method = mName ?? (r.method_id && r.method_id !== "0x" ? String(r.method_id).toLowerCase() : "transfer");
         const v = valueCol ? r[valueCol] : null;
+        // on the network's page a card opens on its row's chain; a row that names none opens nothing
+        const at = rowBase(base, r);
+        const body = (
+          <>
+            <span className="flex items-baseline gap-2">
+              <span aria-label={failed ? "reverted" : "succeeded"} className={cn("h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full", failed ? "bg-[#E6212F]" : "bg-emerald-500")} />
+              <span className={cn("min-w-0 flex-1 truncate font-mono text-[12.5px]", mName ? fnInk : "text-zinc-500 dark:text-zinc-400")} title={String(r.method_id ?? "")}>
+                {method}
+              </span>
+              {typeof v === "number" && valueCol && (
+                <span className="shrink-0 font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(v, formatOf(valueCol, visual), sym)}</span>
+              )}
+            </span>
+            <span className="flex items-baseline gap-2 pl-3.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+              <span className="min-w-0 flex-1 truncate">
+                {who("from_address", r.from_address)}
+                <span className="px-1.5 text-zinc-300 dark:text-zinc-700">→</span>
+                {who("to_address", r.to_address)}
+              </span>
+              {isTime(r.t) && (
+                <span className="shrink-0 tabular-nums text-zinc-400 dark:text-zinc-500" title={`${String(r.t).replace("T", " ").slice(0, 19)} UTC`}>
+                  {ageShort(toUnix(r.t))} ago
+                </span>
+              )}
+            </span>
+          </>
+        );
         return (
           <li key={`${hash}-${i}`}>
-            <Link href={`${base}/tx/${hash}`} className="flex flex-col gap-1 rounded-xl px-3 py-2.5 transition-colors hover:bg-zinc-100/80 focus-visible:bg-zinc-100/80 focus-visible:outline-none dark:hover:bg-zinc-900 dark:focus-visible:bg-zinc-900">
-              <span className="flex items-baseline gap-2">
-                <span aria-label={failed ? "reverted" : "succeeded"} className={cn("h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full", failed ? "bg-[#E6212F]" : "bg-emerald-500")} />
-                <span className={cn("min-w-0 flex-1 truncate font-mono text-[12.5px]", mName ? fnInk : "text-zinc-500 dark:text-zinc-400")} title={String(r.method_id ?? "")}>
-                  {method}
-                </span>
-                {typeof v === "number" && valueCol && (
-                  <span className="shrink-0 font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(v, formatOf(valueCol, visual), sym)}</span>
-                )}
-              </span>
-              <span className="flex items-baseline gap-2 pl-3.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                <span className="min-w-0 flex-1 truncate">
-                  {who("from_address", r.from_address)}
-                  <span className="px-1.5 text-zinc-300 dark:text-zinc-700">→</span>
-                  {who("to_address", r.to_address)}
-                </span>
-                {isTime(r.t) && (
-                  <span className="shrink-0 tabular-nums text-zinc-400 dark:text-zinc-500" title={`${String(r.t).replace("T", " ").slice(0, 19)} UTC`}>
-                    {ageShort(toUnix(r.t))} ago
-                  </span>
-                )}
-              </span>
-            </Link>
+            {at ? (
+              <Link href={`${at}/tx/${hash}`} className={CARD}>
+                {body}
+              </Link>
+            ) : (
+              <div className={CARD}>{body}</div>
+            )}
           </li>
         );
       })}
@@ -150,7 +164,7 @@ export function RankList({
         const name = nameFor(names, shape.label, raw);
         const text = name ?? (isAddress(raw) ? truncate(raw, 6) : isTime(raw) ? fmtX(raw, span) : String(raw ?? ""));
         const v = vals[i];
-        const door = doorFor(shape.label, raw, base);
+        const door = doorFor(shape.label, raw, base, r);
         const body = (
           <>
             <span className="flex items-baseline gap-3">

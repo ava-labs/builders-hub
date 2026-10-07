@@ -13,6 +13,7 @@ import type { Names } from "@/lib/explorer-query/types";
 import type { Stat } from "@/lib/explorer-query/visual";
 import { msOf } from "@/lib/explorer-query/edges";
 import { DAY, MONTHS_SHORT, isHash, isTime } from "@/lib/explorer-query/values";
+import { rowBase } from "@/lib/explorer-query/target";
 
 type Row = Record<string, unknown>;
 
@@ -40,10 +41,12 @@ export function extremeOf(s: Pick<Stat, "agg" | "column">, rows: Row[], value: u
 }
 
 /** the transaction a max or min figure opens, and its hash as the card writes it; null when its row names none */
-export function statDoor(s: Pick<Stat, "agg" | "column">, rows: Row[], value: unknown, base: string | undefined): { href: string; hash: string; short: string } | null {
-  if (!base) return null;
+export function statDoor(s: Pick<Stat, "agg" | "column">, rows: Row[], value: unknown, page: string | undefined): { href: string; hash: string; short: string } | null {
+  if (!page) return null;
   const row = extremeOf(s, rows, value);
-  if (!row) return null;
+  // on the network's page, the transaction is on the chain the row names
+  const base = row && rowBase(page, row);
+  if (!row || !base) return null;
   const hash = [`${s.column.replace(/_[^_]+$/, "")}_tx`, `${s.column}_tx`, "tx_hash"].map((k) => row[k]).find(isHash);
   return hash ? { href: `${base}/tx/${hash}`, hash, short: truncate(hash, 6) } : null;
 }

@@ -9,6 +9,7 @@ import { truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import { matches, type Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel } from "@/lib/explorer-query/visual";
+import { rowBase } from "@/lib/explorer-query/target";
 import { FADE_CLASS, useNarrow } from "./motion";
 import { flowOf, type Flow, type FlowNode } from "./flow";
 
@@ -39,7 +40,9 @@ type NodeMark = { x: number; y: number; width: number; height: number; index: nu
 type LinkMark = { sourceX: number; sourceY: number; sourceControlX: number; targetX: number; targetY: number; targetControlX: number; linkWidth: number; index: number };
 
 /** the page a node opens: an address or a P-Chain id opens its own page, as a row's cell does */
-function doorOf(key: string, base?: string): string | null {
+function doorOf(key: string, page?: string): string | null {
+  // a node is no row, so on the network's page it names no chain and opens nothing
+  const base = page && rowBase(page);
   if (!base) return null;
   if (/^0x[0-9a-fA-F]{40}$/.test(key)) return `${base}/address/${key}`;
   if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{20,}$/.test(key)) return `${base}/node/${key}`;

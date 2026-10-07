@@ -13,6 +13,7 @@ import { Rise } from "@/components/explorer-v2/ui";
 import type { EXAMPLES, Glyph as GlyphKind } from "@/lib/explorer-query/examples";
 import { forgetQuestion, forgetQuestions, useRecentQuestions } from "@/lib/explorer-query/recent";
 import { boardHref, boardScope, boardsHref, useBoards, useHydrated } from "@/lib/explorer-query/board";
+import { NETWORK_SLUG } from "@/lib/explorer-query/target";
 import { BoardCard, NewBoardCard } from "./QueryBoard";
 import { Label, useNow } from "./query-board-bits";
 import { Glyph } from "./query/Glyph";
@@ -192,7 +193,7 @@ export function QueryHome({
   onAsk,
   className,
 }: {
-  /** the chain slug: "c-chain", "p-chain" */
+  /** the chain slug: "c-chain", "p-chain", "all" */
   chain: string;
   network: string;
   examples: typeof EXAMPLES;
@@ -209,7 +210,8 @@ export function QueryHome({
       {hydrated && (
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
           <Recent chain={chain} onAsk={onAsk} />
-          <Boards chain={chain} network={network} />
+          {/* a board's SQL is bound to one chain, so All chains has none */}
+          {chain !== NETWORK_SLUG && <Boards chain={chain} network={network} />}
         </div>
       )}
       <Suggestions examples={examples} onAsk={onAsk} />
