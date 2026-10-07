@@ -17,6 +17,7 @@ import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from ".
 import { rowCount, SAID_PARTIAL } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
+import { BandLabel, FitTick, MarkLabel } from "./query/fit-text";
 import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, xText } from "./query-format";
 
 export { fmt, fmtX, nameFor, spanOf } from "./query-format";
@@ -727,7 +728,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
             <ComposedChart
               data={data}
               layout={horizontal ? "vertical" : "horizontal"}
-              margin={{ top: !horizontal && (drillMark || (!scatter && panel.markers.length > 0)) ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
+              margin={{ top: (horizontal ? panel.referenceLines.length > 0 : drillMark || (!scatter && panel.markers.length > 0)) ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
               barCategoryGap={horizontal ? "26%" : "18%"}
               stackOffset={signed ? "sign" : undefined}
               onMouseDown={(s) => ev.current.down(s)}
@@ -740,7 +741,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
               {/* recharts reads axes as direct children: no fragments here */}
               {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
               {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
-              {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
+              {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={<FitTick />} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
               {scatter && (
                 <XAxis
                   type="number"
@@ -806,7 +807,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                   const x1 = xOf(b.from);
                   const x2 = xOf(b.to);
                   return x1 !== undefined && x2 !== undefined ? (
-                    <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} fill="currentColor" fillOpacity={0.04} stroke="none" label={{ value: b.label, position: "insideTopLeft", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#71717a" }} />
+                    <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} ifOverflow="visible" fill="currentColor" fillOpacity={0.04} stroke="none" label={<BandLabel value={b.label} />} />
                   ) : null;
                 })}
               {continuous &&
@@ -814,19 +815,19 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                 (() => {
                   const x1 = xOf(rangePick.from);
                   const x2 = xOf(rangePick.to);
-                  return x1 !== undefined && x2 !== undefined ? <ReferenceArea yAxisId="left" x1={x1} x2={x2} fill={ACCENT} fillOpacity={0.06} stroke="none" /> : null;
+                  return x1 !== undefined && x2 !== undefined ? <ReferenceArea yAxisId="left" x1={x1} x2={x2} ifOverflow="visible" fill={ACCENT} fillOpacity={0.06} stroke="none" /> : null;
                 })()}
               {!horizontal &&
                 !scatter &&
                 panel.markers.map((m) => {
                   const mx = xOf(m.x);
                   return mx !== undefined ? (
-                    <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={{ value: m.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                    <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} ifOverflow="visible" stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={<MarkLabel value={m.label} />} />
                   ) : null;
                 })}
               {panel.referenceLines.map((l) =>
                 horizontal ? (
-                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={<MarkLabel value={l.label} />} />
                 ) : (
                   <ReferenceLine key={l.label} yAxisId="left" y={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "insideTopRight", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
                 ),

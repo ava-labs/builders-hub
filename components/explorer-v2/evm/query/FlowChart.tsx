@@ -27,6 +27,8 @@ type Router = ReturnType<typeof useRouter>;
 const TONES = ["#0061E2", "#0d9488", "#d97706", "#7c3aed"];
 const OTHER_INK = "#a1a1aa";
 const MONO = { fontSize: 10, fontFamily: "var(--font-geist-mono)" };
+/** a character's width in MONO, in px */
+const CH = 6;
 /** a band's ink at rest (an inked band a little more on the dark sheet, or it sinks into the ground), dimmed under a hover or outside the selection, and lit */
 const REST = 0.3;
 const REST_DARK = 0.42;
@@ -144,6 +146,10 @@ export function FlowChart({ panel, rows, names, sym, fmt, base, live, canDrill, 
       // the first column is named on its left, every other on its right; a stage between is named over the bands
       const first = n.depth === 0 && flow.depth > 0;
       const between = !first && n.depth < flow.depth;
+      const figure = fmt(Math.max(n.drawnIn, n.drawnOut), format, sym, true);
+      // a column at the chart's edge is named in its margin, which the svg ends: the name gets what the margin leaves
+      // after the 6 px gap to its node, the 6 px before its figure, and the figure
+      const room = between ? chars : Math.max(1, Math.min(chars, Math.floor((labelW - 14) / CH) - figure.length));
       const mark = (
         <>
           <rect x={p.x} y={p.y} width={p.width} height={Math.max(1, p.height)} rx={1} fill={n.other ? OTHER_INK : "currentColor"} fillOpacity={0.85} />
@@ -156,9 +162,9 @@ export function FlowChart({ panel, rows, names, sym, fmt, base, live, canDrill, 
             strokeWidth={between ? 3 : 0}
             className={cn("fill-zinc-700 dark:fill-zinc-300", between && "stroke-white [paint-order:stroke] dark:stroke-zinc-950")}
           >
-            {nodeText(n, chars)}
+            {nodeText(n, room)}
             <tspan dx={6} className="fill-zinc-400 dark:fill-zinc-500">
-              {fmt(Math.max(n.drawnIn, n.drawnOut), format, sym, true)}
+              {figure}
             </tspan>
           </text>
         </>
@@ -175,7 +181,7 @@ export function FlowChart({ panel, rows, names, sym, fmt, base, live, canDrill, 
         </g>
       );
     },
-    [flow, base, chars, fmt, format, sym, go],
+    [flow, base, chars, labelW, fmt, format, sym, go],
   );
 
   const link = useCallback(
