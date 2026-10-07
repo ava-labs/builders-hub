@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import SignOutComponent from '../sign-out/SignOut';
+import { AuthButtons } from './AuthButtons';
 import { canAccessBuilderInsights } from '@/lib/auth/permissions';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
@@ -100,16 +101,7 @@ export function UserButton() {
 
   // In-app authentication preserves the current page and its state.
   if (!isAuthenticated) {
-    return (
-      <div className="flex items-center gap-3 text-sm">
-        <button type="button" onClick={() => openLoginModal()} className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white">
-          Log in
-        </button>
-        <button type="button" onClick={() => openLoginModal(undefined, 'signup')} className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
-          Sign up
-        </button>
-      </div>
-    );
+    return <AuthButtons onLogIn={() => openLoginModal()} onSignUp={() => openLoginModal(undefined, 'signup')} />;
   }
 
   // Authenticated: hover opens a small account menu (Profile, extras,

@@ -167,7 +167,7 @@ async function getDefiStats(): Promise<{
       .then((d) => d?.total30d ?? null)
       .catch(() => null),
   ]);
-  // full float precision — the ledger displays money to the cent
+  // full float precision: the figures' hover titles and screen-reader text give the exact amount
   const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
   return { tvlUsd: num(tvl), stablesUsd: num(stables), dexVolume30dUsd: num(dex) };
 }

@@ -9,6 +9,7 @@ import { menuSections, singleItems, type NavItem, type NavSection } from './nav-
 import { useSession } from 'next-auth/react';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { AuthButtons } from '@/components/login/user-button/AuthButtons';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -113,18 +114,7 @@ export function NavbarDropdown() {
                     <UserRound className="size-4.5" strokeWidth={1.25} />
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-3 text-sm">
-                    <button type="button" onClick={() => handleLogin('signin')}>
-                      Log in
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                      onClick={() => handleLogin('signup')}
-                    >
-                      Sign up
-                    </button>
-                  </div>
+                  <AuthButtons onLogIn={() => handleLogin('signin')} onSignUp={() => handleLogin('signup')} />
                 )}
               </div>
               {/* Menu sections */}

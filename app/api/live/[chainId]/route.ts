@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import l1Chains from "@/constants/l1-chains.json";
-import type { LiveHead, LiveTx, LiveWindow } from "@/lib/live-window";
+import { LIVE_HEADS, type LiveHead, type LiveTx, type LiveWindow } from "@/lib/live-window";
 
 /* A chain's live window for the city's panes: its newest heads and the
    transactions of its newest executed blocks, in one answer. The server
@@ -63,7 +63,11 @@ function sourceOf(chainId: string): Source | null {
 }
 
 /* the window's size */
-const HEADS = 12;
+const HEADS = LIVE_HEADS;
+/* heads one tick asks a public RPC for: a new window fills over a few ticks, never in one burst */
+const PUBLIC_HEADS = 12;
+/* heads an answer carries unless the reader asks for more with ?heads= (the panes' strip reads 12) */
+const ANSWER_HEADS = 12;
 /* blocks under the tip whose transactions the window carries */
 const TX_BLOCKS = 6;
 /* blocks whose receipts one tick pulls, oldest first, so execution reads in order */
@@ -303,7 +307,7 @@ async function tick(src: Source, st: State): Promise<void> {
   const known = st.blocks;
   if (!known.has(tip)) known.set(tip, toBlock(latest));
   // with their transactions inside the tx window, as headers below it
-  const missing = missingHeads(st, tip);
+  const missing = missingHeads(st, tip).slice(0, src.own ? undefined : PUBLIC_HEADS);
   const headCalls: Call[] = missing.map((n) => ({ method: "eth_getBlockByNumber", params: [tag(n), n > tip - TX_BLOCKS] }));
   const keep = (got: (RpcBlock | null)[]) => got.forEach((b, i) => b && known.set(missing[i], toBlock(b)));
   if (src.own) {
@@ -375,14 +379,17 @@ async function windowOf(chainId: string, src: Source): Promise<LiveWindow | null
   return last ? Promise.race([st.pending, new Promise<LiveWindow>((r) => setTimeout(() => r({ ...last, stale: true }), WAIT_MS))]) : st.pending;
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ chainId: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ chainId: string }> }) {
   const { chainId } = await params;
   const src = /^\d+$/.test(chainId) ? sourceOf(chainId) : null;
   if (!src) return NextResponse.json({ error: "unknown chain" }, { status: 404 });
   const window = await windowOf(chainId, src);
   if (!window) return NextResponse.json({ error: "upstream unreachable" }, { status: 502, headers: { "cache-control": "no-store" } });
+  const asked = Number(new URL(req.url).searchParams.get("heads"));
+  const n = Number.isInteger(asked) && asked > 0 ? Math.min(asked, HEADS) : ANSWER_HEADS;
+  const body = window.heads.length > n ? { ...window, heads: window.heads.slice(0, n) } : window;
   const s = Math.max(1, Math.round(src.tickMs / 1000));
-  return NextResponse.json(window, {
+  return NextResponse.json(body, {
     headers: {
       // one origin read a tick for every viewer; a stale window is not kept
       "cache-control": window.stale ? "no-store" : `public, max-age=0, s-maxage=${s}, stale-while-revalidate=${s}`,
