@@ -62,17 +62,20 @@ export async function streamQuery(body: object, onEvent: (e: QueryEvent) => void
   }
 }
 
+/** the loader's line before the first answer event */
+export const WRITING = "Writing the SQL";
+
 /* the loader's line: the phase a reader would name, never which model
    does it and never the engine's own words for its steps. An event ends a
    step, so the line names the phase that step leaves the question in */
 export function progress(events: QueryEvent[]): string {
-  let line = "Writing the SQL";
+  let line = WRITING;
   let fixes = 0;
   for (const e of events) {
     if (e.type === "stage") {
       // a kept answer runs its SQL; one that no longer runs is written again
       fixes = 0;
-      line = e.stage === "cached" ? "Running the query" : e.stage === "escalated" ? "Writing the SQL again" : "Writing the SQL";
+      line = e.stage === "cached" ? "Running the query" : e.stage === "escalated" ? "Writing the SQL again" : WRITING;
     } else if (e.type === "step") {
       if (!e.ok) {
         // an answer in the SQL's own words is written again; the SQL itself stands

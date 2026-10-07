@@ -18,6 +18,7 @@ import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
 import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
 import { buildTabs, type Tab } from "@/components/explorer-v2/subnav-tabs";
 import { chainSwitchTarget, switchTarget } from "@/components/explorer-v2/network-switch";
+import { useAskedPath } from "@/components/explorer-v2/evm/query-asking";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -466,7 +467,10 @@ export function ExplorerSubnav({
   rangeClassName,
   className,
 }: ExplorerSubnavProps) {
-  const pathname = usePathname();
+  // while a question is on its way to the Query page, its tab is the current one, and the page has no clock
+  const at = usePathname();
+  const asked = useAskedPath();
+  const pathname = asked ?? at;
   const tabs = useMemo(() => buildTabs(network, chainSlug), [network, chainSlug]);
   const inert = useMemo(() => isUnindexedChain(network, chainSlug), [network, chainSlug]);
   const shut = useMemo(() => isPrivateChain(resolveCatalogChain(network, chainSlug)), [network, chainSlug]);
@@ -498,7 +502,7 @@ export function ExplorerSubnav({
   }, [measureRail, tabs]);
   const onRailScroll = measureRail;
   // phones: with no clock the right group holds nothing, so it leaves the rail and takes no gap from the tabs
-  const clock = useRangeConsumersPresent();
+  const clock = useRangeConsumersPresent() && asked === null;
   const railMask = useMemo(() => {
     if (!rail.left && !rail.right) return undefined;
     const mask = `linear-gradient(to right, ${
@@ -613,7 +617,7 @@ export function ExplorerSubnav({
       <div className={cn("flex shrink-0 items-stretch gap-x-3", !clock && "max-sm:hidden")}>
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
-        <ExplorerRangeControl className={rangeClassName} />
+        {asked === null && <ExplorerRangeControl className={rangeClassName} />}
         {!hideNetwork && (
           <div className="flex max-sm:hidden">
             <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />

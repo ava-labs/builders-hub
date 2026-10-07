@@ -9,6 +9,7 @@ import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { cn } from "@/lib/utils";
+import { useAskTo } from "./query-asking";
 import {
   matchChains,
   looksLikeIdentifier,
@@ -94,19 +95,22 @@ export function EvmSearchBox({
   const askHref = `${base}/query?q=${encodeURIComponent(trimmed)}`;
   const hasResults = !!entity || chains.length > 0 || canAsk;
 
-  const go = (href: string) => {
+  // a question's Query page: the shell draws its first frame at once
+  const askTo = useAskTo();
+  const go = (href: string, question?: string) => {
     setOpen(false);
     setQ("");
-    router.push(href);
+    if (question && askTo) askTo(href, question);
+    else router.push(href);
   };
 
   const submit = () => {
     if (entity?.href) return go(entity.href);
-    if (question) return go(askHref);
+    if (question) return go(askHref, trimmed);
     // a bare identifier with no local match shouldn't jump to a name hit
     if (!looksLikeIdentifier(trimmed) && chains[0]?.chain.hasExplorer) return go(chains[0].chain.href);
     // nothing else to open: a phrase goes to the Query page as a question
-    if (canAsk) return go(askHref);
+    if (canAsk) return go(askHref, trimmed);
   };
 
   return (
@@ -165,7 +169,7 @@ export function EvmSearchBox({
                     key={item}
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => go(`${base}/query?q=${encodeURIComponent(item)}`)}
+                    onClick={() => go(`${base}/query?q=${encodeURIComponent(item)}`, item)}
                     className="group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900"
                   >
                     <g.icon className={cn("h-3.5 w-3.5 shrink-0", g.label === "Ask" ? "text-[#E6212F]" : "text-zinc-400 dark:text-zinc-500")} />
@@ -193,7 +197,7 @@ export function EvmSearchBox({
           {canAsk && (
             <button
               type="button"
-              onClick={() => go(askHref)}
+              onClick={() => go(askHref, trimmed)}
               className={cn(
                 "group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-3 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900",
                 question && "bg-zinc-50 dark:bg-zinc-900",

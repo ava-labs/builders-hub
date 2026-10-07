@@ -245,20 +245,21 @@ export function NetworkQuery({ network, chains, index }: { network: string; chai
 /* each chain family's own chrome; stable components, so a re-render of
    the wrapper never remounts the page and loses its answer */
 function QueryShell({ kind, scope, network, heading, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; heading: boolean; children: React.ReactNode }) {
+  // no rise: the page paints its first frame with the HTML, and a box's shell has drawn that frame already
   if (scope === "network")
     return (
-      <NetworkShell network={network} search={false} heading={heading}>
+      <NetworkShell network={network} search={false} heading={heading} rise={false}>
         {children}
       </NetworkShell>
     );
   if (kind === "pchain")
     return (
-      <ExplorerShell chain="p-chain" network={network} hideHeader heading={heading}>
+      <ExplorerShell chain="p-chain" network={network} hideHeader heading={heading} rise={false}>
         <div className={PCHAIN_COLUMN}>{children}</div>
       </ExplorerShell>
     );
   return (
-    <EvmShell network={network} search={false} heading={heading}>
+    <EvmShell network={network} search={false} heading={heading} rise={false}>
       {children}
     </EvmShell>
   );
@@ -289,9 +290,16 @@ function QueryPage({
 }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
+  const params = useSearchParams();
 
   const [prompt, setPrompt] = useState("");
-  const [phase, setPhase] = useState<"idle" | "query" | "running">("idle");
+  // a link's question is asked on load, so the first frame is already the working one
+  const [phase, setPhase] = useState<"idle" | "query" | "running">(() => (params.get("q")?.trim() ? "query" : "idle"));
+  // the question on its way and the thread it follows, shown on the thread line until its answer stands
+  const [asking, setAsking] = useState<{ text: string; prior: string[] } | null>(() => {
+    const q = params.get("q");
+    return q ? { text: q, prior: [] } : null;
+  });
   const [designing, setDesigning] = useState(false);
   // what the model has done so far on this question
   const [events, setEvents] = useState<QueryEvent[]>([]);
@@ -403,13 +411,9 @@ function QueryPage({
     async (q: string, refine: boolean, opts: { replay?: boolean; hist?: Turn[] } = {}): Promise<Turn[] | null> => {
       const text = q.trim();
       if (!text) return null;
-      // a new question that names another chain is asked there; a follow-up stays on this chain
-      const named = !refine && resolve && onRoute ? await resolve(text) : null;
-      if (named && named !== c.chainSlug) {
-        onRoute!(named, text);
-        return null;
-      }
       const my = ++token.current;
+      const hist = refine ? (opts.hist ?? history) : [];
+      setAsking({ text, prior: hist.map((t) => t.prompt) });
       setEvents([]);
       setReading(false);
       setPhase("query");
@@ -423,7 +427,13 @@ function QueryPage({
       setInspect(false);
       setDesigning(false);
       setSqlOpen(false);
-      const hist = refine ? (opts.hist ?? history) : [];
+      // a new question that names another chain is asked there, and this page works until that one opens; a follow-up stays on this chain
+      const named = !refine && resolve && onRoute ? await resolve(text) : null;
+      if (my !== token.current) return null;
+      if (named && named !== c.chainSlug) {
+        onRoute!(named, text);
+        return null;
+      }
       try {
         const a = await stream({ prompt: text, history: hist }, my);
         if (my !== token.current) return null;
@@ -528,7 +538,6 @@ function QueryPage({
   // a shared link asks on load, its follow-ups after it, and so does a
   // question typed into the search bar while this page is open (same
   // route, new ?q)
-  const params = useSearchParams();
   const qParam = params.get("q");
   const thread = threadKey(params);
   // sent here from the other chain's Query page
@@ -589,6 +598,8 @@ function QueryPage({
   const cov = answer?.coverage;
   const covSecs = cov ? toUnix(cov.until) - toUnix(cov.since) : 0;
   const busy = phase !== "idle";
+  const working = phase === "query" && asking !== null;
+  const crumbs = working ? [...asking.prior, asking.text] : answer ? history.map((t) => t.prompt) : [];
   const stale = index && index !== "empty" && Date.now() / 1000 - index.untilUnix > STALE_S ? index : null;
   const elapsed = started ? Math.floor((Date.now() - started) / 1000) : 0;
 
@@ -730,7 +741,8 @@ function QueryPage({
       <div className="flex flex-col gap-8">
         {/* the question */}
         <section className="flex flex-col gap-3">
-          {answer && history.length > 0 && <ThreadLine prompts={history.map((t) => t.prompt)} onNew={reset} />}
+          {/* the thread, and the question on its way; New question once its answer stands */}
+          {crumbs.length > 0 && <ThreadLine prompts={crumbs} onNew={working ? undefined : reset} />}
           {/* the selection, offered as the subject of the next question */}
           <AnimatePresence initial={false}>
             {answer && !drill && sel.length > 0 && !busy && (

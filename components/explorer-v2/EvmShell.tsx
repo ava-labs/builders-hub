@@ -4,6 +4,8 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { Rise } from "@/components/explorer-v2/ui";
 import { EvmSearchBox } from "@/components/explorer-v2/evm/EvmSearch";
+import { AskingFrame } from "@/components/explorer-v2/evm/query-asking";
+import { QueryWorking } from "@/components/explorer-v2/evm/QueryWorking";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 
 /* The EVM explorer page shell — the drafting-sheet analogue of ExplorerShell,
@@ -18,6 +20,7 @@ export function EvmShell({
   search = true,
   subnav = true,
   heading = true,
+  rise = true,
   children,
 }: {
   network: string;
@@ -34,6 +37,8 @@ export function EvmShell({
   subnav?: boolean;
   /** Set false where the page shows its own h1, such as a Query answer */
   heading?: boolean;
+  /** Set false where the body must paint with the first frame, such as Query's */
+  rise?: boolean;
   children: React.ReactNode;
 }) {
   const c = useChainContext();
@@ -52,30 +57,37 @@ export function EvmShell({
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
         {/* no display title by design; the h1 names the page for screen readers */}
         {heading && <h1 className="sr-only">{c.chainName} Explorer</h1>}
-        {subnav && (
-          <ExplorerSubnav
-            network={network}
-            chainSlug={c.chainSlug}
-            chainName={c.chainName}
-            chainLogoURI={c.chainLogoURI}
-            className="mb-8"
-          />
-        )}
-        {/* the subnav already names the chain; the header is the search, the
-            one thing every explorer page begins with, and whatever live
-            figure the page hangs beside it */}
-        {(search || aside || tape) && (
-          <Rise delay={0.05}>
-            <header className="flex flex-col gap-6 pb-10">
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
-                {search && <EvmSearchBox base={base} chainName={c.chainName} />}
-                {aside}
-              </div>
-              {tape}
-            </header>
-          </Rise>
-        )}
-        <Rise delay={0.14}>{children}</Rise>
+        {/* a question asked in the box shows the Query page's first frame under the subnav at once */}
+        <AskingFrame
+          above={
+            subnav && (
+              <ExplorerSubnav
+                network={network}
+                chainSlug={c.chainSlug}
+                chainName={c.chainName}
+                chainLogoURI={c.chainLogoURI}
+                className="mb-8"
+              />
+            )
+          }
+          working={(q) => <QueryWorking question={q} kind="evm" chainName={c.chainName} />}
+        >
+          {/* the subnav already names the chain; the header is the search, the
+              one thing every explorer page begins with, and whatever live
+              figure the page hangs beside it */}
+          {(search || aside || tape) && (
+            <Rise delay={0.05}>
+              <header className="flex flex-col gap-6 pb-10">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
+                  {search && <EvmSearchBox base={base} chainName={c.chainName} />}
+                  {aside}
+                </div>
+                {tape}
+              </header>
+            </Rise>
+          )}
+          {rise ? <Rise delay={0.14}>{children}</Rise> : <div>{children}</div>}
+        </AskingFrame>
       </div>
     </div>
   );

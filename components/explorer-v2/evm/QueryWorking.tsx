@@ -1,17 +1,24 @@
 "use client";
 
 import { ArrowUp, ChevronsUpDown } from "lucide-react";
+import l1ChainsData from "@/constants/l1-chains.json";
 import { cn } from "@/lib/utils";
-import { FILTER_MARK } from "./query-client";
+import { FILTER_MARK, WRITING } from "./query-client";
+import { QueryLoader } from "./QueryLoader";
 
-/* The Query page's question area: the prompt box, the thread line over
-   it, and the network picker's face. */
+/* The Query page's question area, and the page's first frame while it
+   asks. The page draws that frame from ?q before its first answer event;
+   a search box's shell draws the same frame on the frame Enter lands
+   (query-asking.tsx), while the Query page is still on its way. Both use
+   the parts below, so the swap from one to the other shows nothing. */
 
 /** the P-Chain Query page's column, inside the P-Chain shell */
 export const PCHAIN_COLUMN = "mx-auto w-full max-w-[90rem] px-5 pb-24 pt-2 md:px-6";
 
 /** the network picker's trigger */
 export const PICK = "group flex w-fit items-center gap-2 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100";
+
+const CCHAIN_LOGO = (l1ChainsData as { slug: string; chainLogoURI?: string }[]).find((c) => c.slug === "c-chain")?.chainLogoURI;
 
 /** what an empty prompt box offers to ask */
 export function placeholderOf(kind: "evm" | "pchain", chainName: string): string {
@@ -104,5 +111,28 @@ export function PromptBox({
         <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
       </button>
     </div>
+  );
+}
+
+/** a Query page's first frame while it asks: the question, the box held while the answer is written, the loader */
+export function QueryWorking({ question, kind, chainName, scope }: { question: string; kind: "evm" | "pchain"; chainName: string; scope?: "network" }) {
+  return (
+    <>
+      {/* the network page's picker, on the C-Chain until the page reads which chain the question names */}
+      {scope === "network" && (
+        <div className="mb-6">
+          <div className={PICK}>
+            <PickFace label="C-Chain" logo={CCHAIN_LOGO} />
+          </div>
+        </div>
+      )}
+      <div className="flex flex-col gap-8">
+        <section className="flex flex-col gap-3">
+          <ThreadLine prompts={[question]} />
+          <PromptBox value="" disabled placeholder={placeholderOf(kind, chainName)} label="Ask" />
+          <QueryLoader status={`${WRITING} · 0 s`} />
+        </section>
+      </div>
+    </>
   );
 }

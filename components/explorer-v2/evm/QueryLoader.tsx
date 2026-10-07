@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /* The wait, drawn as the city builds: the answer under construction. A
@@ -158,6 +158,12 @@ const TOP = 0.5 + (MOST * STOREY + DROP * STOREY) * RISE;
 const BOTTOM = HALF + SLAB * RISE;
 const HALF_W = 2 * HALF;
 
+/* a loader that takes over from one just gone keeps its clock: the frame a
+   search box's shell draws on Enter hands over to the Query page's own,
+   and the towers rise on unbroken */
+const HANDOFF_MS = 400;
+let handoff = { t0: 0, at: -Infinity };
+
 /** the tallest the group grows, so a tall box gets air around it */
 const GROUP_MAX = 150;
 /** the status line's height and its distance under the plate */
@@ -182,7 +188,8 @@ export function QueryLoader({
   const statusEl = useRef<HTMLParagraphElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
+  // laid out before the first paint, so the status line never shows out of place
+  useLayoutEffect(() => {
     const box = wrap.current;
     const cv = canvas.current;
     const ctx = cv?.getContext("2d");
@@ -213,7 +220,10 @@ export function QueryLoader({
       const top = Math.max(8, (h - ((TOP + BOTTOM) * u + STATUS_GAP + STATUS_H)) / 2 - h * 0.02);
       ox = w / 2;
       oy = top + TOP * u;
-      if (statusEl.current) statusEl.current.style.top = `${oy + BOTTOM * u + STATUS_GAP}px`;
+      if (statusEl.current) {
+        statusEl.current.style.top = `${oy + BOTTOM * u + STATUS_GAP}px`;
+        statusEl.current.style.visibility = "visible";
+      }
     };
 
     // the plan to the screen: x runs down to the right, y down to the left, z up
@@ -338,7 +348,8 @@ export function QueryLoader({
       ctx.globalAlpha = 1;
     };
 
-    const t0 = performance.now();
+    const start = performance.now();
+    const t0 = start - handoff.at < HANDOFF_MS ? handoff.t0 : start;
     let raf = 0;
     const frame = (now: number) => {
       // a frame's time can come a hair before the effect's own clock; the first round starts at 0
@@ -371,6 +382,7 @@ export function QueryLoader({
       ro.disconnect();
       mo.disconnect();
       document.removeEventListener("visibilitychange", run);
+      handoff = { t0, at: performance.now() };
     };
   }, []);
 
@@ -387,8 +399,8 @@ export function QueryLoader({
     >
       <div ref={wrap} className="relative min-h-0 flex-1">
         <canvas ref={canvas} className="absolute inset-0 block" aria-hidden="true" />
-        {/* placed by the layout, under the plate */}
-        <p ref={statusEl} className="pointer-events-none absolute inset-x-0 px-4 text-center font-mono text-[11px] leading-4 tabular-nums text-zinc-600 dark:text-zinc-300">
+        {/* placed by the layout, under the plate; hidden until then, so the server's HTML does not show it out of place */}
+        <p ref={statusEl} className="pointer-events-none invisible absolute inset-x-0 px-4 text-center font-mono text-[11px] leading-4 tabular-nums text-zinc-600 dark:text-zinc-300">
           {status}
         </p>
       </div>
