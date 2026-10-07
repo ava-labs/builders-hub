@@ -62,7 +62,8 @@ test('all networks search opens an x-chain tx id on the x-chain', MULTI_PAGE, as
 test('x-chain search opens an x-chain tx id on the x-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
   await app.open('/explorer/mainnet/x-chain/txs');
   // A tx row in the list shows the page has hydrated and the box is live.
-  await expect(screen.getByRole('link', /Tx #/).first()).toBeVisible(DATA);
+  // The phone layout labels the block cell, so "#" is the row's invariant.
+  await expect(screen.getByRole('link', /#\d/).first()).toBeVisible(DATA);
   const box = screen.getByRole('textbox', 'Search');
   await box.fill(X_CHAIN_TX);
   await expect(screen.getByRole('button', TX_ROW)).toBeVisible(DATA);
@@ -82,4 +83,34 @@ test('all networks search keeps a p-chain tx id on the p-chain', MULTI_PAGE, asy
   await expect(browser).toHaveURL(`/explorer/mainnet/p-chain/tx/${P_CHAIN_TX}`, NAVIGATION);
   await expect(screen.getByText(P_CHAIN_TX).first()).toBeVisible(DATA);
   await expect(screen.getByText('Transaction not found')).toBeHidden();
+});
+
+// Rule: a bech32 address is one account on the P-Chain and X-Chain — the
+// X-/P- prefix selects the chain; a bare address asks each chain whether it
+// holds the account and the row lands on the chain that does
+// (bech32AddressCached in components/explorer-v2/chain-search.tsx).
+// Fixed address: empty on the P-Chain, balance and tx history on the X-Chain.
+
+const X_ONLY_ADDRESS = 'avax1xph3ysxkmj2zlhac6nz9hj9cx2av4f7xa9a245';
+
+test('all networks search opens an x-only bech32 address on the x-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
+  await app.open('/explorer/mainnet');
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
+  const box = screen.getByRole('textbox', 'Search or ask a question');
+  await box.fill(X_ONLY_ADDRESS);
+  await expect(screen.getByRole('button', /^Address .+ X-Chain$/)).toBeVisible(DATA);
+  await box.press('Enter');
+  await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/address/X-${X_ONLY_ADDRESS}`, NAVIGATION);
+  await expect(screen.getByText('Address not found')).toBeHidden();
+});
+
+test('all networks search opens an x-prefixed address on the x-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
+  await app.open('/explorer/mainnet');
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
+  const box = screen.getByRole('textbox', 'Search or ask a question');
+  await box.fill(`X-${X_ONLY_ADDRESS}`);
+  await expect(screen.getByRole('button', /^Address .+ X-Chain$/)).toBeVisible(DATA);
+  await box.press('Enter');
+  await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/address/X-${X_ONLY_ADDRESS}`, NAVIGATION);
+  await expect(screen.getByText('Address not found')).toBeHidden();
 });
