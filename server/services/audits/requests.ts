@@ -1,9 +1,13 @@
 import type { Prisma } from "@prisma/client";
 import { del } from "@vercel/blob";
 import { prisma } from "@/prisma/prisma";
-import { isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
+import { isLegacyAttachmentSrc, isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
 import { parseStoredAttachments } from "@/lib/audits/attachments";
-import { deriveRequestStatus } from "@/lib/audits/status";
+import {
+  ADMIN_DELETABLE_STATUSES,
+  deriveRequestStatus,
+  isAdminDeletable,
+} from "@/lib/audits/status";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { logAuditEvent } from "@/server/services/audits/events";
 import {
@@ -157,6 +161,75 @@ export async function deleteDraft(userId: string, requestId: string): Promise<Mu
   if (result.count === 0) return { success: false, code: "not_found" };
 
   await unpublishAttachments(requestId, droppedUrls(row?.attachments, []));
+  return { success: true };
+}
+
+export type DeleteRequestResult =
+  | { success: true }
+  | { success: false; code: "not_found" | "not_deletable" };
+
+type DeleteTxOutcome =
+  | { kind: "not_found" | "not_deletable" }
+  | { kind: "ok"; attachments: Prisma.JsonValue };
+
+/**
+ * Permanent delete by an audit admin (Joey, 2026-10-06: a project resubmitted
+ * and asked for its first proposal to go). The FKs take the quotes, deliveries,
+ * subsidy decisions and the trail with the row, so the record of the delete is
+ * an event with no request id: it is the one row that outlives the cascade.
+ */
+export async function deleteRequest(
+  requestId: string,
+  adminUserId: string,
+  adminName: string,
+): Promise<DeleteRequestResult> {
+  const outcome = await prisma.$transaction(async (tx): Promise<DeleteTxOutcome> => {
+    const row = await tx.auditRequest.findFirst({
+      where: { id: requestId, status: { not: "draft" } },
+      select: {
+        project_name: true,
+        status: true,
+        user_id: true,
+        attachments: true,
+        _count: { select: { quotes: true } },
+      },
+    });
+    if (!row) return { kind: "not_found" };
+    if (!isAdminDeletable(row.status)) return { kind: "not_deletable" };
+
+    // The status guard sits in the delete too: a quote accepted after the read
+    // turns the row engaged, and the delete then matches nothing.
+    const deleted = await tx.auditRequest.deleteMany({
+      where: { id: requestId, status: { in: [...ADMIN_DELETABLE_STATUSES] } },
+    });
+    if (deleted.count === 0) return { kind: "not_deletable" };
+
+    const stored = parseStoredAttachments(row.attachments);
+    await logAuditEvent(tx, {
+      request_id: null,
+      actor_type: "admin",
+      actor_id: adminUserId,
+      action: "request_deleted",
+      meta: {
+        request_id: requestId,
+        project_name: row.project_name,
+        status: row.status,
+        user_id: row.user_id,
+        quote_count: row._count.quotes,
+        // Legacy keys are never deleted (blobSrc.ts), so those files stay
+        // readable once the row is gone: this count is what is left of them.
+        attachment_count: stored.length,
+        legacy_attachment_count: stored.filter((file) => isLegacyAttachmentSrc(file.url)).length,
+        admin_name: adminName,
+      },
+    });
+    return { kind: "ok", attachments: row.attachments };
+  });
+
+  if (outcome.kind !== "ok") return { success: false, code: outcome.kind };
+
+  // After the commit, as deleteDraft does: nothing points at the files now.
+  await unpublishAttachments(requestId, droppedUrls(outcome.attachments, []));
   return { success: true };
 }
 

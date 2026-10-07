@@ -9,6 +9,8 @@ import { SubsidyWorksheet } from "@/components/audits/admin/SubsidyWorksheet";
 import { ReviewDecision } from "@/components/audits/admin/ReviewDecision";
 import { ActivityTrail } from "@/components/audits/admin/ActivityTrail";
 import { SubmissionDetails } from "@/components/audits/admin/SubmissionDetails";
+import { DeleteRequest } from "@/components/audits/admin/DeleteRequest";
+import { isAdminDeletable } from "@/lib/audits/status";
 import { denyIfNotAuditAdmin } from "@/app/(home)/audits/admin/require-admin";
 
 export default async function AuditAdminDrilldownPage({
@@ -83,7 +85,7 @@ export default async function AuditAdminDrilldownPage({
           />
         </div>
 
-        <div>
+        <div className="space-y-6">
           {detail.display_status === "pending_review" ? (
             <ReviewDecision
               requestId={detail.id}
@@ -112,6 +114,14 @@ export default async function AuditAdminDrilldownPage({
               The subsidy worksheet unlocks once the project accepts a quote.
             </div>
           )}
+          {isAdminDeletable(detail.status) ? (
+            <DeleteRequest
+              requestId={detail.id}
+              projectName={detail.project_name || "Untitled request"}
+              quoteCount={detail.quotes.length}
+              firmCount={detail.fanout_deliveries.length}
+            />
+          ) : null}
         </div>
       </div>
     </div>
