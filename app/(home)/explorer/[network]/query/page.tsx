@@ -5,7 +5,7 @@ import { L1Chain } from "@/types/stats";
 import { createMetadata } from "@/utils/metadata";
 import { queryTarget } from "@/lib/explorer-query/target";
 import { indexState } from "@/lib/explorer-query/clickhouse";
-import type { NetworkQueryChain } from "@/components/explorer-v2/evm/EvmQuery";
+import type { NetworkQueryChain } from "@/components/explorer-v2/evm/network-query";
 import { NetworkQueryClient } from "./page.client";
 
 const PCHAIN_LOGO =

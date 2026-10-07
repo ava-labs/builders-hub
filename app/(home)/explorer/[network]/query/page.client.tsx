@@ -1,7 +1,8 @@
 "use client";
 
 import { Suspense } from "react";
-import { NetworkQuery, type IndexState, type NetworkQueryChain } from "@/components/explorer-v2/evm/EvmQuery";
+import type { IndexState } from "@/components/explorer-v2/evm/EvmQuery";
+import { NetworkQuery, type NetworkQueryChain } from "@/components/explorer-v2/evm/network-query";
 
 // the page reads ?q and ?chain, so it renders under a Suspense boundary. The
 // boundary sits here, inside the client tree: one on the server, around the
