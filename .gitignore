@@ -48,6 +48,8 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
+# Solidity dependencies and build output for the blueprint Foundry suite (scripts/blueprints/setup-test-deps.sh)
+.blueprint-deps/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/

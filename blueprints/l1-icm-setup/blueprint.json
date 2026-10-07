@@ -1,0 +1,130 @@
+{
+  "id": "l1-icm-setup",
+  "version": 1,
+  "title": "Finish ICM on your L1",
+  "summary": "Deploy the Teleporter registry, then check the relayer",
+  "description": "Completes ICM on an L1 whose Quick L1 launch stopped after the chain was live: deploys a TeleporterRegistry that points at the chain's TeleporterMessenger, records it on the project, and walks through getting a relayer that serves the L1 and the C-Chain.",
+  "category": "interop",
+  "level": "starter",
+  "tags": ["icm", "teleporter", "registry", "relayer", "l1", "recovery"],
+  "prompts": [
+    "My L1 launch stopped before the ICM registry was deployed, finish it",
+    "Set up the Teleporter registry on my L1",
+    "Make my L1 ready for ICM and ICTT blueprints"
+  ],
+  "networks": {
+    "l1": {
+      "description": "Your L1, bound from the Networks tab",
+      "default": "l1",
+      "allowed": ["l1"]
+    },
+    "cchain": {
+      "description": "Chain the relayer connects your L1 to",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    }
+  },
+  "params": [],
+  "prerequisites": [
+    "Your L1 is bound to the project and has a TeleporterMessenger (the L1 was launched with interoperability, or ICM was set up in the console)",
+    "The signing wallet holds native gas on the L1: the owner set at launch receives the genesis allocation"
+  ],
+  "contracts": [
+    {
+      "name": "TeleporterRegistry",
+      "artifact": "contracts/icm-contracts/compiled/TeleporterRegistry.json",
+      "description": "Versioned registry of Teleporter protocol addresses that ICM apps and ICTT contracts read"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-registry",
+      "title": "Deploy the Teleporter registry on your L1",
+      "kind": "deploy",
+      "network": "l1",
+      "signer": "deployer",
+      "contract": "TeleporterRegistry",
+      "args": [
+        [
+          {
+            "version": 1,
+            "protocolAddress": "$net.l1.teleporter.messenger"
+          }
+        ]
+      ]
+    },
+    {
+      "id": "ensure-relayer",
+      "title": "Make sure a relayer serves your L1 and the C-Chain",
+      "kind": "offchain",
+      "network": "l1",
+      "action": "icm.ensure-relayer",
+      "inputs": {
+        "chains": ["$net.l1", "$net.cchain"]
+      }
+    }
+  ],
+  "checks": [
+    {
+      "description": "The registry's latest version is 1",
+      "after": "deploy-registry",
+      "network": "l1",
+      "contract": "TeleporterRegistry",
+      "target": "$out.deploy-registry.address",
+      "function": "latestVersion",
+      "expect": {
+        "equals": 1
+      }
+    },
+    {
+      "description": "Version 1 is the chain's TeleporterMessenger",
+      "after": "deploy-registry",
+      "network": "l1",
+      "contract": "TeleporterRegistry",
+      "target": "$out.deploy-registry.address",
+      "function": "getAddressFromVersion",
+      "args": [1],
+      "expect": {
+        "equals": "$net.l1.teleporter.messenger"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-registry",
+      "read": ["latestVersion", "getAddressFromVersion"],
+      "write": []
+    }
+  ],
+  "review": [
+    "The registry lists exactly one protocol version, pointing at the chain's canonical TeleporterMessenger, which the binding confirmed has code.",
+    "Nothing in the registry is upgradable by anyone but the registry's own addProtocolVersion, which is unrestricted by design: apps pick which versions to trust.",
+    "The relayer step only confirms one exists. A relayer with no gas, or one that does not list both chains, delivers nothing."
+  ],
+  "frontend": {
+    "summary": "A readiness check for the L1's cross-chain features: registry in place, relayer serving both chains.",
+    "audience": [
+      "The builder's team checking the L1 is ready for cross-chain apps",
+      "End users only indirectly: apps hide cross-chain features until this passes"
+    ],
+    "journeys": [
+      "A short checklist with a green or amber state per item and what to do next.",
+      "In end-user apps, hide or disable cross-chain actions ('Cross-chain transfers are coming soon') until the checklist passes."
+    ],
+    "flows": [
+      "Read latestVersion() and getAddressFromVersion(latestVersion()) on the registry to confirm ICM is ready before showing any cross-chain feature.",
+      "Link the managed relayer page so the builder can add the L1 and the C-Chain to a relayer and fund it."
+    ]
+  },
+  "docs": [
+    {
+      "title": "ICM contracts overview",
+      "url": "/docs/cross-chain/icm-contracts/overview"
+    },
+    {
+      "title": "Managed ICM relayer",
+      "url": "/console/testnet-infra/icm-relayer"
+    }
+  ],
+  "related": ["l1-quickstart", "icm-messenger", "ictt-token-bridge"]
+}

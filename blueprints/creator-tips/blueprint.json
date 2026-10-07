@@ -1,0 +1,135 @@
+{
+  "id": "creator-tips",
+  "version": 1,
+  "title": "Creator Tips",
+  "summary": "Profiles with USDC tips",
+  "description": "Creators claim a handle and publish a profile; fans tip them in USDC with a message. Tips move straight from the fan to the creator, so the contract never holds funds.",
+  "category": "payments",
+  "level": "starter",
+  "tags": ["c-chain", "usdc", "payments", "social", "profiles"],
+  "prompts": [
+    "Let fans tip creators in USDC with a message",
+    "Build profiles with handles where people can send tips",
+    "A Ko-fi style tip jar on Avalanche"
+  ],
+  "networks": {
+    "main": {
+      "description": "C-Chain where USDC is native",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "mainnet-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "handle",
+      "type": "string",
+      "description": "Handle for the builder's own smoke-test profile: 3 to 32 of a-z, 0-9 and _",
+      "default": "my_profile"
+    },
+    {
+      "name": "displayName",
+      "type": "string",
+      "description": "Display name for the smoke-test profile",
+      "default": "My profile"
+    }
+  ],
+  "prerequisites": [
+    "Native gas on the C-Chain for the signer",
+    "USDC for test tips, from the Circle faucet listed in the registry"
+  ],
+  "contracts": [
+    {
+      "name": "CreatorTips",
+      "source": "contracts/CreatorTips.sol",
+      "description": "Handle registry, profiles, and direct USDC tips"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-tips",
+      "title": "Deploy CreatorTips",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "CreatorTips",
+      "args": ["$net.main.tokens.USDC.address"]
+    },
+    {
+      "id": "register-builder",
+      "title": "Register the builder's profile",
+      "kind": "call",
+      "network": "main",
+      "signer": "builder",
+      "contract": "CreatorTips",
+      "target": "$out.deploy-tips.address",
+      "function": "register",
+      "args": ["$param.handle", "$param.displayName", "", ""],
+      "optional": true
+    }
+  ],
+  "checks": [
+    {
+      "description": "Tips are paid in USDC",
+      "after": "deploy-tips",
+      "network": "main",
+      "contract": "CreatorTips",
+      "target": "$out.deploy-tips.address",
+      "function": "tipToken",
+      "expect": {
+        "equals": "$net.main.tokens.USDC.address"
+      }
+    },
+    {
+      "description": "The builder's handle resolves to the builder",
+      "after": "register-builder",
+      "network": "main",
+      "contract": "CreatorTips",
+      "target": "$out.deploy-tips.address",
+      "function": "creatorOf",
+      "args": ["$param.handle"],
+      "expect": {
+        "equals": "$ctx.builder"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-tips",
+      "read": ["profileOf", "creatorOf", "tipToken", "MAX_TEXT_BYTES"],
+      "write": ["register", "updateProfile", "tip"]
+    }
+  ],
+  "review": [
+    "tip transfers from the fan to the creator directly; the contract balance stays zero.",
+    "Handles are validated on-chain (lowercase, digits, underscore); the UI applies the same rule before submitting.",
+    "Profile text is rendered as plain text and avatar URLs are loaded through an image proxy or allowlist."
+  ],
+  "frontend": {
+    "summary": "A creator page fans can tip in USDC, and a way for creators to claim a handle and share their page.",
+    "audience": ["Fans who want to support a creator", "Creators who set up a page and share their link"],
+    "journeys": [
+      "Visit a creator: name, bio and avatar, total received and number of supporters, and recent tips with their messages.",
+      "Tip: preset amounts (1, 5, 10 USDC) or custom, an optional message, and one button such as 'Tip 5 USDC'; allowing USDC is step 1 of 2 only when needed.",
+      "After tipping: a thank-you state and the new tip at the top of the feed.",
+      "Claim a page: type a handle with a live 'available' check, add name, bio and avatar, preview the page, publish, and copy the share link.",
+      "Creators edit their profile from their own page when their wallet is connected."
+    ],
+    "flows": [
+      "Route /@handle to creatorOf(handle) then profileOf(creator); show tipsReceived with 6 decimals.",
+      "Tip: approve exactly the amount on USDC, then tip(handle, amount, message).",
+      "Build the tip feed from Tipped(creator, from, amount, message) events filtered by the indexed creator.",
+      "Claim flow: check creatorOf(handle) is the zero address before calling register."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Circle testnet faucet",
+      "url": "https://faucet.circle.com"
+    },
+    {
+      "title": "Contract verification",
+      "url": "/docs/tooling/contract-verification"
+    }
+  ],
+  "related": ["usdc-checkout", "guestbook"]
+}

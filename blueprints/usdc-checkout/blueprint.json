@@ -1,0 +1,200 @@
+{
+  "id": "usdc-checkout",
+  "version": 1,
+  "title": "USDC Checkout",
+  "summary": "Storefront payment flow",
+  "description": "A storefront's onchain register: the owner lists products priced in USDC, buyers pay with approve or a one-transaction permit, and every order is recorded so the store can fulfil, refund, and withdraw.",
+  "category": "payments",
+  "level": "starter",
+  "tags": ["c-chain", "usdc", "payments", "permit", "ecommerce"],
+  "prompts": [
+    "Accept USDC payments in my online store",
+    "Build a checkout where customers pay for products in USDC",
+    "I sell digital goods and want onchain payments with refunds"
+  ],
+  "networks": {
+    "main": {
+      "description": "C-Chain where USDC is native",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "mainnet-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Store owner: manages products, refunds, and withdrawals",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "productName",
+      "type": "string",
+      "description": "First product to list",
+      "default": "Sample product"
+    },
+    {
+      "name": "productPrice",
+      "type": "uint",
+      "description": "Price of the first product in USDC base units (6 decimals). The default is 5 USDC.",
+      "default": "5000000"
+    }
+  ],
+  "prerequisites": [
+    "Native gas on the C-Chain for the signer",
+    "USDC for test purchases, from the Circle faucet listed in the registry"
+  ],
+  "contracts": [
+    {
+      "name": "USDCCheckout",
+      "source": "contracts/USDCCheckout.sol",
+      "description": "Product catalog, orders, refunds, and withdrawals"
+    },
+    {
+      "name": "ERC20",
+      "artifact": "contracts/icm-contracts/compiled/ExampleERC20.json",
+      "description": "Standard ERC-20 ABI, used for USDC approvals and balance reads"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-checkout",
+      "title": "Deploy the checkout",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "USDCCheckout",
+      "args": ["$net.main.tokens.USDC.address", "$ctx.deployer"]
+    },
+    {
+      "id": "list-product",
+      "title": "List the first product",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "USDCCheckout",
+      "target": "$out.deploy-checkout.address",
+      "function": "setProduct",
+      "args": [1, "$param.productName", "$param.productPrice", true]
+    },
+    {
+      "id": "hand-over",
+      "title": "Transfer the store to its owner",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "USDCCheckout",
+      "target": "$out.deploy-checkout.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "approve-test-purchase",
+      "title": "Approve USDC for a test purchase",
+      "kind": "call",
+      "network": "main",
+      "signer": "builder",
+      "contract": "ERC20",
+      "target": "$net.main.tokens.USDC.address",
+      "function": "approve",
+      "args": ["$out.deploy-checkout.address", "$param.productPrice"],
+      "optional": true
+    },
+    {
+      "id": "test-purchase",
+      "title": "Buy one unit of the first product",
+      "kind": "call",
+      "network": "main",
+      "signer": "builder",
+      "contract": "USDCCheckout",
+      "target": "$out.deploy-checkout.address",
+      "function": "purchase",
+      "args": [1, 1, "0x0000000000000000000000000000000000000000000000000000000000000000"],
+      "outputs": {
+        "orderId": "event:USDCCheckout.OrderPaid.orderId"
+      },
+      "optional": true
+    }
+  ],
+  "checks": [
+    {
+      "description": "The first product costs the configured price",
+      "after": "list-product",
+      "network": "main",
+      "contract": "USDCCheckout",
+      "target": "$out.deploy-checkout.address",
+      "function": "priceOf",
+      "args": [1, 1],
+      "expect": {
+        "equals": "$param.productPrice"
+      }
+    },
+    {
+      "description": "The store belongs to its owner",
+      "after": "hand-over",
+      "network": "main",
+      "contract": "USDCCheckout",
+      "target": "$out.deploy-checkout.address",
+      "function": "owner",
+      "expect": {
+        "equals": "$param.owner"
+      }
+    },
+    {
+      "description": "The test payment is held by the checkout",
+      "after": "test-purchase",
+      "network": "main",
+      "contract": "ERC20",
+      "target": "$net.main.tokens.USDC.address",
+      "function": "balanceOf",
+      "args": ["$out.deploy-checkout.address"],
+      "expect": {
+        "gte": "$param.productPrice"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-checkout",
+      "read": ["priceOf", "getProduct", "getOrder", "nextOrderId", "paymentToken", "paused", "owner"],
+      "write": ["setProduct", "purchase", "purchaseWithPermit", "refund", "withdraw", "pause", "unpause"]
+    }
+  ],
+  "review": [
+    "The payment token is USDC from $net.main.tokens.USDC.address; prices are in 6-decimal base units.",
+    "Buyers approve exactly priceOf(productId, quantity), or sign a permit for that amount.",
+    "The owner keeps enough balance for the refund window before withdrawing; refunds come out of the contract's balance.",
+    "Fulfilment keys off the OrderPaid event and the recorded amount, never off a client-side claim."
+  ],
+  "frontend": {
+    "summary": "A storefront where customers pay in USDC in one or two clicks and get a receipt.",
+    "audience": ["Customers buying products", "The shop owner, who manages orders and refunds"],
+    "journeys": [
+      "Browse products with names, images and prices in USDC; unavailable ones show 'Sold out'.",
+      "Pay: a quantity stepper, the total, and 'Pay 24.00 USDC'; one signature with permit, or two visible steps when the wallet can't sign permits.",
+      "A receipt: order number, what was bought, amount, and a transaction link.",
+      "My orders: the customer's past orders and refunds.",
+      "Shop owner area, shown only to the owner: orders, refunds, withdraw to the treasury, pause."
+    ],
+    "flows": [
+      "Read products with getProduct(id) and show prices with 6 decimals.",
+      "Checkout with permit: sign EIP-2612 typed data for priceOf(id, qty) on the USDC contract, then call purchaseWithPermit. Fall back to approve plus purchase for wallets that cannot sign typed data.",
+      "Pass the store's cart or session id as orderRef (bytes32), then match OrderPaid(orderId, buyer, productId, quantity, amount, orderRef) in the backend to fulfil.",
+      "Owner dashboard: list orders from OrderPaid and OrderRefunded events, refund by orderId, withdraw to a treasury address, pause in an emergency."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Circle testnet faucet",
+      "url": "https://faucet.circle.com"
+    },
+    {
+      "title": "USDC contract addresses",
+      "url": "https://developers.circle.com/stablecoins/usdc-contract-addresses"
+    },
+    {
+      "title": "Contract verification",
+      "url": "/docs/tooling/contract-verification"
+    }
+  ],
+  "related": ["creator-tips", "usdc-escrow", "ccip-usdc-bridge"]
+}
