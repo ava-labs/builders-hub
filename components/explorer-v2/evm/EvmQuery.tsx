@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUp, Check, ChevronRight, ChevronsUpDown, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
+import { Check, ChevronRight, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
@@ -26,6 +26,7 @@ import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { bucketOf } from "./drill-plot";
 import { QueryLoader } from "./QueryLoader";
+import { PCHAIN_COLUMN, PICK, PickFace, PromptBox, ThreadLine, placeholderOf } from "./QueryWorking";
 import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
 import { QueryMonitor } from "./QueryMonitor";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
@@ -173,15 +174,8 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
 
   const picker = (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        title="Name a chain in the question to ask it; this sets the chain for questions that name none"
-        className="group flex w-fit items-center gap-2 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-      >
-        <span>Answering from</span>
-        {c.logo && <img src={c.logo} alt="" className="h-4 w-4 shrink-0 rounded-full object-contain" />}
-        <span className="font-bold text-zinc-900 dark:text-zinc-100">{c.label}</span>
-        <span className="text-zinc-300 dark:text-zinc-600">· any chain you name</span>
-        <ChevronsUpDown className="h-3 w-3 shrink-0" />
+      <DropdownMenuTrigger title="Name a chain in the question to ask it; this sets the chain for questions that name none" className={PICK}>
+        <PickFace label={c.label} logo={c.logo} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 w-64 overflow-y-auto">
         {chains.map((x) => (
@@ -232,7 +226,7 @@ function QueryShell({ kind, scope, network, heading, children }: { kind: QueryCh
   if (kind === "pchain")
     return (
       <ExplorerShell chain="p-chain" network={network} hideHeader heading={heading}>
-        <div className="mx-auto w-full max-w-[90rem] px-5 pb-24 pt-2 md:px-6">{children}</div>
+        <div className={PCHAIN_COLUMN}>{children}</div>
       </ExplorerShell>
     );
   return (
@@ -668,48 +662,27 @@ function QueryPage({
   }, [popZoom]);
 
   const input = (
-    <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 shadow-[0_8px_24px_-16px_rgba(24,24,27,0.3)] transition-colors focus-within:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
-      <textarea
-        ref={inputRef}
-        value={prompt}
-        onChange={(e) => {
-          setPrompt(e.target.value);
-          if (!e.target.value) setAbout(false);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            submit();
-          } else if (e.key === "Escape") {
-            e.currentTarget.blur();
-          }
-        }}
-        rows={1}
-        autoFocus={!answer}
-        disabled={busy}
-        placeholder={
-          answer?.monitor
-            ? "Monitor something else, or ask a new question"
-            : answer
-              ? c.kind === "pchain"
-                ? "Refine this answer: only L1s, per week, add delegators"
-                : "Refine this answer: only reverted, per hour, add fees"
-              : c.kind === "pchain"
-                ? "Ask the P-Chain about validators, staking, delegations, L1s or supply"
-                : `Ask ${c.chainName} about its transactions, gas, contracts or tokens`
-        }
-        className="max-h-40 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 disabled:opacity-60 dark:text-zinc-50 dark:placeholder:text-zinc-600"
-      />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={busy || !prompt.trim()}
-        aria-label={answer ? "Refine" : "Ask"}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white transition-opacity disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
-      </button>
-    </div>
+    <PromptBox
+      inputRef={inputRef}
+      value={prompt}
+      onChange={(v) => {
+        setPrompt(v);
+        if (!v) setAbout(false);
+      }}
+      onSend={submit}
+      autoFocus={!answer}
+      disabled={busy}
+      label={answer ? "Refine" : "Ask"}
+      placeholder={
+        answer?.monitor
+          ? "Monitor something else, or ask a new question"
+          : answer
+            ? c.kind === "pchain"
+              ? "Refine this answer: only L1s, per week, add delegators"
+              : "Refine this answer: only reverted, per hour, add fees"
+            : placeholderOf(c.kind, c.chainName)
+      }
+    />
   );
 
   const quiet = "flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50";
@@ -729,21 +702,7 @@ function QueryPage({
       <div className="flex flex-col gap-8">
         {/* the question */}
         <section className="flex flex-col gap-3">
-          {answer && history.length > 0 && (
-            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 font-mono text-[11px]">
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-zinc-400 dark:text-zinc-500">
-                {history.map((t, i) => (
-                  <span key={i} className="flex items-baseline gap-2">
-                    {i > 0 && <span className="text-zinc-300 dark:text-zinc-700">/</span>}
-                    <span className={cn(i === history.length - 1 && "text-zinc-700 dark:text-zinc-200")}>{t.prompt.split(FILTER_MARK)[0]}</span>
-                  </span>
-                ))}
-              </span>
-              <button type="button" onClick={reset} className="shrink-0 uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500">
-                New question
-              </button>
-            </div>
-          )}
+          {answer && history.length > 0 && <ThreadLine prompts={history.map((t) => t.prompt)} onNew={reset} />}
           {/* the selection, offered as the subject of the next question */}
           <AnimatePresence initial={false}>
             {answer && !drill && sel.length > 0 && !busy && (
