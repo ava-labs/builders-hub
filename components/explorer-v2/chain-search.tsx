@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeftRight, ArrowRight, Box, Hash, Server, Wallet } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Box, Coins, Hash, Server, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ICM_STATUS_LABEL, type IcmMessage } from "@/lib/icm-message";
@@ -154,7 +154,7 @@ export function matchChains(query: string, live: Map<string, number> | null): Ch
    to a chain-name hit — the dropdown offers chains, Enter searches */
 export const looksLikeIdentifier = (q: string) =>
   /^\d+$/.test(q) || /^0x[a-fA-F0-9]+$/.test(q) || /^NodeID-/.test(q) ||
-  /^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q) ||
+  /^([XP]-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q) ||
   /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q);
 
 function ChainLogo({ uri, name }: { uri?: string; name: string }) {
@@ -173,10 +173,12 @@ function ChainLogo({ uri, name }: { uri?: string; name: string }) {
 
 /* ------------------------------------------------------------------ */
 /* Entity suggestions — the dropdown's answer to "what will Enter do?" */
-/* Unambiguous shapes (heights, NodeIDs, addresses) resolve instantly; */
-/* tx hashes race every chain's RPC and CB58 IDs ask the P-Chain       */
-/* search API, both debounced and cached per query so a pasted hash    */
-/* costs one lookup total — the Enter key reuses the same cache.       */
+/* Unambiguous shapes (heights, NodeIDs, 0x addresses) resolve         */
+/* instantly; tx hashes race every chain's RPC, CB58 IDs ask the       */
+/* P-Chain search API then the X-Chain's tx/asset probes, and a bech32 */
+/* address asks each UTXO chain whether it holds the account — all     */
+/* debounced and cached per query so a pasted id costs one lookup      */
+/* total and the Enter key reuses the same cache.                      */
 /* ------------------------------------------------------------------ */
 
 /* How a P-Chain search result renders. "chain" comes from a CreateChainTx
@@ -190,7 +192,7 @@ const PCHAIN_HIT: Record<string, { icon: EntityHit["icon"]; label: string }> = {
 };
 
 export interface EntityHit {
-  icon: "tx" | "block" | "address" | "node" | "icm";
+  icon: "tx" | "block" | "address" | "node" | "icm" | "asset";
   label: string;
   id: string;
   /** null while searching or when nothing claimed the identifier */
@@ -220,6 +222,125 @@ export function lookupTxAcrossChainsCached(hash: string) {
   if (!p) {
     p = readIndexedChainIds().then((indexed) => lookupTransactionAcrossChains(hash, raceChains(indexed)));
     txRaceCache.set(key, p);
+  }
+  return p;
+}
+
+/* What the X-Chain API can tell a CB58 id is: tx or genesis asset. There is
+   no x-api "search" resource, so the id is probed as a tx first and an
+   asset second — a CreateAssetTx id names an asset that has no tx page. */
+export interface XchainHit {
+  type: "tx" | "asset" | "none";
+  id: string;
+}
+
+const XCHAIN_HIT: Record<"tx" | "asset", { icon: EntityHit["icon"]; label: string }> = {
+  tx: { icon: "tx", label: "Transaction" },
+  asset: { icon: "asset", label: "Asset" },
+};
+
+const xchainSearchCache = new Map<string, Promise<XchainHit>>();
+/** One probe pair per id per session, shared by the dropdown row and Enter. */
+export function xchainSearchCached(network: string, q: string): Promise<XchainHit> {
+  const key = `${network}:${q}`;
+  let p = xchainSearchCache.get(key);
+  if (!p) {
+    const has = (resource: "tx" | "asset") =>
+      fetch(`/api/xchain/${network}/${resource}/${encodeURIComponent(q)}`, SOFT_READ).then((res) => isOk(res));
+    p = has("tx")
+      .then(async (tx): Promise<XchainHit> => (tx ? { type: "tx", id: q } : { type: (await has("asset")) ? "asset" : "none", id: q }))
+      .catch(() => ({ type: "none" as const, id: q }));
+    xchainSearchCache.set(key, p);
+  }
+  return p;
+}
+
+/** The X-Chain's answer to a CB58 id as an entity row. */
+export function xchainHit(q: string, network: string, found: XchainHit): EntityHit {
+  return found.type === "none"
+    ? { icon: "tx", label: "Chain ID", id: q, href: null, detail: "Nothing matched", status: "notfound" }
+    : {
+        ...XCHAIN_HIT[found.type],
+        id: q,
+        href: `/explorer/${network}/x-chain/${found.type}/${found.id}`,
+        detail: "X-Chain",
+        status: "ready",
+      };
+}
+
+/* A bech32 address is one account seen from two chains — `X-`/`P-` are
+   prefixes on the same `avax1…` payload, not different addresses. An
+   explicit prefix is a chain selector and skips the probes; a bare address
+   asks each chain whether it holds the account (balance, UTXOs, atomic
+   memory, tx history) and earns a row per claimant, so an address with
+   activity on both chains offers both pages. An address no chain has
+   touched still lands on the P-Chain page, whose empty state is the
+   honest answer. */
+export interface Bech32Hit {
+  chain: "p-chain" | "x-chain";
+  /** the address as the target page's API knows it: bare on P, X- prefixed on X */
+  id: string;
+}
+
+/** a string balance/amount that is present and nonzero */
+const nz = (v?: string) => v !== undefined && v !== "0";
+
+function pchainAddressHas(network: string, bare: string): Promise<boolean> {
+  return fetch(pchainApiPath(network, `address/${encodeURIComponent(bare)}`), SOFT_READ)
+    .then(async (res) => {
+      if (!isOk(res)) return false;
+      const d = await res.json();
+      return (
+        (d.utxoCount ?? 0) > 0 ||
+        (d.utxos?.length ?? 0) > 0 ||
+        !!d.fundedBy ||
+        nz(d.balance?.total) ||
+        nz(d.breakdown?.atomicMemoryUnlocked) ||
+        nz(d.breakdown?.atomicMemoryLocked)
+      );
+    })
+    .catch(() => false);
+}
+
+function xchainAddressHas(network: string, bare: string): Promise<boolean> {
+  return fetch(`/api/xchain/${network}/address/${encodeURIComponent(bare)}`, SOFT_READ)
+    .then(async (res) => {
+      if (!isOk(res)) return false;
+      const d = await res.json();
+      return (
+        (d.transactions?.length ?? 0) > 0 ||
+        (d.balances ?? []).some((b: { balance?: string; utxoCount?: number }) => nz(b.balance) || (b.utxoCount ?? 0) > 0)
+      );
+    })
+    .catch(() => false);
+}
+
+const bech32AddressCache = new Map<string, Promise<Bech32Hit[]>>();
+/** One probe pair per address per session, shared by the dropdown and Enter.
+ *  P-Chain first in the array, so Enter keeps its long-standing default when
+ *  both chains claim the address. */
+export function bech32AddressCached(network: string, q: string): Promise<Bech32Hit[]> {
+  const key = `${network}:${q}`;
+  let p = bech32AddressCache.get(key);
+  if (!p) {
+    const bare = q.replace(/^[xp]-/i, "");
+    const prefix = /^([xp])-/i.exec(q)?.[1].toLowerCase();
+    if (prefix === "x") {
+      p = Promise.resolve([{ chain: "x-chain" as const, id: `X-${bare}` }]);
+    } else if (prefix === "p") {
+      p = Promise.resolve([{ chain: "p-chain" as const, id: bare }]);
+    } else {
+      p = Promise.all([pchainAddressHas(network, bare), xchainAddressHas(network, bare)])
+        .then(([onP, onX]) => {
+          const hits: Bech32Hit[] = [];
+          if (onP) hits.push({ chain: "p-chain", id: bare });
+          if (onX) hits.push({ chain: "x-chain", id: `X-${bare}` });
+          if (hits.length === 0) hits.push({ chain: "p-chain", id: bare });
+          return hits;
+        })
+        .catch(() => [{ chain: "p-chain" as const, id: bare }]);
+    }
+    bech32AddressCache.set(key, p);
   }
   return p;
 }
@@ -290,37 +411,40 @@ export function heightHitCached(q: string, targets: EntityTargets): Promise<Enti
 
 const ENTITY_DEBOUNCE_MS = 350;
 
-export function useSearchEntity(query: string, targets: EntityTargets): EntityHit | null {
+/* One entity resolution can be two rows: a bare bech32 address that both
+   the P-Chain and X-Chain claim gets an "Address" row per chain. */
+export function useSearchEntity(query: string, targets: EntityTargets): EntityHit[] {
   const q = query.trim();
-  const [resolved, setResolved] = useState<{ q: string; hit: EntityHit } | null>(null);
+  const [resolved, setResolved] = useState<{ q: string; hits: EntityHit[] } | null>(null);
 
   const isTxHash = /^0x[a-fA-F0-9]{64}$/.test(q);
-  // bech32 addresses share most of the CB58 alphabet — they resolve
-  // instantly below and must not trigger a P-Chain search here
-  const isCb58 = /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q) && !/^(P-)?(avax|fuji|custom)1/i.test(q);
+  // bech32 asks each UTXO chain whether it holds the account (below) —
+  // a bare avax1… is also CB58-shaped, so it must not reach the CB58 probes
+  const isBech32 = /^([XP]-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q);
+  const isCb58 = /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q) && !isBech32;
   // with a fallback chain, a plain height asks the P-Chain whether it has it
   const isAskedHeight = !!targets.heightFallback && /^\d+$/.test(q);
 
   useEffect(() => {
-    if (!isTxHash && !isCb58 && !isAskedHeight) return;
+    if (!isTxHash && !isCb58 && !isAskedHeight && !isBech32) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
       if (isAskedHeight) {
         const hit = await heightHitCached(q, targets);
-        if (!cancelled) setResolved({ q, hit });
+        if (!cancelled) setResolved({ q, hits: [hit] });
       } else if (isTxHash) {
         const race = await lookupTxAcrossChainsCached(q);
         if (cancelled) return;
         if (race.found && race.chain) {
           setResolved({
             q,
-            hit: {
+            hits: [{
               icon: "tx", label: "Transaction", id: q,
               href: buildTxUrl(`/explorer/mainnet/${race.chain.slug}`, q),
               detail: race.chain.chainName,
               logo: hasRealChainLogo(race.chain.chainLogoURI) ? race.chain.chainLogoURI : undefined,
               status: "ready",
-            },
+            }],
           });
           return;
         }
@@ -330,7 +454,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         if (r.type !== "none") {
           setResolved({
             q,
-            hit: { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" },
+            hits: [{ ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }],
           });
           return;
         }
@@ -339,57 +463,74 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         if (cancelled) return;
         setResolved({
           q,
-          hit: icm
+          hits: [icm
             ? { icon: "icm", label: "Interchain message", id: q, href: `/explorer/${targets.network}/icm/${icm.messageId}`, detail: ICM_STATUS_LABEL[icm.status] ?? "Interchain message", status: "ready" }
-            : { icon: "tx", label: "Transaction", id: q, href: null, detail: "No chain claims this hash", status: "notfound" },
+            : { icon: "tx", label: "Transaction", id: q, href: null, detail: "No chain claims this hash", status: "notfound" }],
         });
-      } else {
-        const r = await pchainSearchCached(targets.network, q);
+      } else if (isBech32) {
+        const found = await bech32AddressCached(targets.network, q);
         if (cancelled) return;
         setResolved({
           q,
-          hit: r.type !== "none"
-            ? { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
-            : { icon: "tx", label: "P-Chain ID", id: q, href: null, detail: "Nothing matched", status: "notfound" },
+          hits: found.map((h) => ({
+            icon: "address" as const,
+            label: "Address",
+            id: q,
+            href: `/explorer/${targets.network}/${h.chain}/address/${h.id}`,
+            detail: h.chain === "x-chain" ? "X-Chain" : "P-Chain",
+            status: "ready" as const,
+          })),
         });
+      } else {
+        // CB58 — a P-Chain or X-Chain id: the search API answers for the
+        // P-Chain; on a miss the X-Chain's tx/asset probes take over
+        const r = await pchainSearchCached(targets.network, q);
+        if (cancelled) return;
+        if (r.type !== "none") {
+          setResolved({
+            q,
+            hits: [{ ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }],
+          });
+          return;
+        }
+        const x = await xchainSearchCached(targets.network, q);
+        if (cancelled) return;
+        setResolved({ q, hits: [xchainHit(q, targets.network, x)] });
       }
     }, ENTITY_DEBOUNCE_MS);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [q, isTxHash, isCb58, isAskedHeight, targets.network]);
+  }, [q, isTxHash, isCb58, isBech32, isAskedHeight, targets.network]);
 
-  if (!q) return null;
+  if (!q) return [];
 
   // instant shapes — no network round-trip, mirrors Enter exactly
-  if (/^\d+$/.test(q) && !isAskedHeight) return heightHit(q, targets);
+  if (/^\d+$/.test(q) && !isAskedHeight) return [heightHit(q, targets)];
   if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) {
-    return { icon: "node", label: "Validator node", id: q, href: `/explorer/${targets.network}/p-chain/node/${q}`, detail: "P-Chain", status: "ready" };
-  }
-  if (/^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) {
-    return { icon: "address", label: "Address", id: q, href: `/explorer/${targets.network}/p-chain/address/${q}`, detail: "P-Chain", status: "ready" };
+    return [{ icon: "node", label: "Validator node", id: q, href: `/explorer/${targets.network}/p-chain/node/${q}`, detail: "P-Chain", status: "ready" }];
   }
   if (/^0x[a-fA-F0-9]{40}$/.test(q)) {
-    return { icon: "address", label: "Address", id: q, href: buildAddressUrl(targets.evmAddressBase, q), detail: targets.evmAddressChainName, status: "ready" };
+    return [{ icon: "address", label: "Address", id: q, href: buildAddressUrl(targets.evmAddressBase, q), detail: targets.evmAddressChainName, status: "ready" }];
   }
 
   // async shapes — the resolved answer when it's in, a searching row until
-  if (isTxHash || isCb58 || isAskedHeight) {
-    if (resolved && resolved.q === q) return resolved.hit;
-    return {
-      icon: isAskedHeight ? "block" : "tx",
-      label: isTxHash ? "Transaction" : isAskedHeight ? "Block" : "P-Chain ID",
+  if (isTxHash || isCb58 || isBech32 || isAskedHeight) {
+    if (resolved && resolved.q === q) return resolved.hits;
+    return [{
+      icon: isAskedHeight ? "block" : isBech32 ? "address" : "tx",
+      label: isTxHash ? "Transaction" : isAskedHeight ? "Block" : isBech32 ? "Address" : "Chain ID",
       id: q,
       href: null,
-      detail: isTxHash ? "Searching every chain…" : "Searching the P-Chain…",
+      detail: isTxHash ? "Searching every chain…" : isAskedHeight ? "Searching the P-Chain…" : "Searching the P-Chain and X-Chain…",
       status: "searching",
-    };
+    }];
   }
-  return null;
+  return [];
 }
 
-const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server, icm: ArrowLeftRight } as const;
+const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server, icm: ArrowLeftRight, asset: Coins } as const;
 
 /** The entity row: what the identifier in the box resolves to, and where
  *  Enter (or a click) lands. Sits above the chain suggestions. */
