@@ -140,9 +140,13 @@ const QUESTIONS: Record<string, () => Fixture> = {
   },
 };
 
+/** the rows the route last answered each question with, for checks that need the exact times */
+const sent: Record<string, Row[]> = {};
+
 /** the route's answer line for a question, as app/api/explorer/query streams it */
 function answerLine(title: string): string {
   const { sql, rows, panels, names } = QUESTIONS[title]();
+  sent[title] = rows;
   const columns = Object.keys(rows[0]).map((name) => ({ name, type: typeof rows[0][name] === 'number' ? 'Float64' : 'String' }));
   const answer = {
     title,
@@ -181,7 +185,8 @@ async function answerFromFixtures(browser: Browser): Promise<string[]> {
       // the minute chart's edges move at each minute: answer between 2 s and 50 s into one, so its first minute
       // starts before the window and its last is still filling when the page draws it
       const into = Date.now() % MINUTE;
-      if (body.prompt === 'Base fee per minute' && (into < 2000 || into > 50_000)) await pause(MINUTE - into + 2000);
+      if (body.prompt === 'Base fee per minute' && into < 2000) await pause(2000 - into);
+      if (body.prompt === 'Base fee per minute' && into > 50_000) await pause(MINUTE - into + 2000);
       await route.fulfill({ headers: { 'content-type': 'application/x-ndjson; charset=utf-8' }, body: answerLine(body.prompt) });
       return;
     }
@@ -194,7 +199,8 @@ async function answerFromFixtures(browser: Browser): Promise<string[]> {
 type Read = { labels: string[]; ticks: string[]; problems: string[] };
 
 // Returns null until the panel named `title` has drawn a chart and its words have not moved for `settleMs`. Then
-// returns the panel's marker labels, its x axis ticks, and each word that runs past its svg, with the px it runs past.
+// returns the panel's marker labels, its x axis ticks, and its problems: each word that runs past its svg, with the px
+// it runs past, and each x tick that runs over the next.
 // The browser runs this function, so it uses no helpers from this file.
 function readPanel([title, settleMs]: [string, number]): Read | null {
   const panel = document.querySelector(`section[aria-label="${CSS.escape(title)}"]`);
@@ -215,6 +221,15 @@ function readPanel([title, settleMs]: [string, number]): Read | null {
     const past = { left: box.left - r.left, right: r.right - box.right, top: box.top - r.top, bottom: r.bottom - box.bottom };
     for (const [edge, px] of Object.entries(past)) {
       if (px > 0.5) problems.push(`"${t.textContent}" runs ${Math.round(px)} px past the ${edge} edge`);
+    }
+  }
+  // the x ticks stand apart: each ends before the next begins
+  for (const svg of svgs) {
+    const ticks = [...svg.querySelectorAll('.xAxis text')].map((t) => ({ t: t.textContent, r: t.getBoundingClientRect() })).filter(({ r }) => r.width > 0);
+    ticks.sort((a, b) => a.r.left - b.r.left);
+    for (let i = 1; i < ticks.length; i++) {
+      const over = ticks[i - 1].r.right - ticks[i].r.left;
+      if (over > 0.5) problems.push(`tick "${ticks[i - 1].t}" runs ${Math.round(over)} px over "${ticks[i].t}"`);
     }
   }
   const text = (sel: string) => svgs.flatMap((s) => [...s.querySelectorAll(sel)].map((t) => t.textContent ?? ''));
@@ -310,38 +325,54 @@ test('a minute chart names its edges in full: "partial" and "so far" stay inside
   expect(unexpected).toEqual([]);
 });
 
-for (const question of ['Transactions per hour', 'Transactions per day', 'Top senders by fees paid', 'Fee against gas used', 'Where AVAX flowed']) {
+// The labels each chart must draw in each view but a pie, which draws none: an hour window cuts its first and last
+// hour, a day window from today() - 7 starts at a whole day, and a ranking draws its reference line.
+const LABELS: Record<string, string[]> = {
+  'Transactions per hour': ['partial', 'so far'],
+  'Transactions per day': ['so far'],
+  'Top senders by fees paid': ['Average of the top 10'],
+  'Fee against gas used': [],
+  'Where AVAX flowed': [],
+};
+
+for (const [question, want] of Object.entries(LABELS)) {
   test(`every word of the "${question}" charts stays inside the chart, in each view`, MULTI_PAGE, async ({ app, screen, browser }) => {
     const unexpected = await openAnswer(app, browser, question);
-    const { problems } = await wordsPastTheFrame(screen, browser, question);
+    const { problems, labels } = await wordsPastTheFrame(screen, browser, question);
     expect(problems).toEqual([]);
+    for (const [view, got] of Object.entries(labels).filter(([v]) => !v.endsWith(' Pie'))) {
+      expect({ view, labels: [...got].sort() }).toEqual({ view, labels: want });
+    }
     expect(unexpected).toEqual([]);
   });
 }
 
-// Runs in the page: the ticks that do not read as the browser's own clock (14:05) of a minute in the last three hours.
-function offTheBrowserClock(ticks: string[]): string[] {
-  const clocks = new Set<string>();
-  for (let t = Date.now() - 3 * 3_600_000; t <= Date.now() + 60_000; t += 60_000) {
-    clocks.add(new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }));
-  }
+// Runs in the page: the ticks that are not the browser's own clock (14:05) of one of the times the route sent.
+function offTheBrowserClock([ticks, times]: [string[], number[]]): string[] {
+  const clocks = new Set(times.map((t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })));
   return ticks.filter((t) => !clocks.has(t));
 }
 
 // The rows write UTC. A chart of minutes or hours reads in the viewer's zone, as the node page's hours do, and a chart
-// of days keeps the UTC day it counts. In a browser that runs in UTC the two zones agree, and the check passes either way.
+// of days keeps the UTC day it counts: in a zone west of UTC a day's midnight is the evening before. A browser in UTC
+// cannot tell the zones apart, so the test needs one outside it (CI runs in UTC; a laptop runs in its owner's zone).
 test("the x axis reads in the viewer's time zone, and a day stays the UTC day it counts", MULTI_PAGE, async ({ app, screen, browser }) => {
   const unexpected = await openAnswer(app, browser, 'Base fee per minute');
+  const zone = await browser.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+  test.skip(zone === 'UTC', 'the browser runs in UTC, where the viewer\'s zone and UTC agree');
   await expect(screen.getByRole('heading', 'Base fee per minute')).toBeVisible(DATA);
   const minutes = await settled(browser, 'Base fee per minute');
+  const times = sent['Base fee per minute'].map((r) => Date.parse(`${String(r.t).replace(' ', 'T')}Z`));
   expect(minutes.ticks.length).toBeGreaterThan(1);
-  expect(await browser.evaluate(offTheBrowserClock, minutes.ticks)).toEqual([]);
+  expect(await browser.evaluate(offTheBrowserClock, [minutes.ticks, times] as [string[], number[]])).toEqual([]);
 
   await app.open(`${PATH}?q=${encodeURIComponent('Transactions per day')}`);
   await expect(screen.getByRole('heading', 'Transactions per day')).toBeVisible(DATA);
   const days = await settled(browser, 'Transactions per day');
-  const utcDays = Array.from({ length: 10 }, (_, i) => utc(Date.now() - i * DAY).slice(5, 10));
-  expect(days.ticks.length).toBeGreaterThan(1);
-  expect(days.ticks.filter((t) => !utcDays.includes(t))).toEqual([]);
+  // each tick names one of the eight UTC days, and the last tick (always drawn) the last day: in a zone west of UTC a
+  // shifted axis ends a day early. A phone draws every other day
+  const want = sent['Transactions per day'].map((r) => String(r.d).slice(5, 10));
+  expect(days.ticks.filter((t) => !want.includes(t))).toEqual([]);
+  expect(days.ticks.at(-1)).toBe(want.at(-1));
   expect(unexpected).toEqual([]);
 });
