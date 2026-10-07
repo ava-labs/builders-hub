@@ -26,6 +26,13 @@ describe('a label at an x', () => {
     expect(fitLabel(300, 138, 316, 'start')).toBe(176);
   });
 
+  it('as a tick, stays centered and moves only as far as the frame needs', () => {
+    // recharts spaced the ticks and moved the last one nearly inside: ending it at its x would put it over its neighbour
+    expect(fitLabel(1300, 66, 1350, 'middle')).toBe(1267);
+    expect(fitLabel(1320, 66, 1350, 'middle')).toBe(1282);
+    expect(fitLabel(10, 30, 316, 'middle')).toBe(2);
+  });
+
   it('starts at the frame when it is wider than the frame', () => {
     expect(fitLabel(100, 400, 316)).toBe(2);
   });
@@ -34,7 +41,7 @@ describe('a label at an x', () => {
     for (const frame of [189, 316, 647, 1350]) {
       for (const w of [30, 36, 126, 216].filter((n) => n <= frame - 4)) {
         for (let x = 0; x <= frame; x += 1) {
-          for (const align of ['middle', 'start'] as const) {
+          for (const align of ['line', 'middle', 'start'] as const) {
             const left = fitLabel(x, w, frame, align);
             expect(left).toBeGreaterThanOrEqual(2);
             expect(left + w).toBeLessThanOrEqual(frame - 2);
