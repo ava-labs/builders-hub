@@ -12,7 +12,7 @@ import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import type { RouteHistory, Side } from "@/app/api/icm-route/route";
 
 /* An ICM route's own view, in the panel's grammar (the chain and P-Chain
-   views in city-app.tsx): the two chains it joins, its messages each way
+   views in chain-view.tsx): the two chains it joins, its messages each way
    over a window the reader picks, its share of all ICM in that window, its
    newest messages, and both chains' explorers. The counts come from the
    Teleporter logs of whichever end the index holds (/api/icm-route), each
