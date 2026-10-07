@@ -9,7 +9,10 @@ import { HUB_W, TILT } from "@/components/explorer-v2/network/city-geometry";
 import { planCity, streetRoute, turn, type City, type Stop, type Street } from "@/components/explorer-v2/network/city";
 import { districtOf } from "@/components/explorer-v2/network/districts";
 import { CITY_REACH, CX, CY, H_MAX, H_MIN, H_TOP_MIN, HUB_ID, validatorHeight, type Node, type Route, type SizeBy } from "@/components/explorer-v2/network/icm-map";
-import l1ChainsData from "@/constants/l1-chains.json";
+import { overviewStatsUrl } from "@/components/explorer-v2/network/network-reads";
+import { MAINNET_COUNTERPART, catalogOf, resolveCatalogChain } from "@/lib/explorer-catalog";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
+import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { L1Chain } from "@/types/stats";
 
 /* The city's data, apart from the map that draws it (icm-map.tsx): the
@@ -35,22 +38,32 @@ interface FlowRoute {
   messageCount: number;
 }
 
-/** the Primary Network's subnet, whose set is downtown's */
-const PRIMARY_SUBNET = "11111111111111111111111111111111LpoYY";
+/* downtown's chain: the network's C-Chain, which the Primary Network runs */
+const hubOf = (network: PchainNetwork) => (network === "fuji" ? "43113" : HUB_ID);
 
-const catalogByChainId = new Map(
-  (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c]),
-);
+/* the network's catalog chains by subnet, from the one catalog map by chain id */
+const subnetCatalogs = new Map<PchainNetwork, Map<string, L1Chain>>();
+function subnetCatalogOf(network: PchainNetwork): Map<string, L1Chain> {
+  let bySubnet = subnetCatalogs.get(network);
+  if (!bySubnet) {
+    bySubnet = new Map([...catalogOf(network).values()].filter((c) => c.subnetId).map((c) => [String(c.subnetId), c]));
+    subnetCatalogs.set(network, bySubnet);
+  }
+  return bySubnet;
+}
 
-const catalogBySubnet = new Map(
-  (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [String(c.subnetId), c]),
-);
+/* the category that picks a chain's district. The catalog gives Fuji chains
+   none: a Fuji chain takes its mainnet counterpart's, else none (the Frontier) */
+function categoryOf(c: L1Chain | undefined): string | undefined {
+  if (!c || c.category || c.isTestnet !== true) return c?.category;
+  const pair = MAINNET_COUNTERPART[c.slug];
+  return pair ? resolveCatalogChain("mainnet", pair)?.category : undefined;
+}
 
 /* the chain's ICM feed when it has an RPC, else its accounts */
-function chainHref(chainId: string): string | null {
-  const c = catalogByChainId.get(chainId);
+function chainHref(c: L1Chain | undefined, network: PchainNetwork): string | null {
   if (!c?.slug) return null;
-  return c.rpcUrl ? `/explorer/mainnet/${c.slug}/txs/icm` : `/explorer/mainnet/${c.slug}/accounts`;
+  return c.rpcUrl ? `/explorer/${network}/${c.slug}/txs/icm` : `/explorer/${network}/${c.slug}/accounts`;
 }
 
 /* a street route on screen: its path, its length, and the point halfway along it */
@@ -94,7 +107,7 @@ function onScreen(s: Street): { d: string; length: number; mid: [number, number]
 export interface IcmSummary {
   /** 30-day messages each chain sent plus got, by EVM chain ID */
   byChain: Map<string, number>;
-  /** 30-day messages across every mainnet route */
+  /** 30-day messages across every route the city draws */
   total: number;
   /** chains that sent or got a message, the C-Chain included */
   talking: number;
@@ -102,6 +115,8 @@ export interface IcmSummary {
 
 /** the city, planned: the chains and their lots, the routes on the streets, the ground's ledger */
 export interface CityData {
+  /** downtown's chain id: the network's C-Chain (43114 on mainnet, 43113 on Fuji) */
+  hubId: string;
   /** the chain feed; null while it loads */
   chains: MapChain[] | null;
   failed: boolean;
@@ -120,58 +135,80 @@ export interface CityData {
    routes, the P-Chain's ledger and the week's new L1s, planned into lots
    and streets. The app reads it for its panels and lists; the canvas
    draws it. Phones read it without the canvas */
-/* the city's feeds, kept for the tab: a return to the page stands the city from its first frame, and a feed that comes
-   back as it was changes nothing, so the plan is not made again */
-const FEEDS: { chains: { text: string; value: MapChain[] } | null; flows: Map<number, { text: string; value: FlowRoute[] }> } = { chains: null, flows: new Map() };
+/* the city's feeds per network, kept for the tab: a return to the page stands the city from its first frame, and a feed
+   that comes back as it was changes nothing, so the plan is not made again */
+type Feeds = { chains: { text: string; value: MapChain[] } | null; flows: Map<number, { text: string; value: FlowRoute[] }> };
+const FEEDS = new Map<PchainNetwork, Feeds>();
+function feedsOf(network: PchainNetwork): Feeds {
+  let feeds = FEEDS.get(network);
+  if (!feeds) {
+    feeds = { chains: null, flows: new Map() };
+    FEEDS.set(network, feeds);
+  }
+  return feeds;
+}
 
-export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }): CityData {
-  const [chains, setChains] = useState<MapChain[] | null>(() => FEEDS.chains?.value ?? null);
-  const [flows, setFlows] = useState<FlowRoute[]>(() => FEEDS.flows.get(days)?.value ?? []);
+export function useCityData({ days, sizeBy, network = "mainnet" }: { days: number; sizeBy: SizeBy; network?: PchainNetwork }): CityData {
+  const [chains, setChains] = useState<MapChain[] | null>(() => feedsOf(network).chains?.value ?? null);
+  const [flows, setFlows] = useState<FlowRoute[]>(() => feedsOf(network).flows.get(days)?.value ?? []);
   const [failed, setFailed] = useState(false);
+  // another network stands its own kept feeds at once, and none of the last network's
+  const [shown, setShown] = useState(network);
+  if (shown !== network) {
+    setShown(network);
+    setChains(feedsOf(network).chains?.value ?? null);
+    setFlows(feedsOf(network).flows.get(days)?.value ?? []);
+    setFailed(false);
+  }
   // the ground: the P-Chain's latest txs and tip
-  const pulse = usePchainPulse("mainnet");
+  const pulse = usePchainPulse(network);
   // the week's new L1s, and every set the P-Chain runs now, from the P-Chain
-  const { newcomers, residents, sites } = useNewcomers(pulse.txs);
+  const { newcomers, residents, sites } = useNewcomers(pulse.txs, network);
+  const hubId = hubOf(network);
 
   useEffect(() => {
     const controller = new AbortController();
+    const feeds = feedsOf(network);
     // the chains and their validators; the window only moves the arcs
-    fetch("/api/overview-stats?timeRange=month", { signal: controller.signal })
+    fetch(overviewStatsUrl("month", network), { signal: controller.signal })
       .then((res) => (res.ok ? res.text() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((text) => {
-        if (FEEDS.chains?.text === text) return;
+        if (feeds.chains?.text === text) return;
         const d = JSON.parse(text) as { chains?: MapChain[] };
-        FEEDS.chains = { text, value: d.chains ?? [] };
-        setChains(FEEDS.chains.value);
+        feeds.chains = { text, value: d.chains ?? [] };
+        setChains(feeds.chains.value);
       })
       .catch((e: Error) => {
         if (e.name !== "AbortError") setFailed(true);
       });
     return () => controller.abort();
-  }, []);
+  }, [network]);
 
   useEffect(() => {
     const controller = new AbortController();
+    const feeds = feedsOf(network);
     // a failed flow feed is not fatal: the chains still draw, without traffic. Both sides: each direction counted once,
     // when sent or when delivered, so a way into a chain the index does not hold still drives its street
-    fetch(`/api/icm-flow?days=${days}&sides=both`, { signal: controller.signal })
+    fetch(`/api/icm-flow?days=${days}&sides=both${network === "fuji" ? "&network=fuji" : ""}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.text() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((text) => {
-        if (FEEDS.flows.get(days)?.text === text) return;
+        if (feeds.flows.get(days)?.text === text) return;
         const d = JSON.parse(text) as { flows?: FlowRoute[] };
         const value = Array.isArray(d.flows) ? d.flows : [];
-        FEEDS.flows.set(days, { text, value });
+        feeds.flows.set(days, { text, value });
         setFlows(value);
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [days]);
+  }, [days, network]);
 
   // the heights count messages or validators; the versions lens only paints the windows, so its coming makes no new plan
   const byMessages = sizeBy === "messages";
   const { nodes, routes, city } = useMemo(() => {
+    const catalogByChainId = catalogOf(network);
+    const catalogBySubnet = subnetCatalogOf(network);
     const known = new Map((chains ?? []).map((c) => [String(c.chainId), c]));
-    // only routes between mainnet chains the overview knows; the feed mixes in Fuji
+    // only routes between chains the overview knows on this network
     const merged = new Map<string, { from: string; to: string; messages: number }>();
     for (const f of flows) {
       const from = String(f.sourceChainId);
@@ -192,26 +229,27 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
     // the registry counts every running set too, cached apart from the overview: it stands in when the overview's count is missing
     const residentCount = new Map(residents.map((r) => [r.subnetId, r.validators]));
     const chainOf = new Map(residents.map((r) => [r.subnetId, r.blockchainId]));
-    const primary = residentCount.get(PRIMARY_SUBNET);
+    const primary = residentCount.get(PRIMARY_SUBNET_ID);
     const listed = [...known.values()]
       .map((c) => {
         const id = String(c.chainId);
-        const subnet = id === HUB_ID ? null : catalogByChainId.get(id)?.subnetId;
-        const counted = typeof c.validatorCount === "number" && c.validatorCount > 0 ? c.validatorCount : (id === HUB_ID ? primary : subnet ? residentCount.get(subnet) : undefined) ?? 0;
+        const cat = catalogByChainId.get(id);
+        const subnet = id === hubId ? null : cat?.subnetId;
+        const counted = typeof c.validatorCount === "number" && c.validatorCount > 0 ? c.validatorCount : (id === hubId ? primary : subnet ? residentCount.get(subnet) : undefined) ?? 0;
         return {
           id,
           name: c.chainName,
           // the feed leaves many logos blank; the catalog knows most of them
-          logo: realLogo(c.chainLogoURI) || realLogo(catalogByChainId.get(id)?.chainLogoURI ?? ""),
+          logo: realLogo(c.chainLogoURI) || realLogo(cat?.chainLogoURI ?? ""),
           validators: counted,
           out: out.get(id) ?? 0,
           in: inn.get(id) ?? 0,
-          href: chainHref(id),
-          color: id === HUB_ID ? "#E6212F" : catalogByChainId.get(id)?.color ?? null,
-          district: districtOf(catalogByChainId.get(id)?.category),
+          href: chainHref(cat, network),
+          color: id === hubId ? "#E6212F" : cat?.color ?? null,
+          district: districtOf(categoryOf(cat)),
           newAt: null as number | null,
           guest: false,
-          subnetId: (id === HUB_ID ? PRIMARY_SUBNET : subnet ?? null) as string | null,
+          subnetId: (id === hubId ? PRIMARY_SUBNET_ID : subnet ?? null) as string | null,
           blockchainId: (subnet ? chainOf.get(subnet) ?? null : null) as string | null,
         };
       })
@@ -236,10 +274,10 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
         validators: nc.validators ?? 1,
         out: 0,
         in: 0,
-        href: nc.blockchainId ? `/explorer/mainnet/p-chain/chain/${nc.blockchainId}` : nc.tx ? `/explorer/mainnet/p-chain/tx/${nc.tx}` : null,
+        href: nc.blockchainId ? `/explorer/${network}/p-chain/chain/${nc.blockchainId}` : nc.tx ? `/explorer/${network}/p-chain/tx/${nc.tx}` : null,
         color: null,
         // the catalog has not described it yet
-        district: districtOf(cat?.category),
+        district: districtOf(categoryOf(cat)),
         newAt: nc.joinedAt,
         guest: true,
         subnetId: nc.subnetId,
@@ -259,9 +297,9 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
         validators: r.validators,
         out: 0,
         in: 0,
-        href: `/explorer/mainnet/p-chain/chain/${r.blockchainId}`,
+        href: `/explorer/${network}/p-chain/chain/${r.blockchainId}`,
         color: null,
-        district: districtOf(cat?.category),
+        district: districtOf(categoryOf(cat)),
         newAt: null,
         guest: true,
         subnetId: r.subnetId,
@@ -274,9 +312,9 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
     const top = Math.max(byMessages ? 1 : H_TOP_MIN, ...base.map(metric));
     const height = (c: (typeof base)[number]) => (byMessages ? H_MIN + (H_MAX - H_MIN) * Math.pow(metric(c) / top, H_POW) : validatorHeight(metric(c), top));
 
-    const hub = base.find((c) => c.id === HUB_ID);
+    const hub = base.find((c) => c.id === hubId);
     const hubH = hub ? height(hub) : 0;
-    const others = base.filter((c) => c.id !== HUB_ID);
+    const others = base.filter((c) => c.id !== hubId);
     const city = planCity(
       others.map((c) => ({ id: c.id, district: c.district, talks: c.out + c.in, validators: c.validators, newAt: c.newAt })),
       { cx: CX, cy: CY, tilt: TILT, reach: CITY_REACH, hub: { w: HUB_W, h: hubH } },
@@ -300,7 +338,7 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
 
     // where each set's traffic starts and ends: its lot, or downtown's plaza
     const downtown: Stop = { r: 0, a: 0, road: city.core, span: null };
-    const stopOf = (id: string): Stop | null => (id === HUB_ID ? downtown : city.lots.get(id) ?? null);
+    const stopOf = (id: string): Stop | null => (id === hubId ? downtown : city.lots.get(id) ?? null);
     const maxMsgs = Math.max(1, ...[...merged.values()].map((r) => r.messages));
     const drawn: Route[] = [...merged.values()]
       .sort((a, b) => a.messages - b.messages)
@@ -314,7 +352,7 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
         return [{ key: `${r.from}>${r.to}`, from: r.from, to: r.to, messages: r.messages, d: street.d, width: 0.9 + 2.1 * heat, heat, crown: street.mid, length: street.length }];
       });
     return { nodes: placed, routes: drawn, city };
-  }, [chains, flows, byMessages, newcomers, residents]);
+  }, [chains, flows, byMessages, newcomers, residents, network, hubId]);
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const summary = useMemo<IcmSummary>(
     () => ({
@@ -324,5 +362,5 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
     }),
     [nodes, routes],
   );
-  return { chains, failed, nodes, routes, byId, city, summary, pulse, newcomers, sites };
+  return { hubId, chains, failed, nodes, routes, byId, city, summary, pulse, newcomers, sites };
 }

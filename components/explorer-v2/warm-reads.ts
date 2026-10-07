@@ -1,5 +1,5 @@
 import { evmApiPath } from "@/lib/evm-explorer";
-import { pchainActivityPath, pchainApiPath, pchainL1OpsPath } from "@/lib/pchain-explorer";
+import { PCHAIN_NETWORKS, isPchainNetwork, pchainActivityPath, pchainApiPath, pchainL1OpsPath, type PchainNetwork } from "@/lib/pchain-explorer";
 import { resolveCatalogChain } from "@/lib/explorer-catalog";
 import { readJson, recall } from "./page-data";
 import { RANGE_DAYS, currentExplorerRange, type ExplorerRange } from "./time-range";
@@ -60,12 +60,19 @@ const XCHAIN_PAGES: Record<string, (network: string) => string[]> = {
   blocks: (n) => [`/api/xchain/${n}/blocks?limit=50`],
 };
 
-/* the network scope, mainnet only: its pages read on the page clock */
-const NETWORK_PAGES: Record<string, (range: ExplorerRange) => string[]> = {
-  // NetworkOverview: the figures and their pasts; the boards follow (warmReads)
-  "": (r) => [overviewStatsUrl(r), SUPPLY_URL, DAPPS_URL, networkSeriesUrl(RANGE_DAYS[overviewWindow(r)]), STAKE_HISTORY_URL, BURN_HISTORY_URL],
-  // NetworkToken: the figures, the supply model, the fee history and the price trace
-  token: (r) => [SUPPLY_URL, FEES_URL, ICM_FEES_URL, priceHistoryUrl(RANGE_DAYS[r]), STAKE_HISTORY_URL, BURN_HISTORY_URL],
+/* the network scope by network: its pages read on the page clock. The supply,
+   DeFi, stake and burn feeds are mainnet's, and so is the token page */
+const NETWORK_PAGES: Record<PchainNetwork, Record<string, (range: ExplorerRange) => string[]>> = {
+  mainnet: {
+    // NetworkOverview: the figures and their pasts; the boards follow (warmReads)
+    "": (r) => [overviewStatsUrl(r), SUPPLY_URL, DAPPS_URL, networkSeriesUrl(RANGE_DAYS[overviewWindow(r)]), STAKE_HISTORY_URL, BURN_HISTORY_URL],
+    // NetworkToken: the figures, the supply model, the fee history and the price trace
+    token: (r) => [SUPPLY_URL, FEES_URL, ICM_FEES_URL, priceHistoryUrl(RANGE_DAYS[r]), STAKE_HISTORY_URL, BURN_HISTORY_URL],
+  },
+  fuji: {
+    // NetworkOverview on Fuji: the figures and the activity's past; the boards follow (warmReads)
+    "": (r) => [overviewStatsUrl(r, "fuji"), networkSeriesUrl(RANGE_DAYS[overviewWindow(r)], "fuji")],
+  },
 };
 
 function priceOf(chainId: string): string {
@@ -79,7 +86,8 @@ export function readsOf(href: string, range?: ExplorerRange): string[] {
   const [path] = href.split(/[?#]/);
   const [, root, network, chain = "", page = "", arg] = path.split("/");
   if (root !== "explorer" || !network) return [];
-  if (network === "mainnet" && !page && Object.hasOwn(NETWORK_PAGES, chain)) return NETWORK_PAGES[chain](range ?? currentExplorerRange());
+  const scope = isPchainNetwork(network) ? NETWORK_PAGES[network] : undefined;
+  if (scope && !page && Object.hasOwn(scope, chain)) return scope[chain](range ?? currentExplorerRange());
   if (!chain) return [];
   const own = <F>(table: Record<string, F>) => (Object.hasOwn(table, page) ? table[page] : undefined);
   if (chain === "p-chain") return own(PCHAIN_PAGES)?.(network, arg) ?? [];
@@ -96,12 +104,14 @@ export function warmReads(href: string): void {
   const range = currentExplorerRange();
   const reads = readsOf(href, range);
   for (const url of reads) void readJson(url, "low");
-  // the overview's boards read the chains its figures name: the page
-  // takes its roster from the figures in memory when it holds them
-  const stats = overviewStatsUrl(range);
-  if (!reads.includes(stats)) return;
+  // the overview's boards read the chains its figures name, from that
+  // network's catalog: the page takes its roster from the figures in
+  // memory when it holds them
+  const network = PCHAIN_NETWORKS.find((n) => reads.includes(overviewStatsUrl(range, n)));
+  if (!network) return;
+  const stats = overviewStatsUrl(range, network);
   const known = recall<{ chains?: RosterRow[] }>(stats, false)?.data;
   void (known ? Promise.resolve(known) : readJson<{ chains?: RosterRow[] }>(stats)).then((d) => {
-    for (const url of boardReads(d?.chains ?? [])) void readJson(url, "low");
+    for (const url of boardReads(d?.chains ?? [], network)) void readJson(url, "low");
   });
 }

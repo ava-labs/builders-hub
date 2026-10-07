@@ -515,6 +515,7 @@ async function getICMData(
       days = getDaysFromTimeRange(timeRange);
     }
 
+    // "all" reads mainnet's messages, "fuji" Fuji's, any other ID one chain's
     let result = await getChainICMData(chainId, days);
 
     if (startTimestamp !== undefined && endTimestamp !== undefined) {

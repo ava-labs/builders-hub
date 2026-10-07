@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { isPchainNetwork } from "@/lib/pchain-explorer";
 import { pchainPost } from "@/lib/pchain-rpc";
-import { fetchAllSubnets, runningL1Count, type RegistrySubnet } from "@/lib/pchain-subnets";
+import { fetchAllSubnets, fetchSubnetsById, mergeSubnetReads, runningL1Count, type RegistrySubnet } from "@/lib/pchain-subnets";
 
 // The chain build-out registry, aggregated server-side: every subnet the
 // P-Chain has ever created (the box's /v1 subnets endpoint, ~6 pages),
 // reduced to the totals, a monthly cumulative creation series, and the
 // newest launches, each with its active validators so the network map can
 // stand a new L1 up before the catalog knows it. Creations are
-// slow-moving, so cache aggressively.
+// slow-moving, so cache aggressively. Fuji reads less: see readFujiSubnets.
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +66,22 @@ async function fetchValidatorCounts(network: string): Promise<Map<string, number
   }
 }
 
+/* Fuji has ~8,000 subnets: 80 pages are too slow for one request. Read the
+   newest page (100 subnets, newest first) for the recent launches and the
+   sites, and name each running set by its subnet ID. The totals then count
+   only these subnets, not every subnet on Fuji. No Fuji page reads the
+   totals: the L1s tab is mainnet only. missing counts the running sets
+   that no read named. */
+async function readFujiSubnets(counts: Promise<Map<string, number> | null>): Promise<{ subnets: RegistrySubnet[]; missing: number }> {
+  const runningIds = counts.then((c) => [...(c ?? [])].filter(([id, n]) => n > 0 && id !== PRIMARY_SUBNET_ID).map(([id]) => id));
+  const [newest, byId, ids] = await Promise.all([
+    fetchAllSubnets("fuji", 1),
+    runningIds.then((ids) => fetchSubnetsById("fuji", ids)),
+    runningIds,
+  ]);
+  return mergeSubnetReads(newest, byId, ids);
+}
+
 function buildRegistry(subnets: RegistrySubnet[], counts: Map<string, number> | null): L1Registry {
   const totals = { subnets: 0, l1s: 0, activeL1s: counts ? runningL1Count(counts, subnets) : null, blockchains: 0, evmChains: 0 };
   const allChains: L1Registry["recent"] = [];
@@ -104,23 +120,28 @@ export async function GET(
 ) {
   const { network } = await params;
   if (!isPchainNetwork(network)) {
-    return NextResponse.json({ error: `unknown network '${network}'` }, { status: 404 });
+    return NextResponse.json({ error: `unknown network '${network}'` }, { status: 400, headers: { "cache-control": "no-store" } });
   }
   const hit = cache.get(network);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
     return NextResponse.json(hit.data, { headers: { "cache-control": CACHE_CONTROL } });
   }
   try {
-    const [subnets, fresh] = await Promise.all([fetchAllSubnets(network), fetchValidatorCounts(network)]);
-    if (fresh) lastCounts.set(network, fresh);
-    const counts = fresh ?? lastCounts.get(network) ?? null;
+    const read = fetchValidatorCounts(network).then((fresh) => {
+      if (fresh) lastCounts.set(network, fresh);
+      return fresh ?? lastCounts.get(network) ?? null;
+    });
+    const [{ subnets, missing }, counts] = await Promise.all([
+      network === "fuji" ? readFujiSubnets(read) : fetchAllSubnets(network).then((all) => ({ subnets: all, missing: 0 })),
+      read,
+    ]);
     const data = buildRegistry(subnets, counts);
-    // built without any counts, it holds a minute rather than the hour, so the map recovers when the P-Chain does
-    cache.set(network, { data, at: counts ? Date.now() : Date.now() - CACHE_TTL_MS + 60_000 });
+    // built without any counts, or with a running set no read named, it holds a minute rather than the hour, so the map recovers
+    cache.set(network, { data, at: counts && missing === 0 ? Date.now() : Date.now() - CACHE_TTL_MS + 60_000 });
     return NextResponse.json(data, { headers: { "cache-control": CACHE_CONTROL } });
   } catch {
     // serve the stale aggregate over an error: creations move slowly
     if (hit) return NextResponse.json(hit.data, { headers: { "cache-control": CACHE_CONTROL } });
-    return NextResponse.json({ error: "registry upstream unreachable" }, { status: 504 });
+    return NextResponse.json({ error: "registry upstream unreachable" }, { status: 504, headers: { "cache-control": "no-store" } });
   }
 }

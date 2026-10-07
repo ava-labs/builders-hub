@@ -57,34 +57,44 @@ interface RegistryEntry {
   validators: number | null;
 }
 
-const getTx = async (hash: string): Promise<Tx | null> => {
-  const res = await fetch(pchainApiPath("mainnet", `tx/${hash}`));
+const getTx = async (network: string, hash: string): Promise<Tx | null> => {
+  const res = await fetch(pchainApiPath(network, `tx/${hash}`));
   return res.ok ? ((await res.json()) as Tx) : null;
 };
 
-/* the registry's read, kept for the tab: a return to the city stands its sets from the first frame, and a read that comes
-   back as it was changes nothing */
-let kept: { text: string; registry: Newcomer[]; residents: Resident[]; sites: Site[] } | null = null;
+interface RegistryRead {
+  registry: Newcomer[];
+  residents: Resident[];
+  sites: Site[];
+}
 
-export function useNewcomers(txs: PulseTx[]): { newcomers: Newcomer[]; residents: Resident[]; sites: Site[] } {
-  const [registry, setRegistry] = useState<Newcomer[]>(() => kept?.registry ?? []);
-  const [residents, setResidents] = useState<Resident[]>(() => kept?.residents ?? []);
-  const [sites, setSites] = useState<Site[]>(() => kept?.sites ?? []);
-  const [live, setLive] = useState<Newcomer[]>([]);
+/* the registry's read per network, kept for the tab: a return to the city stands its sets from the first frame, and a
+   read that comes back as it was changes nothing */
+const kept = new Map<string, RegistryRead & { text: string }>();
+// one empty list for every state, so a reset to nothing renders nothing new
+const NONE: never[] = [];
+const EMPTY: RegistryRead = { registry: NONE, residents: NONE, sites: NONE };
+
+export function useNewcomers(txs: PulseTx[], network = "mainnet"): { newcomers: Newcomer[]; residents: Resident[]; sites: Site[] } {
+  // each read with the network it is of: another network shows its own kept read at once, and none of the last network's
+  const [read, setRead] = useState<RegistryRead & { network: string }>(() => ({ ...(kept.get(network) ?? EMPTY), network }));
+  const [live, setLive] = useState<{ network: string; joins: Newcomer[] }>({ network, joins: NONE });
   const seen = useRef(new Set<string>());
 
   useEffect(() => {
+    setRead((r) => (r.network === network ? r : { ...(kept.get(network) ?? EMPTY), network }));
+    setLive((l) => (l.network === network ? l : { network, joins: NONE }));
+    seen.current = new Set();
     const controller = new AbortController();
-    fetch("/api/l1-registry/mainnet", { signal: controller.signal })
+    fetch(`/api/l1-registry/${network}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.text() : null))
       .then((text) => {
-        if (text === null || text === kept?.text) return;
+        if (text === null || text === kept.get(network)?.text) return;
         const d = JSON.parse(text) as { recent?: RegistryEntry[]; active?: RegistryEntry[] } | null;
         // every set the P-Chain runs now; one with no running validators does not stand
         const standing = (d?.active ?? [])
           .filter((r) => (r.validators ?? 0) > 0)
           .map((r) => ({ subnetId: r.subnetId, name: r.name, blockchainId: r.blockchainId, validators: r.validators ?? 0 }));
-        setResidents(standing);
         const since = Date.now() / 1000 - NEW_DAYS * 86400;
         const bySubnet = new Map<string, Newcomer>();
         // newest first, so a subnet's newest chain names it; an L1 with no running validators stays off the map
@@ -101,7 +111,6 @@ export function useNewcomers(txs: PulseTx[]): { newcomers: Newcomer[]; residents
           });
         }
         const joined = [...bySubnet.values()];
-        setRegistry(joined);
         // created in the last two weeks and no validator running yet: still being built
         const building = new Map<string, Site>();
         for (const r of d?.recent ?? []) {
@@ -109,12 +118,12 @@ export function useNewcomers(txs: PulseTx[]): { newcomers: Newcomer[]; residents
           building.set(r.subnetId, { subnetId: r.subnetId, name: r.name, blockchainId: r.blockchainId, createdAt: r.createdAt });
         }
         const built = [...building.values()];
-        setSites(built);
-        kept = { text, registry: joined, residents: standing, sites: built };
+        setRead({ network, registry: joined, residents: standing, sites: built });
+        kept.set(network, { text, registry: joined, residents: standing, sites: built });
       })
       .catch(() => {});
     return () => controller.abort();
-  }, []);
+  }, [network]);
 
   // a conversion that lands while the page is open: its subnet from the tx,
   // its name from the chain that subnet created, which the ledger holds
@@ -125,13 +134,13 @@ export function useNewcomers(txs: PulseTx[]): { newcomers: Newcomer[]; residents
       const chains = txs.filter((c) => c.type === "CreateChainTx" && c.height <= t.height);
       void (async () => {
         try {
-          const tx = await getTx(t.hash);
+          const tx = await getTx(network, t.hash);
           const subnetId = tx?.subnetId;
           if (!subnetId) return;
           let name = "New L1";
           let blockchainId: string | null = null;
           for (const c of chains) {
-            const ct = await getTx(c.hash);
+            const ct = await getTx(network, c.hash);
             // a chain's blockchain ID is the ID of the tx that created it
             if (ct?.subnetId === subnetId) {
               name = ct.details?.chainName || name;
@@ -139,19 +148,26 @@ export function useNewcomers(txs: PulseTx[]): { newcomers: Newcomer[]; residents
               break;
             }
           }
-          setLive((l) => (l.some((x) => x.subnetId === subnetId) ? l : [...l, { subnetId, name, blockchainId, evmChainId: null, joinedAt: t.ts, validators: null, tx: t.hash }]));
+          // a join read on the network before stays off this one
+          setLive((l) =>
+            l.network !== network || l.joins.some((x) => x.subnetId === subnetId)
+              ? l
+              : { network, joins: [...l.joins, { subnetId, name, blockchainId, evmChainId: null, joinedAt: t.ts, validators: null, tx: t.hash }] },
+          );
         } catch {
           /* the registry names it within the hour */
         }
       })();
     }
-  }, [txs]);
+  }, [txs, network]);
 
+  const { registry, residents, sites } = read.network === network ? read : (kept.get(network) ?? EMPTY);
+  const joins = live.network === network ? live.joins : NONE;
   // one per subnet, a live join over the registry's, newest first
   const newcomers = useMemo(() => {
     const out = new Map<string, Newcomer>();
-    for (const n of [...live, ...registry]) if (!out.has(n.subnetId)) out.set(n.subnetId, n);
+    for (const n of [...joins, ...registry]) if (!out.has(n.subnetId)) out.set(n.subnetId, n);
     return [...out.values()].sort((a, b) => b.joinedAt - a.joinedAt).slice(0, MAX);
-  }, [live, registry]);
+  }, [joins, registry]);
   return { newcomers, residents, sites };
 }

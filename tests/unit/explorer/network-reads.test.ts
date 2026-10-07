@@ -8,6 +8,7 @@ import {
   priceHistoryUrl,
   rosterOf,
 } from '@/components/explorer-v2/network/network-reads';
+import { catalogOf } from '@/lib/explorer-catalog';
 
 const row = (chainId: string, txCount: number | null, chainLogoURI = '') => ({ chainId, chainName: `Chain ${chainId}`, chainLogoURI, txCount });
 
@@ -45,6 +46,33 @@ describe('the overview boards roster', () => {
     ]);
     expect(blocksFeed('43114', 96_000_000)).toBe('/api/explorer/43114?blocksOnly=true&txs=3&lastFetchedBlock=96000000');
   });
+
+  it("reads a Fuji roster from Fuji's catalog: its chains stay and mainnet's drop", () => {
+    const rows = [row('43114', 900), row('43113', 800), row('4337', 700), row('13337', 600), row('432204', 500), row('432201', 400)];
+    const fuji = rosterOf(rows, 'fuji');
+    expect(fuji.map((c) => c.chainId)).toEqual(['43113', '13337', '432201']);
+    expect(fuji[0]).toMatchObject({ slug: 'c-chain', symbol: 'AVAX' });
+    expect(boardReads(rows, 'fuji')).toEqual(fuji.map((c) => blocksFeed(c.chainId)));
+    // mainnet keeps its own chains and drops Fuji's
+    expect(rosterOf(rows).map((c) => c.chainId)).toEqual(['43114', '4337', '432204']);
+  });
+
+  it('never fills a Fuji slot with a chain that has no transactions', () => {
+    // every Fuji chain an RPC reads, most with no count, as the Fuji overview feed gives them
+    const counts: Record<string, number> = { '43113': 800, '13337': 0, '432201': 12 };
+    const rows = [...catalogOf('fuji').values()].filter((c) => c.rpcUrl).map((c) => row(c.chainId, counts[c.chainId] ?? null));
+    expect(rows.length).toBeGreaterThan(8);
+    const fuji = rosterOf(rows, 'fuji');
+    expect(fuji.map((c) => c.chainId)).toEqual(['43113', '432201']);
+    const txCountOf = new Map(rows.map((r) => [r.chainId, r.txCount]));
+    expect(fuji.every((c) => (txCountOf.get(c.chainId) ?? 0) > 0)).toBe(true);
+  });
+
+  it('keeps one catalog map per network', () => {
+    expect([...catalogOf('fuji').values()].every((c) => c.isTestnet === true)).toBe(true);
+    expect([...catalogOf().values()].some((c) => c.isTestnet === true)).toBe(false);
+    expect(catalogOf('mainnet')).toBe(catalogOf());
+  });
 });
 
 describe("the network pages' windows", () => {
@@ -54,6 +82,13 @@ describe("the network pages' windows", () => {
     expect(networkSeriesUrl(7)).toMatch(/timeRange=30d$/);
     expect(networkSeriesUrl(30)).toMatch(/timeRange=90d$/);
     expect(networkSeriesUrl(365)).toMatch(/timeRange=all$/);
+  });
+
+  it("names no network on mainnet and adds Fuji's", () => {
+    expect(overviewStatsUrl('month', 'mainnet')).toBe('/api/overview-stats?timeRange=month');
+    expect(overviewStatsUrl('all', 'fuji')).toBe('/api/overview-stats?timeRange=year&network=fuji');
+    expect(networkSeriesUrl(7)).toBe('/api/chain-stats/all?metrics=txCount,activeAddresses,icmMessages&timeRange=30d');
+    expect(networkSeriesUrl(7, 'fuji')).toBe('/api/chain-stats/fuji?metrics=txCount,activeAddresses,icmMessages&timeRange=30d');
   });
 
   it("reads the price on the clock's window: hourly for a day, a year at most", () => {

@@ -1,34 +1,47 @@
-import { NextResponse } from "next/server";
-import l1ChainsData from "@/constants/l1-chains.json";
+import { NextRequest, NextResponse } from "next/server";
+import { catalogOf } from "@/lib/explorer-catalog";
+import { isPchainNetwork, type PchainNetwork } from "@/lib/pchain-explorer";
+import type { L1Chain } from "@/types/stats";
 
-// Live activity for every mainnet chain we can reach, read from each chain's
-// own RPC: its newest block and the nine below it. Avalanche L1s make a block
-// only when there are transactions, so the newest block's time says when the
-// chain last did anything, and the blocks' transactions over their span say
-// how fast it goes. The metrics API tracks a few chains; this asks every
-// catalog chain with an rpcUrl, at most once every two minutes however many
-// visitors there are. A host that refuses (a 429: most L1 RPCs share Ava
-// Labs' Cloudflare zone) rests for its retry-after, and a chain it cannot
-// read keeps its last good reading for half an hour.
+// Live activity for every chain of one network (mainnet, or Fuji with
+// ?network=fuji) that we can reach, read from each chain's own RPC: its
+// newest block and the nine below it. Avalanche L1s make a block only when
+// there are transactions, so the newest block's time says when the chain
+// last did anything, and the blocks' transactions over their span say how
+// fast it goes. The metrics API tracks a few chains; this asks every catalog
+// chain of the network with an rpcUrl, at most once every two minutes on
+// mainnet and every five on Fuji, however many visitors there are. Most L1
+// RPCs share one host (subnets.avax.network: 25 mainnet urls, 44 Fuji urls)
+// in Ava Labs' Cloudflare zone, so a read must not get the host's IP
+// limited. A 429 rests the whole host for its retry-after, on both networks.
+// A 403, any other 4xx or a failed DNS lookup is that url's own: the url
+// alone is skipped for an hour. A chain it cannot read keeps its last good
+// reading for half an hour.
 
 export const dynamic = "force-dynamic";
-// the worst read, every chain timing out, is about 12s
+// the worst read, every chain timing out, is about 12 s on mainnet and 15 s on Fuji
 export const maxDuration = 30;
 
 const BLOCKS = 10;
 const CHAIN_TIMEOUT_MS = 3_000;
 const MAX_IN_FLIGHT = 10;
-const CACHE_TTL_MS = 120_000;
-// the CDN holds the two minutes the process holds; browsers always ask, so a
-// client polling every minute never reads its own copy of the last poll
-const CACHE_CONTROL = "public, max-age=0, s-maxage=120, stale-while-revalidate=60";
+// how long a network's answer is kept: Fuji's chains share one host, so they are read less often
+const CACHE_TTL_MS: Record<PchainNetwork, number> = { mainnet: 120_000, fuji: 300_000 };
+// the CDN holds what the process holds; browsers always ask, so a client
+// polling every minute never reads its own copy of the last poll
+const cacheControl = (network: PchainNetwork) =>
+  `public, max-age=0, s-maxage=${CACHE_TTL_MS[network] / 1000}, stale-while-revalidate=60`;
 // a chain that did not answer keeps its last good reading this long
 const STALE_MS = 30 * 60_000;
 const REST_MS = 10 * 60_000;
 const REST_MAX_MS = 60 * 60_000;
 const HOUR_MS = 60 * 60 * 1000;
-const C_CHAIN_ID = "43114";
-const C_CHAIN_RPC = "https://api.avax.network/ext/bc/C/rpc";
+
+// each network's C-Chain: its public RPC, then its dedicated node when the env names one
+const C_CHAIN: Record<PchainNetwork, { chainId: string; rpc: string; node: string | undefined }> = {
+  mainnet: { chainId: "43114", rpc: "https://api.avax.network/ext/bc/C/rpc", node: process.env.CCHAIN_DEBUG_RPC_URL },
+  fuji: { chainId: "43113", rpc: "https://api.avax-test.network/ext/bc/C/rpc", node: process.env.FUJI_DEBUG_RPC_URL },
+};
 
 export interface ChainPulse {
   chainId: string;
@@ -66,45 +79,59 @@ interface Target {
   urls: string[];
 }
 
-// every mainnet chain with an rpcUrl, less the ones marked non-EVM. The
-// C-Chain asks the public RPC first and, when that refuses (it rate-limits
-// by IP), the dedicated node the explorer reads through /api/rpc
-const TARGETS: Target[] = (() => {
+// every chain of the network with an rpcUrl, less the ones marked non-EVM.
+// The C-Chain asks the public RPC first and, when that refuses (it
+// rate-limits by IP), the network's dedicated node
+export function targetsOf(network: PchainNetwork): Target[] {
   const byId = new Map<string, Target>();
-  for (const c of l1ChainsData) {
-    if ("isTestnet" in c && c.isTestnet === true) continue;
-    if ("isEvm" in c && c.isEvm === false) continue;
-    if (!("rpcUrl" in c) || typeof c.rpcUrl !== "string" || !c.rpcUrl) continue;
-    byId.set(String(c.chainId), { chainId: String(c.chainId), urls: [c.rpcUrl] });
+  for (const [chainId, c] of catalogOf(network)) {
+    if ((c as L1Chain & { isEvm?: boolean }).isEvm === false || !c.rpcUrl) continue;
+    byId.set(chainId, { chainId, urls: [c.rpcUrl] });
   }
-  const node = process.env.CCHAIN_DEBUG_RPC_URL;
-  byId.set(C_CHAIN_ID, { chainId: C_CHAIN_ID, urls: node ? [C_CHAIN_RPC, node] : [C_CHAIN_RPC] });
+  const { chainId, rpc, node } = C_CHAIN[network];
+  byId.set(chainId, { chainId, urls: node ? [rpc, node] : [rpc] });
   return [...byId.values()];
-})();
+}
+
+const TARGETS: Record<PchainNetwork, Target[]> = { mainnet: targetsOf("mainnet"), fuji: targetsOf("fuji") };
 
 // a node that refused a batch and then took the same calls one at a time is
 // asked one at a time for the next hour
 const noBatch = new Map<string, number>();
 
-let last: ChainPulseResponse | null = null;
-// one read at a time: visitors who arrive during it wait on the same one
-let reading: Promise<ChainPulseResponse> | null = null;
+// per network: its last answer, and its read in flight. One read at a time:
+// visitors who arrive during it wait on the same one
+const last = new Map<PchainNetwork, ChainPulseResponse>();
+const reading = new Map<PchainNetwork, Promise<ChainPulseResponse>>();
 
-// per host: it is not asked again before this time
+// a host or a url is not asked again before this time, on both networks. A
+// host is a key after a 429: Cloudflare limits the IP for the whole zone. A
+// url is a key after a 403, any other 4xx or a failed DNS lookup: an
+// auth-gated or dead chain must not rest the other chains on its host
 const restUntil = new Map<string, number>();
 
 async function post(url: string, body: unknown, signal: AbortSignal): Promise<unknown> {
   const host = new URL(url).host;
-  if ((restUntil.get(host) ?? 0) > Date.now()) throw new Error(`${host} resting`);
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  });
-  if (res.status === 429 || res.status === 403) {
+  const now = Date.now();
+  if ((restUntil.get(host) ?? 0) > now || (restUntil.get(url) ?? 0) > now) throw new Error(`${host} resting`);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (e) {
+    if ((e as { cause?: { code?: unknown } }).cause?.code === "ENOTFOUND") restUntil.set(url, Date.now() + HOUR_MS);
+    throw e;
+  }
+  if (res.status === 429) {
     const s = Number(res.headers.get("retry-after"));
     restUntil.set(host, Date.now() + (s > 0 ? Math.min(s * 1000, REST_MAX_MS) : REST_MS));
+  } else if (res.status >= 400 && res.status < 500 && !Array.isArray(body)) {
+    // a refused batch is not a dead url: blocksAt asks one call at a time next
+    restUntil.set(url, Date.now() + HOUR_MS);
   }
   if (!res.ok) throw new Error(`rpc ${res.status}`);
   return res.json();
@@ -236,11 +263,14 @@ async function inPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<
   return out;
 }
 
-// each chain's last good reading, and when it was read
+// each chain's last good reading, and when it was read. A chain ID is on
+// one network only, so both networks share the map
 const good = new Map<string, { pulse: ChainPulse; at: number }>();
 
-function read(): Promise<ChainPulseResponse> {
-  reading ??= inPool(TARGETS, MAX_IN_FLIGHT, readChain)
+function read(network: PchainNetwork): Promise<ChainPulseResponse> {
+  const running = reading.get(network);
+  if (running) return running;
+  const next = inPool(TARGETS[network], MAX_IN_FLIGHT, readChain)
     .then((read) => {
       const now = Date.now();
       const chains = read.map((c) => {
@@ -251,16 +281,23 @@ function read(): Promise<ChainPulseResponse> {
         const kept = good.get(c.chainId);
         return kept && now - kept.at < STALE_MS ? kept.pulse : c;
       });
-      last = { at: now, chains };
-      return last;
+      const answer = { at: now, chains };
+      last.set(network, answer);
+      return answer;
     })
     .finally(() => {
-      reading = null;
+      reading.delete(network);
     });
-  return reading;
+  reading.set(network, next);
+  return next;
 }
 
-export async function GET() {
-  const data = last && Date.now() - last.at < CACHE_TTL_MS ? last : await read();
-  return NextResponse.json(data, { headers: { "cache-control": CACHE_CONTROL } });
+export async function GET(request: NextRequest) {
+  const network = request.nextUrl.searchParams.get("network") ?? "mainnet";
+  if (!isPchainNetwork(network)) {
+    return NextResponse.json({ error: `unknown network '${network}'` }, { status: 400 });
+  }
+  const kept = last.get(network);
+  const data = kept && Date.now() - kept.at < CACHE_TTL_MS[network] ? kept : await read(network);
+  return NextResponse.json(data, { headers: { "cache-control": cacheControl(network) } });
 }

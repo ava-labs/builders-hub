@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 import { BURN_HISTORY_URL, STAKE_HISTORY_URL, networkSeriesUrl } from "./network-reads";
 
 /* The histories behind the network figures. Each hook returns daily
@@ -45,9 +46,9 @@ export interface NetworkSeries {
   icmMessages: DayPoint[];
 }
 
-/** the whole network's daily activity: the metrics API's mainnet rollup */
-export function useNetworkSeries(days: number): NetworkSeries | null {
-  return useJson(networkSeriesUrl(days), (raw) => {
+/** the whole network's daily activity: the metrics API's rollup of mainnet, or of Fuji */
+export function useNetworkSeries(days: number, network: PchainNetwork = "mainnet"): NetworkSeries | null {
+  return useJson(networkSeriesUrl(days, network), (raw) => {
     const r = raw as Record<string, { data?: Raw[] } | undefined>;
     return {
       txCount: complete(toPoints(r.txCount?.data)),
