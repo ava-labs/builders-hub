@@ -2,6 +2,9 @@ export const pathToBreadcrumb = {
   // Console root
   "/console": ["Console"],
 
+  // Studio
+  "/console/studio": ["Console", "Studio"],
+
   // Primary Network
   "/console/primary-network/node-setup": ["Console", "Primary Network", "Node Setup"],
   "/console/primary-network/faucet": ["Console", "Primary Network", "Testnet Faucet"],

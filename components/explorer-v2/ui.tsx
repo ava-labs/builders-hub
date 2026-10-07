@@ -594,11 +594,14 @@ export function Tabs<T extends string>({
   active,
   onChange,
   labels,
+  marks,
 }: {
   tabs: T[];
   active: T;
   onChange: (t: T) => void;
   labels: Record<T, string>;
+  /** a tab that needs attention, with the reason shown on hover and read to screen readers */
+  marks?: Partial<Record<T, string>>;
 }) {
   return (
     // a phone scrolls the tabs sideways rather than letting the last one fall off
@@ -608,14 +611,21 @@ export function Tabs<T extends string>({
           key={t}
           onClick={() => onChange(t)}
           aria-pressed={active === t}
+          title={marks?.[t]}
           className={cn(
-            "-mb-px shrink-0 whitespace-nowrap border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
+            "-mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
             active === t
               ? "border-[#E6212F] text-zinc-900 dark:text-zinc-50"
               : "border-transparent text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
           )}
         >
           {labels[t]}
+          {marks?.[t] && (
+            <>
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+              <span className="sr-only">: {marks[t]}</span>
+            </>
+          )}
         </button>
       ))}
     </div>

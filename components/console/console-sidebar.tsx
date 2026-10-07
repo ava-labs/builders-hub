@@ -38,6 +38,7 @@ import {
   Bell,
   type LucideIcon,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -140,6 +141,11 @@ const data = {
       title: "Home",
       url: "/console",
       icon: Home,
+    },
+    {
+      title: "Studio",
+      url: "/console/studio",
+      icon: Sparkles,
     },
     {
       title: "Toolbox",
@@ -345,7 +351,7 @@ function CollapsibleSection({
     <Collapsible open={effectiveOpen} onOpenChange={onToggle}>
       <SidebarGroup className="py-1">
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors group/label font-semibold text-xs uppercase tracking-wide">
+          <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-none transition-colors group/label font-mono text-[10px] font-bold uppercase tracking-[0.18em]">
             <div className="flex items-center justify-between w-full">
               <span>{group.title}</span>
               <ChevronRight
@@ -931,14 +937,13 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               <SidebarGroup className="pb-0">
                 <SidebarMenu>
                   {data.navMain.map((item) => {
-                    const isActive = pathname === item.url;
+                    const isActive = item.url === "/console" ? pathname === item.url : pathname === item.url || pathname.startsWith(`${item.url}/`);
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                           asChild
                           isActive={isActive}
-                          size="sm"
-                          className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                          className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
                         >
                           <Link href={item.url}>
                             <item.icon className="h-3.5 w-3.5" />

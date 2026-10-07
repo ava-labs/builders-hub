@@ -21,8 +21,9 @@ import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-
 import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
 import { CommandPalette } from "@/components/console/command-palette";
 import { ConsoleFooter } from "@/components/console/console-footer";
+import { cn } from "@/lib/utils";
 
-function ConsolePageTransition({ children }: { children: ReactNode }) {
+function ConsolePageTransition({ children, fill }: { children: ReactNode; fill: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -31,15 +32,21 @@ function ConsolePageTransition({ children }: { children: ReactNode }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
+      className={fill ? "flex flex-col lg:min-h-0 lg:flex-1" : undefined}
     >
       {children}
     </motion.div>
   );
 }
 
+/** Pages that fit between the header and the footer and scroll inside their own panes. */
+const FILL_ROUTES = [/^\/console\/studio\/[^/]+$/];
+
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
   useRetroactiveConsoleBadges();
+  const pathname = usePathname();
+  const fill = FILL_ROUTES.some((route) => route.test(pathname));
 
   return (
     <WalletProvider>
@@ -65,14 +72,18 @@ function ConsoleContent({ children }: { children: ReactNode }) {
             >
               <SiteHeader />
               <div
-                className="flex flex-1 flex-col gap-4 p-4 md:p-8 overflow-y-auto"
+                className={cn(
+                  "flex flex-1 flex-col gap-4 overflow-y-auto",
+                  // Full-height workspaces bring their own inner padding; the page gutter stays narrow around them.
+                  fill ? "p-2 md:p-3 lg:overflow-hidden" : "p-4 md:p-8",
+                )}
                 style={{
                   height:
                     "calc(var(--console-viewport) - var(--header-height) - 1rem)",
                 }}
               >
                 <StepErrorBoundary fallbackMessage="Something went wrong rendering this page. The console sidebar is still available — try navigating to a different tool.">
-                  <ConsolePageTransition>{children}</ConsolePageTransition>
+                  <ConsolePageTransition fill={fill}>{children}</ConsolePageTransition>
                 </StepErrorBoundary>
                 <ConsoleFooter />
               </div>
