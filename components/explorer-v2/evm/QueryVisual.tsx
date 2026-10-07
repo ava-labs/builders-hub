@@ -18,7 +18,7 @@ import { rowCount, SAID_PARTIAL } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
 import { BandLabel, FitTick, MarkLabel } from "./query/fit-text";
-import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, xText } from "./query-format";
+import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, tipX, xText, zoneOf } from "./query-format";
 
 export { fmt, fmtX, nameFor, spanOf } from "./query-format";
 
@@ -55,6 +55,7 @@ const pickValue = (v: unknown): string | number => (typeof v === "number" ? v : 
 export function SelectionChips({
   selection,
   onSelection,
+  rows,
   names,
   formatValue,
   onZoom,
@@ -62,6 +63,8 @@ export function SelectionChips({
 }: {
   selection: Selection;
   onSelection: (s: Selection) => void;
+  /** the answer's rows: a time reads in the zone its column's axis reads in (zoneOf) */
+  rows: Row[];
   names: Names;
   /** a label for one picked value; return undefined to use the default */
   formatValue?: (column: string, value: string | number) => string | undefined;
@@ -70,12 +73,13 @@ export function SelectionChips({
   className?: string;
 }) {
   const reduced = useReduced();
+  const zone = (column: string) => zoneOf(rows.map((r) => r[column]));
   const chips = selection.flatMap((p) =>
     p.kind === "range"
-      ? [{ key: `${p.column}:range`, text: chipRange(names, p.column, p.from, p.to), column: p.column, drop: () => onSelection(clearColumn(selection, p.column)) }]
+      ? [{ key: `${p.column}:range`, text: chipRange(names, p.column, p.from, p.to, zone(p.column)), column: p.column, drop: () => onSelection(clearColumn(selection, p.column)) }]
       : p.values.map((v) => ({
           key: `${p.column}:${v}`,
-          text: formatValue?.(p.column, v) ?? chipValue(names, p.column, v),
+          text: formatValue?.(p.column, v) ?? chipValue(names, p.column, v, zone(p.column)),
           column: p.column,
           drop: () => onSelection(withPick(selection, { kind: "value", column: p.column, values: p.values.filter((q) => q !== v) })),
         })),
@@ -511,7 +515,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
     }
     return { base: out, src: d };
   }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series, panel.kind, panel.x, panel.net]);
-  const span = useMemo(() => spanOf(base.map((r) => r[x])), [base, x]);
+  const [span, zone] = useMemo(() => [spanOf(base.map((r) => r[x])), zoneOf(base.map((r) => r[x]))] as const, [base, x]);
   const horizontal = panel.kind === "hbar";
   const narrow = useNarrow();
   const scatter = panel.kind === "scatter";
@@ -548,7 +552,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
 
   // markers and bands name x values; match them to the drawn category
   const xOf = useCallback((v: string | number) => data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined, [data, x]);
-  const label = useCallback((v: unknown) => xText(names, x, v, span), [names, x, span]);
+  const label = useCallback((v: unknown) => xText(names, x, v, span, zone), [names, x, span, zone]);
   const rowH = compact ? 22 : 26;
   const height = horizontal ? Math.max(compact ? 120 : 160, data.length * rowH + 36) : compact ? 180 : 260;
   const active = hoverIdx ?? kb;
@@ -747,7 +751,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                   type="number"
                   dataKey={timeX ? "__x" : x}
                   domain={timeX ? ["dataMin", "dataMax"] : ["auto", "auto"]}
-                  tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span) : fmt(v, "compact", sym, true))}
+                  tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span, zone) : fmt(v, "compact", sym, true))}
                   tick={MONO}
                   tickLine={false}
                   axisLine={false}
@@ -771,7 +775,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                   return (
                     <TipPlate>
                       <p className="font-mono text-[10px] text-zinc-500">
-                        {name ?? fmtX(r[x], span)}
+                        {name ?? tipX(r[x], span, zone)}
                         {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[x]).length > 20 ? truncate(String(r[x]), 6) : String(r[x])}</span>}
                       </p>
                       {scatter && !timeX && (
@@ -891,7 +895,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
             </ComposedChart>
           </ResponsiveContainer>
     ),
-    [data, x, names, sym, span, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
+    [data, x, names, sym, span, zone, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
   );
 
   return (
@@ -1017,7 +1021,7 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
       {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} x={rowX} onHoverKey={onHoverKey} onOpen={canDrill ? onPick : undefined} />}
-      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
+      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} rows={rows} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>
           {charts.map(({ p, idx }, i) => (
@@ -1371,7 +1375,7 @@ function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverK
     only the selected rows while a selection stands */
 function PanelTable({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverKey, live }: PanelProps) {
   const x = panel.x!;
-  const span = useMemo(() => spanOf(rows.map((r) => r[x])), [rows, x]);
+  const [span, zone] = useMemo(() => [spanOf(rows.map((r) => r[x])), zoneOf(rows.map((r) => r[x]))] as const, [rows, x]);
   const [sort, setSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const kept = useMemo(() => applySelection(rows, live), [rows, live]);
   const shown = useMemo(() => {
@@ -1419,7 +1423,7 @@ function PanelTable({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHov
               >
                 {cols.map((c) => (
                   <td key={c.column} className={cn("px-3 py-1.5", c.isX ? "text-left text-zinc-800 dark:text-zinc-200" : "text-right text-zinc-900 dark:text-zinc-50")}>
-                    {c.isX ? xText(names, x, r[x], span === "other" ? "other" : span) : fmt(r[c.column], c.format, sym)}
+                    {c.isX ? xText(names, x, r[x], span === "other" ? "other" : span, zone) : fmt(r[c.column], c.format, sym)}
                   </td>
                 ))}
               </tr>

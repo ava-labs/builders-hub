@@ -318,3 +318,30 @@ for (const question of ['Transactions per hour', 'Transactions per day', 'Top se
     expect(unexpected).toEqual([]);
   });
 }
+
+// Runs in the page: the ticks that do not read as the browser's own clock (14:05) of a minute in the last three hours.
+function offTheBrowserClock(ticks: string[]): string[] {
+  const clocks = new Set<string>();
+  for (let t = Date.now() - 3 * 3_600_000; t <= Date.now() + 60_000; t += 60_000) {
+    clocks.add(new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }));
+  }
+  return ticks.filter((t) => !clocks.has(t));
+}
+
+// The rows write UTC. A chart of minutes or hours reads in the viewer's zone, as the node page's hours do, and a chart
+// of days keeps the UTC day it counts. In a browser that runs in UTC the two zones agree, and the check passes either way.
+test("the x axis reads in the viewer's time zone, and a day stays the UTC day it counts", MULTI_PAGE, async ({ app, screen, browser }) => {
+  const unexpected = await openAnswer(app, browser, 'Base fee per minute');
+  await expect(screen.getByRole('heading', 'Base fee per minute')).toBeVisible(DATA);
+  const minutes = await settled(browser, 'Base fee per minute');
+  expect(minutes.ticks.length).toBeGreaterThan(1);
+  expect(await browser.evaluate(offTheBrowserClock, minutes.ticks)).toEqual([]);
+
+  await app.open(`${PATH}?q=${encodeURIComponent('Transactions per day')}`);
+  await expect(screen.getByRole('heading', 'Transactions per day')).toBeVisible(DATA);
+  const days = await settled(browser, 'Transactions per day');
+  const utcDays = Array.from({ length: 10 }, (_, i) => utc(Date.now() - i * DAY).slice(5, 10));
+  expect(days.ticks.length).toBeGreaterThan(1);
+  expect(days.ticks.filter((t) => !utcDays.includes(t))).toEqual([]);
+  expect(unexpected).toEqual([]);
+});
