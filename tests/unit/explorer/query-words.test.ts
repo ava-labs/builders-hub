@@ -40,13 +40,15 @@ describe('readerError', () => {
 
 describe('reads', () => {
   it('writes bare figures of five digits or more with separators, and leaves the rest', () => {
-    expect(reads(['Validators moved 14302 txs in block 96233283 at 22:05 on 2026-09-27'])).toBe('Validators moved 14,302 txs in block 96,233,283 at 22:05 on 2026-09-27.');
+    expect(reads(['Validators moved 14302 txs in block 96233283 at 22:05 on 2026-09-27'])).toBe('Validators moved 14,302 txs in block 96,233,283 at 22:05 UTC on 2026-09-27.');
     expect(reads(['0x1234567890123456789012345678901234567890 sent 2810 txs'])).toBe('0x1234…7890 sent 2,810 txs.');
   });
 
   it('writes decimals to three figures, four digits with separators, and times to the minute; a year stays a year', () => {
-    expect(reads(['9.39486 AVAX burned at 05:35:00 on Sep 27 was the highest of 231.555 AVAX total', '2095 transactions at 00:05:00'])).toBe('9.39 AVAX burned at 05:35 on Sep 27 was the highest of 232 AVAX total. 2,095 transactions at 00:05.');
-    expect(reads(['Since Sep 27, 2026, 1405 senders paid 0.006 AVAX in 2026 under EIP-1559, at 05:36:38'])).toBe('Since Sep 27, 2026, 1,405 senders paid 0.006 AVAX in 2026 under EIP-1559, at 05:36:38.');
+    expect(reads(['9.39486 AVAX burned at 05:35:00 on Sep 27 was the highest of 231.555 AVAX total', '2095 transactions at 00:05:00'])).toBe('9.39 AVAX burned at 05:35 UTC on Sep 27 was the highest of 232 AVAX total. 2,095 transactions at 00:05 UTC.');
+    expect(reads(['Since Sep 27, 2026, 1405 senders paid 0.006 AVAX in 2026 under EIP-1559, at 05:36:38'])).toBe('Since Sep 27, 2026, 1,405 senders paid 0.006 AVAX in 2026 under EIP-1559, at 05:36:38 UTC.');
+    // the chart's axis reads in the viewer's zone, so a time the writer names (always UTC) says so, once per range
+    expect(reads(['Fees peaked from 14:00 to 16:00, then fell by 18:30 (UTC)', 'Busiest hour: 09:00-10:00 UTC'])).toBe('Fees peaked from 14:00 to 16:00 UTC, then fell by 18:30 (UTC). Busiest hour: 09:00-10:00 UTC.');
     expect(reads(['Fees fell on September 27, 2026', 'The smallest fee was 0.00000012 AVAX'])).toBe('Fees fell on September 27, 2026. The smallest fee was 0.00000012 AVAX.');
   });
 

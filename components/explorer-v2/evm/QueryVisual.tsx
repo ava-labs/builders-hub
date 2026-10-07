@@ -11,15 +11,16 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names, Totals } from "@/lib/explorer-query/types";
 import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPick, type Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
-import { MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
+import { isTime } from "@/lib/explorer-query/values";
 import { wholeFigure } from "@/lib/explorer-query/stat-label";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 import { rowCount, SAID_PARTIAL } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
-import { fmt, fmtX, nameFor, spanOf, type Span } from "./query-format";
+import { BandLabel, FitTick, MarkLabel } from "./query/fit-text";
+import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, tipX, xText, zoneOf } from "./query-format";
 
-export { fmt, fmtX, nameFor, spanOf } from "./query-format";
+export { fmt, fmtX, nameFor, spanOf, tipX, zoneOf } from "./query-format";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
@@ -42,47 +43,11 @@ const DIM = 0.22;
 const DOT_INK = { "--qv-on": 1, "--qv-off": 0.35 } as CSSProperties;
 
 type Row = Record<string, unknown>;
-const clip = (t: string, n = 26) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
-
-function xText(names: Names, x: string | undefined, v: unknown, span: Span): string {
-  const name = nameFor(names, x, v);
-  if (name) return clip(name);
-  if (isAddress(v) || isHash(v)) return truncate(v, 6);
-  if (typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v)) return v.toLowerCase();
-  return clip(fmtX(v, span));
-}
-
 /* ------------------------------------------------------------------ */
 /* selection helpers                                                   */
 
 const inSelection = (sel: Selection, r: Row) => sel.every((p) => matches(r, p));
 const pickValue = (v: unknown): string | number => (typeof v === "number" ? v : String(v ?? ""));
-
-/** a time as a person says it: "Sep 3", or "Sep 3 14:00" inside a day */
-function when(v: string): { day: string; hm: string } {
-  const d = new Date(order(v) as number);
-  const hm = v.length > 10 ? v.replace("T", " ").slice(11, 16) : "";
-  return { day: `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}`, hm: hm === "00:00" ? "" : hm };
-}
-
-function chipValue(names: Names, column: string, v: string | number): string {
-  if (typeof v === "string" && isTime(v)) {
-    const w = when(v);
-    return w.hm ? `${w.day} ${w.hm}` : w.day;
-  }
-  return xText(names, column, v, "other");
-}
-
-function chipRange(names: Names, column: string, from: string | number, to: string | number): string {
-  if (from === to) return chipValue(names, column, from);
-  if (typeof from === "string" && typeof to === "string" && isTime(from) && isTime(to)) {
-    const a = when(from);
-    const b = when(to);
-    if (a.day === b.day) return a.hm || b.hm ? `${a.day} ${a.hm || "00:00"} to ${b.hm || "24:00"}` : a.day;
-    return `${a.hm ? `${a.day} ${a.hm}` : a.day} to ${b.hm ? `${b.day} ${b.hm}` : b.day}`;
-  }
-  return `${chipValue(names, column, from)} to ${chipValue(names, column, to)}`;
-}
 
 /* ------------------------------------------------------------------ */
 /* the selection, as chips                                             */
@@ -90,6 +55,7 @@ function chipRange(names: Names, column: string, from: string | number, to: stri
 export function SelectionChips({
   selection,
   onSelection,
+  rows,
   names,
   formatValue,
   onZoom,
@@ -97,6 +63,8 @@ export function SelectionChips({
 }: {
   selection: Selection;
   onSelection: (s: Selection) => void;
+  /** the answer's rows: a time reads in the zone its column's axis reads in (zoneOf) */
+  rows: Row[];
   names: Names;
   /** a label for one picked value; return undefined to use the default */
   formatValue?: (column: string, value: string | number) => string | undefined;
@@ -105,12 +73,13 @@ export function SelectionChips({
   className?: string;
 }) {
   const reduced = useReduced();
+  const zone = (column: string) => zoneOf(rows.map((r) => r[column]));
   const chips = selection.flatMap((p) =>
     p.kind === "range"
-      ? [{ key: `${p.column}:range`, text: chipRange(names, p.column, p.from, p.to), column: p.column, drop: () => onSelection(clearColumn(selection, p.column)) }]
+      ? [{ key: `${p.column}:range`, text: chipRange(names, p.column, p.from, p.to, zone(p.column)), column: p.column, drop: () => onSelection(clearColumn(selection, p.column)) }]
       : p.values.map((v) => ({
           key: `${p.column}:${v}`,
-          text: formatValue?.(p.column, v) ?? chipValue(names, p.column, v),
+          text: formatValue?.(p.column, v) ?? chipValue(names, p.column, v, zone(p.column)),
           column: p.column,
           drop: () => onSelection(withPick(selection, { kind: "value", column: p.column, values: p.values.filter((q) => q !== v) })),
         })),
@@ -546,7 +515,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
     }
     return { base: out, src: d };
   }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series, panel.kind, panel.x, panel.net]);
-  const span = useMemo(() => spanOf(base.map((r) => r[x])), [base, x]);
+  const [span, zone] = useMemo(() => [spanOf(base.map((r) => r[x])), zoneOf(base.map((r) => r[x]))] as const, [base, x]);
   const horizontal = panel.kind === "hbar";
   const narrow = useNarrow();
   const scatter = panel.kind === "scatter";
@@ -581,9 +550,11 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
     });
   }, [base, lit, hasSel, traces, panel.series]);
 
-  // markers and bands name x values; match them to the drawn category
-  const xOf = useCallback((v: string | number) => data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined, [data, x]);
-  const label = useCallback((v: unknown) => xText(names, x, v, span), [names, x, span]);
+  // markers and bands name x values; match them to the drawn category. An x that repeats has no one place (recharts lays
+  // such an axis out by row), so nothing is marked on it
+  const once = useMemo(() => new Set(data.map((r) => String(r[x]))).size === data.length, [data, x]);
+  const xOf = useCallback((v: string | number) => (once ? (data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined) : undefined), [data, x, once]);
+  const label = useCallback((v: unknown) => xText(names, x, v, span, zone), [names, x, span, zone]);
   const rowH = compact ? 22 : 26;
   const height = horizontal ? Math.max(compact ? 120 : 160, data.length * rowH + 36) : compact ? 180 : 260;
   const active = hoverIdx ?? kb;
@@ -763,7 +734,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
             <ComposedChart
               data={data}
               layout={horizontal ? "vertical" : "horizontal"}
-              margin={{ top: !horizontal && (drillMark || (!scatter && panel.markers.length > 0)) ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
+              margin={{ top: (horizontal ? panel.referenceLines.length > 0 : drillMark || (!scatter && panel.markers.length > 0)) ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
               barCategoryGap={horizontal ? "26%" : "18%"}
               stackOffset={signed ? "sign" : undefined}
               onMouseDown={(s) => ev.current.down(s)}
@@ -776,13 +747,13 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
               {/* recharts reads axes as direct children: no fragments here */}
               {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
               {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
-              {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
+              {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={<FitTick />} tickLine={false} axisLine={false} minTickGap={28} interval="preserveEnd" />}
               {scatter && (
                 <XAxis
                   type="number"
                   dataKey={timeX ? "__x" : x}
                   domain={timeX ? ["dataMin", "dataMax"] : ["auto", "auto"]}
-                  tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span) : fmt(v, "compact", sym, true))}
+                  tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span, zone) : fmt(v, "compact", sym, true))}
                   tick={MONO}
                   tickLine={false}
                   axisLine={false}
@@ -806,7 +777,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                   return (
                     <TipPlate>
                       <p className="font-mono text-[10px] text-zinc-500">
-                        {name ?? fmtX(r[x], span)}
+                        {name ?? tipX(r[x], span, zone)}
                         {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[x]).length > 20 ? truncate(String(r[x]), 6) : String(r[x])}</span>}
                       </p>
                       {scatter && !timeX && (
@@ -842,7 +813,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                   const x1 = xOf(b.from);
                   const x2 = xOf(b.to);
                   return x1 !== undefined && x2 !== undefined ? (
-                    <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} fill="currentColor" fillOpacity={0.04} stroke="none" label={{ value: b.label, position: "insideTopLeft", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#71717a" }} />
+                    <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} ifOverflow="visible" fill="currentColor" fillOpacity={0.04} stroke="none" label={<BandLabel value={b.label} />} />
                   ) : null;
                 })}
               {continuous &&
@@ -850,19 +821,19 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                 (() => {
                   const x1 = xOf(rangePick.from);
                   const x2 = xOf(rangePick.to);
-                  return x1 !== undefined && x2 !== undefined ? <ReferenceArea yAxisId="left" x1={x1} x2={x2} fill={ACCENT} fillOpacity={0.06} stroke="none" /> : null;
+                  return x1 !== undefined && x2 !== undefined ? <ReferenceArea yAxisId="left" x1={x1} x2={x2} ifOverflow="visible" fill={ACCENT} fillOpacity={0.06} stroke="none" /> : null;
                 })()}
               {!horizontal &&
                 !scatter &&
                 panel.markers.map((m) => {
                   const mx = xOf(m.x);
                   return mx !== undefined ? (
-                    <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={{ value: m.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                    <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} ifOverflow="visible" stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={<MarkLabel value={m.label} />} />
                   ) : null;
                 })}
               {panel.referenceLines.map((l) =>
                 horizontal ? (
-                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={<MarkLabel value={l.label} />} />
                 ) : (
                   <ReferenceLine key={l.label} yAxisId="left" y={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "insideTopRight", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
                 ),
@@ -926,7 +897,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
             </ComposedChart>
           </ResponsiveContainer>
     ),
-    [data, x, names, sym, span, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
+    [data, x, names, sym, span, zone, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
   );
 
   return (
@@ -1052,7 +1023,7 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
       {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} x={rowX} onHoverKey={onHoverKey} onOpen={canDrill ? onPick : undefined} />}
-      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
+      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} rows={rows} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>
           {charts.map(({ p, idx }, i) => (
@@ -1406,7 +1377,7 @@ function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverK
     only the selected rows while a selection stands */
 function PanelTable({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverKey, live }: PanelProps) {
   const x = panel.x!;
-  const span = useMemo(() => spanOf(rows.map((r) => r[x])), [rows, x]);
+  const [span, zone] = useMemo(() => [spanOf(rows.map((r) => r[x])), zoneOf(rows.map((r) => r[x]))] as const, [rows, x]);
   const [sort, setSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const kept = useMemo(() => applySelection(rows, live), [rows, live]);
   const shown = useMemo(() => {
@@ -1454,7 +1425,7 @@ function PanelTable({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHov
               >
                 {cols.map((c) => (
                   <td key={c.column} className={cn("px-3 py-1.5", c.isX ? "text-left text-zinc-800 dark:text-zinc-200" : "text-right text-zinc-900 dark:text-zinc-50")}>
-                    {c.isX ? xText(names, x, r[x], span === "other" ? "other" : span) : fmt(r[c.column], c.format, sym)}
+                    {c.isX ? xText(names, x, r[x], span === "other" ? "other" : span, zone) : fmt(r[c.column], c.format, sym)}
                   </td>
                 ))}
               </tr>

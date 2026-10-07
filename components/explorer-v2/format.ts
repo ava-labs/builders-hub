@@ -142,3 +142,21 @@ export function localHourLong(d: string | number, timeZone?: string): string {
   const time = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone, timeZoneName: "short" });
   return `${day} · ${time}`;
 }
+
+const STAMPS = new Map<string, Intl.DateTimeFormat>();
+
+/** "2026-10-05 20:00:00": a unix time's wall clock in the viewer's time zone, written as a query's rows write theirs */
+export function zoneStamp(unix: number, timeZone?: string): string {
+  let f = STAMPS.get(timeZone ?? "");
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZone });
+    STAMPS.set(timeZone ?? "", f);
+  }
+  const p = Object.fromEntries(f.formatToParts(new Date(unix * 1000)).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+/** "EDT", "UTC", "GMT+5:30": the viewer's time zone at a unix time, by its short name */
+export function zoneName(unix: number, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" }).formatToParts(new Date(unix * 1000)).find((x) => x.type === "timeZoneName")?.value ?? "";
+}
