@@ -18,7 +18,7 @@ import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { isAddress, isHash, isTime } from "@/lib/explorer-query/values";
-import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
+import { CARD, QueryVisual, fmt, nameFor, tipX, zoneOf } from "./QueryVisual";
 import { type Row, NoteText, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isTxList, rowDoor, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
@@ -590,7 +590,8 @@ function QueryPage({
   const humanValue = (col: string, v: unknown): string => {
     const n = nameFor(names, col, v);
     if (n) return n;
-    if (isTime(v)) return fmtX(v, "hours");
+    // in the zone the chart's axis and chips read in, named: the words also go to the model, which reads UTC rows
+    if (isTime(v)) return tipX(v, "hours", zoneOf(allRows.map((r) => r[col])));
     if (isAddress(v) || isHash(v)) return truncate(v, 5);
     if (typeof v === "number") return fmt(v, formatOf(col, visual), sym);
     return String(v ?? "");

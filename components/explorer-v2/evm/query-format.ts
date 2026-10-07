@@ -105,11 +105,11 @@ export function xText(names: Names, x: string | undefined, v: unknown, span: Spa
   return clip(fmtX(v, span, zone));
 }
 
-/** a time as a person says it: "Sep 3", or "Sep 3 14:00" inside a day */
-function when(v: string, zone: string): { day: string; hm: string } {
+/** a time as a person says it: "Sep 3", or "Sep 3 14:00" inside a day; named, the time carries its zone (01:30 EST) */
+function when(v: string, zone: string, named = false): { day: string; hm: string } {
   const s = inZone(v, zone);
   const hm = v.length > 10 ? s.slice(11, 16) : "";
-  return { day: `${MONTHS_SHORT[Number(s.slice(5, 7)) - 1]} ${Number(s.slice(8, 10))}`, hm: hm === "00:00" ? "" : hm };
+  return { day: `${MONTHS_SHORT[Number(s.slice(5, 7)) - 1]} ${Number(s.slice(8, 10))}`, hm: named ? `${hm} ${zoneName(msOf(v) / 1000, zone)}` : hm === "00:00" ? "" : hm };
 }
 
 export function chipValue(names: Names, column: string, v: string | number, zone = "UTC"): string {
@@ -123,8 +123,10 @@ export function chipValue(names: Names, column: string, v: string | number, zone
 export function chipRange(names: Names, column: string, from: string | number, to: string | number, zone = "UTC"): string {
   if (from === to) return chipValue(names, column, from, zone);
   if (typeof from === "string" && typeof to === "string" && isTime(from) && isTime(to)) {
-    const a = when(from, zone);
-    const b = when(to, zone);
+    // a range across a clock change names both zones: 01:00 EDT to 01:30 EST is 90 minutes, not 30
+    const named = zone !== "UTC" && zoneName(msOf(from) / 1000, zone) !== zoneName(msOf(to) / 1000, zone);
+    const a = when(from, zone, named);
+    const b = when(to, zone, named);
     if (a.day === b.day) return a.hm || b.hm ? `${a.day} ${a.hm || "00:00"} to ${b.hm || "24:00"}` : a.day;
     return `${a.hm ? `${a.day} ${a.hm}` : a.day} to ${b.hm ? `${b.day} ${b.hm}` : b.day}`;
   }

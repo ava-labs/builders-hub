@@ -181,7 +181,10 @@ export function reads(callouts: string[]): string {
         // a bare figure of four digits or more gets its separators: 2,095 and 14,302; a year stays a year
         .replace(/(?<![\w.,#…-])\d{4,}(?:\.\d+)?(?![\w,-])/g, (m: string, at: number, s: string) => (YEAR.test(m) && YEAR_BEFORE.test(s.slice(Math.max(0, at - 24), at)) ? m : formatNumber(Number(m))))
         // a time reads to the minute: 05:35, never 05:35:00
-        .replace(/\b(\d{2}:\d{2}):00\b/g, "$1"),
+        .replace(/\b(\d{2}:\d{2}):00\b/g, "$1")
+        // the writer reads UTC rows, so a time it writes is UTC; the chart's axis reads in the viewer's zone, so the
+        // time names its zone: 05:35 UTC, 14:00 to 16:00 UTC
+        .replace(/\b\d{2}:\d{2}(?::\d{2})?(?:(?:\s*-\s*|\s+(?:to|and)\s+)\d{2}:\d{2}(?::\d{2})?)?\b/g, (m: string, at: number, s: string) => (/^\s*\(?(?:UTC|GMT)\b/.test(s.slice(at + m.length)) ? m : `${m} UTC`)),
     )
     .filter(Boolean)
     .map((c) => (/[.!?]$/.test(c) ? c : `${c}.`))

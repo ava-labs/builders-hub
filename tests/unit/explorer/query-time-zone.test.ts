@@ -52,6 +52,12 @@ describe('a selection chip', () => {
     expect(chipValue({}, 't', '2026-10-06 14:05:00', NY)).toBe('Oct 6 10:05');
   });
 
+  it('names both zones of a range across a clock change', () => {
+    // New York falls back at 06:00 UTC on 2026-11-01: 01:00 to 01:59 happens twice
+    expect(chipRange({}, 't', '2026-11-01 05:00:00', '2026-11-01 06:30:00', NY)).toBe('Nov 1 01:00 EDT to 01:30 EST');
+    expect(chipRange({}, 't', '2026-11-01 01:00:00', '2026-11-01 02:00:00', NY)).toBe('Oct 31 21:00 to 22:00');
+  });
+
   it('names a day as the UTC day', () => {
     expect(chipRange({}, 'd', '2026-10-01', '2026-10-03', 'UTC')).toBe('Oct 1 to Oct 3');
     expect(chipValue({}, 'd', '2026-10-06', 'UTC')).toBe('Oct 6');

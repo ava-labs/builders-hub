@@ -20,7 +20,7 @@ import { FlowChart } from "./query/FlowChart";
 import { BandLabel, FitTick, MarkLabel } from "./query/fit-text";
 import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, tipX, xText, zoneOf } from "./query-format";
 
-export { fmt, fmtX, nameFor, spanOf } from "./query-format";
+export { fmt, fmtX, nameFor, spanOf, tipX, zoneOf } from "./query-format";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
