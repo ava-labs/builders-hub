@@ -7,6 +7,7 @@
 import { SUB_GROUP_ORDER } from './constants';
 import type { FF } from './ff';
 import { Scalar } from './scalar';
+import { Buffer } from 'buffer';
 
 export type BJPoint = [bigint, bigint];
 export type ElGamalCipher = { c1: BJPoint; c2: BJPoint };
