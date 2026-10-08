@@ -426,7 +426,7 @@ export interface StackCol {
   key: string;
   long: string;
   tick: string;
-  /** its period is still running: drawn striped behind a dashed outline */
+  /** its period is still running: drawn striped */
   partial?: boolean;
   parts: Record<string, number>;
 }
@@ -532,7 +532,7 @@ export function StackBlock({
                           style={{ opacity: dim(topSeg.l.key) }}
                         />
                       )}
-                      {c.partial && acc > 0 && <PartialMark x={x} y={yOf(acc)} w={fw} h={height - yOf(acc)} />}
+                      {c.partial && acc > 0 && <PartialMark x={x} y={yOf(acc)} w={fw} h={height - yOf(acc)} d={d} />}
                     </g>
                   </g>
                 );

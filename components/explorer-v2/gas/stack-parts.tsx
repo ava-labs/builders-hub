@@ -6,8 +6,8 @@ import type { StackLayer } from "./instruments";
 
 /* The stack block's parts: its key, and the mark of a column whose period
    is still running. A period still running (today, this week) is drawn apart from the
-   finished ones: the same color under white stripes, behind a dashed
-   outline, so its short bar does not read as a drop. */
+   finished ones: the same color under white stripes, so its short bar does
+   not read as a drop. */
 
 function HatchDefs({ id }: { id: string }) {
   return (
@@ -19,23 +19,15 @@ function HatchDefs({ id }: { id: string }) {
   );
 }
 
-/** the stripes and dashed outline over a column's front face */
-export function PartialMark({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+/** the stripes over a column's front and right faces; on the right face they run back
+   along its depth, so each one wraps the edge as the same stripe */
+export function PartialMark({ x, y, w, h, d }: { x: number; y: number; w: number; h: number; d: number }) {
   const id = `hatch-${useId().replace(/:/g, "")}`;
   return (
     <g>
       <HatchDefs id={id} />
       <rect x={x} y={y} width={w} height={h} fill={`url(#${id})`} />
-      <rect
-        x={x + 0.5}
-        y={y + 0.5}
-        width={Math.max(0, w - 1)}
-        height={Math.max(0, h - 1)}
-        fill="none"
-        strokeWidth={1}
-        strokeDasharray="3 2"
-        className="stroke-zinc-500 dark:stroke-zinc-400"
-      />
+      <polygon points={`${x + w},${y} ${x + w + d},${y - d} ${x + w + d},${y + h - d} ${x + w},${y + h}`} fill={`url(#${id})`} />
     </g>
   );
 }
@@ -45,8 +37,8 @@ function PartialKey({ label }: { label: string }) {
   return (
     <span className="flex items-center gap-1.5">
       <span
-        className="h-2 w-2 border border-dashed border-zinc-500 text-zinc-400 dark:border-zinc-400 dark:text-zinc-500"
-        style={{ backgroundImage: "repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 3px)" }}
+        className="h-2 w-2 bg-[#EE5A65] dark:bg-[#B8232F]"
+        style={{ backgroundImage: "repeating-linear-gradient(45deg, rgb(255 255 255 / 0.75) 0 1px, transparent 1px 3px)" }}
       />
       <span className="text-zinc-500 dark:text-zinc-400">{label}</span>
     </span>
