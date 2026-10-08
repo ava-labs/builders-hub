@@ -78,6 +78,7 @@ export const AUDIT_EVENT_ACTIONS = [
   "subsidy_declined",
   "request_withdrawn",
   "request_reopened",
+  "request_deleted",
   "auditor_added",
   "auditor_updated",
   "auditor_deactivated",
@@ -121,6 +122,24 @@ export function deriveQuoteDisplayStatus(
     return "expired";
   }
   return "submitted";
+}
+
+// What an admin may delete for good: every submitted request but an engaged
+// one, whose accepted quote and subsidy decisions are the program's record of
+// what it funds. Drafts belong to their owner and never reach the admin views.
+export const ADMIN_DELETABLE_STATUSES = [
+  "pending_review",
+  "rejected",
+  "collecting",
+  "withdrawn",
+] as const satisfies readonly StoredRequestStatus[];
+
+/**
+ * Whether an admin may delete a request, by its stored status. Shared by the
+ * delete service and the admin page so the two can never disagree.
+ */
+export function isAdminDeletable(storedStatus: string): boolean {
+  return (ADMIN_DELETABLE_STATUSES as readonly string[]).includes(storedStatus);
 }
 
 /**

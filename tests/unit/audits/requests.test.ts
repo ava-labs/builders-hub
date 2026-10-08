@@ -8,6 +8,7 @@ const {
   eventCreateMock,
   txRequestFindFirstMock,
   txRequestUpdateMock,
+  txRequestDeleteManyMock,
   txEventCountMock,
   txEventCreateMock,
   txAuditorFindManyMock,
@@ -22,6 +23,7 @@ const {
   eventCreateMock: vi.fn(),
   txRequestFindFirstMock: vi.fn(),
   txRequestUpdateMock: vi.fn(),
+  txRequestDeleteManyMock: vi.fn(),
   txEventCountMock: vi.fn(),
   txEventCreateMock: vi.fn(),
   txAuditorFindManyMock: vi.fn(),
@@ -31,7 +33,11 @@ const {
 }));
 
 const tx = {
-  auditRequest: { findFirst: txRequestFindFirstMock, update: txRequestUpdateMock },
+  auditRequest: {
+    findFirst: txRequestFindFirstMock,
+    update: txRequestUpdateMock,
+    deleteMany: txRequestDeleteManyMock,
+  },
   auditEventLog: { count: txEventCountMock, create: txEventCreateMock },
   auditor: { findMany: txAuditorFindManyMock, count: txAuditorCountMock },
   auditFanoutDelivery: { createMany: txDeliveryCreateManyMock },
@@ -58,7 +64,13 @@ vi.mock("@/server/services/audits/fanout", async (importOriginal) => ({
   deliverFanoutEmails: deliverFanoutEmailsMock,
 }));
 
-import { patchDraft, deleteDraft, reopen, withdraw } from "@/server/services/audits/requests";
+import {
+  patchDraft,
+  deleteDraft,
+  deleteRequest,
+  reopen,
+  withdraw,
+} from "@/server/services/audits/requests";
 
 const OWNER = "user-owner";
 
@@ -288,5 +300,132 @@ describe("reopen", () => {
     txAuditorCountMock.mockResolvedValueOnce(1).mockResolvedValueOnce(15);
     await reopen(OWNER, "req-1");
     expect(txEventCreateMock.mock.calls[0][0].data.meta).toMatchObject({ auditor_count: 1, shortlist_count: 1, whitelist_count: 15 });
+  });
+});
+
+describe("deleteRequest (admin)", () => {
+  const ADMIN_ID = "user-admin";
+  const ADMIN_NAME = "Joey";
+  // Joey's case (2026-10-06): the project resubmitted, the first proposal
+  // was still collecting and already held eight quotes.
+  const collectingRow = {
+    project_name: "Ticker Spring",
+    status: "collecting",
+    user_id: OWNER,
+    attachments: [],
+    _count: { quotes: 8 },
+  };
+
+  beforeEach(() => {
+    txRequestFindFirstMock.mockResolvedValue(collectingRow);
+    txRequestDeleteManyMock.mockResolvedValue({ count: 1 });
+    txEventCreateMock.mockResolvedValue({});
+  });
+
+  it("deletes a request that is collecting quotes", async () => {
+    const result = await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    expect(result).toEqual({ success: true });
+    expect(txRequestDeleteManyMock).toHaveBeenCalledTimes(1);
+    expect(txRequestDeleteManyMock.mock.calls[0][0].where.id).toBe("req-1");
+  });
+
+  it("pins the deletable statuses in the delete itself, so a quote accepted after the read blocks it", async () => {
+    await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    const { status } = txRequestDeleteManyMock.mock.calls[0][0].where;
+    expect([...status.in].sort()).toEqual(["collecting", "pending_review", "rejected", "withdrawn"]);
+  });
+
+  it("refuses an engaged request and touches nothing", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...collectingRow, status: "engaged" });
+
+    const result = await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    expect(result).toEqual({ success: false, code: "not_deletable" });
+    expect(txRequestDeleteManyMock).not.toHaveBeenCalled();
+    expect(txEventCreateMock).not.toHaveBeenCalled();
+    expect(delMock).not.toHaveBeenCalled();
+  });
+
+  it("reads past drafts, so a draft is not found, as on the admin pages", async () => {
+    txRequestFindFirstMock.mockResolvedValue(null);
+
+    const result = await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    expect(txRequestFindFirstMock.mock.calls[0][0].where).toEqual({
+      id: "req-1",
+      status: { not: "draft" },
+    });
+    expect(result).toEqual({ success: false, code: "not_found" });
+    expect(txRequestDeleteManyMock).not.toHaveBeenCalled();
+  });
+
+  it("logs nothing and keeps the files when the row changed between the read and the delete", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...collectingRow, attachments: [attachment("a.pdf")] });
+    txRequestDeleteManyMock.mockResolvedValue({ count: 0 });
+
+    const result = await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    expect(result).toEqual({ success: false, code: "not_deletable" });
+    expect(txEventCreateMock).not.toHaveBeenCalled();
+    expect(delMock).not.toHaveBeenCalled();
+  });
+
+  it("records who deleted what on an event with no request id, so it outlives the cascade", async () => {
+    await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    expect(txEventCreateMock.mock.calls[0][0].data).toEqual({
+      request_id: null,
+      actor_type: "admin",
+      actor_id: ADMIN_ID,
+      action: "request_deleted",
+      meta: {
+        request_id: "req-1",
+        project_name: "Ticker Spring",
+        status: "collecting",
+        user_id: OWNER,
+        quote_count: 8,
+        attachment_count: 0,
+        legacy_attachment_count: 0,
+        admin_name: ADMIN_NAME,
+      },
+    });
+  });
+
+  it("deletes only this request's own files and records the legacy ones it must leave", async () => {
+    const legacy = { name: "c.pdf", url: `https://${HOST}/audits/c.pdf`, size: 10 };
+    txRequestFindFirstMock.mockResolvedValue({
+      ...collectingRow,
+      attachments: [
+        attachment("a.pdf"),
+        { name: "b.pdf", url: storeUrl("b.pdf", "req-2"), size: 10 },
+        legacy,
+      ],
+    });
+
+    await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    expect(delMock).toHaveBeenCalledWith([storeUrl("a.pdf")], { token: "test-token" });
+    expect(txEventCreateMock.mock.calls[0][0].data.meta).toMatchObject({
+      attachment_count: 3,
+      legacy_attachment_count: 1,
+    });
+  });
+
+  it("takes the request's attachments down once the row is gone", async () => {
+    txRequestFindFirstMock.mockResolvedValue({
+      ...collectingRow,
+      attachments: [attachment("a.pdf"), attachment("b.pdf")],
+    });
+
+    await deleteRequest("req-1", ADMIN_ID, ADMIN_NAME);
+
+    expect(delMock).toHaveBeenCalledWith([storeUrl("a.pdf"), storeUrl("b.pdf")], {
+      token: "test-token",
+    });
+    expect(delMock.mock.invocationCallOrder[0]).toBeGreaterThan(
+      txEventCreateMock.mock.invocationCallOrder[0],
+    );
   });
 });

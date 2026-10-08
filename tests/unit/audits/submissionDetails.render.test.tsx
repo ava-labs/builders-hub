@@ -215,4 +215,22 @@ describe("admin request page", () => {
     expect(html).toContain("https://github.com/glacierswap/core");
     expect(html).toContain("Nothing is sent");
   });
+
+  // The gate reads the STORED status: a collecting request past its deadline
+  // displays as deciding (or expired) and is still deletable.
+  it("offers the delete on a request whose quote window has closed", async () => {
+    vi.mocked(getAdminRequestDetail).mockResolvedValue(
+      adminDetail({ status: "collecting", display_status: "deciding" }),
+    );
+    const page = await AuditAdminDrilldownPage({ params: Promise.resolve({ id: "req-1" }) });
+    expect(renderToStaticMarkup(page as React.ReactElement)).toContain("Delete request");
+  });
+
+  it("never offers the delete on an engaged request", async () => {
+    vi.mocked(getAdminRequestDetail).mockResolvedValue(
+      adminDetail({ status: "engaged", display_status: "engaged" }),
+    );
+    const page = await AuditAdminDrilldownPage({ params: Promise.resolve({ id: "req-1" }) });
+    expect(renderToStaticMarkup(page as React.ReactElement)).not.toContain("Delete request");
+  });
 });
