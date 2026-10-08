@@ -60,7 +60,19 @@ const config = {
       './lib/eerc/**/*.ts',
       './types/eerc-modules.d.ts',
     ],
-    '/builder/**': ['./templates/studio-web/lib/studio-react.ts', './blueprints/_shared/design/builder-hub.css'],
+    // Published sites and their API read the blueprint registry, the studio-react source and contract artifacts.
+    '/builder/**': [
+      './blueprints/**/*',
+      './templates/studio-web/lib/studio-react.ts',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+    ],
+    '/api/builder/**': [
+      './blueprints/**/*',
+      './templates/studio-web/lib/studio-react.ts',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+    ],
   },
   transpilePackages: ["next-mdx-remote"],
   images: {

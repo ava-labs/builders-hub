@@ -109,7 +109,7 @@ function repoArtifact(rel: string): Artifact {
     throw new StudioError(500, `Bad artifact path ${rel}`);
   let artifact = artifactCache.get(rel);
   if (!artifact) {
-    const raw = JSON.parse(fs.readFileSync(path.join(process.cwd(), rel), 'utf8')) as {
+    const raw = JSON.parse(fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), rel), 'utf8')) as {
       abi: Abi;
       bytecode?: string | { object?: string; linkReferences?: Artifact['linkReferences'] };
       linkReferences?: Artifact['linkReferences'];

@@ -115,7 +115,7 @@ export function parseIndexHtml(html: string): ParsedApp {
 }
 
 function readTemplate(rel: string): string {
-  return fs.readFileSync(path.join(process.cwd(), TEMPLATE_DIR, rel), 'utf8');
+  return fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), TEMPLATE_DIR, rel), 'utf8');
 }
 
 /**
@@ -126,7 +126,9 @@ const WAGMI_FOR_RAINBOWKIT = '^2.19.5';
 
 /** The versions this site itself runs, so the exported app uses a combination that is known to work together. */
 function packageJson(name: string, eerc = false): string {
-  const repo = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')) as {
+  const repo = JSON.parse(
+    fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), 'package.json'), 'utf8'),
+  ) as {
     dependencies: Record<string, string>;
     devDependencies: Record<string, string>;
   };
@@ -203,7 +205,7 @@ export function createEERC(_: { provider: unknown; contracts: StudioConfig['cont
 }
 `;
 
-const readRepo = (rel: string) => fs.readFileSync(path.join(process.cwd(), rel), 'utf8');
+const readRepo = (rel: string) => fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), rel), 'utf8');
 
 /** studio-eerc.ts, the eERC client when the app uses it, and the tsconfig and package.json that go with them. */
 function eercFiles(eerc: boolean): { path: string; data: string }[] {

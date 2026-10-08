@@ -24,7 +24,7 @@ export type {
 } from './schema';
 
 /** Blueprints are read from disk, so an API route that uses them needs `blueprints/**` in outputFileTracingIncludes. */
-export const BLUEPRINTS_DIR = path.join(process.cwd(), 'blueprints');
+export const BLUEPRINTS_DIR = path.join(/* turbopackIgnore: true */ process.cwd(), 'blueprints');
 
 const SHARED_DIR = '_shared';
 

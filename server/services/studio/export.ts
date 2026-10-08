@@ -22,7 +22,7 @@ import { tokenListIn } from './tokens';
  * with. `forge test` on the export is what the production gate asks for.
  */
 
-const ROOT = process.cwd();
+const ROOT = /* turbopackIgnore: true */ process.cwd();
 const ICM_ARTIFACTS = [
   'TeleporterMessenger',
   'TeleporterRegistry',

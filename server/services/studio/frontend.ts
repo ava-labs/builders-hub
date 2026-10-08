@@ -71,7 +71,10 @@ export async function frontendContext(userId: string, projectId: string, { withF
 
 /** The `@studio/react` hooks, from the same file the exported app ships, so preview and export can't drift apart. */
 export function studioReactSource(): string {
-  return fs.readFileSync(path.join(process.cwd(), 'templates', 'studio-web', 'lib', 'studio-react.ts'), 'utf8');
+  return fs.readFileSync(
+    path.join(/* turbopackIgnore: true */ process.cwd(), 'templates', 'studio-web', 'lib', 'studio-react.ts'),
+    'utf8',
+  );
 }
 
 /** The shared stylesheet frontends link as builder-hub.css; served by the Preview and written on export. */

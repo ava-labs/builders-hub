@@ -1,12 +1,12 @@
-import "server-only";
-import { createHash } from "node:crypto";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { gunzipSync } from "node:zlib";
-import { loadCompilerDefaults } from "@/lib/blueprints";
-import { isSafeUnitPath, type SourceReader } from "./sources";
-import { untar } from "./tar";
+import 'server-only';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { gunzipSync } from 'node:zlib';
+import { loadCompilerDefaults } from '@/lib/blueprints';
+import { isSafeUnitPath, type SourceReader } from './sources';
+import { untar } from './tar';
 
 /*
  * Solidity dependency sources at the versions pinned in
@@ -16,8 +16,8 @@ import { untar } from "./tar";
  * sha256, and unpacks only the .sol files into /tmp.
  */
 
-const REGISTRY = "https://registry.npmjs.org";
-const CACHE_DIR = path.join(os.tmpdir(), "studio-deps");
+const REGISTRY = 'https://registry.npmjs.org';
+const CACHE_DIR = path.join(os.tmpdir(), 'studio-deps');
 const DOWNLOAD_TIMEOUT_MS = 60_000;
 
 interface Dependency {
@@ -37,13 +37,13 @@ function pinnedDependencies(): Dependency[] {
 
 async function versionAt(dir: string): Promise<string | undefined> {
   return fs
-    .readFile(path.join(dir, ".version"), "utf8")
+    .readFile(path.join(dir, '.version'), 'utf8')
     .then((v) => v.trim())
     .catch(() => undefined);
 }
 
 async function download(dep: Dependency, target: string): Promise<string> {
-  const url = `${REGISTRY}/${dep.name}/-/${dep.name.split("/").pop()}-${dep.version}.tgz`;
+  const url = `${REGISTRY}/${dep.name}/-/${dep.name.split('/').pop()}-${dep.version}.tgz`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
   let tarball: Buffer;
@@ -55,20 +55,20 @@ async function download(dep: Dependency, target: string): Promise<string> {
     clearTimeout(timer);
   }
 
-  const digest = createHash("sha256").update(tarball).digest("hex");
+  const digest = createHash('sha256').update(tarball).digest('hex');
   if (digest !== dep.sha256) {
     throw new Error(`Checksum mismatch for ${dep.name}@${dep.version}: refusing to use it`);
   }
 
   const staging = `${target}.${process.pid}-${Date.now()}.tmp`;
   for (const entry of untar(gunzipSync(tarball))) {
-    const rel = entry.path.replace(/^package\//, "");
-    if (!rel.endsWith(".sol") || !isSafeUnitPath(rel)) continue;
+    const rel = entry.path.replace(/^package\//, '');
+    if (!rel.endsWith('.sol') || !isSafeUnitPath(rel)) continue;
     const file = path.join(staging, rel);
     await fs.mkdir(path.dirname(file), { recursive: true });
     await fs.writeFile(file, entry.data);
   }
-  await fs.writeFile(path.join(staging, ".version"), dep.version);
+  await fs.writeFile(path.join(staging, '.version'), dep.version);
   await fs.mkdir(path.dirname(target), { recursive: true });
   await fs.rename(staging, target).catch(async (error) => {
     // Another request unpacked it first.
@@ -85,9 +85,9 @@ function packageRoot(dep: Dependency): Promise<string> {
   let root = roots.get(key);
   if (!root) {
     root = (async () => {
-      const local = path.join(process.cwd(), ".blueprint-deps", dep.name);
+      const local = path.join(/* turbopackIgnore: true */ process.cwd(), '.blueprint-deps', dep.name);
       if ((await versionAt(local)) === dep.version) return local;
-      const cached = path.join(CACHE_DIR, key.replace("/", "__"));
+      const cached = path.join(CACHE_DIR, key.replace('/', '__'));
       if ((await versionAt(cached)) === dep.version) return cached;
       return download(dep, cached);
     })();
@@ -104,16 +104,17 @@ export function dependencyReader(): SourceReader {
     const dep = deps.find((d) => unit.startsWith(`${d.name}/`));
     if (!dep) return undefined;
     const rel = unit.slice(dep.name.length + 1);
-    if (!rel.endsWith(".sol") || !isSafeUnitPath(rel)) return undefined;
+    if (!rel.endsWith('.sol') || !isSafeUnitPath(rel)) return undefined;
     const root = await packageRoot(dep);
-    return fs.readFile(path.join(root, rel), "utf8").catch(() => undefined);
+    return fs.readFile(path.join(root, rel), 'utf8').catch(() => undefined);
   };
 }
 
 /** Shared contracts that ship with the repo, such as the Teleporter interfaces. */
-export function sharedContractsReader(root = process.cwd()): SourceReader {
+export function sharedContractsReader(root = /* turbopackIgnore: true */ process.cwd()): SourceReader {
   return async (unit) => {
-    if (!unit.startsWith("blueprints/_shared/contracts/") || !unit.endsWith(".sol") || !isSafeUnitPath(unit)) return undefined;
-    return fs.readFile(path.join(root, unit), "utf8").catch(() => undefined);
+    if (!unit.startsWith('blueprints/_shared/contracts/') || !unit.endsWith('.sol') || !isSafeUnitPath(unit))
+      return undefined;
+    return fs.readFile(path.join(root, unit), 'utf8').catch(() => undefined);
   };
 }
