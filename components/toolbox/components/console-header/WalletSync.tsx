@@ -6,7 +6,8 @@ import { useAccount, useAccountEffect, useChainId, useSwitchChain } from 'wagmi'
 import { avalancheFuji } from 'wagmi/chains';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
-import { createCoreWalletClient } from '@/components/toolbox/coreViem';
+import { createCoreWalletClient, setAvalancheProviderOverride } from '@/components/toolbox/coreViem';
+import { CONSOLE_WALLET_CONNECTOR_ID, getConsoleCoreProvider } from '@/lib/console-wallets/core-provider';
 import { networkIDs } from '@avalabs/avalanchejs';
 import posthog from 'posthog-js';
 import {
@@ -139,6 +140,11 @@ export function WalletSync() {
    * when the connector swaps out — otherwise, on reconnect with Core the
    * previously-resolved `false` would leak through and gate the bootstrap.
    */
+  // A Console wallet answers like Core, so P-Chain operations go through it instead of window.avalanche.
+  const isConsoleWallet = connector?.id === CONSOLE_WALLET_CONNECTOR_ID;
+  if (typeof window !== 'undefined')
+    setAvalancheProviderOverride(isConsoleWallet ? (getConsoleCoreProvider() as never) : null);
+
   const [injectedIsCore, setInjectedIsCore] = useState<boolean | null>(null);
   const resolvedForConnectorRef = useRef<unknown>(undefined);
 

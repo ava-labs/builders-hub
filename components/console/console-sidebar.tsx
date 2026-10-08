@@ -76,6 +76,8 @@ interface NavItem {
   url: string;
   icon: LucideIcon;
   comingSoon?: boolean;
+  /** Opens in a new tab with an external-link mark, for pages outside the console (https URLs are always external). */
+  external?: boolean;
   sourceCategory?: string;
   /** Optional override for the row's accessible name. Used by sub-step
    *  search results so screen readers hear the parent flow context. */
@@ -179,6 +181,7 @@ const data = {
           title: "Security Audits",
           url: "/audits",
           icon: ShieldCheck,
+          external: true,
         },
       ],
     },
@@ -535,7 +538,7 @@ function NavMenuItem({
 }) {
   const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
   const isComingSoon = item.comingSoon;
-  const isExternal = item.url.startsWith("https://");
+  const isExternal = item.external || item.url.startsWith("https://");
   const tourAttr = TOUR_DATA_ATTRS[item.url];
 
   return (
@@ -596,7 +599,7 @@ function SearchResultMenuItem({
 }) {
   const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
   const isComingSoon = item.comingSoon;
-  const isExternal = item.url.startsWith("https://");
+  const isExternal = item.external || item.url.startsWith("https://");
   const tourAttr = TOUR_DATA_ATTRS[item.url];
   const showStar = isPinnable && !isComingSoon && !isExternal;
   const isPinned = isUserStarred || isMandatory;

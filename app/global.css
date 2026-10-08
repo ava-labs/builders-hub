@@ -1615,7 +1615,15 @@ body[data-hide-sidebar-dropdown] #nd-sidebar-mobile button:has(> div > p.text-sm
   opacity: 0.5;
 }
 
-/* Override global nav styles for explorer breadcrumb - no backgrounds or padding */
+/* Override global nav styles for explorer breadcrumb - no backgrounds or padding.
+   `.nav-plain` is the same opt-out for any other nav whose links style themselves
+   (the console breadcrumb, the step-flow track). */
+nav.nav-plain a,
+nav.nav-plain a:hover,
+nav.nav-plain a:focus,
+nav.nav-plain a:active,
+nav.nav-plain a[data-active="true"],
+nav.nav-plain a[aria-current="page"],
 nav.explorer-breadcrumb a,
 nav.explorer-breadcrumb a:hover,
 nav.explorer-breadcrumb a:focus,
@@ -1642,6 +1650,40 @@ nav.explorer-breadcrumb a[aria-current="page"],
   cursor: pointer !important;
 }
 
+/* `.nav-plain` navs lay themselves out: no inset from the global `nav > div`
+   rule, and hover is an underline rather than the grey block (the `li > a`
+   hover rule is more specific than the resets above, hence the matching
+   selector). */
+nav.nav-plain > div {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* The console's top bar sits on the page's gutter (the page body is p-4 md:p-8), not the site navbar's 3rem inset. */
+header.console-header > div {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+@media (min-width: 768px) {
+  header.console-header > div {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+}
+
+nav.nav-plain li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+nav.nav-plain a:hover {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+nav.nav-plain li > a,
+nav.nav-plain li > a:hover,
 nav.explorer-breadcrumb li > a,
 nav.explorer-breadcrumb li > a:hover,
 .explorer-breadcrumb li > a,
