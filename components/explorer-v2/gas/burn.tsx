@@ -25,6 +25,12 @@ const SHOWN = 10;
 const BODY_H = "h-[440px]";
 const LAYERS: StackLayer[] = [{ key: "burned", label: "Burned", what: "the fees of all C-Chain transactions", ...BURN_RED }];
 
+/** the burn so far of today (UTC), from the hourly fees: the daily series holds whole days only */
+interface TodayPayload {
+  date: string;
+  feesPaid: number;
+}
+
 interface SeriesPayload {
   /** when the route read the series (ms): its newest day was not over then */
   last_updated?: number;
@@ -60,6 +66,14 @@ function BurnRow({ chainId, base, range, usd }: { chainId: number; base: string;
     return data ? dailyBurn(data, seriesCut(series.data?.last_updated, Date.now()), seriesDays) : null;
   }, [series.data, seriesDays]);
 
+  const todayRead = usePolledJson<TodayPayload>(`/api/chain-stats/${chainId}/today`, { refreshMs: 5 * 60_000 });
+  const today = useMemo(() => {
+    const t = todayRead.data;
+    const last = rows?.[rows.length - 1]?.d;
+    // it follows a series that has loaded, and only a day past the series' last
+    return t && last && t.date > last && Number.isFinite(t.feesPaid) ? { d: t.date, v: t.feesPaid } : null;
+  }, [todayRead.data, rows]);
+
   const days = burnDays(RANGE_DAYS[range]);
   const board = usePolledJson<GasBurners>(`/api/explorer/${chainId}/burners?days=${days}`);
 
@@ -69,6 +83,7 @@ function BurnRow({ chainId, base, range, usd }: { chainId: number; base: string;
       <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 xl:grid-cols-2">
         <BurnedBlock
           rows={rows?.length ? rows : null}
+          today={today}
           // a read with no rows (the route answers without the series when its upstream fails) is a failed read
           failed={series.error !== null || (series.data !== null && !rows?.length)}
           // a new read helps after an error; an empty answer stays in the route's cache, so it gets no button
@@ -88,7 +103,8 @@ function BurnRow({ chainId, base, range, usd }: { chainId: number; base: string;
       </div>
       <p className="px-1 font-mono text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
         A transaction burns all of its fee, the base fee and the tip: the gas it is charged times the price it pays. The fee goes to
-        0x0100…0000, an address that no key controls. A wallet is the account that paid. Days are complete UTC days.
+        0x0100…0000, an address that no key controls. A wallet is the account that paid. Days are complete UTC days; the striped
+        bar is today's burn so far.
       </p>
     </div>
   );
@@ -97,19 +113,27 @@ function BurnRow({ chainId, base, range, usd }: { chainId: number; base: string;
 /** the AVAX burned on each day of the window, as cuboids, with Helicon marked */
 function BurnedBlock({
   rows,
+  today,
   failed,
   retry,
   note,
   usd,
 }: {
   rows: { d: string; v: number }[] | null;
+  /** today's burn so far: drawn apart, and kept out of the window's figures */
+  today: { d: string; v: number } | null;
   failed: boolean;
   retry: (() => void) | null;
   note: string | null;
   usd: number | null;
 }) {
   const narrow = useNarrow();
-  const cols = useMemo<StackCol[]>(() => (rows ?? []).map((r) => ({ key: r.d, long: dayLong(r.d), tick: dayShort(r.d), parts: { burned: r.v } })), [rows]);
+  const cols = useMemo<StackCol[]>(() => {
+    const whole: StackCol[] = (rows ?? []).map((r) => ({ key: r.d, long: dayLong(r.d), tick: dayShort(r.d), parts: { burned: r.v } }));
+    return rows?.length && today
+      ? [...whole, { key: today.d, long: dayLong(today.d), tick: "Today", parts: { burned: today.v }, partial: true }]
+      : whole;
+  }, [rows, today]);
   const n = rows?.length ?? 0;
   const total = (rows ?? []).reduce((s, r) => s + r.v, 0);
   const price = usd ?? 0;
@@ -121,7 +145,9 @@ function BurnedBlock({
       unit={n ? "AVAX" : undefined}
       sub={
         rows && n ? (
-          [usdOf(total, price), `${avax(total / n)} per day`, spanOf(rows[0].d, rows[n - 1].d)].filter(Boolean).join(" · ")
+          [usdOf(total, price), `${avax(total / n)} per day`, spanOf(rows[0].d, rows[n - 1].d), today ? `today so far ${avax(today.v)} AVAX` : ""]
+            .filter(Boolean)
+            .join(" · ")
         ) : failed ? (
           <>
             The daily burn did not load.{retry && <> <TryAgain onClick={retry} /></>}
@@ -130,6 +156,7 @@ function BurnedBlock({
       }
       cols={cols}
       layers={LAYERS}
+      partialLabel="Today, so far"
       marker={rows?.some((r) => r.d === HELICON) ? { key: HELICON, label: "Helicon" } : undefined}
       // as tall as the board's ten rows, which it stands beside on a wide screen; a phone keeps it short
       height={narrow ? 220 : 456}
@@ -139,8 +166,9 @@ function BurnedBlock({
         return (
           <>
             <p className="whitespace-nowrap font-mono text-[10px] text-zinc-500">{c.long}</p>
+            {c.partial && <p className="whitespace-nowrap font-mono text-[10px] text-zinc-500">So far: the day is still running (UTC), not its final burn</p>}
             <p className="whitespace-nowrap font-mono text-[11px] font-semibold tabular-nums text-[#E6212F]">
-              {v.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX burned
+              {v.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX burned{c.partial ? " so far" : ""}
             </p>
             {usdOf(v, price) && <p className="whitespace-nowrap font-mono text-[10px] tabular-nums text-zinc-500">{usdOf(v, price)}</p>}
           </>

@@ -6,6 +6,7 @@ import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { FIGURE, FIG_UNIT, LABEL, ReadoutBlock, SUB } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { monotonePath } from "@/components/explorer-v2/evm/EvmActivity";
 import { fadeUpStyle, riseStyle, useReveal, wipeStyle } from "@/components/explorer-v2/motion";
+import { PartialMark, StackKey } from "./stack-parts";
 
 /* The gas instruments, in the C-Chain home's grammar: every chart is an
  * extruded block like the Network Activity block. A header carries the
@@ -425,6 +426,8 @@ export interface StackCol {
   key: string;
   long: string;
   tick: string;
+  /** its period is still running: drawn striped */
+  partial?: boolean;
   parts: Record<string, number>;
 }
 
@@ -437,6 +440,7 @@ export function StackBlock({
   tip,
   ticks,
   legend,
+  partialLabel = "In progress",
   ...head
 }: Head & {
   cols: StackCol[];
@@ -448,11 +452,14 @@ export function StackBlock({
   height?: number;
   tip: (c: StackCol, i: number) => ReactNode;
   ticks?: number[];
+  /** the key's name for a partial column */
+  partialLabel?: string;
 }) {
   const [ref, w] = useWidth<HTMLDivElement>();
   const [seen, shown] = useReveal<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
+  const hasPartial = cols.some((c) => c.partial);
   const n = cols.length;
   const sums = useMemo(() => Object.fromEntries(layers.map((l) => [l.key, cols.reduce((s, c) => s + (c.parts[l.key] ?? 0), 0)])), [cols, layers]);
   // a layer with nothing in the window stays out of the key and the solid
@@ -480,25 +487,8 @@ export function StackBlock({
 
   const key =
     legend ??
-    (shownLayers.length > 1 ? (
-      <span className="flex flex-wrap items-center gap-x-5 gap-y-1 pt-0.5 font-mono text-[10px] uppercase tracking-[0.12em]" onMouseLeave={() => setFocus(null)}>
-        {shownLayers.map((l) => (
-          <button
-            key={l.key}
-            type="button"
-            title={l.what}
-            onMouseEnter={() => setFocus(l.key)}
-            onFocus={() => setFocus(l.key)}
-            onBlur={() => setFocus(null)}
-            onClick={(e) => e.preventDefault()}
-            className={cn("flex items-center gap-1.5 transition-opacity", focus && focus !== l.key ? "opacity-40" : "opacity-100")}
-          >
-            <span className={cn("h-2 w-2", l.swatch)} />
-            <span className="text-zinc-500 dark:text-zinc-400">{l.label}</span>
-            <span className="tabular-nums text-zinc-900 dark:text-zinc-50">{all > 0 ? `${((sums[l.key] / all) * 100).toFixed(0)}%` : ""}</span>
-          </button>
-        ))}
-      </span>
+    (shownLayers.length > 1 || hasPartial ? (
+      <StackKey layers={shownLayers} sums={sums} all={all} focus={focus} setFocus={setFocus} partialLabel={hasPartial ? partialLabel : undefined} />
     ) : undefined);
 
   const mIdx = marker ? cols.findIndex((c) => c.key === marker.key) : -1;
@@ -542,6 +532,7 @@ export function StackBlock({
                           style={{ opacity: dim(topSeg.l.key) }}
                         />
                       )}
+                      {c.partial && acc > 0 && <PartialMark x={x} y={yOf(acc)} w={fw} h={height - yOf(acc)} d={d} />}
                     </g>
                   </g>
                 );
