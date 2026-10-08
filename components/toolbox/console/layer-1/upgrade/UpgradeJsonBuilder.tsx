@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { AlertTriangle, FileJson, Plus, RotateCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from '@/components/toolbox/components/Steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { formatEther } from 'viem';
 import { Button } from '@/components/toolbox/components/Button';

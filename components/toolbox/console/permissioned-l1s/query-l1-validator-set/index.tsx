@@ -1,8 +1,10 @@
 'use client';
 
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Users, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useEffect, type ReactNode } from 'react';
+import Link from 'next/link';
+import { ArrowRight, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { BoardHeader, HashChip } from '@/components/explorer-v2/ui';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { GlobalParamNetwork } from '@avalabs/avacloud-sdk/models/components';
 import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
@@ -33,6 +35,30 @@ const networkNames: Record<number, GlobalParamNetwork> = {
   [networkIDs.FujiID]: 'fuji',
 };
 
+/** A hairline board with nothing in it yet: what's missing, one sentence, and the way forward. */
+function EmptyBoard({ label, action, children }: { label: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2 border border-zinc-200 bg-white px-5 py-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950">
+      <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+        {label}
+      </p>
+      <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{children}</p>
+      {action && <div className="mt-2">{action}</div>}
+    </section>
+  );
+}
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-baseline sm:gap-4">
+      <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 sm:w-28 dark:text-zinc-500">
+        {label}
+      </dt>
+      <dd className="min-w-0 text-[13px] text-zinc-900 [overflow-wrap:anywhere] dark:text-zinc-50">{children}</dd>
+    </div>
+  );
+}
+
 export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
   const { avalancheNetworkID, isTestnet } = useWalletStore();
   const [subnetId, setSubnetId] = useState('');
@@ -40,7 +66,6 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedNodeId, setExpandedNodeId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const vmcAddress = useVMCAddress(subnetId);
 
@@ -50,13 +75,6 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
   const vmcPublicClient = usePublicClientForChain(vmcAddress.blockchainId);
 
   const vmcDetails = useVMCDetails(vmcAddress.validatorManagerAddress, vmcPublicClient);
-
-  const copyToClipboard = useCallback((text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedId(text);
-      setTimeout(() => setCopiedId(null), 1500);
-    });
-  }, []);
 
   // Auto-fetch validators when subnet changes
   useEffect(() => {
@@ -108,14 +126,20 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
   const totalWeight = validators.reduce((sum, v) => sum + v.weight, 0);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
       {/* Left: Subnet selector + VMC details */}
-      <div className="space-y-4">
-        <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />
-      </div>
+      <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <BoardHeader label="L1 subnet" />
+        <div className="flex flex-col gap-4 px-5 py-5 md:px-6">
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Pick an L1 to see its active validators and validator manager.
+          </p>
+          <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />
+        </div>
+      </section>
 
       {/* Right: VMC details + Validator list */}
-      <div className="lg:sticky lg:top-4 lg:self-start space-y-4">
+      <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-4 lg:self-start">
         {subnetId && (vmcAddress.validatorManagerAddress || vmcAddress.isLoading) && (
           <ValidatorManagerDetails
             key={`${subnetId}-${vmcAddress.validatorManagerAddress}`}
@@ -139,133 +163,131 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
         )}
         {subnetId && !vmcAddress.isLoading && vmcAddress.error && <Alert variant="warning">{vmcAddress.error}</Alert>}
         {!subnetId ? (
-          <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/30 p-8 text-center">
-            <Users className="h-6 w-6 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Select a subnet to view its validators</p>
-          </div>
+          <EmptyBoard label="No L1 selected">Pick an L1 subnet to list its active validators.</EmptyBoard>
         ) : isLoading ? (
-          <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/30 p-8 text-center">
-            <Loader2 className="h-6 w-6 text-zinc-400 animate-spin mx-auto mb-2" />
-            <p className="text-sm text-zinc-500">Loading validators...</p>
-          </div>
+          <section
+            role="status"
+            aria-label="Loading validators"
+            className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+          >
+            <BoardHeader
+              label="Validators"
+              action={
+                <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Loading
+                </span>
+              }
+            />
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex h-11 items-center gap-3 px-5 md:px-6">
+                  <span className="h-3.5 w-3.5 shrink-0" />
+                  <span className="h-3 flex-1 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                  <span className="h-3 w-10 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                  <span className="h-1 w-16 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                </div>
+              ))}
+            </div>
+          </section>
         ) : error ? (
           <Alert variant="error">{error}</Alert>
         ) : validators.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/30 p-8 text-center">
-            <Users className="h-6 w-6 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
-            <p className="text-sm text-zinc-500">No active validators found</p>
-          </div>
+          <EmptyBoard
+            label="No active validators"
+            action={
+              <Link
+                href="/console/add-validator"
+                className="group/add inline-flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
+              >
+                Add a validator
+                <ArrowRight className="h-3 w-3 text-[#E6212F] transition-transform group-hover/add:translate-x-0.5" />
+              </Link>
+            }
+          >
+            This L1 has no validators with weight above zero.
+          </EmptyBoard>
         ) : (
-          <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Validators</span>
-                <span className="text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded-full">
-                  {validators.length}
+          <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <BoardHeader
+              label={`Validators · ${validators.length}`}
+              action={
+                <span className="font-mono text-[10.5px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                  Total weight {totalWeight.toLocaleString()}
                 </span>
-              </div>
-              <span className="text-xs text-zinc-400">Total weight: {totalWeight.toLocaleString()}</span>
+              }
+            />
+            <div className="hidden grid-cols-[0.875rem_minmax(0,1fr)_3.5rem_4rem] gap-3 border-b border-zinc-200 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:border-zinc-800 dark:text-zinc-500">
+              <span />
+              <span>Node ID</span>
+              <span className="text-right">Share</span>
+              <span />
             </div>
 
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[600px] overflow-y-auto">
+            <div className="max-h-[600px] divide-y divide-zinc-200 overflow-y-auto dark:divide-zinc-800">
               {validators.map((v) => {
                 const isExpanded = expandedNodeId === v.nodeId;
                 const weightPct = totalWeight > 0 ? ((v.weight / totalWeight) * 100).toFixed(1) : '0';
 
                 return (
-                  <div key={v.nodeId} className="group">
+                  <div key={v.nodeId}>
                     <button
                       onClick={() => setExpandedNodeId(isExpanded ? null : v.nodeId)}
-                      className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-left"
+                      aria-expanded={isExpanded}
+                      className="group/row grid w-full grid-cols-[0.875rem_minmax(0,1fr)_3.5rem_4rem] items-center gap-3 px-5 py-3 text-left md:px-6"
                     >
                       {isExpanded ? (
-                        <ChevronDown className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
                       ) : (
-                        <ChevronRight className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-all group-hover/row:translate-x-0.5 group-hover/row:text-[#E6212F]" />
                       )}
-                      <code className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate flex-1">
+                      <code className="truncate font-mono text-[12.5px] text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-50">
                         {v.nodeId}
                       </code>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-zinc-500">{weightPct}%</span>
-                        <div className="w-16 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-zinc-400 dark:bg-zinc-500 rounded-full"
-                            style={{ width: `${Math.min(parseFloat(weightPct), 100)}%` }}
-                          />
-                        </div>
-                      </div>
+                      <span className="text-right font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                        {weightPct}%
+                      </span>
+                      <span className="h-1 w-full bg-zinc-100 dark:bg-zinc-800">
+                        <span
+                          className="block h-full bg-zinc-900 dark:bg-zinc-100"
+                          style={{ width: `${Math.min(parseFloat(weightPct), 100)}%` }}
+                        />
+                      </span>
                     </button>
 
                     {isExpanded && (
-                      <div className="px-4 pb-3 pl-11 space-y-2">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-zinc-400">Weight</span>
-                            <p className="font-mono text-zinc-700 dark:text-zinc-300">
-                              {formatStake(v.weight.toString())}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-zinc-400">Balance</span>
-                            <p className="font-mono text-blue-600 dark:text-blue-400">
-                              {formatAvaxBalance(parseFloat(v.remainingBalance))} AVAX
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-zinc-400">Created</span>
-                            <p className="text-zinc-600 dark:text-zinc-400">{formatTimestamp(v.creationTimestamp)}</p>
-                          </div>
-                          <div>
-                            <span className="text-zinc-400">Status</span>
-                            <p className="text-green-600 dark:text-green-400">Active</p>
-                          </div>
-                        </div>
+                      <dl className="mx-5 mb-3 divide-y divide-zinc-200 border-t border-zinc-200 md:mx-6 md:ml-[3.375rem] dark:divide-zinc-800 dark:border-zinc-800">
+                        <DetailRow label="Weight">
+                          <span className="font-mono tabular-nums">{formatStake(v.weight.toString())}</span>
+                        </DetailRow>
+                        <DetailRow label="Balance">
+                          <span className="font-mono tabular-nums">
+                            {formatAvaxBalance(parseFloat(v.remainingBalance))}{' '}
+                            <span className="text-zinc-400 dark:text-zinc-500">AVAX</span>
+                          </span>
+                        </DetailRow>
+                        <DetailRow label="Created">{formatTimestamp(v.creationTimestamp)}</DetailRow>
+                        <DetailRow label="Status">
+                          <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400">
+                            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                            Active
+                          </span>
+                        </DetailRow>
                         {v.validationId && (
-                          <div className="text-xs">
-                            <span className="text-zinc-400">Validation ID</span>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <code className="font-mono text-zinc-600 dark:text-zinc-400 text-[10px] truncate flex-1">
-                                {v.validationId}
-                              </code>
-                              <button
-                                onClick={() => copyToClipboard(v.validationId)}
-                                className="p-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 shrink-0"
-                              >
-                                {copiedId === v.validationId ? (
-                                  <Check className="h-3 w-3 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3 text-zinc-400" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
+                          <DetailRow label="Validation ID">
+                            <HashChip value={v.validationId} len={18} />
+                          </DetailRow>
                         )}
-                        <div className="text-xs">
-                          <span className="text-zinc-400">Node ID</span>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <code className="font-mono text-zinc-600 dark:text-zinc-400 text-[10px] truncate flex-1">
-                              {v.nodeId}
-                            </code>
-                            <button
-                              onClick={() => copyToClipboard(v.nodeId)}
-                              className="p-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 shrink-0"
-                            >
-                              {copiedId === v.nodeId ? (
-                                <Check className="h-3 w-3 text-green-500" />
-                              ) : (
-                                <Copy className="h-3 w-3 text-zinc-400" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                        <DetailRow label="Node ID">
+                          <HashChip value={v.nodeId} len={22} />
+                        </DetailRow>
+                      </dl>
                     )}
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>

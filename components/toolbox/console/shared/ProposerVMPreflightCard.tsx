@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FastForward, Loader2 } from 'lucide-react';
+import { ArrowRight, FastForward, Loader2 } from 'lucide-react';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { Button } from '@/components/toolbox/components/Button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -85,7 +85,10 @@ export function ProposerVMPreflightCard({ requiredTxId, onAdvanced }: ProposerVM
         <span>
           Could not verify this chain&apos;s P-Chain view: its RPC does not expose the epoch state. If the delivery
           below fails warp verification, produce blocks with the{' '}
-          <Link href="/console/layer-1/advance-pchain-view" className="underline">
+          <Link
+            href="/console/layer-1/advance-pchain-view"
+            className="font-medium underline decoration-current/40 underline-offset-4 hover:decoration-current"
+          >
             Advance P-Chain View
           </Link>{' '}
           tool and retry.
@@ -110,7 +113,10 @@ export function ProposerVMPreflightCard({ requiredTxId, onAdvanced }: ProposerVM
           Sent {advance.maxAttempts} block-producing transactions and the epoch still pins{' '}
           {formatHeight(status.epoch?.pChainHeight ?? null)}, below {formatHeight(target)}. The view did advance, so try
           the action below anyway, or continue in the{' '}
-          <Link href="/console/layer-1/advance-pchain-view" className="underline">
+          <Link
+            href="/console/layer-1/advance-pchain-view"
+            className="font-medium underline decoration-current/40 underline-offset-4 hover:decoration-current"
+          >
             Advance P-Chain View
           </Link>{' '}
           tool.
@@ -121,9 +127,9 @@ export function ProposerVMPreflightCard({ requiredTxId, onAdvanced }: ProposerVM
 
   return (
     <Alert variant="warning">
-      <div className="space-y-2">
+      <div className="flex flex-col gap-3">
         <span>
-          <strong>This chain&apos;s P-Chain view is stale.</strong>{' '}
+          <strong className="font-semibold">This chain&apos;s P-Chain view is stale.</strong>{' '}
           {target !== null ? (
             <>
               Its epoch pins height {formatHeight(status.epoch?.pChainHeight ?? null)}, but your transaction landed at
@@ -141,27 +147,40 @@ export function ProposerVMPreflightCard({ requiredTxId, onAdvanced }: ProposerVM
         </span>
 
         {isRunning ? (
-          <div className="flex items-center gap-2 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-            {advance.phase === 'countdown' && advance.countdownSecRemaining !== null
-              ? `The current epoch opened less than 5 minutes ago; sending in ${Math.floor(advance.countdownSecRemaining / 60)}:${String(advance.countdownSecRemaining % 60).padStart(2, '0')}.`
-              : `Producing blocks (transaction ${Math.max(advance.attempt, 1)} of ${advance.maxAttempts}).`}
-            <Button variant="outline" size="sm" onClick={advance.cancel}>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex min-w-0 flex-1 items-center gap-2 font-mono text-[11.5px]">
+              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+              {advance.phase === 'countdown' && advance.countdownSecRemaining !== null
+                ? `The current epoch opened less than 5 minutes ago; sending in ${Math.floor(advance.countdownSecRemaining / 60)}:${String(advance.countdownSecRemaining % 60).padStart(2, '0')}.`
+                : `Producing blocks (transaction ${Math.max(advance.attempt, 1)} of ${advance.maxAttempts}).`}
+            </span>
+            <Button variant="outline" size="sm" className="w-auto" onClick={advance.cancel}>
               Cancel
             </Button>
           </div>
         ) : (
-          <div className="flex items-center gap-3 flex-wrap">
-            <Button variant="primary" size="sm" onClick={advance.start} icon={<FastForward className="w-4 h-4" />}>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-auto"
+              onClick={advance.start}
+              icon={<FastForward className="h-3.5 w-3.5" />}
+            >
               Produce blocks ({'≈'}2 transactions)
             </Button>
-            <Link href="/docs/nodes/architecture/proposervm" className="text-xs underline" target="_blank">
+            <Link
+              href="/docs/nodes/architecture/proposervm"
+              className="group/why inline-flex items-center gap-1 text-[12px] underline decoration-current/40 underline-offset-4 hover:decoration-current"
+              target="_blank"
+            >
               Why this happens
+              <ArrowRight className="h-3 w-3 text-[#E6212F] transition-transform group-hover/why:translate-x-0.5" />
             </Link>
           </div>
         )}
 
-        {advance.phase === 'error' && advance.error && <span className="text-sm block">{advance.error}</span>}
+        {advance.phase === 'error' && advance.error && <span className="block text-[13px]">{advance.error}</span>}
       </div>
     </Alert>
   );

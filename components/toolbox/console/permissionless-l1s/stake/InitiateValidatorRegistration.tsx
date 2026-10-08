@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Check, Loader2 } from 'lucide-react';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
@@ -397,8 +399,18 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-5">
       {error && <Alert variant="error">{error}</Alert>}
+
+      {nodeID && preflight.isLoading && (
+        <p
+          role="status"
+          className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Checking node status
+        </p>
+      )}
 
       {/* Preflight checklist — shown when the nodeID is entered and registration is blocked */}
       {nodeID && !preflight.isLoading && preflight.checks.register.status !== 'met' && (
@@ -411,7 +423,10 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         lockedMessage="This node is already registered. See the status above for next steps."
       >
         {/* Contract parameters with presets */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-4">
+          <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            Staking parameters
+          </p>
           <Input
             label="Stake Amount"
             value={stakeAmount}
@@ -431,7 +446,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             }
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               label="Delegation Fee (Basis Points)"
               value={delegationFeeBips}
@@ -479,43 +494,54 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
         {/* ERC20: approve then register in sequence */}
         {!isNative && resolvedErc20Address ? (
-          <div className="flex gap-2">
-            <Button
-              onClick={handleApproveERC20}
-              disabled={
-                isApproving ||
-                isProcessing ||
-                !stakeAmount ||
-                hasValidationErrors ||
-                isCheckingAllowance ||
-                hasSufficientAllowance ||
-                parsedStakeAmount === 0n
-              }
-              loading={isApproving}
-              variant="secondary"
-            >
-              {hasSufficientAllowance
-                ? `Approved (${stakeAmount} ${tokenSymbol ?? 'tokens'})`
-                : `1. Approve ${stakeAmount || '0'} ${tokenSymbol ?? 'tokens'}`}
-            </Button>
-            <Button
-              onClick={handleInitiateRegistration}
-              disabled={
-                isProcessing ||
-                isApproving ||
-                !stakeAmount ||
-                !!txHash ||
-                hasValidationErrors ||
-                isPreflightBlocked ||
-                preflight.isLoading ||
-                !hasSufficientAllowance
-              }
-              loading={isProcessing}
-              variant="primary"
-            >
-              2. Initiate Validator Registration
-            </Button>
-          </div>
+          <Steps>
+            <Step>
+              <h3>Approve {tokenSymbol ?? 'tokens'}</h3>
+              <p>Let the staking manager move your stake.</p>
+              <Button
+                onClick={handleApproveERC20}
+                disabled={
+                  isApproving ||
+                  isProcessing ||
+                  !stakeAmount ||
+                  hasValidationErrors ||
+                  isCheckingAllowance ||
+                  hasSufficientAllowance ||
+                  parsedStakeAmount === 0n
+                }
+                loading={isApproving}
+                loadingText="Approving…"
+                icon={hasSufficientAllowance ? <Check className="h-3.5 w-3.5" /> : undefined}
+                variant="outline"
+              >
+                {hasSufficientAllowance
+                  ? `Approved ${stakeAmount} ${tokenSymbol ?? 'tokens'}`
+                  : `Approve ${stakeAmount || '0'} ${tokenSymbol ?? 'tokens'}`}
+              </Button>
+            </Step>
+            <Step>
+              <h3>Initiate registration</h3>
+              <p>Stakes the tokens and starts the validator registration.</p>
+              <Button
+                onClick={handleInitiateRegistration}
+                disabled={
+                  isProcessing ||
+                  isApproving ||
+                  !stakeAmount ||
+                  !!txHash ||
+                  hasValidationErrors ||
+                  isPreflightBlocked ||
+                  preflight.isLoading ||
+                  !hasSufficientAllowance
+                }
+                loading={isProcessing}
+                loadingText="Initiating…"
+                variant="primary"
+              >
+                Initiate validator registration
+              </Button>
+            </Step>
+          </Steps>
         ) : (
           <Button
             onClick={handleInitiateRegistration}
@@ -523,9 +549,10 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
               isProcessing || isApproving || !stakeAmount || !!txHash || hasValidationErrors || isPreflightBlocked
             }
             loading={isProcessing}
+            loadingText="Initiating…"
             variant="primary"
           >
-            Initiate Validator Registration
+            Initiate validator registration
           </Button>
         )}
       </LockedContent>

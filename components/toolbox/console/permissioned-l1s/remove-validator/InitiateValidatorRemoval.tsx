@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Check, RotateCcw } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
@@ -194,7 +195,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
   }
 
   // Prepare args for multisig
@@ -204,8 +205,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         <SelectValidationID
           key={`validation-selector-${componentKey}-${subnetId}`}
           value={validation.validationId}
@@ -213,8 +214,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           subnetId={subnetId}
           format="hex"
         />
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Select the validator you want to remove by its Validation ID
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
+          Pick the validator to remove by its Validation ID.
         </p>
       </div>
 
@@ -242,8 +243,10 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
               !validatorManagerAddress ||
               txSuccess !== null
             }
+            loading={isProcessing}
+            loadingText="Initiating…"
           >
-            Initiate Validator Removal
+            Initiate validator removal
           </Button>
         </MultisigOption>
       )}
@@ -258,9 +261,12 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
             !validatorManagerAddress ||
             txSuccess !== null
           }
+          loading={isProcessing}
+          loadingText="Initiating…"
+          icon={txSuccess ? <Check className="h-3.5 w-3.5" /> : undefined}
           error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
         >
-          {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
+          {txSuccess ? 'Transaction completed' : 'Initiate validator removal'}
         </Button>
       )}
 
@@ -268,24 +274,26 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         <Button
           onClick={handleInitiateRemoval}
           disabled={true}
-          error="You are not the owner of this contract. Only the contract owner can remove validators."
+          error="This wallet doesn't own the contract. Only the contract owner can remove validators."
         >
-          Initiate Validator Removal
+          Initiate validator removal
         </Button>
       )}
 
       {ownershipState === 'loading' && (
-        <Button onClick={handleInitiateRemoval} disabled={true} error="Verifying ownership...">
-          Verifying...
+        <Button onClick={handleInitiateRemoval} disabled={true} loading={true} loadingText="Verifying ownership…">
+          Verifying ownership
         </Button>
       )}
 
       {ownershipState === 'error' && (
         <Button
+          variant="outline"
           onClick={() => refetchOwnership?.()}
-          error={ownershipError || 'Failed to verify contract ownership. Click to retry.'}
+          icon={<RotateCcw className="h-3.5 w-3.5" />}
+          error={ownershipError || "Couldn't verify contract ownership. Retry the check."}
         >
-          Retry Ownership Check
+          Retry ownership check
         </Button>
       )}
 

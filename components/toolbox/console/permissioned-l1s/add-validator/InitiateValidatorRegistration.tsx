@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Check, RotateCcw } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
@@ -279,12 +280,12 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
   }
 
   // Don't render if no validators are added
   if (validators.length === 0) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please add a validator in the previous step.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Add a validator above first.</p>;
   }
 
   // Prepare args for multisig
@@ -313,7 +314,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {ownershipState === 'contract' && (
         <MultisigOption
           validatorManagerAddress={validatorManagerAddress}
@@ -326,8 +327,10 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           <Button
             onClick={handleInitiateValidatorRegistration}
             disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+            loading={isProcessing}
+            loadingText="Initiating…"
           >
-            Initiate Validator Registration
+            Initiate validator registration
           </Button>
         </MultisigOption>
       )}
@@ -336,9 +339,12 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         <Button
           onClick={handleInitiateValidatorRegistration}
           disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+          loading={isProcessing}
+          loadingText="Initiating…"
+          icon={txSuccess ? <Check className="h-3.5 w-3.5" /> : undefined}
           error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
         >
-          {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Validator Registration'}
+          {txSuccess ? 'Transaction completed' : 'Initiate validator registration'}
         </Button>
       )}
 
@@ -346,24 +352,31 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         <Button
           onClick={handleInitiateValidatorRegistration}
           disabled={true}
-          error="You are not the owner of this contract. Only the contract owner can add validators."
+          error="This wallet doesn't own the contract. Only the contract owner can add validators."
         >
-          Initiate Validator Registration
+          Initiate validator registration
         </Button>
       )}
 
       {ownershipState === 'loading' && (
-        <Button onClick={handleInitiateValidatorRegistration} disabled={true} error="Verifying ownership...">
-          Verifying...
+        <Button
+          onClick={handleInitiateValidatorRegistration}
+          disabled={true}
+          loading={true}
+          loadingText="Verifying ownership…"
+        >
+          Verifying ownership
         </Button>
       )}
 
       {ownershipState === 'error' && (
         <Button
+          variant="outline"
           onClick={() => refetchOwnership?.()}
-          error={ownershipError || 'Failed to verify contract ownership. Click to retry.'}
+          icon={<RotateCcw className="h-3.5 w-3.5" />}
+          error={ownershipError || "Couldn't verify contract ownership. Retry the check."}
         >
-          Retry Ownership Check
+          Retry ownership check
         </Button>
       )}
 

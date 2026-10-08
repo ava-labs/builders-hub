@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Check, Loader2 } from 'lucide-react';
+import { HashChip } from '@/components/explorer-v2/ui';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
@@ -105,56 +107,73 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {error && <Alert variant="error">{error}</Alert>}
 
-      <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Claim Fees ({tokenLabel} Staking)</h3>
-
-        <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          <p>
-            <strong>Validation ID:</strong> {validationID}
-          </p>
+      <dl className="divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+        <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:gap-6">
+          <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 sm:w-32 dark:text-zinc-500">
+            Staking
+          </dt>
+          <dd className="font-mono text-[13px] text-zinc-900 dark:text-zinc-50">{tokenLabel}</dd>
         </div>
+        <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:gap-6">
+          <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 sm:w-32 dark:text-zinc-500">
+            Validation ID
+          </dt>
+          <dd className="min-w-0">
+            {validationID ? (
+              <HashChip value={validationID} len={18} />
+            ) : (
+              <span className="font-mono text-[13px] text-zinc-400">—</span>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="flex flex-col gap-2">
+        <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          About delegation fees
+        </p>
+        <ul className="flex flex-col gap-1.5 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {[
+            'The fee rate is set when the validator registers (delegation fee basis points).',
+            'Fees come out of delegator rewards when delegations are removed.',
+            'Fees are claimed separately from validator rewards.',
+            'Only the validator owner can claim them.',
+          ].map((line) => (
+            <li key={line} className="flex gap-2.5">
+              <span aria-hidden className="mt-[0.6em] h-1 w-1 shrink-0 bg-zinc-400 dark:bg-zinc-600" />
+              {line}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <Alert variant="info">
-        <p className="text-sm">
-          <strong>About Delegation Fees:</strong>
-        </p>
-        <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-          <li>Delegation fees are set when you register as a validator (delegation fee basis points)</li>
-          <li>Fees are deducted from delegator rewards when delegations are removed</li>
-          <li>Accumulated fees can be claimed separately from validator rewards</li>
-          <li>Only the validator owner can claim these fees</li>
-        </ul>
-      </Alert>
-
-      <Button onClick={handleClaimFees} disabled={isProcessing || !!confirmed} loading={isProcessing}>
-        {isProcessing ? 'Processing...' : 'Claim Delegation Fees'}
+      <Button
+        onClick={handleClaimFees}
+        disabled={isProcessing || !!confirmed}
+        loading={isProcessing}
+        loadingText="Claiming…"
+        icon={confirmed ? <Check className="h-3.5 w-3.5" /> : undefined}
+      >
+        {confirmed ? 'Fees claimed' : 'Claim delegation fees'}
       </Button>
 
       {txHash && !confirmed && (
-        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            Transaction submitted. Waiting for confirmation...
-          </p>
-        </div>
+        <p
+          role="status"
+          className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Submitted · waiting for confirmation
+        </p>
       )}
 
-      {confirmed && (
-        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-          <p className="text-sm text-green-800 dark:text-green-200">
-            <strong>Success!</strong> Delegation fees have been claimed and transferred to your address.
-          </p>
-        </div>
-      )}
+      {confirmed && <Alert variant="success">Delegation fees were claimed and sent to your address.</Alert>}
 
       <Alert variant="warning">
-        <p className="text-sm">
-          <strong>Note:</strong> Delegation fees are separate from validator rewards. Make sure to also complete
-          validator removal to claim your validator rewards.
-        </p>
+        Delegation fees are separate from validator rewards. Complete the validator removal to claim those too.
       </Alert>
     </div>
   );

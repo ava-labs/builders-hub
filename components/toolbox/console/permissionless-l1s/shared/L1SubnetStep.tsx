@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Step } from 'fumadocs-ui/components/steps';
+import { Step } from '@/components/toolbox/components/Steps';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';

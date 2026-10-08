@@ -2,21 +2,47 @@
 
 // L1 Node Docker Setup
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { useWalletStore } from '../../stores/walletStore';
 import { useCreateChainStore } from '../../stores/createChainStore';
 import { Container } from '../../components/Container';
 import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork } from '../../coreViem/utils/glacier';
 import InputSubnetId from '../../components/InputSubnetId';
 import BlockchainDetailsDisplay from '../../components/BlockchainDetailsDisplay';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Button } from '../../components/Button';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { SyntaxHighlightedJSON } from '../../components/genesis/SyntaxHighlightedJSON';
 import { ReverseProxySetup } from '../../components/ReverseProxySetup';
 import { DockerInstallation } from '../../components/DockerInstallation';
 import { StorageRequirements } from '../../components/StorageRequirements';
 import { GenesisHighlightProvider, useGenesisHighlight } from '../../components/genesis/GenesisHighlightContext';
+import {
+  ACCORDION_BODY,
+  ACCORDIONS,
+  CELL,
+  CHECKBOX,
+  COUNT,
+  Choice,
+  ChoiceGrid,
+  CodeBlock,
+  DocLink,
+  EYEBROW,
+  FIELD_HINT,
+  FIELD_LABEL,
+  GRID,
+  Group,
+  HoverArrow,
+  INLINE_CODE,
+  INPUT,
+  KeyFile,
+  LINK,
+  NOTE,
+  Notice,
+  Port,
+  SUB_HEADING,
+  Spec,
+} from '@/components/toolbox/components/NodeSetupUI';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import {
   generateChainConfig,
@@ -26,19 +52,20 @@ import {
 } from './nodeConfig';
 import { useNodeConfigHighlighting } from './useNodeConfigHighlighting';
 import {
-  AlertCircle,
   AlertTriangle,
-  Database,
+  ArrowRight,
   ChevronDown,
-  ShieldCheck,
+  Cpu,
+  HardDrive,
   KeyRound,
-  Key,
-  FileText,
-  Terminal,
-  CheckCircle2,
-  Copy,
-  ExternalLink,
+  Loader2,
+  MemoryStick,
+  Network,
+  PenLine,
+  RotateCcw,
+  ShieldCheck,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAddToWallet } from '@/hooks/useAddToWallet';
 import { buildNodeRpcUrl } from '../../lib/rpcUrl';
 import { useL1ListStore, type L1ListItem } from '../../stores/l1ListStore';
@@ -432,6 +459,8 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.isBootstrapped","
 curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
   -H 'content-type:application/json;' http://localhost:9650/ext/info | jq`;
 
+  const warnIcon = <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />;
+
   return (
     <Container
       title="L1 Node Setup with Docker"
@@ -440,150 +469,100 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
     >
       <Steps>
         <Step>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Choose your node type and configure settings. The configuration preview updates in real-time.
-          </p>
+          <h3>Configure Node Settings</h3>
+          <p>Choose your network, node type, and settings. The config preview updates as you go.</p>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">Network</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedNetwork('mainnet')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedNetwork === 'mainnet'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="font-medium text-sm">Mainnet</div>
-                    <div className="text-xs text-zinc-500">Production network</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedNetwork('fuji')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedNetwork === 'fuji'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="font-medium text-sm">Fuji</div>
-                    <div className="text-xs text-zinc-500">Testnet</div>
-                  </button>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="flex min-w-0 flex-col gap-5">
+              <ChoiceGrid label="Network" cols={2}>
+                <Choice
+                  selected={selectedNetwork === 'mainnet'}
+                  onSelect={() => setSelectedNetwork('mainnet')}
+                  title="Mainnet"
+                  description="Production network"
+                />
+                <Choice
+                  selected={selectedNetwork === 'fuji'}
+                  onSelect={() => setSelectedNetwork('fuji')}
+                  title="Fuji"
+                  description="Testnet"
+                />
+              </ChoiceGrid>
 
               {!forceNodeType && (
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-                    Node Type
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setNodeType('validator')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        nodeType === 'validator'
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                      }`}
-                    >
-                      <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator</div>
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">P2P only</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNodeType('rpc')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        nodeType === 'rpc'
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                      }`}
-                    >
-                      <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC</div>
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Pruned</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNodeType('archival')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        nodeType === 'archival'
-                          ? isTestnet
-                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                            : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                      }`}
-                    >
-                      <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        {isTestnet ? 'Both' : 'Archival'}
-                      </div>
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                        {isTestnet ? 'Validator + RPC' : 'Full history'}
-                      </div>
-                    </button>
-                  </div>
+                <div className="flex flex-col gap-3">
+                  <ChoiceGrid label="Node type" cols={3}>
+                    <Choice
+                      selected={nodeType === 'validator'}
+                      onSelect={() => setNodeType('validator')}
+                      title="Validator"
+                      description="P2P only"
+                    />
+                    <Choice
+                      selected={nodeType === 'rpc'}
+                      onSelect={() => setNodeType('rpc')}
+                      title="RPC"
+                      description="Pruned"
+                    />
+                    <Choice
+                      selected={nodeType === 'archival'}
+                      onSelect={() => setNodeType('archival')}
+                      title={isTestnet ? 'Both' : 'Archival'}
+                      description={isTestnet ? 'Validator + RPC' : 'Full history'}
+                    />
+                  </ChoiceGrid>
                   {nodeType === 'archival' && isTestnet && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      Not recommended for production. Combines validator and RPC for testnet convenience.
-                    </p>
+                    <Notice icon={warnIcon}>
+                      Not for production. Runs validator and RPC on one node for testnet convenience.
+                    </Notice>
                   )}
                 </div>
               )}
 
               {forceNodeType && (
-                <div className="rounded-lg p-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-zinc-500 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">Running a validator node. </span>
-                    Your L1 needs validators to reach consensus. After bootstrap, grab the node&apos;s ID + BLS key from
-                    the Verify step and return to Convert to L1.
-                  </div>
-                </div>
+                <Notice tone="info" icon={<ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />}>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">Running a validator node.</span> Your
+                  L1 needs validators to reach consensus. After bootstrap, copy the node ID and BLS key from the Verify
+                  step and return to Convert to L1.
+                </Notice>
               )}
 
               <div onMouseEnter={() => setHighlightPath('logLevel')} onMouseLeave={clearHighlight}>
-                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">Log Level</label>
-                <div className="flex flex-wrap gap-1.5">
+                <ChoiceGrid label="Log level · info is the default" cols={5}>
                   {[
                     { value: 'error', label: 'Error' },
                     { value: 'warn', label: 'Warn' },
-                    { value: 'info', label: 'Info', default: true },
+                    { value: 'info', label: 'Info' },
                     { value: 'debug', label: 'Debug' },
                     { value: 'verbo', label: 'Verbose' },
                   ].map((level) => (
-                    <button
+                    <Choice
                       key={level.value}
-                      type="button"
-                      onClick={() => setCfg((c) => ({ ...c, logLevel: level.value }))}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                        cfg.logLevel === level.value
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                          : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600'
-                      }`}
-                    >
-                      {level.label}
-                      {level.default && cfg.logLevel !== level.value && (
-                        <span className="ml-1 text-[10px] text-zinc-400">(default)</span>
-                      )}
-                    </button>
+                      compact
+                      selected={cfg.logLevel === level.value}
+                      onSelect={() => setCfg((c) => ({ ...c, logLevel: level.value }))}
+                      title={level.label}
+                    />
                   ))}
-                </div>
+                </ChoiceGrid>
               </div>
 
               {isValidator && (
-                <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">Min Block Delay</span>
-                    <span className="text-xs font-mono text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                <div
+                  className="flex flex-col gap-2"
+                  onMouseEnter={() => setHighlightPath('minDelayTarget')}
+                  onMouseLeave={clearHighlight}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <label htmlFor="l1-min-delay-target" className={EYEBROW}>
+                      Min block delay
+                    </label>
+                    <span className="border border-zinc-200 bg-zinc-50 px-2 py-0.5 font-mono text-[11px] tabular-nums text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
                       {cfg.minDelayTarget}ms
                     </span>
                   </div>
                   <input
+                    id="l1-min-delay-target"
                     type="range"
                     value={cfg.minDelayTarget}
                     onChange={(e) => setCfg((c) => ({ ...c, minDelayTarget: parseInt(e.target.value) }))}
@@ -592,144 +571,121 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                     min="0"
                     max="2000"
                     step="50"
-                    className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    className="w-full cursor-pointer accent-zinc-900 dark:accent-zinc-100"
                   />
-                  <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
+                  <div className="flex justify-between font-mono text-[10px] text-zinc-400">
                     <span>0ms (fastest)</span>
                     <span>1000ms</span>
                     <span>2000ms (default)</span>
                   </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                    Minimum time between blocks. Lower values = faster blocks but more network load.
+                  <p className={FIELD_HINT}>
+                    Minimum time between blocks. Lower is faster blocks but more network load.
                   </p>
                 </div>
               )}
 
-              {/* Storage settings — pruning & state-sync are interdependent */}
-              <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Database className="w-4 h-4 text-zinc-500" />
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Storage Settings</span>
-                </div>
-
-                <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={cfg.pruningEnabled}
-                      onChange={(e) => setCfg((c) => ({ ...c, pruningEnabled: e.target.checked }))}
-                      className="rounded"
-                    />
-                    <span className="text-sm font-medium">Enable Pruning</span>
-                  </label>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                    Removes old state data to reduce disk usage. Storage savings depend on your L1&apos;s transaction
-                    volume.
-                    {(nodeType === 'validator' || nodeType === 'rpc') &&
-                      ' Recommended for validators and pruned RPC nodes.'}
-                    {nodeType === 'archival' && ' Disable for archival nodes that need full historical state.'}
-                  </p>
-                </div>
-
-                <div onMouseEnter={() => setHighlightPath('stateSyncEnabled')} onMouseLeave={clearHighlight}>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={cfg.stateSyncEnabled}
-                      onChange={(e) => setCfg((c) => ({ ...c, stateSyncEnabled: e.target.checked }))}
-                      className="rounded"
-                    />
-                    <span className="text-sm font-medium">Enable State Sync</span>
-                  </label>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                    Bootstrap from a recent state snapshot instead of replaying all blocks from genesis.
-                    {(nodeType === 'validator' || nodeType === 'rpc') && ' Recommended for faster initial sync.'}
-                    {nodeType === 'archival' && ' Disable to replay full history for archival queries.'}
-                  </p>
-                </div>
+              {/* Pruning and state sync are interdependent, so they share a group. */}
+              <Group label="Storage">
+                <Toggle
+                  path="pruning"
+                  checked={cfg.pruningEnabled}
+                  onChange={(checked) => setCfg((c) => ({ ...c, pruningEnabled: checked }))}
+                  label="Enable Pruning"
+                  hint={
+                    <>
+                      Removes old state data to cut disk usage. Savings depend on your L1&apos;s transaction volume.
+                      {(nodeType === 'validator' || nodeType === 'rpc') &&
+                        ' Recommended for validators and pruned RPC nodes.'}
+                      {nodeType === 'archival' && ' Disable for archival nodes that need full historical state.'}
+                    </>
+                  }
+                />
+                <Toggle
+                  path="stateSyncEnabled"
+                  checked={cfg.stateSyncEnabled}
+                  onChange={(checked) => setCfg((c) => ({ ...c, stateSyncEnabled: checked }))}
+                  label="Enable State Sync"
+                  hint={
+                    <>
+                      Bootstraps from a recent state snapshot instead of replaying every block from genesis.
+                      {(nodeType === 'validator' || nodeType === 'rpc') && ' Recommended for faster initial sync.'}
+                      {nodeType === 'archival' && ' Disable to replay full history for archival queries.'}
+                    </>
+                  }
+                />
 
                 {cfg.pruningEnabled !== cfg.stateSyncEnabled && (
-                  <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                    <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      <strong>Mismatched settings:</strong> Pruning and State Sync are typically enabled together for
-                      validators, or both disabled for archival RPC nodes.
-                    </p>
+                  <div className="p-3">
+                    <Notice icon={warnIcon}>
+                      <span className="font-semibold">Mismatched settings:</span> Pruning and State Sync are usually
+                      both on for validators, or both off for archival RPC nodes.
+                    </Notice>
                   </div>
                 )}
-              </div>
+              </Group>
 
-              <div onMouseEnter={() => setHighlightPath('adminApi')} onMouseLeave={clearHighlight}>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={cfg.adminApiEnabled}
-                    onChange={(e) => setCfg((c) => ({ ...c, adminApiEnabled: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <span className="text-sm">Enable Admin API</span>
-                </label>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                  Enables administrative APIs. Only enable if needed and secured.
-                </p>
-              </div>
+              <Group label="API">
+                <Toggle
+                  path="adminApi"
+                  checked={cfg.adminApiEnabled}
+                  onChange={(checked) => setCfg((c) => ({ ...c, adminApiEnabled: checked }))}
+                  label="Enable Admin API"
+                  hint="Enables administrative APIs. Only enable if needed and secured."
+                />
+                {isRPC && (
+                  <>
+                    <Toggle
+                      path="ethApis"
+                      checked={cfg.enableDebugTrace}
+                      onChange={(checked) => {
+                        debugTraceUserSet.current = true;
+                        setCfg((c) => ({ ...c, enableDebugTrace: checked }));
+                      }}
+                      label="Enable Debug Trace"
+                      hint="Enables debug APIs and detailed tracing."
+                    />
+                    <Toggle
+                      path="skipTxIndexing"
+                      checked={!cfg.skipTxIndexing}
+                      onChange={(checked) => setCfg((c) => ({ ...c, skipTxIndexing: !checked }))}
+                      label="Enable Transaction Indexing"
+                      hint={
+                        <>
+                          Required for <code className={INLINE_CODE}>eth_getLogs</code> and transaction lookups. Disable
+                          to save disk space.
+                        </>
+                      }
+                    />
+                  </>
+                )}
+              </Group>
 
-              {isRPC && (
-                <>
-                  <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={cfg.enableDebugTrace}
-                        onChange={(e) => {
-                          debugTraceUserSet.current = true;
-                          setCfg((c) => ({ ...c, enableDebugTrace: e.target.checked }));
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Enable Debug Trace</span>
-                    </label>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                      Enables debug APIs and detailed tracing capabilities
-                    </p>
-                  </div>
-
-                  <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={!cfg.skipTxIndexing}
-                        onChange={(e) => setCfg((c) => ({ ...c, skipTxIndexing: !e.target.checked }))}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Enable Transaction Indexing</span>
-                    </label>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                      Required for eth_getLogs and transaction lookups. Disable to save disk space.
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {/* Advanced Settings */}
-              <div className="border-t pt-4">
+              <div className="flex flex-col">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                  className="flex items-center justify-between w-full text-left"
+                  aria-expanded={showAdvancedSettings}
+                  className="group/adv flex h-11 w-full items-center justify-between gap-3 border border-zinc-200 bg-white/80 px-4 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950/80 dark:hover:border-zinc-600"
                 >
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Advanced Settings</span>
-                  <ChevronDown className={`w-5 h-5 transition-transform ${showAdvancedSettings ? 'rotate-180' : ''}`} />
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
+                    Advanced settings
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 text-zinc-400 transition-transform group-hover/adv:text-zinc-900 dark:group-hover/adv:text-zinc-100',
+                      showAdvancedSettings && 'rotate-180',
+                    )}
+                  />
                 </button>
 
                 {showAdvancedSettings && (
-                  <div className="space-y-4 mt-4">
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      For advanced configuration options, see the{' '}
+                  <div className="flex flex-col divide-y divide-zinc-200 border-x border-b border-zinc-200 bg-white/80 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
+                    <p className={cn(NOTE, 'px-4 py-3')}>
+                      For every option, see the{' '}
                       <a
                         href="https://build.avax.network/docs/nodes/configure/configs-flags"
                         target="_blank"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        className={LINK}
                         rel="noreferrer"
                       >
                         AvalancheGo configuration
@@ -738,39 +694,33 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                       <a
                         href="https://build.avax.network/docs/nodes/chain-configs/subnet-evm"
                         target="_blank"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        className={LINK}
                         rel="noreferrer"
                       >
                         Subnet-EVM configuration
                       </a>{' '}
-                      documentation.
-                    </span>
-                    <div>
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Cache Settings</h4>
-                      <div className="space-y-3">
+                      docs.
+                    </p>
+
+                    <Section label="Cache">
+                      <Fields>
                         <NumberField
                           label="Trie Clean Cache (MB)"
                           path="trieCleanCache"
                           value={cfg.trieCleanCache}
                           onChange={(v) => setCfg((c) => ({ ...c, trieCleanCache: Math.max(0, v) }))}
-                          setHighlightPath={setHighlightPath}
-                          clearHighlight={clearHighlight}
                         />
                         <NumberField
                           label="Trie Dirty Cache (MB)"
                           path="trieDirtyCache"
                           value={cfg.trieDirtyCache}
                           onChange={(v) => setCfg((c) => ({ ...c, trieDirtyCache: Math.max(0, v) }))}
-                          setHighlightPath={setHighlightPath}
-                          clearHighlight={clearHighlight}
                         />
                         <NumberField
                           label="Snapshot Cache (MB)"
                           path="snapshotCache"
                           value={cfg.snapshotCache}
                           onChange={(v) => setCfg((c) => ({ ...c, snapshotCache: Math.max(0, v) }))}
-                          setHighlightPath={setHighlightPath}
-                          clearHighlight={clearHighlight}
                         />
                         <NumberField
                           label="Accepted Cache Size (blocks)"
@@ -778,8 +728,6 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                           value={cfg.acceptedCacheSize}
                           onChange={(v) => setCfg((c) => ({ ...c, acceptedCacheSize: Math.max(1, v) }))}
                           hint="Depth of accepted headers and logs cache"
-                          setHighlightPath={setHighlightPath}
-                          clearHighlight={clearHighlight}
                         />
                         <NumberField
                           label="Trie Dirty Commit Target (MB)"
@@ -787,8 +735,6 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                           value={cfg.trieDirtyCommitTarget}
                           onChange={(v) => setCfg((c) => ({ ...c, trieDirtyCommitTarget: Math.max(1, v) }))}
                           hint="Memory limit before commit"
-                          setHighlightPath={setHighlightPath}
-                          clearHighlight={clearHighlight}
                         />
                         <NumberField
                           label="Trie Prefetcher Parallelism"
@@ -796,8 +742,6 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                           value={cfg.triePrefetcherParallelism}
                           onChange={(v) => setCfg((c) => ({ ...c, triePrefetcherParallelism: Math.max(1, v) }))}
                           hint="Max concurrent disk reads"
-                          setHighlightPath={setHighlightPath}
-                          clearHighlight={clearHighlight}
                         />
                         <NumberField
                           label="State Sync Server Trie Cache (MB)"
@@ -805,47 +749,38 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                           value={cfg.stateSyncServerTrieCache}
                           onChange={(v) => setCfg((c) => ({ ...c, stateSyncServerTrieCache: Math.max(0, v) }))}
                           hint="Trie cache for state sync server"
-                          setHighlightPath={setHighlightPath}
-                          clearHighlight={clearHighlight}
                         />
-                      </div>
-                    </div>
+                      </Fields>
+                    </Section>
 
-                    <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Metrics Settings</h4>
-                      <div onMouseEnter={() => setHighlightPath('metricsExpensive')} onMouseLeave={clearHighlight}>
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={cfg.metricsExpensiveEnabled}
-                            onChange={(e) => setCfg((c) => ({ ...c, metricsExpensiveEnabled: e.target.checked }))}
-                            onFocus={() => setHighlightPath('metricsExpensive')}
-                            onBlur={clearHighlight}
-                            className="rounded"
-                          />
-                          <span className="text-xs text-zinc-600 dark:text-zinc-400">Enable Expensive Metrics</span>
-                        </label>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                          Enables debug-level metrics including Firewood metrics. May impact performance.
-                        </p>
-                      </div>
-                    </div>
+                    <Section label="Metrics" flush>
+                      <Toggle
+                        path="metricsExpensive"
+                        focusHighlight
+                        checked={cfg.metricsExpensiveEnabled}
+                        onChange={(checked) => setCfg((c) => ({ ...c, metricsExpensiveEnabled: checked }))}
+                        label="Enable Expensive Metrics"
+                        hint="Debug-level metrics, including Firewood metrics. May impact performance."
+                      />
+                    </Section>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Configuration Preview */}
-            <div className="lg:sticky lg:top-4 h-fit">
-              <div className="border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden">
-                <div className="border-b p-3 bg-zinc-50 dark:bg-zinc-900">
-                  <h4 className="text-sm font-semibold">Configuration Preview</h4>
+            <div className="h-fit min-w-0 lg:sticky lg:top-4">
+              <div className="border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/80">
+                <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+                  <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+                    Configuration Preview
+                  </h4>
+                  <span className={COUNT}>Subnet-EVM config.json</span>
                 </div>
-                <div className="max-h-[600px] overflow-auto p-3 bg-zinc-50 dark:bg-zinc-950">
+                <div className="max-h-[600px] overflow-auto bg-zinc-50 p-3 dark:bg-zinc-900">
                   {configJson && !configJson.startsWith('Error:') ? (
                     <SyntaxHighlightedJSON code={configJson} highlightedLines={highlightedLines} />
                   ) : (
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
+                    <div className="py-8 text-center text-[13px] text-zinc-500 dark:text-zinc-400">
                       {configJson.startsWith('Error:')
                         ? configJson
                         : 'Configure your node to see the Subnet-EVM chain config'}
@@ -854,10 +789,7 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                 </div>
               </div>
 
-              {/* Storage Requirements Visualization (matches Primary Network setup).
-                  variant="l1" anchors the baseline on the ~40 GB Fuji / ~200 GB
-                  Mainnet figures shown in the Set up Instance tile — Primary
-                  Network's 13 TB archival numbers don't apply to L1s. */}
+              {/* variant="l1" anchors the baseline on the L1 storage figures, not the Primary Network's. */}
               <StorageRequirements
                 nodeType={nodeType}
                 pruningEnabled={cfg.pruningEnabled}
@@ -873,73 +805,26 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
 
         {showPrerequisites && (
           <Step>
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-              Provision a server with the following specifications.
+            <h3>Set up Instance</h3>
+            <p>Provision a server with these specs.</p>
+
+            <div className={cn(GRID, 'grid-cols-2 md:grid-cols-4')}>
+              <Spec icon={<Cpu className="h-3.5 w-3.5" />} label="CPU" value="4 vCPU" />
+              <Spec icon={<MemoryStick className="h-3.5 w-3.5" />} label="RAM" value="8 GB" />
+              <Spec
+                icon={<HardDrive className="h-3.5 w-3.5" />}
+                label="Storage"
+                value={isTestnet ? '~40 GB Fuji' : '~200 GB Mainnet'}
+              />
+              <Spec icon={<Network className="h-3.5 w-3.5" />} label="Open ports" value="9651 · 9650" />
+            </div>
+
+            <p className={NOTE}>
+              Port <span className="font-mono">9651</span> is P2P and <span className="font-mono">9650</span> is RPC.
+              For a production L1, run{' '}
+              <strong className="font-medium text-zinc-900 dark:text-zinc-100">5+ validator nodes</strong> across
+              regions. A single node is fine for local dev and quick demos.
             </p>
-
-            {/* Hardware requirements - compact grid (matches Primary Network setup) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4 vCPU</div>
-              </div>
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">8 GB</div>
-              </div>
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {isTestnet ? '~40 GB Fuji' : '~200 GB Mainnet'}
-                </div>
-              </div>
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <ShieldCheck className="w-4 h-4 text-zinc-500" />
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Open ports</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">9651 P2P · 9650 RPC</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-              <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-zinc-500" />
-              <span>
-                For a production L1 we recommend <strong>5+ validator nodes</strong> spread across regions. A single
-                node is fine for local dev and quick demos.
-              </span>
-            </div>
           </Step>
         )}
 
@@ -947,12 +832,12 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
           <Step>
             <DockerInstallation includeCompose={false} />
 
-            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              If you do not want to use Docker, you can follow the{' '}
+            <p className={NOTE}>
+              Not using Docker? Follow the{' '}
               <a
                 href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
                 target="_blank"
-                className="text-blue-500 hover:underline"
+                className={LINK}
                 rel="noreferrer"
               >
                 manual installation instructions
@@ -963,17 +848,24 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
         )}
 
         <Step>
-          <h3 className="text-xl font-bold mb-4">Select L1</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+          <h3>Select L1</h3>
+          <p>
             {subnetId && subnetId === (defaultSubnetId ?? createChainSubnetId)
-              ? 'Pre-filled from your Create Chain step — edit if you meant a different L1.'
-              : 'Enter the Avalanche Subnet ID of the L1 you want to run a node for.'}
+              ? 'Pre-filled from your Create Chain step. Edit it if you meant a different L1.'
+              : 'Enter the Subnet ID of the L1 you want to run a node for.'}
           </p>
 
           <InputSubnetId value={subnetId} onChange={setSubnetId} error={subnetIdError} />
 
+          {isLoading && !subnet && (
+            <p className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Looking up the L1 on {isTestnet ? 'Fuji' : 'Mainnet'}
+            </p>
+          )}
+
           {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
-            <div className="space-y-4 mt-4">
+            <div className="flex flex-col gap-4">
               {subnet.blockchains.map(
                 (blockchain: {
                   blockchainId: string;
@@ -997,53 +889,62 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
               )}
             </div>
           )}
+
+          {!subnetId && (
+            <Empty label="No L1 selected">Enter a Subnet ID to generate the config files and Docker command.</Empty>
+          )}
+
+          {subnet && !isLoading && !(subnet.blockchains?.length > 0) && (
+            <Empty
+              label="No blockchain"
+              action={
+                <Link
+                  href="/console/create-l1"
+                  className="group/empty inline-flex w-fit items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
+                >
+                  Create an L1
+                  <ArrowRight className="h-3 w-3 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/empty:translate-x-0 group-hover/empty:opacity-100" />
+                </Link>
+              }
+            >
+              This subnet has no blockchain yet, so there is nothing to run a node for.
+            </Empty>
+          )}
         </Step>
 
         {subnetId && blockchainInfo && (
           <>
             <Step>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-                Create Configuration Files
-              </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Run these commands to create the config files. AvalancheGo reads from these default locations on
-                startup.
-              </p>
+              <h3>Create Configuration Files</h3>
+              <p>Run these to write the config files. AvalancheGo reads them from these default paths on startup.</p>
 
               {combinedSetupScript && (
-                <Accordions type="single" className="mb-4">
+                <Accordions type="single" className={ACCORDIONS}>
                   <Accordion title="One-shot setup script (all configs)">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                      Run the full setup in a single shell invocation, or save as <code>setup.sh</code> and{' '}
-                      <code>chmod +x setup.sh &amp;&amp; ./setup.sh</code>.
-                    </p>
-                    <DynamicCodeBlock lang="bash" code={combinedSetupScript} />
+                    <div className={ACCORDION_BODY}>
+                      <p>
+                        Run the full setup in one go, or save it as <code className={INLINE_CODE}>setup.sh</code> and
+                        run <code className={INLINE_CODE}>chmod +x setup.sh &amp;&amp; ./setup.sh</code>.
+                      </p>
+                      <CodeBlock code={combinedSetupScript} />
+                    </div>
                   </Accordion>
                 </Accordions>
               )}
 
               <Steps>
                 <Step>
-                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-zinc-500" />
-                    Create config directories
-                  </h4>
-                  <DynamicCodeBlock
-                    lang="bash"
+                  <h4 className={SUB_HEADING}>Create config directories</h4>
+                  <CodeBlock
                     code={`mkdir -p ~/.avalanchego/configs/chains/${chainId}\nmkdir -p ~/.avalanchego/configs/vms`}
                   />
                 </Step>
 
                 <Step>
-                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-zinc-500" />
-                    Node config{' '}
-                    <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-1">
-                      ~/.avalanchego/configs/node.json
-                    </code>
+                  <h4 className={SUB_HEADING}>
+                    Node config <code className={INLINE_CODE}>~/.avalanchego/configs/node.json</code>
                   </h4>
-                  <DynamicCodeBlock
-                    lang="bash"
+                  <CodeBlock
                     code={(() => {
                       try {
                         const nodeConfig = generateNodeConfig(subnetId, nodeType, effectiveNetworkID);
@@ -1056,15 +957,11 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                 </Step>
 
                 <Step>
-                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-zinc-500" />
+                  <h4 className={SUB_HEADING}>
                     Chain config{' '}
-                    <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-1">
-                      ~/.avalanchego/configs/chains/{chainId.slice(0, 8)}...
-                    </code>
+                    <code className={INLINE_CODE}>~/.avalanchego/configs/chains/{chainId.slice(0, 8)}...</code>
                   </h4>
-                  <DynamicCodeBlock
-                    lang="bash"
+                  <CodeBlock
                     code={(() => {
                       try {
                         const chainConfig = JSON.parse(configJson);
@@ -1078,80 +975,53 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
 
                 {blockchainInfo?.vmId && blockchainInfo.vmId !== SUBNET_EVM_VM_ID && (
                   <Step>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-zinc-500" />
-                      VM aliases{' '}
-                      <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-1">
-                        ~/.avalanchego/configs/vms/aliases.json
-                      </code>
+                    <h4 className={SUB_HEADING}>
+                      VM aliases <code className={INLINE_CODE}>~/.avalanchego/configs/vms/aliases.json</code>
                     </h4>
-                    <DynamicCodeBlock
-                      lang="bash"
+                    <CodeBlock
                       code={`cat > ~/.avalanchego/configs/vms/aliases.json << 'EOF'\n${JSON.stringify({ [blockchainInfo.vmId]: [SUBNET_EVM_VM_ID] }, null, 2)}\nEOF`}
                     />
                   </Step>
                 )}
               </Steps>
 
-              <div className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-                Docs:{' '}
+              <p className={cn(NOTE, 'flex flex-wrap items-center gap-x-3 gap-y-1')}>
+                <span className={EYEBROW}>Docs</span>
                 <a
                   href="https://build.avax.network/docs/nodes/configure/configs-flags"
                   target="_blank"
-                  className="text-blue-500 hover:underline"
+                  className={LINK}
                   rel="noreferrer"
                 >
                   Node config
                 </a>
-                {' · '}
                 <a
                   href="https://build.avax.network/docs/nodes/chain-configs/subnet-evm"
                   target="_blank"
-                  className="text-blue-500 hover:underline"
+                  className={LINK}
                   rel="noreferrer"
                 >
                   Chain config
                 </a>
-              </div>
+              </p>
             </Step>
 
             <Step>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Firewall</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Open the required ports for your node to communicate with the network.
-              </p>
+              <h3>Configure Firewall</h3>
+              <p>Open the ports your node needs to talk to the network.</p>
 
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div
-                  className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800'}`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9651</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                      Required
-                    </span>
-                  </div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">P2P / Staking port</div>
-                  <div className="text-[10px] text-zinc-400 mt-1">Node-to-node communication</div>
-                </div>
-                <div
-                  className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 opacity-50'}`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9650</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded ${isRPC ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}
-                    >
-                      {isRPC ? 'Required' : 'RPC only'}
-                    </span>
-                  </div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">HTTP / RPC port</div>
-                  <div className="text-[10px] text-zinc-400 mt-1">API requests from clients</div>
-                </div>
+              <div className={cn(GRID, 'grid-cols-2')}>
+                <Port port="9651" status="Required" title="P2P / Staking port" detail="Node-to-node communication" />
+                <Port
+                  port="9650"
+                  status={isRPC ? 'Required' : 'RPC only'}
+                  title="HTTP / RPC port"
+                  detail="API requests from clients"
+                  dimmed={!isRPC}
+                />
               </div>
 
-              <DynamicCodeBlock
-                lang="bash"
+              <CodeBlock
                 code={
                   isRPC
                     ? `# Open SSH, P2P, RPC, and reverse-proxy ports
@@ -1169,21 +1039,18 @@ sudo ufw status`
                 }
               />
 
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+              <p className={NOTE}>
                 {isRPC
-                  ? 'On a cloud host (AWS/GCP/Azure), open these same ports in your Security Group too — the host firewall alone is not enough.'
-                  : 'Validators only need the P2P port. The RPC port is bound to localhost for security.'}
+                  ? 'On a cloud host (AWS, GCP, Azure), open the same ports in your security group too. The host firewall alone is not enough.'
+                  : 'Validators only need the P2P port. The RPC port stays bound to localhost.'}
               </p>
             </Step>
 
             <Step>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Start the node. Config is read from the mounted volume — no env vars needed.
-              </p>
+              <h3>Run Docker</h3>
+              <p>Start the node. Config is read from the mounted volume, so no env vars are needed.</p>
 
-              <DynamicCodeBlock
-                lang="bash"
+              <CodeBlock
                 code={(() => {
                   try {
                     const config = JSON.parse(configJson);
@@ -1195,128 +1062,111 @@ sudo ufw status`
                 })()}
               />
 
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="rounded-lg p-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Terminal className="w-3.5 h-3.5 text-zinc-500" />
-                    <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">Follow logs</span>
+              <div className={cn(GRID, 'grid-cols-1 sm:grid-cols-3')}>
+                {[
+                  { label: 'Follow logs', command: 'docker logs -f avago' },
+                  { label: 'Restart', command: 'docker restart avago' },
+                  { label: 'Stop', command: 'docker stop avago' },
+                ].map((item) => (
+                  <div key={item.label} className={cn(CELL, 'flex min-w-0 flex-col gap-1.5 p-4')}>
+                    <span className={EYEBROW}>{item.label}</span>
+                    <code className="break-all font-mono text-[12px] text-zinc-900 dark:text-zinc-50">
+                      {item.command}
+                    </code>
                   </div>
-                  <code className="text-[11px] text-zinc-900 dark:text-zinc-100">docker logs -f avago</code>
-                </div>
-                <div className="rounded-lg p-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Terminal className="w-3.5 h-3.5 text-zinc-500" />
-                    <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">Restart</span>
-                  </div>
-                  <code className="text-[11px] text-zinc-900 dark:text-zinc-100">docker restart avago</code>
-                </div>
-                <div className="rounded-lg p-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Terminal className="w-3.5 h-3.5 text-zinc-500" />
-                    <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">Stop</span>
-                  </div>
-                  <code className="text-[11px] text-zinc-900 dark:text-zinc-100">docker stop avago</code>
-                </div>
+                ))}
               </div>
 
-              <Accordions type="single" className="mt-4">
+              <Accordions type="single" className={ACCORDIONS}>
                 {isCustomVM && (
                   <Accordion title="Custom VM Configuration">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      This blockchain uses a non-standard Virtual Machine ID. The Docker command includes VM aliases
-                      mapping.
-                    </p>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-                      <strong>VM ID:</strong> {blockchainInfo.vmId}
-                      <br />
-                      <strong>Aliases to:</strong> {SUBNET_EVM_VM_ID}
-                    </p>
+                    <div className={ACCORDION_BODY}>
+                      <p>
+                        This blockchain uses a non-standard VM ID. The Docker command includes the VM alias mapping.
+                      </p>
+                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5">
+                        <dt className={EYEBROW}>VM ID</dt>
+                        <dd className="break-all font-mono text-[12px] text-zinc-900 dark:text-zinc-50">
+                          {blockchainInfo.vmId}
+                        </dd>
+                        <dt className={EYEBROW}>Aliases to</dt>
+                        <dd className="break-all font-mono text-[12px] text-zinc-900 dark:text-zinc-50">
+                          {SUBNET_EVM_VM_ID}
+                        </dd>
+                      </dl>
+                    </div>
                   </Accordion>
                 )}
                 <Accordion title="Running Multiple Nodes">
-                  <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
-                  <ul className="list-disc pl-5 mt-1 text-sm">
-                    <li>
-                      Unique container name (change <code>--name</code> parameter)
-                    </li>
-                    <li>Different ports (modify port mappings)</li>
-                    <li>
-                      Separate data directories (change <code>~/.avalanchego</code> path)
-                    </li>
-                  </ul>
+                  <div className={ACCORDION_BODY}>
+                    <p>To run multiple nodes on the same machine, give each node:</p>
+                    <ul className="list-disc pl-5">
+                      <li>
+                        A unique container name (change <code className={INLINE_CODE}>--name</code>)
+                      </li>
+                      <li>Different ports (change the port mappings)</li>
+                      <li>
+                        A separate data directory (change <code className={INLINE_CODE}>~/.avalanchego</code>)
+                      </li>
+                    </ul>
+                  </div>
                 </Accordion>
               </Accordions>
             </Step>
 
             <Step>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Verify the Node</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Wait for bootstrap, then grab the <code>nodeID</code> and BLS proof-of-possession — these are the inputs
-                for the Convert to L1 step.
+              <h3>Verify the Node</h3>
+              <p>
+                Wait for bootstrap, then get the <code className={INLINE_CODE}>nodeID</code> and BLS proof of
+                possession. Convert to L1 needs both.
               </p>
 
-              <DynamicCodeBlock lang="bash" code={verifySnippet} />
+              <CodeBlock code={verifySnippet} />
 
-              <div className="mt-3 flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-                <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-green-500" />
-                <span>
-                  Bootstrap can take from a few minutes (Fuji) to several hours (Mainnet full sync). The node is ready
-                  when <code>isBootstrapped</code> returns <code>true</code>.
-                </span>
-              </div>
-              {isValidator && (
-                <div className="mt-3 flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  <Copy className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-zinc-500" />
+              <ul className={cn(NOTE, 'flex flex-col gap-1.5')}>
+                <li className="flex items-baseline gap-2.5">
+                  <span aria-hidden className="h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full bg-emerald-500" />
                   <span>
-                    Copy the <code>nodeID</code>, <code>nodePOP.publicKey</code>, and{' '}
-                    <code>nodePOP.proofOfPossession</code> from the second response — paste them into the Convert to L1
-                    step.
+                    Bootstrap takes a few minutes on Fuji and up to several hours for a full Mainnet sync. The node is
+                    ready when <code className={INLINE_CODE}>isBootstrapped</code> returns{' '}
+                    <code className={INLINE_CODE}>true</code>.
                   </span>
-                </div>
-              )}
+                </li>
+                {isValidator && (
+                  <li className="flex items-baseline gap-2.5">
+                    <span aria-hidden className="h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full bg-zinc-400" />
+                    <span>
+                      Copy <code className={INLINE_CODE}>nodeID</code>,{' '}
+                      <code className={INLINE_CODE}>nodePOP.publicKey</code>, and{' '}
+                      <code className={INLINE_CODE}>nodePOP.proofOfPossession</code> from the second response into the
+                      Convert to L1 step.
+                    </span>
+                  </li>
+                )}
+              </ul>
             </Step>
 
             {isValidator && (
               <Step>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-                  Backup Validator Credentials
-                </h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                <h3>Backup Validator Credentials</h3>
+                <p>
                   Your validator identity is defined by these files in{' '}
-                  <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">
-                    ~/.avalanchego/staking/
-                  </code>
+                  <code className={INLINE_CODE}>~/.avalanchego/staking/</code>
                 </p>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ShieldCheck className="w-4 h-4 text-zinc-500" />
-                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">TLS Cert</span>
-                    </div>
-                    <div className="text-sm font-mono text-zinc-900 dark:text-zinc-100">staker.crt</div>
-                    <div className="text-[10px] text-zinc-400 mt-1">Node identity</div>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Key className="w-4 h-4 text-red-500" />
-                      <span className="text-xs font-medium text-red-600 dark:text-red-400">Private Key</span>
-                    </div>
-                    <div className="text-sm font-mono text-red-700 dark:text-red-300">staker.key</div>
-                    <div className="text-[10px] text-red-400 mt-1">Keep secret!</div>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                    <div className="flex items-center gap-2 mb-1">
-                      <KeyRound className="w-4 h-4 text-red-500" />
-                      <span className="text-xs font-medium text-red-600 dark:text-red-400">BLS Key</span>
-                    </div>
-                    <div className="text-sm font-mono text-red-700 dark:text-red-300">signer.key</div>
-                    <div className="text-[10px] text-red-400 mt-1">L1 signing</div>
-                  </div>
+                <div className={cn(GRID, 'grid-cols-1 sm:grid-cols-3')}>
+                  <KeyFile icon={<ShieldCheck className="h-3.5 w-3.5" />} label="TLS Cert" file="staker.crt">
+                    Node identity
+                  </KeyFile>
+                  <KeyFile icon={<KeyRound className="h-3.5 w-3.5" />} label="Private Key" file="staker.key" secret>
+                    Keep secret
+                  </KeyFile>
+                  <KeyFile icon={<PenLine className="h-3.5 w-3.5" />} label="BLS Key" file="signer.key" secret>
+                    L1 signing
+                  </KeyFile>
                 </div>
 
-                <DynamicCodeBlock
-                  lang="bash"
+                <CodeBlock
                   code={`# Backup your validator credentials
 mkdir -p ~/avalanche-backup
 cp -r ~/.avalanchego/staking ~/avalanche-backup/
@@ -1325,42 +1175,37 @@ cp -r ~/.avalanchego/staking ~/avalanche-backup/
 ls -la ~/avalanche-backup/staking/`}
                 />
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">Store securely:</span>
-                  <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                    Encrypted USB
-                  </span>
-                  <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                    Encrypted S3
-                  </span>
-                  <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                    Multiple locations
-                  </span>
-                </div>
-
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1.5 mt-4">
-                  <p className="flex items-start gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <span>
-                      Lost keys ={' '}
-                      <strong className="text-zinc-700 dark:text-zinc-300">your validator stops working</strong>. NVMe
-                      drives can fail without warning.
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={EYEBROW}>Store securely</span>
+                  {['Encrypted USB', 'Encrypted S3', 'Multiple locations'].map((place) => (
+                    <span
+                      key={place}
+                      className="border border-zinc-200 px-2 py-0.5 font-mono text-[11px] text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
+                    >
+                      {place}
                     </span>
-                  </p>
-                  <p className="flex items-start gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span>Never share private keys — anyone with them can impersonate your validator.</span>
-                  </p>
+                  ))}
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap gap-4 text-xs">
-                  <a
-                    href="/docs/nodes/maintain/backup-restore"
-                    className="text-blue-500 hover:underline flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Full Backup Guide
-                  </a>
+                <ul className={cn(NOTE, 'flex flex-col gap-1.5')}>
+                  <li className="flex items-baseline gap-2.5">
+                    <span aria-hidden className="h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full bg-red-500" />
+                    <span>
+                      Lost keys mean{' '}
+                      <strong className="font-medium text-zinc-900 dark:text-zinc-100">
+                        your validator stops working
+                      </strong>
+                      . NVMe drives can fail without warning.
+                    </span>
+                  </li>
+                  <li className="flex items-baseline gap-2.5">
+                    <span aria-hidden className="h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full bg-amber-500" />
+                    <span>Never share private keys: anyone with them can impersonate your validator.</span>
+                  </li>
+                </ul>
+
+                <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                  <DocLink href="/docs/nodes/maintain/backup-restore">Full Backup Guide</DocLink>
                 </div>
               </Step>
             )}
@@ -1381,30 +1226,39 @@ ls -la ~/avalanche-backup/staking/`}
 
             {isRPC && (
               <Step>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Add Network to Wallet</h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                  Add your L1&apos;s RPC endpoint to your browser wallet to start interacting with the network.
-                </p>
+                <h3>Add Network to Wallet</h3>
+                <p>Add your L1&apos;s RPC endpoint to your browser wallet to start using the network.</p>
 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                      <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">RPC Endpoint</div>
-                      <code className="text-xs text-zinc-900 dark:text-zinc-100 break-all">
-                        {nodeRpcUrl ?? 'Enter the node IP or domain in the reverse proxy step above'}
+                <div
+                  className={cn(
+                    GRID,
+                    blockchainInfo?.evmChainId ? 'grid-cols-1 sm:grid-cols-[minmax(0,1fr)_12rem]' : 'grid-cols-1',
+                  )}
+                >
+                  <div className={cn(CELL, 'flex min-w-0 flex-col gap-1.5 p-4')}>
+                    <span className={EYEBROW}>RPC endpoint</span>
+                    <code
+                      className={cn(
+                        'break-all font-mono text-[12.5px]',
+                        nodeRpcUrl ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 dark:text-zinc-500',
+                      )}
+                    >
+                      {nodeRpcUrl ?? 'Enter the node IP or domain in the reverse proxy step above'}
+                    </code>
+                  </div>
+                  {blockchainInfo?.evmChainId && (
+                    <div className={cn(CELL, 'flex flex-col gap-1.5 p-4')}>
+                      <span className={EYEBROW}>EVM chain ID</span>
+                      <code className="font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                        {blockchainInfo.evmChainId}
                       </code>
                     </div>
-                    {blockchainInfo?.evmChainId && (
-                      <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                        <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                          EVM Chain ID
-                        </div>
-                        <code className="text-sm text-zinc-900 dark:text-zinc-100">{blockchainInfo.evmChainId}</code>
-                      </div>
-                    )}
-                  </div>
+                  )}
+                </div>
 
+                <div>
                   <Button
+                    className="group/btn w-auto"
                     onClick={async () => {
                       if (!nodeRpcUrl) return;
                       const rpcUrl = nodeRpcUrl;
@@ -1458,42 +1312,42 @@ ls -la ~/avalanche-backup/staking/`}
                         setAvalancheNetworkID(prevNetworkID);
                       }
                     }}
-                    disabled={isAddingToWallet || !nodeRpcUrl}
+                    disabled={!nodeRpcUrl}
+                    loading={isAddingToWallet}
+                    loadingText="Adding..."
                   >
-                    {isAddingToWallet ? 'Adding...' : 'Add to Wallet & Switch'}
+                    Add to Wallet & Switch
+                    <HoverArrow />
                   </Button>
-
-                  {!nodeRpcUrl && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Your wallet can&apos;t reach localhost on a remote server. Enter the node&apos;s IP or domain in
-                      the reverse proxy step above, or choose &quot;This machine&quot; there if the node runs locally.
-                    </p>
-                  )}
-                  {nodeRpcUrl && nodeLocation === 'remote' && proxyHealthOk !== true && (
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Tip: run the proxy health check above first, so you don&apos;t add an unreachable URL to your
-                      wallet.
-                    </p>
-                  )}
-                  {walletRpcMismatch !== null && nodeRpcUrl && (
-                    <div className="text-xs p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">
-                      This chain is already in your wallet with a different RPC URL
-                      {walletRpcMismatch ? (
-                        <>
-                          {' '}
-                          (<code className="break-all">{walletRpcMismatch}</code>)
-                        </>
-                      ) : null}
-                      . Wallets don&apos;t let sites update it: open your wallet&apos;s network settings (Core: Settings
-                      &gt; Networks &gt; this chain) and set the RPC URL to{' '}
-                      <code className="break-all">{nodeRpcUrl}</code>.
-                    </div>
-                  )}
                 </div>
 
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
-                  Works with Core, MetaMask, and other EVM wallets connected via RainbowKit.
-                </p>
+                {!nodeRpcUrl && (
+                  <Notice icon={warnIcon}>
+                    Your wallet can&apos;t reach localhost on a remote server. Enter the node&apos;s IP or domain in the
+                    reverse proxy step above, or choose &quot;This machine&quot; there if the node runs locally.
+                  </Notice>
+                )}
+                {nodeRpcUrl && nodeLocation === 'remote' && proxyHealthOk !== true && (
+                  <p className={NOTE}>
+                    Tip: run the proxy health check above first, so you don&apos;t add an unreachable URL to your
+                    wallet.
+                  </p>
+                )}
+                {walletRpcMismatch !== null && nodeRpcUrl && (
+                  <Notice icon={warnIcon}>
+                    This chain is already in your wallet with a different RPC URL
+                    {walletRpcMismatch ? (
+                      <>
+                        {' '}
+                        (<code className="break-all font-mono">{walletRpcMismatch}</code>)
+                      </>
+                    ) : null}
+                    . Wallets don&apos;t let sites update it: open your wallet&apos;s network settings for this chain
+                    and set the RPC URL to <code className="break-all font-mono">{nodeRpcUrl}</code>.
+                  </Notice>
+                )}
+
+                <p className={NOTE}>Works with Core, MetaMask, and other EVM wallets connected via RainbowKit.</p>
               </Step>
             )}
           </>
@@ -1501,8 +1355,13 @@ ls -la ~/avalanche-backup/staking/`}
       </Steps>
 
       {configJson && !configJson.startsWith('Error:') && (
-        <div className="mt-6 flex justify-center">
-          <Button onClick={handleReset} variant="outline">
+        <div className="flex border-t border-zinc-200 pt-6 dark:border-zinc-800">
+          <Button
+            onClick={handleReset}
+            variant="outline"
+            className="w-auto"
+            icon={<RotateCcw className="h-3.5 w-3.5" />}
+          >
             Start Over
           </Button>
         </div>
@@ -1511,36 +1370,96 @@ ls -la ~/avalanche-backup/staking/`}
   );
 }
 
-/** Small presentational helper for the Advanced Settings number inputs. */
+/** A hairline board for a step with nothing to show yet. */
+function Empty({ label, action, children }: { label: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <p className={EYEBROW}>{label}</p>
+      <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">{children}</p>
+      {action}
+    </div>
+  );
+}
+
+/** One titled block inside the advanced settings panel. */
+function Section({ label, flush = false, children }: { label: string; flush?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={flush ? 'flex flex-col' : 'flex flex-col p-4'}>
+      <p className={cn(EYEBROW, flush ? 'px-4 pt-4' : 'mb-3')}>{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function Fields({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">{children}</div>;
+}
+
+/** A checkbox row; hovering it highlights its key in the config preview. */
+function Toggle({
+  path,
+  checked,
+  onChange,
+  label,
+  hint,
+  focusHighlight = false,
+}: {
+  path: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  hint?: React.ReactNode;
+  focusHighlight?: boolean;
+}) {
+  const { setHighlightPath, clearHighlight } = useGenesisHighlight();
+  return (
+    <div className="px-4 py-3" onMouseEnter={() => setHighlightPath(path)} onMouseLeave={clearHighlight}>
+      <label className="flex cursor-pointer items-center gap-2.5">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          {...(focusHighlight ? { onFocus: () => setHighlightPath(path), onBlur: clearHighlight } : {})}
+          className={CHECKBOX}
+        />
+        <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{label}</span>
+      </label>
+      {hint && <p className={cn(FIELD_HINT, 'ml-6 mt-1')}>{hint}</p>}
+    </div>
+  );
+}
+
+/** A labelled number input; hovering or focusing it highlights its key in the config preview. */
 function NumberField({
   label,
   path,
   value,
   onChange,
   hint,
-  setHighlightPath,
-  clearHighlight,
 }: {
   label: string;
   path: string;
   value: number;
   onChange: (v: number) => void;
   hint?: string;
-  setHighlightPath: (p: string) => void;
-  clearHighlight: () => void;
 }) {
+  const { setHighlightPath, clearHighlight } = useGenesisHighlight();
+  const id = `l1-${path}`;
   return (
-    <div onMouseEnter={() => setHighlightPath(path)} onMouseLeave={clearHighlight}>
-      <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">{label}</label>
+    <div className="flex flex-col gap-1.5" onMouseEnter={() => setHighlightPath(path)} onMouseLeave={clearHighlight}>
+      <label htmlFor={id} className={FIELD_LABEL}>
+        {label}
+      </label>
       <input
+        id={id}
         type="number"
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value) || 0)}
         onFocus={() => setHighlightPath(path)}
         onBlur={clearHighlight}
-        className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md dark:bg-zinc-800 dark:text-white"
+        className={INPUT}
       />
-      {hint && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{hint}</p>}
+      {hint && <p className={FIELD_HINT}>{hint}</p>}
     </div>
   );
 }

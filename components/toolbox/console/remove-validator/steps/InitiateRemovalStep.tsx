@@ -15,9 +15,7 @@ import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { ManagerTypeBadge } from '@/components/toolbox/console/add-validator/ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
 import { buildStepConfig, type ManagerCodeFlavor } from '../codeConfig';
-import versions from '@/scripts/versions.json';
-
-const ICM_COMMIT = versions['ava-labs/icm-services'];
+import { ActionPanel, StepLayout, Working } from '@/components/toolbox/console/shared/validator-flow-ui';
 
 function flavorFor(
   ownerType: ReturnType<typeof useValidatorManagerContext>['ownerType'],
@@ -75,123 +73,108 @@ export default function InitiateRemovalStep() {
     preflight.validatorData.sentNonce > preflight.validatorData.receivedNonce;
 
   const body = (
-    <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      <div className="p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold">Initiate Removal</h3>
-          <ManagerTypeBadge
-            ownerType={vmcCtx.ownerType}
-            stakingType={vmcCtx.staking.stakingType}
-            isDetecting={isDetecting}
-          />
-        </div>
+    <ActionPanel
+      label="Validator to remove"
+      action={
+        <ManagerTypeBadge
+          ownerType={vmcCtx.ownerType}
+          stakingType={vmcCtx.staking.stakingType}
+          isDetecting={isDetecting}
+        />
+      }
+      call={
+        isStaking
+          ? 'Calls initiateValidatorRemoval() · uptime path or force, picked for you'
+          : 'Calls initiateValidatorRemoval()'
+      }
+    >
+      {!store.subnetIdL1 && (
+        <Alert variant="warning">
+          No L1 subnet selected. Go back to <strong>Select L1 Subnet</strong> to choose one.
+        </Alert>
+      )}
 
-        {!store.subnetIdL1 && (
-          <Alert variant="warning">
-            No L1 subnet selected. Go back to <strong>Select L1 Subnet</strong> to choose one.
-          </Alert>
-        )}
+      {vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
 
-        {vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
-
-        {/* Stuck-in-PendingRemoved recovery path. Surfaced above the per-branch
+      {/* Stuck-in-PendingRemoved recovery path. Surfaced above the per-branch
             UI so the user sees it whether they're on PoA or PoS. The branch
             components below will still render and self-block via preflight,
             but the user has a clear "resend the warp" affordance here. */}
-        {isPendingPChainOp && validatorManagerAddress && (
-          <ResendRemovalMessage
-            validatorManagerAddress={validatorManagerAddress}
-            validationID={store.validationId}
-            onSuccess={(hash) => {
-              store.setEvmTxHash(hash);
-              store.setGlobalError(null);
-              store.setGlobalSuccess(
-                'Resent removal message. Continue to the P-Chain Weight Update step with this fresh transaction.',
-              );
-            }}
-            onError={(message) => store.setGlobalError(message)}
-          />
-        )}
+      {isPendingPChainOp && validatorManagerAddress && (
+        <ResendRemovalMessage
+          validatorManagerAddress={validatorManagerAddress}
+          validationID={store.validationId}
+          onSuccess={(hash) => {
+            store.setEvmTxHash(hash);
+            store.setGlobalError(null);
+            store.setGlobalSuccess(
+              'Resent removal message. Continue to the P-Chain Weight Update step with this fresh transaction.',
+            );
+          }}
+          onError={(message) => store.setGlobalError(message)}
+        />
+      )}
 
-        {!isDetecting && !vmcCtx.chainMismatch && (
-          <>
-            {isStaking ? (
-              <>
-                <SelectValidationID
-                  value={store.validationId}
-                  onChange={(selection) => {
-                    store.setValidationId(selection.validationId);
-                    store.setNodeId(selection.nodeId);
-                  }}
-                  format="hex"
-                  subnetId={store.subnetIdL1}
-                  // getValidator() lives on the VMC, not the StakingManager — for
-                  // composition-model L1s they're different contracts.
-                  validatorManagerAddress={validatorManagerAddress}
-                />
+      {isDetecting && !vmcCtx.chainMismatch && store.subnetIdL1 && <Working>Detecting validator manager</Working>}
 
-                {store.validationId && stakingManagerAddress && (
-                  <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
-                    <PosInitiateRemoval
-                      validationID={store.validationId}
-                      stakingManagerAddress={stakingManagerAddress}
-                      validatorManagerAddress={validatorManagerAddress}
-                      rpcUrl={rpcUrl}
-                      uptimeBlockchainID={uptimeBlockchainID}
-                      tokenType={tokenType}
-                      onSuccess={(data) => {
-                        store.setEvmTxHash(data.txHash);
-                        store.setGlobalError(null);
-                      }}
-                      onError={(message) => store.setGlobalError(message)}
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <PoAInitiateValidatorRemoval
-                subnetId={store.subnetIdL1 || ''}
-                validatorManagerAddress={vmcCtx.validatorManagerAddress}
-                resetForm={false}
-                initialNodeId={store.nodeId}
-                initialValidationId={store.validationId}
-                ownershipState={vmcCtx.ownershipStatus}
-                refetchOwnership={vmcCtx.refetchOwnership}
-                ownershipError={vmcCtx.ownershipError}
-                onSuccess={(data) => {
-                  store.setNodeId(data.nodeId);
-                  store.setValidationId(data.validationId);
-                  store.setEvmTxHash(data.txHash);
-                  store.setGlobalError(null);
+      {!isDetecting && !vmcCtx.chainMismatch && (
+        <>
+          {isStaking ? (
+            <>
+              <SelectValidationID
+                value={store.validationId}
+                onChange={(selection) => {
+                  store.setValidationId(selection.validationId);
+                  store.setNodeId(selection.nodeId);
                 }}
-                onError={(message) => store.setGlobalError(message)}
+                format="hex"
+                subnetId={store.subnetIdL1}
+                // getValidator() lives on the VMC, not the StakingManager — for
+                // composition-model L1s they're different contracts.
+                validatorManagerAddress={validatorManagerAddress}
               />
-            )}
-          </>
-        )}
-      </div>
-      <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
-        <span className="text-xs text-zinc-500">
-          {isStaking
-            ? 'Calls initiateValidatorRemoval() — uptime path or force, auto-selected'
-            : 'Calls initiateValidatorRemoval()'}
-        </span>
-        <a
-          href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
-        >
-          @{ICM_COMMIT.slice(0, 7)}
-        </a>
-      </div>
-    </div>
+
+              {store.validationId && stakingManagerAddress && (
+                <div className="-mx-5 border-t border-zinc-200 px-5 pt-5 md:-mx-6 md:px-6 dark:border-zinc-800">
+                  <PosInitiateRemoval
+                    validationID={store.validationId}
+                    stakingManagerAddress={stakingManagerAddress}
+                    validatorManagerAddress={validatorManagerAddress}
+                    rpcUrl={rpcUrl}
+                    uptimeBlockchainID={uptimeBlockchainID}
+                    tokenType={tokenType}
+                    onSuccess={(data) => {
+                      store.setEvmTxHash(data.txHash);
+                      store.setGlobalError(null);
+                    }}
+                    onError={(message) => store.setGlobalError(message)}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <PoAInitiateValidatorRemoval
+              subnetId={store.subnetIdL1 || ''}
+              validatorManagerAddress={vmcCtx.validatorManagerAddress}
+              resetForm={false}
+              initialNodeId={store.nodeId}
+              initialValidationId={store.validationId}
+              ownershipState={vmcCtx.ownershipStatus}
+              refetchOwnership={vmcCtx.refetchOwnership}
+              ownershipError={vmcCtx.ownershipError}
+              onSuccess={(data) => {
+                store.setNodeId(data.nodeId);
+                store.setValidationId(data.validationId);
+                store.setEvmTxHash(data.txHash);
+                store.setGlobalError(null);
+              }}
+              onError={(message) => store.setGlobalError(message)}
+            />
+          )}
+        </>
+      )}
+    </ActionPanel>
   );
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">{body}</div>
-      <StepCodeViewer activeStep={1} steps={stepConfig} className="lg:sticky lg:top-4 lg:self-start" />
-    </div>
-  );
+  return <StepLayout aside={<StepCodeViewer activeStep={1} steps={stepConfig} />}>{body}</StepLayout>;
 }

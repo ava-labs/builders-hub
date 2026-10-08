@@ -11,9 +11,7 @@ import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { ManagerTypeBadge } from '@/components/toolbox/console/add-validator/ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
 import { buildStepConfig, type ManagerCodeFlavor } from '../codeConfig';
-import versions from '@/scripts/versions.json';
-
-const ICM_COMMIT = versions['ava-labs/icm-services'];
+import { ActionPanel, StepLayout } from '@/components/toolbox/console/shared/validator-flow-ui';
 
 function flavorFor(
   ownerType: ReturnType<typeof useValidatorManagerContext>['ownerType'],
@@ -43,72 +41,58 @@ export default function CompleteRemovalStep() {
     vmcCtx.ownershipStatus === 'currentWallet' ? true : vmcCtx.ownershipStatus === 'differentEOA' ? false : null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Complete Removal</h2>
+    <StepLayout aside={<StepCodeViewer activeStep={3} steps={stepConfig} />}>
+      {vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
+      {isStaking && !coreWalletClient && (
+        <Alert variant="warning">P-Chain signature extraction needs Core or a Console wallet.</Alert>
+      )}
+      {!store.pChainTxId && (
+        <Alert variant="warning">
+          No P-Chain transaction ID from the previous step. Enter it below, or go back to{' '}
+          <strong>P-Chain Weight Update</strong>.
+        </Alert>
+      )}
+      <ActionPanel
+        label="Complete on the L1"
+        action={
           <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
-        </div>
-        {vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
-        {isStaking && !coreWalletClient && (
-          <Alert variant="warning">Core Wallet required for P-Chain signature extraction.</Alert>
+        }
+        call="Calls completeValidatorRemoval()"
+      >
+        {isStaking ? (
+          <StakingCompleteValidatorRemoval
+            validationID={store.validationId}
+            stakingManagerAddress={stakingManagerAddress}
+            tokenType={tokenType}
+            subnetIdL1={store.subnetIdL1}
+            signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+            pChainTxId={store.pChainTxId}
+            onSuccess={(data) => {
+              store.setGlobalSuccess(data.message);
+              store.setGlobalError(null);
+            }}
+            onError={(message) => store.setGlobalError(message)}
+          />
+        ) : (
+          <PoACompleteValidatorRemoval
+            subnetIdL1={store.subnetIdL1}
+            validationId={store.validationId}
+            pChainTxId={store.pChainTxId}
+            eventData={null}
+            isContractOwner={isContractOwner}
+            validatorManagerAddress={vmcCtx.validatorManagerAddress}
+            signingSubnetId={vmcCtx.signingSubnetId}
+            contractOwner={vmcCtx.contractOwner}
+            isLoadingOwnership={vmcCtx.isLoadingOwnership}
+            ownerType={vmcCtx.ownerType}
+            onSuccess={(message) => {
+              store.setGlobalSuccess(message);
+              store.setGlobalError(null);
+            }}
+            onError={(message) => store.setGlobalError(message)}
+          />
         )}
-        {!store.pChainTxId && (
-          <Alert variant="warning">
-            No P-Chain transaction ID from the previous step. You can enter it manually below, or go back to{' '}
-            <strong>P-Chain Weight Update</strong>.
-          </Alert>
-        )}
-        <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="p-4 space-y-3">
-            {isStaking ? (
-              <StakingCompleteValidatorRemoval
-                validationID={store.validationId}
-                stakingManagerAddress={stakingManagerAddress}
-                tokenType={tokenType}
-                subnetIdL1={store.subnetIdL1}
-                signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
-                pChainTxId={store.pChainTxId}
-                onSuccess={(data) => {
-                  store.setGlobalSuccess(data.message);
-                  store.setGlobalError(null);
-                }}
-                onError={(message) => store.setGlobalError(message)}
-              />
-            ) : (
-              <PoACompleteValidatorRemoval
-                subnetIdL1={store.subnetIdL1}
-                validationId={store.validationId}
-                pChainTxId={store.pChainTxId}
-                eventData={null}
-                isContractOwner={isContractOwner}
-                validatorManagerAddress={vmcCtx.validatorManagerAddress}
-                signingSubnetId={vmcCtx.signingSubnetId}
-                contractOwner={vmcCtx.contractOwner}
-                isLoadingOwnership={vmcCtx.isLoadingOwnership}
-                ownerType={vmcCtx.ownerType}
-                onSuccess={(message) => {
-                  store.setGlobalSuccess(message);
-                  store.setGlobalError(null);
-                }}
-                onError={(message) => store.setGlobalError(message)}
-              />
-            )}
-          </div>
-          <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
-            <span className="text-xs text-zinc-500">Calls completeValidatorRemoval()</span>
-            <a
-              href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
-            >
-              @{ICM_COMMIT.slice(0, 7)}
-            </a>
-          </div>
-        </div>
-      </div>
-      <StepCodeViewer activeStep={3} steps={stepConfig} className="lg:sticky lg:top-4 lg:self-start" />
-    </div>
+      </ActionPanel>
+    </StepLayout>
   );
 }

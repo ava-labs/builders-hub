@@ -16,6 +16,7 @@ import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { avalancheProvider } from '@/components/toolbox/coreViem';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -225,7 +226,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     setTxSuccess(null);
 
     if (isCoreWallet && !coreWalletClient) {
-      setErrorState('Core wallet not found');
+      setErrorState('Connect Core or a Console wallet to sign P-Chain transactions.');
       return;
     }
 
@@ -250,9 +251,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       return;
     }
     if (isCoreWallet) {
-      if (typeof window === 'undefined' || !window.avalanche) {
-        setErrorState('Core wallet not found. Please ensure Core is installed and active.');
-        onError('Core wallet not found. Please ensure Core is installed and active.');
+      if (!avalancheProvider()) {
+        setErrorState('Connect Core or a Console wallet to sign P-Chain transactions.');
+        onError('Connect Core or a Console wallet to sign P-Chain transactions.');
         return;
       }
       if (!pChainAddress) {

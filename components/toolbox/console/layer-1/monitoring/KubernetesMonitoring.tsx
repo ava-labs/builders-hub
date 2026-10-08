@@ -1,6 +1,6 @@
 'use client';
 
-import { Step } from 'fumadocs-ui/components/steps';
+import { Step } from '@/components/toolbox/components/Steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { AVALANCHE_DEPLOY_REPO } from './monitoringConfig';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import InitiateDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/InitiateDelegation';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import CompletePChainWeightUpdate from '@/components/toolbox/console/shared/CompletePChainWeightUpdate';
