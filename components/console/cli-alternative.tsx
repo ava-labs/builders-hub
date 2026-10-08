@@ -1,85 +1,110 @@
-"use client";
+'use client';
 
-import { useState, useCallback } from "react";
-import { Copy, Check } from "lucide-react";
+import { useCallback, useState } from 'react';
+import { ArrowUpRight, Check, Copy, Download } from 'lucide-react';
 
-interface CliAlternativeProps {
-  command: string;
+export interface CliDownload {
+  data: string;
+  filename: string;
+  label?: string;
 }
 
-export function CliAlternative({ command }: CliAlternativeProps) {
-  const [copied, setCopied] = useState(false);
+const HEADER_LINK =
+  'inline-flex shrink-0 items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100';
 
-  const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [command]);
+/** The CLI a command runs in, named after its first word. */
+const TOOLS = {
+  'platform-cli': { name: 'platform-cli', docs: 'https://github.com/ava-labs/platform-cli' },
+  cast: { name: 'cast', docs: 'https://getfoundry.sh/cast/reference/cast' },
+} as const;
 
-  // Parse into: base command + flag pairs
-  // Respect quoted strings so "My Chain" stays as one token
+/** Splits a command into its base and `--flag value` pairs, keeping quoted values like "My Chain" whole. */
+function parse(command: string) {
   const tokens = command.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
   const base: string[] = [];
   const flags: { flag: string; value?: string }[] = [];
   let i = 0;
-
-  while (i < tokens.length && !tokens[i].startsWith("--")) {
-    base.push(tokens[i]);
-    i++;
-  }
-
+  while (i < tokens.length && !tokens[i].startsWith('--')) base.push(tokens[i++]);
   while (i < tokens.length) {
-    if (tokens[i].startsWith("--")) {
+    if (tokens[i].startsWith('--')) {
       const flag = tokens[i];
-      const val = i + 1 < tokens.length && !tokens[i + 1].startsWith("--") ? tokens[++i] : undefined;
-      flags.push({ flag, value: val });
+      const value = i + 1 < tokens.length && !tokens[i + 1].startsWith('--') ? tokens[++i] : undefined;
+      flags.push({ flag, value });
     }
     i++;
   }
+  return { base, flags };
+}
 
-  const multiLine = false;
+function downloadFile({ data, filename }: CliDownload) {
+  const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * The command-line fallback every console tool shows under its in-browser action: one board, the command with its
+ * flags set apart, a copy button that is always there, and an optional file the command needs (a genesis, say).
+ */
+export function CliAlternative({ command, download }: { command: string; download?: CliDownload }) {
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(async () => {
+    await navigator.clipboard.writeText(command);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [command]);
+  const { base, flags } = parse(command);
+  const tool = TOOLS[base[0] as keyof typeof TOOLS] ?? TOOLS['platform-cli'];
 
   return (
-    <div>
-      <div className="flex items-center gap-3 my-4">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          or via CLI
-        </span>
-        <div className="flex-1 h-px bg-border" />
-      </div>
-
-      <div className="group relative rounded-lg bg-muted/50 border border-border px-4 py-3.5">
-        <button
-          onClick={handleCopy}
-          className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors"
-          aria-label="Copy command"
-        >
-          {copied ? (
-            <Check className="w-4 h-4 text-emerald-500" />
-          ) : (
-            <Copy className="w-4 h-4" />
+    <div className="border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/80">
+      <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+          Or with {tool.name}
+        </p>
+        <span className="flex items-center gap-4">
+          {download?.data && (
+            <button type="button" onClick={() => downloadFile(download)} className={HEADER_LINK}>
+              <Download className="h-3 w-3" />
+              {download.label || download.filename}
+            </button>
           )}
-        </button>
-
-        <pre className="text-sm font-mono leading-relaxed whitespace-pre-wrap break-all">
-          <span className="text-muted-foreground/50 select-none">$ </span>
-          <span className="text-foreground font-medium">{base.join(" ")}</span>
-          {flags.map((f, idx) => (
-            <span key={idx}>
-              {multiLine ? (
+          <a href={tool.docs} target="_blank" rel="noopener noreferrer" className={HEADER_LINK}>
+            Docs <ArrowUpRight className="h-3 w-3" />
+          </a>
+        </span>
+      </div>
+      <div className="flex items-start gap-3 px-4 py-3.5">
+        <pre className="min-w-0 flex-1 whitespace-pre-wrap break-all font-mono text-[12.5px] leading-relaxed">
+          <span className="select-none text-zinc-400 dark:text-zinc-600">$ </span>
+          <span className="text-zinc-900 dark:text-zinc-50">{base.join(' ')}</span>
+          {flags.map((f, i) => (
+            <span key={i}>
+              {' '}
+              <span className="text-zinc-500 dark:text-zinc-400">{f.flag}</span>
+              {f.value && (
                 <>
-                  {" "}
-                  <span className="text-muted-foreground/40 select-none">\</span>
-                  {"\n"}
-                  {"    "}
+                  {' '}
+                  <span className="text-[#0061E2] dark:text-[#5f9dff]">{f.value}</span>
                 </>
-              ) : " "}
-              <span className="text-muted-foreground">{f.flag}</span>
-              {f.value && <> <span className="text-primary">{f.value}</span></>}
+              )}
             </span>
           ))}
         </pre>
+        <button
+          type="button"
+          onClick={copy}
+          aria-label={copied ? 'Copied' : 'Copy command'}
+          title={copied ? 'Copied' : 'Copy command'}
+          className="-m-1 shrink-0 p-1 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
       </div>
     </div>
   );

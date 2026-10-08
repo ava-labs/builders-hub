@@ -135,18 +135,18 @@ export function ContractDeployViewer({
       <div>{children}</div>
 
       {/* Right: Source Code Viewer - Sticky on scroll */}
-      <div className="lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden h-[500px]">
+      <div className="lg:sticky lg:top-4 flex flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden h-[500px]">
         {/* Tab Bar */}
-        <div className="shrink-0 flex items-center gap-1 px-2 pt-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
+        <div className="shrink-0 flex items-center gap-5 px-4 border-b border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/40">
           {contracts.map((contract, i) => (
             <button
               key={contract.filename}
               onClick={() => setActiveTab(i)}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors",
+                "-mb-px flex items-center gap-2 border-b-2 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors",
                 activeTab === i
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 -mb-px"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                  : "border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
               )}
             >
               <FileCode className="w-4 h-4" />
@@ -160,11 +160,11 @@ export function ContractDeployViewer({
           {/* Actions */}
           <div className="flex items-center gap-1 pb-2">
             {/* Font size controls */}
-            <div className="flex items-center gap-0.5 mr-1 px-1 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+            <div className="mr-1 flex items-center border border-zinc-200 dark:border-zinc-800">
               <button
                 onClick={() => adjustFontSize(-1)}
                 disabled={fontSize === FONT_SIZES[0]}
-                className="p-1.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-100"
                 title="Decrease font size"
               >
                 <Minus className="w-3 h-3" />
@@ -175,7 +175,7 @@ export function ContractDeployViewer({
               <button
                 onClick={() => adjustFontSize(1)}
                 disabled={fontSize === FONT_SIZES[FONT_SIZES.length - 1]}
-                className="p-1.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-100"
                 title="Increase font size"
               >
                 <Plus className="w-3 h-3" />
@@ -183,16 +183,16 @@ export function ContractDeployViewer({
             </div>
             <button
               onClick={handleCopy}
-              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+              className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               title="Copy source"
             >
-              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
             <a
               href={activeContract?.url.replace("/raw/", "/blob/").replace("raw.githubusercontent.com", "github.com")}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+              className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               title="View on GitHub"
             >
               <ExternalLink className="w-4 h-4" />
@@ -205,7 +205,7 @@ export function ContractDeployViewer({
           {isLoading ? (
             <div className="flex items-center justify-center w-full">
               <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-                <div className="w-4 h-4 border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-600 dark:border-t-zinc-300 rounded-full animate-spin" />
+                <div className="h-3.5 w-3.5 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin dark:border-zinc-700 dark:border-t-zinc-300" />
                 <span className="text-sm">Loading source...</span>
               </div>
             </div>
@@ -278,7 +278,7 @@ export function ContractDeployViewer({
 
         {/* Footer with contract info */}
         {activeContract?.description && (
-          <div className="shrink-0 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200/80 dark:border-zinc-800">
+          <div className="shrink-0 px-4 py-3 border-t border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/40">
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {activeContract.description}
             </p>

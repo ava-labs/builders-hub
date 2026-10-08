@@ -2,36 +2,11 @@
 
 import type React from 'react';
 
-import { useState, type InputHTMLAttributes } from 'react';
+import { useState } from 'react';
 import { cn } from '../lib/utils';
+import { RawInput } from './Input';
 
-interface RawInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  error?: string | null | React.ReactNode;
-}
-
-function RawInput({ className, error, ...props }: RawInputProps) {
-  return (
-    <input
-      className={cn(
-        'w-full rounded-md px-3 py-2.5',
-        'bg-white dark:bg-zinc-900',
-        'border-1',
-        error
-          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30'
-          : 'border-zinc-300 dark:border-zinc-700 focus:border-primary focus:ring-primary/30',
-        'text-zinc-900 dark:text-zinc-100',
-        'placeholder:text-zinc-400 dark:placeholder:text-zinc-500',
-        'shadow-sm',
-        'transition-colors duration-200',
-        'focus:outline-none focus:ring-2',
-        '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-        props.disabled ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed' : '',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
+type RawInputProps = Omit<React.ComponentProps<typeof RawInput>, 'hasSuggestions'>;
 
 interface AmountInputProps extends Omit<RawInputProps, 'onChange'> {
   label: string;
@@ -62,12 +37,15 @@ export function AmountInput({
   };
 
   return (
-    <div className="space-y-2 mb-6">
+    <div className="mb-6 space-y-2">
       <div className="flex items-center justify-between gap-1">
-        <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label
+          htmlFor={id}
+          className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+        >
           {label}
         </label>
-        <div className="text-xs text-zinc-500 dark:text-zinc-400">Max: {props.max}</div>
+        <div className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">Max: {props.max}</div>
       </div>
 
       <div className="relative">
@@ -76,7 +54,7 @@ export function AmountInput({
             id={id}
             value={inputValue}
             onChange={handleChange}
-            className={cn('flex-1', unit ? 'pr-12' : '', button ? 'rounded-r-none' : '', className)}
+            className={cn('flex-1', unit ? 'pr-12' : '', className)}
             error={error}
             {...props}
           />
@@ -84,15 +62,17 @@ export function AmountInput({
         </div>
         {unit && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 pointer-events-none">{unit}</span>
+            <span className="pointer-events-none font-mono text-[11px] uppercase tracking-[0.1em] text-zinc-400">
+              {unit}
+            </span>
           </div>
         )}
       </div>
 
       {error ? (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
+        <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>
       ) : helperText ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{helperText}</p>
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{helperText}</p>
       ) : null}
     </div>
   );

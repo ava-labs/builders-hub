@@ -33,12 +33,12 @@ export function Tooltip({ children, content, position = 'top', delay = 400 }: To
   };
 
   const arrowStyles = {
-    top: 'border-t-gray-800 dark:border-t-gray-700 border-l-transparent border-r-transparent border-b-transparent bottom-[-4px] left-1/2 transform -translate-x-1/2',
+    top: 'border-t-zinc-900 dark:border-t-zinc-100 border-l-transparent border-r-transparent border-b-transparent bottom-[-4px] left-1/2 transform -translate-x-1/2',
     bottom:
-      'border-b-gray-800 dark:border-b-gray-700 border-l-transparent border-r-transparent border-t-transparent top-[-4px] left-1/2 transform -translate-x-1/2',
-    left: 'border-l-gray-800 dark:border-l-gray-700 border-t-transparent border-b-transparent border-r-transparent right-[-4px] top-1/2 transform -translate-y-1/2',
+      'border-b-zinc-900 dark:border-b-zinc-100 border-l-transparent border-r-transparent border-t-transparent top-[-4px] left-1/2 transform -translate-x-1/2',
+    left: 'border-l-zinc-900 dark:border-l-zinc-100 border-t-transparent border-b-transparent border-r-transparent right-[-4px] top-1/2 transform -translate-y-1/2',
     right:
-      'border-r-gray-800 dark:border-r-gray-700 border-t-transparent border-b-transparent border-l-transparent left-[-4px] top-1/2 transform -translate-y-1/2',
+      'border-r-zinc-900 dark:border-r-zinc-100 border-t-transparent border-b-transparent border-l-transparent left-[-4px] top-1/2 transform -translate-y-1/2',
   };
 
   return (
@@ -46,7 +46,7 @@ export function Tooltip({ children, content, position = 'top', delay = 400 }: To
       {children}
       {active && (
         <div
-          className={`absolute z-50 px-2 py-1 text-xs font-medium text-white bg-gray-800 dark:bg-gray-700 rounded shadow-md whitespace-nowrap transition-opacity duration-200 ${positionStyles[position]}`}
+          className={`absolute z-50 whitespace-nowrap bg-zinc-900 px-2 py-1 font-mono text-[10.5px] font-medium tracking-[0.04em] text-white dark:bg-zinc-100 dark:text-zinc-900 transition-opacity duration-200 ${positionStyles[position]}`}
         >
           {content}
           <span className={`absolute w-0 h-0 border-4 ${arrowStyles[position]}`}></span>

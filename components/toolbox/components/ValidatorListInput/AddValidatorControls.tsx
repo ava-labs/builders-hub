@@ -213,33 +213,54 @@ export function AddValidatorControls({
 
   return (
     <div className="space-y-4 pt-2">
-      <div className="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-700">
-        <span className="text-base font-medium text-zinc-800 dark:text-zinc-200">Add Validator</span>
+      <div className="flex items-center justify-between border-b border-zinc-200 pb-1 dark:border-zinc-800">
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          Add Validator
+        </span>
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'managed' | 'json' | 'manual')}>
-        <TabsList className={`grid w-full ${isTestnet ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          {isTestnet && <TabsTrigger value="managed">Managed Node</TabsTrigger>}
-          <TabsTrigger value="json">API Response</TabsTrigger>
-          <TabsTrigger value="manual">Manual Input</TabsTrigger>
+        <TabsList
+          className={`grid h-auto w-full rounded-none border-b border-zinc-200 bg-transparent p-0 dark:border-zinc-800 ${isTestnet ? 'grid-cols-3' : 'grid-cols-2'}`}
+        >
+          {isTestnet && (
+            <TabsTrigger
+              value="managed"
+              className="rounded-none border-b-2 border-transparent px-3 py-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 hover:text-zinc-900 focus-visible:ring-0 data-[state=active]:border-zinc-900 data-[state=active]:bg-transparent data-[state=active]:text-zinc-900 data-[state=active]:shadow-none dark:text-zinc-400 dark:hover:text-zinc-100 dark:data-[state=active]:border-zinc-100 dark:data-[state=active]:text-zinc-100"
+            >
+              Managed Node
+            </TabsTrigger>
+          )}
+          <TabsTrigger
+            value="json"
+            className="rounded-none border-b-2 border-transparent px-3 py-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 hover:text-zinc-900 focus-visible:ring-0 data-[state=active]:border-zinc-900 data-[state=active]:bg-transparent data-[state=active]:text-zinc-900 data-[state=active]:shadow-none dark:text-zinc-400 dark:hover:text-zinc-100 dark:data-[state=active]:border-zinc-100 dark:data-[state=active]:text-zinc-100"
+          >
+            API Response
+          </TabsTrigger>
+          <TabsTrigger
+            value="manual"
+            className="rounded-none border-b-2 border-transparent px-3 py-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 hover:text-zinc-900 focus-visible:ring-0 data-[state=active]:border-zinc-900 data-[state=active]:bg-transparent data-[state=active]:text-zinc-900 data-[state=active]:shadow-none dark:text-zinc-400 dark:hover:text-zinc-100 dark:data-[state=active]:border-zinc-100 dark:data-[state=active]:text-zinc-100"
+          >
+            Manual Input
+          </TabsTrigger>
         </TabsList>
 
         {isTestnet && (
           <TabsContent value="managed" className="space-y-4">
             {!managedNodesLoaded ? (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">Loading managed testnet nodes...</div>
+              <div className="text-[13px] text-zinc-500 dark:text-zinc-400">Loading managed testnet nodes...</div>
             ) : filteredManagedNodes.length === 0 ? (
               <div className="space-y-3">
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="text-[13px] text-zinc-500 dark:text-zinc-400">
                   No managed testnet nodes found for the selected Subnet.
                 </div>
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="text-[13px] text-zinc-500 dark:text-zinc-400">
                   Need a managed testnet node? Visit{' '}
                   <a
                     href="/console/testnet-infra/nodes"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                    className="font-medium text-zinc-900 underline underline-offset-4 hover:decoration-[#E6212F] dark:text-zinc-100"
                   >
                     Free Testnet Infrastructure
                   </a>{' '}
@@ -251,21 +272,21 @@ export function AddValidatorControls({
                 {filteredManagedNodes.map((node) => (
                   <div
                     key={node.id}
-                    className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md p-3"
+                    className="flex items-center justify-between gap-3 border border-zinc-200 bg-white p-3 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
                   >
                     <div className="min-w-0 space-y-0.5">
-                      <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100 truncate leading-tight">
+                      <div className="truncate font-mono text-[12px] leading-tight text-zinc-900 dark:text-zinc-100">
                         {node.node_id}
                       </div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight">
+                      <div className="truncate text-[12px] leading-tight text-zinc-500 dark:text-zinc-400">
                         {node.chain_name ? `${node.chain_name} — ` : ''}Subnet: {node.subnet_id || 'unknown'}
                       </div>
                       {node.public_key && node.proof_of_possession ? (
-                        <div className="text-xs text-green-600 dark:text-green-400 leading-tight">
+                        <div className="text-[12px] leading-tight text-emerald-700 dark:text-emerald-400">
                           BLS PoP available
                         </div>
                       ) : (
-                        <div className="text-xs text-amber-600 dark:text-amber-400 leading-tight">
+                        <div className="text-[12px] leading-tight text-amber-700 dark:text-amber-400">
                           BLS info not available; paste JSON or enter manually
                         </div>
                       )}
@@ -287,23 +308,23 @@ export function AddValidatorControls({
         )}
 
         <TabsContent value="json" className="space-y-4">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
             Click the copy button to copy the command and run it in your node's terminal to get the node credentials.
           </p>
           <DynamicCodeBlock code={rpcCommand} lang="zsh" />
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Paste the JSON response below:</p>
+          <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Paste the JSON response below:</p>
           <textarea
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
             placeholder='{"jsonrpc":"2.0","result":{"nodeID":"...","nodePOP":{"publicKey":"...",  "proofOfPossession":"..."}},"id":1}'
             rows={4}
             className={cn(
-              'w-full rounded-md p-3 font-mono text-sm',
-              'bg-white dark:bg-zinc-900',
-              'border border-zinc-300 dark:border-zinc-600',
+              'w-full rounded-none p-3 font-mono text-[12px]',
+              'bg-white dark:bg-zinc-950',
+              'border border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
               'text-zinc-900 dark:text-zinc-100',
-              'shadow-sm focus:ring focus:ring-blue-400/20 focus:border-blue-400/60 focus:outline-none',
-              'placeholder:text-zinc-400 dark:placeholder:text-zinc-500',
+              'transition-colors focus:outline-none',
+              'placeholder:text-zinc-400 dark:placeholder:text-zinc-600',
             )}
           />
           <div className="pt-2">
@@ -322,34 +343,38 @@ export function AddValidatorControls({
         <TabsContent value="manual" className="space-y-4">
           <div className="space-y-3">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Node ID</label>
+              <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                Node ID
+              </label>
               <Input
                 type="text"
                 value={manualNodeID}
                 onChange={(e) => setManualNodeID(e.target.value)}
-                className="font-mono text-sm"
+                className="h-10 rounded-none border-zinc-200 bg-white font-mono text-[12px] text-zinc-900 shadow-none hover:border-zinc-400 focus-visible:border-zinc-900 focus-visible:ring-0 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-300"
                 placeholder="NodeID-…"
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">BLS Public Key</label>
+              <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                BLS Public Key
+              </label>
               <Input
                 type="text"
                 value={manualPublicKey}
                 onChange={(e) => setManualPublicKey(e.target.value)}
-                className="font-mono text-sm"
+                className="h-10 rounded-none border-zinc-200 bg-white font-mono text-[12px] text-zinc-900 shadow-none hover:border-zinc-400 focus-visible:border-zinc-900 focus-visible:ring-0 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-300"
                 placeholder="0x…"
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
                 BLS Proof of Possession
               </label>
               <Input
                 type="text"
                 value={manualProof}
                 onChange={(e) => setManualProof(e.target.value)}
-                className="font-mono text-sm"
+                className="h-10 rounded-none border-zinc-200 bg-white font-mono text-[12px] text-zinc-900 shadow-none hover:border-zinc-400 focus-visible:border-zinc-900 focus-visible:ring-0 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-300"
                 placeholder="0x…"
               />
             </div>
@@ -363,7 +388,7 @@ export function AddValidatorControls({
       </Tabs>
 
       {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400">
+        <div className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300">
           {error}
         </div>
       )}

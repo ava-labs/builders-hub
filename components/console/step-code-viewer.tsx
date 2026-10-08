@@ -241,7 +241,7 @@ export function StepCodeViewer({
 
   if (!displayStep) {
     return (
-      <div className={cn("lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-6", className)}>
+      <div className={cn("lg:sticky lg:top-4 flex flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-6", className)}>
         <div className="text-center text-zinc-500 dark:text-zinc-400">
           <Code2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">No code to display for this step</p>
@@ -253,17 +253,17 @@ export function StepCodeViewer({
   const stepIndex = steps.findIndex(s => s.id === displayStep.id);
 
   return (
-    <div className={cn("lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden", className)}>
+    <div className={cn("lg:sticky lg:top-4 flex flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden", className)}>
       {/* Header - Shows current step info */}
-      <div className="shrink-0 flex items-center gap-2 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
+      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/40">
         {/* Step indicator */}
-        <span className="w-6 h-6 rounded-full bg-violet-500 text-white flex items-center justify-center text-xs font-bold">
+        <span className="flex h-6 w-6 items-center justify-center border border-zinc-900 font-mono text-[11px] font-bold tabular-nums text-zinc-900 dark:border-zinc-100 dark:text-zinc-100">
           {stepIndex + 1}
         </span>
 
         {/* Language icon */}
         {displayStep.codeType === "typescript" ? (
-          <Code2 className="w-4 h-4 text-violet-500" />
+          <Code2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
         ) : (
           <FileCode className="w-4 h-4 text-amber-500" />
         )}
@@ -276,35 +276,35 @@ export function StepCodeViewer({
         <div className="flex-1" />
 
         {/* Controls */}
-        <div className="flex items-center gap-0.5 px-1 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+        <div className="flex items-center border border-zinc-200 dark:border-zinc-800">
           <button
             onClick={() => adjustFontSize(-1)}
             disabled={fontSize === FONT_SIZES[0]}
-            className="p-1.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-30 transition-colors"
+            className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             <Minus className="w-3 h-3" />
           </button>
-          <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 w-6 text-center">{fontSize}</span>
+          <span className="w-6 border-x border-zinc-200 text-center font-mono text-[10px] tabular-nums text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">{fontSize}</span>
           <button
             onClick={() => adjustFontSize(1)}
             disabled={fontSize === FONT_SIZES[FONT_SIZES.length - 1]}
-            className="p-1.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-30 transition-colors"
+            className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             <Plus className="w-3 h-3" />
           </button>
         </div>
         <button
           onClick={handleCopy}
-          className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+          className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
         >
-          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+          {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
         </button>
         {displayStep.githubUrl && (
           <a
             href={displayStep.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+            className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             <ExternalLink className="w-4 h-4" />
           </a>
@@ -315,10 +315,10 @@ export function StepCodeViewer({
       <div className="px-4 py-2 bg-zinc-50/50 dark:bg-zinc-800/30 border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center gap-2">
           <span className={cn(
-            "px-2 py-0.5 text-[10px] font-mono rounded",
+            "border px-2 py-0.5 font-mono text-[10px]",
             displayStep.codeType === "typescript"
-              ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
-              : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+              ? "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+              : "border-amber-200 text-amber-700 dark:border-amber-900/60 dark:text-amber-400"
           )}>
             {displayStep.filename}
           </span>
@@ -333,8 +333,8 @@ export function StepCodeViewer({
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-              <div className="w-4 h-4 border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-600 dark:border-t-zinc-300 rounded-full animate-spin" />
-              <span className="text-sm">Loading source...</span>
+              <div className="h-3.5 w-3.5 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin dark:border-zinc-700 dark:border-t-zinc-300" />
+              <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]">Loading source…</span>
             </div>
           </div>
         ) : (
@@ -346,10 +346,10 @@ export function StepCodeViewer({
                   <div className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
                     <span
                       className={cn(
-                        "text-[10px] font-mono px-1.5 py-0.5 rounded",
+                        "border px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]",
                         idx === 0
-                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                          : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                          ? "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                          : "border-amber-200 text-amber-700 dark:border-amber-900/60 dark:text-amber-400"
                       )}
                     >
                       {block.label}

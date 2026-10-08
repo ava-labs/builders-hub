@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
-import { getFlowMetadata, type FlowMetadata } from "@/components/console/console-flows";
-import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
-import { ChainGate } from "@/components/toolbox/components/ChainGate";
-import { sectionContainer, sectionItem } from "@/components/console/motion";
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { FlowCompletionModal, type FlowCompletionAction } from './flow-completion-modal';
+import { getFlowMetadata, type FlowMetadata } from '@/components/console/console-flows';
+import { StepErrorBoundary } from '@/components/toolbox/components/StepErrorBoundary';
+import { ChainGate } from '@/components/toolbox/components/ChainGate';
+import { sectionContainer, sectionItem } from '@/components/console/motion';
 
 /**
  * Chain requirement for a step. StepFlow checks the wallet's active chain
@@ -20,15 +20,17 @@ import { sectionContainer, sectionItem } from "@/components/console/motion";
  * - 'c-chain': must be on C-Chain (43114 mainnet / 43113 fuji)
  * - 'l1': must be on the user's L1 (created L1 list entry, genesis chainId, then createChainStore fallback)
  */
-export type RequiredChain = "any" | "p-chain" | "c-chain" | "l1";
+export type RequiredChain = 'any' | 'p-chain' | 'c-chain' | 'l1';
 
 type SingleStep = {
-  type: "single";
+  type: 'single';
   key: string;
   title: string;
   optional?: boolean;
   component: React.ComponentType;
   requiredChain?: RequiredChain;
+  /** True once the step's work is really done (its tx landed, its ID is saved), whatever button the user left by. */
+  isComplete?: () => boolean;
 };
 
 type BranchOption = {
@@ -38,15 +40,45 @@ type BranchOption = {
 };
 
 type BranchStep = {
-  type: "branch";
+  type: 'branch';
   key: string;
   title: string;
   optional?: boolean;
   options: BranchOption[];
   requiredChain?: RequiredChain;
+  isComplete?: () => boolean;
 };
 
 export type StepDefinition = SingleStep | BranchStep;
+
+/* A step counts as done once the user leaves it with Next (or Finish), not merely because a later step is open:
+   jumping ahead from the step list leaves the steps in between undone. Kept per flow in localStorage. */
+const progressKey = (basePath: string) => `step-flow:done:${basePath}`;
+
+function readProgress(basePath: string): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(progressKey(basePath)) ?? '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeProgress(basePath: string, done: Set<string>) {
+  try {
+    localStorage.setItem(progressKey(basePath), JSON.stringify([...done]));
+  } catch {
+    /* storage disabled: progress lasts for this page only */
+  }
+}
+
+/** Forget which steps of a flow were completed, for a fresh run of it. */
+export function clearStepFlowProgress(basePath: string) {
+  try {
+    localStorage.removeItem(progressKey(basePath));
+  } catch {
+    /* ignore */
+  }
+}
 
 type StepFlowProps = {
   steps: StepDefinition[];
@@ -118,7 +150,7 @@ export default function StepFlow({
   transactionHash,
   explorerUrl,
   completionActions,
-  finishLabel = "Finish",
+  finishLabel = 'Finish',
   onNavigate,
   compact,
   aboveBody,
@@ -126,6 +158,24 @@ export default function StepFlow({
 }: StepFlowProps) {
   const router = useRouter();
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+  const [done, setDone] = useState<Set<string>>(() => new Set());
+  // Progress and isComplete read browser storage, so both wait for mount: the server and first client render agree.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setDone(readProgress(basePath));
+    setMounted(true);
+  }, [basePath]);
+  const markDone = useCallback(
+    (key: string) => {
+      setDone((prev) => {
+        if (prev.has(key)) return prev;
+        const next = new Set(prev).add(key);
+        writeProgress(basePath, next);
+        return next;
+      });
+    },
+    [basePath],
+  );
 
   // Get flow metadata for completion modal
   const flowMetadata = useMemo(() => {
@@ -151,7 +201,7 @@ export default function StepFlow({
         onFinish();
         return;
       }
-      router.push("/console");
+      router.push('/console');
     }
   }, [onFinish, onNavigate, showCompletionModal, flowMetadata, router]);
 
@@ -168,25 +218,25 @@ export default function StepFlow({
   // Find which step we're on - could be a single step or a branch option
   const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {
     // First check if it's a single step
-    const singleStepIndex = steps.findIndex((s) => s.type === "single" && s.key === currentStepKey);
+    const singleStepIndex = steps.findIndex((s) => s.type === 'single' && s.key === currentStepKey);
     if (singleStepIndex !== -1) {
       return {
         currentIndex: singleStepIndex,
         currentStep: steps[singleStepIndex],
-        selectedBranchOption: undefined
+        selectedBranchOption: undefined,
       };
     }
 
     // Check if it's a branch option
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
-      if (step.type === "branch") {
-        const option = step.options.find(opt => opt.key === currentStepKey);
+      if (step.type === 'branch') {
+        const option = step.options.find((opt) => opt.key === currentStepKey);
         if (option) {
           return {
             currentIndex: i,
             currentStep: step,
-            selectedBranchOption: option
+            selectedBranchOption: option,
           };
         }
       }
@@ -204,7 +254,7 @@ export default function StepFlow({
   const atLast = currentIndex >= totalSteps - 1;
 
   const CurrentComponent = useMemo(() => {
-    if (currentStep.type === "single") return currentStep.component;
+    if (currentStep.type === 'single') return currentStep.component;
     // For branch steps, use the selected option's component
     return selectedBranchOption?.component || currentStep.options[0].component;
   }, [currentStep, selectedBranchOption]);
@@ -214,7 +264,7 @@ export default function StepFlow({
     const prevStep = steps[currentIndex - 1];
 
     // When navigating back from any step, we need to determine the appropriate destination
-    if (prevStep.type === "single") {
+    if (prevStep.type === 'single') {
       return `${basePath}/${prevStep.key}`;
     } else {
       // For branch steps, we should go to the first option by default
@@ -228,7 +278,7 @@ export default function StepFlow({
     const nextStep = steps[currentIndex + 1];
 
     // When navigating forward, determine the appropriate destination
-    if (nextStep.type === "single") {
+    if (nextStep.type === 'single') {
       return `${basePath}/${nextStep.key}`;
     } else {
       // For branch steps, go to the first option by default
@@ -239,138 +289,187 @@ export default function StepFlow({
   // Helper: renders Link or button depending on onNavigate mode
   const NavEl = useMemo(() => {
     if (onNavigate) {
-      return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
-        <button type="button" onClick={() => onNavigate(stepKey)} className={cls}>{children}</button>
+      return ({
+        stepKey,
+        className: cls,
+        children,
+      }: {
+        stepKey: string;
+        className?: string;
+        children: React.ReactNode;
+      }) => (
+        <button type="button" onClick={() => onNavigate(stepKey)} className={cls}>
+          {children}
+        </button>
       );
     }
-    return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
-      <Link href={`${basePath}/${stepKey}`} className={cls}>{children}</Link>
+    return ({
+      stepKey,
+      className: cls,
+      children,
+    }: {
+      stepKey: string;
+      className?: string;
+      children: React.ReactNode;
+    }) => (
+      <Link href={`${basePath}/${stepKey}`} className={cls}>
+        {children}
+      </Link>
     );
   }, [onNavigate, basePath]);
 
   // Extract step key for navigation (handles branch steps)
   const getStepNavKey = (step: StepDefinition): string => {
-    return step.type === "single" ? step.key : step.options[0].key;
+    return step.type === 'single' ? step.key : step.options[0].key;
   };
 
-  return (
-    <motion.div
-      className={className}
-      variants={sectionContainer}
-      initial="hidden"
-      animate="visible"
-      data-console-flow
-    >
-      <motion.nav className={compact ? "mb-3" : "mb-6"} variants={sectionItem}>
-        <div className="flex items-center gap-3">
-          <ol className="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm">
-          {steps.map((s, stepIdx) => {
-            const isDoneStep = stepIdx < currentIndex;
-            const isActiveStep = stepIdx === currentIndex;
+  const stepTitle = (s: StepDefinition) =>
+    s.type === 'single' ? s.title : (s.options.find((o) => o.key === selectedBranchOption?.key)?.label ?? s.title);
+  const nextStep = atLast ? null : steps[currentIndex + 1];
+  const nextTitle = nextStep ? (nextStep.type === 'single' ? nextStep.title : nextStep.options[0].label) : null;
+  const goTo = (step: StepDefinition) => onNavigate?.(getStepNavKey(step));
 
-            if (s.type === "single") {
+  type Status = 'done' | 'active' | 'skipped' | 'upcoming';
+  const statusOf = (s: StepDefinition, i: number): Status =>
+    i === currentIndex
+      ? 'active'
+      : done.has(s.key) || (mounted && s.isComplete?.())
+        ? 'done'
+        : i < currentIndex && !s.optional
+          ? 'skipped'
+          : 'upcoming';
+  const SKIPPED_TITLE = 'Not completed yet: you moved past this step before finishing it.';
+  const leaveWithNext = () => markDone(currentStep.key);
+
+  const BTN =
+    'inline-flex h-10 items-center gap-2 border px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors';
+  const BTN_GHOST =
+    'border-zinc-300 text-zinc-700 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50';
+  const BTN_INK =
+    'border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300';
+
+  return (
+    <motion.div className={className} variants={sectionContainer} initial="hidden" animate="visible" data-console-flow>
+      <motion.nav
+        aria-label="Steps"
+        className={cn('nav-plain flex flex-col', compact ? 'mb-4 gap-2' : 'mb-8 gap-3')}
+        variants={sectionItem}
+      >
+        <div className="flex items-center gap-3">
+          <p className="min-w-0 flex-1 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+            Step <span className="text-zinc-900 dark:text-zinc-50">{currentIndex + 1}</span> of {totalSteps}
+            <span className="mx-2 text-zinc-300 dark:text-zinc-700">/</span>
+            <span className="text-zinc-900 dark:text-zinc-50">{stepTitle(currentStep)}</span>
+          </p>
+          {navTrailing && <div className="shrink-0">{navTrailing}</div>}
+        </div>
+
+        {/* One segment per step: done in ink, current in red, passed-but-unfinished in amber, the rest grey. */}
+        <div className="flex gap-1" aria-hidden>
+          {steps.map((s, i) => {
+            const status = statusOf(s, i);
+            return (
+              // The colour sits on an inner span: the nav's plain-link reset clears backgrounds on its anchors.
+              <NavEl key={s.key} stepKey={getStepNavKey(s)} className="group/seg block flex-1">
+                <span
+                  className={cn(
+                    'block h-1 transition-colors',
+                    status === 'done' &&
+                      'bg-zinc-900 group-hover/seg:bg-zinc-600 dark:bg-zinc-100 dark:group-hover/seg:bg-zinc-400',
+                    status === 'active' && 'bg-[#E6212F]',
+                    status === 'skipped' && 'bg-amber-400 group-hover/seg:bg-amber-500 dark:bg-amber-500/80',
+                    status === 'upcoming' &&
+                      'bg-zinc-200 group-hover/seg:bg-zinc-300 dark:bg-zinc-800 dark:group-hover/seg:bg-zinc-700',
+                  )}
+                />
+                <span className="sr-only">{stepTitle(s)}</span>
+              </NavEl>
+            );
+          })}
+        </div>
+
+        {!compact && (
+          <ol className="-mx-1 flex gap-x-5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+            {steps.map((s, stepIdx) => {
+              const status = statusOf(s, stepIdx);
+              const isDoneStep = status === 'done';
+              const isActiveStep = status === 'active';
+              const isSkipped = status === 'skipped';
+              const items =
+                s.type === 'single'
+                  ? [{ key: s.key, label: s.title }]
+                  : s.options.map((o) => ({ key: o.key, label: o.label }));
               return (
-                <li key={s.key} className="flex items-center gap-3">
-                  <NavEl
-                    stepKey={s.key}
+                <li
+                  key={s.key}
+                  className="flex shrink-0 items-baseline gap-1.5"
+                  title={isSkipped ? SKIPPED_TITLE : undefined}
+                >
+                  <span
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
+                      'font-mono text-[10px] font-bold tabular-nums',
                       isActiveStep
-                        ? "border-primary text-primary"
+                        ? 'text-[#E6212F]'
                         : isDoneStep
-                          ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
-                          : "border-border text-muted-foreground",
-                      s.optional ? "border-dashed" : "",
+                          ? 'text-zinc-900 dark:text-zinc-100'
+                          : isSkipped
+                            ? 'text-amber-500'
+                            : 'text-zinc-400 dark:text-zinc-600',
                     )}
                   >
-                    <span
-                      className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full text-xs",
-                        isActiveStep
-                          ? "bg-primary text-primary-foreground"
-                          : isDoneStep
-                            ? "bg-green-500 text-white"
-                            : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
-                    </span>
-                    <span>{s.title}</span>
-                  </NavEl>
-                  {stepIdx < steps.length - 1 && (
-                    <span className="text-muted-foreground/50 ml-3">→</span>
-                  )}
-                </li>
-              );
-            } else {
-              // Branch step
-              return (
-                <li key={s.key} className="flex items-center gap-3">
-                  <div className="flex flex-col items-center gap-2">
-                    {s.options.map((opt, optIdx) => {
-                      const isOptionActive = isActiveStep && selectedBranchOption?.key === opt.key;
-                      return (
-                        <React.Fragment key={opt.key}>
+                    {isDoneStep ? (
+                      <Check className="inline h-3 w-3 -translate-y-px" aria-label="Completed" />
+                    ) : isSkipped ? (
+                      <AlertTriangle className="inline h-3 w-3 -translate-y-px" aria-label="Not completed" />
+                    ) : (
+                      String(stepIdx + 1).padStart(2, '0')
+                    )}
+                  </span>
+                  {items.map((it, i) => {
+                    const on = isActiveStep && (s.type === 'single' || selectedBranchOption?.key === it.key);
+                    return (
+                      <React.Fragment key={it.key}>
+                        {i > 0 && <span className="text-[12px] text-zinc-400">or</span>}
+                        {/* The span keeps the link out of the global `nav li > a` hover colour, so its own applies. */}
+                        <span>
                           <NavEl
-                            stepKey={opt.key}
+                            stepKey={it.key}
                             className={cn(
-                              "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
-                              isOptionActive
-                                ? "border-primary text-primary"
+                              'whitespace-nowrap text-[12.5px] decoration-current/40 transition-colors',
+                              on
+                                ? 'font-medium text-zinc-900 dark:text-zinc-50'
                                 : isDoneStep
-                                ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
-                                : "border-border text-muted-foreground",
-                              s.optional
-                                ? "border-dashed"
-                                : "",
+                                  ? 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50'
+                                  : isSkipped
+                                    ? 'text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200'
+                                    : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200',
+                              s.optional && 'italic',
                             )}
                           >
-                            <span
-                              className={cn(
-                                "flex h-6 w-6 items-center justify-center rounded-full text-xs",
-                                isOptionActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : isDoneStep
-                                  ? "bg-green-500 text-white"
-                                  : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
-                            </span>
-                            <span>{opt.label}</span>
+                            {it.label}
                           </NavEl>
-                          {optIdx < s.options.length - 1 && (
-                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                              or
-                            </span>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                  {stepIdx < steps.length - 1 && (
-                    <span className="text-muted-foreground/50 ml-3">→</span>
-                  )}
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
                 </li>
               );
-            }
-          })}
-        </ol>
-        {navTrailing && <div className="shrink-0">{navTrailing}</div>}
-        </div>
+            })}
+          </ol>
+        )}
       </motion.nav>
 
       {aboveBody && (
-        <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-6")} variants={sectionItem}>
+        <motion.div
+          className={cn('border-t border-zinc-200 dark:border-zinc-800', compact ? 'py-4' : 'py-6')}
+          variants={sectionItem}
+        >
           {aboveBody}
         </motion.div>
       )}
 
-      <motion.div
-        className={cn(aboveBody ? undefined : "border-t border-border", compact ? "py-4" : "py-8")}
-        variants={sectionItem}
-      >
-        <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
+      <motion.div variants={sectionItem}>
+        <div className={compact ? 'min-h-[150px]' : 'min-h-[200px]'}>
           <StepErrorBoundary>
             <ChainGate requiredChain={currentStep.requiredChain}>
               <CurrentComponent />
@@ -378,89 +477,70 @@ export default function StepFlow({
           </StepErrorBoundary>
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
+        <div
+          className={cn(
+            'flex items-center justify-between gap-3 border-t border-zinc-200 dark:border-zinc-800',
+            compact ? 'mt-4 pt-4' : 'mt-10 pt-6',
+          )}
+        >
           {prevLink ? (
             onNavigate ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const prevStep = steps[currentIndex - 1];
-                  onNavigate(getStepNavKey(prevStep));
-                }}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
-              >
-                Back
+              <button type="button" onClick={() => goTo(steps[currentIndex - 1])} className={cn(BTN, BTN_GHOST)}>
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
               </button>
             ) : (
-              <Link
-                href={prevLink}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
-              >
-                Back
+              <Link href={prevLink} className={cn(BTN, BTN_GHOST)}>
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
               </Link>
             )
           ) : (
-            <button
-              type="button"
-              disabled
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              Back
-            </button>
+            <span />
           )}
 
-          <div className="flex items-center gap-2">
-            {"optional" in currentStep && currentStep.optional && nextLink && (
-              onNavigate ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextStep = steps[currentIndex + 1];
-                    onNavigate(getStepNavKey(nextStep));
-                  }}
-                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
-                >
+          <div className="flex min-w-0 items-center gap-2">
+            {'optional' in currentStep &&
+              currentStep.optional &&
+              nextLink &&
+              (onNavigate ? (
+                <button type="button" onClick={() => goTo(steps[currentIndex + 1])} className={cn(BTN, BTN_GHOST)}>
                   Skip
                 </button>
               ) : (
-                <Link
-                  href={nextLink}
-                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
-                >
+                <Link href={nextLink} className={cn(BTN, BTN_GHOST)}>
                   Skip
                 </Link>
-              )
-            )}
+              ))}
             {atLast ? (
               <button
                 type="button"
-                onClick={handleFinish}
-                className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-                >
-                  {finishLabel}
-                </button>
+                onClick={() => {
+                  leaveWithNext();
+                  handleFinish();
+                }}
+                className={cn(BTN, BTN_INK)}
+              >
+                {finishLabel} <Check className="h-3.5 w-3.5" />
+              </button>
             ) : (
-              nextLink && (
-                onNavigate ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextStep = steps[currentIndex + 1];
-                      onNavigate(getStepNavKey(nextStep));
-                    }}
-                    className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Next
-                  </button>
-                ) : (
-                  <Link
-                    href={nextLink}
-                    className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Next
-                  </Link>
-                )
-              )
+              nextLink &&
+              (onNavigate ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    leaveWithNext();
+                    goTo(steps[currentIndex + 1]);
+                  }}
+                  className={cn(BTN, BTN_INK, 'min-w-0')}
+                >
+                  <span className="truncate">Next{nextTitle && !compact ? `: ${nextTitle}` : ''}</span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" />
+                </button>
+              ) : (
+                <Link href={nextLink} onClick={leaveWithNext} className={cn(BTN, BTN_INK, 'min-w-0')}>
+                  <span className="truncate">Next{nextTitle && !compact ? `: ${nextTitle}` : ''}</span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" />
+                </Link>
+              ))
             )}
           </div>
         </div>

@@ -6,7 +6,6 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
-import { Button } from '@/components/toolbox/components/Button';
 import type { RequiredChain } from '@/components/console/step-flow';
 import {
   readLiveWalletChainId,
@@ -177,62 +176,54 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
 
   const primaryLabel = isInWallet ? 'Switch Network' : 'Connect to ' + chainLabel;
 
-  return (
-    <div className="space-y-4">
-      <div
-        className="rounded-2xl border border-zinc-700 bg-zinc-800 p-6"
-        style={{
-          boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
-        }}
-      >
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-            <AlertTriangle className="h-5 w-5 text-amber-400" />
-          </div>
-          <div className="flex-1 space-y-3">
-            <div>
-              <h3 className="text-base font-semibold text-white">Connect to {chainLabel}</h3>
-              <p className="mt-1 text-sm text-zinc-400">
-                This step needs your wallet on <span className="text-zinc-200 font-medium">{chainLabel}</span>
-                {requiredChain === 'l1' && ' (Chain ID: ' + expectedChainId + ')'}.
-                {currentChainLabel ? (
-                  <>
-                    {' '}
-                    You&apos;re currently on <span className="text-zinc-200 font-medium">{currentChainLabel}</span>.
-                  </>
-                ) : (
-                  <> You&apos;re currently on a different network.</>
-                )}
-              </p>
-            </div>
+  const BTN =
+    'inline-flex h-9 items-center gap-2 border px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-60';
 
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handlePrimary}
-                loading={isSwitching}
-                loadingText="Switching…"
-                variant="primary"
-                size="sm"
-                icon={<ArrowRight className="h-3.5 w-3.5" />}
-              >
-                {primaryLabel}
-              </Button>
-              {/* Always offer the explicit add-to-wallet path as a
-                  secondary option. This matters when the user knows they
-                  need to paste a custom RPC URL (e.g., a managed-nodes
-                  endpoint we don't have in scope) — they can skip the
-                  optimistic switch attempt and go straight to the modal. */}
-              {!isInWallet && (
-                <Button
-                  onClick={handleAddToWallet}
-                  variant="secondary"
-                  size="sm"
-                  icon={<Wallet className="h-3.5 w-3.5" />}
-                >
-                  Add manually
-                </Button>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start gap-4 border border-amber-300 bg-amber-50 p-5 dark:border-amber-800/70 dark:bg-amber-950/20">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-amber-900 dark:text-amber-200">
+              Switch to {chainLabel}
+            </p>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300">
+              This step runs on <span className="font-medium text-zinc-900 dark:text-zinc-50">{chainLabel}</span>
+              {requiredChain === 'l1' && ' (chain ID ' + expectedChainId + ')'}.
+              {currentChainLabel ? (
+                <>
+                  {' '}
+                  Your wallet is on{' '}
+                  <span className="font-medium text-zinc-900 dark:text-zinc-50">{currentChainLabel}</span>.
+                </>
+              ) : (
+                <> Your wallet is on a different network.</>
               )}
-            </div>
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrimary}
+              disabled={isSwitching}
+              className={`${BTN} border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300`}
+            >
+              {isSwitching ? 'Switching…' : primaryLabel}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+            {/* Always offer the explicit add-to-wallet path as a secondary option: it matters when the user needs
+                to paste a custom RPC URL (a managed-nodes endpoint we don't have in scope, say). */}
+            {!isInWallet && (
+              <button
+                type="button"
+                onClick={handleAddToWallet}
+                className={`${BTN} border-zinc-300 text-zinc-700 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50`}
+              >
+                <Wallet className="h-3.5 w-3.5" /> Add manually
+              </button>
+            )}
           </div>
         </div>
       </div>

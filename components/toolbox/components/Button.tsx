@@ -18,6 +18,30 @@ interface ButtonProps {
   error?: string;
 }
 
+const SIZES = {
+  sm: 'h-8 px-3 text-[10.5px]',
+  default: 'h-10 px-4 text-[11px]',
+  lg: 'h-12 px-6 text-[12px]',
+} as const;
+
+const VARIANTS = {
+  primary:
+    'border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300',
+  secondary:
+    'border-zinc-200 bg-zinc-50 text-zinc-900 hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600',
+  outline:
+    'border-zinc-300 bg-transparent text-zinc-900 hover:border-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-300',
+  danger:
+    'border-red-600 bg-red-600 text-white hover:bg-red-700 dark:border-red-500 dark:bg-red-500 dark:hover:bg-red-600',
+  'outline-danger':
+    'border-red-300 bg-transparent text-red-600 hover:border-red-600 dark:border-red-900 dark:text-red-400 dark:hover:border-red-500',
+  'light-danger':
+    'border-red-200 bg-red-50 text-red-700 hover:border-red-400 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400 dark:hover:border-red-700',
+} as const;
+
+const DISABLED =
+  'disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400 dark:disabled:border-zinc-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-500';
+
 export function Button({
   children,
   onClick,
@@ -31,70 +55,33 @@ export function Button({
   stickLeft = false,
   error,
 }: ButtonProps) {
-  // Base classes shared by all buttons
-  const baseClasses = [
-    stickLeft ? 'whitespace-nowrap' : 'w-full', // When stickLeft is true, use minimal width
-    'text-sm font-medium shadow-sm',
-    'transition-colors duration-300',
-    'flex items-center justify-center gap-2',
-    'cursor-pointer', // Add explicit cursor-pointer for all interactive buttons
-  ];
-
-  // Add rounded corners based on stickLeft
-  const roundedClasses = stickLeft ? 'rounded-r-xl' : 'rounded-xl';
-  baseClasses.push(roundedClasses);
-
-  // Size-specific classes
-  let sizeClasses = '';
-  if (size === 'default') sizeClasses = 'px-4 py-3';
-  else if (size === 'sm') sizeClasses = 'px-3 py-2 text-xs rounded-md';
-  else if (size === 'lg') sizeClasses = 'px-6 py-4 text-base';
-
-  // Adjust size-specific rounding
-  if (size === 'sm' && stickLeft) {
-    sizeClasses = sizeClasses.replace('rounded-md', 'rounded-r-md');
-  }
-
-  // Variant-specific classes
-  let variantClasses = '';
-  if (variant === 'primary') {
-    variantClasses = 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600';
-  } else if (variant === 'secondary') {
-    variantClasses =
-      'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/50';
-  } else if (variant === 'outline') {
-    variantClasses =
-      'border-2 border-zinc-300 bg-transparent text-zinc-800 hover:bg-zinc-100 hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-zinc-500';
-  } else if (variant === 'danger') {
-    variantClasses = 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600';
-  } else if (variant === 'light-danger') {
-    variantClasses =
-      'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50 dark:border-red-900/50';
-  }
-
-  // State classes (disabled)
-  const stateClasses =
-    'disabled:bg-zinc-200 disabled:text-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-400 disabled:cursor-not-allowed';
-
-  // Combine all classes
-  const buttonClasses = cn(...baseClasses, sizeClasses, variantClasses, stateClasses, className);
-
   return (
     <>
-      <button onClick={onClick} disabled={disabled || loading} className={buttonClasses}>
+      <button
+        onClick={onClick}
+        disabled={disabled || loading}
+        className={cn(
+          stickLeft ? 'whitespace-nowrap -ml-px' : 'w-full',
+          'inline-flex cursor-pointer items-center justify-center gap-2 border font-mono font-bold uppercase tracking-[0.14em] transition-colors',
+          SIZES[size],
+          VARIANTS[variant],
+          DISABLED,
+          className,
+        )}
+      >
         {loading ? (
           <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            {loadingText || 'Loading...'}
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            {loadingText || 'Working…'}
           </>
         ) : (
           <>
-            {icon && icon}
+            {icon}
             {children}
           </>
         )}
       </button>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-[12px] text-red-600 dark:text-red-400">{error}</p>}
     </>
   );
 }

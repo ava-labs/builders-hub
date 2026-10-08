@@ -19,29 +19,29 @@ type GenesisMode = 'builder' | 'custom';
 // Mode toggle component
 function ModeToggle({ mode, onModeChange }: { mode: GenesisMode; onModeChange: (mode: GenesisMode) => void }) {
   return (
-    <div className="flex items-center gap-2 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+    <div className="flex items-center border border-zinc-200 dark:border-zinc-800">
       <button
         type="button"
         onClick={() => onModeChange('builder')}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+        className={`flex h-8 items-center gap-2 px-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] transition-colors ${
           mode === 'builder'
-            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm'
-            : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+            ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+            : 'bg-white text-zinc-500 hover:text-zinc-900 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
         }`}
       >
-        <Settings2 className="h-4 w-4" />
+        <Settings2 className="h-3.5 w-3.5" />
         Builder
       </button>
       <button
         type="button"
         onClick={() => onModeChange('custom')}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+        className={`flex h-8 items-center gap-2 px-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] transition-colors ${
           mode === 'custom'
-            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm'
-            : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+            ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+            : 'bg-white text-zinc-500 hover:text-zinc-900 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
         }`}
       >
-        <FileJson className="h-4 w-4" />
+        <FileJson className="h-3.5 w-3.5" />
         Custom JSON
       </button>
     </div>
@@ -176,12 +176,12 @@ function CustomJsonEditor({
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4">
+      <div className="border border-zinc-200 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
         <div className="flex items-start gap-3">
-          <FileJson className="h-5 w-5 text-zinc-500 dark:text-zinc-400 flex-shrink-0 mt-0.5" />
+          <FileJson className="mt-0.5 h-4 w-4 flex-shrink-0 text-zinc-500 dark:text-zinc-400" />
           <div className="space-y-1">
-            <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100">Custom Genesis JSON</div>
-            <div className="text-xs text-zinc-600 dark:text-zinc-400">
+            <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">Custom Genesis JSON</div>
+            <div className="text-[12px] text-zinc-500 dark:text-zinc-400">
               Paste your pre-configured genesis JSON or drag & drop a genesis.json file. This is useful for importing
               configurations from other tools or deploying previously saved genesis files.
             </div>
@@ -197,9 +197,9 @@ function CustomJsonEditor({
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+        className={`relative border border-dashed p-6 text-center transition-colors ${
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+            ? 'border-zinc-900 bg-zinc-50/60 dark:border-zinc-300 dark:bg-zinc-900/40'
             : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600'
         }`}
       >
@@ -209,42 +209,46 @@ function CustomJsonEditor({
           onChange={handleFileSelect}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
-        <Upload className={`h-8 w-8 mx-auto mb-2 ${isDragging ? 'text-blue-500' : 'text-zinc-400'}`} />
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          <span className="font-medium text-zinc-900 dark:text-zinc-200">Click to upload</span> or drag and drop
+        <Upload
+          className={`mx-auto mb-2 h-6 w-6 ${isDragging ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400'}`}
+        />
+        <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+          <span className="font-medium text-zinc-900 dark:text-zinc-100">Click to upload</span> or drag and drop
         </p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">genesis.json file</p>
+        <p className="mt-1 font-mono text-[11px] text-zinc-400">genesis.json file</p>
       </div>
 
       {/* JSON Editor */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Genesis JSON</label>
+          <label className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            Genesis JSON
+          </label>
           <div className="flex items-center gap-2">
             {value && (
               <>
                 <button
                   type="button"
                   onClick={handleFormat}
-                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  className="text-[11px] font-mono uppercase tracking-[0.1em] text-zinc-500 underline-offset-4 hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
                   disabled={!validation.valid}
                 >
                   Format
                 </button>
-                <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                <span className="text-zinc-300 dark:text-zinc-700">|</span>
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  className="flex items-center gap-1 text-[11px] font-mono uppercase tracking-[0.1em] text-zinc-500 underline-offset-4 hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
                 >
                   <Copy className="h-3 w-3" />
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
-                <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                <span className="text-zinc-300 dark:text-zinc-700">|</span>
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  className="flex items-center gap-1 text-[11px] font-mono uppercase tracking-[0.1em] text-zinc-500 underline-offset-4 hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
                 >
                   <Download className="h-3 w-3" />
                   Download
@@ -257,12 +261,12 @@ function CustomJsonEditor({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder='{"config": {"chainId": 12345, "feeConfig": {...}}, "alloc": {...}, "gasLimit": "0x..."}'
-          className={`w-full h-80 px-4 py-3 bg-zinc-900 dark:bg-zinc-950 text-zinc-100 rounded-lg border font-mono text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+          className={`h-80 w-full resize-none border bg-zinc-950 px-4 py-3 font-mono text-[12px] text-zinc-100 transition-colors focus:outline-none ${
             value && !validation.valid
               ? 'border-red-500'
               : value && validation.valid
-                ? 'border-green-500'
-                : 'border-zinc-700 dark:border-zinc-800'
+                ? 'border-emerald-500 dark:border-emerald-700'
+                : 'border-zinc-800 focus:border-zinc-500'
           }`}
           spellCheck={false}
         />
@@ -270,11 +274,11 @@ function CustomJsonEditor({
 
       {/* Validation status */}
       {value && (
-        <div className="rounded-lg p-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+        <div className="border border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
           <div className="flex items-start gap-2">
             {validation.valid ? (
               validation.hasRequiredFields ? (
-                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
               ) : (
                 <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               )
@@ -284,25 +288,25 @@ function CustomJsonEditor({
             <div className="flex-1 space-y-1">
               {validation.valid ? (
                 <>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
                     {validation.hasRequiredFields ? 'Valid Genesis JSON' : 'Valid JSON with warnings'}
                   </div>
-                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                  <div className="text-[12px] text-zinc-500 dark:text-zinc-400">
                     Size: {(validation.size / 1024).toFixed(2)} KiB
                     {validation.size > 64 * 1024 && (
                       <span className="ml-2 text-red-600 dark:text-red-400">(exceeds 64 KiB P-Chain limit!)</span>
                     )}
                   </div>
                   {!validation.hasRequiredFields && validation.missingFields.length > 0 && (
-                    <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    <div className="mt-1 text-[12px] text-amber-700 dark:text-amber-400">
                       Missing recommended fields: {validation.missingFields.join(', ')}
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Invalid JSON</div>
-                  <div className="text-xs text-red-600 dark:text-red-400 font-mono">{validation.error}</div>
+                  <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">Invalid JSON</div>
+                  <div className="font-mono text-[12px] text-red-700 dark:text-red-400">{validation.error}</div>
                 </>
               )}
             </div>
@@ -373,15 +377,15 @@ function GenesisWizardContent({
 
         {mode === 'builder' ? (
           <>
-            <div className="bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
-              {children}
-            </div>
+            <div className="border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">{children}</div>
 
             {genesisData && genesisData.length > 0 && !genesisData.startsWith('Error:') && (
-              <div className="bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/50">
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Genesis JSON Preview</span>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              <div className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+                  <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                    Genesis JSON Preview
+                  </span>
+                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                     {(new Blob([genesisData]).size / 1024).toFixed(2)} KiB
                   </span>
                 </div>
@@ -396,7 +400,7 @@ function GenesisWizardContent({
             )}
           </>
         ) : (
-          <div className="bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+          <div className="border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
             <CustomJsonEditor value={customJson} onChange={handleCustomJsonChange} validation={validation} />
           </div>
         )}
@@ -406,10 +410,12 @@ function GenesisWizardContent({
 
   // Desktop layout
   return (
-    <div className="flex flex-col bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <div className="flex flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       {/* Mode Toggle Header */}
-      <div className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-between">
-        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Genesis Configuration</span>
+      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/60 px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          Genesis Configuration
+        </span>
         <ModeToggle mode={mode} onModeChange={handleModeChange} />
       </div>
 
@@ -434,7 +440,7 @@ function GenesisWizardContent({
       )}
 
       {footer && (
-        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-zinc-950/60">
+        <div className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-4 py-3 flex items-center justify-center">{footer}</div>
         </div>
       )}
@@ -474,8 +480,8 @@ export function WizardStep({ title, description, children }: WizardStepProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {description && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{description}</p>}
+        <h2 className="text-[17px] font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
+        {description && <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400">{description}</p>}
       </div>
       <div>{children}</div>
     </div>

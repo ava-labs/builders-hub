@@ -15,19 +15,21 @@ export function RawInput({ className, error, hasSuggestions, ...props }: RawInpu
   return (
     <input
       className={cn(
-        'w-full px-3 py-2.5',
-        'bg-white dark:bg-zinc-900',
-        'border-1',
+        'h-10 w-full rounded-none px-3 text-[13px]',
+        'bg-white dark:bg-zinc-950',
+        'border',
         error
-          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30'
-          : 'border-zinc-300 dark:border-zinc-700 focus:border-primary focus:ring-primary/30',
+          ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+          : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
         'text-zinc-900 dark:text-zinc-100',
-        'placeholder:text-zinc-400 dark:placeholder:text-zinc-500',
-        !hasSuggestions && 'shadow-sm',
-        'transition-colors duration-200',
-        'focus:outline-none focus:ring-2',
+        'placeholder:text-zinc-400 dark:placeholder:text-zinc-600',
+        hasSuggestions && 'border-b-zinc-200 dark:border-b-zinc-800',
+        'transition-colors',
+        'focus:outline-none',
         '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-        props.disabled ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed' : '',
+        props.disabled
+          ? 'cursor-not-allowed bg-zinc-50 text-zinc-500 hover:border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-800'
+          : '',
         className,
       )}
       {...props}
@@ -89,8 +91,11 @@ export function Input({
   };
 
   return (
-    <div className="space-y-2 mb-6">
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+    <div className="mb-6 space-y-2">
+      <label
+        htmlFor={id}
+        className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+      >
         {label}
       </label>
 
@@ -102,70 +107,71 @@ export function Input({
             value={inputValue}
             onChange={handleChange}
             hasSuggestions={(suggestions && suggestions.length > 0) || !!error || !!helperText}
-            className={cn(
-              'flex-1',
-              (suggestions && suggestions.length > 0) || error || helperText ? 'rounded-t-md' : 'rounded-md',
-              unit ? 'pr-12' : '',
-              button ? 'rounded-r-none' : '',
-              className,
-            )}
+            className={cn('flex-1', unit ? 'pr-12' : '', className)}
             error={error}
           />
           {button}
         </div>
         {unit && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 pointer-events-none">{unit}</span>
+            <span className="pointer-events-none font-mono text-[11px] uppercase tracking-[0.1em] text-zinc-400">
+              {unit}
+            </span>
           </div>
         )}
 
         {error ? (
           <div
             className={cn(
-              'p-3 py-1 bg-red-50/50 dark:bg-red-950/30 border border-t-0 border-red-200/50 dark:border-red-800/50',
-              suggestions && suggestions.length > 0 ? 'border-b-0' : 'rounded-b-lg',
+              'border border-t-0 border-red-200 bg-red-50/60 px-3 py-1.5 dark:border-red-900/60 dark:bg-red-950/20',
+              suggestions && suggestions.length > 0 && 'border-b-0',
             )}
           >
-            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>
           </div>
         ) : helperText ? (
           <div
             className={cn(
-              'p-3 py-1 bg-zinc-50/50 dark:bg-zinc-900/30 border border-t-0 border-zinc-200/50 dark:border-zinc-800/50',
-              suggestions && suggestions.length > 0 ? 'border-b-0' : 'rounded-b-lg',
+              'border border-t-0 border-zinc-200 bg-zinc-50/60 px-3 py-1.5 dark:border-zinc-800 dark:bg-zinc-900/40',
+              suggestions && suggestions.length > 0 && 'border-b-0',
             )}
           >
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">{helperText}</p>
+            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{helperText}</p>
           </div>
         ) : null}
 
         {suggestions && suggestions.length > 0 && (
           <div
             className={cn(
-              'p-3 rounded-b-lg bg-zinc-50/50 dark:bg-zinc-900/30 border border-t-0 border-zinc-200/50 dark:border-zinc-800/50',
+              'border border-t-0 border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/40',
               helperText && 'pt-0',
             )}
           >
-            <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">Suggestions:</div>
-            <div className="space-y-2">
+            <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
+              Suggestions
+            </div>
+            <div className="divide-y divide-zinc-200 border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
               {suggestions.map((suggestion, index) => {
                 const isSelected = inputValue === suggestion.value;
                 return (
                   <div
                     key={index}
                     className={cn(
-                      'px-3 py-1 cursor-pointer transition-all duration-150 text-left border-l-4 flex items-center justify-between gap-2',
+                      'group/sug relative flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left transition-colors',
+                      'before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:transition-colors',
                       isSelected
-                        ? 'border-zinc-400 dark:border-zinc-500'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500',
+                        ? 'before:bg-zinc-900 dark:before:bg-zinc-100'
+                        : 'hover:before:bg-zinc-300 dark:hover:before:bg-zinc-600',
                     )}
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{suggestion.title}</div>
-                      <div className="text-xs text-zinc-600 dark:text-zinc-400">{suggestion.description}</div>
+                      <div className="text-[13px] font-medium text-zinc-900 group-hover/sug:underline group-hover/sug:underline-offset-4 dark:text-zinc-100">
+                        {suggestion.title}
+                      </div>
+                      <div className="text-[12px] text-zinc-500 dark:text-zinc-400">{suggestion.description}</div>
                     </div>
-                    {isSelected && <Check className="w-4 h-4 text-green-600 dark:text-green-500 flex-shrink-0" />}
+                    {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-zinc-900 dark:text-zinc-100" />}
                   </div>
                 );
               })}

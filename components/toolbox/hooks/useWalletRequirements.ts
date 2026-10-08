@@ -3,6 +3,7 @@ import { useWalletStore, type WalletType } from '../stores/walletStore';
 import { Wallet, Coins, Network } from 'lucide-react';
 import { useWalletSwitch } from './useWalletSwitch';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { OPEN_CONSOLE_WALLETS_EVENT } from '@/lib/console-wallets/core-provider';
 import type {
   RequirementAction,
   Requirement,
@@ -32,11 +33,18 @@ const ACTIONS = {
   },
   DOWNLOAD_CORE_WALLET: {
     type: 'redirect' as const,
-    label: 'Download',
-    title: 'Download Core Wallet',
-    description: 'Get Core — the wallet built for Avalanche',
+    label: 'Get Core',
+    title: 'Install a wallet extension',
+    description: 'Any EVM wallet works; Core is built for Avalanche and signs P-Chain transactions too',
     link: 'https://core.app/download',
     target: '_blank',
+  },
+  USE_CONSOLE_WALLET: {
+    type: 'console-wallet' as const,
+    label: 'Set up',
+    title: 'Use a Console wallet',
+    description:
+      'No extension needed: a key kept in this browser that signs without popups. Unlock or create one here.',
   },
   SWITCH_TO_TESTNET: {
     type: 'network' as const,
@@ -118,12 +126,13 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
           action: ACTIONS.CONNECT_WALLET,
         },
         {
-          // No wallet detected at all → show Download Core
+          // No wallet detected at all → suggest installing one
           condition: () => true,
           action: ACTIONS.DOWNLOAD_CORE_WALLET,
         },
       ],
     },
+    alternativeActions: [ACTIONS.USE_CONSOLE_WALLET],
     getStatus: (walletState: WalletState) => ({
       met: walletState.bootstrapped,
       waiting: false,
@@ -136,6 +145,7 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
     icon: Wallet,
     prerequisites: [WalletRequirementsConfigKey.HasWallet],
     action: ACTIONS.CONNECT_WALLET,
+    alternativeActions: [ACTIONS.USE_CONSOLE_WALLET],
     getStatus: (walletState: WalletState) => ({
       met: !!walletState.walletEVMAddress,
       waiting: false,
@@ -335,6 +345,9 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
         break;
       case 'login':
         // Login actions are handled by account requirements
+        break;
+      case 'console-wallet':
+        window.dispatchEvent(new Event(OPEN_CONSOLE_WALLETS_EVENT));
         break;
       default:
         // Unknown action type

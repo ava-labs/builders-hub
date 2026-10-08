@@ -313,7 +313,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
   const executeDirectTransaction = async () => {
     if (!walletClient) {
-      onError('Core wallet not found');
+      onError('Connect a wallet first.');
       return;
     }
 
@@ -365,7 +365,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   return (
     <div className="space-y-4">
       {isCheckingOwnership && (
-        <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-base">
+        <div className="border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-[13px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
           <div className="flex items-center justify-center">
             <span>Checking ownership...</span>
           </div>
@@ -375,10 +375,10 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       {/* Show direct transaction if user is PoA owner */}
       {isPoaOwner === true && (
         <div className="space-y-3">
-          <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+          <div className="border border-emerald-200 bg-emerald-50/60 px-4 py-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
             <div className="flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <p className="text-green-700 dark:text-green-300 font-medium text-sm">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <p className="text-[13px] font-medium text-emerald-900 dark:text-emerald-200">
                 You are the owner of this PoAManager. You can execute transactions directly.
               </p>
             </div>
@@ -399,10 +399,10 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       {/* Show multisig interface if user is NOT PoA owner */}
       {isPoaOwner === false && (
         <div className="space-y-3">
-          <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+          <div className="border border-zinc-200 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
             <div className="flex items-center space-x-3">
               <img src="/images/ash.png" alt="Ash Wallet" className="h-5 w-5 flex-shrink-0" />
-              <p className="text-blue-700 dark:text-blue-300 font-medium text-sm">
+              <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">
                 This PoAManager is owned by an Ash L1 Multisig. Transactions will be proposed to the multisig for
                 approval.
               </p>
@@ -410,9 +410,9 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
           </div>
 
           {isInitializing && (
-            <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-base">
+            <div className="border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-[13px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
               <div className="flex items-center justify-center">
-                <img src="/images/ash.png" alt="Ash" className="h-6 w-6 mr-3 flex-shrink-0" />
+                <img src="/images/ash.png" alt="Ash" className="mr-3 h-5 w-5 flex-shrink-0" />
                 <span>Initializing Ash Wallet multisig...</span>
               </div>
             </div>
@@ -421,26 +421,28 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
           {safeInfo && <MultisigInfo safeInfo={safeInfo} walletAddress={walletAddress} />}
 
           {showSuccessMessage ? (
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="border border-emerald-300 bg-white p-5 dark:border-emerald-900 dark:bg-zinc-950">
               <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center border border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
 
                 <div className="flex-1 space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
                       Transaction Proposed Successfully
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400">
                       Your transaction has been submitted to the multisig. Review and approve it in Ash Wallet to
                       complete the process.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Next steps:</p>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4 list-disc">
+                    <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                      Next steps
+                    </p>
+                    <ul className="ml-4 list-disc space-y-1 text-[13px] text-zinc-700 dark:text-zinc-300">
                       <li>Review and approve the transaction</li>
                       <li>Wait for additional approvals if required</li>
                       <li>Copy the transaction hash once executed</li>
@@ -453,7 +455,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
                   >
                     <img src="/images/ash.png" alt="Ash" className="h-4 w-4 flex-shrink-0" />
                     <span>Open Ash Wallet</span>
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
