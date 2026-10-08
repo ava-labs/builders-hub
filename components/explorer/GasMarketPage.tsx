@@ -48,7 +48,7 @@ interface FeeSnapshot {
   tipFastWei: number | null;
 }
 
-async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
+export async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
   const res = await fetch(rpcUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -575,7 +575,7 @@ export function FeeTip({ r, unit }: { r: TraceRow; unit: string }) {
 }
 
 /* the Helicon date inside a daily series, if the window holds it */
-const HELICON_DAY = "2026-09-22";
+export const HELICON_DAY = "2026-09-22";
 
 export function HeliconNote() {
   return (

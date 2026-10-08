@@ -28,6 +28,7 @@ import {
 import { ProtocolTable, protocolShareParts } from "@/components/explorer-v2/gas/buyers";
 import { useContractNames } from "@/lib/sourcify-client";
 import { GAS_METRICS, type GasMetricKey } from "@/components/explorer/gas-metrics";
+import { TargetDailyBlock, useLiveTargetPct, useTargetDays } from "@/components/explorer-v2/gas/capacity";
 import type { GasDayPoint, GasHistoryDays, GasHourPoint, GasMarket } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
 
@@ -236,7 +237,7 @@ function LiveBlocks({ utilization, height }: { utilization: number[]; height?: n
       note={`last ${FEE_HISTORY_BLOCKS} blocks, live`}
       figure={avg.toFixed(1)}
       unit="%"
-      sub={`average · the fullest reached ${Math.max(...pct).toFixed(0)}%`}
+      sub={`of the block gas limit on average · the fullest reached ${Math.max(...pct).toFixed(0)}%`}
       cols={pct.map((v, i) => ({
         key: String(i),
         long: i === n - 1 ? "the latest block" : `${n - 1 - i} blocks ago`,
@@ -252,7 +253,7 @@ function LiveBlocks({ utilization, height }: { utilization: number[]; height?: n
       fmt={(v) => `${v.toFixed(0)}%`}
       tip={(c) => (
         <>
-          <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{c.v.toFixed(1)}% full</p>
+          <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{c.v.toFixed(1)}% of the block gas limit</p>
           <p className="font-mono text-[10px] text-zinc-500">{c.long}</p>
         </>
       )}
@@ -273,6 +274,19 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
   const trendNote = range === "day" ? RANGE_LABEL.week : RANGE_LABEL[range];
   const histNote = RANGE_DAYS[range] > 90 ? `${RANGE_LABEL.quarter}, longest computed` : RANGE_LABEL[range];
 
+  const days = useTargetDays(evmChainId, historyDays(range), trend);
+  const liveTarget = useLiveTargetPct(catalog.rpcUrl, evmChainId);
+  const vsTarget = useMemo(() => {
+    const charged = days.filter((d) => d.chargedPct !== null);
+    if (!days.length || !charged.length) return null;
+    const busiest = charged.reduce((m, d) => (d.chargedPct! > m.chargedPct! ? d : m));
+    return {
+      charged: charged.reduce((s, d) => s + d.chargedPct!, 0) / charged.length,
+      reserved: days.reduce((s, d) => s + d.reservedPct, 0) / days.length,
+      busiest,
+    };
+  }, [days]);
+
   const liveUtil = fee.utilization.length ? (fee.utilization.reduce((s, u) => s + u, 0) / fee.utilization.length) * 100 : null;
   const stats = useMemo(() => {
     if (!trend.length) return null;
@@ -287,29 +301,38 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="utilization">
+      {vsTarget ? (
+        <ReadoutRow cols={4}>
+          <Readout label="Right Now" live value={liveTarget !== null ? liveTarget.toFixed(1) : null} unit="%" sub={`of target, gas reserved · last ${FEE_HISTORY_BLOCKS} blocks`} />
+          <Readout label="Charged vs Target" value={vsTarget.charged.toFixed(1)} unit="%" sub={trendNote} spark={days.map((d) => d.chargedPct ?? 0)} />
+          <Readout label="Reserved vs Target" value={vsTarget.reserved.toFixed(1)} unit="%" sub={trendNote} spark={days.map((d) => d.reservedPct)} />
+          <Readout label="Busiest Day" value={vsTarget.busiest.chargedPct!.toFixed(1)} unit="%" sub={`of target, charged · ${dayLabel(vsTarget.busiest.d)}`} />
+        </ReadoutRow>
+      ) : (
       <ReadoutRow cols={4}>
-        <Readout
-          label="Right Now"
-          live
-          value={liveUtil !== null ? liveUtil.toFixed(1) : null}
-          unit="%"
-          sub={`last ${FEE_HISTORY_BLOCKS} blocks`}
-          spark={fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined}
-        />
-        <Readout label="Average" value={stats ? stats.avg.toFixed(1) : null} unit="%" sub={trendNote} spark={trend.map((p) => p.utilPct)} />
-        <Readout label="Busiest Day" value={stats ? stats.busiest.utilPct.toFixed(1) : null} unit="%" sub={stats ? dayLabel(stats.busiest.d) : undefined} />
-        <Readout label="Gas Reserved" value={stats ? fmtGas(stats.totalGas) : null} sub="the sum of tx gas limits since Helicon" spark={trend.map((p) => p.gas)} />
-      </ReadoutRow>
+          <Readout
+            label="Right Now"
+            live
+            value={liveUtil !== null ? liveUtil.toFixed(1) : null}
+            unit="%"
+            sub={`of the block gas limit · last ${FEE_HISTORY_BLOCKS} blocks`}
+            spark={fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined}
+          />
+          <Readout label="Average" value={stats ? stats.avg.toFixed(1) : null} unit="%" sub={`of the block gas limit · ${trendNote}`} spark={trend.map((p) => p.utilPct)} />
+          <Readout label="Busiest Day" value={stats ? stats.busiest.utilPct.toFixed(1) : null} unit="%" sub={stats ? dayLabel(stats.busiest.d) : undefined} />
+          <Readout label="Gas Reserved" value={stats ? fmtGas(stats.totalGas) : null} sub="the sum of tx gas limits since Helicon" spark={trend.map((p) => p.gas)} />
+        </ReadoutRow>
+      )}
 
       <div className={GRID}>
-        {fee.utilization.length ? <LiveBlocks utilization={fee.utilization} height={200} /> : <HistoryEmpty missing={false} />}
-        {trend.length ? (
+        {vsTarget ? <TargetDailyBlock rows={days} kind="charged" note={trendNote} /> : fee.utilization.length ? <LiveBlocks utilization={fee.utilization} height={200} /> : <HistoryEmpty missing={false} />}
+        {vsTarget ? <TargetDailyBlock rows={days} kind="reserved" note={trendNote} /> : trend.length ? (
           <TraceBlock
             label="Daily Utilization"
             note={trendNote}
             figure={stats ? stats.avg.toFixed(1) : "—"}
             unit="%"
-            sub="average block, gas against the limit"
+            sub="average block, gas reserved against the block gas limit"
             rows={trend.map((d) => ({ key: d.d, long: dayLong(d.d), tick: dayShort(d.d), mid: d.utilPct }))}
             height={200}
             fmt={(v) => `${v.toFixed(1)}%`}
@@ -318,7 +341,7 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
               return (
                 <>
                   <p className="font-mono text-[10px] text-zinc-500">{r.long}</p>
-                  <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{d.utilPct.toFixed(1)}% utilized</p>
+                  <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{d.utilPct.toFixed(1)}% of the block gas limit</p>
                   <p className="font-mono text-[10px] tabular-nums text-zinc-500">
                     {fmtGas(d.gas)} gas reserved · {d.blocks.toLocaleString("en-US")} blocks
                   </p>
@@ -339,8 +362,8 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
             stale={stale}
             figure={histTotal.toLocaleString("en-US")}
             unit="blocks"
-            sub="counted by how full they ran"
-            cols={hist.map((b) => ({ key: b.bucket, long: `${b.bucket} full`, tick: b.bucket, v: b.blocks }))}
+            sub="counted by the share of the block gas limit they reserved"
+            cols={hist.map((b) => ({ key: b.bucket, long: `${b.bucket} of the block gas limit`, tick: b.bucket, v: b.blocks }))}
             ticks={hist.map((_, i) => i)}
             fmt={(v) => v.toLocaleString("en-US")}
             tip={(c) => (
@@ -356,7 +379,7 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
           <HistoryEmpty missing={marketMissing} />
         )}
         <div className="flex flex-col gap-3">
-          {trend.length ? <GasReservedBlock rows={trend} note={`${trendNote}, daily`} /> : <HistoryEmpty missing={missing} />}
+          {vsTarget ? fee.utilization.length ? <LiveBlocks utilization={fee.utilization} height={200} /> : <HistoryEmpty missing={false} /> : trend.length ? <GasReservedBlock rows={trend} note={`${trendNote}, daily`} /> : <HistoryEmpty missing={missing} />}
           <HeliconNote />
         </div>
       </div>
