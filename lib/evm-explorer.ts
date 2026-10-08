@@ -14,6 +14,7 @@
 
 import type { Abi } from "viem";
 import { precompileAt } from "@/lib/precompiles";
+import type { TxFeeFacts } from "@/lib/evm-fee";
 
 export const EVM_API_BASE =
   process.env.EXPLORER_API_URL || "https://stats-api.avax.network";
@@ -185,6 +186,8 @@ export interface TxDetail {
   contractAddress?: string;
   logs: EventLog[];
   internalTxns: InternalTx[];
+  /** the bid, the price paid and the block's base fee range: only the RPC copy has them */
+  fees?: TxFeeFacts;
 }
 
 export type TransferStandard = "ERC20" | "ERC721" | "ERC1155";

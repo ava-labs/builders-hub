@@ -32,6 +32,8 @@ import { TokenLogo, TokenMark } from "./TokenMark";
 import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
 import { readRpc } from "@/lib/explorer-rpc";
 import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
+import { BURN_CHAINS } from "@/lib/evm-burn";
+import { TxFeeLines, useFeeSplit } from "./TxFee";
 
 /* One transaction, in the block page's grammar: status in the section
    header, the hash as the subject with its time beside it, the readings
@@ -251,6 +253,12 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const gasPriceWei = fromRpc.data?.gasPrice ?? t?.gasPrice ?? "0";
   const feeWei = t ? BigInt(t.gasUsed) * BigInt(gasPriceWei || "0") : 0n;
   const gasPct = t && t.gasLimit > 0 ? (t.gasUsed / t.gasLimit) * 100 : 0;
+  // the fee's parts: the RPC copy carries the bid and its block's base fee range
+  const feeFacts = fromRpc.data?.fees ?? fromFallback.data?.fees ?? null;
+  const feeSplit = useFeeSplit(liveRpc ?? fallbackRpc, t?.blockNumber, feeFacts);
+  // since Helicon (its headers carry the price floor) a tx pays for at least half its gas limit
+  const halfLimit = !!t && feeFacts?.floor != null && t.gasUsed === Math.ceil(t.gasLimit / 2);
+  const feeNote = [usdOfWei(feeWei, usd), BURN_CHAINS.has(String(c.chainId)) ? "burned" : null, feeFacts ? null : formatNano(gasPriceWei, sym)].filter(Boolean).join(" · ");
   const value = t ? Number(t.value) : 0;
 
   // the glance layer: the events' names (a precompile's ABI, the
@@ -396,6 +404,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                   </SpecLine>
                   <SpecLine label="Nonce">{formatNumber(t.nonce)}</SpecLine>
                   <SpecLine label="Type">{TX_TYPES[t.type] ?? `Type ${t.type}`}</SpecLine>
+                  {feeFacts && <TxFeeLines facts={feeFacts} split={feeSplit} symbol={sym} type={t.type} />}
                   {t.input && t.input !== "0x" && (
                     <SpecLine label="Input" align="start">
                       <span className="inline-flex max-w-full items-center gap-2">
@@ -438,17 +447,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                     {value > 0 ? formatEther(t.value, { decimals: value / 1e18 >= 1 ? 4 : 6 }) : "0"} <span className={UNIT}>{sym}</span>
                   </span>
                 </RailRow>
-                <RailRow
-                  label="Fee"
-                  href={`${base}/gas`}
-                  sub={
-                    <>
-                      {usdOfWei(feeWei, usd)}
-                      {usdOfWei(feeWei, usd) ? " · " : ""}
-                      {formatNano(gasPriceWei, sym)}
-                    </>
-                  }
-                >
+                <RailRow label="Fee" href={`${base}/gas`} sub={feeNote || undefined}>
                   <span className="text-red-700 dark:text-red-300">{formatEther(feeWei.toString(), { decimals: 6 })}</span> <span className={UNIT}>{sym}</span>
                 </RailRow>
                 {/* ACP-194: the receipt charges max(used, limit / 2), and the fee
@@ -467,6 +466,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                         </span>
                         {gasPct.toFixed(0)}% of the {formatNumber(t.gasLimit)} limit
                       </span>
+                      {halfLimit && <span>the minimum charge: half the gas limit</span>}
                       {trace?.gas && trace.gas.used !== t.gasUsed && <span>{formatNumber(trace.gas.used)} used by execution</span>}
                     </span>
                   }

@@ -49,6 +49,27 @@ export function formatUsd(nAvax: string | number | undefined, avaxUsd: number | 
   return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** a gas price in wei → "5.043 nAVAX", "0.15 nAVAX" or "150 wei": the
+ *  chain's nano unit from a thousandth of a nano up (three places, whole
+ *  from 100), and plain wei under that, where a tip of a few hundred wei
+ *  would otherwise read as zero */
+export function formatPricePerGas(wei: string | number | bigint | undefined | null, symbol = "AVAX"): string {
+  if (wei === undefined || wei === null || wei === "") return "—";
+  let v: bigint;
+  try {
+    v = BigInt(typeof wei === "number" ? Math.trunc(wei) : wei);
+  } catch {
+    return "—";
+  }
+  if (v < 0n) return "—";
+  if (v < 1_000_000n) return `${v.toLocaleString("en-US")} wei`;
+  const n = Number(v) / 1e9;
+  const unit = `n${symbol}`;
+  if (n >= 100) return `${Math.round(n).toLocaleString("en-US")} ${unit}`;
+  if (n >= 1) return `${n.toFixed(3)} ${unit}`;
+  return `${Number(n.toPrecision(3))} ${unit}`;
+}
+
 export function timeAgo(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
   const s = Math.floor(Date.now() / 1000 - unixSecs);

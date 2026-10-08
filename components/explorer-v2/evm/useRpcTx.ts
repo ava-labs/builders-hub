@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { TxDetail } from "@/lib/evm-explorer";
+import { priceFloor } from "@/lib/evm-fee";
 import { rpcBatch } from "./useHeadStream";
 
 /* A transaction straight from the RPC, shaped like the indexer's TxDetail.
@@ -21,6 +22,8 @@ interface RpcTx {
   nonce: string;
   gas: string;
   gasPrice?: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
   input: string;
   type?: string;
 }
@@ -48,11 +51,12 @@ async function fetchRpcTx(rpcUrl: string, hash: string, signal: AbortSignal): Pr
   const t = tx as RpcTx | null;
   const r = receipt as RpcReceipt | null;
   if (!t || !r || !t.blockNumber) return null;
-  const [block] = await rpcBatch<{ timestamp: string }>(
+  const [block] = await rpcBatch<{ timestamp: string; baseFeePerGas?: string; minPriceExponent?: string }>(
     rpcUrl,
     [{ method: "eth_getBlockByNumber", params: [t.blockNumber, false] }],
     signal,
   );
+  const dynamic = t.maxFeePerGas !== undefined && t.maxPriorityFeePerGas !== undefined;
   return {
     hash: t.hash,
     blockNumber: hex(t.blockNumber),
@@ -72,6 +76,16 @@ async function fetchRpcTx(rpcUrl: string, hash: string, signal: AbortSignal): Pr
     contractAddress: r.contractAddress ?? undefined,
     logs: r.logs.map((l) => ({ logIndex: hex(l.logIndex), address: l.address, topics: l.topics, data: l.data })),
     internalTxns: [],
+    // a dynamic-fee tx's own gasPrice field is figured on the header's
+    // worst-case base fee, so only its caps are the bid
+    fees: {
+      bid: dynamic
+        ? { maxFeePerGas: BigInt(t.maxFeePerGas!), maxPriorityFeePerGas: BigInt(t.maxPriorityFeePerGas!) }
+        : { gasPrice: BigInt(t.gasPrice ?? r.effectiveGasPrice) },
+      paid: BigInt(r.effectiveGasPrice),
+      bound: block?.baseFeePerGas ? BigInt(block.baseFeePerGas) : null,
+      floor: block?.minPriceExponent ? priceFloor(BigInt(block.minPriceExponent)) : null,
+    },
   };
 }
 
