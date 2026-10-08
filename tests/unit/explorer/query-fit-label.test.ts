@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { fitLabel } from '@/components/explorer-v2/evm/query/fit-text';
+import { fitLabel, stackLabels } from '@/components/explorer-v2/evm/query/fit-text';
 
 // A Query chart's words at an x (a marker's "so far", a band's name, an axis tick) stay whole inside the svg, which
 // cuts what runs past its edge. Geist Mono at 10 px is 6 px a character: "so far" is 36 px wide.
@@ -49,5 +49,42 @@ describe('a label at an x', () => {
         }
       }
     }
+  });
+});
+
+describe("a chart's red line names", () => {
+  // the reported chart: weekly marks about 55 px apart, three names at the last three
+  const peak = { x: 1410, w: 60 };
+  const basePeak = { x: 1465, w: 84 };
+  const latest = { x: 1520, w: 102 };
+
+  it('stay on one row when they keep apart', () => {
+    expect(stackLabels([{ x: 200, w: 60 }, { x: 600, w: 60 }], 1550)).toEqual([
+      { left: 170, row: 0 },
+      { left: 570, row: 0 },
+    ]);
+  });
+
+  it('stack on rows when names a few marks apart would cover each other', () => {
+    const spots = stackLabels([peak, basePeak, latest], 1550);
+    expect(spots.map((s) => s.row)).toEqual([0, 1, 2]);
+  });
+
+  it('never cover each other on a row, in any order and at any spacing', () => {
+    for (const step of [10, 30, 55, 90, 200]) {
+      const marks = [latest, peak, basePeak, { x: 900, w: 168 }].map((m, i) => ({ x: 300 + ((i * step) % 1200), w: m.w }));
+      const spots = stackLabels(marks, 1550);
+      spots.forEach((a, i) =>
+        spots.forEach((b, j) => {
+          if (i === j || a.row !== b.row) return;
+          expect(a.left + marks[i].w <= b.left || b.left + marks[j].w <= a.left).toBe(true);
+        }),
+      );
+    }
+  });
+
+  it('take the lowest free row, so a name past a stack drops back to the first', () => {
+    const spots = stackLabels([peak, basePeak, { x: 1300, w: 36 }], 1550);
+    expect(spots.map((s) => s.row)).toEqual([0, 1, 0]);
   });
 });

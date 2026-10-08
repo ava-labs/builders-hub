@@ -17,7 +17,7 @@ import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from ".
 import { rowCount, SAID_PARTIAL } from "./query-client";
 import { extremeOf, rowWords, statDoor } from "./stat-door";
 import { FlowChart } from "./query/FlowChart";
-import { BandLabel, FitTick, MarkLabel } from "./query/fit-text";
+import { BandLabel, FitTick, MarkLabels } from "./query/fit-text";
 import { chipRange, chipValue, fmt, fmtX, nameFor, spanOf, tipX, xText, zoneOf } from "./query-format";
 
 export { fmt, fmtX, nameFor, spanOf, tipX, zoneOf } from "./query-format";
@@ -458,6 +458,8 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
   const [kb, setKb] = useState<number | null>(null);
   // after the keyboard's cursor leaves, the tooltip it opened is held shut until the pointer comes back
   const [shut, setShut] = useState(false);
+  // rows the red lines' names stack in over the plot, so none covers another
+  const [markRows, setMarkRows] = useState(1);
   const [drag, setDrag] = useState<[number, number] | null>(null);
   const dragging = drag !== null;
   const dragRef = useRef<{ a: number; b: number } | null>(null);
@@ -734,7 +736,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
             <ComposedChart
               data={data}
               layout={horizontal ? "vertical" : "horizontal"}
-              margin={{ top: (horizontal ? panel.referenceLines.length > 0 : drillMark || (!scatter && panel.markers.length > 0)) ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
+              margin={{ top: (horizontal ? panel.referenceLines.length > 0 : drillMark || (!scatter && panel.markers.length > 0)) ? 5 + 13 * markRows : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
               barCategoryGap={horizontal ? "26%" : "18%"}
               stackOffset={signed ? "sign" : undefined}
               onMouseDown={(s) => ev.current.down(s)}
@@ -827,13 +829,11 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                 !scatter &&
                 panel.markers.map((m) => {
                   const mx = xOf(m.x);
-                  return mx !== undefined ? (
-                    <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} ifOverflow="visible" stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={<MarkLabel value={m.label} />} />
-                  ) : null;
+                  return mx !== undefined ? <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} ifOverflow="visible" stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" /> : null;
                 })}
               {panel.referenceLines.map((l) =>
                 horizontal ? (
-                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={<MarkLabel value={l.label} />} />
+                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" />
                 ) : (
                   <ReferenceLine key={l.label} yAxisId="left" y={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "insideTopRight", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
                 ),
@@ -893,11 +893,12 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
               })}
               {signed && (horizontal ? <ReferenceLine x={0} stroke="currentColor" strokeOpacity={0.35} /> : <ReferenceLine yAxisId="left" y={0} stroke="currentColor" strokeOpacity={0.35} />)}
               {panel.net && signed && !horizontal && <Line key="net" yAxisId="left" type="monotone" dataKey="__net" stroke={netTone} strokeWidth={1.75} dot={false} activeDot={false} {...anim} connectNulls />}
+              <Customized component={<MarkLabels marks={horizontal ? panel.referenceLines.map((l) => ({ x: l.y, label: l.label })) : scatter ? [] : panel.markers.flatMap((m) => (xOf(m.x) !== undefined ? [{ x: xOf(m.x)!, label: m.label }] : []))} onRows={setMarkRows} />} />
               <Customized component={<HoverLayer spec={spec} />} />
             </ComposedChart>
           </ResponsiveContainer>
     ),
-    [data, x, names, sym, span, zone, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
+    [data, x, names, sym, span, zone, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, markRows, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
   );
 
   return (
