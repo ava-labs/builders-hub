@@ -17,8 +17,9 @@ const SHORT_ADDRESS = /^0x[0-9a-f]{4}…[0-9a-f]{4}$/;
 const BOARD_WINDOW = /^paid [\d.]+[KM]? AVAX · /;
 
 // The chart's line under its figure ends with its days, for example "$437.6K · 1.3K per day · Sep 6 to Oct 5".
-// A window across New Year writes the years: "Dec 6, 2026 to Jan 4, 2027".
-const CHART_WINDOW = / per day · [A-Z][a-z]{2} \d{1,2}(, \d{4})?( to [A-Z][a-z]{2} \d{1,2}(, \d{4})?)?$/;
+// A window across New Year writes the years: "Dec 6, 2026 to Jan 4, 2027". Today's burn so far, when it loads, follows:
+// "… · Sep 6 to Oct 5 · today so far 824 AVAX".
+const CHART_WINDOW = / per day · [A-Z][a-z]{2} \d{1,2}(, \d{4})?( to [A-Z][a-z]{2} \d{1,2}(, \d{4})?)?( · today so far [\d.,]+[KM]? AVAX)?$/;
 
 // Sets the page clock: a radio button on wider screens, a native select on a phone (components/explorer-v2/time-range.tsx).
 async function pickRange(screen: Screen, browser: Browser, label: '1D' | '1W' | '1M') {
