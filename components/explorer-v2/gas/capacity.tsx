@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePolledJson } from "@/components/explorer-v2/page-data";
 import { useChainMetrics } from "@/components/explorer-v2/evm/metric-charts";
 import { dayLong, dayShort } from "@/components/explorer-v2/format";
 import { ColumnsBlock } from "@/components/explorer-v2/gas/instruments";
-import { FEE_HISTORY_BLOCKS, HELICON_DAY, fmtGas, rpcCall } from "@/components/explorer/GasMarketPage";
-import { targetDays, targetOf, type TargetDay, type TargetHeader } from "@/lib/gas-target-math";
+import { HELICON_DAY, fmtGas } from "@/components/explorer/GasMarketPage";
+import { targetDays, type TargetDay } from "@/lib/gas-target-math";
 import type { GasDayPoint } from "@/lib/explorer-clickhouse";
 import type { GasTargetDay } from "@/lib/gas-target";
 
@@ -15,7 +15,6 @@ import type { GasTargetDay } from "@/lib/gas-target";
    chain can hold block after block, so it is the wrong denominator for how
    busy a chain is; the target is the rate the base fee holds steady at. */
 
-const POLL_MS = 12_000;
 
 /** the daily reserved and charged gas over the range, each against that day's target; empty when the chain has no ACP-176 target */
 export function useTargetDays(evmChainId: number, days: number, trend: GasDayPoint[]): TargetDay[] {
@@ -27,51 +26,6 @@ export function useTargetDays(evmChainId: number, days: number, trend: GasDayPoi
     const charged = new Map((metrics?.gasUsed?.data ?? []).map((p) => [String(p.date), Number(p.value)]));
     return targetDays(trend, targets, charged);
   }, [data, metrics, trend]);
-}
-
-interface Header extends TargetHeader {
-  timestamp: string;
-  timestampMilliseconds?: string;
-  gasLimit: string;
-}
-
-const msOfHeader = (h: Header) => (h.timestampMilliseconds ? parseInt(h.timestampMilliseconds, 16) : parseInt(h.timestamp, 16) * 1000);
-
-/** the last blocks' reserved gas per second, as a percent of the head's target, refreshed live */
-export function useLiveTargetPct(rpcUrl: string | undefined, evmChainId: number): number | null {
-  const [pct, setPct] = useState<number | null>(null);
-  useEffect(() => {
-    if (!rpcUrl) return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const fh = (await rpcCall(rpcUrl, "eth_feeHistory", [`0x${FEE_HISTORY_BLOCKS.toString(16)}`, "latest", []])) as {
-          oldestBlock: string;
-          gasUsedRatio: number[];
-        };
-        const oldest = parseInt(fh.oldestBlock, 16);
-        const n = fh.gasUsedRatio.length;
-        const [before, head] = (await Promise.all([
-          rpcCall(rpcUrl, "eth_getBlockByNumber", [`0x${Math.max(0, oldest - 1).toString(16)}`, false]),
-          rpcCall(rpcUrl, "eth_getBlockByNumber", [`0x${(oldest + n - 1).toString(16)}`, false]),
-        ])) as [Header, Header];
-        const target = targetOf(head, evmChainId);
-        const seconds = (msOfHeader(head) - msOfHeader(before)) / 1000;
-        if (cancelled || target === null || seconds <= 0) return;
-        const reserved = fh.gasUsedRatio.reduce((s, r) => s + r, 0) * parseInt(head.gasLimit, 16);
-        setPct((reserved / seconds / target) * 100);
-      } catch {
-        // the last reading stands
-      }
-    };
-    void load();
-    const timer = setInterval(() => void load(), POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [rpcUrl, evmChainId]);
-  return pct;
 }
 
 export const fmtRate = (perSecond: number) => `${fmtGas(perSecond)} gas/s`;

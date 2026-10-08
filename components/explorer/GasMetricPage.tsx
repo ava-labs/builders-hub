@@ -28,7 +28,8 @@ import {
 import { ProtocolTable, protocolShareParts } from "@/components/explorer-v2/gas/buyers";
 import { useContractNames } from "@/lib/sourcify-client";
 import { GAS_METRICS, type GasMetricKey } from "@/components/explorer/gas-metrics";
-import { TargetDailyBlock, useLiveTargetPct, useTargetDays } from "@/components/explorer-v2/gas/capacity";
+import { TargetDailyBlock, useTargetDays } from "@/components/explorer-v2/gas/capacity";
+import { useLiveTargetPct } from "@/components/explorer-v2/gas/live-target";
 import type { GasDayPoint, GasHistoryDays, GasHourPoint, GasMarket } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
 
@@ -275,7 +276,7 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
   const histNote = RANGE_DAYS[range] > 90 ? `${RANGE_LABEL.quarter}, longest computed` : RANGE_LABEL[range];
 
   const days = useTargetDays(evmChainId, historyDays(range), trend);
-  const liveTarget = useLiveTargetPct(catalog.rpcUrl, evmChainId);
+  const liveTarget = useLiveTargetPct(catalog.rpcUrl, evmChainId, FEE_HISTORY_BLOCKS);
   const vsTarget = useMemo(() => {
     const charged = days.filter((d) => d.chargedPct !== null);
     if (!days.length || !charged.length) return null;

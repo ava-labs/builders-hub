@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { rpcCall, useLiveTargetPct } from "@/components/explorer-v2/gas/live-target";
 import { cn } from "@/lib/utils";
 import {
   useExplorerTimeRange,
@@ -46,18 +47,6 @@ interface FeeSnapshot {
   tipLowWei: number | null;
   tipMidWei: number | null;
   tipFastWei: number | null;
-}
-
-export async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const body = await res.json();
-  if (body.error) throw new Error(body.error.message);
-  return body.result;
 }
 
 function median(sortedAsc: number[]): number | null {
@@ -353,6 +342,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const avgUtil = fee.utilization.length
     ? (fee.utilization.reduce((s, u) => s + u, 0) / fee.utilization.length) * 100
     : null;
+  // against the gas target where the chain has one: the block gas limit is a burst ceiling
+  const liveTarget = useLiveTargetPct(catalog.rpcUrl, evmChainId, FEE_HISTORY_BLOCKS);
+  const shownUtil = liveTarget ?? avgUtil;
 
   const gas24h = useMemo(() => {
     if (!market?.hourly.length) return null;
@@ -420,9 +412,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
               label: "Utilization",
               live: true,
               href: `${base}/gas/utilization`,
-              value: avgUtil !== null ? avgUtil.toFixed(1) : "—",
-              unit: avgUtil !== null ? "%" : undefined,
-              sub: `last ${FEE_HISTORY_BLOCKS} blocks`,
+              value: shownUtil !== null ? shownUtil.toFixed(1) : "—",
+              unit: shownUtil !== null ? "%" : undefined,
+              sub: liveTarget !== null ? `of target, gas reserved · last ${FEE_HISTORY_BLOCKS} blocks` : `of the block gas limit · last ${FEE_HISTORY_BLOCKS} blocks`,
               values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
             },
             {
