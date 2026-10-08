@@ -209,8 +209,13 @@ export function BurnBoard({ c, p, x, sinceOpen = null }: { c: number; p: number;
 
 export interface FeeBucket {
   date: string;
+  /** the bucket's whole burn, today's partial share included */
   cChainFees: number;
   icmFees: number;
+  /** the part of cChainFees burned today, which is not over yet */
+  todayFees?: number;
+  /** the bucket's day, week, or month is still running */
+  partial?: boolean;
 }
 
 /** the burn's red: a stack layer's faces and its key's swatch */
@@ -239,6 +244,7 @@ export function BurnHistory({
   dateLabel,
   tickLabel,
   note,
+  running = "day",
   price,
 }: {
   buckets: FeeBucket[];
@@ -248,19 +254,33 @@ export function BurnHistory({
   /** a bucket's date, short, for the axis */
   tickLabel: (date: string) => string;
   note?: string | null;
+  /** what a bucket spans, for the running bucket's words */
+  running?: "day" | "week" | "month";
   price: number;
 }) {
   const cols = useMemo<StackCol[]>(
     () =>
       buckets.map((b) => {
         const icm = Math.min(b.icmFees, b.cChainFees);
-        return { key: b.date, long: dateLabel(b.date), tick: tickLabel(b.date), parts: { icm, rest: b.cChainFees - icm } };
+        const today = b.partial && running === "day";
+        return {
+          key: b.date,
+          long: dateLabel(b.date),
+          tick: today ? "Today" : tickLabel(b.date),
+          partial: b.partial,
+          parts: { icm, rest: b.cChainFees - icm },
+        };
       }),
-    [buckets, dateLabel, tickLabel],
+    [buckets, dateLabel, tickLabel, running],
   );
   // beside the live panel the history stands as tall as it; a phone keeps it short
   const narrow = useNarrow();
-  const all = buckets.reduce((s, b) => s + b.cChainFees, 0);
+  // the headline holds whole days; today's burn so far is said beside it
+  const all = buckets.reduce((s, b) => s + b.cChainFees - (b.todayFees ?? 0), 0);
+  const soFar = buckets.reduce((s, b) => s + (b.todayFees ?? 0), 0);
+  // the span runs to the last bucket that holds a whole day
+  const spanned = buckets.filter((b) => b.cChainFees > (b.todayFees ?? 0) || !b.todayFees);
+  const span = spanned.length > 1 ? `${dateLabel(spanned[0].date)} to ${dateLabel(spanned[spanned.length - 1].date)}` : "";
   // the bucket that holds the upgrade, when the window reaches back past it
   const hIdx = buckets.reduce((at, b, i) => (b.date <= HELICON ? i : at), -1);
   const marker = hIdx > 0 && hIdx < buckets.length ? { key: buckets[hIdx].date, label: "Helicon" } : undefined;
@@ -271,10 +291,11 @@ export function BurnHistory({
       note={note}
       figure={avax(all)}
       unit="AVAX"
-      sub={`${usdOf(all, price) ? `${usdOf(all, price)} · ` : ""}${buckets.length > 1 ? `${dateLabel(buckets[0].date)} to ${dateLabel(buckets[buckets.length - 1].date)}` : ""}`}
+      sub={[usdOf(all, price), span, soFar > 0 ? `today so far ${avax(soFar)} AVAX` : ""].filter(Boolean).join(" · ")}
       cols={cols}
       layers={BURN_LAYERS}
       marker={marker}
+      partialLabel={running === "day" ? "Today, so far" : `This ${running}, so far`}
       height={narrow ? 220 : 340}
       fmt={(v) => `${avax(v)} AVAX`}
       tip={(c) => {
@@ -284,10 +305,13 @@ export function BurnHistory({
             <p className="whitespace-nowrap font-mono text-[10px] text-zinc-500">
               {c.long} · {avax(total)} AVAX{usdOf(total, price) ? ` · ${usdOf(total, price)}` : ""}
             </p>
+            {c.partial && (
+              <p className="whitespace-nowrap font-mono text-[10px] text-zinc-500">So far: the {running} is still running (UTC), not its final burn</p>
+            )}
             {(c.parts.icm ?? 0) > 0 && (
               <p className="whitespace-nowrap font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">ICM {c.parts.icm.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX</p>
             )}
-            <p className="whitespace-nowrap font-mono text-[11px] font-semibold tabular-nums text-[#E6212F]">{total.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX burned</p>
+            <p className="whitespace-nowrap font-mono text-[11px] font-semibold tabular-nums text-[#E6212F]">{total.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX burned{c.partial ? " so far" : ""}</p>
           </>
         );
       }}

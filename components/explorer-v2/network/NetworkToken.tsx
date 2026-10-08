@@ -9,12 +9,12 @@ import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { formatNumber } from "@/components/explorer-v2/format";
 import { parseDateString } from "@/components/stats/chart-axis-utils";
-import { BurnHistory, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
+import { BurnHistory, type FeeBucket, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
 import { SupplyModel } from "./token-model";
 import { LiveBurnPanel, useLiveBurns } from "./token-live";
 import { levelWindow, useBurnHistory, useStakeHistory } from "./overview-series";
 import { HoldersSection } from "./token-holders";
-import { FEES_URL, ICM_FEES_URL, SUPPLY_URL } from "./network-reads";
+import { FEES_URL, ICM_FEES_URL, SUPPLY_URL, TODAY_FEES_URL } from "./network-reads";
 
 /* The network scope's AVAX tab: the token across the P-, C-, and X-Chains
    (formerly /stats/avax-token). Four figures lead; then the 720M cap as
@@ -65,6 +65,12 @@ interface ICMFeesResponse {
   lastUpdated: string;
 }
 
+interface TodayFeesResponse {
+  date: string;
+  feesPaid: number;
+  latestHour: number | null;
+}
+
 type Period = "D" | "W" | "M";
 
 export function NetworkToken() {
@@ -74,6 +80,8 @@ export function NetworkToken() {
   const fees = usePolledJson<CChainFeesResponse>(FEES_URL);
   // ICM data is non-critical: a failed read leaves its series out, and the page stands
   const icm = usePolledJson<ICMFeesResponse>(ICM_FEES_URL);
+  // today's burn so far is non-critical too: without it the chart ends on the last whole day
+  const today = usePolledJson<TodayFeesResponse>(TODAY_FEES_URL, { refreshMs: 5 * 60_000 });
   const { data, loading } = supply;
   // the page clock in the subnav windows the fee history; bucket width
   // follows it (daily bars up to a month, weekly for a quarter, monthly
@@ -111,6 +119,13 @@ export function NetworkToken() {
         .reverse(),
     [icmRows, lastFeeDate],
   );
+  // today's partial bucket, drawn apart from the whole days; it only follows a fee history that has loaded
+  const todayPoint = useMemo<FeeBucket | null>(() => {
+    const t = today.data;
+    if (!t || !lastFeeDate || !(t.date > lastFeeDate) || !Number.isFinite(t.feesPaid)) return null;
+    const icmToday = (Array.isArray(icmRows) ? icmRows : []).find((r) => r.date === t.date);
+    return { date: t.date, cChainFees: t.feesPaid, icmFees: icmToday ? icmToday.feesPaid / 1e18 : 0, todayFees: t.feesPaid, partial: true };
+  }, [today.data, lastFeeDate, icmRows]);
   const feesError = fees.error ?? (fees.data && !Array.isArray(feeRows) ? "the response is missing its series" : null);
   const error = supply.error
     ? `Failed to fetch the AVAX supply: ${supply.error}`
@@ -119,14 +134,14 @@ export function NetworkToken() {
       : null;
   const retry = () => [supply, fees, icm].forEach((f) => f.retry());
 
-  const aggregatedFeeData = useMemo(() => {
+  const aggregatedFeeData = useMemo<FeeBucket[]>(() => {
     if (cChainFees.length === 0 && icmFees.length === 0) return [];
 
     const allDates = new Set([...cChainFees.map((d) => d.date), ...icmFees.map((d) => d.date)]);
     const cChainMap = new Map(cChainFees.map((d) => [d.date, d.value]));
     const icmMap = new Map(icmFees.map((d) => [d.date, d.value]));
 
-    let mergedData = Array.from(allDates)
+    const mergedData: FeeBucket[] = Array.from(allDates)
       .map((date) => ({
         date,
         cChainFees: cChainMap.get(date) || 0,
@@ -137,45 +152,33 @@ export function NetworkToken() {
       // floored at a week because one bar says nothing
       .slice(-Math.max(7, RANGE_DAYS[clock]));
 
-    if (period === "D") return mergedData;
+    if (period === "D") return todayPoint ? [...mergedData, todayPoint] : mergedData;
 
-    const grouped = new Map<
-      string,
-      { cChainSum: number; icmSum: number; date: string }
-    >();
+    const keyOf = (date: string) => {
+      const [year, month, day] = date.split("-").map(Number);
+      if (period === "M") return `${year}-${String(month).padStart(2, "0")}`;
+      const weekStart = new Date(year, month - 1, day);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const wy = weekStart.getFullYear();
+      const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+      const wd = String(weekStart.getDate()).padStart(2, "0");
+      return `${wy}-${wm}-${wd}`;
+    };
+    // the week or month that holds today is still running, whether or not today's burn has loaded
+    const runningKey = keyOf(todayPoint?.date ?? new Date().toISOString().slice(0, 10));
 
-    mergedData.forEach((point) => {
-      const [year, month, day] = point.date.split("-").map(Number);
-      let key: string;
-
-      if (period === "W") {
-        const weekStart = new Date(year, month - 1, day);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        const wy = weekStart.getFullYear();
-        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
-        const wd = String(weekStart.getDate()).padStart(2, "0");
-        key = `${wy}-${wm}-${wd}`;
-      } else {
-        key = `${year}-${String(month).padStart(2, "0")}`;
-      }
-
-      if (!grouped.has(key)) {
-        grouped.set(key, { cChainSum: 0, icmSum: 0, date: key });
-      }
-
-      const group = grouped.get(key)!;
-      group.cChainSum += point.cChainFees;
-      group.icmSum += point.icmFees;
+    const grouped = new Map<string, FeeBucket>();
+    [...mergedData, ...(todayPoint ? [todayPoint] : [])].forEach((point) => {
+      const key = keyOf(point.date);
+      const group = grouped.get(key) ?? { date: key, cChainFees: 0, icmFees: 0, todayFees: 0, partial: key === runningKey };
+      group.cChainFees += point.cChainFees;
+      group.icmFees += point.icmFees;
+      group.todayFees = (group.todayFees ?? 0) + (point.todayFees ?? 0);
+      grouped.set(key, group);
     });
 
-    return Array.from(grouped.values())
-      .map((group) => ({
-        date: group.date,
-        cChainFees: group.cChainSum,
-        icmFees: group.icmSum,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [cChainFees, icmFees, period, clock]);
+    return Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }, [cChainFees, icmFees, todayPoint, period, clock]);
 
   const formatTooltipDate = (value: string) => {
     const date = parseDateString(value);
@@ -312,6 +315,7 @@ export function NetworkToken() {
                   note={windowNote}
                   dateLabel={formatTooltipDate}
                   tickLabel={formatTick}
+                  running={period === "M" ? "month" : period === "W" ? "week" : "day"}
                   price={price}
                 />
               ) : (

@@ -15,6 +15,8 @@ export const BURN_HISTORY_URL = "/api/chain-stats/43114?metrics=cumulativeBurn&t
    server takes 2.3 s to build it when no cache holds it; this series is 26 KB and takes a few ms */
 export const FEES_URL = "/api/chain-stats/43114?metrics=feesPaid&timeRange=1y";
 export const ICM_FEES_URL = "/api/icm-contract-fees?timeRange=1y";
+/* the C-Chain's fees so far today (UTC): the fee history above holds whole days only */
+export const TODAY_FEES_URL = "/api/chain-stats/43114/today";
 
 /* the overview aggregate's longest upstream window is a year: the ALL
    tick clamps to it, and the pulse labels say so */
