@@ -16,19 +16,27 @@ import { DAY, WEEK } from "./values";
 
 /* What the server puts in front of a question's SQL. Two kinds of table:
 
-   Reference tables hold what our own server knows that the ClickHouse
-   box does not. The model reads one like any table; anchored()
-   (clickhouse.ts) defines it in front of the query as a named subquery
-   over the source's rows, so the guard, recipes, drills and boards keep
-   the SQL as the model wrote it, and every run reads the source as it is
-   now. The query service takes 16 KiB of SQL and no external data, so a
-   table stays small: aggregated rows, each id once. A table only ever
-   gains columns: a board's SQL may read any column it has.
+   Chain tables (target.tables) hold every chain's rows. anchored()
+   (clickhouse.ts) defines each one a query names in front of it as the
+   page's chain's rows alone, under the table's own name, so every
+   SELECT, JOIN side, UNION branch and subquery reads only that chain,
+   whatever filter the query writes. The guard refuses the ways past the
+   name: a database prefix, a WITH of the same name, a table after a
+   comma. chain_id is each table's first sort key, and ClickHouse prunes
+   by the query's own window through the definition: the same parts and
+   granules as the query alone (EXPLAIN on raw_txs, 2026-10-07). The
+   tables that hold rows a re-ingest wrote twice, never merged
+   (target.final), are read through FINAL there, so a count counts
+   transactions, not rows. The data fix belongs to the box.
 
-   Deduplicated tables (target.final) hold rows that a re-ingest wrote
-   twice and the box never merged. A query reads them through a subquery
-   with FINAL under the table's own name, so a count counts transactions,
-   not rows. The data fix belongs to the box. */
+   Reference tables hold what our own server knows that the ClickHouse
+   box does not. The model reads one like any table, defined in front of
+   the query as a named subquery over the source's rows, so the guard,
+   recipes, drills and boards keep the SQL as the model wrote it, and
+   every run reads the source as it is now. The query service takes 16
+   KiB of SQL and no external data, so a table stays small: aggregated
+   rows, each id once. A table only ever gains columns: a board's SQL may
+   read any column it has. */
 
 /** the most SQL the query service takes, in bytes */
 export const SQL_BUDGET = 16384;
@@ -37,6 +45,18 @@ const ROWS_BUDGET = SQL_BUDGET - 2048;
 
 type Network = "mainnet" | "fuji";
 const networkOf = (chainId: number): Network => (chainId === PCHAIN_IDS.fuji ? "fuji" : "mainnet");
+
+/** each chain table the SQL names, defined as this chain's rows. Any mention counts, not only one after FROM or
+    JOIN, so no way of naming a table reads past its definition */
+function scopeDefs(sql: string, chainId: number): string[] {
+  const { tables, final } = targetOf(chainId);
+  return tables
+    .filter((t) => new RegExp(`\\b${t}\\b`, "i").test(sql))
+    .map((t) => `${t} AS (SELECT * FROM ${t}${final.includes(t) ? " FINAL" : ""} WHERE chain_id = ${chainId})`);
+}
+
+/** what the chain tables' definitions take of the budget */
+const scopeBytes = (sql: string, chainId: number) => Buffer.byteLength(scopeDefs(sql, chainId).join(", "));
 
 interface Source {
   /** the columns the table always has, in order, with their types */
@@ -341,7 +361,7 @@ const TOKENS_ROOM = 1600;
 const QUOTES_ROOM = Buffer.byteLength(tokensSql(DEX_CHAIN_ID, DEX_TOKENS.filter((t) => t.quote !== "")));
 
 function dexRoom(query: string) {
-  const free = SQL_BUDGET - Buffer.byteLength(query) - DEX_WRAP;
+  const free = SQL_BUDGET - Buffer.byteLength(query) - DEX_WRAP - scopeBytes(query, DEX_CHAIN_ID);
   if (!reads(query, "dex_tokens")) return { tokens: null, factories: free };
   const left = free - Buffer.byteLength(factoriesSql(DEX_CHAIN_ID, DEX_FACTORIES, readsPositions(query)));
   const tokens = tokensFor(query, Math.min(TOKENS_ROOM, Math.max(left, QUOTES_ROOM)));
@@ -406,7 +426,7 @@ const LENDING_WRAP = 64;
 
 function lendingRoom(query: string) {
   // the names the server defines for the query share the budget too
-  const free = SQL_BUDGET - Buffer.byteLength(query) - LENDING_WRAP - Buffer.byteLength(namesIn(query, SERVER_NAMES).join(", "));
+  const free = SQL_BUDGET - Buffer.byteLength(query) - LENDING_WRAP - Buffer.byteLength(namesIn(query, SERVER_NAMES).join(", ")) - scopeBytes(query, LENDING_CHAIN_ID);
   const markets = reads(query, "lending_markets") ? marketsFor(query, free) : null;
   return { markets, tokens: lendingTokensFor(query, free - Buffer.byteLength(markets?.sql ?? "")) };
 }
@@ -488,26 +508,27 @@ export function refsIn(sql: string, chainId: number): string[] {
   return targetOf(chainId).refs.filter((r) => SOURCES[r] && reads(sql, r));
 }
 
-/** the SQL with each reference table it reads, and each table it reads
-    that holds duplicate rows, defined in front of it; and what the
+/** the SQL with each chain table it names, as this chain's rows, and
+    each reference table it reads, defined in front of it; and what the
     reference tables cover. Throws when a source cannot be read or the
     whole no longer fits the query service. */
 export async function withSources(sql: string, chainId: number): Promise<{ sql: string; sources: SourceNote[] }> {
   const used = refsIn(sql, chainId);
-  const dedup = targetOf(chainId).final.filter((t) => reads(sql, t));
+  const scoped = scopeDefs(sql, chainId);
   // the lending and family names the query reads (lending.ts, families.ts), on the C-Chain the registry describes
   const names = chainId === LENDING_CHAIN_ID ? namesIn(sql, SERVER_NAMES) : [];
-  if (used.length === 0 && dedup.length === 0 && names.length === 0) return { sql, sources: [] };
+  if (used.length === 0 && scoped.length === 0 && names.length === 0) return { sql, sources: [] };
   const built = await Promise.all(used.map((r) => SOURCES[r].build(chainId, sql)));
-  // the inner name is the table itself: a WITH does not see its own names
-  const defs = [...names, ...dedup.map((t) => `${t} AS (SELECT * FROM ${t} FINAL)`), ...used.map((r, i) => `${r} AS (${built[i].sql})`)];
+  // the inner name is the table itself: a WITH does not see its own names. The chain tables come first, so the
+  // names and reference tables after them read the same chain's rows as the query
+  const defs = [...scoped, ...names, ...used.map((r, i) => `${r} AS (${built[i].sql})`)];
   // wrapped, not merged into the query's own WITH: every branch of a UNION sees the tables
   const out = `WITH ${defs.join(", ")} SELECT * FROM (\n${sql}\n)`;
   const bytes = Buffer.byteLength(out);
   if (bytes > SQL_BUDGET) {
     const own = Buffer.byteLength(sql);
-    const what = [...used, ...(names.length ? ["the names our server defines"] : [])].join(" and ");
-    throw new Error(`the query is too long to send with ${what}: the table takes ${bytes - own} of the ${SQL_BUDGET} bytes the query service accepts, so the query may use ${SQL_BUDGET - (bytes - own)} and it uses ${own}. Write a shorter query.`);
+    const what = [...used, ...(names.length ? ["the names our server defines"] : []), ...(scoped.length ? ["its chain's tables"] : [])].join(" and ");
+    throw new Error(`the query is too long to send with ${what}: the definitions take ${bytes - own} of the ${SQL_BUDGET} bytes the query service accepts, so the query may use ${SQL_BUDGET - (bytes - own)} and it uses ${own}. Write a shorter query.`);
   }
   return { sql: out, sources: built.map((b) => b.note) };
 }

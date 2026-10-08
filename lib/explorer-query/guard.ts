@@ -2,8 +2,10 @@
    One SELECT, over the raw tables and our reference tables only, on one
    chain, capped in rows. The guard is the safety boundary; the prompt is
    only advice. The shorthand a DEX query opens with is written out
-   first (macros.ts), so the gate reads the whole text. A reference
-   table's rows are spliced in after this gate (sources.ts). */
+   first (macros.ts), so the gate reads the whole text. After this gate,
+   the server defines each table the query names as its chain's rows, and
+   splices in a reference table's rows (sources.ts); the gate makes sure
+   the query reads no table past those definitions. */
 
 import { FAMILY_EVENTS, familyHex } from "./families";
 import { LENDING_EVENTS, strayHex, typedLending } from "./lending";
@@ -169,6 +171,66 @@ function windowedTop(sql: string): string | null {
 }
 
 /* ------------------------------------------------------------------ */
+/* A query reads tables by the names after its FROMs and JOINs, and the
+   server defines each of those as one chain's rows (sources.ts). Every
+   other place a name reads a table is checked too: the name after a
+   comma in a FROM is checked as a JOIN's is; parentheses after a FROM or
+   a JOIN must hold a SELECT; a name on the right of an IN, and a
+   function that reads a dictionary or a Join table by its name, are
+   refused. */
+
+/** the words that end a SELECT's FROM */
+const FROM_END = ["WHERE", "PREWHERE", "GROUP", "ORDER", "HAVING", "LIMIT", "WINDOW", "QUALIFY", "UNION", "EXCEPT", "INTERSECT", "SETTINGS", "FORMAT"];
+/** the words a join opens with; each ends the list an ARRAY JOIN or a USING with no parentheses holds */
+const JOIN_WORDS = ["JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ASOF", "ANY", "ALL", "SEMI", "ANTI", "GLOBAL", "PASTE", "ARRAY"];
+const NAMED_READS = /\b(joinGet\w*|dict(?:Get\w*|Has|IsIn))\s*\(/i;
+
+/** the names a comma in a FROM joins, each as written (db.table stays whole); or why a query reads a table in a way
+    the guard cannot check. ctes holds the names the query's own WITHs define, in lower case */
+function commaReads(sql: string, ctes: Set<string>): { ok: true; names: string[] } | { ok: false; error: string } {
+  const fn = NAMED_READS.exec(sql);
+  if (fn) return { ok: false, error: `${fn[1]}() reads a table by its name, which Query does not allow` };
+  const toks = tokenize(sql);
+  // the name at i, and a database name before a dot with it; null when no name stands there
+  const nameAt = (i: number) => (toks[i]?.word ? (toks[i + 1]?.v === "." && toks[i + 2]?.word ? `${toks[i].v}.${toks[i + 2].v}` : toks[i].v) : null);
+  // parentheses after FROM, JOIN or a comma hold a subquery, never a table
+  const bareParens = (i: number) => toks[i]?.v === "(" && !/^(SELECT|WITH)$/i.test(toks[i + 1]?.v ?? "");
+  const names: string[] = [];
+  const froms = new Set<number>();
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i];
+    // x IN name reads the table of that name: only a WITH of the query's own may stand there
+    const after = nameAt(i + 1);
+    if (keyword(t, "IN") && after && toks[i + 2]?.v !== "(" && !ctes.has(after.toLowerCase()))
+      return { ok: false, error: `IN ${after} reads a table by its name: write IN (SELECT …) over the tables here, or has(array, x) for an array` };
+    if (t.depth !== 0 || !keyword(t, "FROM", "JOIN") || keyword(toks[i - 1], "FILL", "ARRAY")) continue;
+    if (bareParens(i + 1)) return { ok: false, error: `${t.v.toUpperCase()} ( holds a subquery (SELECT …), never a table: name the table without parentheses` };
+    // the rest of a SELECT's FROM: a comma there joins what follows it
+    if (!keyword(t, "FROM") || froms.has(t.select)) continue;
+    froms.add(t.select);
+    // list: in an ARRAY JOIN's or a USING's list; nest: inside an array's or a map's brackets, which hold no table
+    let list = false;
+    let nest = 0;
+    for (let j = i + 1; j < toks.length; j++) {
+      const u = toks[j];
+      if (u.select < t.select) break;
+      if (u.select !== t.select || u.depth !== 0) continue;
+      if (keyword(u, ...FROM_END)) break;
+      if (u.v === "[" || u.v === "{") nest++;
+      else if (u.v === "]" || u.v === "}") nest--;
+      else if (keyword(u, ...JOIN_WORDS)) list = keyword(u, "ARRAY") || (keyword(u, "JOIN") && keyword(toks[j - 1], "ARRAY"));
+      else if (keyword(u, "USING")) list = toks[j + 1]?.v !== "(";
+      else if (u.v === "," && !list && nest === 0) {
+        if (bareParens(j + 1)) return { ok: false, error: "a comma in FROM joins a subquery (SELECT …) or a table, never a table in parentheses" };
+        const name = nameAt(j + 1);
+        if (name) names.push(name);
+      }
+    }
+  }
+  return { ok: true, names };
+}
+
+/* ------------------------------------------------------------------ */
 /* unhex reads any text as bytes: it pads an odd count of digits with a
    0 and turns 0x or a letter past f into a byte, so a literal typed
    wrong matches no row, and the answer says there was nothing. */
@@ -276,21 +338,23 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   // every table read must be one of the raw tables, or a reference table our server builds (sources.ts)
   // names a WITH defines (WITH snaps AS (…)) are the query's own, not tables
   const ctes = new Set([...sql.matchAll(/(?:\bWITH|,)\s*([A-Za-z_]\w*)\s+AS\s*\(/gi)].map((m) => m[1].toLowerCase()));
-  // a WITH may not take the name of a table the server defines
-  const taken = [...target.refs, ...target.final].find((r) => ctes.has(r));
+  // a WITH may not take the name of a table the server defines, and it defines every table
+  const taken = [...target.tables, ...target.refs].find((r) => ctes.has(r.toLowerCase()));
   if (taken) return { ok: false, error: `${taken} is a table here; give the WITH another name` };
+  const commas = commaReads(sql, ctes);
+  if (!commas.ok) return commas;
   const readable = [...target.tables, ...target.refs];
   const tables = new Set<AllowedTable>();
   // ORDER BY t WITH FILL FROM <expr> names a value, not a table, and so does ARRAY JOIN <array>
-  const refs = sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi);
-  for (const m of refs) {
-    const ident = m[2].replace(/^default\./i, "");
+  const refs = [...sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi)].map((m) => m[2]);
+  for (const name of [...refs, ...commas.names]) {
+    const ident = name.replace(/^default\./i, "");
     if (ctes.has(ident.toLowerCase())) continue;
     if (!readable.includes(ident)) {
-      return { ok: false, error: `table ${m[2]} is not readable here; use ${readable.join(", ")}` };
+      return { ok: false, error: `table ${name} is not readable here; use ${readable.join(", ")}` };
     }
-    // the server's definitions answer to the bare name only
-    if (ident !== m[2] && (target.refs.includes(ident) || target.final.includes(ident))) return { ok: false, error: `write ${ident} without a database name` };
+    // the server's definitions answer to the bare name only: default.raw_txs would read every chain
+    if (ident !== name) return { ok: false, error: `write ${ident} without a database name` };
     tables.add(ident as AllowedTable);
   }
   if (tables.size === 0) return { ok: false, error: typedLending(sql, chainId) ?? `the query reads no table; use ${readable.join(", ")}` };
@@ -299,8 +363,8 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const top = isFuji(chainId) ? null : windowedTop(sql);
   if (top) return { ok: false, error: top };
 
-  // one chain: the sort keys start with chain_id, so this is also what
-  // keeps a query from scanning every chain in the partition
+  // one chain, as the writer is told to write it: the server reads each table as this chain's rows whatever the
+  // query writes (sources.ts), and a query that names its chain reads it by the sort key's first column itself
   const chainRe = new RegExp(`\\bchain_id\\s*(=|==)\\s*${chainId}\\b`);
   if (!chainRe.test(sql)) return { ok: false, error: `filter every table on chain_id = ${chainId}` };
   const otherChain = sql.match(/\bchain_id\s*(=|==)\s*(\d+)/g)?.find((s) => !new RegExp(`\\b${chainId}\\b`).test(s));
