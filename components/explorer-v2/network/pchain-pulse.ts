@@ -47,10 +47,13 @@ const POLL_MS = 12_000;
 const POLL_LIMIT = 20;
 
 const byHeight = (a: TxSummary, b: TxSummary) => a.blockHeight - b.blockHeight || a.txHash.localeCompare(b.txHash);
+// one empty ledger, so a network with no txs yet renders nothing new
+const NONE: PulseTx[] = [];
 
 export function usePchainPulse(network = "mainnet"): PchainPulse {
-  const [txs, setTxs] = useState<PulseTx[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
+  // each with the network it is of: the network before is not shown, not even for one frame
+  const [shown, setShown] = useState<{ network: string; txs: PulseTx[] }>({ network, txs: NONE });
+  const [tip, setTip] = useState<{ network: string; stats: Stats } | null>(null);
   const [epoch, setEpoch] = useState(0);
 
   useEffect(() => {
@@ -79,7 +82,7 @@ export function usePchainPulse(network = "mainnet"): PchainPulse {
       lane,
     });
     // the ledger holds one tx past LEDGER: the one on its way out
-    const publish = () => setTxs(ledger.slice().reverse());
+    const publish = () => setShown({ network, txs: ledger.slice().reverse() });
 
     const loadAll = async (first: boolean) => {
       const got = await fetchTxs(LEDGER);
@@ -113,7 +116,7 @@ export function usePchainPulse(network = "mainnet"): PchainPulse {
       const res = await fetch(pchainApiPath(network, "stats"));
       if (!res.ok) return;
       const s = (await res.json()) as Stats;
-      if (alive) setStats(s);
+      if (alive) setTip({ network, stats: s });
     };
 
     const loop = async () => {
@@ -140,7 +143,8 @@ export function usePchainPulse(network = "mainnet"): PchainPulse {
     };
   }, [network]);
 
+  const txs = shown.network === network ? shown.txs : NONE;
   // stable between polls, so the ring's memo holds while the map re-renders on a hover
   const split = useMemo(() => ({ txs: txs.slice(0, LEDGER), outgoing: txs[LEDGER] ?? null }), [txs]);
-  return { ...split, stats, epoch };
+  return { ...split, stats: tip?.network === network ? tip.stats : null, epoch };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { EASE_CSS, useStill } from "@/components/explorer-v2/motion";
 import { Belt, MotionRow } from "@/components/explorer-v2/evm/LiveBoards";
 import { useTicker } from "@/components/explorer-v2/network/ticker";
-import { chainDisplayName, pchainApiPath, txTypeLabel, type Tx } from "@/lib/pchain-explorer";
+import { chainDisplayName, pchainApiPath, txTypeLabel, type PchainNetwork, type Tx } from "@/lib/pchain-explorer";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { FAM, Logo, famOf } from "@/components/explorer-v2/network/icm-map";
@@ -18,8 +18,7 @@ import { PCHAIN_LOGO } from "@/components/explorer-v2/network/city-model";
 import type { PchainPulse, PulseTx } from "@/components/explorer-v2/network/pchain-pulse";
 import type { NodeBlockTx } from "@/lib/pchain-block";
 import { Age, ChainLogo, Heading, Note, Shimmer, SkeletonRows, StatusLine } from "@/components/explorer-v2/network/chain-live";
-import l1ChainsData from "@/constants/l1-chains.json";
-import type { L1Chain } from "@/types/stats";
+import { catalogBySubnet } from "@/lib/explorer-catalog";
 
 /* The P-Chain's live preview in the city: its newest transactions as the
    ring gets them, newest first, each with what it acts on. The city opens
@@ -41,7 +40,7 @@ export interface PaneL1 {
   logo: string;
 }
 
-const BASE = "/explorer/mainnet/p-chain";
+const baseOf = (network: PchainNetwork) => `/explorer/${network}/p-chain`;
 /* rows on the pane, the one sliding out under the list's foot included */
 const ROWS = 20;
 /* the ledger reads the tip every other 12 s poll: this long without a word, it has stopped */
@@ -54,9 +53,11 @@ const ROW_STEP_MS = 45;
 /* the node's newest blocks are read this often; the route shares one read among every viewer */
 const TIP_MS = 3_000;
 
-const BY_SUBNET = new Map(
-  (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [c.subnetId, { name: c.chainName, logo: c.chainLogoURI ?? "" }]),
-);
+/* an L1 by its subnet, as the network's catalog names it */
+function catalogL1(network: PchainNetwork, subnet: string): PaneL1 | null {
+  const c = catalogBySubnet(network).get(subnet);
+  return c ? { name: c.chainName, logo: c.chainLogoURI ?? "" } : null;
+}
 
 /* the node's rows: converted once per tx, so a row keeps its identity across
    polls, and each remembers its place in its block for the list's order */
@@ -143,9 +144,9 @@ const TX_ROW =
   "grid h-11 grid-cols-[minmax(0,1fr)_auto] grid-rows-2 items-center gap-x-3 px-4 py-[5px] transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900";
 
 /** what the tx acts on: the L1 an operation names, else the Primary Network */
-function Target({ t, subnet, l1Of }: { t: PulseTx; subnet: string | undefined; l1Of?: (subnetId: string) => PaneL1 | null }) {
+function Target({ t, subnet, l1Of }: { t: PulseTx; subnet: string | undefined; l1Of: (subnetId: string) => PaneL1 | null }) {
   if (subnet) {
-    const l1 = l1Of?.(subnet) ?? BY_SUBNET.get(subnet) ?? null;
+    const l1 = l1Of(subnet);
     return l1 ? (
       <span className="flex min-w-0 items-center gap-1.5">
         <Logo uri={l1.logo} name={l1.name} />
@@ -182,13 +183,13 @@ const READ_MS = 10_000;
 const RETRY_MS = 30_000;
 const READS = new Map<string, Tx | "failed">();
 
-function useTxRead(hash: string): Tx | "reading" | "failed" {
+function useTxRead(hash: string, network: PchainNetwork): Tx | "reading" | "failed" {
   const [, landed] = useState(0);
   useEffect(() => {
     if (READS.has(hash)) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      fetch(pchainApiPath("mainnet", `tx/${hash}`), { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(READ_MS)]) })
+      fetch(pchainApiPath(network, `tx/${hash}`), { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(READ_MS)]) })
         .then((res) => (res.ok ? (res.json() as Promise<Tx>) : Promise.reject(new Error(`HTTP ${res.status}`))))
         .then((tx) => READS.set(hash, tx))
         .catch(() => {
@@ -202,7 +203,7 @@ function useTxRead(hash: string): Tx | "reading" | "failed" {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [hash]);
+  }, [hash, network]);
   return READS.get(hash) ?? "reading";
 }
 
@@ -277,11 +278,11 @@ function partiesOf(t: PulseTx, tx: Tx | null, subnet: string | undefined, l1: Pa
   return out;
 }
 
-function TxCard({ row, l1Of }: { row: HoverRow; l1Of?: (subnetId: string) => PaneL1 | null }) {
+function TxCard({ row, l1Of, network }: { row: HoverRow; l1Of: (subnetId: string) => PaneL1 | null; network: PchainNetwork }) {
   const { t, subnet, rect } = row;
-  const read = useTxRead(t.hash);
+  const read = useTxRead(t.hash, network);
   const tx = read === "reading" || read === "failed" ? null : read;
-  const l1 = subnet ? (l1Of?.(subnet) ?? BY_SUBNET.get(subnet) ?? null) : null;
+  const l1 = subnet ? l1Of(subnet) : null;
   const parties = partiesOf(t, tx, subnet, l1);
   // over the city at the pane's left, level with the row; a low row hangs it upward so it stays on screen
   const low = rect.top > window.innerHeight * 0.55;
@@ -311,11 +312,13 @@ const TxList = memo(function TxList({
   txs,
   loading,
   l1Of,
+  network,
   onRow,
 }: {
   txs: PulseTx[];
   loading: boolean;
-  l1Of?: (subnetId: string) => PaneL1 | null;
+  l1Of: (subnetId: string) => PaneL1 | null;
+  network: PchainNetwork;
   /** the row under the pointer or the keyboard's focus, and null as it leaves */
   onRow?: (row: HoverRow | null) => void;
 }) {
@@ -324,7 +327,7 @@ const TxList = memo(function TxList({
   const [hover, setHover] = useState(false);
   const rows = useTicker(txs, ROWS, { key: (t) => t.hash, newer: rowNewer, paused: hover });
   // the ring's own lookups, shared for the session: asking again costs nothing
-  const targets = useTxTargets(rows);
+  const targets = useTxTargets(rows, network);
   const still = useStill();
   // the first paint's rows, by their place: they fade up over the skeleton's hairlines in turn, where a later row slides in
   const intro = useRef<Map<string, number> | null>(null);
@@ -350,7 +353,7 @@ const TxList = memo(function TxList({
             return (
               <MotionRow key={t.hash} animateIn={at === undefined && !still} overflow={i >= ROWS - 1}>
                 <Link
-                  href={`${BASE}/tx/${t.hash}`}
+                  href={`${baseOf(network)}/tx/${t.hash}`}
                   className={TX_ROW}
                   style={fade}
                   data-live-row
@@ -395,6 +398,7 @@ const TxList = memo(function TxList({
 
 export function PChainLive({
   pulse,
+  network,
   l1Of,
   compact = false,
   onClose,
@@ -402,6 +406,8 @@ export function PChainLive({
 }: {
   /** the ledger the city already streams (useCityData's `pulse`); the pane polls nothing */
   pulse: PchainPulse;
+  /** the P-Chain the ledger reads: its node, its tx reads and its links */
+  network: PchainNetwork;
   /** an L1 by its subnet, as the city names it; the catalog's name when absent */
   l1Of?: (subnetId: string) => PaneL1 | null;
   /** under a view that already names the P-Chain and opens its explorer: no name row, no close, no footer */
@@ -413,8 +419,10 @@ export function PChainLive({
   const { txs, stats, epoch } = pulse;
   // the node's newest blocks over the indexer's ledger: a tx shows from the
   // node the moment its block lands, and its indexer row takes the place when it arrives
-  const node = useNodeFeed("mainnet");
+  const node = useNodeFeed(network);
   const rows = useMemo(() => mergeRows(txs, node?.txs ?? []), [txs, node]);
+  // an L1 by its subnet: the city's name, else the network's catalog's
+  const nameL1 = useCallback((subnet: string) => l1Of?.(subnet) ?? catalogL1(network, subnet), [l1Of, network]);
 
   // the tx under the pointer: its card at the pane's left, and the L1 it acts on lit in the city
   const [row, setRow] = useState<HoverRow | null>(null);
@@ -540,14 +548,14 @@ export function PChainLive({
         <section className="flex min-h-0 flex-1 flex-col">
           <Heading label="Transactions" aside={behind > 1 ? `${formatNumber(behind)} blocks behind the chain` : undefined} />
           {/* a ledger reloaded whole (a tab hidden a long time) paints whole, not as a cascade */}
-          <TxList key={epoch} txs={rows} loading={empty} l1Of={l1Of} onRow={setRow} />
-          {row && <TxCard row={row} l1Of={l1Of} />}
+          <TxList key={epoch} txs={rows} loading={empty} l1Of={nameL1} network={network} onRow={setRow} />
+          {row && <TxCard row={row} l1Of={nameL1} network={network} />}
         </section>
       )}
 
       {!compact && (
         <Link
-          href={BASE}
+          href={baseOf(network)}
           className="flex shrink-0 items-center justify-between border-t border-zinc-200/80 px-4 py-2.5 font-mono text-[11.5px] text-[#0061E2] transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:text-[#5f9dff] dark:hover:bg-zinc-900"
         >
           Explorer

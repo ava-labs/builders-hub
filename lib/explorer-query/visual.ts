@@ -11,6 +11,8 @@ import type { ColumnMeta } from "./clickhouse";
 import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
+import { exprOf, uniqAliases } from "./aliases";
+import { ownTokens } from "./checks";
 import { basicVisual } from "./draft";
 import { averageLabel, labelError } from "./stat-label";
 
@@ -279,29 +281,6 @@ const TIME = /^(Nullable\()?Date/;
    149 against 85 distinct). A count of new ones, first seen in their row, adds up */
 const DISTINCT_NAME = /(?:^|_)(?:addresses|addrs|senders|recipients|receivers|callers|holders|wallets|users|accounts|traders|swappers|depositors|borrowers|signers|participants|(?:uniq|distinct|unique)\w*)(?:_|$)/i;
 const NEW_NAME = /(?:^|_)(?:new|first)(?:_|$)/i;
-const UNIQ_CALL = /\b(?:uniq\w*|countDistinct)\s*\(|\bcount\s*\(\s*DISTINCT\b/gi;
-const ID_ONLY = /\(\s*(?:DISTINCT\s+)?`?(?:transaction_hash|tx_hash|hash|block_number|block_hash)`?\s*\)$/i;
-
-/** the aliases a uniq call or a count(DISTINCT ...) makes in the SQL: the call's own parentheses, then AS */
-function uniqAliases(sql: string): Set<string> {
-  const out = new Set<string>();
-  for (const m of sql.matchAll(UNIQ_CALL)) {
-    let i = sql.indexOf("(", m.index);
-    let depth = 0;
-    let quoted = false;
-    for (; i < sql.length; i++) {
-      const ch = sql[i];
-      if (ch === "'" && sql[i - 1] !== "\\") quoted = !quoted;
-      else if (!quoted && ch === "(") depth++;
-      else if (!quoted && ch === ")" && --depth === 0) break;
-    }
-    const as = /^\s+AS\s+`?([A-Za-z_]\w*)`?/i.exec(sql.slice(i + 1));
-    // a count of distinct transactions or blocks adds up: each is in one row of a time series
-    if (as && !ID_ONLY.test(sql.slice(m.index, i + 1))) out.add(as[1]);
-  }
-  return out;
-}
-
 /** the columns that count distinct things in each row, by their name or by the uniq call that makes them */
 export function distinctColumns(columns: readonly ColumnMeta[], sql?: string): Set<string> {
   const made = sql ? uniqAliases(sql) : new Set<string>();
@@ -440,22 +419,6 @@ function runOf(rows: { r: Row }[], column: string): 1 | -1 | 0 {
   return dir;
 }
 
-/** the expression a query gives a name (AS name), back to the comma, bracket or SELECT before it; null when none */
-export function exprOf(sql: string, name: string): string | null {
-  const m = new RegExp(String.raw`\bAS\s+\`?${name.replace(/[^\w]/g, "")}\`?(?!\w)`, "i").exec(sql);
-  if (!m) return null;
-  let depth = 0;
-  for (let i = m.index - 1; i >= 0; i--) {
-    const ch = sql[i];
-    if (ch === ")") depth++;
-    else if (ch === "(") {
-      if (depth === 0) return sql.slice(i + 1, m.index).trim();
-      depth--;
-    } else if (depth === 0 && (ch === "," || /\bSELECT\s$/i.test(sql.slice(Math.max(0, i - 7), i + 1)))) return sql.slice(i + 1, m.index).trim();
-  }
-  return sql.slice(0, m.index).trim();
-}
-
 /* A share a query takes over its whole result (x / sum(x) OVER ()) is of what the rows it keeps count, after its
    filters and before its LIMIT: the regression audit's R06 called 8.06% of the gas of the 2,034 contracts it kept
    "8.06% of all gas charged" (of all gas it is 7.92%). Each such column, with the size of the result when a
@@ -505,6 +468,11 @@ export function figures(input: Seen): string[] {
     if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? (staleOf(input.anchor) ? "cut where the index ends" : "still filling") : "complete"}.`);
   }
   for (const c of columns) {
+    // a native amount on the network's rows is in each chain's own token: 9.21 GUN is not more than 3.73 AVAX
+    if (rows.length > 1 && ownTokens(c.name, rows)) {
+      out.push(`${c.name} (${c.type}): each row is in its own chain's native token (its token column), so no total, highest, lowest or share spans the rows: quote each chain's amount in its own token, and never set two chains' amounts against each other or call one the largest`);
+      continue;
+    }
     const nums: { r: Row; v: number }[] = [];
     for (const r of rows) {
       const v = numOf(c, r[c.name]);

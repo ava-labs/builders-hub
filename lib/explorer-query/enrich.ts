@@ -18,7 +18,7 @@ import { pchainRows, toHexBytes } from "./pchain-ids";
 import { LENDING_PROTOCOLS } from "./lending";
 import { DEX_CHAIN_ID, DEX_PROTOCOLS, DEX_TOKENS, dexContractName } from "./protocols";
 import { subnetNames } from "./sources";
-import { targetOf } from "./target";
+import { NETWORK_ID, targetOf } from "./target";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getFunctionBySelector, getEventVariantsByTopic } from "@/abi/event-signatures.generated";
 import { getVerifiedContractResolvingProxies } from "@/lib/sourcify";
@@ -371,7 +371,37 @@ export function fillTitle(template: string, row: Row, names: Names): string {
 
 /** names for any target's rows: the EVM lookups above, or on the P-Chain
     bech32 addresses and L1 names for subnet ids */
+/** the chains a network answer's rows are named on, the ones with the most rows: each chain's lookups have a budget
+    of their own */
+const NAMED_CHAINS = 4;
+
+/** a network answer's names: each chain's rows named on that chain, and a value two chains name differently left
+    unnamed (one address is two contracts on two chains). Rows with no chain_id are not named */
+async function networkNames(columns: ColumnMeta[], rows: Row[], baseUrl: string): Promise<Names> {
+  const by = new Map<number, Row[]>();
+  for (const r of rows) {
+    const id = Number(r.chain_id);
+    if (Number.isSafeInteger(id) && id > 0) (by.get(id) ?? by.set(id, []).get(id)!).push(r);
+  }
+  const top = [...by].sort((x, y) => y[1].length - x[1].length).slice(0, NAMED_CHAINS);
+  const each = await Promise.all(top.map(([id, rs]) => enrichNames(id, columns, rs, baseUrl).catch((): Names => ({}))));
+  const names: Names = {};
+  const clash: [string, string][] = [];
+  for (const n of each) {
+    for (const [col, values] of Object.entries(n)) {
+      for (const [v, label] of Object.entries(values)) {
+        const had = names[col]?.[v];
+        if (had !== undefined && had !== label) clash.push([col, v]);
+        else (names[col] ??= {})[v] = label;
+      }
+    }
+  }
+  for (const [col, v] of clash) delete names[col][v];
+  return names;
+}
+
 export async function nameRows(chainId: number, columns: ColumnMeta[], rows: Row[], baseUrl: string): Promise<Names> {
+  if (chainId === NETWORK_ID) return networkNames(columns, rows, baseUrl);
   const target = targetOf(chainId);
   if (target.kind === "evm") return enrichNames(chainId, columns, rows, baseUrl);
   pchainRows(rows, columns, target.hrp ?? "avax");

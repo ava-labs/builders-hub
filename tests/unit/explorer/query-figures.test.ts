@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { designVisual, exprOf, figures, sampleOf } from '@/lib/explorer-query/visual';
+import { exprOf } from '@/lib/explorer-query/aliases';
+import { designVisual, figures, sampleOf } from '@/lib/explorer-query/visual';
 
 // the follow-up audit's T15 (Gunzilla, today against the day before, by hour of the UTC day): today has reached hour 7
 const TODAY = [19281, 21066, 14059, 8912, 7319, 16842, 15013, 8614];

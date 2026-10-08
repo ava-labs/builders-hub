@@ -5,8 +5,37 @@
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { isBareAliasOf } from "@/lib/chain-alias";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 
 const CATALOG = l1ChainsData as L1Chain[];
+
+const catalogs = new Map<PchainNetwork, Map<string, L1Chain>>();
+
+/** The network's catalog chains by EVM chain ID: Fuji's are the testnet entries. One map per network, built once. */
+export function catalogOf(network: PchainNetwork = "mainnet"): Map<string, L1Chain> {
+  let byId = catalogs.get(network);
+  if (!byId) {
+    const testnet = network === "fuji";
+    byId = new Map(CATALOG.filter((c) => (c.isTestnet === true) === testnet).map((c) => [String(c.chainId), c]));
+    catalogs.set(network, byId);
+  }
+  return byId;
+}
+
+const bySubnets = new Map<PchainNetwork, Map<string, L1Chain>>();
+
+/** The network's catalog chains by subnet ID, for the ones that have a subnet. One map per network, built once. */
+export function catalogBySubnet(network: PchainNetwork = "mainnet"): Map<string, L1Chain> {
+  let bySubnet = bySubnets.get(network);
+  if (!bySubnet) {
+    bySubnet = new Map([...catalogOf(network).values()].filter((c) => c.subnetId).map((c) => [String(c.subnetId), c]));
+    bySubnets.set(network, bySubnet);
+  }
+  return bySubnet;
+}
+
+/** Each network's C-Chain EVM chain ID: the Primary Network's chain, downtown in the City. */
+export const C_CHAIN_ID: Record<PchainNetwork, string> = { mainnet: "43114", fuji: "43113" };
 
 export function wantsTestnet(network: string): boolean {
   return network === "fuji" || network === "testnet";

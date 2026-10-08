@@ -15,7 +15,7 @@ import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { isKept, runKept } from "@/lib/explorer-query/run-cache";
 import { profileSql, type DrillProfile } from "@/lib/explorer-query/drill-profile";
 import { sourceNotes } from "@/lib/explorer-query/sources";
-import { targetOf } from "@/lib/explorer-query/target";
+import { NETWORK_ID, NETWORK_SLUG, targetOf } from "@/lib/explorer-query/target";
 import { checkChatRateLimit, formatResetTime, getClientIP, type RateLimits } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { TRACE, askerOf, sendQuestion, sendStage, sourceOf, type Asked, type Asker, type Stage } from "@/lib/explorer-query/analytics";
@@ -107,12 +107,15 @@ async function binsOf(sql: string, span: unknown, chainId: number): Promise<Dril
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Body;
-  const chainId = Number(body.chainId);
+  // the network (the C-Chain and every mainnet L1) by its slug; any other target by its chain id
+  const chainId = body.chainId === NETWORK_SLUG ? NETWORK_ID : Number(body.chainId);
   // the P-Chain's tables key their rows 1 (mainnet) and 5 (Fuji); EVM chains by their chain id
   const chain =
-    targetOf(chainId).kind === "pchain"
-      ? { chainId: String(chainId), chainName: chainId === 5 ? "P-Chain (Fuji)" : "P-Chain", networkToken: { symbol: "AVAX" } }
-      : (l1ChainsData as { chainId: string; chainName: string; networkToken?: { symbol?: string } }[]).find((c) => c.chainId === String(chainId));
+    chainId === NETWORK_ID
+      ? { chainId: NETWORK_SLUG, chainName: "the Avalanche network", networkToken: { symbol: "each chain's own, named in its token column; amounts in two tokens never add up, rank against each other or make a share of one sum" } }
+      : targetOf(chainId).kind === "pchain"
+        ? { chainId: String(chainId), chainName: chainId === 5 ? "P-Chain (Fuji)" : "P-Chain", networkToken: { symbol: "AVAX" } }
+        : (l1ChainsData as { chainId: string; chainName: string; networkToken?: { symbol?: string } }[]).find((c) => c.chainId === String(chainId));
   if (!Number.isFinite(chainId) || !chain) return NextResponse.json({ error: "unknown chain" }, { status: 400 });
   const symbol = chain.networkToken?.symbol ?? "AVAX";
 

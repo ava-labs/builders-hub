@@ -215,14 +215,12 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
           {staking && <StakingFlow staking={staking} base={base} doors={network === "mainnet"} />}
 
           {/* red band: the sanctioned solid-red divider, closing the sheet
-              with the hand-off to the network observatory */}
-          {network === "mainnet" && (
-            <Link href="/explorer/mainnet" className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] px-5 py-5 md:px-6">
-              <span aria-hidden className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover:scale-x-100" />
-              <span className="relative z-10 text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F]">Track the full network</span>
-              <ArrowRight className="relative z-10 h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
-            </Link>
-          )}
+              with the hand-off to this network's All Networks view */}
+          <Link href={`/explorer/${network}`} className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] px-5 py-5 md:px-6">
+            <span aria-hidden className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover:scale-x-100" />
+            <span className="relative z-10 text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F]">Track the full network</span>
+            <ArrowRight className="relative z-10 h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
+          </Link>
         </div>
       )}
     </ExplorerShell>

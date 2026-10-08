@@ -5,6 +5,7 @@
    target. */
 
 import l1ChainsData from "@/constants/l1-chains.json";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 
 export type TargetKind = "evm" | "pchain";
 
@@ -35,6 +36,31 @@ const FUJI_REFS = PCHAIN_REFS.filter((r) => r !== "p_avax_supply");
     (lending.ts): Benqi's markets and the lent tokens' decimals and price
     kinds. Mainnet only, so Fuji has none */
 export const CCHAIN_REFS = ["dex_factories", "dex_tokens", "lending_markets", "lending_tokens"] as const;
+
+/** the network: the C-Chain and every mainnet L1 the database indexes, asked as one target. No chain uses id 0, and
+    the server reads each table as those chains' rows alone (sources.ts), so a network query reads no Fuji, testnet
+    or unlisted chain */
+export const NETWORK_ID = 0;
+/** the slug the network's Query page and its links name it by; no catalog chain has it */
+export const NETWORK_SLUG = "all";
+/** the network's reference table, built by our server: each chain's id, name and native token */
+export const NETWORK_REFS = ["chain_names"] as const;
+
+/** each mainnet chain's explorer slug, by the chain_id its rows carry (KiteAI's catalog id is its blockchain ID). A
+    catalog id that is still a blockchain ID names no rows: Number() of it is NaN, which a Map would match */
+const SLUG_OF = new Map(
+  (l1ChainsData as { slug: string; chainId: string; isTestnet?: boolean }[])
+    .filter((c) => c.isTestnet !== true && /^\d+$/.test(toStatsChainId(c.chainId)))
+    .map((c) => [Number(toStatsChainId(c.chainId)), c.slug]),
+);
+
+/** where a row's links open: the page's chain, or on the network's page the chain the row's chain_id names; null
+    for a network row that names no chain the explorer has pages for */
+export function rowBase(base: string, row?: Record<string, unknown>): string | null {
+  if (!base.endsWith(`/${NETWORK_SLUG}`)) return base;
+  const slug = SLUG_OF.get(Number(row?.chain_id));
+  return slug ? `${base.slice(0, -NETWORK_SLUG.length)}${slug}` : null;
+}
 
 /** P-Chain tables that hold rows a re-ingest wrote twice, never merged:
     every read of them goes through FINAL (sources.ts). Counted on
@@ -91,7 +117,7 @@ export function targetOf(chainId: number): Target {
     kind: "evm",
     chainId,
     tables: EVM_TABLES,
-    refs: chainId === 43114 ? CCHAIN_REFS : [],
+    refs: chainId === 43114 ? CCHAIN_REFS : chainId === NETWORK_ID ? NETWORK_REFS : [],
     final: [],
     wide: ["raw_txs", "raw_logs", "raw_traces"],
     bound: /\b(block_time|block_number)\s*(>=|>|<=|<|=|==|BETWEEN|IN)/i,

@@ -12,6 +12,7 @@ import { statsApi } from "@/lib/stats-api";
 import { runQuery } from "@/lib/explorer-query/clickhouse";
 import { redis } from "@/lib/redis";
 import { DEDICATED_METRICS_CHAINS } from "@/lib/dedicated-stats";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 
 type L1ChainEntry = {
   chainId: string;
@@ -26,7 +27,7 @@ const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || "";
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
 const QUERY_TIMEOUT_MS = 10_000;
 
-// x402 payer wallet — signs USDC transfer authorizations on Avalanche C-Chain
+// x402 payer wallet: signs USDC transfer authorizations on Avalanche C-Chain
 const X402_PAYER_PRIVATE_KEY = process.env.X402_PAYER_PRIVATE_KEY || "";
 
 async function fetchWithTimeout(
@@ -88,7 +89,7 @@ async function queryClickHouseDirect<T = Record<string, unknown>>(
   timeoutMs = QUERY_TIMEOUT_MS
 ): Promise<T[]> {
   if (!CLICKHOUSE_URL) {
-    console.warn("[icm-clickhouse] CLICKHOUSE_URL not set – returning empty results");
+    console.warn("[icm-clickhouse] CLICKHOUSE_URL not set; returning empty results");
     return [];
   }
 
@@ -146,7 +147,7 @@ interface ChainInfo {
 }
 
 /** the network a flow feed answers for: a message never crosses from one to the other */
-export type IcmNetwork = "mainnet" | "fuji";
+export type IcmNetwork = PchainNetwork;
 
 const onNetwork = (c: ChainInfo, network: IcmNetwork) => c.isTestnet === (network === "fuji");
 
@@ -162,10 +163,9 @@ function generateColor(name: string): string {
 const chainMap: Map<string, ChainInfo> = new Map();
 for (const c of l1ChainsData) {
   const typed = c as { chainId: string; chainName: string; chainLogoURI?: string; color?: string; isTestnet?: boolean };
-  // Previously skipped testnets entirely, which made the dashboard's per-L1
-  // cross-chain card permanently zero on Fuji and other testnet L1s — the
-  // canonical surface that wants this data. Mainnet-only consumers should
-  // filter at their layer (e.g. `/api/icm-stats?network=mainnet`).
+  // Testnets stay in: the dashboard's per-L1 cross-chain card reads Fuji
+  // L1s too. A reader of one network filters at its own layer
+  // (getChainICMData's "all" and "fuji", the flows' network argument).
   chainMap.set(typed.chainId, {
     chainId: typed.chainId,
     chainName: typed.chainName,
@@ -471,7 +471,7 @@ async function getICMCacheData(): Promise<ICMCacheData> {
     return cache;
   }
 
-  // Stale cache – return immediately, trigger background refresh
+  // Stale cache: return immediately, trigger background refresh
   if (cache) {
     if (!fetchPromise) {
       fetchPromise = refreshCache()
@@ -490,7 +490,7 @@ async function getICMCacheData(): Promise<ICMCacheData> {
     return cache;
   }
 
-  // No cache – block and fetch (dedup concurrent)
+  // No cache: block and fetch (dedup concurrent)
   if (!fetchPromise) {
     fetchPromise = refreshCache()
       .then((data) => {
@@ -843,32 +843,44 @@ export async function getICMContractFeesData(timeRange = "all"): Promise<{
   };
 }
 
-export async function getChainICMData(
-  chainId: string,
-  days: number
-): Promise<ICMDataPoint[]> {
-  const data = await getICMCacheData();
-  const cutoff = Date.now() / 1000 - days * 86400;
-  const isAll = chainId === "all";
-  const numericChainId = isAll ? 0 : Number(chainId);
+// the index's IDs of the catalog's Fuji chains, the same IDs the Fuji flows read
+const fujiChainIds = new Set(senderChainIds("fuji").map(String));
 
-  // Aggregate incoming + outgoing per day for this chain (or all chains)
+/* One scope's ICM messages per day, newest first, from the days on or after
+   cutoffSec. The scope is "all" (mainnet), "fuji", or one chain's ID. The
+   index holds both networks' chains: "all" drops the catalog's Fuji chains
+   and keeps the IDs the catalog does not know, which are mainnet chains such
+   as Lamina1; "fuji" keeps only the catalog's Fuji chains. A day counts its
+   deliveries only, so no message counts twice, and a day with none is left
+   out. */
+export function icmDaysOf(
+  incoming: DailyIncoming[],
+  outgoing: DailyOutgoing[],
+  scope: string,
+  cutoffSec: number
+): ICMDataPoint[] {
+  const inScope = (chainId: number | string) => {
+    const id = String(chainId);
+    if (scope === "all") return !fujiChainIds.has(id);
+    if (scope === "fuji") return fujiChainIds.has(id);
+    return id === scope;
+  };
+
+  // Aggregate incoming + outgoing per day for the scope
   const dayMap = new Map<string, { incoming: number; outgoing: number }>();
+  const dayOf = (day: string) => {
+    if (!dayMap.has(day)) dayMap.set(day, { incoming: 0, outgoing: 0 });
+    return dayMap.get(day)!;
+  };
 
-  for (const row of data.dailyIncoming) {
-    if (!isAll && row.chain_id !== numericChainId) continue;
-    const ts = dayToTimestamp(row.day);
-    if (ts < cutoff) continue;
-    if (!dayMap.has(row.day)) dayMap.set(row.day, { incoming: 0, outgoing: 0 });
-    dayMap.get(row.day)!.incoming += Number(row.incoming_count);
+  for (const row of incoming) {
+    if (!inScope(row.chain_id) || dayToTimestamp(row.day) < cutoffSec) continue;
+    dayOf(row.day).incoming += Number(row.incoming_count);
   }
 
-  for (const row of data.dailyOutgoing) {
-    if (!isAll && row.chain_id !== numericChainId) continue;
-    const ts = dayToTimestamp(row.day);
-    if (ts < cutoff) continue;
-    if (!dayMap.has(row.day)) dayMap.set(row.day, { incoming: 0, outgoing: 0 });
-    dayMap.get(row.day)!.outgoing += Number(row.outgoing_count);
+  for (const row of outgoing) {
+    if (!inScope(row.chain_id) || dayToTimestamp(row.day) < cutoffSec) continue;
+    dayOf(row.day).outgoing += Number(row.outgoing_count);
   }
 
   const result: ICMDataPoint[] = [];
@@ -887,6 +899,15 @@ export async function getChainICMData(
 
   result.sort((a, b) => b.timestamp - a.timestamp);
   return result;
+}
+
+/** the ICM series of a scope: "all" is mainnet, "fuji" is Fuji, any other value one chain (see icmDaysOf) */
+export async function getChainICMData(
+  chainId: string,
+  days: number
+): Promise<ICMDataPoint[]> {
+  const data = await getICMCacheData();
+  return icmDaysOf(data.dailyIncoming, data.dailyOutgoing, chainId, Date.now() / 1000 - days * 86400);
 }
 
 /**

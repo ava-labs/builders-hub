@@ -11,7 +11,7 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
    grammar as ExplorerShell (sheet column, subnav spine, rising header,
    universal search), but no chain in the switcher: every facet under it
    (chains, ICM, validators, apps, the token) describes the whole network.
-   Mainnet only: the aggregate data sources don't cover Fuji. */
+   It runs on mainnet and on Fuji: each page passes its network. */
 export function NetworkShell({
   network = "mainnet",
   search = true,
@@ -39,13 +39,15 @@ export function NetworkShell({
         {/* a question asked in the box shows the Query page's first frame under the subnav at once */}
         <AskingFrame
           // no chainSlug = the subnav's network scope: All Networks switcher
-          // row, ecosystem facet tabs, static network label. The facet tabs stay
-          // pinned to mainnet on purpose: those aggregates exist there only.
+          // row, the network's facet tabs, the Mainnet | Fuji switch. AVAX and
+          // Query are tabs on mainnet only.
           above={<ExplorerSubnav network={network} className="mb-6" />}
           working={(q) => <QueryWorking question={q} kind="evm" chainName="the C-Chain" scope="network" />}
         >
           {/* the C-Chain's grammar: no display title, no explainer. The
-              subnav names the page; the search leads, the figures follow */}
+              subnav names the page; the search leads, the figures follow.
+              askAt makes a C-Chain block height findable on both networks.
+              Query is mainnet only: SearchBox shows no Ask or Query rows on Fuji */}
           {search && (
             <div className="pb-8">
               <SearchBox chain="p-chain" network={network} askAt={`/explorer/${network}/query`} />

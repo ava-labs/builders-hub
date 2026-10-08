@@ -27,7 +27,7 @@ import {
   type WebGLProgramParametersWithUniforms,
 } from "three";
 import { diceOf } from "@/components/explorer-v2/network/city-geometry";
-import { HUB_ID, type Route } from "@/components/explorer-v2/network/icm-map";
+import type { Route } from "@/components/explorer-v2/network/icm-map";
 import type { City } from "@/components/explorer-v2/network/city";
 import { GLASS3, type Theme } from "./palette";
 import { BLOCK_H } from "./model";
@@ -646,7 +646,7 @@ export function Traffic({
     const lit = new Set(routes.flatMap((r, i) => (r.key === hovered || picked?.includes(r.key) ? [i] : [])));
     const glows = routes.map((r, i) => {
       if (lit.has(i) || blue[i]) return lifted;
-      if (r.from === HUB_ID || r.to === HUB_ID) return RED;
+      if (r.hub) return RED;
       const d = city.lots.get(r.from)?.district ?? "frontier";
       return new Color(GLASS3[d][theme]);
     });

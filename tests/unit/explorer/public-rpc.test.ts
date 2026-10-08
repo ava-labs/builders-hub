@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import l1ChainsData from '@/constants/l1-chains.json';
 import { lookupTransactionAcrossChains } from '@/lib/cross-chain-lookup';
-import { raceChains } from '@/components/explorer-v2/chain-search';
+import { matchChains, raceChains } from '@/components/explorer-v2/chain-search';
 import { isPublicRpcUrl } from '@/lib/explorer-rpc';
 import type { L1Chain } from '@/types/stats';
 
@@ -78,13 +78,75 @@ describe('raceChains', () => {
     { chainId: '2', chainName: 'Not indexed', rpcUrl: PUBLIC },
     { chainId: '3', chainName: 'Testnet', rpcUrl: PUBLIC, isTestnet: true },
     { chainId: '4', chainName: 'Flagged off', rpcUrl: PUBLIC, isIndexed: false },
+    { chainId: '5', slug: 'c-chain', chainName: 'Fuji C-Chain', rpcUrl: PUBLIC, isTestnet: true },
+    { chainId: '6', chainName: 'Fuji flagged on', rpcUrl: PUBLIC, isTestnet: true, isIndexed: true },
   ] as L1Chain[];
 
   it('races only the mainnet chains the explorer indexes', () => {
-    expect(raceChains(new Set(['1', '3']), chains).map((c) => c.chainName)).toEqual(['Indexed']);
+    expect(raceChains(new Set(['1', '3']), 'mainnet', chains).map((c) => c.chainName)).toEqual(['Indexed']);
   });
 
-  it('falls back to the catalog flag without the indexed set', () => {
-    expect(raceChains(null, chains).map((c) => c.chainName)).toEqual(['Indexed', 'Not indexed']);
+  it('falls back to the catalog flag on mainnet without the indexed set', () => {
+    expect(raceChains(null, 'mainnet', chains).map((c) => c.chainName)).toEqual(['Indexed', 'Not indexed']);
+  });
+
+  it('races only the Fuji chains the explorer indexes, and the Fuji C-Chain', () => {
+    expect(raceChains(new Set(['1', '3']), 'fuji', chains).map((c) => c.chainName)).toEqual(['Testnet', 'Fuji C-Chain']);
+  });
+
+  it('races only the Fuji C-Chain without the indexed set, because the flag is wrong for Fuji', () => {
+    expect(raceChains(null, 'fuji', chains).map((c) => c.chainName)).toEqual(['Fuji C-Chain']);
+  });
+});
+
+/* The search box of one network suggests and races that network's chains
+   only. The indexed set is the stats API's answer on 2026-10-07, cut down to
+   the chains these checks name. */
+describe("a search box's network", () => {
+  const indexed = new Set(['4337', '43114', '432204', '43113', '13337', '432201']);
+  const QUERIES = ['beam', 'dexalot', 'c-chain', 'p-chain', 'avax', 'chain', 'l1', '43113', '43114', '4337', '13337'];
+
+  it('never races a mainnet chain on Fuji', () => {
+    const fuji = raceChains(indexed, 'fuji');
+    expect(fuji.map((c) => c.chainId).sort()).toEqual(['13337', '43113', '432201']);
+    expect(fuji.every((c) => c.isTestnet === true)).toBe(true);
+  });
+
+  it('races the same mainnet chains as before', () => {
+    expect(raceChains(indexed).map((c) => c.chainId).sort()).toEqual(['43114', '432204', '4337']);
+  });
+
+  it('never suggests a mainnet chain on Fuji', () => {
+    for (const q of QUERIES) {
+      for (const { chain } of matchChains(q, null, 'fuji', indexed)) {
+        expect(chain.isTestnet, `${q}: ${chain.href}`).toBe(true);
+        expect(chain.href, q).toMatch(/^\/explorer\/fuji\//);
+      }
+    }
+    expect(matchChains('beam', null, 'fuji', indexed).map((m) => m.chain.href)).toEqual(['/explorer/fuji/beam-l1']);
+    expect(matchChains('p-chain', null, 'fuji', indexed)[0].chain.href).toBe('/explorer/fuji/p-chain');
+    expect(matchChains('43113', null, 'fuji', indexed)[0].chain.href).toBe('/explorer/fuji/c-chain');
+  });
+
+  it('suggests only the Fuji P-Chain and C-Chain while the indexed set loads', () => {
+    expect(matchChains('beam', null, 'fuji', null)).toEqual([]);
+    expect(matchChains('chain', null, 'fuji', null).map((m) => m.chain.href).sort()).toEqual([
+      '/explorer/fuji/c-chain',
+      '/explorer/fuji/p-chain',
+    ]);
+  });
+
+  it('keeps mainnet suggestions as before', () => {
+    for (const q of QUERIES) {
+      const rows = matchChains(q, null);
+      // the indexed set narrows Fuji only
+      expect(matchChains(q, null, 'mainnet', indexed), q).toEqual(rows);
+      for (const { chain } of rows) {
+        expect(chain.isTestnet, `${q}: ${chain.href}`).toBe(false);
+        expect(chain.href, q).toMatch(/^\/explorer\/mainnet\//);
+      }
+    }
+    expect(matchChains('beam', null)[0].chain.href).toBe('/explorer/mainnet/beam');
+    expect(matchChains('p-chain', null)[0].chain.href).toBe('/explorer/mainnet/p-chain');
   });
 });

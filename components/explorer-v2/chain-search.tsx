@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ICM_STATUS_LABEL, type IcmMessage } from "@/lib/icm-message";
 import type { L1Chain } from "@/types/stats";
-import { hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
+import { hasRealChainLogo, isPchainNetwork, pchainApiPath, type PchainNetwork, type SearchResult } from "@/lib/pchain-explorer";
+import { catalogOf } from "@/lib/explorer-catalog";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import { readIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { toStatsChainId } from "@/lib/dedicated-stats";
@@ -39,23 +40,26 @@ export interface ChainMatch {
   matched: { field: "name" | "chain id" | "subnet id" | "blockchain id"; value: string };
 }
 
+/* The P-Chain on one network. The Fuji one shows only in a Fuji box. */
+const pchainHit = (network: PchainNetwork): ChainHit => ({
+  slug: "p-chain",
+  name: "P-Chain",
+  logo: "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg",
+  subnetId: "11111111111111111111111111111111LpoYY",
+  isTestnet: network === "fuji",
+  hasExplorer: true,
+  href: `/explorer/${network}/p-chain`,
+  aliases: ["p-chain", "pchain", "platform chain", "platform", "primary network"],
+});
+
 export const CHAIN_INDEX: ChainHit[] = [
-  {
-    slug: "p-chain",
-    name: "P-Chain",
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg",
-    subnetId: "11111111111111111111111111111111LpoYY",
-    isTestnet: false,
-    hasExplorer: true,
-    href: "/explorer/mainnet/p-chain",
-    aliases: ["p-chain", "pchain", "platform chain", "platform", "primary network"],
-  },
+  pchainHit("mainnet"),
+  pchainHit("fuji"),
   ...(l1ChainsData as L1Chain[]).filter((c) => c.isActive !== false).map((c) => {
-    // No testnet EVM chain is indexed right now (Fuji C-Chain indexing is
-    // down; the other fuji deployments were never indexed), so an rpcUrl
-    // alone doesn't make a testnet entry explorable — matchChains then drops
-    // those rows instead of routing users to empty /explorer/fuji pages.
-    const hasExplorer = !!c.rpcUrl && c.isTestnet !== true;
+    // An RPC drives a chain's explorer. A Fuji entry also needs the stats
+    // API to index it, and only the live indexed set can tell that:
+    // matchChains checks it per box (fujiExplorable).
+    const hasExplorer = !!c.rpcUrl;
     // testnet deployments live under the fuji network segment — the chain
     // layout resolves same-slug pairs by that segment
     const net = c.isTestnet === true ? "fuji" : "mainnet";
@@ -124,27 +128,39 @@ function scoreChain(c: ChainHit, q: string, qLower: string): { score: number; ma
   return matched ? { score, matched } : null;
 }
 
-/** Query → chains, scored: identifiers (chain/subnet/blockchain IDs) beat
- *  name prefixes beat substrings; mainnet beats testnet; live P-Chain
- *  validator weight breaks ties. */
-export function matchChains(query: string, live: Map<string, number> | null): ChainMatch[] {
+/* A Fuji chain whose explorer works: the C-Chain always, any other chain
+   only when the stats API indexes it. The catalog's isIndexed flag is
+   wrong for most Fuji entries, so it never stands in for the indexed set. */
+function fujiExplorable(slug: string, chainId: string | undefined, indexed: Set<string> | null): boolean {
+  return slug === "c-chain" || (!!chainId && !!indexed?.has(toStatsChainId(chainId)));
+}
+
+/** Query → the chains of one network, scored: identifiers (chain/subnet/
+ *  blockchain IDs) beat name prefixes beat substrings; live P-Chain
+ *  validator weight breaks ties. A Fuji box lists the Fuji P-Chain and the
+ *  Fuji chains whose explorer works; `indexed` is the stats API's indexed
+ *  set, null while it loads. */
+export function matchChains(
+  query: string,
+  live: Map<string, number> | null,
+  network: PchainNetwork = "mainnet",
+  indexed: Set<string> | null = null,
+): ChainMatch[] {
   const q = query.trim();
   if (q.length < 2) return [];
   const qLower = q.toLowerCase();
-  return CHAIN_INDEX.map((c) => ({ c, hit: scoreChain(c, q, qLower) }))
+  const fuji = network === "fuji";
+  return CHAIN_INDEX.filter((c) => c.isTestnet === fuji && (!fuji || c.slug === "p-chain" || (c.hasExplorer && fujiExplorable(c.slug, c.evmChainId, indexed))))
+    .map((c) => ({ c, hit: scoreChain(c, q, qLower) }))
     .filter((s): s is { c: ChainHit; hit: NonNullable<ReturnType<typeof scoreChain>> } => s.hit !== null)
     .sort((a, b) => {
       if (a.hit.score !== b.hit.score) return b.hit.score - a.hit.score;
-      if (a.c.isTestnet !== b.c.isTestnet) return a.c.isTestnet ? 1 : -1;
       const av = live?.get(a.c.subnetId ?? "") ?? 0;
       const bv = live?.get(b.c.subnetId ?? "") ?? 0;
       if (av !== bv) return bv - av;
       return a.c.name.localeCompare(b.c.name);
     })
-    // testnet entries earn a seat only when they can actually be explored
-    .filter((s) => !s.c.isTestnet || s.c.hasExplorer)
-    // the catalog holds same-slug pairs (mainnet + testnet deployments) that
-    // route to the same page — one row per destination, best score wins
+    // one row per destination, best score wins
     .filter((s, i, arr) => arr.findIndex((o) => o.c.href === s.c.href) === i)
     .slice(0, 7)
     .map((s) => ({ chain: s.c, matched: s.hit.matched }));
@@ -203,24 +219,29 @@ export interface EntityHit {
   status: "ready" | "searching" | "notfound";
 }
 
-/* The chains a pasted tx hash is raced across: the mainnet chains the
-   explorer indexes. A hit opens /explorer/mainnet/{slug}/tx, and an
-   unindexed chain has no tx page there; several of their RPCs refuse a
-   browser's read as well. Without the indexed set, the catalog's flag
-   stands in. */
-export function raceChains(indexed: Set<string> | null, chains: L1Chain[] = l1ChainsData as L1Chain[]): L1Chain[] {
+/* The chains a pasted tx hash is raced across: the chains of the box's
+   network that the explorer indexes. A hit opens /explorer/{network}/{slug}/tx,
+   and an unindexed chain has no tx page there; several of their RPCs refuse
+   a browser's read as well. Without the indexed set, the catalog's flag
+   stands in on mainnet; on Fuji only the C-Chain races (fujiExplorable). */
+export function raceChains(
+  indexed: Set<string> | null,
+  network: PchainNetwork = "mainnet",
+  chains: L1Chain[] = l1ChainsData as L1Chain[],
+): L1Chain[] {
+  if (network === "fuji") return chains.filter((c) => c.isTestnet === true && fujiExplorable(c.slug, c.chainId, indexed));
   return chains.filter((c) => !c.isTestnet && (indexed ? indexed.has(toStatsChainId(c.chainId)) : c.isIndexed !== false));
 }
 
 const txRaceCache = new Map<string, Promise<{ found: boolean; chain?: L1Chain }>>();
-/** lookupTransactionAcrossChains over the indexed mainnet chains, one race
- *  per hash per session: the dropdown resolves it and the Enter key gets
- *  the answer for free. */
-export function lookupTxAcrossChainsCached(hash: string) {
-  const key = hash.toLowerCase();
+/** lookupTransactionAcrossChains over the network's indexed chains, one race
+ *  per network and hash per session: the dropdown resolves it and the Enter
+ *  key gets the answer for free. */
+export function lookupTxAcrossChainsCached(hash: string, network: PchainNetwork = "mainnet") {
+  const key = `${network}:${hash.toLowerCase()}`;
   let p = txRaceCache.get(key);
   if (!p) {
-    p = readIndexedChainIds().then((indexed) => lookupTransactionAcrossChains(hash, raceChains(indexed)));
+    p = readIndexedChainIds().then((indexed) => lookupTransactionAcrossChains(hash, raceChains(indexed, network)));
     txRaceCache.set(key, p);
   }
   return p;
@@ -375,6 +396,13 @@ function icmLookupCached(hash: string): Promise<IcmMessage | null> {
   return p;
 }
 
+/* The message lookup takes no network, so a Fuji box opens only a message
+   that touches a Fuji chain. */
+const touchesFuji = (m: IcmMessage) =>
+  [m.sourceEvmChainId, m.destinationEvmChainId, m.deliveredOnEvmChainId].some(
+    (id) => id !== undefined && catalogOf("fuji").has(String(id)),
+  );
+
 /** Where this search bar's Enter key sends each shape — the entity row
  *  must point at the same place. */
 export interface EntityTargets {
@@ -433,14 +461,16 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         const hit = await heightHitCached(q, targets);
         if (!cancelled) setResolved({ q, hits: [hit] });
       } else if (isTxHash) {
-        const race = await lookupTxAcrossChainsCached(q);
+        // the race stays on the box's network: a Fuji box never opens a mainnet chain
+        const net = isPchainNetwork(targets.network) ? targets.network : "mainnet";
+        const race = await lookupTxAcrossChainsCached(q, net);
         if (cancelled) return;
         if (race.found && race.chain) {
           setResolved({
             q,
             hits: [{
               icon: "tx", label: "Transaction", id: q,
-              href: buildTxUrl(`/explorer/mainnet/${race.chain.slug}`, q),
+              href: buildTxUrl(`/explorer/${net}/${race.chain.slug}`, q),
               detail: race.chain.chainName,
               logo: hasRealChainLogo(race.chain.chainLogoURI) ? race.chain.chainLogoURI : undefined,
               status: "ready",
@@ -459,8 +489,9 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
           return;
         }
 
-        const icm = await icmLookupCached(q);
+        const found = await icmLookupCached(q);
         if (cancelled) return;
+        const icm = found && (net !== "fuji" || touchesFuji(found)) ? found : null;
         setResolved({
           q,
           hits: [icm

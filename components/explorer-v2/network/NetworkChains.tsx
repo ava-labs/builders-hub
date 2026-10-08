@@ -8,9 +8,13 @@ import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { AskingFrame } from "@/components/explorer-v2/evm/query-asking";
 import { QueryWorking } from "@/components/explorer-v2/evm/QueryWorking";
-import { useCityData, type SizeBy, type VersionMix } from "@/components/explorer-v2/network/icm-map";
+import type { SizeBy, VersionMix } from "@/components/explorer-v2/network/icm-map";
+import { useCityData } from "@/components/explorer-v2/network/city-data";
 import { CityApp, type Height, type Market } from "@/components/explorer-v2/network/city-app";
 import { RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
+import { overviewStatsUrl } from "@/components/explorer-v2/network/network-reads";
+import { C_CHAIN_ID, catalogBySubnet } from "@/lib/explorer-catalog";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
@@ -21,7 +25,8 @@ import type { L1Chain } from "@/types/stats";
    under the subnav, edge to edge, so a wide screen's margins are city
    too, and the subnav spans the same width; phones get the district
    browser in the page's column. The rest of the explorer stays one click
-   away in the subnav. */
+   away in the subnav. Each network has its own City: mainnet's, and
+   Fuji's at /explorer/fuji/chains. */
 
 /* the city shows one day: its streets carry the last 24 hours of ICM, and
    its figures count the same day. The explorer's clock does not drive it */
@@ -29,25 +34,26 @@ const RANGE: ExplorerRange = "day";
 
 /* each chain's transactions over the window, from the same aggregate the
    network overview reads. A failed feed leaves the figures dashed */
-function useChainActivity(range: ExplorerRange) {
+function useChainActivity(range: ExplorerRange, network: PchainNetwork) {
   const [byId, setById] = useState<Map<string, number | null> | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     setById(null);
-    fetch(`/api/overview-stats?timeRange=${range}`, { signal: controller.signal })
+    fetch(overviewStatsUrl(range, network), { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((d: { chains?: { chainId: string; txCount: number | null }[] }) => setById(new Map((d.chains ?? []).map((c) => [String(c.chainId), c.txCount]))))
       .catch(() => {});
     return () => controller.abort();
-  }, [range]);
+  }, [range, network]);
   return byId;
 }
 
 /* AVAX's price and market cap, as the token page reads them; a minute's
-   refresh, while the tab is in view */
-function useAvaxMarket(): Market | null {
+   refresh, while the tab is in view. Test AVAX has no market, so Fuji reads none */
+function useAvaxMarket(enabled: boolean): Market | null {
   const [market, setMarket] = useState<Market | null>(null);
   useEffect(() => {
+    if (!enabled) return;
     let controller = new AbortController();
     const read = () => {
       if (document.visibilityState === "hidden") return;
@@ -66,8 +72,8 @@ function useAvaxMarket(): Market | null {
       window.clearInterval(timer);
       controller.abort();
     };
-  }, []);
-  return market;
+  }, [enabled]);
+  return enabled ? market : null;
 }
 
 /* a large screen gets the canvas; unknown until the page has mounted */
@@ -90,23 +96,23 @@ const working = (q: string) => (
   </NetworkShell>
 );
 
-export function NetworkChains({ indexedChainIds = null }: { indexedChainIds?: string[] | null } = {}) {
+export function NetworkChains({ indexedChainIds = null, network = "mainnet" }: { indexedChainIds?: string[] | null; network?: PchainNetwork } = {}) {
   return (
     <AskingFrame working={working}>
-      <ChainsCity indexedChainIds={indexedChainIds} />
+      <ChainsCity indexedChainIds={indexedChainIds} network={network} />
     </AskingFrame>
   );
 }
 
-function ChainsCity({ indexedChainIds }: { indexedChainIds: string[] | null }) {
+function ChainsCity({ indexedChainIds, network }: { indexedChainIds: string[] | null; network: PchainNetwork }) {
   const wide = useWide();
-  const activity = useChainActivity(RANGE);
-  const market = useAvaxMarket();
+  const activity = useChainActivity(RANGE, network);
+  const market = useAvaxMarket(network === "mainnet");
   const txOf = useCallback((id: string) => (activity ? activity.get(id) ?? null : null), [activity]);
 
   const [height, setHeight] = useState<Height>("validators");
   // the validator feed by client version: what the city's windows are lit by
-  const { subnets } = useValidatorStats();
+  const { subnets } = useValidatorStats(network);
   const [pickedTarget, setTarget] = useState("");
   const fleet = useMemo(() => {
     const by: Record<string, { nodes: number }> = {};
@@ -116,26 +122,29 @@ function ChainsCity({ indexedChainIds }: { indexedChainIds: string[] | null }) {
   const targets = useMemo(() => sortVersionsDesc(Object.keys(fleet)), [fleet]);
   // the newest version with real adoption, not a canary's
   const target = pickedTarget || defaultVersionTarget(fleet);
-  /* the city keys chains by EVM chain ID; the C-Chain is the Primary Network's */
+  /* the city keys chains by EVM chain ID, from the network's catalog; the network's C-Chain (C_CHAIN_ID) is the
+     Primary Network's */
   const versions = useMemo(() => {
     if (!subnets) return null;
     const bySubnet = new Map(subnets.map((sn) => [sn.id, mixOf(sn.byClientVersion, target)]));
     const m = new Map<string, VersionMix>();
-    for (const c of l1ChainsData as L1Chain[]) {
-      if (c.isTestnet || !c.subnetId) continue;
-      const mix = bySubnet.get(c.subnetId);
+    for (const [subnet, c] of catalogBySubnet(network)) {
+      const mix = bySubnet.get(subnet);
       if (mix) m.set(String(c.chainId), mix);
     }
     const primary = bySubnet.get(PRIMARY_NETWORK_ID);
-    if (primary) m.set("43114", primary);
+    if (primary) m.set(C_CHAIN_ID[network], primary);
     return m;
-  }, [subnets, target]);
+  }, [subnets, target, network]);
   // the heights count validators or messages; the windows are lit by version when the feed is in
   const view: SizeBy = height === "messages" ? "messages" : versions ? "versions" : "validators";
-  const data = useCityData({ days: 1, sizeBy: view });
+  const data = useCityData({ days: 1, sizeBy: view, network });
 
+  // a key per network: a switch stands the other City from its first frame, with none of this one's state
   const app = (isWide: boolean) => (
     <CityApp
+      key={network}
+      network={network}
       data={data}
       height={height}
       onHeight={setHeight}
@@ -161,11 +170,11 @@ function ChainsCity({ indexedChainIds }: { indexedChainIds: string[] | null }) {
       <div data-city-page className="relative flex flex-col bg-white lg:h-[calc(100dvh-var(--fd-banner-height,0px)-3.5rem-1px)] dark:bg-zinc-950">
         {/* no display title by design; the h1 names the page for screen readers */}
         <h1 className="sr-only">Avalanche Explorer</h1>
-        {/* on large screens the app is the window and draws the sections on its own card, over the city;
-            below them the subnav stands over the page. The app's list switches networks, so the subnav names none */}
+        {/* on large screens the app is the window and draws the sections and the network on its own cards, over the city;
+            below them the subnav stands over the page, with the network and its switch as on every network-scope page */}
         <div className="mx-auto w-full max-w-[90rem] shrink-0 px-5 pt-5 md:px-6 lg:hidden">
           {/* the city reads one day, so the subnav shows no clock here */}
-          <ExplorerSubnav network="mainnet" hideNetwork className="lg:-mx-4 lg:px-4" />
+          <ExplorerSubnav network={network} className="lg:-mx-4 lg:px-4" />
         </div>
         {wide === null ? (
           <div className="min-h-[60vh] flex-1 animate-pulse bg-zinc-50 dark:bg-zinc-900/40" />

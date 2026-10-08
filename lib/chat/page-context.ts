@@ -784,7 +784,9 @@ async function sectionData(ref: Extract<PageRef, { kind: "evm-section" }>, baseU
 
 async function networkData(ref: Extract<PageRef, { kind: "network" }>, baseUrl: string): Promise<string> {
   if (ref.section === "token") return tokenPageData(baseUrl);
-  const data = await getJson<{ aggregated?: Record<string, number>; chains?: { chainName: string; chainId: string; activeAddresses: number; txCount: number; tps: number; validatorCount: number }[] }>(`${baseUrl}/api/overview-stats?timeRange=day`, 15_000);
+  // the overview feed is mainnet's unless the page is on Fuji, so Fuji's page never reads mainnet's figures
+  const network = ref.network === "fuji" ? "&network=fuji" : "";
+  const data = await getJson<{ aggregated?: Record<string, number>; chains?: { chainName: string; chainId: string; activeAddresses: number; txCount: number; tps: number; validatorCount: number }[] }>(`${baseUrl}/api/overview-stats?timeRange=day${network}`, 15_000);
   if (!data?.aggregated) return `Avalanche ${ref.network} ${ref.section || "overview"} page. The overview feed did not answer; call metrics_lookup.`;
   const a = data.aggregated;
   const top = (data.chains ?? []).filter((c) => c.activeAddresses > 0).sort((x, y) => y.activeAddresses - x.activeAddresses).slice(0, 8);

@@ -8,10 +8,10 @@ import { getExplorerChain } from "@/lib/pchain-explorer";
    a switch keeps a tab only where the target has it. A view below a tab that
    only some chains serve also needs its entry in SERVED_ONLY_BY there. */
 
-/* The network scope's home: every ecosystem-wide facet hangs off it. */
-export const NETWORK_HOME = "/explorer/mainnet";
-/* the city of every chain, with the explorer's search: one tab from the front door */
-const NETWORK_CITY = `${NETWORK_HOME}/chains`;
+/** The network scope's home on `network`: every ecosystem-wide facet hangs off it. */
+export function networkHome(network: string): string {
+  return `/explorer/${network}`;
+}
 
 /** query: the tab opens into recent questions and boards on hover */
 export type Tab = {
@@ -35,41 +35,52 @@ function queryTab(network: string, chainSlug: string): Tab[] {
 /* Section tabs per chain kind. Detail pages light up their list's tab
    (a block detail is still "Blocks"); on EVM chains the stats surfaces
    are first-class sections of the same chain, so they ride here too.
-   No chain at all is the widest lens: the network scope, where every
-   ecosystem-wide facet (chains, ICM, validators, the token) lives. */
+   No chain at all is the widest lens: the network scope, on either
+   network, where every ecosystem-wide facet (chains, ICM, validators,
+   and on mainnet the token) lives. */
 export function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   if (!chainSlug) {
-    return [
+    const home = networkHome(network);
+    // the city of every chain, with the explorer's search: one tab from the front door
+    const city = `${home}/chains`;
+    // the legacy stats and chains paths, the token and Query are mainnet's
+    const mainnet = network === "mainnet";
+    const tabs: Tab[] = [
       {
         // the explorer leads: it is the front door, and the city's card names the two views Explorer and City
         label: "Explorer",
-        href: NETWORK_HOME,
+        href: home,
         view: true,
         // the network stats live on the overview now
-        isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"),
+        isActive: (p) => p === home || (mainnet && (p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"))),
       },
       {
         // a phone and a small tablet get the chains list, not the city
         label: "City",
         phone: "Chains",
-        href: NETWORK_CITY,
+        href: city,
         view: true,
         // the network map, ICM and validator versions live on the chains tab; message pages light it too
         isActive: (p) =>
-          p.startsWith(NETWORK_CITY) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
+          p.startsWith(city) || (mainnet && p.startsWith("/explorer/chains")) || p.startsWith(`${home}/icm`) || p.startsWith(`${home}/validators`),
       },
+    ];
+    // AVAX and Query are mainnet's: a test token has no price, and Query's tables hold mainnet chains only
+    if (!mainnet) return tabs;
+    tabs.push(
       {
         label: "AVAX",
-        href: `${NETWORK_HOME}/token`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/token`),
+        href: `${home}/token`,
+        isActive: (p) => p.startsWith(`${home}/token`),
       },
       {
         // Query at the network scope: a picker on the page names the chain it asks
         label: "Query",
-        href: `${NETWORK_HOME}/query`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/query`),
+        href: `${home}/query`,
+        isActive: (p) => p.startsWith(`${home}/query`),
       },
-    ];
+    );
+    return tabs;
   }
 
   if (getExplorerChain(chainSlug)?.kind === "pchain") {

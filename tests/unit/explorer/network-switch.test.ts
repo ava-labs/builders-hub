@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { switchTarget } from '@/components/explorer-v2/network-switch';
+import { cityChainOn, switchTarget } from '@/components/explorer-v2/network-switch';
 
 /* The Mainnet/Fuji switch keeps the page the reader is on when the other
    network has its tab. The rows mirror the CASES table of
@@ -66,6 +66,43 @@ const ENTITIES: Row[] = [
   ['/explorer/mainnet/c-chain/query/boards/b-123', 'fuji', 'c-chain', '/explorer/fuji/c-chain/query/boards'],
 ];
 
+/* The network scope runs on both networks and keeps its view: Explorer stays Explorer, City stays City. AVAX
+   and Query are mainnet's, so a switch from them lands on the Fuji home. An ICM message is one network's, so
+   its page lands on the other network's City, the tab that the message page lights. */
+const scopeSwitch = (from: string, network: string) => switchTarget(from, undefined, network, undefined);
+
+const SCOPE: [from: string, network: string, expected: string][] = [
+  ['/explorer/mainnet', 'fuji', '/explorer/fuji'],
+  ['/explorer/mainnet/chains', 'fuji', '/explorer/fuji/chains'],
+  ['/explorer/mainnet/token', 'fuji', '/explorer/fuji'],
+  ['/explorer/mainnet/query', 'fuji', '/explorer/fuji'],
+  ['/explorer/mainnet/icm/0xabc', 'fuji', '/explorer/fuji/chains'],
+  ['/explorer/fuji', 'mainnet', '/explorer/mainnet'],
+  ['/explorer/fuji/chains', 'mainnet', '/explorer/mainnet/chains'],
+  ['/explorer/fuji/icm/0xabc', 'mainnet', '/explorer/mainnet/chains'],
+];
+
+/* The City's open chain (its ?chain= key) on the network the switch goes to. A key that the other network
+   does not have gives undefined, and the City opens with no chain. */
+const CITY: [key: string, network: string, expected: string | undefined][] = [
+  ['c-chain', 'fuji', 'c-chain'],
+  ['c-chain', 'mainnet', 'c-chain'],
+  ['p-chain', 'fuji', 'p-chain'],
+  ['p-chain', 'mainnet', 'p-chain'],
+  ['beam', 'fuji', 'beam-l1'],
+  ['beam-l1', 'mainnet', 'beam'],
+  ['dexalot', 'fuji', 'dexalot-l1'],
+  ['dexalot-l1', 'mainnet', 'dexalot'],
+  // a Mainnet-only L1
+  ['gunzilla', 'fuji', undefined],
+  // a chain with no catalog entry, keyed by its chain ID
+  ['173750', 'fuji', undefined],
+  // a validator set with no chain in the catalog, keyed by its subnet
+  ['p:2XDnKyAEr1RhhWpTpMXqrjeejN23vETmDykVzkb4PrU1fQjmVd', 'mainnet', undefined],
+  // a key from the URL is never a name of the object prototype
+  ['constructor', 'fuji', undefined],
+];
+
 describe('the Mainnet/Fuji switch', () => {
   it.each(CASES)('switches %s to %s %s: %s', (from, network, slug, expected) => {
     expect(networkSwitch(from, network, slug)).toBe(expected);
@@ -75,8 +112,23 @@ describe('the Mainnet/Fuji switch', () => {
     expect(networkSwitch(from, network, slug)).toBe(expected);
   });
 
+  it.each(SCOPE)('switches the network scope page %s to %s: %s', (from, network, expected) => {
+    expect(scopeSwitch(from, network)).toBe(expected);
+  });
+
   it('links the active network to the page the reader is on', () => {
     expect(networkSwitch('/explorer/mainnet/c-chain/defi', 'mainnet', 'c-chain')).toBe('/explorer/mainnet/c-chain/defi');
     expect(networkSwitch('/explorer/mainnet/p-chain/staking', 'mainnet', 'p-chain')).toBe('/explorer/mainnet/p-chain/staking');
+    expect(scopeSwitch('/explorer/mainnet', 'mainnet')).toBe('/explorer/mainnet');
+    expect(scopeSwitch('/explorer/mainnet/token', 'mainnet')).toBe('/explorer/mainnet/token');
+    expect(scopeSwitch('/explorer/fuji', 'fuji')).toBe('/explorer/fuji');
+    expect(scopeSwitch('/explorer/fuji/chains', 'fuji')).toBe('/explorer/fuji/chains');
+    expect(scopeSwitch('/explorer/fuji/icm/0xabc', 'fuji')).toBe('/explorer/fuji/icm/0xabc');
+  });
+});
+
+describe('cityChainOn', () => {
+  it.each(CITY)('keeps the City key %s on %s: %s', (key, network, expected) => {
+    expect(cityChainOn(key, network)).toBe(expected);
   });
 });

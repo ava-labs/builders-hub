@@ -38,7 +38,7 @@ describe('readsOf', () => {
     expect(readsOf('/explorer/mainnet/x-chain/txs')).toEqual(['/api/xchain/mainnet/txs?limit=50']);
   });
 
-  it('reads the network scope on the page clock, mainnet only', () => {
+  it('reads the network scope on the page clock', () => {
     expect(readsOf('/explorer/mainnet', 'all')).toEqual([
       '/api/overview-stats?timeRange=year',
       '/api/avax-supply',
@@ -57,9 +57,34 @@ describe('readsOf', () => {
     ]);
     // no range named: the clock's, a month by default
     expect(readsOf('/explorer/mainnet/')[0]).toBe('/api/overview-stats?timeRange=month');
-    expect(readsOf('/explorer/fuji')).toEqual([]);
+    expect(readsOf('/explorer/fuji', 'week')).toEqual([
+      '/api/overview-stats?timeRange=week&network=fuji',
+      '/api/chain-stats/fuji?metrics=txCount,activeAddresses,icmMessages&timeRange=30d',
+    ]);
+    // the token page is mainnet's
     expect(readsOf('/explorer/fuji/token')).toEqual([]);
     expect(readsOf('/explorer/mainnet/token/supply')).toEqual([]);
+  });
+
+  it("reads no mainnet-only feed on Fuji's overview", () => {
+    const mainnetOnly = [
+      '/api/avax-supply',
+      '/api/dapps',
+      '/api/primary-network-stats',
+      '/api/chain-stats/43114',
+      '/api/chain-stats/all',
+      '/api/icm-contract-fees',
+      '/api/market-history',
+    ];
+    for (const range of ['day', 'week', 'month', 'quarter', 'year', 'all'] as const) {
+      const reads = readsOf('/explorer/fuji', range);
+      expect(reads.length).toBeGreaterThan(0);
+      for (const url of reads) {
+        // each read names Fuji, in its query or its path
+        expect(url.includes('network=fuji') || url.startsWith('/api/chain-stats/fuji?')).toBe(true);
+        expect(mainnetOnly.some((p) => url.startsWith(p))).toBe(false);
+      }
+    }
   });
 
   it('warms nothing for a page it does not list, a chain it does not know or a path outside the explorer', () => {
@@ -85,5 +110,26 @@ describe('warmReads', () => {
       expect(fetch.mock.calls.map(([url]) => url)).toContain('/api/explorer/43114?blocksOnly=true&txs=3'),
     );
     expect(fetch.mock.calls.every(([, init]) => init?.priority === 'low')).toBe(true);
+  });
+
+  it("warms Fuji's boards from Fuji's roster", async () => {
+    vi.stubGlobal('window', {});
+    const chains = [
+      { chainId: '43113', chainName: 'Avalanche Fuji C-Chain', chainLogoURI: '', txCount: 9 },
+      // a mainnet chain in a Fuji feed has no Fuji catalog entry, so no board
+      { chainId: '43114', chainName: 'Avalanche C-Chain', chainLogoURI: '', txCount: 99 },
+    ];
+    const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
+      new Response(JSON.stringify(url.startsWith('/api/overview-stats') ? { chains } : {}), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    warmReads('/explorer/fuji');
+    await vi.waitFor(() =>
+      expect(fetch.mock.calls.map(([url]) => url)).toContain('/api/explorer/43113?blocksOnly=true&txs=3'),
+    );
+    const urls = fetch.mock.calls.map(([url]) => url);
+    expect(urls).toContain('/api/overview-stats?timeRange=month&network=fuji');
+    expect(urls).not.toContain('/api/explorer/43114?blocksOnly=true&txs=3');
+    expect(urls).not.toContain('/api/avax-supply');
   });
 });

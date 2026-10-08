@@ -8,7 +8,8 @@ import { PRIMARY_NETWORK_ID, mixOf, useValidatorStats } from "@/components/explo
 import { isPrivateChain } from "@/components/explorer-v2/network/private";
 import { compareVersions, defaultVersionTarget } from "@/components/stats/VersionBreakdown";
 import type { VersionMix } from "@/components/explorer-v2/network/icm-map";
-import l1ChainsData from "@/constants/l1-chains.json";
+import { catalogBySubnet } from "@/lib/explorer-catalog";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 import type { L1Chain } from "@/types/stats";
 
 /* Every validated set's AvalancheGo versions, one row per chain. A large
@@ -17,9 +18,13 @@ import type { L1Chain } from "@/types/stats";
    onto the overview, where a phone lands first. Same target rule as the
    city: the newest version with real adoption, not a canary's. */
 
-const catalogBySubnet = new Map(
-  (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [String(c.subnetId), c]),
-);
+/* Each chain's validators tab carries its set's nodes and versions. A
+   Fuji L1 has no such tab, so its row opens the chain's P-Chain record */
+function rowHref(network: PchainNetwork, primary: boolean, c: L1Chain | undefined): string | undefined {
+  if (primary) return `/explorer/${network}/p-chain/validators`;
+  if (network === "fuji") return c?.blockchainId ? `/explorer/fuji/p-chain/chain/${c.blockchainId}` : undefined;
+  return c?.slug ? `/explorer/mainnet/${c.slug}/validators` : undefined;
+}
 
 /** rows before the board asks to be opened */
 const SHORT = 8;
@@ -52,8 +57,8 @@ interface VersionRow {
   isPrivate: boolean;
 }
 
-export function L1Versions({ className }: { className?: string }) {
-  const { subnets, error } = useValidatorStats();
+export function L1Versions({ className, network = "mainnet" }: { className?: string; network?: PchainNetwork }) {
+  const { subnets, error } = useValidatorStats(network);
   const [open, setOpen] = useState(false);
 
   const { target, rows } = useMemo(() => {
@@ -69,13 +74,12 @@ export function L1Versions({ className }: { className?: string }) {
       const nodes = versions.reduce((sum, [, n]) => sum + n, 0);
       if (nodes === 0) continue;
       const primary = sn.id === PRIMARY_NETWORK_ID;
-      const c = catalogBySubnet.get(sn.id);
+      const c = catalogBySubnet(network).get(sn.id);
       rows.push({
         id: sn.id,
         name: primary ? "Primary Network" : (c?.chainName ?? sn.name),
         logo: c?.chainLogoURI ?? sn.chainLogoURI,
-        // each chain's validators tab carries its set's nodes and versions
-        href: primary ? "/explorer/mainnet/p-chain/validators" : c?.slug ? `/explorer/mainnet/${c.slug}/validators` : undefined,
+        href: rowHref(network, primary, c),
         nodes,
         versions,
         mix: mixOf(sn.byClientVersion, target),
@@ -85,7 +89,7 @@ export function L1Versions({ className }: { className?: string }) {
     // the Primary Network leads, then the sets by size
     rows.sort((a, b) => Number(b.id === PRIMARY_NETWORK_ID) - Number(a.id === PRIMARY_NETWORK_ID) || b.nodes - a.nodes);
     return { target, rows };
-  }, [subnets]);
+  }, [subnets, network]);
 
   const shown = open ? rows : rows.slice(0, SHORT);
 

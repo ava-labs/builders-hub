@@ -146,9 +146,16 @@ function arcsOf(counts: { key: District; n: number }[]): { key: District; a0: nu
       at += s;
     }
   };
-  lay(rest.slice(0, split), -Math.PI / 2, Math.PI / 2 - f / 2);
+  // two runs that cannot balance (one ward holds most of the city, as on Fuji) take arcs by their weight, so a small
+  // ward does not get a half of the circle; the front ward still faces the viewer
+  const right = rest.slice(0, split).reduce((a, c) => a + w(c), 0);
+  const left = rest.slice(split).reduce((a, c) => a + w(c), 0);
+  const even = Math.max(right, left) <= 2 * Math.min(right, left);
+  const r = even ? Math.PI - f / 2 : (2 * Math.PI * right) / total;
+  const l = even ? Math.PI - f / 2 : (2 * Math.PI * left) / total;
+  lay(rest.slice(0, split), Math.PI / 2 - f / 2 - r, Math.PI / 2 - f / 2);
   out.push({ key: front.key, a0: Math.PI / 2 - f / 2, a1: Math.PI / 2 + f / 2 });
-  lay(rest.slice(split), Math.PI / 2 + f / 2, (3 * Math.PI) / 2);
+  lay(rest.slice(split), Math.PI / 2 + f / 2, Math.PI / 2 + f / 2 + l);
   return out;
 }
 

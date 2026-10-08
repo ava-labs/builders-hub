@@ -1,10 +1,12 @@
-import l1ChainsData from "@/constants/l1-chains.json";
-import type { L1Chain } from "@/types/stats";
 import type { ExplorerRange } from "@/components/explorer-v2/time-range";
+import { catalogOf } from "@/lib/explorer-catalog";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 
 /* The first reads of the network scope's pages: the All Networks overview
    and the AVAX tab. The pages and the link warmer (warm-reads.ts) build
-   their URLs here, so a hovered link reads what its page asks for. */
+   their URLs here, so a hovered link reads what its page asks for. A
+   mainnet URL names no network, so page memory and the CDN key it as
+   before; a Fuji URL adds network=fuji. */
 
 export const SUPPLY_URL = "/api/avax-supply";
 /* DefiLlama's chain TVL, the same feed the DeFi tab reads */
@@ -24,13 +26,15 @@ export function overviewWindow(range: ExplorerRange): Exclude<ExplorerRange, "al
   return range === "all" ? "year" : range;
 }
 
-export const overviewStatsUrl = (range: ExplorerRange) => `/api/overview-stats?timeRange=${overviewWindow(range)}`;
+export const overviewStatsUrl = (range: ExplorerRange, network: PchainNetwork = "mainnet") =>
+  `/api/overview-stats?timeRange=${overviewWindow(range)}${network === "fuji" ? "&network=fuji" : ""}`;
 
-/** the whole network's daily activity, in the chain-stats window that holds two of the clock's windows */
-export function networkSeriesUrl(days: number): string {
+/** the whole network's daily activity, in the chain-stats window that holds two of the clock's windows.
+ *  The "all" rollup is mainnet's; "fuji" is Fuji's */
+export function networkSeriesUrl(days: number, network: PchainNetwork = "mainnet"): string {
   const need = days * 2;
   const span = need <= 30 ? "30d" : need <= 90 ? "90d" : need <= 365 ? "1y" : "all";
-  return `/api/chain-stats/all?metrics=txCount,activeAddresses,icmMessages&timeRange=${span}`;
+  return `/api/chain-stats/${network === "fuji" ? "fuji" : "all"}?metrics=txCount,activeAddresses,icmMessages&timeRange=${span}`;
 }
 
 /** AVAX's price for the clock's window: the upstream stops at a year, and the day clock gets hourly points */
@@ -65,16 +69,14 @@ export interface RosterRow {
   txCount: number | null;
 }
 
-/* the catalog, so a board row links into its chain's own explorer */
-const catalogByChainId = new Map(
-  (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c]),
-);
-
-/** the boards' roster: the window's busiest chains that an RPC reads, eight at most */
-export function rosterOf(rows: RosterRow[]): LiveChain[] {
+/** the boards' roster: the window's busiest chains that an RPC reads, eight at most. A chain with
+ *  no transactions in the window stays off: on Fuji most rows have no count */
+export function rosterOf(rows: RosterRow[], network: PchainNetwork = "mainnet"): LiveChain[] {
+  // the network's catalog, so a board row links into its chain's own explorer
+  const catalogByChainId = catalogOf(network);
   return rows
-    .slice()
-    .sort((a, b) => (b.txCount ?? -1) - (a.txCount ?? -1))
+    .filter((c) => (c.txCount ?? 0) > 0)
+    .sort((a, b) => (b.txCount ?? 0) - (a.txCount ?? 0))
     .flatMap((c) => {
       const catalog = catalogByChainId.get(String(c.chainId));
       if (!catalog?.rpcUrl) return [];
@@ -92,6 +94,6 @@ export function rosterOf(rows: RosterRow[]): LiveChain[] {
 }
 
 /** the reads the boards open with, for the chains an overview feed names */
-export function boardReads(rows: RosterRow[]): string[] {
-  return rosterOf(rows).map((c) => blocksFeed(c.chainId));
+export function boardReads(rows: RosterRow[], network: PchainNetwork = "mainnet"): string[] {
+  return rosterOf(rows, network).map((c) => blocksFeed(c.chainId));
 }

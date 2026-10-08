@@ -26,10 +26,12 @@ test('explorer front door opens the mainnet overview', { tags: ['smoke'] }, asyn
   await expectOverview(screen);
 });
 
-test('fuji front door opens the fuji p-chain', async ({ app, screen, browser }) => {
+// Fuji has its own All Networks view: the front door stays on it and does not redirect to a chain.
+test('fuji front door opens the fuji overview', async ({ app, screen, browser }) => {
   await app.open('/explorer/fuji');
-  await expect(browser).toHaveURL('/explorer/fuji/p-chain');
-  await expectActiveTab(screen, browser, 'Overview');
+  await expect(browser).toHaveURL('/explorer/fuji');
+  await expect(browser).toHaveTitle(/Fuji All Networks/);
+  await expectActiveTab(screen, browser, 'Explorer');
   await expectOverview(screen);
 });
 

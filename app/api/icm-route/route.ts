@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CB58ToHex } from "@avalanche-sdk/client/utils";
-import l1ChainsData from "@/constants/l1-chains.json";
+import { catalogOf } from "@/lib/explorer-catalog";
 import { runQuery } from "@/lib/explorer-query/clickhouse";
+import { isPchainNetwork } from "@/lib/pchain-explorer";
 import { fetchIndexedChainIds, toStatsChainId } from "@/lib/stats-coverage";
+import type { L1Chain } from "@/types/stats";
 
 /* One ICM route's history, both ways: its messages per hour (a day's
    window) or per day (a week's or a month's), and its newest messages,
@@ -16,7 +18,8 @@ import { fetchIndexedChainIds, toStatsChainId } from "@/lib/stats-coverage";
    whatever the window, so a panel that opens costs stats-api two small
    queries and a change of window one; the key allows only two in flight,
    and Query shares them. A way between two chains the index does not hold
-   cannot be counted. */
+   cannot be counted. Both ends are chains of one network: mainnet, or Fuji
+   with network=fuji. */
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +33,6 @@ const ttlOf = (days: number) => (days === 1 ? 10 : 60) * 60_000;
 /** the newest messages the panel lists, found in the last month */
 const LATEST = 6;
 
-interface CatalogChain {
-  chainId: string;
-  blockchainId?: string;
-  isTestnet?: boolean;
-}
 interface End {
   id: string;
   /** its EVM chain ID when the index holds its logs; a message that lands anywhere else cannot be counted */
@@ -61,11 +59,10 @@ export interface RouteHistory {
   asOf: number;
 }
 
-const catalog = new Map((l1ChainsData as CatalogChain[]).filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c]));
-
 /* a route's end: its blockchain ID for the log topics, and its EVM chain ID when the index holds it. With the index's
-   list out of reach, a chain with an EVM ID is counted: an outage here is not evidence about the chain */
-function endOf(id: string, indexed: Set<string> | null): End | null {
+   list out of reach, a chain with an EVM ID is counted: an outage here is not evidence about the chain. The catalog
+   is the route's network's: a route never crosses from one network to the other */
+function endOf(id: string, indexed: Set<string> | null, catalog: Map<string, L1Chain>): End | null {
   const c = catalog.get(id);
   if (!c?.blockchainId) return null;
   try {
@@ -214,13 +211,15 @@ LIMIT ${LATEST * 4}`,
 
 export async function GET(request: NextRequest) {
   const q = new URL(request.url).searchParams;
+  const network = q.get("network") ?? "mainnet";
+  if (!isPchainNetwork(network)) return NextResponse.json({ error: `unknown network '${network}'` }, { status: 400 });
   const days = Number(q.get("days") ?? 1);
   const indexed = await fetchIndexedChainIds();
-  const a = endOf(q.get("a") ?? "", indexed);
-  const b = endOf(q.get("b") ?? "", indexed);
+  const a = endOf(q.get("a") ?? "", indexed, catalogOf(network));
+  const b = endOf(q.get("b") ?? "", indexed, catalogOf(network));
   if (!WINDOWS.has(days)) return NextResponse.json({ error: "days is 1, 7 or 30" }, { status: 400 });
-  if (!a || !b || a.id === b.id) return NextResponse.json({ error: "a and b name two mainnet chains of the catalog" }, { status: 404 });
-  const pairKey = `${a.id}~${b.id}`;
+  if (!a || !b || a.id === b.id) return NextResponse.json({ error: `a and b name two ${network === "fuji" ? "Fuji" : "mainnet"} chains of the catalog` }, { status: 404 });
+  const pairKey = `${network}~${a.id}~${b.id}`;
   const key = `${pairKey}~${days}`;
   const ttl = ttlOf(days);
   // a shared cache keeps it no longer than its newest messages stay fresh

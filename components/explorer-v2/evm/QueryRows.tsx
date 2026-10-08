@@ -14,6 +14,7 @@ import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
 import { PERCENT_COLUMN } from "@/lib/explorer-query/stat-label";
 import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";
+import { rowBase } from "@/lib/explorer-query/target";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { noteParts } from "./query-client";
 import type { DrillCut, DrillProfile } from "@/lib/explorer-query/drill-profile";
@@ -69,7 +70,10 @@ export function formatOf(col: string, visual: VisualSpec | null): Format {
     Elsewhere a 32-byte value is not known to be a transaction (a v4 pool id, a topic, a message id) and stays text */
 const TX_COLUMN = /^(?:hash|tx|txhash|tx_hash|transaction_hash)$|_tx(?:_hash)?$/;
 
-export function doorFor(col: string, v: unknown, base: string): string | null {
+/** the page a value opens; on the network's page, on the chain its row's chain_id names */
+export function doorFor(col: string, v: unknown, page: string, row?: Row): string | null {
+  const base = rowBase(page, row);
+  if (!base) return null;
   const c = col.toLowerCase();
   // P-Chain ids, as the query returns them: NodeID-…, P-avax1…, CB58 tx ids
   if (typeof v === "string") {
@@ -219,7 +223,7 @@ export function ResultTable({
             {columns.map((c) => {
               const v = r[c.name];
               const name = nameFor(names, c.name, v);
-              const door = doorFor(c.name, v, base);
+              const door = doorFor(c.name, v, base, r);
               if (numeric.has(c.name)) {
                 const f = formatOf(c.name, visual);
                 return (
@@ -303,9 +307,10 @@ export const LEDGER_KNOWN = new Set(["t", "tx_hash", "method_id", "from_address"
     transactions, else the page of the thing a chart's axis names (a
     contract, a validator, a block); null when it names nothing */
 export function rowDoor(row: Row, columns: ColumnMeta[], visual: VisualSpec | null, base: string): string | null {
-  if (isTxList(columns) && isHash(row.tx_hash)) return `${base}/tx/${row.tx_hash}`;
+  const own = rowBase(base, row);
+  if (own && isTxList(columns) && isHash(row.tx_hash)) return `${own}/tx/${row.tx_hash}`;
   for (const p of visual?.panels ?? []) {
-    const door = p.x ? doorFor(p.x, row[p.x], base) : null;
+    const door = p.x ? doorFor(p.x, row[p.x], base, row) : null;
     if (door) return door;
   }
   return null;
@@ -511,7 +516,10 @@ export function RecordPlot({
               isAnimationActive={false}
               onMouseEnter={(d: { payload?: { hash: string } }) => onHoverTx(d?.payload?.hash ?? null)}
               onMouseLeave={() => onHoverTx(null)}
-              onClick={(d: { payload?: { hash: string } }) => d?.payload?.hash && router.push(`${base}/tx/${d.payload.hash}`)}
+              onClick={(d: { payload?: { hash: string; row: Row } }) => {
+                const own = d?.payload?.hash ? rowBase(base, d.payload.row) : null;
+                if (own) router.push(`${own}/tx/${d.payload!.hash}`);
+              }}
             >
               {pts.map((p, i) => (
                 <Cell

@@ -10,7 +10,10 @@ import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, f
 import { FAMILY_NAMES } from "./families";
 import { MEV_NAMES } from "./mev";
 import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
-import { PCHAIN_IDS, targetOf } from "./target";
+import l1ChainsData from "@/constants/l1-chains.json";
+import { DEDICATED_METRICS_CHAINS, DEDICATED_STATS_BASE_URL } from "@/lib/dedicated-stats";
+import { toHexBlockchainId } from "@/lib/icm-message";
+import { NETWORK_ID, PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
 import { DAY, WEEK } from "./values";
 
@@ -46,13 +49,14 @@ const ROWS_BUDGET = SQL_BUDGET - 2048;
 type Network = "mainnet" | "fuji";
 const networkOf = (chainId: number): Network => (chainId === PCHAIN_IDS.fuji ? "fuji" : "mainnet");
 
-/** each chain table the SQL names, defined as this chain's rows. Any mention counts, not only one after FROM or
-    JOIN, so no way of naming a table reads past its definition */
-function scopeDefs(sql: string, chainId: number): string[] {
+/** each chain table the SQL names, defined as the rows of the chains given (the page's one chain, or the network's).
+    Any mention counts, not only one after FROM or JOIN, so no way of naming a table reads past its definition */
+function scopeDefs(sql: string, chainId: number, ids: readonly number[] = [chainId]): string[] {
   const { tables, final } = targetOf(chainId);
+  const on = ids.length === 1 ? `= ${ids[0]}` : `IN (${ids.join(", ")})`;
   return tables
     .filter((t) => new RegExp(`\\b${t}\\b`, "i").test(sql))
-    .map((t) => `${t} AS (SELECT * FROM ${t}${final.includes(t) ? " FINAL" : ""} WHERE chain_id = ${chainId})`);
+    .map((t) => `${t} AS (SELECT * FROM ${t}${final.includes(t) ? " FINAL" : ""} WHERE chain_id ${on})`);
 }
 
 /** what the chain tables' definitions take of the budget */
@@ -476,8 +480,94 @@ const lendingTokens: Source = {
 };
 
 /* ------------------------------------------------------------------ */
+/* chain_names                                                         */
+
+/* The network's chains: the mainnet EVM chains stats-api indexes, as its
+   own list (/v2/chains) names them, under the names, tokens and slugs of
+   the explorer's catalog where it lists them (by blockchain ID, which
+   holds for KiteAI, whose catalog id is not its EVM id; the catalog and
+   the list write blockchain IDs in either encoding). When the list does
+   not answer, the catalog's mainnet EVM chains stand in. */
+
+export interface NetworkChain {
+  chainId: number;
+  name: string;
+  /** the native token's symbol; null when the catalog does not list the chain */
+  symbol: string | null;
+  /** the explorer's slug for the chain; null when the catalog does not list it */
+  slug: string | null;
+  /** the chain's blockchain ID as 0x hex, as an ICM log's topic carries it; null when neither list holds it */
+  blockchainId: string | null;
+}
+
+interface CatalogChain {
+  chainId: string;
+  chainName: string;
+  slug: string;
+  blockchainId?: string;
+  isTestnet?: boolean;
+  networkToken?: { symbol?: string };
+}
+
+const CATALOG = (l1ChainsData as CatalogChain[]).filter((c) => c.isTestnet !== true);
+/** a catalog chain's EVM id: KiteAI's catalog id is its blockchain ID */
+const evmIdOf = (c: CatalogChain) => Number(DEDICATED_METRICS_CHAINS[c.chainId] ?? c.chainId);
+const hexOf = (id: string | undefined) => (id ? (toHexBlockchainId(id) ?? null) : null);
+const fromCatalog = (c: CatalogChain): NetworkChain => ({ chainId: evmIdOf(c), name: c.chainId === "43114" ? "C-Chain" : c.chainName, symbol: c.networkToken?.symbol ?? null, slug: c.slug, blockchainId: hexOf(c.blockchainId) });
+const CATALOG_CHAINS = CATALOG.map(fromCatalog).filter((c) => Number.isSafeInteger(c.chainId) && c.chainId !== PCHAIN_IDS.mainnet && c.chainId !== PCHAIN_IDS.fuji);
+
+const networkFeed = kept(
+  async () => {
+    const body = await getJson<{ chains?: { evmChainId?: number | string; chainName?: string; blockchainId?: string; network?: string }[] }>(`${DEDICATED_STATS_BASE_URL}/v2/chains?network=mainnet`, "the chain list");
+    const chains = (body.chains ?? [])
+      .filter((c) => c.network === "mainnet" && Number.isSafeInteger(Number(c.evmChainId)))
+      .map((c): NetworkChain => {
+        const hex = hexOf(c.blockchainId);
+        const listed = CATALOG.find((k) => (hex !== null && hexOf(k.blockchainId) === hex) || evmIdOf(k) === Number(c.evmChainId));
+        const own = { chainId: Number(c.evmChainId), name: c.chainName || `Chain ${c.evmChainId}`, symbol: null, slug: null, blockchainId: hex };
+        return listed ? { ...fromCatalog(listed), chainId: own.chainId, blockchainId: hex ?? hexOf(listed.blockchainId) } : own;
+      });
+    if (!chains.some((c) => c.chainId === 43114)) throw new Error("the chain list holds no C-Chain");
+    return { chains, at: Date.now() };
+  },
+  3600_000,
+  24 * 3600_000,
+  "the chain list",
+);
+
+/** the network's chains, the C-Chain first; the catalog's when the list does not answer in time */
+export async function networkChains(): Promise<NetworkChain[]> {
+  const chains = await within(
+    networkFeed.get("mainnet").then((v) => v.chains),
+    4000,
+    CATALOG_CHAINS,
+  );
+  return [...chains.filter((c) => c.chainId === 43114), ...chains.filter((c) => c.chainId !== 43114)];
+}
+
+const b64 = (s: string) => Buffer.from(s, "utf8").toString("base64");
+
+const chainNames: Source = {
+  columns: [
+    ["chain_id", "UInt64"],
+    ["chain", "String"],
+    ["token", "String"],
+    ["blockchain_id", "FixedString(32)"],
+  ],
+  async build() {
+    const chains = await networkChains();
+    // names and symbols as base64: the query service refuses some words (use, file, set) even inside a string
+    const rows = chains.map((c) => `(${c.chainId},'${b64(c.name)}','${b64(c.symbol ?? "")}','${c.blockchainId?.slice(2) ?? ""}')`);
+    const sql = `SELECT toUInt64(tupleElement(r, 1)) AS chain_id, base64Decode(tupleElement(r, 2)) AS chain, base64Decode(tupleElement(r, 3)) AS token, toFixedString(unhex(tupleElement(r, 4)), 32) AS blockchain_id FROM (SELECT arrayJoin([${rows.join(",")}]) AS r)`;
+    const text = `Chain names and native tokens come from the explorer's catalog, for the ${fmt(chains.length)} mainnet chains the stats API indexes.`;
+    return { sql, note: { table: "chain_names", label: "chain names", at: networkFeed.peek("mainnet")?.at ?? Date.now(), total: chains.length, known: chains.filter((c) => c.symbol).length, text } };
+  },
+};
+
+/* ------------------------------------------------------------------ */
 
 const SOURCES: Record<string, Source> = {
+  chain_names: chainNames,
   p_validator_versions: versions,
   p_avax_supply: supply,
   dex_factories: factories,
@@ -514,7 +604,8 @@ export function refsIn(sql: string, chainId: number): string[] {
     whole no longer fits the query service. */
 export async function withSources(sql: string, chainId: number): Promise<{ sql: string; sources: SourceNote[] }> {
   const used = refsIn(sql, chainId);
-  const scoped = scopeDefs(sql, chainId);
+  const ids = chainId === NETWORK_ID ? (await networkChains()).map((c) => c.chainId) : [chainId];
+  const scoped = scopeDefs(sql, chainId, ids);
   // the lending and family names the query reads (lending.ts, families.ts), on the C-Chain the registry describes
   const names = chainId === LENDING_CHAIN_ID ? namesIn(sql, SERVER_NAMES) : [];
   if (used.length === 0 && scoped.length === 0 && names.length === 0) return { sql, sources: [] };

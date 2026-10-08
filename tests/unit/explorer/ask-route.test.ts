@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import l1ChainsData from '@/constants/l1-chains.json';
 import type { Node } from '@/components/explorer-v2/network/icm-map';
-import { askChainsOf, queryHref, routeFor, scopeOf, sentOf, towerOfRow, towerOfValue, towersOf } from '@/components/explorer-v2/network/ask-route';
+import { askChainsOf, networkAsked, queryHref, routeFor, scopeOf, sentOf, towerOfRow, towerOfValue, towersOf } from '@/components/explorer-v2/network/ask-route';
 import { toHexBytes } from '@/lib/explorer-query/pchain-ids';
 import type { L1Chain } from '@/types/stats';
 
@@ -91,5 +91,39 @@ describe('the towers an answer names', () => {
   it('prefers the column asked for, then any column of the row', () => {
     expect(towerOfRow(towers, { node_id: 'NodeID-x', subnet_id: beam.subnetId }, 'node_id')).toBe('4337');
     expect(towerOfRow(towers, { t: '2026-09-26', txs: 4337 })).toBeNull();
+  });
+});
+
+describe('networkAsked', () => {
+  it('reads a question about every chain at once, by any of its usual words', () => {
+    for (const q of [
+      'Which chains had the most transactions this week?',
+      'Transactions per day across all chains over the last 30 days',
+      'Fees paid per chain today',
+      'Active addresses across the whole network per day this week',
+      'ICM messages between chains in the last 7 days',
+      'How many contracts were deployed on each L1 this week?',
+      'Top 5 chains by active addresses this month',
+      'Chains ranked by transactions this week',
+      'Network transactions per day over the last 30 days',
+      'c-chain + all l1s transactions today',
+      'Transactions on the C-Chain and all L1s',
+      'network-wide gas today',
+      'Transactions on every L1 this week',
+    ])
+      expect(networkAsked(q), q).toBe(true);
+  });
+
+  it("leaves the P-Chain's topics, the Primary Network and one chain's questions alone", () => {
+    for (const q of [
+      'How many validators does each L1 have?',
+      'Validators across all L1s',
+      'AVAX staked on the Primary Network per day this month',
+      'Show all USDC transfers',
+      'Busiest senders in the last hour',
+      'Daily transactions on Beam over the last 30 days',
+      'all time transactions on gunzilla',
+    ])
+      expect(networkAsked(q), q).toBe(false);
   });
 });

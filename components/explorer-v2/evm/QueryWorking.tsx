@@ -2,6 +2,9 @@
 
 import { ArrowUp, ChevronsUpDown } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { networkAsked } from "@/components/explorer-v2/network/ask-route";
+import { NETWORK_SLUG } from "@/lib/explorer-query/target";
 import { cn } from "@/lib/utils";
 import { FILTER_MARK, WRITING } from "./query-client";
 import { QueryLoader } from "./QueryLoader";
@@ -15,6 +18,13 @@ import { QueryLoader } from "./QueryLoader";
 /** the P-Chain Query page's column, inside the P-Chain shell */
 export const PCHAIN_COLUMN = "mx-auto w-full max-w-[90rem] px-5 pb-24 pt-2 md:px-6";
 
+/** what the SQL editor reads, as its hint names it */
+export function sqlScopeOf(c: { kind: "evm" | "pchain"; chainId: string | number; chainSlug?: string }): string {
+  if (c.kind === "pchain") return `One SELECT over the P-Chain tables (decoded_p_txs, the UTXO and snapshot tables), with chain_id = ${c.chainId}. At most 2,000 rows.`;
+  const tables = "One SELECT over raw_blocks, raw_txs, raw_logs or raw_traces";
+  return c.chainSlug === NETWORK_SLUG ? `${tables}, which hold every chain's rows, and chain_names. At most 2,000 rows.` : `${tables}, with chain_id = ${c.chainId}. At most 2,000 rows.`;
+}
+
 /** the network picker's trigger */
 export const PICK = "group flex w-fit items-center gap-2 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100";
 
@@ -25,12 +35,20 @@ export function placeholderOf(kind: "evm" | "pchain", chainName: string): string
   return kind === "pchain" ? "Ask the P-Chain about validators, staking, delegations, L1s or supply" : `Ask ${chainName} about its transactions, gas, contracts or tokens`;
 }
 
+/** a chain's mark in the network picker: its logo, or the Avalanche mark for all chains at once */
+export function ChainMark({ logo, all, className }: { logo?: string; all?: boolean; className: string }) {
+  // the mark rides the theme, as on the subnav's All Networks
+  if (all) return <AvalancheLogo className={cn(className, "text-zinc-900 dark:text-zinc-100 [&_path]:fill-current")} />;
+  if (logo) return <img src={logo} alt="" className={cn(className, "rounded-full object-contain")} />;
+  return <span className={cn(className, "rounded-full border border-zinc-200 dark:border-zinc-800")} />;
+}
+
 /** the network picker's face: the chain that answers a question naming none */
-export function PickFace({ label, logo }: { label: string; logo?: string }) {
+export function PickFace({ label, logo, all }: { label: string; logo?: string; all?: boolean }) {
   return (
     <>
       <span>Answering from</span>
-      {logo && <img src={logo} alt="" className="h-4 w-4 shrink-0 rounded-full object-contain" />}
+      {(logo || all) && <ChainMark logo={logo} all={all} className="h-4 w-4 shrink-0" />}
       <span className="font-bold text-zinc-900 dark:text-zinc-100">{label}</span>
       <span className="text-zinc-300 dark:text-zinc-600">· any chain you name</span>
       <ChevronsUpDown className="h-3 w-3 shrink-0" />
@@ -116,20 +134,19 @@ export function PromptBox({
 
 /** a Query page's first frame while it asks: the question, the box held while the answer is written, the loader */
 export function QueryWorking({ question, kind, chainName, scope }: { question: string; kind: "evm" | "pchain"; chainName: string; scope?: "network" }) {
+  const all = scope === "network" && networkAsked(question);
   return (
     <>
-      {/* the network page's picker, on the C-Chain until the page reads which chain the question names */}
+      {/* the network page's picker: All chains for a question about every chain, else the C-Chain until the page reads which chain the question names */}
       {scope === "network" && (
         <div className="mb-6">
-          <div className={PICK}>
-            <PickFace label="C-Chain" logo={CCHAIN_LOGO} />
-          </div>
+          <div className={PICK}>{all ? <PickFace label="All chains" all /> : <PickFace label="C-Chain" logo={CCHAIN_LOGO} />}</div>
         </div>
       )}
       <div className="flex flex-col gap-8">
         <section className="flex flex-col gap-3">
           <ThreadLine prompts={[question]} />
-          <PromptBox value="" disabled placeholder={placeholderOf(kind, chainName)} label="Ask" />
+          <PromptBox value="" disabled placeholder={placeholderOf(kind, all ? "every chain" : chainName)} label="Ask" />
           <QueryLoader status={`${WRITING} · 0 s`} />
         </section>
       </div>
