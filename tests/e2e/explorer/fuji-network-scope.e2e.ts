@@ -27,6 +27,9 @@ const MAINNET_CITY = '/explorer/mainnet/chains';
 // How long the linked-chain test holds the overview feed: longer than the P-Chain registry takes to answer.
 const OVERVIEW_DELAY_MS = 20_000;
 const FUJI_CITY = '/explorer/fuji/chains';
+// A tap on the City. CI draws the 3D City with software WebGL, which holds the page's main thread for seconds at a time
+// while the City builds: a tap's input waits for the page that long. On a GPU the tap lands at once.
+const CITY_TAP = { timeout: 90_000 };
 
 // A short hash or address link on an overview board, as truncate() writes it: "0x1281…9d13".
 const SHORT_HASH = /^(0x)?[0-9A-Za-z]{4,6}…[0-9A-Za-z]{4}$/;
@@ -92,7 +95,7 @@ function pause(ms: number): Promise<void> {
 
 test('the City switch keeps the City', MULTI_PAGE, async ({ app, screen, browser }) => {
   await openCity(app, browser, MAINNET_CITY);
-  await (await cityNetworkSwitch(screen, browser)).getByRole('link', 'Fuji').tap();
+  await (await cityNetworkSwitch(screen, browser)).getByRole('link', 'Fuji').tap(CITY_TAP);
   await expect(browser).toHaveURL(pathPattern(FUJI_CITY), NAVIGATION);
 
   // The current network is text with aria-current on a large screen, and a link on a phone. CSS can set it in upper
@@ -105,7 +108,7 @@ test('the City switch keeps the City', MULTI_PAGE, async ({ app, screen, browser
     await expect(views.getByRole('link', 'Explorer')).toHaveAttribute('href', '/explorer/fuji');
     await expect(views.getByText('City')).toHaveAttribute('aria-current', 'page');
   }
-  await fujiSwitch.getByRole('link', 'Mainnet').tap();
+  await fujiSwitch.getByRole('link', 'Mainnet').tap(CITY_TAP);
   await expect(browser).toHaveURL(pathPattern(MAINNET_CITY), NAVIGATION);
 });
 
@@ -118,7 +121,7 @@ test('the pane switch keeps the open chain on the other network', MULTI_PAGE, as
   await expect(mainnetPane.getByRole('heading', 'Beam', { level: 2 })).toBeVisible(DATA);
   const toFuji = mainnetPane.getByRole('group', 'Network').getByRole('link', 'Fuji');
   await expect(toFuji).toHaveAttribute('href', `${FUJI_CITY}?chain=beam-l1`);
-  await toFuji.tap();
+  await toFuji.tap(CITY_TAP);
 
   await expect(browser).toHaveURL(cityWithChain(FUJI_CITY, 'beam-l1'), NAVIGATION);
   const fujiPane = await chainPane(screen, browser, /^Beam/);
@@ -126,7 +129,7 @@ test('the pane switch keeps the open chain on the other network', MULTI_PAGE, as
   const toMainnet = fujiPane.getByRole('group', 'Network').getByRole('link', 'Mainnet');
   await expect(toMainnet).toHaveAttribute('href', `${MAINNET_CITY}?chain=beam`);
   // The page keeps the mainnet feeds that it read, so the return opens the pane from them at once.
-  await toMainnet.tap();
+  await toMainnet.tap(CITY_TAP);
 
   await expect(browser).toHaveURL(cityWithChain(MAINNET_CITY, 'beam'), NAVIGATION);
   await expect((await chainPane(screen, browser, /^Beam/)).getByRole('heading', 'Beam', { level: 2 })).toBeVisible(DATA);
@@ -160,7 +163,7 @@ test('the Fuji City lists no mainnet chain', MULTI_PAGE, async ({ app, screen, b
     rows = screen.getByRole('button', / val( |$)/);
   } else {
     const door = screen.getByRole('button', /^Chains/);
-    await door.tap();
+    await door.tap(CITY_TAP);
     await expect(door).toHaveAttribute('aria-expanded', 'true');
     rows = screen.getByRole('complementary', 'Chains').getByRole('listitem');
   }

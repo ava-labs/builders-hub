@@ -38,6 +38,14 @@ export class ScanLimitError extends Error {
   }
 }
 
+/** the query service was still busy (503) or over the rate (429) after the short waits: the same read works again shortly */
+export class QueryBusyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QueryBusyError";
+  }
+}
+
 const quantity = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : `${Math.round(n / 1e6)} million`);
 
 /* ClickHouse's words when it stops a read before or early in it:
@@ -189,7 +197,9 @@ async function postStats(sql: string): Promise<RawJson> {
     const inner = why.match(/message:\s*(.+?)(?:\s*\(version [^)]*\))?$/s)?.[1] ?? why;
     const over = scanLimit(why);
     if (over) throw over;
-    throw new Error(inner.replace(/^clickhouse:\s*/, "").slice(0, 500));
+    const message = inner.replace(/^clickhouse:\s*/, "").slice(0, 500);
+    if (res.status === 429 || res.status === 503) throw new QueryBusyError(message);
+    throw new Error(message);
   }
   // an empty answer can carry null in place of its lists
   const meta = (body.columns ?? []).map((name, i) => ({ name, type: body.types?.[i] ?? "String" }));
