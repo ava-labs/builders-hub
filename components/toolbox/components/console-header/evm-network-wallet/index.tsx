@@ -37,9 +37,14 @@ export function EvmNetworkWallet() {
 
   if (!walletEVMAddress) {
     return (
-      <button type="button" onClick={handlePrimaryButtonClick} className={HEADER_PRIMARY}>
+      <button
+        type="button"
+        onClick={handlePrimaryButtonClick}
+        aria-label="Connect wallet"
+        className={`${HEADER_PRIMARY} max-sm:w-8 max-sm:justify-center max-sm:px-0`}
+      >
         <Wallet className="h-3.5 w-3.5" />
-        Connect wallet
+        <span className="hidden sm:inline">Connect wallet</span>
       </button>
     );
   }

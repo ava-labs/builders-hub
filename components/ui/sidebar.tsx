@@ -194,6 +194,8 @@ function Sidebar({
             } as React.CSSProperties
           }
           side={side}
+          // Focusing the first field would open the phone keyboard over the menu.
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Sidebar</SheetTitle>

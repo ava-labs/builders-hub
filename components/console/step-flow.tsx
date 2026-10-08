@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -158,6 +158,7 @@ export default function StepFlow({
 }: StepFlowProps) {
   const router = useRouter();
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+  const stepListRef = useRef<HTMLOListElement>(null);
   const [done, setDone] = useState<Set<string>>(() => new Set());
   // Progress and isComplete read browser storage, so both wait for mount: the server and first client render agree.
   const [mounted, setMounted] = useState(false);
@@ -165,6 +166,16 @@ export default function StepFlow({
     setDone(readProgress(basePath));
     setMounted(true);
   }, [basePath]);
+  // Keep the current step visible in the sideways-scrolling step list.
+  useEffect(() => {
+    const list = stepListRef.current;
+    const active = list?.querySelector<HTMLElement>('[data-active]');
+    if (!list || !active) return;
+    const left = active.offsetLeft - list.offsetLeft;
+    if (left < list.scrollLeft || left + active.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollLeft = left - 4;
+    }
+  }, [currentStepKey]);
   const markDone = useCallback(
     (key: string) => {
       setDone((prev) => {
@@ -342,7 +353,7 @@ export default function StepFlow({
   const leaveWithNext = () => markDone(currentStep.key);
 
   const BTN =
-    'inline-flex h-10 items-center gap-2 border px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors';
+    'inline-flex h-10 items-center gap-2 border px-3 sm:px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors';
   const BTN_GHOST =
     'border-zinc-300 text-zinc-700 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50';
   const BTN_INK =
@@ -355,7 +366,7 @@ export default function StepFlow({
         className={cn('nav-plain flex flex-col', compact ? 'mb-4 gap-2' : 'mb-8 gap-3')}
         variants={sectionItem}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p className="min-w-0 flex-1 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
             Step <span className="text-zinc-900 dark:text-zinc-50">{currentIndex + 1}</span> of {totalSteps}
             <span className="mx-2 text-zinc-300 dark:text-zinc-700">/</span>
@@ -365,31 +376,61 @@ export default function StepFlow({
         </div>
 
         {/* One segment per step: done in ink, current in red, passed-but-unfinished in amber, the rest grey. */}
-        <div className="flex gap-1" aria-hidden>
+        <div className="-my-2 flex gap-1" aria-hidden>
           {steps.map((s, i) => {
             const status = statusOf(s, i);
             return (
               // The colour sits on an inner span: the nav's plain-link reset clears backgrounds on its anchors.
               <NavEl key={s.key} stepKey={getStepNavKey(s)} className="group/seg block flex-1">
-                <span
-                  className={cn(
-                    'block h-1 transition-colors',
-                    status === 'done' &&
-                      'bg-zinc-900 group-hover/seg:bg-zinc-600 dark:bg-zinc-100 dark:group-hover/seg:bg-zinc-400',
-                    status === 'active' && 'bg-[#E6212F]',
-                    status === 'skipped' && 'bg-amber-400 group-hover/seg:bg-amber-500 dark:bg-amber-500/80',
-                    status === 'upcoming' &&
-                      'bg-zinc-200 group-hover/seg:bg-zinc-300 dark:bg-zinc-800 dark:group-hover/seg:bg-zinc-700',
-                  )}
-                />
+                {/* The padding gives the thin bar a finger-sized tap area. */}
+                <span className="block py-2">
+                  <span
+                    className={cn(
+                      'block h-1 transition-colors',
+                      status === 'done' &&
+                        'bg-zinc-900 group-hover/seg:bg-zinc-600 dark:bg-zinc-100 dark:group-hover/seg:bg-zinc-400',
+                      status === 'active' && 'bg-[#E6212F]',
+                      status === 'skipped' && 'bg-amber-400 group-hover/seg:bg-amber-500 dark:bg-amber-500/80',
+                      status === 'upcoming' &&
+                        'bg-zinc-200 group-hover/seg:bg-zinc-300 dark:bg-zinc-800 dark:group-hover/seg:bg-zinc-700',
+                    )}
+                  />
+                </span>
                 <span className="sr-only">{stepTitle(s)}</span>
               </NavEl>
             );
           })}
         </div>
 
+        {!compact && currentStep.type === 'branch' && (
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:hidden">
+            {currentStep.options.map((o, i) => (
+              <React.Fragment key={o.key}>
+                {i > 0 && <span className="text-[12px] text-zinc-400">or</span>}
+                <span>
+                  <NavEl
+                    stepKey={o.key}
+                    className={cn(
+                      'text-[12.5px] underline-offset-4',
+                      selectedBranchOption?.key === o.key
+                        ? 'font-medium text-zinc-900 underline decoration-[#E6212F] dark:text-zinc-50'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50',
+                    )}
+                  >
+                    {o.label}
+                  </NavEl>
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+
         {!compact && (
-          <ol className="-mx-1 flex gap-x-5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+          // Phones read the step from the line above; the full list returns from sm up.
+          <ol
+            ref={stepListRef}
+            className="-mx-1 hidden gap-x-5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex"
+          >
             {steps.map((s, stepIdx) => {
               const status = statusOf(s, stepIdx);
               const isDoneStep = status === 'done';
@@ -402,6 +443,7 @@ export default function StepFlow({
               return (
                 <li
                   key={s.key}
+                  data-active={isActiveStep || undefined}
                   className="flex shrink-0 items-baseline gap-1.5"
                   title={isSkipped ? SKIPPED_TITLE : undefined}
                 >
@@ -532,12 +574,16 @@ export default function StepFlow({
                   }}
                   className={cn(BTN, BTN_INK, 'min-w-0')}
                 >
-                  <span className="truncate">Next{nextTitle && !compact ? `: ${nextTitle}` : ''}</span>
+                  <span className="truncate">
+                    Next{nextTitle && !compact && <span className="hidden sm:inline">: {nextTitle}</span>}
+                  </span>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0" />
                 </button>
               ) : (
                 <Link href={nextLink} onClick={leaveWithNext} className={cn(BTN, BTN_INK, 'min-w-0')}>
-                  <span className="truncate">Next{nextTitle && !compact ? `: ${nextTitle}` : ''}</span>
+                  <span className="truncate">
+                    Next{nextTitle && !compact && <span className="hidden sm:inline">: {nextTitle}</span>}
+                  </span>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0" />
                 </Link>
               ))
