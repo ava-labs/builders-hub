@@ -9,13 +9,11 @@ import type { StackLayer } from "./instruments";
    finished ones: the same color under white stripes, so its short bar does
    not read as a drop. */
 
-function HatchDefs({ id }: { id: string }) {
+function Hatch({ id, stroke }: { id: string; stroke: string }) {
   return (
-    <defs>
-      <pattern id={id} width={5} height={5} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <line x1={0} y1={0} x2={0} y2={5} strokeWidth={2.5} className="stroke-white/75 dark:stroke-zinc-950/70" />
-      </pattern>
-    </defs>
+    <pattern id={id} width={5} height={5} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1={0} y1={0} x2={0} y2={5} strokeWidth={2.5} className={stroke} />
+    </pattern>
   );
 }
 
@@ -25,9 +23,13 @@ export function PartialMark({ x, y, w, h, d }: { x: number; y: number; w: number
   const id = `hatch-${useId().replace(/:/g, "")}`;
   return (
     <g>
-      <HatchDefs id={id} />
+      <defs>
+        <Hatch id={id} stroke="stroke-white/75 dark:stroke-zinc-950/70" />
+        {/* the side's stripes are shaded down as its red is */}
+        <Hatch id={`${id}-side`} stroke="stroke-white/40 dark:stroke-zinc-950/70" />
+      </defs>
       <rect x={x} y={y} width={w} height={h} fill={`url(#${id})`} />
-      <polygon points={`${x + w},${y} ${x + w + d},${y - d} ${x + w + d},${y + h - d} ${x + w},${y + h}`} fill={`url(#${id})`} />
+      <polygon points={`${x + w},${y} ${x + w + d},${y - d} ${x + w + d},${y + h - d} ${x + w},${y + h}`} fill={`url(#${id}-side)`} />
     </g>
   );
 }
