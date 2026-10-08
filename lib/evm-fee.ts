@@ -77,6 +77,23 @@ export function executedBaseFee(txs: { bid: FeeBid; paid: bigint }[]): bigint | 
   return null;
 }
 
+/** the eighth place of the coin, in wei: a fee's parts read to it */
+const STEP = 10_000_000_000n;
+/** a millionth of the coin, in wei: an amount under it reads whole, in the nano unit or in wei */
+const TINY = 1_000_000_000_000n;
+const toStep = (wei: bigint) => wei - (wei % STEP);
+const cut = (wei: bigint) => (wei < TINY ? wei : toStep(wei));
+
+/** a fee's parts as the Fee box shows them, in wei: the base fee's part and
+ *  the total to eight places of the coin, and the priority fee's part as the
+ *  total less the base fee's part, so the column adds up to its last place */
+export function feeAmounts(base: bigint, paid: bigint, gas: bigint): { base: bigint; tip: bigint; total: bigint } {
+  const total = paid * gas;
+  const baseTotal = base * gas;
+  const tip = total - baseTotal;
+  return { base: cut(baseTotal), tip: tip < TINY ? tip : toStep(total) - toStep(baseTotal), total: cut(total) };
+}
+
 const MAX_U64 = (1n << 64n) - 1n;
 
 /** min x e^(excess / k), by the integer series of avalanchego's

@@ -49,6 +49,12 @@ export function formatUsd(nAvax: string | number | undefined, avaxUsd: number | 
   return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** "5.000 nAVAX" → { value: "5.000", unit: "nAVAX" }: a figure and its unit, for big type */
+export function unitParts(text: string): { value: string; unit?: string } {
+  const cut = text.lastIndexOf(" ");
+  return cut < 0 ? { value: text } : { value: text.slice(0, cut), unit: text.slice(cut + 1) };
+}
+
 /** a gas price in wei → "5.043 nAVAX", "0.15 nAVAX" or "150 wei": the
  *  chain's nano unit from a thousandth of a nano up (three places, whole
  *  from 100), and plain wei under that, where a tip of a few hundred wei

@@ -4,6 +4,7 @@
 // uint256 wei value blows past Number's 2^53 precision ceiling.
 
 import { paramUnit, ROLES } from "@/lib/precompiles";
+import { formatPricePerGas } from "@/components/explorer-v2/format";
 
 /** Decimal wei string → "1.2345" (fixed `decimals` significant fraction),
  *  trailing zeros trimmed. Pure integer/BigInt math — no float rounding. */
@@ -46,6 +47,13 @@ export function formatEther(
 export function formatGwei(wei: string | number | undefined): string {
   if (wei === undefined || wei === null || wei === "") return "—";
   return `${formatUnits(wei, WEI_PER_GWEI, 4)} Gwei`;
+}
+
+/** a fee in wei → "0.000489 AVAX"; under a millionth of the coin (a test
+ *  network, or a priority fee of a few wei) in the nano unit or in wei, as a
+ *  gas price reads: "0.00315 nAVAX", "210,000 wei" */
+export function formatFeeAmount(wei: bigint, symbol = "AVAX", decimals = 6): string {
+  return wei > 0n && wei < 1_000_000_000_000n ? formatPricePerGas(wei, symbol) : `${formatEther(wei.toString(), { decimals })} ${symbol}`;
 }
 
 /** wei → "0.22 nAVAX": gas prices in the chain's nano unit (gwei on

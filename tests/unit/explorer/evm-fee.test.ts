@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { calculatePrice, executedBaseFee, priceFloor, splitPaid, tipAt } from '@/lib/evm-fee';
+import { calculatePrice, executedBaseFee, feeAmounts, priceFloor, splitPaid, tipAt } from '@/lib/evm-fee';
 import { formatPricePerGas } from '@/components/explorer-v2/format';
+import { formatFeeAmount } from '@/components/explorer-v2/evm/format';
 
 // What a C-Chain transaction pays per gas and how the price splits into the base fee and the tip. The transactions
 // below were read from the public RPC on 2026-10-08 (eth_getTransactionByHash, eth_getTransactionReceipt and the
@@ -132,5 +133,44 @@ describe('a gas price on the page', () => {
     expect(formatPricePerGas(25n * NANO, 'BEAM')).toBe('25.000 nBEAM');
     expect(formatPricePerGas(undefined)).toBe('—');
     expect(formatPricePerGas('not a number')).toBe('—');
+  });
+});
+
+describe('the parts of a fee in the Fee box', () => {
+  it('cuts the amounts to eight places, and the parts add up to the total as shown', () => {
+    // 0x54b7bdbd...88dd: 61,138 gas at 5 nAVAX base fee + 3 nAVAX priority fee
+    const a = feeAmounts(5n * NANO, 8n * NANO, 61_138n);
+    expect(formatFeeAmount(a.base, 'AVAX', 8)).toBe('0.00030569 AVAX');
+    expect(formatFeeAmount(a.tip, 'AVAX', 8)).toBe('0.00018341 AVAX');
+    expect(formatFeeAmount(a.total, 'AVAX', 8)).toBe('0.0004891 AVAX');
+    expect(a.base + a.tip).toBe(a.total);
+  });
+
+  it('gives the priority fee the rest when each part alone rounds down', () => {
+    // 1/3 nAVAX parts: cut alone, the two parts would add up to one place less than the total
+    const a = feeAmounts(3_333_333_333n, 6_666_666_667n, 1_000_003n);
+    expect(a.base + a.tip).toBe(a.total);
+    expect(a.total % 10_000_000_000n).toBe(0n);
+  });
+
+  it('keeps a priority fee under a millionth of the coin whole, in its own unit', () => {
+    // 0xcd1f534c...0fd9: 21,000 gas with the 150 wei tip that wallets suggest
+    const a = feeAmounts(5n * NANO, 5n * NANO + 150n, 21_000n);
+    expect(a.tip).toBe(3_150_000n);
+    expect(formatFeeAmount(a.tip)).toBe('0.00315 nAVAX');
+    expect(formatFeeAmount(a.total, 'AVAX', 8)).toBe('0.000105 AVAX');
+  });
+
+  it('cuts the priority fee to eight places when the base fee part is under a millionth of the coin', () => {
+    // Fuji 0xaff11b79...3005: 21,000 gas, a 10 wei base fee, 433,607,420 wei paid per gas
+    const a = feeAmounts(10n, 433_607_420n, 21_000n);
+    expect(formatFeeAmount(a.base)).toBe('210,000 wei');
+    expect(formatFeeAmount(a.tip, 'AVAX', 8)).toBe('0.0000091 AVAX');
+    expect(formatFeeAmount(a.total, 'AVAX', 8)).toBe('0.0000091 AVAX');
+  });
+
+  it('reads a fee in wei on a test network', () => {
+    // Fuji: a 10 wei base fee
+    expect(formatFeeAmount(feeAmounts(10n, 10n, 21_000n).total)).toBe('210,000 wei');
   });
 });
