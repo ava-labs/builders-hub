@@ -25,7 +25,7 @@ import { ACTIONS } from "@/lib/fee-market";
 import { ColumnsBlock, TraceBlock, WeekGrid, cellName, type TraceRow } from "@/components/explorer-v2/gas/instruments";
 import { protocolShareParts } from "@/components/explorer-v2/gas/buyers";
 import { GasBurn } from "@/components/explorer-v2/gas/burn";
-import { FeeMarketNow } from "@/components/explorer-v2/gas/fee-market";
+import { FLOOR_DAY, FeeMarketNow, FloorNote } from "@/components/explorer-v2/gas/fee-market";
 import { CONTINUOUS_EXECUTION_CHAINS } from "@/components/explorer-v2/evm/useHeadStream";
 
 /* The chain's gas market as one instrument, in depth: what a unit of
@@ -361,10 +361,12 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const reverted = market?.reverted;
   const revertedGasPct = reverted && reverted.gas > 0 ? (reverted.revertedGas / reverted.gas) * 100 : null;
 
-  // the window's base-fee series and its typical value, the median of medians
+  // the window's base-fee series
   const feeSeries = isHourly ? market?.hourly ?? [] : windowedDaily;
   const feeRows = useMemo(() => feeTraceRows(feeSeries), [feeSeries]);
-  const feeTypical = feeSeries.length ? [...feeSeries.map((d) => d.p50)].sort((a, b) => a - b)[Math.floor(feeSeries.length / 2)] : null;
+  // the newest period's median: a median across the window mixes the base fee
+  // before and after the validators raised its minimum (Sep 27, 2026)
+  const feeLatest = feeSeries.length ? feeSeries[feeSeries.length - 1].p50 : null;
 
   // the load readings: on the C-Chain they sit in the fee market block, beside the cost table
   const loadCells: LiveCell[] = [
@@ -443,19 +445,23 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
       {/* the fee over the clock beside the last blocks' fullness */}
       <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
         {feeRows.length ? (
-          <TraceBlock
-            label="Base Fee"
-            note={isHourly ? "last 48 hours" : null}
-            href={`${base}/gas/base-fee`}
-            figure={feeTypical !== null ? fmtFee(feeTypical) : "—"}
-            unit={unit}
-            sub={`typical ${isHourly ? "hour" : "day"} · the band holds the middle half of blocks`}
-            legend={<BandKey unit={unit} />}
-            rows={feeRows}
-            band
-            fmt={fmtFee}
-            tip={(r) => <FeeTip r={r} unit={unit} />}
-          />
+          <div className="flex flex-col gap-3">
+            <TraceBlock
+              label="Base Fee"
+              note={isHourly ? "last 48 hours" : null}
+              href={`${base}/gas/base-fee`}
+              figure={feeLatest !== null ? fmtFee(feeLatest) : "—"}
+              unit={unit}
+              sub={`median of the latest ${isHourly ? "hour" : "day"} · the band holds the middle half of blocks`}
+              legend={<BandKey unit={unit} />}
+              rows={feeRows}
+              band
+              fmt={fmtFee}
+              tip={(r) => <FeeTip r={r} unit={unit} />}
+            />
+            {/* mainnet history, where the window shows the step */}
+            {evmChainId === 43114 && feeRows.some((r) => r.key === FLOOR_DAY) && <FloorNote />}
+          </div>
         ) : (
           <HistoryEmpty missing={isHourly ? marketMissing : historyMissing} />
         )}

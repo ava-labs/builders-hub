@@ -244,3 +244,15 @@ function HowFeesWork({ floor, symbol, target }: { floor: bigint | null; symbol: 
     </details>
   );
 }
+
+/** the day the validators' minimum base fee reached 5 nAVAX on mainnet */
+export const FLOOR_DAY = "2026-09-27";
+
+/** under the base fee chart: why the line steps up in late September */
+export function FloorNote() {
+  return (
+    <p className="px-1 font-mono text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+      Validators raised the minimum base fee to 5 nAVAX on Sep 27, 2026 (ACP-283).
+    </p>
+  );
+}
