@@ -16,11 +16,87 @@ import { useTestnetFaucet } from '@/hooks/useTestnetFaucet';
 import { AccountRequirementsConfigKey } from '../../hooks/useAccountRequirements';
 import { useFaucetRateLimit } from '@/hooks/useFaucetRateLimit';
 import { useFaucetBalance } from '@/hooks/useFaucetBalance';
-import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  ArrowUpRight,
+  Clock,
+  Droplets,
+  Loader2,
+  RefreshCw,
+  Server,
+  type LucideIcon,
+} from 'lucide-react';
 import { useWalletStore } from '../../stores/walletStore';
 import { useWallet } from '../../hooks/useWallet';
 import Link from 'next/link';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { cn } from '@/lib/utils';
+import { Board, BoardHeader, Rise, SectionHeader } from '@/components/explorer-v2/ui';
+
+const EYEBROW = 'font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400';
+const COUNT = 'font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-zinc-400 dark:text-zinc-500';
+/** Cells draw their right and bottom edges; the grid draws the top and left, so neighbours share one hairline. */
+const GRID = 'grid border-l border-t border-zinc-200 dark:border-zinc-800';
+const CELL =
+  'flex flex-col gap-5 border-b border-r border-zinc-200 bg-white/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/80';
+const PRIMARY_BUTTON =
+  'group/btn inline-flex h-9 shrink-0 items-center justify-center gap-2 border border-zinc-900 bg-zinc-900 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 dark:disabled:hover:bg-zinc-100';
+const CODE =
+  'border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-[11px] dark:border-zinc-800 dark:bg-zinc-900';
+
+const AVAX_LOGO =
+  'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg';
+const PCHAIN_LOGO =
+  'https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg';
+
+function ButtonLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      <ArrowRight className="h-3.5 w-3.5 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100 group-disabled/btn:hidden" />
+    </>
+  );
+}
+
+function ChainLogo({ src, alt }: { src: string; alt: string }) {
+  return (
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-zinc-200 bg-white p-1.5 dark:border-zinc-800 dark:bg-zinc-900">
+      <img src={src} alt={alt} className="h-full w-full object-contain" />
+    </span>
+  );
+}
+
+function RateLimitStatus({
+  isLoading,
+  allowed,
+  timeUntilReset,
+}: {
+  isLoading: boolean;
+  allowed: boolean;
+  timeUntilReset?: string | null;
+}) {
+  const tone = isLoading
+    ? { dot: 'bg-zinc-300 dark:bg-zinc-600', text: 'text-zinc-400 dark:text-zinc-500', label: 'Checking' }
+    : allowed
+      ? { dot: 'bg-emerald-500 dark:bg-emerald-400', text: 'text-emerald-700 dark:text-emerald-400', label: 'Ready' }
+      : {
+          dot: 'bg-amber-500 dark:bg-amber-400',
+          text: 'text-amber-700 dark:text-amber-400',
+          label: timeUntilReset ? `Cooldown ${timeUntilReset}` : 'Cooldown',
+        };
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] tabular-nums',
+        tone.text,
+      )}
+    >
+      <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
+      {tone.label}
+    </span>
+  );
+}
 
 function FaucetBalanceDisplay({
   balance,
@@ -35,44 +111,92 @@ function FaucetBalanceDisplay({
 }) {
   if (isLoading) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
-        <Wallet className="w-3 h-3" />
-        <Loader2 className="w-3 h-3 animate-spin" />
-        <span>Loading faucet balance...</span>
-      </div>
+      <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Loading
+      </span>
     );
   }
 
   if (error || !balance) {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
-        <Wallet className="w-3 h-3" />
-        <span>Faucet balance unavailable</span>
-      </div>
-    );
+    return <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">Unavailable</span>;
   }
 
   const balanceNum = parseFloat(balance);
   const isLow = balanceNum < 10;
 
   return (
-    <div
-      className={`flex items-center gap-1.5 text-xs ${
-        isLow ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 dark:text-zinc-400'
-      }`}
+    <span
+      className={cn(
+        'inline-flex items-baseline gap-1 font-mono text-[12.5px] tabular-nums',
+        isLow ? 'text-amber-700 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-50',
+      )}
     >
-      <Wallet className="w-3 h-3" />
-      <span>Faucet:</span>
-      <span className="font-mono">{balance}</span>
-      <span>{symbol}</span>
-      {isLow && <span className="text-[10px]">(low)</span>}
+      {balance}
+      <span className="text-zinc-400 dark:text-zinc-500">{symbol}</span>
+      {isLow && <span className="ml-1 text-[10px] uppercase tracking-[0.14em]">Low</span>}
+    </span>
+  );
+}
+
+/** Drip amount and faucet balance as two labelled readings. */
+function FaucetReadings({
+  dripAmount,
+  dripSymbol,
+  balance,
+}: {
+  dripAmount: React.ReactNode;
+  dripSymbol: string;
+  balance: React.ReactNode;
+}) {
+  return (
+    <dl className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col gap-1">
+        <dt className={EYEBROW}>Per drip</dt>
+        <dd className="flex items-baseline gap-1 font-mono text-xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+          {dripAmount}
+          <span className="text-sm font-normal text-zinc-400 dark:text-zinc-500">{dripSymbol}</span>
+        </dd>
+      </div>
+      <div className="flex flex-col gap-1">
+        <dt className={EYEBROW}>Faucet balance</dt>
+        <dd className="flex min-h-7 items-center">{balance}</dd>
+      </div>
+    </dl>
+  );
+}
+
+function CellHead({
+  logo,
+  name,
+  eyebrow,
+  description,
+  status,
+}: {
+  logo: React.ReactNode;
+  name: string;
+  eyebrow: string;
+  description?: string;
+  status: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      {logo}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex items-center justify-between gap-3">
+          <span className={EYEBROW}>{eyebrow}</span>
+          {status}
+        </div>
+        <h3 className="truncate text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{name}</h3>
+        {description && <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{description}</p>}
+      </div>
     </div>
   );
 }
 
 function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const dripAmount = chain.faucetThresholds?.dripAmount || 3;
-  const { allowed, isLoading } = useFaucetRateLimit({
+  const { allowed, isLoading, timeUntilReset } = useFaucetRateLimit({
     faucetType: 'evm',
     chainId: chain.evmChainId.toString(),
   });
@@ -80,44 +204,27 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const chainBalance = getBalanceForChain(chain.evmChainId);
 
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-zinc-200 dark:border-zinc-800 last:border-b-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-      <div className="relative">
-        <img src={chain.logoUrl} alt={chain.name} className="h-10 w-10 rounded-lg" />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">{chain.name}</h3>
-          {!isLoading &&
-            (allowed ? (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                <Check className="w-3 h-3" /> Ready
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-                <Clock className="w-3 h-3" /> Cooldown
-              </span>
-            ))}
-        </div>
-        <div className="flex items-center gap-3 mt-1">
-          <span className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
-            {dripAmount} {chain.coinName}
-          </span>
-          <span className="text-zinc-300 dark:text-zinc-600">•</span>
+    <div className={CELL}>
+      <CellHead
+        logo={<ChainLogo src={chain.logoUrl} alt={chain.name} />}
+        name={chain.name}
+        eyebrow="L1"
+        status={<RateLimitStatus isLoading={isLoading} allowed={allowed} timeUntilReset={timeUntilReset} />}
+      />
+      <FaucetReadings
+        dripAmount={dripAmount}
+        dripSymbol={chain.coinName}
+        balance={
           <FaucetBalanceDisplay
             balance={chainBalance?.balanceFormatted}
             symbol={chain.coinName}
             isLoading={balanceLoading}
             error={!!balanceError}
           />
-        </div>
-      </div>
-
-      <EVMFaucetButton
-        chainId={chain.evmChainId}
-        className="shrink-0 px-4 py-2 text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
-      >
-        Drip
+        }
+      />
+      <EVMFaucetButton chainId={chain.evmChainId} className={cn(PRIMARY_BUTTON, 'mt-auto w-full')}>
+        <ButtonLabel>Drip</ButtonLabel>
       </EVMFaucetButton>
     </div>
   );
@@ -182,18 +289,17 @@ function ManualPChainFaucetInput() {
   }, [address, notify]);
 
   return (
-    <div className="mt-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
-      <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-        Using platform-cli? Paste your address from{' '}
-        <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">
-          platform-cli wallet balance
-        </code>{' '}
-        &mdash; the{' '}
-        <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1</code> prefix
-        is added automatically.
+    <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+      <label htmlFor="pchain-manual-address" className={EYEBROW}>
+        Send to another address
+      </label>
+      <p className="text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        Using platform-cli? Paste the address from <code className={CODE}>platform-cli wallet balance</code>. The{' '}
+        <code className={CODE}>P-fuji1</code> prefix is added automatically.
       </p>
       <div className="flex gap-2">
         <input
+          id="pchain-manual-address"
           type="text"
           value={address}
           onChange={(e) => {
@@ -202,19 +308,58 @@ function ManualPChainFaucetInput() {
             setSuccess(false);
           }}
           placeholder="P-fuji1..."
-          className="flex-1 px-3 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500/20"
+          className="h-9 min-w-0 flex-1 border border-zinc-300 bg-white px-3 font-mono text-[12px] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-100"
         />
         <button
+          type="button"
           onClick={handleClaim}
           disabled={isClaiming || !address}
-          className="shrink-0 px-4 py-2 text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
+          className="inline-flex h-9 shrink-0 items-center gap-2 border border-zinc-300 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-700 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-300 disabled:hover:text-zinc-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
         >
           {isClaiming ? 'Claiming...' : success ? 'Claimed!' : 'Claim'}
         </button>
       </div>
-      {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
-      {success && <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">Tokens sent successfully!</p>}
+      {error && <p className="text-[12px] text-red-600 dark:text-red-400">{error}</p>}
+      {success && <p className="text-[12px] text-emerald-700 dark:text-emerald-400">Tokens sent.</p>}
     </div>
+  );
+}
+
+function FaucetLinkRow({
+  href,
+  icon: Icon,
+  label,
+  hint,
+  external = false,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  hint: string;
+  external?: boolean;
+}) {
+  const className = 'group/row flex items-center gap-3 px-5 py-2.5';
+  const Arrow = external ? ArrowUpRight : ArrowRight;
+  const inner = (
+    <>
+      <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13.5px] font-medium text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-50">
+          {label}
+        </span>
+        <span className="block truncate text-[12px] text-zinc-500 dark:text-zinc-400">{hint}</span>
+      </span>
+      <Arrow className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100" />
+    </>
+  );
+  return external ? (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+      {inner}
+    </a>
+  ) : (
+    <Link href={href} className={className}>
+      {inner}
+    </Link>
   );
 }
 
@@ -235,26 +380,23 @@ function Faucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
 
   if (!isTestnet) {
     return (
-      <div className="max-w-4xl mx-auto not-prose">
-        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-            </div>
+      <div className="not-prose flex items-start gap-4 border border-amber-300 bg-amber-50 p-5 dark:border-amber-800/70 dark:bg-amber-950/20">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-amber-900 dark:text-amber-200">
+              Faucet is only available on testnet
+            </p>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300">
+              Switch to Fuji testnet to request free test tokens.
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-            Faucet is only available on testnet
-          </h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-            Switch to Fuji testnet to request free test tokens.
-          </p>
-          <button
-            onClick={() => switchChain(43113, true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors rounded-lg"
-          >
-            <Droplets className="w-4 h-4" />
-            Switch to Fuji Testnet
-          </button>
+          <div>
+            <button type="button" onClick={() => switchChain(43113, true)} className={PRIMARY_BUTTON}>
+              <Droplets className="h-3.5 w-3.5" />
+              Switch to Fuji Testnet
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -263,197 +405,141 @@ function Faucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const cChain = EVMChainsWithBuilderHubFaucet.find((chain) => chain.evmChainId === 43113);
   const otherEVMChains = EVMChainsWithBuilderHubFaucet.filter((chain) => chain.evmChainId !== 43113);
 
-  const { allowed: cChainAllowed, isLoading: cChainLoading } = useFaucetRateLimit({
+  const {
+    allowed: cChainAllowed,
+    isLoading: cChainLoading,
+    timeUntilReset: cChainReset,
+  } = useFaucetRateLimit({
     faucetType: 'evm',
     chainId: '43113',
   });
 
-  const { allowed: pChainAllowed, isLoading: pChainLoading } = useFaucetRateLimit({
+  const {
+    allowed: pChainAllowed,
+    isLoading: pChainLoading,
+    timeUntilReset: pChainReset,
+  } = useFaucetRateLimit({
     faucetType: 'pchain',
   });
 
   const cChainBalance = balances?.evmChains.find((c) => c.chainId === 43113);
 
   return (
-    <div className="max-w-4xl mx-auto not-prose space-y-6">
-      {/* Header with refresh */}
-      <div className="flex items-center justify-between">
-        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">
-          Primary Network
-        </label>
-        <button
-          onClick={() => refetch()}
-          disabled={balancesLoading}
-          className="inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3 h-3 ${balancesLoading ? 'animate-spin' : ''}`} />
-          Refresh balances
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* C-Chain Card */}
-        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="relative">
-                <img
-                  src={
-                    cChain?.logoUrl ||
-                    'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg'
-                  }
-                  alt="C-Chain"
-                  className="w-12 h-12 rounded-lg"
-                />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                  <Droplets className="w-3 h-3 text-white" />
-                </div>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100">C-Chain</h3>
-                  {!cChainLoading &&
-                    (cChainAllowed ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                        <Check className="w-3 h-3" /> Ready
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-                        <Clock className="w-3 h-3" /> Cooldown
-                      </span>
-                    ))}
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Smart contracts & DeFi</p>
-
-                {/* Drip amount and faucet balance */}
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-mono font-semibold text-zinc-900 dark:text-zinc-100">
-                      {cChain?.faucetThresholds?.dripAmount || 0.5}
-                    </span>
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">{cChain?.coinName || 'AVAX'}</span>
-                  </div>
-                  <FaucetBalanceDisplay
-                    balance={cChainBalance?.balanceFormatted}
-                    symbol={cChainBalance?.symbol || 'AVAX'}
-                    isLoading={balancesLoading}
-                    error={!!balancesError}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-5 pb-5">
-            <EVMFaucetButton
-              chainId={43113}
-              className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
+    <div className="not-prose flex flex-col gap-10">
+      <Rise className="flex flex-col gap-4">
+        <SectionHeader
+          label="Primary Network"
+          action={
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={balancesLoading}
+              className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 disabled:opacity-50 dark:text-zinc-500 dark:hover:text-zinc-100"
             >
-              Request Tokens
+              <RefreshCw className={cn('h-3 w-3', balancesLoading && 'animate-spin')} />
+              Refresh balances
+            </button>
+          }
+        />
+
+        <div className={cn(GRID, 'grid-cols-1 md:grid-cols-2')}>
+          <div className={CELL}>
+            <CellHead
+              logo={<ChainLogo src={cChain?.logoUrl || AVAX_LOGO} alt="C-Chain" />}
+              name="C-Chain"
+              eyebrow="Fuji"
+              description="Smart contracts and DeFi"
+              status={
+                <RateLimitStatus isLoading={cChainLoading} allowed={cChainAllowed} timeUntilReset={cChainReset} />
+              }
+            />
+            <FaucetReadings
+              dripAmount={cChain?.faucetThresholds?.dripAmount || 0.5}
+              dripSymbol={cChain?.coinName || 'AVAX'}
+              balance={
+                <FaucetBalanceDisplay
+                  balance={cChainBalance?.balanceFormatted}
+                  symbol={cChainBalance?.symbol || 'AVAX'}
+                  isLoading={balancesLoading}
+                  error={!!balancesError}
+                />
+              }
+            />
+            <EVMFaucetButton chainId={43113} className={cn(PRIMARY_BUTTON, 'mt-auto w-full')}>
+              <ButtonLabel>Request tokens</ButtonLabel>
             </EVMFaucetButton>
           </div>
-        </div>
 
-        {/* P-Chain Card */}
-        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="relative">
-                <img
-                  src="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
-                  alt="P-Chain"
-                  className="w-12 h-12 rounded-lg"
+          <div className={CELL}>
+            <CellHead
+              logo={<ChainLogo src={PCHAIN_LOGO} alt="P-Chain" />}
+              name="P-Chain"
+              eyebrow="Fuji"
+              description="Validators and L1 creation"
+              status={
+                <RateLimitStatus isLoading={pChainLoading} allowed={pChainAllowed} timeUntilReset={pChainReset} />
+              }
+            />
+            <FaucetReadings
+              dripAmount="0.5"
+              dripSymbol="AVAX"
+              balance={
+                <FaucetBalanceDisplay
+                  balance={balances?.pChain?.balanceFormatted}
+                  symbol="AVAX"
+                  isLoading={balancesLoading}
+                  error={!!balancesError}
                 />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
-                  <Droplets className="w-3 h-3 text-white" />
-                </div>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100">P-Chain</h3>
-                  {!pChainLoading &&
-                    (pChainAllowed ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                        <Check className="w-3 h-3" /> Ready
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-                        <Clock className="w-3 h-3" /> Cooldown
-                      </span>
-                    ))}
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Validators & L1 creation</p>
-
-                {/* Drip amount and faucet balance */}
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-mono font-semibold text-zinc-900 dark:text-zinc-100">0.5</span>
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">AVAX</span>
-                  </div>
-                  <FaucetBalanceDisplay
-                    balance={balances?.pChain?.balanceFormatted}
-                    symbol="AVAX"
-                    isLoading={balancesLoading}
-                    error={!!balancesError}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-5 pb-5">
-            <PChainFaucetButton className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
-              Request Tokens
+              }
+            />
+            <PChainFaucetButton className={cn(PRIMARY_BUTTON, 'w-full')}>
+              <ButtonLabel>Request tokens</ButtonLabel>
             </PChainFaucetButton>
             <ManualPChainFaucetInput />
           </div>
         </div>
-      </div>
+      </Rise>
 
-      {/* Avalanche L1s */}
       {otherEVMChains.length > 0 && (
-        <div>
-          <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-3">
-            Avalanche L1s
-          </label>
-
-          <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+        <Rise delay={0.06} className="flex flex-col gap-4">
+          <SectionHeader
+            label="Avalanche L1s"
+            action={<span className={COUNT}>{otherEVMChains.length} faucets</span>}
+          />
+          <div className={cn(GRID, 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
             {otherEVMChains.map((chain: L1ListItem) => (
               <EVMFaucetCard key={chain.id} chain={chain} />
             ))}
           </div>
-        </div>
+        </Rise>
       )}
 
-      {/* Footer Info */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400">
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />1 request per chain / 24h
-          </span>
-          <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">•</span>
-          <span>Test tokens only</span>
-        </div>
-
-        <a
-          href="https://core.app/tools/testnet-faucet/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
-        >
-          Core Faucet
-          <ExternalLink className="w-3 h-3" />
-        </a>
-        <span>•</span>
-        <Link
-          href="/console/primary-network/devnet-faucet"
-          className="hover:text-zinc-900 dark:hover:text-white transition-colors underline"
-        >
-          Devnet Faucet
-        </Link>
-      </div>
+      <Rise delay={0.12} className="flex flex-col gap-4">
+        <SectionHeader label="More faucets" />
+        <Board className="border-x border-t">
+          <BoardHeader
+            label="Limits"
+            action={
+              <span className={cn(COUNT, 'inline-flex items-center gap-1.5')}>
+                <Clock className="h-3 w-3" />1 request per chain / 24h · Test tokens only
+              </span>
+            }
+          />
+          <FaucetLinkRow
+            href="https://core.app/tools/testnet-faucet/"
+            icon={Droplets}
+            label="Core Faucet"
+            hint="Fuji AVAX from the Core testnet faucet"
+            external
+          />
+          <FaucetLinkRow
+            href="/console/primary-network/devnet-faucet"
+            icon={Server}
+            label="Devnet Faucet"
+            hint="Tokens for Avalanche devnets"
+          />
+        </Board>
+      </Rise>
     </div>
   );
 }
