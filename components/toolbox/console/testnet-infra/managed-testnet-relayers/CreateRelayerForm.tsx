@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/toolbox/components/Button';
+import { Loader2, X } from 'lucide-react';
+import { Board, BoardHeader } from '@/components/explorer-v2/ui';
 import { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { BTN_PRIMARY, ChainPicker, EYEBROW, HoverArrow, Notice, SelectionSummary } from './ui';
 import { RelayerConfig } from '@/components/toolbox/console/testnet-infra/managed-testnet-relayers/types';
 
 interface CreateRelayerFormProps {
@@ -70,84 +72,58 @@ export default function CreateRelayerForm({ onClose, onSubmit, l1List, isCreatin
   };
 
   return (
-    <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 p-6 mb-6 not-prose">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium">Create New Relayer</h3>
-        <Button onClick={onClose} variant="outline" size="sm" className="!w-auto">
-          Cancel
-        </Button>
+    <Board className="border-x border-t">
+      <BoardHeader
+        label="New relayer"
+        display
+        action={
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cancel"
+            className="-m-1.5 inline-flex items-center gap-1.5 p-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            <X className="h-3.5 w-3.5" />
+            Cancel
+          </button>
+        }
+      />
+
+      <div className="flex flex-col gap-5 px-5 py-5">
+        <p className="text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Pick the chains to watch and the chains to deliver to. The relayer gets one address, funded on each chain.
+        </p>
+        {error && l1List.length > 0 && <Notice tone="error">{error}</Notice>}
+        <ChainPicker
+          l1List={l1List}
+          sources={selectedSources}
+          destinations={selectedDestinations}
+          onToggleSource={handleToggleSource}
+          onToggleDestination={handleToggleDestination}
+        />
       </div>
-      <p className="mb-4">Select the source networks to monitor and destination networks to deliver messages to.</p>
 
-      {error && <div className="text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded-md mb-4">{error}</div>}
-
-      {l1List.length === 0 ? (
-        <div className="text-center py-8 text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
-          <p className="mb-2">No L1s available in your list.</p>
-          <p className="text-sm">Please create an L1 first before setting up a relayer.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Source Networks Column */}
-          <div className="space-y-4">
-            <div className="text-base font-medium">Source Networks</div>
-            <div className="space-y-2 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
-              {l1List.map((l1: L1ListItem) => (
-                <div
-                  key={`source-${l1.id}`}
-                  className="flex items-center gap-3 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"
-                >
-                  <input
-                    type="checkbox"
-                    id={`source-${l1.id}`}
-                    checked={selectedSources.includes(l1.id)}
-                    onChange={() => handleToggleSource(l1.id)}
-                    className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-600 focus:ring-zinc-500"
-                  />
-                  <label htmlFor={`source-${l1.id}`} className="flex-1 cursor-pointer">
-                    <div className="font-medium">{l1.name}</div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400">Chain ID: {l1.evmChainId}</div>
-                  </label>
-                </div>
-              ))}
-            </div>
+      {l1List.length > 0 && (
+        <div>
+          <div className="px-5 pt-4">
+            <p className={EYEBROW}>Summary</p>
           </div>
-
-          {/* Destination Networks Column */}
-          <div className="space-y-4">
-            <div className="text-base font-medium">Destination Networks</div>
-            <div className="space-y-2 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
-              {l1List.map((l1: L1ListItem) => (
-                <div
-                  key={`dest-${l1.id}`}
-                  className="flex items-center gap-3 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"
-                >
-                  <input
-                    type="checkbox"
-                    id={`dest-${l1.id}`}
-                    checked={selectedDestinations.includes(l1.id)}
-                    onChange={() => handleToggleDestination(l1.id)}
-                    className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-600 focus:ring-zinc-500"
-                  />
-                  <label htmlFor={`dest-${l1.id}`} className="flex-1 cursor-pointer">
-                    <div className="font-medium">{l1.name}</div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400">Chain ID: {l1.evmChainId}</div>
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
+          <SelectionSummary l1List={l1List} sources={selectedSources} destinations={selectedDestinations} />
         </div>
       )}
 
-      <Button
-        onClick={handleCreateRelayer}
-        loading={isCreating}
-        disabled={!!error || l1List.length === 0}
-        className="mt-4 !w-auto"
-      >
-        Create Relayer
-      </Button>
-    </div>
+      <div className="flex justify-end px-5 py-4">
+        <button
+          type="button"
+          onClick={handleCreateRelayer}
+          disabled={!!error || l1List.length === 0 || isCreating}
+          className={BTN_PRIMARY}
+        >
+          {isCreating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {isCreating ? 'Creating' : 'Create relayer'}
+          <HoverArrow />
+        </button>
+      </div>
+    </Board>
   );
 }

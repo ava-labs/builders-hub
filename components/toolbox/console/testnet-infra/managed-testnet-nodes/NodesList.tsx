@@ -1,9 +1,10 @@
 'use client';
 
-import { RefreshCw, XCircle, Plus } from 'lucide-react';
-import { Button } from '@/components/toolbox/components/Button';
+import { Plus, RefreshCw, Server, XCircle } from 'lucide-react';
+import { Board, BoardHeader, RowSkeleton, SectionHeader } from '@/components/explorer-v2/ui';
 import { NodeRegistration } from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/types';
 import NodeCard from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/NodeCard';
+import { COUNT, EYEBROW, HoverArrow, PRIMARY_BTN } from './ui';
 
 interface NodesListProps {
   nodes: NodeRegistration[];
@@ -26,63 +27,78 @@ export default function NodesList({
 }: NodesListProps) {
   if (isLoadingNodes) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-8 h-8 mb-3">
-          <div className="w-5 h-5 animate-spin rounded-full border-2 border-solid border-zinc-300 border-r-transparent"></div>
-        </div>
-        <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-1">Loading Nodes</h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Fetching your node registrations...</p>
-      </div>
+      <section role="status" aria-label="Loading nodes" className="flex flex-col gap-4">
+        <SectionHeader label="Nodes" />
+        <Board className="border-x border-t">
+          <BoardHeader label="Fetching your nodes" />
+          <RowSkeleton n={3} />
+        </Board>
+      </section>
     );
   }
 
   if (nodes.length === 0) {
     return (
-      <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-12 text-center">
-        <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">
-          You don't have any hosted Nodes set up
-        </h3>
-        <Button
-          onClick={onShowCreateForm}
-          className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto inline-flex"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Set Up your first hosted node
-        </Button>
-      </div>
+      <Board divide={false} className="flex flex-col items-start gap-3 border-x border-t px-5 py-8 md:px-6">
+        <p className={`${EYEBROW} flex items-center gap-2`}>
+          <Server className="h-3.5 w-3.5" />
+          No hosted nodes
+        </p>
+        <p className="max-w-xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Spin up a free Fuji node for your L1. It runs for 3 days.
+        </p>
+        <button type="button" onClick={onShowCreateForm} className={`${PRIMARY_BTN} mt-2`}>
+          <Plus className="h-3.5 w-3.5" />
+          Set up your first node
+          <HoverArrow />
+        </button>
+      </Board>
     );
   }
 
   return (
-    <>
-      {/* Header with Refresh */}
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={onRefresh}
-          disabled={isLoadingNodes}
-          className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300"
-          title="Refresh nodes"
-        >
-          <RefreshCw className={`w-3 h-3 ${isLoadingNodes ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+    <section className="flex flex-col gap-4">
+      <SectionHeader
+        label="Nodes"
+        action={
+          <div className="flex items-center gap-4">
+            <span className={COUNT}>
+              {nodes.length} {nodes.length === 1 ? 'node' : 'nodes'}
+            </span>
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isLoadingNodes}
+              title="Refresh nodes"
+              className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              <RefreshCw className={`h-3 w-3 ${isLoadingNodes ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+        }
+      />
 
       {nodesError && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 flex items-start gap-2">
-          <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-          <div>
-            <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error Loading Nodes</h3>
-            <p className="text-sm text-red-700 dark:text-red-300">{nodesError}</p>
+        <div
+          role="alert"
+          className="flex items-start gap-3 border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/30"
+        >
+          <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-red-800 dark:text-red-200">
+              Could not load nodes
+            </p>
+            <p className="mt-1 text-[13px] text-red-700 dark:text-red-300">{nodesError}</p>
           </div>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         {nodes.map((node) => (
           <NodeCard key={node.id} node={node} onDeleteNode={onDeleteNode} isDeletingNode={deletingNodes.has(node.id)} />
         ))}
       </div>
-    </>
+    </section>
   );
 }

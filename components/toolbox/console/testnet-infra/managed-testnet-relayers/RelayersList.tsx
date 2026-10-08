@@ -1,9 +1,10 @@
 'use client';
 
-import { RefreshCw, XCircle, Plus } from 'lucide-react';
-import { Button } from '@/components/toolbox/components/Button';
+import { Loader2, Plus, Radio } from 'lucide-react';
+import { Board, BoardHeader, Rise, RowSkeleton } from '@/components/explorer-v2/ui';
 import { Relayer } from '@/components/toolbox/console/testnet-infra/managed-testnet-relayers/types';
 import RelayerCard from '@/components/toolbox/console/testnet-infra/managed-testnet-relayers/RelayerCard';
+import { BTN_PRIMARY, HoverArrow, Notice } from './ui';
 
 interface RelayersListProps {
   relayers: Relayer[];
@@ -30,68 +31,64 @@ export default function RelayersList({
 }: RelayersListProps) {
   if (isLoadingRelayers) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-8 h-8 mb-3">
-          <div className="w-5 h-5 animate-spin rounded-full border-2 border-solid border-zinc-300 border-r-transparent"></div>
-        </div>
-        <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-1">Loading Relayers</h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Fetching your relayer configurations...</p>
+      <div role="status" aria-label="Loading relayers">
+        <Board className="border-x border-t">
+          <BoardHeader
+            label="Fetching your relayers"
+            action={<Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" aria-hidden />}
+          />
+          <RowSkeleton n={3} />
+        </Board>
       </div>
     );
   }
 
   if (relayers.length === 0) {
     return (
-      <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-12 text-center">
-        <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">You don't have any relayers set up</h3>
-        <Button
-          onClick={onShowCreateForm}
-          className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto inline-flex"
-        >
-          <Plus className="w-4 h-4 mr-2" />
+      <Board divide={false} className="flex flex-col items-start gap-3 border-x border-t px-5 py-8 md:px-6">
+        <p className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+          <Radio className="h-3.5 w-3.5" />
+          No relayers
+        </p>
+        <p className="max-w-xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          A relayer carries ICM messages between your chains. It&apos;s free on Fuji and runs for 3 days.
+        </p>
+        <button type="button" onClick={onShowCreateForm} className={`${BTN_PRIMARY} mt-2`}>
+          <Plus className="h-3.5 w-3.5" />
           Set up your first relayer
-        </Button>
-      </div>
+          <HoverArrow />
+        </button>
+      </Board>
     );
   }
 
   return (
-    <>
-      {/* Header with Refresh */}
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={onRefresh}
-          disabled={isLoadingRelayers}
-          className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300"
-          title="Refresh relayers"
-        >
-          <RefreshCw className={`w-3 h-3 ${isLoadingRelayers ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
+    <div className="flex flex-col gap-6">
       {relayersError && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 flex items-start gap-2">
-          <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-          <div>
-            <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error Loading Relayers</h3>
-            <p className="text-sm text-red-700 dark:text-red-300">{relayersError}</p>
-          </div>
-        </div>
+        <Notice tone="error">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em]">Couldn&apos;t load relayers</p>
+          <p className="mt-1">{relayersError}</p>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] underline underline-offset-4 hover:no-underline"
+          >
+            Try again
+          </button>
+        </Notice>
       )}
 
-      <div className="space-y-4">
-        {relayers.map((relayer) => (
+      {relayers.map((relayer, i) => (
+        <Rise key={relayer.relayerId} delay={Math.min(i * 0.04, 0.2)}>
           <RelayerCard
-            key={relayer.relayerId}
             relayer={relayer}
             onDeleteRelayer={onDeleteRelayer}
             onRestartRelayer={onRestartRelayer}
             isDeletingRelayer={deletingRelayers.has(relayer.relayerId)}
             isRestartingRelayer={restartingRelayers.has(relayer.relayerId)}
           />
-        ))}
-      </div>
-    </>
+        </Rise>
+      ))}
+    </div>
   );
 }
