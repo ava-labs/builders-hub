@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import {
+  ArrowRight,
   ArrowUpDown,
   BarChart3,
   Check,
-  ChevronRight,
+  Copy,
+  ExternalLink,
   FileCode,
   MessagesSquare,
   Settings,
@@ -17,6 +19,7 @@ import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { getAddValidatorPath, type ValidatorManagerKind } from '@/lib/console/my-l1/validator-manager-routing';
+import { CELL, GRID } from './chrome';
 
 interface QuickAction {
   icon: React.ComponentType<{ className?: string }>;
@@ -33,17 +36,12 @@ interface QuickAction {
   disabled?: boolean;
 }
 
-// Section heading + tile grid rendered without a Card shell. Wrapping six
-// rectangular tiles inside another rectangular Card just stacks borders
-// inside borders; the heading + bare grid reads cleaner and lets the tiles
-// breathe.
-function QuickActionsSection({
-  actions,
-}: {
-  actions: QuickAction[];
-}) {
+// Hairline door grid: the cells share their borders, like the console home's
+// Start grid, so six to eight tools read as one instrument rather than a
+// pile of cards.
+function QuickActionsSection({ actions }: { actions: QuickAction[] }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+    <div className={cn(GRID, 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3')}>
       {actions.map((a) => (
         <QuickActionTile key={a.title} action={a} />
       ))}
@@ -213,11 +211,9 @@ function copyGenesisAction(l1: CombinedL1): QuickAction | null {
         await navigator.clipboard.writeText(genesis);
         toast.success('Genesis JSON copied', undefined, { id: 'copy-genesis' });
       } catch (err) {
-        toast.error(
-          'Could not copy',
-          err instanceof Error ? err.message : 'Clipboard unavailable',
-          { id: 'copy-genesis' },
-        );
+        toast.error('Could not copy', err instanceof Error ? err.message : 'Clipboard unavailable', {
+          id: 'copy-genesis',
+        });
       }
     },
   };
@@ -274,9 +270,12 @@ function QuickActionTile({ action }: { action: QuickAction }) {
   const isClickAction = !action.href && !!action.onClick;
 
   const Icon = didRun && isClickAction ? Check : action.icon;
-  const iconClass = didRun && isClickAction
-    ? 'w-4 h-4 text-emerald-500'
-    : 'w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors';
+  const iconClass =
+    didRun && isClickAction
+      ? 'h-4 w-4 text-emerald-500'
+      : 'h-4 w-4 text-zinc-400 transition-colors group-hover/door:text-zinc-900 dark:group-hover/door:text-zinc-100';
+  // The top-right mark says what the door does when it isn't a plain in-app link.
+  const Mark = action.external ? ExternalLink : isClickAction ? Copy : null;
 
   const handleClick = async () => {
     if (action.disabled || !action.onClick) return;
@@ -292,39 +291,24 @@ function QuickActionTile({ action }: { action: QuickAction }) {
   };
 
   const Body = (
-    // Tiny -1px lift on hover unifies the interactive-card affordance
-    // across the dashboard (Setup checklist rows, NetworkDetailsCard
-    // items, and Tools tiles all read the same way).
     <div
       className={cn(
-        'rounded-lg border bg-card px-3 py-2.5 transition-all duration-150 h-full',
-        action.disabled
-          ? 'opacity-60 cursor-not-allowed'
-          : 'hover:bg-accent/40 hover:border-foreground/20 hover:shadow-sm hover:-translate-y-px',
+        CELL,
+        'flex h-full min-h-32 flex-col gap-3 p-5',
+        action.disabled && 'cursor-not-allowed opacity-50',
       )}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            'p-1.5 rounded-md bg-muted transition-colors',
-            !action.disabled && 'group-hover:bg-foreground/[0.08]',
-          )}
-        >
-          <Icon className={iconClass} />
-        </div>
-        <div className="flex-1">
-          <h4 className="font-medium text-foreground text-sm">{action.title}</h4>
-          <p className="text-xs text-muted-foreground">{action.description}</p>
-        </div>
-        <ChevronRight
-          className={cn(
-            'w-4 h-4 text-muted-foreground transition-all mt-1',
-            action.disabled
-              ? 'opacity-0'
-              : 'opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5',
-          )}
-        />
-      </div>
+      <span className="flex items-center justify-between">
+        <Icon className={iconClass} />
+        {Mark && <Mark className="h-3 w-3 text-zinc-300 dark:text-zinc-600" aria-hidden="true" />}
+      </span>
+      <span className="mt-auto flex items-center gap-2 text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">
+        <span className={cn(!action.disabled && 'underline-offset-4 group-hover/door:underline')}>{action.title}</span>
+        {!action.disabled && (
+          <ArrowRight className="h-3.5 w-3.5 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/door:translate-x-0 group-hover/door:opacity-100" />
+        )}
+      </span>
+      <span className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{action.description}</span>
     </div>
   );
 
@@ -334,7 +318,7 @@ function QuickActionTile({ action }: { action: QuickAction }) {
         type="button"
         onClick={handleClick}
         disabled={action.disabled}
-        className="group block w-full text-left disabled:cursor-not-allowed"
+        className="group/door block w-full text-left disabled:cursor-not-allowed"
         aria-label={action.title}
       >
         {Body}
@@ -348,7 +332,7 @@ function QuickActionTile({ action }: { action: QuickAction }) {
         href={action.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="group block"
+        className="group/door block"
         aria-label={`${action.title} (opens in a new tab)`}
       >
         {Body}
@@ -356,7 +340,7 @@ function QuickActionTile({ action }: { action: QuickAction }) {
     );
   }
   return (
-    <Link href={action.href ?? '#'} className="group block" aria-label={action.title}>
+    <Link href={action.href ?? '#'} className="group/door block" aria-label={action.title}>
       {Body}
     </Link>
   );

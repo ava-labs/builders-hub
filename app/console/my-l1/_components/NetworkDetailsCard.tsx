@@ -1,22 +1,16 @@
 'use client';
 
-import { Check, ChevronRight, Copy } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
+import { ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import type { L1ValidatorManagerInfo } from '@/lib/console/my-l1/useL1ValidatorManager';
+import { DISCLOSURE, DISCLOSURE_HINT, DISCLOSURE_LABEL, FRAME } from './chrome';
 
 // Network identifiers (RPC URL, Subnet ID, Blockchain ID, EVM Chain ID) are
 // reference data the user looks up once per session — not on-glance content.
-// Rendering them in a full Card with a 3-col grid of break-all monospace
-// strings ate ~140px of vertical space and zigzagged into 4-line wraps on
-// mobile. Wrapping them in a Radix Collapsible keeps them one click away
-// without dominating the dashboard, and animates the height transition
-// smoothly (the previous native `<details>` element snap-opened).
+// A Radix Collapsible keeps them one click away without dominating the
+// dashboard; opened, they read as a spec plate with a copy chip per value.
 export function NetworkDetailsCard({
   l1,
   validatorManager,
@@ -24,20 +18,12 @@ export function NetworkDetailsCard({
   l1: CombinedL1;
   validatorManager?: L1ValidatorManagerInfo;
 }) {
-  const { copiedId, copyToClipboard } = useCopyToClipboard();
-
-  // Order chosen to keep the 2-col grid tidy:
-  //   row 1: RPC URL          | Subnet ID
-  //   row 2: Blockchain ID    | EVM Chain ID
-  //   row 3: Validator Manager| Validator Manager Blockchain
-  // EVM Chain ID stays paired with Blockchain ID so the two on-chain
-  // identifiers sit on the same line; the VMC pair drops onto its own
-  // row underneath.
+  // Network identifiers first, then the Validator Manager pair.
   type Item = {
     label: string;
     value: string;
     id: string;
-    /** When true, the cell is read-only — no copy affordance, muted
+    /** When true, the row is read-only — no copy affordance, muted
      *  text — and reads as "we know this slot exists, it just has no
      *  value yet." Used for VMC rows on managed L1s where the contract
      *  hasn't been deployed yet but the user can configure it via the
@@ -67,7 +53,8 @@ export function NetworkDetailsCard({
   } else if (isManaged) {
     items.push({
       label: 'Validator Manager',
-      value: 'Not deployed yet. Run the Configure Validator Manager step from the banner above to populate this address.',
+      value:
+        'Not deployed yet. Run the Configure Validator Manager step from the banner above to populate this address.',
       id: 'validator-manager',
       placeholder: true,
     });
@@ -88,86 +75,31 @@ export function NetworkDetailsCard({
   }
 
   return (
-    <Collapsible className="rounded-xl border bg-card overflow-hidden">
+    <Collapsible className={FRAME}>
       <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className="group w-full cursor-pointer flex items-center gap-2 px-4 py-3 text-sm hover:bg-accent/30 transition-colors text-left [&[data-state=open]_.disclosure-chevron]:rotate-90"
-        >
+        <button type="button" className={DISCLOSURE}>
           <ChevronRight
-            className="disclosure-chevron w-4 h-4 text-muted-foreground transition-transform"
+            className="disclosure-chevron h-3.5 w-3.5 shrink-0 text-zinc-400 transition-transform"
             aria-hidden="true"
           />
-          <span className="font-medium text-foreground">Network identifiers</span>
-          <span className="text-muted-foreground hidden sm:inline">
-            {items.map((item) => item.label).join(', ')}
-          </span>
+          <span className={DISCLOSURE_LABEL}>Network identifiers</span>
+          <span className={DISCLOSURE_HINT}>{items.map((item) => item.label).join(' · ')}</span>
         </button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-        <div className="border-t border-border px-4 pt-4 pb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {items.map((item) => {
-            const isCopied = copiedId === item.id;
-            if (item.placeholder) {
-              return (
-                <div
-                  key={item.id}
-                  className="p-3 rounded-lg border border-dashed border-border bg-background/20"
-                >
-                  <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5">
-                    {item.label}
-                  </p>
-                  <p className="text-sm text-muted-foreground italic leading-relaxed">{item.value}</p>
-                </div>
-              );
-            }
-            return (
-              <div
-                key={item.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => copyToClipboard(item.value, item.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    copyToClipboard(item.value, item.id);
-                  }
-                }}
-                aria-label={`Copy ${item.label}`}
-                className="p-3 rounded-lg border border-border bg-background/40 group/item cursor-pointer hover:border-foreground/30 hover:bg-background/70 hover:-translate-y-px hover:shadow-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5">
-                  {item.label}
-                </p>
-                <div className="flex items-start gap-2">
-                  {/* Click on the value itself does NOT trigger copy — leaves
-                      the user free to click-and-drag to select a substring
-                      (e.g. just the chain ID portion of a longer URL). */}
-                  <code
-                    className="text-sm font-mono text-foreground flex-1 break-all leading-relaxed cursor-text"
-                    title={item.value}
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    {item.value}
-                  </code>
-                  <span
-                    className="p-1.5 shrink-0 text-muted-foreground group-hover/item:text-foreground transition-colors"
-                    aria-hidden="true"
-                  >
-                    {isCopied ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-          </div>
-        </div>
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+        <SpecPlate className="px-5 md:px-6">
+          {items.map((item) => (
+            <SpecRow key={item.id} label={item.label}>
+              {item.placeholder ? (
+                <span className="text-[13px] font-normal italic leading-relaxed text-zinc-400 dark:text-zinc-500">
+                  {item.value}
+                </span>
+              ) : (
+                <HashChip value={item.value} len={120} />
+              )}
+            </SpecRow>
+          ))}
+        </SpecPlate>
       </CollapsibleContent>
     </Collapsible>
   );

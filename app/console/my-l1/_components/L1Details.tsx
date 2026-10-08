@@ -6,6 +6,7 @@ import type { L1HealthState } from '@/hooks/useL1Health';
 import { useL1ValidatorSet } from '@/hooks/useL1ValidatorSet';
 import { useL1ActivePrecompiles } from '@/hooks/useL1ActivePrecompiles';
 import { sectionContainer, sectionItem } from '@/components/console/motion';
+import { SectionHeader } from '@/components/explorer-v2/ui';
 import { isPrimaryNetwork, type CombinedL1 } from '@/lib/console/my-l1/types';
 import { setupSummary } from '@/lib/console/my-l1/setup-steps';
 import { useL1ValidatorManager } from '@/lib/console/my-l1/useL1ValidatorManager';
@@ -44,12 +45,7 @@ export function L1Details({
   const isComplete = setup.pct === 100;
 
   return (
-    <motion.div
-      className="space-y-5"
-      variants={sectionContainer}
-      initial="hidden"
-      animate="visible"
-    >
+    <motion.div className="flex flex-col gap-10" variants={sectionContainer} initial="hidden" animate="visible">
       {/* HeroCard above already owns chain identity, balance, and primary
           actions. The "needs attention" CTA + setup status badge stay just
           above NetworkDetailsCard so the urgent next step is visible the
@@ -121,20 +117,10 @@ export function L1Details({
   );
 }
 
-function DashboardSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
+function DashboardSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <motion.section className="space-y-3" variants={sectionItem}>
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </h2>
-      </div>
+    <motion.section className="flex flex-col gap-4" variants={sectionItem}>
+      <SectionHeader label={title} />
       {children}
     </motion.section>
   );

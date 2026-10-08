@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Server, ShieldCheck, Trash2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, Server, ShieldCheck, Trash2 } from 'lucide-react';
+import { Board, BoardHeader, HashChip, MUTED } from '@/components/explorer-v2/ui';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +20,8 @@ import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { formatRelativeFromNow } from '@/lib/console/my-l1/format';
 import type { L1ValidatorSetState } from '@/hooks/useL1ValidatorSet';
 import { getAddValidatorPath, type ValidatorManagerKind } from '@/lib/console/my-l1/validator-manager-routing';
+import { cn } from '@/lib/utils';
+import { BTN_DANGER, BTN_SECONDARY, COUNT, EYEBROW, ROW_BTN, ROW_BTN_DANGER } from './chrome';
 
 type ManagedNode = NonNullable<CombinedL1['nodes']>[number];
 type NodeRole = 'validator' | 'rpc' | 'detecting' | 'unknown';
@@ -55,123 +55,114 @@ export function NodeListCard({
 
   const renderNode = (node: ManagedNode) => {
     const role = roleForNode(node.nodeId);
+    const isActive = node.status === 'active';
 
     return (
       <div
         key={node.id}
-        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-lg border bg-card"
+        className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between md:px-6"
       >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <code className="text-xs font-mono text-foreground break-all">{node.nodeId}</code>
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <HashChip value={node.nodeId} len={60} />
             <NodeRoleBadge role={role} />
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Created {new Date(node.createdAt).toLocaleString()} · {formatRelativeFromNow(node.expiresAt)}{' '}
-            remaining
+          <p className={cn(MUTED, 'text-[11px]')}>
+            Created {new Date(node.createdAt).toLocaleString()} · {formatRelativeFromNow(node.expiresAt)} remaining
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Badge variant={node.status === 'active' ? 'default' : 'secondary'}>{node.status}</Badge>
-          {node.status === 'active' && role === 'rpc' && (
-            <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Convert this node into a validator">
-              <Link href={getAddValidatorPath(validatorManagerKind, l1, { nodeId: node.nodeId })}>
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span className="sr-only">Convert this node into a validator</span>
-              </Link>
-            </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em]',
+              isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500',
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={cn('h-1.5 w-1.5 rounded-full', isActive ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700')}
+            />
+            {node.status}
+          </span>
+          {isActive && role === 'rpc' && (
+            <Link
+              href={getAddValidatorPath(validatorManagerKind, l1, { nodeId: node.nodeId })}
+              className={ROW_BTN}
+              title="Convert this node into a validator"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span className="sr-only">Convert this node into a validator</span>
+            </Link>
           )}
-          {node.status === 'active' && (
-            <DeleteNodeButton nodeDbId={node.id} nodeId={node.nodeId} onSuccess={onRefetch} />
-          )}
+          {isActive && <DeleteNodeButton nodeDbId={node.id} nodeId={node.nodeId} onSuccess={onRefetch} />}
         </div>
       </div>
     );
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <CardTitle className="text-lg">Managed Nodes</CardTitle>
-            <CardDescription>
-              Builder Hub-managed nodes provisioned for this L1. Each runs for 3 days from
-              creation. Provision a fresh one to extend the L1&apos;s lifetime.
-            </CardDescription>
-          </div>
-          <ProvisionNodeButton
-            subnetId={l1.subnetId}
-            blockchainId={l1.blockchainId}
-            disabled={atUserCap}
-            disabledReason={atUserCap ? 'You already have 3 active nodes (Builder Hub cap).' : undefined}
-            onSuccess={onRefetch}
-          />
+    <Board className="border-x border-t">
+      <BoardHeader label="Managed nodes" action={<span className={COUNT}>{activeCount} active</span>} />
+      <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between md:px-6">
+        <p className="max-w-xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Builder Hub-managed nodes provisioned for this L1. Each runs for 3 days from creation. Provision a fresh one
+          to extend the L1&apos;s lifetime.
+        </p>
+        <ProvisionNodeButton
+          subnetId={l1.subnetId}
+          blockchainId={l1.blockchainId}
+          disabled={atUserCap}
+          disabledReason={atUserCap ? 'You already have 3 active nodes (Builder Hub cap).' : undefined}
+          onSuccess={onRefetch}
+        />
+      </div>
+      {nodes.length === 0 ? (
+        // Empty state for managed L1s with no provisioned nodes — surfaces
+        // the "your L1 is dark" reality directly instead of hiding the
+        // entire Node fleet section. The Provision button is already in
+        // the header for the click target.
+        <div className="flex flex-col gap-2 px-5 py-6 md:px-6">
+          <p className={cn(EYEBROW, 'flex items-center gap-2')}>
+            <Server className="h-3.5 w-3.5" aria-hidden="true" />
+            No active managed nodes
+          </p>
+          <p className="max-w-xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Your L1 won&apos;t respond to RPC calls until at least one node is running. Provision one above to bring it
+            back online.
+          </p>
         </div>
-      </CardHeader>
-      <CardContent>
-        {nodes.length === 0 ? (
-          // Empty state for managed L1s with no provisioned nodes — surfaces
-          // the "your L1 is dark" reality directly instead of hiding the
-          // entire Node fleet section. The Provision button is already in
-          // the header for the click target.
-          <div className="flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-border bg-muted/20">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground mb-3">
-              <Server className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <p className="text-sm font-medium text-foreground">No active managed nodes</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-              Your L1 won&apos;t respond to RPC calls until at least one node is running. Provision
-              one above to bring it back online.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {nodes.map(renderNode)}
-          </div>
-        )}
-        <div className="mt-4 pt-3 border-t flex items-center justify-between gap-3 flex-wrap">
-          <Link
-            href="/console/testnet-infra/nodes"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Manage all nodes
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Link>
-          <span className="text-xs text-muted-foreground">
-            {activeCount} active on this L1 · {userActiveTotal}/3 total across your account
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+      ) : (
+        <div className="divide-y divide-zinc-200 dark:divide-zinc-800">{nodes.map(renderNode)}</div>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href="/console/testnet-infra/nodes"
+          className="group/row flex items-center gap-2 px-5 py-2.5 text-[13.5px] font-medium text-zinc-900 underline-offset-4 hover:underline md:px-6 dark:text-zinc-50"
+        >
+          Manage all nodes
+          <ArrowRight className="h-3.5 w-3.5 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100" />
+        </Link>
+        <span className={cn(COUNT, 'px-5 py-2.5 md:px-6')}>
+          {activeCount} active on this L1 · {userActiveTotal}/3 total across your account
+        </span>
+      </div>
+    </Board>
   );
 }
 
+const ROLE_LABEL: Record<NodeRole, { label: string; dot: string; text: string }> = {
+  validator: { label: 'Validator', dot: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-400' },
+  rpc: { label: 'RPC node', dot: 'bg-zinc-400', text: 'text-zinc-500 dark:text-zinc-400' },
+  detecting: { label: 'Detecting…', dot: 'bg-zinc-300 dark:bg-zinc-700', text: 'text-zinc-400 dark:text-zinc-500' },
+  unknown: { label: 'Unknown role', dot: 'bg-zinc-300 dark:bg-zinc-700', text: 'text-zinc-400 dark:text-zinc-500' },
+};
+
 function NodeRoleBadge({ role }: { role: NodeRole }) {
-  if (role === 'validator') {
-    return (
-      <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-        Validator
-      </span>
-    );
-  }
-  if (role === 'rpc') {
-    return (
-      <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-        RPC node
-      </span>
-    );
-  }
-  if (role === 'detecting') {
-    return (
-      <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-        Detecting…
-      </span>
-    );
-  }
+  const { label, dot, text } = ROLE_LABEL[role];
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-      Unknown role
+    <span className={cn('inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em]', text)}>
+      <span aria-hidden="true" className={cn('size-1 shrink-0', dot)} />
+      {label}
     </span>
   );
 }
@@ -211,8 +202,7 @@ function ProvisionNodeButton({
       });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        const msg =
-          json?.message ?? json?.error ?? `Failed to provision node (HTTP ${res.status})`;
+        const msg = json?.message ?? json?.error ?? `Failed to provision node (HTTP ${res.status})`;
         throw new Error(msg);
       }
       setSuccess(true);
@@ -231,23 +221,19 @@ function ProvisionNodeButton({
   };
 
   return (
-    <div className="flex flex-col items-end gap-1 min-w-0">
-      <Button
-        size="sm"
-        variant="outline"
+    <div className="flex min-w-0 shrink-0 flex-col items-start gap-1 sm:items-end">
+      <button
+        type="button"
         onClick={handleClick}
         disabled={disabled || isSubmitting}
+        className={BTN_SECONDARY}
         title={disabledReason}
-        aria-label={
-          disabledReason
-            ? `Provision another node — ${disabledReason}`
-            : 'Provision another node'
-        }
+        aria-label={disabledReason ? `Provision another node — ${disabledReason}` : 'Provision another node'}
       >
         {isSubmitting ? 'Provisioning…' : success ? 'Provisioned' : 'Provision another node'}
-      </Button>
+      </button>
       {error && (
-        <span className="text-[11px] text-red-600 dark:text-red-400 max-w-[280px] text-right">
+        <span className="max-w-[280px] font-mono text-[11px] text-red-600 sm:text-right dark:text-red-400">
           {error}
         </span>
       )}
@@ -275,10 +261,10 @@ function DeleteNodeButton({
     setIsSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/managed-testnet-nodes?id=${encodeURIComponent(nodeDbId)}`,
-        { method: 'DELETE', credentials: 'include' },
-      );
+      const res = await fetch(`/api/managed-testnet-nodes?id=${encodeURIComponent(nodeDbId)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         throw new Error(json?.message ?? json?.error ?? `HTTP ${res.status}`);
@@ -300,39 +286,38 @@ function DeleteNodeButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          aria-label="Remove node"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </Button>
+        <button type="button" className={ROW_BTN_DANGER} aria-label="Remove node">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Remove this managed node?</AlertDialogTitle>
-          <AlertDialogDescription>
-            <span className="block mb-2">
-              <code className="text-xs font-mono break-all">{nodeId}</code>
-            </span>
-            This frees up a slot against your 3-node Builder Hub cap. The L1 will keep running as
-            long as at least one node is still active. Removed nodes can&apos;t be brought back —
-            you&apos;d need to provision a fresh one.
-          </AlertDialogDescription>
+      <AlertDialogContent className="gap-0 rounded-none border-zinc-200 bg-white p-0 shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+        <AlertDialogHeader className="gap-2 border-b border-zinc-200 px-6 py-5 text-left dark:border-zinc-800">
+          <p className={EYEBROW}>Managed node</p>
+          <AlertDialogTitle className="text-[18px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Remove this managed node?
+          </AlertDialogTitle>
         </AlertDialogHeader>
-        {error && (
-          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+        <div className="flex flex-col gap-3 px-6 py-5">
+          <code className="block break-all border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-[12px] text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+            {nodeId}
+          </code>
+          <AlertDialogDescription className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            This frees up a slot against your 3-node Builder Hub cap. The L1 will keep running as long as at least one
+            node is still active. Removed nodes can&apos;t be brought back — you&apos;d need to provision a fresh one.
+          </AlertDialogDescription>
+          {error && <p className="font-mono text-[11px] text-red-600 dark:text-red-400">{error}</p>}
+        </div>
+        <AlertDialogFooter className="gap-2 border-t border-zinc-200 px-6 py-4 dark:border-zinc-800">
+          <AlertDialogCancel disabled={isSubmitting} className={cn(BTN_SECONDARY, 'mt-0 rounded-none shadow-none')}>
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
               handleDelete();
             }}
             disabled={isSubmitting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className={cn(BTN_DANGER, 'rounded-none shadow-none')}
           >
             {isSubmitting ? 'Removing…' : 'Remove node'}
           </AlertDialogAction>
