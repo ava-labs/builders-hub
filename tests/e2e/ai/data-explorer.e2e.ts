@@ -121,7 +121,7 @@ test('mainnet c-chain gas page burn figures are positive and agree with each oth
   const monthWindow = await boardWindow.textContent();
   await screen.getByRole('radio', '1W').tap();
   await expect(boardWindow).not.toHaveText(monthWindow ?? '', DATA);
-  await expect(screen.getByText(/ per day · [A-Z][a-z]{2} \d{1,2}(, \d{4})? to [A-Z][a-z]{2} \d{1,2}(, \d{4})?$/)).toBeVisible(DATA);
+  await expect(screen.getByText(/ per day · [A-Z][a-z]{2} \d{1,2}(, \d{4})? to [A-Z][a-z]{2} \d{1,2}(, \d{4})?( · today so far [\d.,]+[KM]? AVAX)?$/)).toBeVisible(DATA);
   await expect(screen.getByRole('table', 'Top burners').getByRole('row')).toHaveCount(11);
 
   const facts = await agent.extract(
