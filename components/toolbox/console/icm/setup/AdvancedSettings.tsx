@@ -1,6 +1,8 @@
 'use client';
 
+import { ChevronDown } from 'lucide-react';
 import { Input } from '@/components/toolbox/components/Input';
+import { EYEBROW } from '@/components/toolbox/console/icm/ui';
 
 interface AdvancedSettingsProps {
   logLevel: 'info' | 'debug' | 'warn' | 'error';
@@ -33,99 +35,103 @@ export function AdvancedSettings({
 }: AdvancedSettingsProps) {
   return (
     <details
-      className="group border rounded-lg overflow-hidden bg-white dark:bg-zinc-950"
+      className="group/adv border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
       open={showAdvancedSettings}
       onToggle={(e) => onToggle((e.target as HTMLDetailsElement).open)}
     >
-      <summary className="cursor-pointer p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 flex items-center justify-between select-none">
-        <div className="flex items-center gap-2">
-          <span className="text-base font-semibold">Advanced Settings</span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">(Optional)</span>
-        </div>
-        <svg
-          className="w-5 h-5 transition-transform group-open:rotate-180 text-zinc-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+      <summary className="group/link flex cursor-pointer select-none list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+        <span className="flex items-baseline gap-3">
+          <span className="text-[14px] font-semibold text-zinc-900 underline-offset-4 group-hover/link:underline dark:text-zinc-50">
+            Advanced settings
+          </span>
+          <span className={EYEBROW}>Optional</span>
+        </span>
+        <ChevronDown
+          aria-hidden
+          className="h-4 w-4 text-zinc-400 transition-transform group-hover/link:text-zinc-900 group-open/adv:rotate-180 dark:group-hover/link:text-zinc-100"
+        />
       </summary>
-      <div className="p-4 border-t space-y-4 bg-zinc-50 dark:bg-zinc-900/20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div
-            onFocus={() => onHighlight('logLevel')}
-            onBlur={onClearHighlight}
-            onMouseEnter={() => onHighlight('logLevel')}
-            onMouseLeave={onClearHighlight}
+      <div className="grid grid-cols-1 gap-x-5 border-t border-zinc-200 px-5 pt-5 sm:grid-cols-2 dark:border-zinc-800">
+        <div
+          className="mb-6 flex flex-col gap-2"
+          onFocus={() => onHighlight('logLevel')}
+          onBlur={onClearHighlight}
+          onMouseEnter={() => onHighlight('logLevel')}
+          onMouseLeave={onClearHighlight}
+        >
+          <label htmlFor="relayer-log-level" className={EYEBROW}>
+            Log level
+          </label>
+          <select
+            id="relayer-log-level"
+            value={logLevel}
+            onChange={(e) => onLogLevelChange(e.target.value as 'info' | 'debug' | 'warn' | 'error')}
+            className="h-10 w-full rounded-none border border-zinc-200 bg-white px-3 text-[13px] text-zinc-900 transition-colors hover:border-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-zinc-600 dark:focus:border-zinc-300"
           >
-            <label className="block text-sm font-medium mb-1.5 text-zinc-700 dark:text-zinc-300">Log Level</label>
-            <select
-              value={logLevel}
-              onChange={(e) => onLogLevelChange(e.target.value as 'info' | 'debug' | 'warn' | 'error')}
-              className="w-full px-3 py-2 border rounded-md bg-white dark:bg-zinc-950 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="info">Info (recommended)</option>
-              <option value="debug">Debug</option>
-              <option value="warn">Warn</option>
-              <option value="error">Error</option>
-            </select>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Controls verbosity of relayer logs</p>
-          </div>
+            <option value="info">Info (recommended)</option>
+            <option value="debug">Debug</option>
+            <option value="warn">Warn</option>
+            <option value="error">Error</option>
+          </select>
+          <p className="text-[12px] text-zinc-500 dark:text-zinc-400">How much the relayer logs.</p>
+        </div>
 
-          <div
-            onFocus={() => onHighlight('apiPort')}
-            onBlur={onClearHighlight}
-            onMouseEnter={() => onHighlight('apiPort')}
-            onMouseLeave={onClearHighlight}
+        <div
+          onFocus={() => onHighlight('apiPort')}
+          onBlur={onClearHighlight}
+          onMouseEnter={() => onHighlight('apiPort')}
+          onMouseLeave={onClearHighlight}
+        >
+          <Input
+            id="relayer-api-port"
+            label="API port"
+            value={apiPort.toString()}
+            onChange={(value) => onApiPortChange(Number(value))}
+            placeholder="8080"
+            type="number"
+            className="font-mono"
+            helperText="Port for the relayer API."
+          />
+        </div>
+
+        <div
+          onFocus={() => onHighlight('storage')}
+          onBlur={onClearHighlight}
+          onMouseEnter={() => onHighlight('storage')}
+          onMouseLeave={onClearHighlight}
+        >
+          <Input
+            id="relayer-storage"
+            label="Storage location"
+            value={storageLocation}
+            onChange={onStorageLocationChange}
+            placeholder="./awm-relayer-storage"
+            className="font-mono"
+            helperText="Folder for the relayer's state."
+          />
+        </div>
+
+        <div
+          className="mb-6 flex flex-col justify-center"
+          onMouseEnter={() => onHighlight('processMissedBlocks')}
+          onMouseLeave={onClearHighlight}
+        >
+          <label
+            htmlFor="process-missed-blocks"
+            className="group/link flex h-10 cursor-pointer items-center gap-2.5 text-[13px] font-medium text-zinc-900 dark:text-zinc-100"
           >
-            <Input
-              label="API Port"
-              value={apiPort.toString()}
-              onChange={(value) => onApiPortChange(Number(value))}
-              placeholder="8080"
-              type="number"
+            <input
+              type="checkbox"
+              id="process-missed-blocks"
+              checked={processMissedBlocks}
+              onChange={(e) => onProcessMissedBlocksChange(e.target.checked)}
+              className="h-4 w-4 rounded-none accent-zinc-900 dark:accent-zinc-100"
             />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Port for relayer API endpoints</p>
-          </div>
-
-          <div
-            onFocus={() => onHighlight('storage')}
-            onBlur={onClearHighlight}
-            onMouseEnter={() => onHighlight('storage')}
-            onMouseLeave={onClearHighlight}
-          >
-            <Input
-              label="Storage Location"
-              value={storageLocation}
-              onChange={onStorageLocationChange}
-              placeholder="./awm-relayer-storage"
-            />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Directory for relayer state storage</p>
-          </div>
-
-          <div
-            className="flex flex-col justify-center"
-            onMouseEnter={() => onHighlight('processMissedBlocks')}
-            onMouseLeave={onClearHighlight}
-          >
-            <div className="flex items-center gap-2 h-10">
-              <input
-                type="checkbox"
-                id="process-missed-blocks"
-                checked={processMissedBlocks}
-                onChange={(e) => onProcessMissedBlocksChange(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <label
-                htmlFor="process-missed-blocks"
-                className="text-sm font-medium cursor-pointer text-zinc-700 dark:text-zinc-300"
-              >
-                Process Missed Blocks
-              </label>
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">Process historical blocks on restart</p>
-          </div>
+            <span className="underline-offset-4 group-hover/link:underline">Process missed blocks</span>
+          </label>
+          <p className="ml-6.5 text-[12px] text-zinc-500 dark:text-zinc-400">
+            Catch up on past blocks after a restart.
+          </p>
         </div>
       </div>
     </details>

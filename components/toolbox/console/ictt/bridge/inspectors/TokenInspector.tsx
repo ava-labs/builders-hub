@@ -1,22 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, Copy, Loader2, RotateCcw } from 'lucide-react';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ArrowRight, Check, Coins, FlaskConical, Layers, RotateCcw } from 'lucide-react';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { Note } from '@/components/toolbox/components/Note';
-import { cn } from '@/lib/utils';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import { HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_EXAMPLE_ERC20_SOURCES, ICTT_WRAPPED_NATIVE_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from '@/components/console/inspector-shell';
 import { useDeploySourceToken } from '../hooks/useDeploySourceToken';
 import { useDeployWrappedNative } from '../hooks/useDeployWrappedNative';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';
-import { truncateAddress } from '../utils/explorer-url';
+import {
+  BODY,
+  EYEBROW,
+  FIELD_ADDON,
+  FRAME,
+  Field,
+  Inspector,
+  MONO,
+  MONO_FIELD,
+  Option,
+  OptionGrid,
+  StatusTag,
+  TextAction,
+} from '../ui';
 import type { Address, Bridge, BridgePhase } from '../types';
 
 type Mode = 'existing' | 'deploy-test' | 'wrap-native';
@@ -65,65 +77,63 @@ export function TokenInspector({
 
   return (
     <ContractDeployViewer contracts={contracts}>
-      <InspectorShell
+      <Inspector
+        label="Phase 1 · Source token"
         banner={
           showExistingBridgeBanner ? (
-            <Note variant="warning">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <Alert variant="warning">
+              <div className="flex flex-col items-start gap-2">
                 <span>
-                  You&apos;re looking at an existing bridge (TokenHome already deployed). Deploying or selecting a new
-                  token here will <strong>replace</strong> it for the next phases. Start a fresh bridge to keep the
-                  current one intact.
+                  This bridge already has a TokenHome. A new token here <strong>replaces</strong> it for the next
+                  phases. Start a new bridge to keep this one as it is.
                 </span>
-                <button
-                  type="button"
-                  onClick={onStartNewBridge}
-                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
-                >
-                  <RotateCcw className="h-3 w-3" aria-hidden />
+                <TextAction icon={RotateCcw} onClick={onStartNewBridge}>
                   Start new bridge
-                </button>
+                </TextAction>
               </div>
-            </Note>
+            </Alert>
           ) : null
         }
         footer={
-          <button
-            type="button"
+          <Button
             onClick={() => onPhaseChange('home')}
             disabled={!underlyingTokenAddress}
-            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            className="w-auto"
+            icon={<ArrowRight className="h-3.5 w-3.5" aria-hidden />}
           >
             Continue to Home
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-          </button>
+          </Button>
         }
       >
-        <div className="flex flex-col gap-4">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Pick the token you want to bridge from {selectedL1?.name ?? 'the Home chain'}. Paste an address you already
-            deployed or deploy a test ERC-20 to play with.
+        <div className="flex flex-col gap-5">
+          <p className={BODY}>
+            Pick the token to bridge from {selectedL1?.name ?? 'the Home chain'}. Deploy a test ERC-20, wrap the native
+            coin, or paste a token you already have.
           </p>
 
-          <ToggleGroup
-            type="single"
-            value={mode}
-            onValueChange={(value) => {
-              if (value === 'existing' || value === 'deploy-test' || value === 'wrap-native') setMode(value);
-            }}
-            variant="outline"
-            className="w-full"
-          >
-            <ToggleGroupItem value="deploy-test" className="flex-1">
-              Deploy test ERC-20
-            </ToggleGroupItem>
-            <ToggleGroupItem value="wrap-native" className="flex-1">
-              Wrap native token
-            </ToggleGroupItem>
-            <ToggleGroupItem value="existing" className="flex-1">
-              Use existing token
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <OptionGrid label="Source token" cols={3}>
+            <Option
+              selected={mode === 'deploy-test'}
+              onSelect={() => setMode('deploy-test')}
+              icon={<OptionIcon icon={FlaskConical} />}
+              title="Test ERC-20"
+              description="Deploy a fresh token with 1,000,000 minted to you."
+            />
+            <Option
+              selected={mode === 'wrap-native'}
+              onSelect={() => setMode('wrap-native')}
+              icon={<OptionIcon icon={Layers} />}
+              title="Wrap native"
+              description={`Bridge ${selectedL1?.coinName ?? 'the native coin'} through its wrapped ERC-20.`}
+            />
+            <Option
+              selected={mode === 'existing'}
+              onSelect={() => setMode('existing')}
+              icon={<OptionIcon icon={Coins} />}
+              title="Existing token"
+              description="Paste the address of an ERC-20 you already deployed."
+            />
+          </OptionGrid>
 
           {mode === 'deploy-test' && (
             <DeployTestPanel
@@ -143,8 +153,16 @@ export function TokenInspector({
             <WrapNativePanel existingAddress={underlyingTokenAddress} onTokenSelected={onTokenSelected} />
           )}
         </div>
-      </InspectorShell>
+      </Inspector>
     </ContractDeployViewer>
+  );
+}
+
+function OptionIcon({ icon: Icon }: { icon: typeof Coins }) {
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-zinc-200 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+    </span>
   );
 }
 
@@ -164,44 +182,27 @@ function DeployTestPanel({ chainName, existingAddress, onTokenSelected }: Deploy
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy a test ERC-20</p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          1,000,000 tokens minted to{' '}
-          {walletEVMAddress ? (
-            <code className="font-mono text-[11px]">{truncateAddress(walletEVMAddress)}</code>
-          ) : (
-            'your wallet'
-          )}{' '}
-          on {chainName}.
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <SpecPlate className={`${FRAME} px-4`}>
+        <SpecRow label="Contract">ExampleERC20</SpecRow>
+        <SpecRow label="Supply">
+          <span className={MONO}>1,000,000</span>
+        </SpecRow>
+        <SpecRow label="Minted to">{walletEVMAddress ? <HashChip value={walletEVMAddress} /> : 'Your wallet'}</SpecRow>
+        <SpecRow label="Chain">{chainName}</SpecRow>
+      </SpecPlate>
 
-      <button
-        type="button"
+      <Button
         onClick={handleDeploy}
-        disabled={isDeploying}
-        className={cn(
-          'inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-          'bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-50',
-          'dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white',
-        )}
+        loading={isDeploying}
+        loadingText="Deploying ExampleERC20…"
+        icon={<Check aria-hidden className="h-3.5 w-3.5" />}
       >
-        {isDeploying ? (
-          <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-        ) : (
-          <Check aria-hidden className="h-4 w-4" />
-        )}
-        {isDeploying ? 'Deploying ExampleERC20…' : 'Deploy ExampleERC20'}
-      </button>
+        Deploy ExampleERC20
+      </Button>
 
       {existingAddress && <SelectedTokenChip address={existingAddress} chainName={chainName} />}
-      {error && (
-        <Note variant="destructive">
-          <span className="text-xs">{error.message}</span>
-        </Note>
-      )}
+      {error && <Alert variant="error">{error.message}</Alert>}
     </div>
   );
 }
@@ -263,51 +264,43 @@ function ExistingTokenPanel({ chainName, existingAddress, onTokenSelected }: Exi
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
-          Token contract address {chainName ? `on ${chainName}` : ''}
-        </label>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-4">
+      <Field
+        label={`Token contract address${chainName ? ` on ${chainName}` : ''}`}
+        htmlFor="ictt-existing-token"
+        hint="Bridging a native coin? Wrap it first (for example WAVAX) and paste the wrapped address."
+      >
+        <div className="flex">
           <input
+            id="ictt-existing-token"
             type="text"
             spellCheck={false}
             value={pasted}
             onChange={(e) => setPasted(e.target.value.trim())}
             placeholder="0x…"
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className={MONO_FIELD}
           />
-          <button
-            type="button"
-            onClick={handleVerify}
-            disabled={!pasted || verifying}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            {verifying ? <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> : null}
-            Verify
+          <button type="button" onClick={handleVerify} disabled={!pasted || verifying} className={FIELD_ADDON}>
+            {verifying ? 'Reading…' : 'Verify'}
           </button>
         </div>
-        <p className="text-[11px] italic text-zinc-500 dark:text-zinc-400">
-          Bridging a native token? Wrap it first (e.g. WAVAX) and paste the wrapped ERC-20 address here.
-        </p>
-      </div>
+      </Field>
 
-      {verifyError && (
-        <Note variant="destructive">
-          <span className="text-xs">{verifyError}</span>
-        </Note>
-      )}
+      {verifyError && <Alert variant="error">{verifyError}</Alert>}
 
       {meta && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-emerald-50/60 px-3 py-2 text-xs dark:bg-emerald-950/20">
-          <span className="font-medium text-emerald-800 dark:text-emerald-300">{meta.name}</span>
-          <span className="rounded-full bg-white/50 px-2 py-0.5 font-mono text-[10px] text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-            {meta.symbol}
-          </span>
-          <span className="rounded-full bg-white/50 px-2 py-0.5 font-mono text-[10px] text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-            {meta.decimals} decimals
-          </span>
-        </div>
+        <SpecPlate className={`${FRAME} px-4`}>
+          <SpecRow label="Name">{meta.name}</SpecRow>
+          <SpecRow label="Symbol">
+            <span className={MONO}>{meta.symbol}</span>
+          </SpecRow>
+          <SpecRow label="Decimals">
+            <span className={MONO}>{meta.decimals}</span>
+          </SpecRow>
+          <SpecRow label="Address">
+            <HashChip value={pasted} />
+          </SpecRow>
+        </SpecPlate>
       )}
 
       {existingAddress && !meta && <SelectedTokenChip address={existingAddress} chainName={chainName} />}
@@ -396,7 +389,7 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Balance summary always visible — even when no Wtest is deployed yet
           users can see how much native they hold to decide whether to wrap. */}
       <BalanceSummary
@@ -407,19 +400,14 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
       />
       {hasExistingWrapped ? (
         <>
-          <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              Wrapped {coinName} already deployed on {selectedL1?.name}
+          <div className={`${FRAME} flex flex-col gap-2 px-4 py-4`}>
+            <p className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-50">
+              Wrapped {coinName} is already on {selectedL1?.name}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Re-use this contract instead of deploying a new one. Deposit native to mint W{coinName}; withdraw to burn.
+            <p className={BODY}>
+              Reuse it instead of deploying a new one. Deposit {coinName} to mint W{coinName}; withdraw to burn it.
             </p>
-            <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-1.5 text-xs dark:bg-zinc-900">
-              <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-                {truncateAddress(wrappedAddress as Address, 10, 6)}
-              </span>
-              <CopyTinyButton value={wrappedAddress as string} />
-            </div>
+            <HashChip value={wrappedAddress as string} len={14} />
           </div>
           <WrapUnwrapControls
             wrappedAddress={wrappedAddress as Address}
@@ -430,67 +418,41 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
           />
           {isAlreadyActive ? (
             <div
-              className={cn(
-                'inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium cursor-default',
-                'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200',
-              )}
+              className="flex h-10 items-center justify-center gap-2 border border-zinc-200 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-600 dark:border-zinc-800 dark:text-zinc-300"
               aria-disabled
             >
-              <Check aria-hidden className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <Check aria-hidden className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
               Selected as source token
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={handleUseExisting}
-              className={cn(
-                'inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                'bg-zinc-900 text-white hover:bg-zinc-700',
-                'dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white',
-              )}
-            >
-              <Check aria-hidden className="h-4 w-4" />
-              Use this wrapped token as the source
-            </button>
+            <Button onClick={handleUseExisting} icon={<Check aria-hidden className="h-3.5 w-3.5" />}>
+              Use this wrapped token
+            </Button>
           )}
         </>
       ) : (
         <>
-          <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          <div className={`${FRAME} flex flex-col gap-1.5 px-4 py-4`}>
+            <p className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-50">
               Deploy WrappedNativeToken on {selectedL1?.name ?? 'the Home chain'}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Mints W{coinName} when you deposit native gas. The wrapped contract is the source ERC-20 for bridging your
-              chain&apos;s native asset.
+            <p className={BODY}>
+              It mints W{coinName} when you deposit {coinName}. That wrapped ERC-20 is what the bridge carries.
             </p>
           </div>
-          <button
-            type="button"
+          <Button
             onClick={handleDeploy}
-            disabled={isDeploying}
-            className={cn(
-              'inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-              'bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-50',
-              'dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white',
-            )}
+            loading={isDeploying}
+            loadingText="Deploying WrappedNativeToken…"
+            icon={<Check aria-hidden className="h-3.5 w-3.5" />}
           >
-            {isDeploying ? (
-              <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check aria-hidden className="h-4 w-4" />
-            )}
-            {isDeploying ? 'Deploying WrappedNativeToken…' : 'Deploy WrappedNativeToken'}
-          </button>
+            Deploy WrappedNativeToken
+          </Button>
         </>
       )}
 
       {existingAddress && <SelectedTokenChip address={existingAddress} chainName={selectedL1?.name} />}
-      {error && (
-        <Note variant="destructive">
-          <span className="text-xs">{error.message}</span>
-        </Note>
-      )}
+      {error && <Alert variant="error">{error.message}</Alert>}
     </div>
   );
 }
@@ -566,32 +528,32 @@ function WrapUnwrapControls({
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-zinc-200/80 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 md:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800">
         <WrapField
-          label={`Wrap (deposit ${coinName})`}
+          id="ictt-wrap"
+          label={`Wrap ${coinName}`}
+          unit={coinName}
           amount={wrapAmount}
           onChange={setWrapAmount}
           onMax={() => nativeBalance !== null && setWrapAmount(formatBalance(nativeBalance, 18))}
           onSubmit={handleWrap}
           isBusy={busy === 'wrap'}
-          submitLabel={`Wrap → W${coinName}`}
+          submitLabel={`Wrap to W${coinName}`}
         />
         <WrapField
-          label={`Unwrap (withdraw W${coinName})`}
+          id="ictt-unwrap"
+          label={`Unwrap W${coinName}`}
+          unit={`W${coinName}`}
           amount={unwrapAmount}
           onChange={setUnwrapAmount}
           onMax={() => wrappedBalance !== null && setUnwrapAmount(formatBalance(wrappedBalance, 18))}
           onSubmit={handleUnwrap}
           isBusy={busy === 'unwrap'}
-          submitLabel={`Unwrap → ${coinName}`}
+          submitLabel={`Unwrap to ${coinName}`}
         />
       </div>
-      {err && (
-        <Note variant="destructive">
-          <span className="text-xs">{err}</span>
-        </Note>
-      )}
+      {err && <Alert variant="error">{err}</Alert>}
     </div>
   );
 }
@@ -614,31 +576,30 @@ function BalanceSummary({
   showWrapped: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-4 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300">
-      <span className="flex items-center gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-          Native
-        </span>
-        <span className="font-mono">
-          {formatBalance(native, 18)} {coinName}
-        </span>
+    <div
+      className={`grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800 ${showWrapped ? 'sm:grid-cols-2' : ''}`}
+    >
+      <BalanceCell label="Native balance" value={formatBalance(native, 18)} unit={coinName} />
+      {showWrapped && <BalanceCell label="Wrapped balance" value={formatBalance(wrapped, 18)} unit={`W${coinName}`} />}
+    </div>
+  );
+}
+
+function BalanceCell({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div className="flex flex-col gap-1 bg-white px-4 py-3 dark:bg-zinc-950">
+      <span className={EYEBROW}>{label}</span>
+      <span className="font-mono text-[17px] tabular-nums text-zinc-900 dark:text-zinc-50">
+        {value} <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{unit}</span>
       </span>
-      {showWrapped && (
-        <span className="flex items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-            Wrapped
-          </span>
-          <span className="font-mono">
-            {formatBalance(wrapped, 18)} W{coinName}
-          </span>
-        </span>
-      )}
     </div>
   );
 }
 
 interface WrapFieldProps {
+  id: string;
   label: string;
+  unit: string;
   amount: string;
   onChange: (value: string) => void;
   onMax: () => void;
@@ -647,36 +608,33 @@ interface WrapFieldProps {
   submitLabel: string;
 }
 
-function WrapField({ label, amount, onChange, onMax, onSubmit, isBusy, submitLabel }: WrapFieldProps) {
+function WrapField({ id, label, unit, amount, onChange, onMax, onSubmit, isBusy, submitLabel }: WrapFieldProps) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</label>
-      <div className="flex items-center gap-1">
-        <input
-          type="text"
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="0.0"
-          className="w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-        />
-        <button
-          type="button"
-          onClick={onMax}
-          className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
-        >
-          Max
-        </button>
-      </div>
-      <button
-        type="button"
-        onClick={onSubmit}
-        disabled={isBusy || !amount}
-        className="inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-      >
-        {isBusy ? <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> : null}
+    <div className="flex flex-col gap-3 bg-white p-4 dark:bg-zinc-950">
+      <Field label={label} htmlFor={id}>
+        <div className="flex">
+          <div className="relative min-w-0 flex-1">
+            <input
+              id={id}
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="0.0"
+              className={`${MONO_FIELD} pr-16`}
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-[10.5px] uppercase tracking-[0.12em] text-zinc-400">
+              {unit}
+            </span>
+          </div>
+          <button type="button" onClick={onMax} className={FIELD_ADDON}>
+            Max
+          </button>
+        </div>
+      </Field>
+      <Button onClick={onSubmit} loading={isBusy} disabled={!amount} variant="outline" size="sm">
         {submitLabel}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -693,32 +651,12 @@ function formatBalance(value: bigint | null, decimals: number): string {
 
 function SelectedTokenChip({ address, chainName }: { address: Address; chainName?: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50/60 px-3 py-2 text-xs dark:bg-emerald-950/20">
-      <div className="flex flex-col">
-        <span className="font-medium text-emerald-800 dark:text-emerald-300">Token selected</span>
-        <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">on {chainName ?? 'Home chain'}</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-300 px-4 py-3 dark:border-emerald-900">
+      <div className="flex flex-col gap-0.5">
+        <StatusTag tone="ok">Token selected</StatusTag>
+        <span className="text-[12px] text-zinc-500 dark:text-zinc-400">on {chainName ?? 'Home chain'}</span>
       </div>
-      <code className="flex items-center gap-1 font-mono text-[11px] text-emerald-800 dark:text-emerald-300">
-        {truncateAddress(address)}
-        <CopyTinyButton value={address} />
-      </code>
+      <HashChip value={address} />
     </div>
-  );
-}
-
-function CopyTinyButton({ value }: { value: string }) {
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (typeof window !== 'undefined') {
-          void window.navigator.clipboard.writeText(value);
-        }
-      }}
-      className="rounded p-0.5 text-emerald-700/70 transition-colors hover:bg-emerald-200/40 dark:text-emerald-400/80"
-      aria-label="Copy address"
-    >
-      <Copy className="h-3 w-3" />
-    </button>
   );
 }

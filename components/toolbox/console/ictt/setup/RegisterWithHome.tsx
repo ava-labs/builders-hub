@@ -20,6 +20,9 @@ import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolb
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import versions from '@/scripts/versions.json';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
+import { RefreshCw } from 'lucide-react';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { BODY, Loading, TextAction } from '../bridge/ui';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 
@@ -126,7 +129,7 @@ function RegisterWithHome() {
     setLocalError('');
 
     if (!walletClient || !walletClient.account) {
-      setLocalError('Core wallet not found');
+      setLocalError('Connect a wallet first.');
       return;
     }
 
@@ -206,14 +209,13 @@ function RegisterWithHome() {
   }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">
-        <div>
-          <p className="mt-2">
-            This will call the `registerWithHome` function on the remote contract on the current chain (
-            {selectedL1?.name}). This links the remote bridge back to the home bridge on the source chain.
-          </p>
-        </div>
+    <div className="not-prose grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      <div className="flex flex-col gap-4">
+        <p className={BODY}>
+          Calls <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">registerWithHome</code> on the
+          remote contract on the current chain ({selectedL1?.name}). That links the remote bridge back to the home
+          bridge on the source chain.
+        </p>
 
         <SelectBlockchainId
           label="Source Chain (where token home is deployed)"
@@ -231,7 +233,7 @@ function RegisterWithHome() {
           helperText={!remoteAddress ? 'Please enter a remote contract address' : undefined}
         />
 
-        {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded-lg">{localError}</div>}
+        {localError && <Alert variant="error">{localError}</Alert>}
 
         <Button
           variant="primary"
@@ -249,28 +251,28 @@ function RegisterWithHome() {
           Register Remote with Home
         </Button>
 
-        {isCheckingRegistration && (
-          <div className="text-zinc-500 dark:text-zinc-400">Checking registration status...</div>
+        {isCheckingRegistration && <Loading>Checking registration status</Loading>}
+
+        {!isCheckingRegistration && isRegistered && (
+          <Alert variant="success">The remote contract is registered with the Home contract.</Alert>
         )}
 
-        {!isCheckingRegistration && isRegistered && <div>Remote contract is registered with the Home contract</div>}
-
         {!isCheckingRegistration && !isRegistered && sourceChainId && remoteAddress && (
-          <div>
-            Remote contract is not yet registered with the Home contract. ICM message needs a few seconds to be
-            processed.
-            <button
-              className="underline text-blue-500 px-1 py-0 h-auto"
-              onClick={fetchSettings}
-              disabled={isCheckingRegistration}
-            >
-              Refresh
-            </button>
-          </div>
+          <Alert variant="warning">
+            <div className="flex flex-col items-start gap-2">
+              <span>
+                The remote contract isn&apos;t registered with the Home contract yet. The ICM message takes a few
+                seconds to process.
+              </span>
+              <TextAction icon={RefreshCw} onClick={fetchSettings} disabled={isCheckingRegistration}>
+                Refresh
+              </TextAction>
+            </div>
+          </Alert>
         )}
 
         {homeContractAddress && homeContractClient && (
-          <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="mt-6 border-t border-zinc-200 pt-6 dark:border-zinc-800">
             <ListContractEvents
               contractAddress={homeContractAddress}
               contractABI={ERC20TokenHomeABI.abi as Abi}

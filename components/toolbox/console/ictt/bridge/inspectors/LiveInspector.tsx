@@ -2,25 +2,38 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Check, Loader2, Plus, Send, Wallet } from 'lucide-react';
-import { Note } from '@/components/toolbox/components/Note';
-import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
+import { Check, Plus, Wallet } from 'lucide-react';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import { ConnectedWalletIcon } from '@/components/toolbox/components/ConnectedWalletIcon';
+import { HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
+import { useL1ByChainId, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_HOME_SEND_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from '@/components/console/inspector-shell';
 import { useSendTokens } from '../hooks/useSendTokens';
 import { useBridgeContext } from '../hooks/useBridgeContext';
 import { buildTxUrl, truncateAddress } from '../utils/explorer-url';
 import { importRemoteToCoreWallet } from '../utils/importToCoreWallet';
 import { BRIDGE_BASE_PATH } from '../bridge-steps';
+import {
+  ChainMark,
+  Dot,
+  EYEBROW,
+  FIELD_ADDON,
+  FRAME,
+  Inspector,
+  MONO_FIELD,
+  MONO_MUTED,
+  StatusTag,
+  TextAction,
+} from '../ui';
 import type { Address, Bridge, Remote } from '../types';
 
 interface LiveInspectorProps {
@@ -104,7 +117,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   const amountExceedsBalance = parsed !== null && balance !== null && parsed > balance;
 
   // Clear stale errors when the user edits inputs after a failed send.
-  // Keeps the destructive Note in sync with the inputs the user can see.
+  // Keeps the error Alert in sync with the inputs the user can see.
   useEffect(() => {
     if (error) resetError();
     // Intentional: `error` and `resetError` excluded — they're internal state
@@ -195,7 +208,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
     await switchChainOrAdd(homeL1);
   };
 
-  // Prompt Core Wallet (or any EIP-1193 wallet that implements `wallet_watchAsset`)
+  // Prompt the connected wallet (Core, a Console wallet, or any EIP-1193 wallet with `wallet_watchAsset`)
   // to add the wrapped remote token. The wallet must be on the destination chain
   // for the token to land on the right network, so switch first when needed.
   const handleImportToWallet = async () => {
@@ -235,154 +248,314 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
     }
   };
 
+  const isNativeHome = bridge?.kind === 'native-home';
+  const sendFailed = lastSendActivity?.status === 'failed';
+  const track: { title: string; status: TrackStatus; label: string }[] = [
+    {
+      title: `Send on ${homeL1?.name ?? 'Home'}`,
+      status: lastTx ? 'done' : error ? 'error' : isBusy ? 'current' : 'upcoming',
+      label: lastTx ? 'Done' : error ? 'Error' : isBusy ? stageLabel(stage, isNativeHome) : 'Ready',
+    },
+    {
+      title: 'ICM relay',
+      status: isDelivered ? 'done' : sendFailed ? 'error' : lastTx ? 'current' : 'upcoming',
+      label: isDelivered ? 'Done' : sendFailed ? 'Failed' : lastTx ? 'Relaying' : 'Up next',
+    },
+    {
+      title: `Arrive on ${remoteL1?.name ?? 'Remote'}`,
+      status: isDelivered ? 'done' : 'upcoming',
+      label: isDelivered ? 'Delivered' : 'Up next',
+    },
+  ];
+
   return (
     <ContractDeployViewer contracts={ICTT_HOME_SEND_SOURCES}>
-      <InspectorShell
+      <Inspector
+        label="Phase 6 · Live send"
+        meta={readiness.ok ? <StatusTag tone="ok">Bridge ready</StatusTag> : undefined}
         banner={
           !hasRemotes ? (
-            <Note variant="warning">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs">Deploy a Remote in Phase 3 before sending tokens.</span>
-                <button
-                  type="button"
-                  onClick={handleAddAnotherDestination}
-                  className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden />
+            <Alert variant="warning">
+              <div className="flex flex-col items-start gap-2">
+                <span>Deploy a Remote in Phase 3 before sending tokens.</span>
+                <TextAction icon={Plus} onClick={handleAddAnotherDestination}>
                   Deploy first Remote
-                </button>
+                </TextAction>
               </div>
-            </Note>
+            </Alert>
           ) : null
         }
-        footer={
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={isBusy || !readiness.ok || !parsed || parsed <= 0n || !validRecipient || amountExceedsBalance}
-            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            {isBusy ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-            ) : (
-              <Send className="h-3.5 w-3.5" aria-hidden />
-            )}
-            {stageLabel(stage, bridge?.kind === 'native-home')}
-          </button>
-        }
       >
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Send {bridge?.symbol ?? 'tokens'} from {homeL1?.name ?? 'Home'} → {remoteL1?.name ?? 'Remote'}. The relayer
-            delivers; wrapped tokens land in the recipient&apos;s wallet on the destination.
-          </p>
+        <div className="flex flex-col gap-5">
+          {!readiness.ok && (
+            <LiveReadinessCard
+              checks={readiness.checks}
+              allOk={readiness.ok}
+              onSwitchToHome={handleSwitchToHome}
+              onNavigate={(href) => router.push(href)}
+            />
+          )}
 
-          <LiveReadinessCard
-            checks={readiness.checks}
-            allOk={readiness.ok}
-            onSwitchToHome={handleSwitchToHome}
-            onNavigate={(href) => router.push(href)}
-          />
+          <div>
+            {/* From and To share one hairline, joined by the mono arrow. */}
+            <div className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] dark:border-zinc-800 dark:bg-zinc-800">
+              <SendEnd
+                side="From"
+                l1={homeL1 ?? null}
+                name={homeL1?.name ?? 'Home'}
+                figure={balance !== null ? formatAmount(balance, decimals) : '—'}
+                unit={bridge?.symbol ?? ''}
+                caption="Your balance"
+              />
+              <div
+                aria-hidden
+                className="flex items-center justify-center bg-white px-4 py-1.5 font-mono text-[13px] text-zinc-400 md:py-0 dark:bg-zinc-950 dark:text-zinc-500"
+              >
+                <span className="md:hidden">↓</span>
+                <span className="hidden md:inline">→</span>
+              </div>
+              <SendEnd
+                side="To"
+                l1={remoteL1 ?? null}
+                name={remoteL1?.name ?? 'Remote'}
+                figure={selectedRemote?.address ? truncateAddress(selectedRemote.address) : '—'}
+                caption={selectedRemote?.kind === 'native-remote' ? 'NativeTokenRemote' : 'TokenRemote'}
+                mono
+                action={
+                  hasRemotes ? (
+                    <TextAction icon={Plus} tone="muted" onClick={handleAddAnotherDestination}>
+                      Add destination
+                    </TextAction>
+                  ) : undefined
+                }
+              />
+            </div>
 
-          <DestinationPicker
-            remotes={remotes}
-            selectedRemoteId={selectedRemoteId}
-            homeL1Name={homeL1?.name ?? 'Home'}
-            onAddAnother={handleAddAnotherDestination}
-          />
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                Amount {bridge?.symbol ? `(${bridge.symbol})` : ''}
-              </span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.0"
-                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                />
+            {/* Amount */}
+            <div className="flex flex-col gap-2 border-x border-b border-zinc-200 bg-white px-5 py-5 dark:border-zinc-800 dark:bg-zinc-950">
+              <label htmlFor="ictt-send-amount" className={EYEBROW}>
+                Amount
+              </label>
+              <div className="flex">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    id="ictt-send-amount"
+                    type="text"
+                    inputMode="decimal"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.0"
+                    aria-invalid={amountExceedsBalance}
+                    className={`${MONO_FIELD} h-12 pr-20 text-lg ${amountExceedsBalance ? 'border-red-400 focus:border-red-600 dark:border-red-800' : ''}`}
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                    {bridge?.symbol ?? ''}
+                  </span>
+                </div>
                 {balance !== null && (
                   <button
                     type="button"
                     onClick={() => setAmount(formatAmount(balance, decimals))}
-                    className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+                    className={`${FIELD_ADDON} h-12 px-4`}
                   >
                     Max
                   </button>
                 )}
               </div>
               {amountExceedsBalance && balance !== null ? (
-                <span className="text-[10px] text-red-600 dark:text-red-400">
-                  Amount exceeds your balance of {formatAmount(balance, decimals)} {bridge?.symbol ?? ''}
-                </span>
+                <p className="font-mono text-[11px] tabular-nums text-red-600 dark:text-red-400">
+                  More than your balance of {formatAmount(balance, decimals)} {bridge?.symbol ?? ''}
+                </p>
               ) : balance !== null ? (
-                <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-                  Balance · {formatAmount(balance, decimals)} {bridge?.symbol ?? ''}
-                </span>
+                <p className={MONO_MUTED}>
+                  Available {formatAmount(balance, decimals)} {bridge?.symbol ?? ''} on {homeL1?.name ?? 'Home'}
+                </p>
               ) : null}
-            </label>
+            </div>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
+            {/* Recipient */}
+            <div className="flex flex-col gap-2 border-x border-b border-zinc-200 bg-white px-5 py-5 dark:border-zinc-800 dark:bg-zinc-950">
+              <label htmlFor="ictt-send-recipient" className={EYEBROW}>
                 Recipient on {remoteL1?.name ?? 'Remote'}
-              </span>
-              <div className="flex items-center gap-2">
+              </label>
+              <div className="flex">
                 <input
+                  id="ictt-send-recipient"
                   type="text"
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value.trim())}
                   placeholder="0x…"
-                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  aria-invalid={!validRecipient && Boolean(recipient)}
+                  className={`${MONO_FIELD} ${!validRecipient && recipient ? 'border-red-400 focus:border-red-600 dark:border-red-800' : ''}`}
                 />
                 {walletEVMAddress && (
-                  <button
-                    type="button"
-                    onClick={() => setRecipient(walletEVMAddress)}
-                    className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
-                  >
+                  <button type="button" onClick={() => setRecipient(walletEVMAddress)} className={FIELD_ADDON}>
                     Self
                   </button>
                 )}
               </div>
               {!validRecipient && recipient && (
-                <span className="text-[10px] text-red-600 dark:text-red-400">Invalid EVM address.</span>
+                <p className="text-[12px] text-red-600 dark:text-red-400">Not a valid EVM address.</p>
               )}
-            </label>
+            </div>
+
+            {/* Progress and action */}
+            <div className="flex flex-col gap-5 border-x border-b border-zinc-200 bg-white px-5 py-5 dark:border-zinc-800 dark:bg-zinc-950">
+              <SendTrack steps={track} />
+
+              {lastTx && (
+                <SpecPlate className="border-y border-zinc-200 dark:border-zinc-800">
+                  <SpecRow label="Send tx">
+                    <span className="flex flex-wrap items-center gap-3">
+                      <HashChip value={lastTx} len={14} />
+                      {sendTxUrl && (
+                        <TextAction href={sendTxUrl} tone="muted">
+                          Explorer
+                        </TextAction>
+                      )}
+                    </span>
+                  </SpecRow>
+                  {lastSendActivity?.icmMessageId && (
+                    <SpecRow label="ICM message">
+                      <HashChip value={lastSendActivity.icmMessageId} len={14} />
+                    </SpecRow>
+                  )}
+                </SpecPlate>
+              )}
+
+              {error && <Alert variant="error">{error.message}</Alert>}
+
+              {isDelivered && selectedRemote?.address && bridge?.symbol && bridge.decimals !== undefined && (
+                <PostDeliveryImportCard
+                  tokenSymbol={bridge.symbol}
+                  remoteAddress={selectedRemote.address}
+                  remoteChainName={remoteL1?.name ?? 'Remote'}
+                  importState={importState}
+                  onImport={handleImportToWallet}
+                />
+              )}
+
+              <Button
+                onClick={handleSend}
+                disabled={!readiness.ok || !parsed || parsed <= 0n || !validRecipient || amountExceedsBalance}
+                loading={isBusy}
+                loadingText={stageLabel(stage, isNativeHome)}
+                variant={stage === 'submitted' ? 'outline' : 'primary'}
+                icon={<ConnectedWalletIcon className="h-3.5 w-3.5 shrink-0" />}
+              >
+                {stage === 'submitted' || !parsed
+                  ? stageLabel(stage, isNativeHome)
+                  : `Send ${amount} ${bridge?.symbol ?? ''} to ${remoteL1?.name ?? 'Remote'}`}
+              </Button>
+            </div>
           </div>
-
-          {error && (
-            <Note variant="destructive">
-              <span className="text-xs">{error.message}</span>
-            </Note>
-          )}
-
-          {lastTx && sendTxUrl && (
-            <Note variant="success">
-              <span className="text-xs">
-                Send tx submitted on {homeL1?.name}. <code className="font-mono">{truncateAddress(lastTx)}</code> ·{' '}
-                <a href={sendTxUrl} target="_blank" rel="noreferrer" className="underline">
-                  explorer
-                </a>
-              </span>
-            </Note>
-          )}
-
-          {isDelivered && selectedRemote?.address && bridge?.symbol && bridge.decimals !== undefined && (
-            <PostDeliveryImportCard
-              tokenSymbol={bridge.symbol}
-              remoteAddress={selectedRemote.address}
-              remoteChainName={remoteL1?.name ?? 'Remote'}
-              importState={importState}
-              onImport={handleImportToWallet}
-            />
-          )}
         </div>
-      </InspectorShell>
+      </Inspector>
     </ContractDeployViewer>
+  );
+}
+
+type TrackStatus = 'done' | 'current' | 'error' | 'upcoming';
+
+/** Send, relay, arrive as a segmented track: done in ink, current in red, upcoming in grey. */
+function SendTrack({ steps }: { steps: { title: string; status: TrackStatus; label: string }[] }) {
+  return (
+    <ol aria-label="Transfer progress" className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-1">
+      {steps.map((step, i) => {
+        const done = step.status === 'done';
+        const current = step.status === 'current' || step.status === 'error';
+        return (
+          <li key={step.title} aria-current={current ? 'step' : undefined} className="flex min-w-0 flex-col gap-2">
+            <span
+              aria-hidden
+              className={`block h-1 transition-colors ${
+                done ? 'bg-zinc-900 dark:bg-zinc-100' : current ? 'bg-[#E6212F]' : 'bg-zinc-200 dark:bg-zinc-800'
+              }`}
+            />
+            <span className="flex min-w-0 items-baseline justify-between gap-2">
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                <span
+                  className={`font-mono text-[10px] font-bold tabular-nums ${
+                    done
+                      ? 'text-zinc-900 dark:text-zinc-100'
+                      : current
+                        ? 'text-[#E6212F]'
+                        : 'text-zinc-400 dark:text-zinc-600'
+                  }`}
+                >
+                  {done ? (
+                    <Check className="inline h-3 w-3 -translate-y-px" aria-label="Completed" />
+                  ) : (
+                    String(i + 1).padStart(2, '0')
+                  )}
+                </span>
+                <span
+                  className={`truncate text-[12.5px] ${
+                    current || done ? 'font-medium text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 dark:text-zinc-500'
+                  }`}
+                >
+                  {step.title}
+                </span>
+              </span>
+              <span
+                className={`flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] ${
+                  step.status === 'error' ? 'text-red-600 dark:text-red-400' : 'text-zinc-400 dark:text-zinc-500'
+                }`}
+              >
+                {step.status === 'current' && <Dot tone="pending" pulse />}
+                {step.label}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function SendEnd({
+  side,
+  l1,
+  name,
+  figure,
+  unit,
+  caption,
+  mono,
+  action,
+}: {
+  side: string;
+  l1: L1ListItem | null;
+  name: string;
+  figure: string;
+  unit?: string;
+  caption: string;
+  mono?: boolean;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-4 bg-white px-5 py-5 dark:bg-zinc-950">
+      <div className="flex items-start gap-3">
+        <ChainMark l1={l1} />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className={EYEBROW}>{side}</span>
+          <h3 className="truncate text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{name}</h3>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className={EYEBROW}>{caption}</span>
+        <span
+          className={
+            mono
+              ? 'truncate font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50'
+              : 'truncate font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50'
+          }
+        >
+          {figure}
+          {unit && <span className="ml-1.5 text-sm font-normal text-zinc-400 dark:text-zinc-500">{unit}</span>}
+        </span>
+        {action && <span className="mt-1">{action}</span>}
+      </div>
+    </div>
   );
 }
 
@@ -397,7 +570,7 @@ interface PostDeliveryImportCardProps {
 /**
  * Shown after `useDeliveryWatcher` flips the send activity to `delivered`.
  * Surfaces the wrapped token address (the bit users previously had to dig out
- * of explorer logs) and a one-click import to Core Wallet via `wallet_watchAsset`.
+ * of explorer logs) and a one-click add to the connected wallet via `wallet_watchAsset`.
  */
 function PostDeliveryImportCard({
   tokenSymbol,
@@ -409,83 +582,33 @@ function PostDeliveryImportCard({
   const isBusy = importState === 'switching' || importState === 'prompting';
   const isAdded = importState === 'added';
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3 py-2 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-200">
-      <div className="flex items-center gap-2 text-xs font-medium">
-        <Check className="h-3.5 w-3.5" aria-hidden />
-        <span>
-          {tokenSymbol} delivered on {remoteChainName}.
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <code className="font-mono text-[10px] text-emerald-800/80 dark:text-emerald-200/80">{remoteAddress}</code>
-        <button
-          type="button"
+    <div className="flex flex-col gap-3 border border-emerald-300 px-4 py-4 dark:border-emerald-900">
+      <StatusTag tone="ok">
+        {tokenSymbol} delivered on {remoteChainName}
+      </StatusTag>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <HashChip value={remoteAddress} len={16} />
+        <Button
           onClick={onImport}
-          disabled={isBusy || isAdded}
-          className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-emerald-800 disabled:opacity-60 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+          disabled={isAdded}
+          loading={isBusy}
+          loadingText={importState === 'switching' ? `Switching to ${remoteChainName}…` : 'Open your wallet…'}
+          variant="outline"
+          size="sm"
+          stickLeft
+          icon={
+            isAdded ? (
+              <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            ) : (
+              <Wallet className="h-3 w-3" aria-hidden />
+            )
+          }
+          className="ml-0"
         >
-          {isBusy ? (
-            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-          ) : isAdded ? (
-            <Check className="h-3 w-3" aria-hidden />
-          ) : (
-            <Wallet className="h-3 w-3" aria-hidden />
-          )}
-          {isAdded
-            ? 'Added'
-            : importState === 'switching'
-              ? `Switching to ${remoteChainName}…`
-              : importState === 'prompting'
-                ? 'Open Core Wallet…'
-                : `Import ${tokenSymbol} to Core Wallet`}
-        </button>
+          {isAdded ? 'Added' : `Add ${tokenSymbol} to your wallet`}
+        </Button>
       </div>
     </div>
-  );
-}
-
-interface DestinationPickerProps {
-  remotes: Remote[];
-  selectedRemoteId: Remote['id'] | null;
-  homeL1Name: string;
-  onAddAnother: () => void;
-}
-
-/**
- * Read-only destination summary. Multi-remote switching is handled by the
- * `RemoteTabs` row above the BridgeRibbon; this component only shows the
- * currently-selected route + an "Add another destination" CTA.
- */
-function DestinationPicker({ remotes, selectedRemoteId, homeL1Name, onAddAnother }: DestinationPickerProps) {
-  if (remotes.length === 0) return null;
-  const selected = remotes.find((r) => r.id === selectedRemoteId) ?? remotes[0];
-  return (
-    <div className="flex flex-col gap-1 rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600 dark:text-zinc-300">
-        <span className="font-medium text-zinc-500 dark:text-zinc-400">Direction</span>
-        <RemoteLabel remote={selected} homeL1Name={homeL1Name} />
-      </div>
-      <button
-        type="button"
-        onClick={onAddAnother}
-        className="inline-flex items-center gap-1 self-start rounded-md px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-700 transition-colors hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
-      >
-        <Plus className="h-3 w-3" aria-hidden />
-        Add another destination
-      </button>
-    </div>
-  );
-}
-
-function RemoteLabel({ remote, homeL1Name }: { remote: Remote; homeL1Name: string }) {
-  const remoteL1 = useL1ByChainId(remote.l1Id);
-  return (
-    <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-      <span>{homeL1Name}</span>
-      <span className="text-zinc-400">→</span>
-      <span>{remoteL1?.name ?? 'Remote'}</span>
-      <code className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{truncateAddress(remote.address)}</code>
-    </span>
   );
 }
 
@@ -506,58 +629,40 @@ interface LiveReadinessCardProps {
 }
 
 function LiveReadinessCard({ checks, allOk, onSwitchToHome, onNavigate }: LiveReadinessCardProps) {
-  if (allOk) {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300">
-        <Check className="h-3.5 w-3.5" aria-hidden />
-        <span className="font-medium">Bridge ready · all preflight checks pass.</span>
-      </div>
-    );
-  }
+  if (allOk) return null;
+  const done = checks.filter((c) => c.ok).length;
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-        Preflight
-      </span>
-      <ul className="flex flex-col">
+    <section className={FRAME}>
+      <header className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+        <span className={EYEBROW}>Preflight</span>
+        <span className={MONO_MUTED}>
+          {done}/{checks.length} ready
+        </span>
+      </header>
+      <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
         {checks.map((check) => (
-          <li key={check.id} className="flex items-center justify-between gap-2 py-1 text-xs">
-            <span className="flex items-center gap-2">
+          <li key={check.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5">
+            <span className="flex min-w-0 items-center gap-2.5">
+              <Dot tone={check.ok ? 'ok' : 'idle'} />
               <span
-                aria-hidden
-                className={cn(
-                  'flex h-4 w-4 items-center justify-center rounded-full',
-                  check.ok
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                    : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',
-                )}
+                className={`text-[13px] ${check.ok ? 'text-zinc-400 line-through decoration-zinc-300 dark:text-zinc-500 dark:decoration-zinc-700' : 'text-zinc-900 dark:text-zinc-50'}`}
               >
-                {check.ok ? (
-                  <Check className="h-2.5 w-2.5" />
-                ) : (
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-500 dark:bg-zinc-400" />
-                )}
-              </span>
-              <span className={cn('text-zinc-700 dark:text-zinc-200', check.ok && 'text-zinc-500 dark:text-zinc-400')}>
                 {check.label}
               </span>
             </span>
             {!check.ok && (
-              <button
-                type="button"
+              <TextAction
                 onClick={() =>
                   check.switchTo ? onSwitchToHome() : check.actionHref ? onNavigate(check.actionHref) : undefined
                 }
-                className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
               >
                 {check.actionLabel}
-                <ArrowRight className="h-3 w-3" aria-hidden />
-              </button>
+              </TextAction>
             )}
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
 

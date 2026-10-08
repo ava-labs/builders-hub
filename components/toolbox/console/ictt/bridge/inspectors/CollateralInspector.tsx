@@ -1,18 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, Loader2, RefreshCw } from 'lucide-react';
-import { Note } from '@/components/toolbox/components/Note';
+import { ArrowRight, Check, RefreshCw } from 'lucide-react';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
+import { HashChip } from '@/components/explorer-v2/ui';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { cn } from '@/lib/utils';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_COLLATERAL_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from '@/components/console/inspector-shell';
 import { useAddCollateral } from '../hooks/useAddCollateral';
-import { truncateAddress } from '../utils/explorer-url';
+import { BODY, EYEBROW, FIELD_ADDON, Field, Inspector, Loading, MONO_FIELD, MONO_MUTED, TextAction } from '../ui';
 import type { Bridge, BridgePhase, Remote } from '../types';
 
 interface CollateralInspectorProps {
@@ -108,228 +109,215 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
 
   return (
     <ContractDeployViewer contracts={ICTT_COLLATERAL_SOURCES}>
-      <InspectorShell
+      <Inspector
+        label="Phase 5 · Collateral"
         banner={
           !remote?.registeredAt ? (
-            <Note variant="warning">
-              <span className="text-xs">Register the Remote in Phase 4 before adding collateral.</span>
-            </Note>
+            <Alert variant="warning">Register the Remote in Phase 4 before adding collateral.</Alert>
           ) : rpcErrorVisible ? (
-            <Note variant="destructive">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <Alert variant="error">
+              <div className="flex flex-col items-start gap-2">
                 <span>
-                  Couldn&apos;t reach {homeL1?.name ?? 'Home'} RPC after {pollAttempts}/{pollMaxAttempts} attempts
+                  Couldn&apos;t reach the {homeL1?.name ?? 'Home'} RPC after {pollAttempts}/{pollMaxAttempts} attempts
                   {lastError ? (
                     <>
                       {' '}
-                      · <span className="font-mono text-[10px] opacity-80">{lastError.message}</span>
+                      · <span className="font-mono text-[11px] opacity-80">{lastError.message}</span>
                     </>
                   ) : null}
                   .
                 </span>
-                <button
-                  type="button"
-                  onClick={refresh}
-                  className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
-                >
-                  <RefreshCw className="h-3 w-3" aria-hidden />
+                <TextAction icon={RefreshCw} onClick={refresh}>
                   Refresh
-                </button>
+                </TextAction>
               </div>
-            </Note>
+            </Alert>
           ) : timeoutVisible ? (
-            <Note variant="warning">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <Alert variant="warning">
+              <div className="flex flex-col items-start gap-2">
                 <span>
-                  Still waiting on the ICM relayer after {pollAttempts}/{pollMaxAttempts} attempts. The registration
-                  message might be delayed — try refreshing in a few seconds.
+                  Still waiting on the ICM relayer after {pollAttempts}/{pollMaxAttempts} attempts. The message may be
+                  late; refresh in a few seconds.
                 </span>
-                <button
-                  type="button"
-                  onClick={refresh}
-                  className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
-                >
-                  <RefreshCw className="h-3 w-3" aria-hidden />
+                <TextAction icon={RefreshCw} onClick={refresh}>
                   Refresh
-                </button>
+                </TextAction>
               </div>
-            </Note>
+            </Alert>
           ) : isPollingForRegistration ? (
-            <Note variant="warning">
-              <div className="flex items-center gap-2 text-xs">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                <span>
-                  Waiting for the ICM relayer to deliver the registration message to {homeL1?.name ?? 'Home'}
-                  {pollAttempts > 0 ? (
-                    <>
-                      {' '}
-                      · attempt {pollAttempts}/{pollMaxAttempts}
-                    </>
-                  ) : null}
-                  .
-                </span>
-              </div>
-            </Note>
+            <Loading className="normal-case tracking-normal">
+              Waiting for the relayer to deliver the registration to {homeL1?.name ?? 'Home'}
+              {pollAttempts > 0 ? ` · attempt ${pollAttempts}/${pollMaxAttempts}` : ''}
+            </Loading>
           ) : remoteNotRegistered ? (
-            <Note variant="warning">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <Alert variant="warning">
+              <div className="flex flex-col items-start gap-2">
                 <span>
-                  Remote not registered on {homeL1?.name ?? 'Home'} yet — the ICM message may still be in flight.
+                  The Remote isn&apos;t registered on {homeL1?.name ?? 'Home'} yet. The ICM message may still be in
+                  flight.
                 </span>
-                <button
-                  type="button"
-                  onClick={refresh}
-                  className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
-                >
-                  <RefreshCw className="h-3 w-3" aria-hidden />
+                <TextAction icon={RefreshCw} onClick={refresh}>
                   Refresh
-                </button>
+                </TextAction>
               </div>
-            </Note>
+            </Alert>
           ) : null
         }
         footer={
           remote?.collateralizedAt || noCollateralRequired ? (
-            <button
-              type="button"
+            <Button
               onClick={() => onPhaseChange('live')}
-              className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              className="w-auto"
+              icon={<ArrowRight className="h-3.5 w-3.5" aria-hidden />}
             >
               Continue to Live
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-            </button>
+            </Button>
           ) : null
         }
       >
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="flex flex-col gap-5">
+          <p className={BODY}>
             Fund the bridge with {bridge?.symbol ?? 'the underlying token'} on {homeL1?.name ?? 'Home'}.{' '}
             {isNative
-              ? 'Native home — sends gas directly.'
-              : 'Two-step: approve TokenHome to spend the amount, then add collateral.'}
+              ? 'A native home takes the gas coin directly.'
+              : 'Two transactions: approve TokenHome to spend the amount, then add it as collateral.'}
           </p>
-          <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 text-xs dark:border-zinc-800 dark:bg-zinc-900/40">
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-400">TokenHome</span>
-              <code className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-                {truncateAddress(bridge?.homeAddress)}
-              </code>
+
+          <div className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800">
+            <div className="flex flex-col gap-1.5 bg-white px-4 py-3 dark:bg-zinc-950">
+              <span className={EYEBROW}>TokenHome</span>
+              {bridge?.homeAddress ? (
+                <HashChip value={bridge.homeAddress} len={14} />
+              ) : (
+                <span className={MONO_MUTED}>—</span>
+              )}
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-400">Your balance</span>
-              <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-                {balance !== null ? `${formatAmount(balance, decimals)} ${bridge?.symbol ?? ''}` : '—'}
+            <div className="flex flex-col gap-1 bg-white px-4 py-3 dark:bg-zinc-950">
+              <span className={EYEBROW}>Your balance</span>
+              <span className="font-mono text-[17px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                {balance !== null ? formatAmount(balance, decimals) : '—'}{' '}
+                <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{bridge?.symbol ?? ''}</span>
               </span>
             </div>
           </div>
 
           {noCollateralRequired ? (
-            <Note variant="success">
-              <span className="text-xs">
-                No collateral is required for this bridge — decimals match and there&apos;s no reserve imbalance, so
-                TokenHome is already fully backed. You can continue to Phase 6.
-              </span>
-            </Note>
+            <Alert variant="success">
+              No collateral needed: decimals match and there&apos;s no reserve imbalance, so TokenHome is already fully
+              backed. Continue to Phase 6.
+            </Alert>
           ) : (
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                Collateral amount {bridge?.symbol ? `(${bridge.symbol})` : ''}
-              </span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amountInput}
-                  onChange={(e) => setAmountInput(e.target.value)}
-                  placeholder="0.0"
-                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                />
+            <Field
+              label={`Collateral amount${bridge?.symbol ? ` (${bridge.symbol})` : ''}`}
+              htmlFor="ictt-collateral-amount"
+              hint={
+                isErc20 && allowance !== null && parsedAmount !== null && parsedAmount > 0n ? (
+                  <span className="font-mono text-[11px] tabular-nums">
+                    Current allowance {formatAmount(allowance, decimals)} {bridge?.symbol ?? ''}
+                  </span>
+                ) : undefined
+              }
+            >
+              <div className="flex">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    id="ictt-collateral-amount"
+                    type="text"
+                    inputMode="decimal"
+                    value={amountInput}
+                    onChange={(e) => setAmountInput(e.target.value)}
+                    placeholder="0.0"
+                    className={`${MONO_FIELD} h-12 pr-16 text-[17px]`}
+                  />
+                  {bridge?.symbol && (
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                      {bridge.symbol}
+                    </span>
+                  )}
+                </div>
                 {balance !== null && (
                   <button
                     type="button"
                     onClick={() => setAmountInput(formatAmount(balance, decimals))}
-                    className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+                    className={`${FIELD_ADDON} h-12`}
                   >
                     Max
                   </button>
                 )}
               </div>
-              {isErc20 && allowance !== null && parsedAmount !== null && parsedAmount > 0n && (
-                <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-                  Current allowance · {formatAmount(allowance, decimals)} {bridge?.symbol ?? ''}
-                </span>
-              )}
-            </label>
+            </Field>
           )}
 
           {noCollateralRequired ? null : isErc20 ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            <div className="flex flex-col gap-4">
+              <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
                 {parsedAmount === null || parsedAmount <= 0n
                   ? 'Enter an amount to see the two transactions.'
                   : allowance === null
                     ? 'Checking allowance…'
                     : hasAllowance
-                      ? 'Step 1 done — the collateral transaction is ready to sign.'
-                      : 'Step 1: approve TokenHome. Step 2 unlocks once the approval confirms on-chain.'}
+                      ? 'Approval done. The collateral transaction is ready to sign.'
+                      : 'Approve TokenHome first. The second transaction unlocks once the approval confirms.'}
               </p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={handleApprove}
-                  disabled={
-                    busy ||
-                    hasAllowance ||
-                    parsedAmount === null ||
-                    parsedAmount <= 0n ||
-                    !bridge?.homeAddress ||
-                    !remote?.address
-                  }
-                  className={cn(
-                    'inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors',
-                    hasAllowance
-                      ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-300'
-                      : 'bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white',
+              <Steps>
+                <Step>
+                  <h3>Approve TokenHome</h3>
+                  <p>Lets TokenHome move the amount from your wallet.</p>
+                  <Button
+                    onClick={handleApprove}
+                    loading={isApproving}
+                    loadingText="Approving…"
+                    variant={hasAllowance ? 'outline' : 'primary'}
+                    icon={
+                      hasAllowance ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                      ) : undefined
+                    }
+                    disabled={
+                      busy ||
+                      hasAllowance ||
+                      parsedAmount === null ||
+                      parsedAmount <= 0n ||
+                      !bridge?.homeAddress ||
+                      !remote?.address
+                    }
+                  >
+                    {hasAllowance
+                      ? `Approved ${formatAmount(parsedAmount ?? 0n, decimals)} ${bridge?.symbol ?? ''}`
+                      : `Approve ${amountInput || '0'} ${bridge?.symbol ?? ''}`}
+                  </Button>
+                </Step>
+                <Step>
+                  <h3>Add collateral</h3>
+                  <p>Locks the amount in TokenHome to back the Remote.</p>
+                  <Button
+                    onClick={handleAddCollateral}
+                    loading={isDepositing}
+                    loadingText="Adding collateral…"
+                    disabled={
+                      busy ||
+                      !hasAllowance ||
+                      !remoteRegisteredOnHome ||
+                      parsedAmount === null ||
+                      parsedAmount <= 0n ||
+                      !bridge?.homeAddress ||
+                      !remote?.address
+                    }
+                  >
+                    Add collateral
+                  </Button>
+                  {registrationUnknown && hasAllowance && (
+                    <Loading>Checking registration on {homeL1?.name ?? 'Home'}</Loading>
                   )}
-                >
-                  {isApproving ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                  ) : hasAllowance ? (
-                    <Check className="h-3.5 w-3.5" aria-hidden />
-                  ) : null}
-                  {hasAllowance
-                    ? `Approved (${formatAmount(parsedAmount ?? 0n, decimals)} ${bridge?.symbol ?? ''})`
-                    : `1. Approve ${amountInput || '0'} ${bridge?.symbol ?? ''}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddCollateral}
-                  disabled={
-                    busy ||
-                    !hasAllowance ||
-                    !remoteRegisteredOnHome ||
-                    parsedAmount === null ||
-                    parsedAmount <= 0n ||
-                    !bridge?.homeAddress ||
-                    !remote?.address
-                  }
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-                >
-                  {isDepositing && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-                  {isDepositing ? 'Adding collateral…' : `2. Add collateral`}
-                </button>
-              </div>
-              {registrationUnknown && hasAllowance && (
-                <p className="text-[10px] italic text-zinc-500 dark:text-zinc-400">
-                  Verifying registration on {homeL1?.name ?? 'Home'}…
-                </p>
-              )}
+                </Step>
+              </Steps>
             </div>
           ) : (
             // Native home — single button (no approve needed).
-            <button
-              type="button"
+            <Button
               onClick={handleAddCollateral}
+              loading={isDepositing}
+              loadingText="Sending native…"
               disabled={
                 busy ||
                 !remoteRegisteredOnHome ||
@@ -338,28 +326,18 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
                 !bridge?.homeAddress ||
                 !remote?.address
               }
-              className="inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
             >
-              {isDepositing && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-              {isDepositing ? 'Sending native…' : 'Send native collateral'}
-            </button>
+              Send native collateral
+            </Button>
           )}
 
-          {error && (
-            <Note variant="destructive">
-              <span className="text-xs">{error.message}</span>
-            </Note>
-          )}
+          {error && <Alert variant="error">{error.message}</Alert>}
 
           {remote?.collateralizedAt && (
-            <Note variant="success">
-              <span className="text-xs">
-                Collateralized at {new Date(remote.collateralizedAt).toLocaleTimeString()}.
-              </span>
-            </Note>
+            <Alert variant="success">Collateralized at {new Date(remote.collateralizedAt).toLocaleTimeString()}.</Alert>
           )}
         </div>
-      </InspectorShell>
+      </Inspector>
     </ContractDeployViewer>
   );
 }

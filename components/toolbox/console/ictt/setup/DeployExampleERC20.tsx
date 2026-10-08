@@ -13,6 +13,7 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
+import { BODY } from '../bridge/ui';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 
@@ -59,22 +60,25 @@ function DeployExampleERC20() {
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-      <div className="space-y-4">
-        <div className="">
-          This will deploy an ERC20 token contract to your connected network (Chain ID: <code>{walletChainId}</code>).
-          You can use this token for testing token transfers and other ERC20 interactions, where a total supply of
-          1,000,000 tokens will be minted to your wallet.
-          <p className="flex items-center gap-1 mt-2">
-            To deploy more custom ERC20 tokens, you can use the{' '}
+      <div className="not-prose flex flex-col gap-4">
+        <div className={`${BODY} flex flex-col gap-2`}>
+          <p>
+            Deploys an ERC-20 test token on the connected network (chain ID{' '}
+            <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">{walletChainId}</code>) and mints
+            its full supply of 1,000,000 to your wallet. Use it to try token transfers.
+          </p>
+          <p>
+            For a custom ERC-20, use the{' '}
             <a
               href="https://wizard.openzeppelin.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-500 hover:underline inline-flex items-center gap-1"
+              className="group/act inline-flex items-center gap-1 font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-600 dark:hover:decoration-zinc-100"
             >
-              OpenZeppelin ERC20 Contract Wizard
-              <ExternalLink className="h-4 w-4" />
+              OpenZeppelin Contract Wizard
+              <ExternalLink className="h-3 w-3 text-zinc-400 transition-colors group-hover/act:text-[#E6212F]" />
             </a>
+            .
           </p>
         </div>
 

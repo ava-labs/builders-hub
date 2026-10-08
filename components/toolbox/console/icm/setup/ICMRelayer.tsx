@@ -6,7 +6,9 @@ import { L1ListItem, useSelectedL1 } from '@/components/toolbox/stores/l1ListSto
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState, useEffect, useMemo } from 'react';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import Link from 'next/link';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { CommandBlock, EYEBROW, HoverArrow } from '@/components/toolbox/console/icm/ui';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,
@@ -15,7 +17,7 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import {
@@ -244,38 +246,66 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   }, [relayerAddress, selectedChains.length]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <Steps>
         <Step>
           <DockerInstallation includeCompose={false} />
         </Step>
 
         <Step>
-          <h3 className="text-lg font-medium mb-4">Configure Relayer</h3>
+          <h3>Configure the relayer</h3>
+          <p>Choose which chains it watches and delivers to. The config on the right updates as you go.</p>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              {error && <div className="text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-sm">{error}</div>}
+          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+            <div className="flex min-w-0 flex-col gap-6">
+              {error && <Alert variant="error">{error}</Alert>}
 
-              <NetworkSelector
-                l1List={l1List}
-                selectedNetworks={selectedSources}
-                onToggle={handleToggleSource}
-                title="Source Networks"
-                idPrefix="source"
-                onMouseEnter={() => setHighlightPath('sources')}
-                onMouseLeave={clearHighlight}
-              />
-
-              <NetworkSelector
-                l1List={l1List}
-                selectedNetworks={selectedDestinations}
-                onToggle={handleToggleDestination}
-                title="Destination Networks"
-                idPrefix="dest"
-                onMouseEnter={() => setHighlightPath('destinations')}
-                onMouseLeave={clearHighlight}
-              />
+              {l1List.length === 0 ? (
+                <div className="flex flex-col items-start gap-3 border border-zinc-200 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950">
+                  <p className={EYEBROW}>No chains</p>
+                  <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+                    Your L1 list is empty. Create an L1 first, then come back to relay messages for it.
+                  </p>
+                  <Link
+                    href="/console/create-l1"
+                    className="group/link inline-flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-50"
+                  >
+                    Create an L1
+                    <HoverArrow />
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                  <NetworkSelector
+                    l1List={l1List}
+                    selectedNetworks={selectedSources}
+                    onToggle={handleToggleSource}
+                    title="Source"
+                    hint="Chains the relayer watches."
+                    n={1}
+                    idPrefix="source"
+                    onMouseEnter={() => setHighlightPath('sources')}
+                    onMouseLeave={clearHighlight}
+                  />
+                  <span
+                    aria-hidden
+                    className="hidden self-center font-mono text-[13px] text-zinc-400 md:block dark:text-zinc-500"
+                  >
+                    →
+                  </span>
+                  <NetworkSelector
+                    l1List={l1List}
+                    selectedNetworks={selectedDestinations}
+                    onToggle={handleToggleDestination}
+                    title="Destination"
+                    hint="Chains it delivers to."
+                    n={2}
+                    idPrefix="dest"
+                    onMouseEnter={() => setHighlightPath('destinations')}
+                    onMouseLeave={clearHighlight}
+                  />
+                </div>
+              )}
 
               <RelayerFunding
                 relayerAddress={relayerAddress}
@@ -312,12 +342,14 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         </Step>
 
         <Step>
-          <h3 className="text-lg font-medium mb-4">Save Configuration to Machine</h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-            Run this command to save your relayer configuration to your local machine:
+          <h3>Save the config on your machine</h3>
+          <p>
+            This writes the config to{' '}
+            <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">~/.icm-relayer/config.json</code>.
           </p>
-          <DynamicCodeBlock
-            code={genConfigCommand(
+          <CommandBlock
+            title="Save config"
+            command={genConfigCommand(
               getConfigSources(),
               getConfigDestinations(),
               isTestnet ?? false,
@@ -326,24 +358,13 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
               processMissedBlocks,
               apiPort,
             )}
-            lang="bash"
           />
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-            This creates the configuration file at{' '}
-            <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-xs">
-              ~/.icm-relayer/config.json
-            </code>
-          </p>
         </Step>
 
         <Step>
-          <h3 className="text-lg font-medium mb-4">Run the Relayer</h3>
-          <p>Start the ICM Relayer using the following Docker command:</p>
-          <DynamicCodeBlock code={relayerDockerCommand(isTestnet ?? false)} lang="sh" />
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-            The relayer will monitor the source blockchains for cross-chain messages and deliver them to the destination
-            blockchains.
-          </p>
+          <h3>Run the relayer</h3>
+          <p>Start it with Docker. It watches the source chains and delivers each message to its destination.</p>
+          <CommandBlock title="Docker" command={relayerDockerCommand(isTestnet ?? false)} />
         </Step>
       </Steps>
     </div>

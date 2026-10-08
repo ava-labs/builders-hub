@@ -1,13 +1,73 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Cog, Cloud } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Check, Cog, Cloud } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import ICMRelayer from '@/components/toolbox/console/icm/setup/ICMRelayer';
 import CreateManagedTestnetRelayer from '@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer';
 import { useIcmSetupStore } from '@/components/toolbox/stores/icmSetupStore';
-import { Note } from '@/components/toolbox/components/Note';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { BODY, CELL_GRID, CHOSEN, EYEBROW } from '@/components/toolbox/console/icm/ui';
 import type { RelayerMode } from '@/components/toolbox/console/icm/network/types';
+
+function ModeOption({
+  selected,
+  onSelect,
+  icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  icon: ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        'group/opt relative flex flex-col gap-3 bg-white p-5 text-left dark:bg-zinc-950',
+        selected && CHOSEN,
+      )}
+    >
+      <span className="flex items-start justify-between gap-3">
+        <span
+          className={cn(
+            'flex h-9 w-9 items-center justify-center border transition-colors',
+            selected
+              ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-50'
+              : 'border-zinc-200 text-zinc-500 group-hover/opt:border-zinc-400 group-hover/opt:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:group-hover/opt:border-zinc-600 dark:group-hover/opt:text-zinc-100',
+          )}
+        >
+          {icon}
+        </span>
+        <span className="flex items-center gap-2.5">
+          <span className={EYEBROW}>{eyebrow}</span>
+          <span
+            className={cn(
+              'flex h-4 w-4 items-center justify-center rounded-full border',
+              selected
+                ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                : 'border-zinc-300 dark:border-zinc-700',
+            )}
+          >
+            {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+          </span>
+        </span>
+      </span>
+      <span className="mt-1 text-[15px] font-semibold text-zinc-900 decoration-zinc-400 underline-offset-4 group-hover/opt:underline dark:text-zinc-50 dark:decoration-zinc-500">
+        {title}
+      </span>
+      <span className={BODY}>{description}</span>
+    </button>
+  );
+}
 
 /**
  * Relayer phase inspector. Lets the user pick between Avalanche's managed
@@ -22,7 +82,7 @@ export function RelayerInspector() {
   const mode = useIcmSetupStore((s) => s.relayer.mode);
   const setRelayerMode = useIcmSetupStore((s) => s.setRelayerMode);
 
-  // Local controlled state mirrors the store so the ToggleGroup feels snappy
+  // Local controlled state mirrors the store so the choice feels snappy
   // even before the store-write propagates back through selectors.
   const [localMode, setLocalMode] = useState<RelayerMode>(mode);
   useEffect(() => setLocalMode(mode), [mode]);
@@ -35,57 +95,44 @@ export function RelayerInspector() {
 
   return (
     <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <header className="flex flex-col gap-1.5">
+        <p className={EYEBROW}>Relayer</p>
+        <h2 className="text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           How do you want to relay messages?
         </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          A relayer watches your source chains and delivers messages to destination chains. Pick the option that fits
-          your stage — Avalanche can host one for you on testnet, or you can run your own Docker container.
+        <p className={cn(BODY, 'max-w-2xl')}>
+          A relayer watches your source chains and delivers messages to destination chains. On testnet Avalanche can
+          host one for you, or you can run your own Docker container.
         </p>
       </header>
-      <ToggleGroup
-        type="single"
-        value={localMode}
-        onValueChange={(v) => v && handleChange(v)}
-        className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2"
-      >
-        <ToggleGroupItem
-          value="managed"
-          aria-label="Managed testnet relayer"
-          className="flex h-auto flex-col items-start gap-1 rounded-xl border border-zinc-200 bg-white p-4 text-left data-[state=on]:border-zinc-900 data-[state=on]:ring-2 data-[state=on]:ring-zinc-900/30 dark:border-zinc-800 dark:bg-zinc-900 dark:data-[state=on]:border-zinc-200 dark:data-[state=on]:ring-zinc-200/30"
-        >
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Cloud className="h-4 w-4" aria-hidden /> Managed testnet relayer
-          </div>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            Avalanche hosts a relayer for your Fuji testnet L1. No Docker, no funding.
-          </p>
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="self-hosted"
-          aria-label="Self-hosted Docker relayer"
-          className="flex h-auto flex-col items-start gap-1 rounded-xl border border-zinc-200 bg-white p-4 text-left data-[state=on]:border-zinc-900 data-[state=on]:ring-2 data-[state=on]:ring-zinc-900/30 dark:border-zinc-800 dark:bg-zinc-900 dark:data-[state=on]:border-zinc-200 dark:data-[state=on]:ring-zinc-200/30"
-        >
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Cog className="h-4 w-4" aria-hidden /> Self-hosted Docker
-          </div>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            Run the relayer yourself with a generated config. Required for mainnet.
-          </p>
-        </ToggleGroupItem>
-      </ToggleGroup>
+
+      <div role="radiogroup" aria-label="Relayer type" className={cn(CELL_GRID, 'grid-cols-1 sm:grid-cols-2')}>
+        <ModeOption
+          selected={localMode === 'managed'}
+          onSelect={() => handleChange('managed')}
+          icon={<Cloud className="h-4 w-4" aria-hidden />}
+          eyebrow="Fuji only"
+          title="Managed testnet relayer"
+          description="Avalanche hosts a relayer for your Fuji L1. No Docker, no funding."
+        />
+        <ModeOption
+          selected={localMode === 'self-hosted'}
+          onSelect={() => handleChange('self-hosted')}
+          icon={<Cog className="h-4 w-4" aria-hidden />}
+          eyebrow="Mainnet ready"
+          title="Self-hosted Docker"
+          description="Run the relayer yourself with a generated config. Required for mainnet."
+        />
+      </div>
 
       {localMode === 'managed' ? (
         <CreateManagedTestnetRelayer />
       ) : (
-        <div className="flex flex-col gap-3">
-          <Note variant="default">
-            <span className="text-xs">
-              Pick the source and destination chains, fund the relayer signer, and copy the generated Docker command.
-              The same config powers mainnet relayers — only the network endpoints differ.
-            </span>
-          </Note>
+        <div className="flex flex-col gap-4">
+          <Alert variant="info">
+            Pick source and destination chains, fund the relayer address, then copy the generated commands. Mainnet uses
+            the same config with different network endpoints.
+          </Alert>
           <ICMRelayer />
         </div>
       )}
