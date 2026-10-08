@@ -100,9 +100,16 @@ export function NetworkToken() {
     [feeRows],
   );
   const icmRows = icm.data?.data;
+  // the C-Chain feed ends on the last whole UTC day, the ICM feed on today's partial one: the ICM series stops where
+  // the C-Chain one does, so the chart never ends on an empty bar dated a day past its last
+  const lastFeeDate = cChainFees.reduce((last, d) => (d.date > last ? d.date : last), "");
   const icmFees = useMemo<FeeDataPoint[]>(
-    () => (Array.isArray(icmRows) ? icmRows : []).map((item) => ({ date: item.date, timestamp: item.timestamp, value: item.feesPaid / 1e18 })).reverse(),
-    [icmRows],
+    () =>
+      (Array.isArray(icmRows) ? icmRows : [])
+        .filter((item) => !lastFeeDate || item.date <= lastFeeDate)
+        .map((item) => ({ date: item.date, timestamp: item.timestamp, value: item.feesPaid / 1e18 }))
+        .reverse(),
+    [icmRows, lastFeeDate],
   );
   const feesError = fees.error ?? (fees.data && !Array.isArray(feeRows) ? "the response is missing its series" : null);
   const error = supply.error
