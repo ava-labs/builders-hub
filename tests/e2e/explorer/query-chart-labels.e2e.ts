@@ -118,6 +118,33 @@ const QUESTIONS: Record<string, () => Fixture> = {
       ],
     };
   },
+  // the reported chart: weekly fees with three markers on the last three weeks, whose names ran over each other
+  'Weekly fees by part': () => {
+    const week = 7 * DAY;
+    const last = Math.floor(Date.now() / week) * week;
+    const rows = Array.from({ length: 27 }, (_, i) => ({ w: utc(last - (26 - i) * week).slice(0, 10), base_fee: wave(i, 300, 200), priority_fee: wave(i, 3000, 1500) }));
+    const w = (i: number) => String(rows[i].w);
+    return {
+      sql: 'SELECT toStartOfWeek(block_time) AS w, sum(base_fee) AS base_fee, sum(priority_fee) AS priority_fee FROM raw_txs GROUP BY w ORDER BY w',
+      rows,
+      panels: [
+        {
+          title: 'Weekly fees by part',
+          kind: 'area',
+          x: 'w',
+          series: [
+            { column: 'base_fee', label: 'Base fee' },
+            { column: 'priority_fee', label: 'Priority fee' },
+          ],
+          markers: [
+            { x: w(24), label: 'Peak 14.3k' },
+            { x: w(25), label: 'Base fee peak 3.76k' },
+            { x: w(26), label: 'Latest week 5.76k' },
+          ],
+        },
+      ],
+    };
+  },
   'Fee against gas used': () => {
     const rows = Array.from({ length: 60 }, (_, i) => ({ gas_used: 21_000 + i * 48_000, fee: wave(i, 0.02, 0.012) + i * 0.0005 }));
     return {
@@ -232,8 +259,16 @@ function readPanel([title, settleMs]: [string, number]): Read | null {
       if (over > 0.5) problems.push(`tick "${ticks[i - 1].t}" runs ${Math.round(over)} px over "${ticks[i].t}"`);
     }
   }
+  // the red lines' names stand apart: no two cover each other
+  const names = svgs.flatMap((s) => [...s.querySelectorAll('.qv-mark-label')].map((t) => ({ t: t.textContent, r: t.getBoundingClientRect() })));
+  names.forEach((a, i) =>
+    names.slice(i + 1).forEach((b) => {
+      const over = Math.min(a.r.right - b.r.left, b.r.right - a.r.left, a.r.bottom - b.r.top, b.r.bottom - a.r.top);
+      if (over > 0.5) problems.push(`"${a.t}" runs ${Math.round(over)} px over "${b.t}"`);
+    }),
+  );
   const text = (sel: string) => svgs.flatMap((s) => [...s.querySelectorAll(sel)].map((t) => t.textContent ?? ''));
-  return { labels: text('.recharts-reference-line text'), ticks: text('.xAxis text'), problems };
+  return { labels: text('.qv-mark-label'), ticks: text('.xAxis text'), problems };
 }
 
 const SETTLE_MS = 600;
@@ -331,6 +366,7 @@ const LABELS: Record<string, string[]> = {
   'Transactions per hour': ['partial', 'so far'],
   'Transactions per day': ['so far'],
   'Top senders by fees paid': ['Average of the top 10'],
+  'Weekly fees by part': ['Base fee peak 3.76k', 'Latest week 5.76k', 'Peak 14.3k'],
   'Fee against gas used': [],
   'Where AVAX flowed': [],
 };
