@@ -42,6 +42,15 @@ function FitText({ x, y, dy, align, fill, className, children }: FitProps) {
 
 type Box = { x?: number; y?: number };
 
+/** a ReferenceLine's label over the line's top, in red; recharts hands it the line's viewBox */
+export function MarkLabel({ value, viewBox, offset = 5 }: { value: string; viewBox?: Box; offset?: number }) {
+  return (
+    <FitText x={viewBox?.x ?? 0} y={(viewBox?.y ?? 0) - offset} align="line" fill="#E6212F">
+      {value}
+    </FitText>
+  );
+}
+
 /** a ReferenceArea's name inside its top left corner; recharts hands it the area's viewBox */
 export function BandLabel({ value, viewBox, offset = 5 }: { value: string; viewBox?: Box; offset?: number }) {
   return (
