@@ -46,9 +46,25 @@ export interface P2pValidator {
   public_ip?: string;
 }
 
+/** minAPY is the shortest term in effect; twoDayAPY is null before Helicon allowed 2-day terms */
+export interface ApyRates {
+  maxAPY: number;
+  minAPY: number;
+  twoWeekAPY?: number;
+  twoDayAPY?: number | null;
+}
+
+export interface StakingApyPoint extends ApyRates {
+  date: string;
+  timestamp: number;
+  supply: number;
+}
+
 export interface StakingApy {
-  data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
-  current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
+  data: StakingApyPoint[];
+  current: ApyRates & { supply: number; totalBurned: number };
+  /** the rates at the Helicon activation instant */
+  helicon?: StakingApyPoint | null;
 }
 
 /* the metrics feeds and the p2p crawler watch mainnet alone: elsewhere their hooks load nothing */

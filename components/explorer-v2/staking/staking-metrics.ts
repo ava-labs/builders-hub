@@ -31,9 +31,9 @@ export const STAKING_METRICS: Record<StakingMetricKey, StakingMetricDef> = {
   apy: {
     title: "Reward Rate",
     blurb:
-      "The protocol's estimated annual reward rate: a full-year term sets the upper curve, the two-week minimum term the lower one.",
+      "The protocol's estimated annual reward rate: a full-year term sets the upper curve, the two-week term the lower one, and since the Helicon upgrade the new two-day minimum term a third.",
     methodology: [
-      "The rate follows the network's public emission formula: rewards are newly minted AVAX, scaled by how much of the remaining supply is left to mint and by the staking ratio — the more of the supply is staked, the lower the rate for everyone. The two curves differ only by term length: the consumption rate interpolates from 10% at the two-week minimum to 12% at the one-year maximum.",
+      "The rate follows the network's public emission formula: rewards are newly minted AVAX, scaled by how much of the remaining supply is left to mint and by the staking ratio — the more of the supply is staked, the lower the rate for everyone. The curves differ only by term length: the consumption rate interpolates from its floor at the minimum term to 12% at the one-year maximum. Helicon cut the minimum term from two weeks to two days and starts lowering the floor from 10% to 7.5% over 90 days.",
       "These are estimates computed from current conditions, not a promise of any return. The realized rate for any position also depends on the validator's delegation fee (for delegators) and on the validator maintaining the uptime requirement through the whole term — miss it and the reward is zero.",
     ],
   },
