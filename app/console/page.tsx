@@ -564,6 +564,7 @@ function ConsoleHome() {
         </div>
         <PromptComposer
           compact
+          beam="avalanche"
           className="pointer-events-auto relative mx-auto w-3/4 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]"
         />
       </div>

@@ -7,8 +7,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { cn } from '@/lib/utils';
 import { api, errorText } from './api';
-import type { BorderBeamColorVariant } from 'border-beam';
-import { ComposerBeam } from './Beam';
+import { ComposerBeam, type ComposerBeamColor } from './Beam';
 import { Button, LABEL, Notice } from './ui';
 
 const TYPE_MS = 42;
@@ -86,7 +85,7 @@ export function PromptComposer({
   className?: string;
   /** One line with the button inline, for a docked box. */
   compact?: boolean;
-  beam?: BorderBeamColorVariant;
+  beam?: ComposerBeamColor;
 }) {
   const router = useRouter();
   const { status } = useSession();

@@ -40,14 +40,14 @@ export function Dialog({
   if (typeof document === 'undefined') return null;
   return createPortal(
     <div
-      className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-zinc-950/40 p-4 pt-[10vh] backdrop-blur-[1px]"
+      className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-zinc-950/40 p-4 backdrop-blur-[1px]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         role="dialog"
         aria-modal
         aria-label={title}
-        className={`flex w-full flex-col border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 ${wide ? 'max-w-2xl' : 'max-w-md'}`}
+        className={`my-auto flex w-full flex-col border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 ${wide ? 'max-w-2xl' : 'max-w-md'}`}
       >
         <div className="flex h-10 items-center justify-between border-b border-zinc-200 px-5 dark:border-zinc-800">
           <span className={LABEL}>{title}</span>
