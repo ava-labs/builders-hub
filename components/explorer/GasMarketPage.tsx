@@ -18,12 +18,15 @@ import type {
   GasRangeDays,
 } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
-import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { LiveReadout, type LiveCell } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { ShareMap } from "@/components/explorer-v2/ShareMap";
-import { dayLong, dayShort, hourLong } from "@/components/explorer-v2/format";
+import { dayLong, dayShort, formatDollars, hourLong } from "@/components/explorer-v2/format";
+import { ACTIONS } from "@/lib/fee-market";
 import { ColumnsBlock, TraceBlock, WeekGrid, cellName, type TraceRow } from "@/components/explorer-v2/gas/instruments";
 import { protocolShareParts } from "@/components/explorer-v2/gas/buyers";
 import { GasBurn } from "@/components/explorer-v2/gas/burn";
+import { FeeMarketNow } from "@/components/explorer-v2/gas/fee-market";
+import { CONTINUOUS_EXECUTION_CHAINS } from "@/components/explorer-v2/evm/useHeadStream";
 
 /* The chain's gas market as one instrument, in depth: what a unit of
    blockspace costs right now (RPC, live), what your transaction costs in
@@ -202,15 +205,6 @@ function fmtNative(wei: number): string {
   return v.toExponential(1);
 }
 
-function fmtUsd(usd: number): string {
-  if (usd >= 1) return `$${usd.toFixed(2)}`;
-  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
-  if (usd <= 0) return "$0.00";
-  // sub-cent is where these chains live: keep three significant digits,
-  // however many zeros that takes, instead of hiding behind "<$0.01"
-  const decimals = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
-  return `$${usd.toFixed(decimals).replace(/0$/, "")}`;
-}
 
 
 /* offline fallback for the classics — the API decodes selectors through
@@ -243,13 +237,6 @@ export function selectorName(selector: string, decoded?: string | null): string 
   return sig?.split("(")[0] ?? selector;
 }
 
-/* what a transaction costs right now — typical gas of common actions */
-const ACTIONS: { label: string; gas: number }[] = [
-  { label: "Native Transfer", gas: 21_000 },
-  { label: "ERC-20 Transfer", gas: 55_000 },
-  { label: "DEX Swap", gas: 165_000 },
-  { label: "NFT Mint", gas: 120_000 },
-];
 
 
 
@@ -281,6 +268,8 @@ const ACTIONS: { label: string; gas: number }[] = [
 
 export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: string }) {
   const evmChainId = Number(catalog.chainId);
+  // the C-Chain and Fuji: Continuous Execution, the fee market block and its notes
+  const ce = CONTINUOUS_EXECUTION_CHAINS.has(String(evmChainId));
   const symbol = catalog.networkToken?.symbol ?? "";
   const unit = nanoUnit(symbol);
   const fee = useFeeHistory(catalog.rpcUrl);
@@ -366,7 +355,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const costOf = (gas: number): string => {
     if (effectiveWei === null) return "—";
     const wei = effectiveWei * gas;
-    if (usd !== null) return fmtUsd((wei / 1e18) * usd);
+    if (usd !== null) return formatDollars((wei / 1e18) * usd);
     return usdSettled ? `${fmtNative(wei)} ${symbol}` : "…";
   };
   const reverted = market?.reverted;
@@ -377,62 +366,79 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const feeRows = useMemo(() => feeTraceRows(feeSeries), [feeSeries]);
   const feeTypical = feeSeries.length ? [...feeSeries.map((d) => d.p50)].sort((a, b) => a - b)[Math.floor(feeSeries.length / 2)] : null;
 
+  // the load readings: on the C-Chain they sit in the fee market block, beside the cost table
+  const loadCells: LiveCell[] = [
+    {
+      label: "Utilization",
+      live: true,
+      href: `${base}/gas/utilization`,
+      value: shownUtil !== null ? shownUtil.toFixed(1) : "—",
+      unit: shownUtil !== null ? "%" : undefined,
+      sub: liveTarget !== null ? `of target, gas reserved · last ${FEE_HISTORY_BLOCKS} blocks` : `of the block gas limit · last ${FEE_HISTORY_BLOCKS} blocks`,
+      values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
+    },
+    {
+      // block headers: since Helicon they carry the gas RESERVED
+      // (the sum of every tx's gas limit), not the gas used
+      label: "Gas Reserved · 24h",
+      href: `${base}/gas/utilization`,
+      value: gas24h !== null ? fmtGas(gas24h) : "—",
+      sub: revertedGasPct !== null && range === "day" ? `${revertedGasPct.toFixed(0)}% by reverts` : "hourly",
+      values: market?.hourly.slice(-24).map((h) => h.gas),
+    },
+  ];
+
   const protocolParts = protocolShareParts(market?.protocols ?? [], names, base);
 
   return (
     <div className="flex flex-col gap-12">
       {/* the answer first, as readout blocks: what things cost this
-          second, and the market those prices come off */}
-      <section className="flex flex-col gap-4">
-        <LiveReadout
-          chainId={String(evmChainId)}
-          cells={[
-            {
-              label: "Base Fee",
-              live: true,
-              href: `${base}/gas/base-fee`,
-              value: fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : "—",
-              unit: fee.baseFeeWei !== null ? unit : undefined,
-              sub: "per gas",
-              values: market?.hourly.map((h) => h.p50),
-            },
-            {
-              label: `Send ${symbol || "tokens"}`,
-              live: true,
-              value: costOf(ACTIONS[0].gas),
-              sub: effectiveWei !== null ? `${fmtNano(effectiveWei * ACTIONS[0].gas)} ${unit}` : undefined,
-            },
-            {
-              label: "DEX Swap",
-              live: true,
-              value: costOf(ACTIONS[2].gas),
-              sub: `~${(ACTIONS[2].gas / 1000).toFixed(0)}K gas`,
-            },
-            {
-              label: "Utilization",
-              live: true,
-              href: `${base}/gas/utilization`,
-              value: shownUtil !== null ? shownUtil.toFixed(1) : "—",
-              unit: shownUtil !== null ? "%" : undefined,
-              sub: liveTarget !== null ? `of target, gas reserved · last ${FEE_HISTORY_BLOCKS} blocks` : `of the block gas limit · last ${FEE_HISTORY_BLOCKS} blocks`,
-              values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
-            },
-            {
-              // block headers: since Helicon they carry the gas RESERVED
-              // (the sum of every tx's gas limit), not the gas used
-              label: "Gas Reserved · 24h",
-              href: `${base}/gas/utilization`,
-              value: gas24h !== null ? fmtGas(gas24h) : "—",
-              sub: revertedGasPct !== null && range === "day" ? `${revertedGasPct.toFixed(0)}% by reverts` : "hourly",
-              values: market?.hourly.slice(-24).map((h) => h.gas),
-            },
-          ]}
+          second, and the market those prices come off; on the C-Chain the
+          fee market block prices a tx and holds the load readings */}
+      {ce ? (
+        <FeeMarketNow
+          rpcUrl={catalog.rpcUrl}
+          symbol={symbol || "AVAX"}
+          usd={usd}
+          usdSettled={usdSettled}
+          base={base}
+          aside={<LiveReadout chainId={String(evmChainId)} cells={loadCells} />}
         />
-        <p className="font-mono text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-          Priced at the live base fee plus the median priority tip, with typical gas per action
-          {usd !== null ? `, ${symbol} at $${usd >= 1 ? usd.toFixed(2) : usd.toPrecision(3)}` : ""}. An ERC-20 transfer costs {costOf(ACTIONS[1].gas)} and an NFT mint {costOf(ACTIONS[3].gas)}. Real costs vary by contract.
-        </p>
-      </section>
+      ) : (
+        <section className="flex flex-col gap-4">
+          <LiveReadout
+            chainId={String(evmChainId)}
+            cells={[
+              {
+                label: "Base Fee",
+                live: true,
+                href: `${base}/gas/base-fee`,
+                value: fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : "—",
+                unit: fee.baseFeeWei !== null ? unit : undefined,
+                sub: "per gas",
+                values: market?.hourly.map((h) => h.p50),
+              },
+              {
+                label: `Send ${symbol || "tokens"}`,
+                live: true,
+                value: costOf(ACTIONS[0].gas),
+                sub: effectiveWei !== null ? `${fmtNano(effectiveWei * ACTIONS[0].gas)} ${unit}` : undefined,
+              },
+              {
+                label: "DEX Swap",
+                live: true,
+                value: costOf(ACTIONS[2].gas),
+                sub: `~${(ACTIONS[2].gas / 1000).toFixed(0)}K gas`,
+              },
+              ...loadCells,
+            ]}
+          />
+          <p className="font-mono text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+            Priced at the live base fee plus the median priority tip, with typical gas per action
+            {usd !== null ? `, ${symbol} at $${usd >= 1 ? usd.toFixed(2) : usd.toPrecision(3)}` : ""}. An ERC-20 transfer costs {costOf(ACTIONS[1].gas)} and an NFT mint {costOf(ACTIONS[3].gas)}. Real costs vary by contract.
+          </p>
+        </section>
+      )}
 
       {/* the fee over the clock beside the last blocks' fullness */}
       <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
