@@ -30,7 +30,7 @@ Once on the "Subscribe to this Software" page you will see a button which enable
 Configure This Software
 -----------------------------------------------------------------------------
 
-This page lets you choose a fulfillment option and software version to launch this software. No changes are needed as the default settings are sufficient. Leave the `Fulfillment Option` as `64-bit (x86) Amazon Machine Image (AMI)`. The software version is the latest build of [the AvalancheGo full node](https://github.com/ava-labs/avalanchego/releases), `v1.9.5 (Dec 22, 2022)`, AKA `Banff.5`. This will always show the latest version. Also, the Region to deploy in can be left as `US East (N. Virginia)`. On the right you'll see the software and infrastructure pricing. Lastly, click the "Continue to Launch" button.
+This page lets you choose a fulfillment option and software version to launch this software. No changes are needed as the default settings are sufficient. Leave the `Fulfillment Option` as `64-bit (x86) Amazon Machine Image (AMI)`. The software version shows the AvalancheGo version in the AMI. AvalancheGo stopped building AMIs in v1.11.12, so this AMI can contain an old version. A Mainnet or Fuji node must run v1.15.0 or later to follow the Helicon upgrade. If the AMI version is older, replace the binary as described in [Maintenance](#maintenance). For the latest version, see the [AvalancheGo releases](https://github.com/ava-labs/avalanchego/releases). Also, the Region to deploy in can be left as `US East (N. Virginia)`. On the right you'll see the software and infrastructure pricing. Lastly, click the "Continue to Launch" button.
 
 Launch This Software
 -----------------------------------------------------------------------
@@ -291,96 +291,14 @@ After the transaction is approved, you will see a message saying that your valid
 
 ![](/images/aws14.png)
 
-If you click on View on explorer, a new browser tab will open with the details of the `AddValidatorTx`. It will show details such as the total value of AVAX transferred, any AVAX which were burned, the blockchainID, the blockID, the NodeID of the validator, and the total time which has elapsed from the entire Validation period.
+If you click on View on explorer, a new browser tab will open with the details of the `AddPermissionlessValidatorTx`. It will show details such as the total value of AVAX transferred, any AVAX which were burned, the blockchainID, the blockID, the NodeID of the validator, and the total time which has elapsed from the entire Validation period.
 
 ![](/images/aws15.png)
 
-Confirm That the Node is a Pending Validator on Fuji
+Confirm That the Node is a Validator on Fuji
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-As a last step you can call the `platform.getPendingvalidators` endpoint to confirm that the Avalanche node which was recently spun up on AWS is no in the pending validators queue where it will stay for 5 minutes.
-
-### `platform.getPendingValidators` Request
-
-```bash
-curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc": "2.0",
-    "method": "platform.getPendingValidators",
-    "params": {
-        "subnetID": "11111111111111111111111111111111LpoYY",
-        "nodeIDs": []
-    },
-    "id": 1
-}'
-```
-
-### `platform.getPendingValidators` Response
-
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "validators": [
-      {
-        "txID": "4d7ZboCrND4FjnyNaF3qyosuGQsNeJ2R4KPJhHJ55VCU1Myjd",
-        "startTime": "1673411918",
-        "endTime": "1675313170",
-        "stakeAmount": "1000000000",
-        "nodeID": "NodeID-Q8Gfaaio9FAqCmZVEXDq9bFvNPvDi7rt5",
-        "delegationFee": "2.0000",
-        "connected": false,
-        "delegators": null
-      }
-    ],
-    "delegators": []
-  },
-  "id": 1
-}
-```
-
-You can also pass in the `NodeID` as a string to the `nodeIDs` array in the request body.
-
-```bash
-curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc": "2.0",
-    "method": "platform.getPendingValidators",
-    "params": {
-        "subnetID": "11111111111111111111111111111111LpoYY",
-        "nodeIDs": ["NodeID-Q8Gfaaio9FAqCmZVEXDq9bFvNPvDi7rt5"]
-    },
-    "id": 1
-}'
-```
-
-This will filter the response by the `nodeIDs` array which will save you time by no longer requiring you to search through the entire response body for the NodeIDs.
-
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "validators": [
-      {
-        "txID": "4d7ZboCrND4FjnyNaF3qyosuGQsNeJ2R4KPJhHJ55VCU1Myjd",
-        "startTime": "1673411918",
-        "endTime": "1675313170",
-        "stakeAmount": "1000000000",
-        "nodeID": "NodeID-Q8Gfaaio9FAqCmZVEXDq9bFvNPvDi7rt5",
-        "delegationFee": "2.0000",
-        "connected": false,
-        "delegators": null
-      }
-    ],
-    "delegators": []
-  },
-  "id": 1
-}
-```
-
-After 5 minutes the node will officially start validating the Avalanche Fuji testnet and you will no longer see it in the response body for the `platform.getPendingValidators` endpoint. Now you will access it via the `platform.getCurrentValidators` endpoint.
+As a last step, call the `platform.getCurrentValidators` method to confirm that the node is a validator. The validation period starts when the P-Chain accepts the transaction (ACP-41, Durango), so the node is never in a pending state. AvalancheGo v1.11.3 removed `platform.getPendingValidators`.
 
 ### `platform.getCurrentValidators` Request
 
@@ -409,15 +327,8 @@ curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
         "txID": "2hy57Z7KiZ8L3w2KonJJE1fs5j4JDzVHLjEALAHaXPr6VMeDhk",
         "startTime": "1673411918",
         "endTime": "1675313170",
-        "stakeAmount": "1000000000",
+        "weight": "1000000000",
         "nodeID": "NodeID-Q8Gfaaio9FAqCmZVEXDq9bFvNPvDi7rt5",
-        "rewardOwner": {
-          "locktime": "0",
-          "threshold": "1",
-          "addresses": [
-            "P-fuji1tgj2c3k56enytw5d78rt0tsq3lzg8wnftffwk7"
-          ]
-        },
         "validationRewardOwner": {
           "locktime": "0",
           "threshold": "1",

@@ -14,7 +14,7 @@ This is a brief overview of what this tutorial will cover.
 Stateful precompiles are [alpha software](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha). Build at your own risk.
 </Callout>
 
-In this tutorial, we used a branch based on Subnet-EVM version `v0.5.2`. You can find the branch [here](https://github.com/ava-labs/subnet-evm/tree/helloworld-official-tutorial-v2). The code in this branch is the same as Subnet-EVM except for the `precompile/contracts/helloworld` directory. The directory contains the code for the `HelloWorld` precompile. We will be using this precompile as an example to learn how to write a stateful precompile. The code in this branch can become outdated. You should always use the latest version of Subnet-EVM when you develop your own precompile.
+In this tutorial, we used a branch based on Subnet-EVM version `v0.6.0` (AvalancheGo `v1.11.0`, RPCChainVM protocol 33). This branch is in the archived `ava-labs/subnet-evm` repository. Subnet-EVM is now in the AvalancheGo repository, in the `graft/subnet-evm` directory, and some APIs in this tutorial changed after `v0.6.0`. You can find the branch [here](https://github.com/ava-labs/subnet-evm/tree/helloworld-official-tutorial-v2). The code in this branch is the same as Subnet-EVM except for the `precompile/contracts/helloworld` directory. The directory contains the code for the `HelloWorld` precompile. We will be using this precompile as an example to learn how to write a stateful precompile. The code in this branch can become outdated. You should always use the latest version of Subnet-EVM when you develop your own precompile.
 
 ## Precompile-EVM
 
@@ -22,7 +22,7 @@ Subnet-EVM precompiles can be registered from an external repo. This allows deve
 
 The difference between using Subnet-EVM and Precompile-EVM is that with Subnet-EVM you can change EVM internals to interact with your precompiles. Such as changing fee structure, adding new opcodes, changing how to build a block, etc. With Precompile-EVM you can only add new stateful precompiles that can interact with the StateDB. Precompiles built with Precompile-EVM are still very powerful because it can directly access to the state and modify it.
 
-There is a template repo for how to build a precompile with this way called [Precompile-EVM](https://github.com/ava-labs/precompile-evm). Both Subnet-EVM and Precompile-EVM share similar directory structures and common codes.
+The [Precompile-EVM](https://github.com/ava-labs/precompile-evm) template repository is archived and deprecated. Its last release builds against Subnet-EVM `v0.8.0` (RPCChainVM protocol 44). AvalancheGo `v1.15.0` and `v1.15.1` use protocol 46, so a Precompile-EVM binary does not run on a current node. Build your precompile in the Subnet-EVM code of the AvalancheGo repository (`graft/subnet-evm`).
 
 You can reference the Precompile-EVM PR that adds Hello World precompile [here](https://github.com/ava-labs/precompile-evm/pull/12).
 
@@ -57,9 +57,8 @@ As a few things will be installed into `$GOPATH/bin`, please make sure that `$GO
 
 Download the following prerequisites into your `$GOPATH`:
 
-- Git Clone the repository (Subnet-EVM or Precompile-EVM)
-- Git Clone [AvalancheGo](https://github.com/ava-labs/avalanchego) repository
-- Install [Avalanche Network Runner](/docs/tooling/avalanche-cli)
+- Git Clone the [AvalancheGo](https://github.com/ava-labs/avalanchego) repository. Subnet-EVM is in its `graft/subnet-evm` directory.
+- Install [Avalanche Network Runner](https://github.com/ava-labs/avalanche-network-runner). The deployment step of this tutorial uses it. Its last release is `v1.8.3` (2024-09-10). AvalancheGo now runs local test networks with [tmpnet](/docs/tooling/tmpnet).
 - Install [solc](https://github.com/ethereum/solc-js#usage-on-the-command-line)
 - Install [Node.js and NPM](https://nodejs.org/en/download) For easy copy paste, use the below commands:
 
@@ -71,48 +70,17 @@ cd src/github.com/ava-labs
 
 Clone the repository:
 
-<Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
-<Tab value="Subnet-EVM">
-```bash
-git clone git@github.com:ava-labs/subnet-evm.git
-```
-
-Then run the following commands:
-
 ```bash
 git clone git@github.com:ava-labs/avalanchego.git
 curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
 npm install -g solc
+cd avalanchego/graft/subnet-evm
 ```
-</Tab>
-<Tab value="Precompile-EVM">
-```bash
-git clone git@github.com:ava-labs/precompile-evm.git
-```
-
-Alternatively you can use it as a template repo from github.
-
-Then run the following commands:
-
-```bash
-git clone git@github.com:ava-labs/avalanchego.git
-curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
-npm install -g solc
-```
-</Tab>
-</Tabs>
 
 ## Complete Code
 
 You can inspect example pull request for the complete code.
 
-<Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
-  <Tab value="Subnet-EVM">
-    [Subnet-EVM Hello World Pull Request](https://github.com/ava-labs/subnet-evm/pull/565/)
-  </Tab>
-  <Tab value="Precompile-EVM">
-    [Precompile-EVM Hello World Pull Request](https://github.com/ava-labs/precompile-evm/pull/12/)
-  </Tab>
-</Tabs>
+[Subnet-EVM Hello World branch](https://github.com/ava-labs/subnet-evm/tree/helloworld-official-tutorial-v2) (archived repository, Subnet-EVM `v0.6.0`)
 
 For a full-fledged example, you can also check out the [Reward Manager Precompile](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/contracts/rewardmanager/).

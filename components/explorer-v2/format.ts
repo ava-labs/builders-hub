@@ -20,6 +20,19 @@ export function formatNumber(n: number | undefined): string {
   return n === undefined || n === null ? "—" : n.toLocaleString("en-US");
 }
 
+const COMPACT = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+const COMPACT_2 = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
+
+/** "622.2M", "48K": a figure in its thousands, millions or billions, to one place */
+export function compact(v: number): string {
+  return COMPACT.format(v);
+}
+
+/** "1.69B", "48.25K": the same to two places */
+export function compact2(v: number): string {
+  return COMPACT_2.format(v);
+}
+
 /** nAVAX + a USD/AVAX rate → "$1,234.56". Returns undefined when there is no
  *  rate to apply, so callers can omit the line entirely rather than render a
  *  confident "$0.00" for a price we simply do not have. */
@@ -109,4 +122,41 @@ export function hourLong(d: string | number): string {
   if (Number.isNaN(t.getTime())) return String(d);
   const day = t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   return `${day} · ${String(t.getUTCHours()).padStart(2, "0")}:00 UTC`;
+}
+
+/* An hourly series reads in the viewer's time zone: named in UTC, a western
+   viewer's evening reads as tomorrow. `timeZone` is for tests; unset, the
+   browser's own zone applies. */
+
+/** "Oct 5": an axis tick for an hour, in the viewer's time zone */
+export function localDayShort(d: string | number, timeZone?: string): string {
+  const t = asDate(d);
+  return Number.isNaN(t.getTime()) ? String(d) : t.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone });
+}
+
+/** "Mon, Oct 5 · 20:00 EDT": a tooltip's hour, in the viewer's time zone */
+export function localHourLong(d: string | number, timeZone?: string): string {
+  const t = asDate(d);
+  if (Number.isNaN(t.getTime())) return String(d);
+  const day = t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone });
+  const time = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone, timeZoneName: "short" });
+  return `${day} · ${time}`;
+}
+
+const STAMPS = new Map<string, Intl.DateTimeFormat>();
+
+/** "2026-10-05 20:00:00": a unix time's wall clock in the viewer's time zone, written as a query's rows write theirs */
+export function zoneStamp(unix: number, timeZone?: string): string {
+  let f = STAMPS.get(timeZone ?? "");
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZone });
+    STAMPS.set(timeZone ?? "", f);
+  }
+  const p = Object.fromEntries(f.formatToParts(new Date(unix * 1000)).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+/** "EDT", "UTC", "GMT+5:30": the viewer's time zone at a unix time, by its short name */
+export function zoneName(unix: number, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" }).formatToParts(new Date(unix * 1000)).find((x) => x.type === "timeZoneName")?.value ?? "";
 }

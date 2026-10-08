@@ -15,8 +15,9 @@ import {
 import type { ValidatorP2P, AlertType, ReleaseClassification, L1ValidatorData } from '@/types/validator-alerts';
 import { getL1ChainName } from '@/server/services/l1-chain-metadata';
 import net from 'node:net';
+import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
-const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
+const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const GITHUB_RELEASES_URL = 'https://api.github.com/repos/ava-labs/avalanchego/releases';
 const DEFAULT_L1_FEE_MONTHLY_N_AVAX = Number(process.env.L1_VALIDATOR_FEE_MONTHLY_N_AVAX ?? '1330000000');
 const DEFAULT_L1_FEE_DAILY_N_AVAX = DEFAULT_L1_FEE_MONTHLY_N_AVAX / 30;

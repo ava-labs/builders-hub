@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { BlockDetail, TxSummary } from "@/lib/evm-explorer";
 import { rpcBatch } from "./useHeadStream";
+import { feeWeiOf } from "@/lib/evm-burn";
 
 /* A block straight from the RPC, shaped like the indexer's BlockDetail.
    The indexer trails the chain by seconds to a minute, and the live
@@ -65,7 +66,7 @@ async function fetchRpcBlock(rpcUrl: string, id: string, signal: AbortSignal): P
       value: BigInt(t.value).toString(),
       gasUsed: r ? hex(r.gasUsed) : hex(t.gas),
       success: r ? r.status === "0x1" : true,
-      feeWei: r ? (BigInt(r.gasUsed) * BigInt(r.effectiveGasPrice)).toString() : undefined,
+      feeWei: r ? feeWeiOf(r).toString() : undefined,
       timestamp,
       methodId: t.input && t.input.length >= 10 ? t.input.slice(0, 10).toLowerCase() : "",
     };

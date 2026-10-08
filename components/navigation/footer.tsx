@@ -38,7 +38,7 @@ export function Footer() {
   };
 
   return (
-    <footer className="relative mt-auto border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <footer data-site-footer className="relative mt-auto border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mx-auto max-w-7xl">
         {/* Brand rule */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-6 dark:border-zinc-800 md:px-6">
@@ -79,7 +79,6 @@ export function Footer() {
               <FooterLink href="https://www.avax.network/blog" external>Blog</FooterLink>
               <FooterLink href="https://discord.gg/avax" external>Discord</FooterLink>
               <FooterLink href="https://www.facebook.com/avalancheavax" external>Facebook</FooterLink>
-              <FooterLink href="https://forum.avax.network" external>Forum</FooterLink>
               <FooterLink href="https://www.linkedin.com/company/avalancheavax" external>LinkedIn</FooterLink>
               <FooterLink href="https://medium.com/@avaxdevelopers" external>Medium</FooterLink>
               <FooterLink href="https://t.me/+KDajA4iToKY2ZjBk" external>Telegram</FooterLink>
@@ -90,7 +89,7 @@ export function Footer() {
 
           <FooterSection title="MORE">
             <ul className="flex flex-col gap-2.5">
-              <FooterLink href="https://www.avax.network/legal" external>Legal</FooterLink>
+              <FooterLink href="https://www.avalanche.com/legal/terms-of-use" external>Legal</FooterLink>
               <FooterLink href="/llms-full.txt" external>LLMs</FooterLink>
             </ul>
           </FooterSection>

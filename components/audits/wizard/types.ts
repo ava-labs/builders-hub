@@ -36,7 +36,7 @@ export interface AuditWizardValues {
 // Continue; the rest of the payload is optional by design.
 export const STEP_FIELDS: Record<number, (keyof AuditWizardValues)[]> = {
   0: ["project_name", "website", "description", "deployment_target"],
-  1: ["services", "scope"],
+  1: ["services", "scope", "nsloc"],
   2: ["needed_by"],
   3: ["contact_name", "contact_email"],
 };

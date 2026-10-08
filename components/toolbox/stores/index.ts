@@ -1,5 +1,3 @@
-export { useConsoleBadgeNotificationStore } from './consoleBadgeNotificationStore';
-export type { ConsoleBadgeNotification } from './consoleBadgeNotificationStore';
 export { getCreateChainStore, useCreateChainStore } from './createChainStore';
 export { getL1ListStore, useL1List } from './l1ListStore';
 export type { FaucetThresholds, L1ListItem } from './l1ListStore';

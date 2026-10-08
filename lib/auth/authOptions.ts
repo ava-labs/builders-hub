@@ -4,13 +4,15 @@ import GithubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '../../prisma/prisma';
 import { encode, JWT } from 'next-auth/jwt';
-import { randomInt } from 'crypto';
+import { randomInt, randomUUID } from 'crypto';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
 import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
 import { BadgeCategory } from '@/server/services/badge';
 import type { User as PrismaUser } from '@prisma/client';
 import { normalizeEmail } from '@/lib/utils';
+import { isValidEmail } from '@/lib/email';
+import { tryAdvisoryLock } from '@/lib/db/advisoryLock';
 
 
 declare module 'next-auth' {
@@ -42,31 +44,94 @@ declare module 'next-auth/jwt' {
   }
 }
 
-async function verifyOTP(
+/**
+ * Wrong codes allowed per email. A code has 900,000 values, so without a cap a
+ * script can try them all within one code's 3-minute life. These caps hold a
+ * guesser to 20 tries a day, whichever code is live and however many are sent.
+ */
+const OTP_ATTEMPT_LIMITS = [
+  { windowMs: 15 * 60 * 1000, max: 5 },
+  { windowMs: 24 * 60 * 60 * 1000, max: 20 },
+];
+const OTP_ATTEMPT_TTL_MS = Math.max(...OTP_ATTEMPT_LIMITS.map((limit) => limit.windowMs));
+
+/**
+ * A failed attempt is a VerificationToken row under this prefix, so the cap
+ * needs no schema change. The prefix contains ':', which a valid email cannot
+ * hold, so the rows never collide with a live code's identifier.
+ */
+export const OTP_ATTEMPT_PREFIX = 'otp-attempt:';
+
+export async function verifyOTP(
   email: string,
   code: string
 ): Promise<VerifyOTPResult> {
-  const record = await prisma.verificationToken.findFirst({
-    where: { identifier: email, token: code },
-  });
+  const attemptKey = `${OTP_ATTEMPT_PREFIX}${email}`;
 
-  if (record == null) {
-    return { isValid: false, reason: 'NOT_FOUND' };
-  }
-  if (record.expires < new Date()) {
-    await prisma.verificationToken.delete({
+  return prisma.$transaction(async (tx) => {
+    // One verification per email at a time, so parallel guesses cannot all
+    // read the same failure count. A request that finds the lock taken is
+    // refused without a check: it must not wait (see tryAdvisoryLock), and a
+    // guess that is not checked needs no count.
+    if (!(await tryAdvisoryLock(tx, attemptKey))) {
+      return { isValid: false, reason: 'BUSY' };
+    }
+    const now = Date.now();
+
+    await tx.verificationToken.deleteMany({
+      where: { identifier: attemptKey, expires: { lt: new Date(now) } },
+    });
+    for (const { windowMs, max } of OTP_ATTEMPT_LIMITS) {
+      // Each row expires OTP_ATTEMPT_TTL_MS after its failure, so a row whose
+      // expiry is later than this bound failed within the window.
+      const failures = await tx.verificationToken.count({
+        where: {
+          identifier: attemptKey,
+          expires: { gt: new Date(now + OTP_ATTEMPT_TTL_MS - windowMs) },
+        },
+      });
+      if (failures >= max) {
+        // Burn the live code so that no later guess can reach it.
+        await tx.verificationToken.deleteMany({ where: { identifier: email } });
+        return { isValid: false, reason: 'TOO_MANY_ATTEMPTS' };
+      }
+    }
+
+    const record = await tx.verificationToken.findFirst({
+      where: { identifier: email, token: code },
+    });
+
+    if (record == null || record.token !== code) {
+      // Count a wrong guess only while a code is live. A guess with no live
+      // code cannot succeed, and counting it would let anyone lock an address
+      // out without the owner getting any mail.
+      const live = await tx.verificationToken.count({
+        where: { identifier: email, expires: { gt: new Date(now) } },
+      });
+      if (live > 0) {
+        await tx.verificationToken.create({
+          data: {
+            identifier: attemptKey,
+            token: randomUUID(),
+            expires: new Date(now + OTP_ATTEMPT_TTL_MS),
+          },
+        });
+      }
+      return { isValid: false, reason: 'NOT_FOUND' };
+    }
+    if (record.expires < new Date(now)) {
+      await tx.verificationToken.delete({
+        where: { identifier_token: { identifier: email, token: record.token } },
+      });
+      return { isValid: false, reason: 'EXPIRED' };
+    }
+
+    await tx.verificationToken.delete({
       where: { identifier_token: { identifier: email, token: record.token } },
     });
-    return { isValid: false, reason: 'EXPIRED' };
-  }
-
-  if (record.token !== code) {
-    return { isValid: false, reason: 'INVALID' };
-  }
-  await prisma.verificationToken.delete({
-    where: { identifier_token: { identifier: email, token: record.token } },
+    await tx.verificationToken.deleteMany({ where: { identifier: attemptKey } });
+    return { isValid: true };
   });
-  return { isValid: true };
 }
 
 /**
@@ -116,13 +181,30 @@ export const AuthOptions: NextAuthOptions = {
 
         if (!email) throw new Error('Missing email');
         if (!otp) throw new Error('Missing otp');
+        // A JSON body can carry any value here. Only a 6-digit string may reach
+        // the token lookup, where an object would act as a Prisma filter.
+        if (typeof email !== 'string' || typeof otp !== 'string' || !/^\d{6}$/.test(otp)) {
+          throw new Error('INVALID');
+        }
 
         const normalizedEmail = normalizeEmail(email);
-        const result = await verifyOTP(normalizedEmail, otp);
+        // send-otp mails only valid addresses. Refuse any other identity here
+        // too, including one whose code was mailed before that check existed.
+        if (!isValidEmail(normalizedEmail)) throw new Error('INVALID');
+        let result: VerifyOTPResult;
+        try {
+          result = await verifyOTP(normalizedEmail, otp);
+        } catch (error) {
+          // The message reaches the browser, so keep database errors out of it.
+          console.error('[authorize] verifyOTP failed:', error);
+          throw new Error('Error verifying OTP Code');
+        }
 
         if (!result.isValid) {
           if (result.reason === 'EXPIRED') {
             throw new Error('EXPIRED');
+          } else if (result.reason === 'TOO_MANY_ATTEMPTS') {
+            throw new Error('TOO_MANY_ATTEMPTS');
           } else if (
             result.reason === 'NOT_FOUND' ||
             result.reason === 'INVALID'

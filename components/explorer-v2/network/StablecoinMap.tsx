@@ -5,6 +5,7 @@ import { geoNaturalEarth1, geoPath, type GeoPermissibleObjects } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import { cn } from "@/lib/utils";
+import { compact2 } from "@/components/explorer-v2/format";
 import { HoverReadout, HoverRow } from "@/components/explorer-v2/network/stablecoin-hover";
 
 /* The coverage map: every country a stablecoin on Avalanche answers to,
@@ -46,11 +47,6 @@ function loadTopology() {
   });
   return topologyPromise;
 }
-
-const usdCompact = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 2,
-});
 
 /* a covered country's fill: gray at rest, blue when lit by a cut */
 function coveredFill(lit: Set<string> | null, picked: string | null, id: string): string {
@@ -197,7 +193,7 @@ export function StablecoinMap({
         >
           <HoverReadout
             label={`${tipData.flag} ${tipData.name}`}
-            value={`$${usdCompact.format(tipData.usd)}`}
+            value={`$${compact2(tipData.usd)}`}
           >
             {[...tipData.tokens]
               .sort((a, b) => b.usd - a.usd)
@@ -207,7 +203,7 @@ export function StablecoinMap({
                   key={t.symbol}
                   logo={t.logo}
                   label={t.symbol}
-                  value={`$${usdCompact.format(t.usd)}`}
+                  value={`$${compact2(t.usd)}`}
                   share={
                     tipData.usd > 0 ? `${((t.usd / tipData.usd) * 100).toFixed(1)}%` : undefined
                   }
@@ -216,7 +212,7 @@ export function StablecoinMap({
             {tipData.tokens.length > 5 && (
               <HoverRow
                 label={`+${tipData.tokens.length - 5} more`}
-                value={`$${usdCompact.format(
+                value={`$${compact2(
                   [...tipData.tokens]
                     .sort((a, b) => b.usd - a.usd)
                     .slice(5)

@@ -30,6 +30,11 @@ export interface StatusRow extends TriageRow {
   status: VersionStatus;
 }
 
+/** what the version helpers read of a row, on either roster */
+export interface Versioned {
+  version: string | null;
+}
+
 /* ------------------------------------------------------------------ */
 /* versions                                                            */
 /* ------------------------------------------------------------------ */
@@ -83,6 +88,10 @@ export interface RosterFeedRow {
   delegatorCount: number;
   version?: string;
   connected?: boolean;
+  /** our node's reading of its uptime, percent */
+  uptime?: number;
+  /** unix seconds the validation ends */
+  endTime?: number;
 }
 
 /** the p2p crawler's row: health, and the version from its handshake */
@@ -105,8 +114,14 @@ function toNumber(v: string | number | undefined | null): number | null {
 }
 
 /* The roster says who validates; the crawler adds how each one behaves.
-   The crawler's version wins because it is read from a live handshake. */
-export function buildRows(roster: RosterFeedRow[], crawler: Map<string, CrawlerFeedRow> | null): TriageRow[] {
+   The crawler's version wins because it is read from a live handshake.
+   On a network no crawler watches (rosterOnly: Fuji), the roster's own
+   uptime and end time stand in, and the miss rate stays unknown. */
+export function buildRows(
+  roster: RosterFeedRow[],
+  crawler: Map<string, CrawlerFeedRow> | null,
+  { rosterOnly = false, now = Date.now() }: { rosterOnly?: boolean; now?: number } = {},
+): TriageRow[] {
   return roster.map((v) => {
     const c = crawler?.get(v.nodeId);
     const own = toNumber(v.amountStaked) ?? 0;
@@ -117,8 +132,8 @@ export function buildRows(roster: RosterFeedRow[], crawler: Map<string, CrawlerF
       stake: (c?.total_stake ?? own + delegated) / NANO,
       delegators: v.delegatorCount ?? 0,
       fee: toNumber(v.delegationFee),
-      uptime: c ? c.p50_uptime : null,
-      daysLeft: c ? c.days_left : null,
+      uptime: c ? c.p50_uptime : rosterOnly ? (v.uptime ?? null) : null,
+      daysLeft: c ? c.days_left : rosterOnly && v.endTime ? Math.max(0, Math.floor((v.endTime * 1000 - now) / 86_400_000)) : null,
       missRate: c ? c.miss_rate_14d : null,
       blocks14d: c ? c.block_count_14d : null,
       online: typeof v.connected === "boolean" ? v.connected : null,
@@ -127,7 +142,7 @@ export function buildRows(roster: RosterFeedRow[], crawler: Map<string, CrawlerF
   });
 }
 
-export function withStatus(rows: TriageRow[], target: string): StatusRow[] {
+export function withStatus<R extends Versioned>(rows: R[], target: string): (R & { status: VersionStatus })[] {
   return rows.map((r) => ({ ...r, status: statusOf(r.version, target) }));
 }
 
@@ -157,18 +172,18 @@ export function requiredRelease<T extends ReleaseLike>(releases: T[] | null): T 
 /* Without release data, the newest release with real adoption. The
    highest version present is often a single canary node, and measuring
    the whole network against it reads as a network-wide lag. */
-function adoptedRelease(rows: TriageRow[], minShare = 0.01): string | null {
+function adoptedRelease(rows: Versioned[], minShare = 0.01): string | null {
   const counts = versionCounts(rows);
   const total = rows.filter((r) => r.version).length;
   const ranked = [...counts.keys()].sort((a, b) => compareRelease(b, a));
   return ranked.find((v) => total > 0 && (counts.get(v) ?? 0) / total >= minShare) ?? ranked[0] ?? null;
 }
 
-export function defaultTarget(rows: TriageRow[], releases: ReleaseLike[] | null): string | null {
+export function defaultTarget(rows: Versioned[], releases: ReleaseLike[] | null): string | null {
   return requiredRelease(releases)?.version ?? adoptedRelease(rows);
 }
 
-export function versionCounts(rows: TriageRow[]): Map<string, number> {
+export function versionCounts(rows: Versioned[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const r of rows) if (r.version) counts.set(r.version, (counts.get(r.version) ?? 0) + 1);
   return counts;
@@ -178,7 +193,7 @@ export function versionCounts(rows: TriageRow[]): Map<string, number> {
    the active target always, even while no node runs them yet; then the
    newest releases nodes run, up to the cap, since an old release is never
    an upgrade target. Newest first. */
-export function targetOptions(rows: TriageRow[], releases: ReleaseLike[] | null, active: string | null = null, cap = 6): TargetOption[] {
+export function targetOptions(rows: Versioned[], releases: ReleaseLike[] | null, active: string | null = null, cap = 6): TargetOption[] {
   const counts = versionCounts(rows);
   const required = requiredRelease(releases)?.version ?? null;
   const published = releases?.length ? [...releases].sort((a, b) => compareRelease(b.version, a.version)) : null;
@@ -209,20 +224,22 @@ export type FacetKey = "status" | "version" | "online" | "stake" | "uptime" | "m
 
 export const FACET_KEYS: FacetKey[] = ["status", "version", "online", "stake", "uptime", "miss", "ends", "delegators"];
 
-export interface FacetOption {
+/* The Primary Network roster's row and keys are the defaults; the L1
+   roster (l1-validator-triage.ts) brings its own. */
+export interface FacetOption<R = StatusRow> {
   id: string;
   label: string;
-  test: (r: StatusRow) => boolean;
+  test: (r: R) => boolean;
 }
 
-export interface Facet {
-  key: FacetKey;
+export interface Facet<K extends string = FacetKey, R = StatusRow> {
+  key: K;
   label: string;
-  options: FacetOption[];
+  options: FacetOption<R>[];
 }
 
 /** facet key to the option ids picked in it; the parts AND, the ids in a part OR */
-export type Selection = Partial<Record<FacetKey, string[]>>;
+export type Selection<K extends string = FacetKey> = Partial<Record<K, string[]>>;
 
 /** the facets only the crawler feed can answer */
 export const CRAWLER_FACETS: FacetKey[] = ["uptime", "miss", "ends"];
@@ -253,7 +270,8 @@ export const ENDS_OPTIONS: FacetOption[] = [
   { id: "365", label: "365d+", test: (r) => r.daysLeft !== null && r.daysLeft >= 365 },
 ];
 
-export function facetsFor(rows: TriageRow[]): Facet[] {
+/** the facets every roster opens with: the status against the target, and the release */
+export function versionFacets<R extends Versioned & { status: VersionStatus }>(rows: Versioned[]): Facet<"status" | "version", R>[] {
   const versions = [...versionCounts(rows).keys()].sort((a, b) => compareRelease(b, a));
   return [
     {
@@ -269,10 +287,16 @@ export function facetsFor(rows: TriageRow[]): Facet[] {
       key: "version",
       label: "Version",
       options: [
-        ...versions.map((v) => ({ id: v, label: v, test: (r: StatusRow) => r.version === v })),
-        { id: NO_VERSION, label: "Unknown", test: (r: StatusRow) => r.version === null },
+        ...versions.map((v) => ({ id: v, label: v, test: (r: R) => r.version === v })),
+        { id: NO_VERSION, label: "Unknown", test: (r: R) => r.version === null },
       ],
     },
+  ];
+}
+
+export function facetsFor(rows: TriageRow[]): Facet[] {
+  return [
+    ...versionFacets<StatusRow>(rows),
     {
       key: "online",
       label: "Connection",
@@ -352,7 +376,7 @@ function matchesQuery(r: StatusRow, q: Query, ids: Set<string> | null): boolean 
 }
 
 /** the pasted NodeIDs that are not in the current set */
-export function missingIds(rows: TriageRow[], q: Query): string[] {
+export function missingIds(rows: { nodeId: string }[], q: Query): string[] {
   if (!q.ids) return [];
   const known = new Set(rows.map((r) => r.nodeId));
   return q.ids.filter((id) => !known.has(id));
@@ -362,7 +386,7 @@ export function missingIds(rows: TriageRow[], q: Query): string[] {
 /* filtering and counts                                                */
 /* ------------------------------------------------------------------ */
 
-function matchesFacets(r: StatusRow, facets: Facet[], sel: Selection, skip?: FacetKey): boolean {
+function matchesFacets<R, K extends string>(r: R, facets: Facet<K, R>[], sel: Selection<K>, skip?: K): boolean {
   for (const f of facets) {
     if (f.key === skip) continue;
     const picked = sel[f.key];
@@ -372,22 +396,21 @@ function matchesFacets(r: StatusRow, facets: Facet[], sel: Selection, skip?: Fac
   return true;
 }
 
-export function applyFilter(rows: StatusRow[], facets: Facet[], sel: Selection, q: Query): StatusRow[] {
-  const ids = q.ids ? new Set(q.ids) : null;
-  return rows.filter((r) => matchesQuery(r, q, ids) && matchesFacets(r, facets, sel));
+/** the rows the search finds that pass every part of the filter */
+export function filterRows<R, K extends string>(rows: R[], facets: Facet<K, R>[], sel: Selection<K>, found: (r: R) => boolean): R[] {
+  return rows.filter((r) => found(r) && matchesFacets(r, facets, sel));
 }
 
 /* Each option's count is what the roster would hold if it were ticked:
    every other part of the filter applies, its own facet does not. */
-export function facetCounts(
-  rows: StatusRow[],
-  facets: Facet[],
-  sel: Selection,
-  q: Query,
-): Record<FacetKey, Record<string, number>> {
-  const ids = q.ids ? new Set(q.ids) : null;
-  const searched = rows.filter((r) => matchesQuery(r, q, ids));
-  const out = {} as Record<FacetKey, Record<string, number>>;
+export function optionCounts<R, K extends string>(
+  rows: R[],
+  facets: Facet<K, R>[],
+  sel: Selection<K>,
+  found: (r: R) => boolean,
+): Record<K, Record<string, number>> {
+  const searched = rows.filter(found);
+  const out = {} as Record<K, Record<string, number>>;
   for (const f of facets) {
     const pool = searched.filter((r) => matchesFacets(r, facets, sel, f.key));
     out[f.key] = Object.fromEntries(f.options.map((o) => [o.id, pool.filter(o.test).length]));
@@ -395,19 +418,33 @@ export function facetCounts(
   return out;
 }
 
-export function isFiltering(sel: Selection, q: Query): boolean {
-  return !!q.ids || !!q.text || Object.values(sel).some((v) => !!v?.length);
+/** the search as a test of one Primary Network row */
+function finder(q: Query): (r: StatusRow) => boolean {
+  const ids = q.ids ? new Set(q.ids) : null;
+  return (r) => matchesQuery(r, q, ids);
+}
+
+export function applyFilter(rows: StatusRow[], facets: Facet[], sel: Selection, q: Query): StatusRow[] {
+  return filterRows(rows, facets, sel, finder(q));
+}
+
+export function facetCounts(rows: StatusRow[], facets: Facet[], sel: Selection, q: Query): Record<FacetKey, Record<string, number>> {
+  return optionCounts(rows, facets, sel, finder(q));
+}
+
+export function isFiltering<K extends string>(sel: Selection<K>, q: Query): boolean {
+  return !!q.ids || !!q.text || (Object.values(sel) as (string[] | undefined)[]).some((v) => !!v?.length);
 }
 
 /** tick or untick one option */
-export function toggleOption(sel: Selection, key: FacetKey, id: string): Selection {
+export function toggleOption<K extends string>(sel: Selection<K>, key: K, id: string): Selection<K> {
   const cur = sel[key] ?? [];
   const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
   return { ...sel, [key]: next.length ? next : undefined };
 }
 
 /** set one facet to exactly these options, or clear it when it already is */
-export function cutTo(sel: Selection, key: FacetKey, ids: string[]): Selection {
+export function cutTo<K extends string>(sel: Selection<K>, key: K, ids: string[]): Selection<K> {
   return { ...sel, [key]: sameIds(sel[key], ids) ? undefined : ids };
 }
 
@@ -421,11 +458,11 @@ function sameIds(a: string[] | undefined, b: string[] | undefined): boolean {
 /* triage presets: the questions the page is asked most                */
 /* ------------------------------------------------------------------ */
 
-export interface Preset {
+export interface Preset<K extends string = FacetKey> {
   id: string;
   label: string;
   title: string;
-  selection: Selection;
+  selection: Selection<K>;
 }
 
 export const PRESETS: Preset[] = [
@@ -462,8 +499,9 @@ export const PRESETS: Preset[] = [
 ];
 
 /** a preset is on when the facets are exactly its selection */
-export function presetActive(p: Preset, sel: Selection): boolean {
-  return FACET_KEYS.every((k) => sameIds(sel[k], p.selection[k]));
+export function presetActive<K extends string>(p: Preset<K>, sel: Selection<K>): boolean {
+  const keys = new Set([...Object.keys(sel), ...Object.keys(p.selection)]) as Set<K>;
+  return [...keys].every((k) => sameIds(sel[k], p.selection[k]));
 }
 
 /* ------------------------------------------------------------------ */
@@ -472,8 +510,8 @@ export function presetActive(p: Preset, sel: Selection): boolean {
 
 export type SortKey = "stake" | "version" | "delegators" | "fee" | "uptime" | "daysLeft" | "missRate";
 
-export interface Sort {
-  key: SortKey;
+export interface Sort<S extends string = SortKey> {
+  key: S;
   dir: 1 | -1;
 }
 
@@ -519,14 +557,15 @@ export function sortRows<T extends TriageRow>(rows: T[], sort: Sort): T[] {
 /* the URL form                                                        */
 /* ------------------------------------------------------------------ */
 
-export interface TriageState {
+export interface TriageState<K extends string = FacetKey, S extends string = SortKey> {
   /** the target the reader picked; null follows the default */
   target: string | null;
   q: string;
-  selection: Selection;
-  sort: Sort;
+  selection: Selection<K>;
+  sort: Sort<S>;
 }
 
+/** a facet option's id in a URL */
 const TOKEN = /^[A-Za-z0-9.+-]{1,24}$/;
 const BASE58_ID = /^[1-9A-HJ-NP-Za-km-z]{20,60}$/;
 const MAX_Q = 2000;
@@ -546,42 +585,60 @@ export function linkable(q: string): boolean {
 }
 const RELEASE = /^\d+\.\d+\.\d+$/;
 
-export function readState(params: URLSearchParams): TriageState {
-  const selection: Selection = {};
-  for (const key of FACET_KEYS) {
-    const ids = (params.get(key) ?? "").split(",").filter((id) => TOKEN.test(id));
-    if (ids.length) selection[key] = [...new Set(ids)];
+/* A roster's URL form, from its facet and sort keys and the sort it
+   opens on (which the URL leaves out). `token` is the shape an option
+   id must have to be read back. */
+export function triageUrl<K extends string, S extends string>(facetKeys: readonly K[], sortKeys: readonly S[], initial: Sort<S>, token = TOKEN) {
+  function read(params: URLSearchParams): TriageState<K, S> {
+    const selection: Selection<K> = {};
+    for (const key of facetKeys) {
+      const ids = (params.get(key) ?? "").split(",").filter((id) => token.test(id));
+      if (ids.length) selection[key] = [...new Set(ids)];
+    }
+    const target = params.get("target");
+    const sortKey = params.get("sort") as S | null;
+    const nodes = (params.get("nodes") ?? "").split(",").filter((id) => BASE58_ID.test(id));
+    return {
+      target: target && RELEASE.test(target) ? target : null,
+      q: nodes.length ? nodes.map((id) => `NodeID-${id}`).join(" ") : (params.get("q") ?? "").slice(0, MAX_Q),
+      selection,
+      sort: sortKey && sortKeys.includes(sortKey) ? { key: sortKey, dir: params.get("dir") === "asc" ? 1 : -1 } : initial,
+    };
   }
-  const target = params.get("target");
-  const sortKey = params.get("sort") as SortKey | null;
-  const nodes = (params.get("nodes") ?? "").split(",").filter((id) => BASE58_ID.test(id));
-  return {
-    target: target && RELEASE.test(target) ? target : null,
-    q: nodes.length ? nodes.map((id) => `NodeID-${id}`).join(" ") : (params.get("q") ?? "").slice(0, MAX_Q),
-    selection,
-    sort: sortKey && SORT_KEYS.includes(sortKey) ? { key: sortKey, dir: params.get("dir") === "asc" ? 1 : -1 } : DEFAULT_SORT,
-  };
+
+  /** the page's params with the triage state written in; other params are kept */
+  function write(params: URLSearchParams, s: TriageState<K, S>): URLSearchParams {
+    const next = new URLSearchParams(params);
+    for (const key of [...facetKeys, "target", "q", "nodes", "sort", "dir"]) next.delete(key);
+    if (s.target) next.set("target", s.target);
+    for (const key of facetKeys) {
+      const ids = s.selection[key];
+      if (ids?.length) next.set(key, ids.join(","));
+    }
+    const q = s.q.trim();
+    const nodes = nodesParam(q);
+    if (nodes !== null) {
+      if (nodes.length <= MAX_NODES) next.set("nodes", nodes);
+    } else if (q && q.length <= MAX_Q) next.set("q", q);
+    if (s.sort.key !== initial.key || s.sort.dir !== initial.dir) {
+      next.set("sort", s.sort.key);
+      next.set("dir", s.sort.dir === 1 ? "asc" : "desc");
+    }
+    return next;
+  }
+
+  return { read, write };
+}
+
+const PRIMARY_URL = triageUrl(FACET_KEYS, SORT_KEYS, DEFAULT_SORT);
+
+export function readState(params: URLSearchParams): TriageState {
+  return PRIMARY_URL.read(params);
 }
 
 /** the page's params with the triage state written in; other params are kept */
 export function writeState(params: URLSearchParams, s: TriageState): URLSearchParams {
-  const next = new URLSearchParams(params);
-  for (const key of [...FACET_KEYS, "target", "q", "nodes", "sort", "dir"]) next.delete(key);
-  if (s.target) next.set("target", s.target);
-  for (const key of FACET_KEYS) {
-    const ids = s.selection[key];
-    if (ids?.length) next.set(key, ids.join(","));
-  }
-  const q = s.q.trim();
-  const nodes = nodesParam(q);
-  if (nodes !== null) {
-    if (nodes.length <= MAX_NODES) next.set("nodes", nodes);
-  } else if (q && q.length <= MAX_Q) next.set("q", q);
-  if (s.sort.key !== DEFAULT_SORT.key || s.sort.dir !== DEFAULT_SORT.dir) {
-    next.set("sort", s.sort.key);
-    next.set("dir", s.sort.dir === 1 ? "asc" : "desc");
-  }
-  return next;
+  return PRIMARY_URL.write(params, s);
 }
 
 /* ------------------------------------------------------------------ */
@@ -598,12 +655,18 @@ export function summarize(rows: TriageRow[]): { count: number; stake: number; de
   return { count: rows.length, stake, delegators };
 }
 
-const STATUS_WORD: Record<VersionStatus, string> = { current: "on_target", behind: "behind", unknown: "unknown" };
+/** a version status as a CSV word */
+export const STATUS_WORD: Record<VersionStatus, string> = { current: "on_target", behind: "behind", unknown: "unknown" };
 
 function csvCell(v: string | number | null): string {
   if (v === null) return "";
   const s = String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** CSV text: the head, then one line per row */
+export function csvOf(head: string[], lines: (string | number | null)[][]): string {
+  return [head.join(","), ...lines.map((l) => l.map(csvCell).join(","))].join("\n") + "\n";
 }
 
 export function toCsv(rows: StatusRow[], target: string): string {
@@ -620,8 +683,9 @@ export function toCsv(rows: StatusRow[], target: string): string {
     "miss_rate_14d_pct",
     "public_ip",
   ];
-  const lines = rows.map((r) =>
-    [
+  return csvOf(
+    head,
+    rows.map((r) => [
       r.nodeId,
       r.version,
       STATUS_WORD[r.status],
@@ -633,9 +697,6 @@ export function toCsv(rows: StatusRow[], target: string): string {
       r.daysLeft,
       r.missRate === null ? null : Number(r.missRate.toFixed(2)),
       r.ip,
-    ]
-      .map(csvCell)
-      .join(","),
+    ]),
   );
-  return [head.join(","), ...lines].join("\n") + "\n";
 }

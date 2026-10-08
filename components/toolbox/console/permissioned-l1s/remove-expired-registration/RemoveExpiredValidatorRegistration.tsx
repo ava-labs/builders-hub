@@ -15,11 +15,11 @@ import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorMan
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import {
-  getRegistrationJustification,
   newL1ValidatorRegistrationMessage,
   newWarpMessage,
   packWarpIntoAccessList,
 } from '@avalanche-sdk/interchain/warp';
+import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -368,7 +368,7 @@ function RemoveExpiredValidatorRegistration() {
       if (!walletClient || !viemChain || !walletClient.account) throw new Error('Wallet/chain not initialized');
       if (!subnetId) throw new Error('Subnet ID required');
 
-      const justification = await getRegistrationJustification(validationId, subnetId, chainPublicClient!);
+      const justification = await findRegistrationJustification(validationId, subnetId, chainPublicClient!);
       if (!justification) throw new Error('Could not build justification for this validation ID');
 
       const innerRemovalMsg = newL1ValidatorRegistrationMessage(hexToCB58(validationId as `0x${string}`), false);

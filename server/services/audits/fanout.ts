@@ -120,6 +120,7 @@ export function toFanoutRequest(row: FanoutRow): FanoutRequest {
 export async function submitRequestForReview(
   requestId: string,
   userId: string,
+  shareContactHandle = false,
 ): Promise<SubmitResult> {
   const outcome = await prisma.$transaction(async (tx): Promise<SubmitOutcome> => {
     // Owner + draft pinned in the where clause: nobody submits someone
@@ -142,6 +143,11 @@ export async function submitRequestForReview(
         submitted_at: new Date(),
         // Consent is given by sending, so it carries the submission time.
         contact_consent_at: new Date(),
+        // The Telegram share is chosen at sending too, and needs a handle on
+        // the stored row. Null otherwise, so a resubmit without the tick
+        // clears the stamp of an earlier submit.
+        contact_handle_shared_at:
+          shareContactHandle && row.contact_handle?.trim() ? new Date() : null,
         // Store the normalized values the gate produced, not the raw draft:
         // the email lowercased, and the URLs with their scheme filled in, so
         // a bare "avax.network" is not what firms end up clicking.

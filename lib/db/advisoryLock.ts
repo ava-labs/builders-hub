@@ -36,3 +36,19 @@ export async function acquireAdvisoryLock(
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
   }
 }
+
+/**
+ * Takes the lock only if it is free, and reports whether it did.
+ *
+ * Use it on unauthenticated paths that anyone can flood. A waiter on
+ * acquireAdvisoryLock holds its pooled connection until the lock frees, and
+ * Prisma's transaction timeout does not cancel the wait, so a flood on one
+ * key can use up the pool. This call never waits.
+ */
+export async function tryAdvisoryLock(
+  tx: Prisma.TransactionClient,
+  key: string,
+): Promise<boolean> {
+  const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(hashtext(${key})) AS locked`;
+  return locked;
+}

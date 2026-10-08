@@ -11,9 +11,10 @@ import {
 } from '@/server/services/validator-alert-check';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
+import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
-const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
+const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
 
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
     }
 
-    // Verify the node exists — check Primary Network and/or L1 depending on request.
+    // Verify the node exists: check Primary Network and/or L1 depending on request.
     let detectedSubnetId = 'primary';
     let validators: ValidatorP2P[] = [];
     let primaryLookupAvailable = false;
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
       if (!foundOnL1) {
         if (wantsSpecificL1) {
           return NextResponse.json(
-            { error: `Validator ${body.node_id} not found in L1 subnet ${preferredSubnetId}.` },
+            { error: `Node ${body.node_id} is not a validator of L1 ${preferredSubnetId}.` },
             { status: 404 }
           );
         }
@@ -228,7 +229,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (err) {
-      // Non-fatal — the cron will catch it on the next run
+      // Non-fatal: the cron will catch it on the next run
       console.error('Immediate alert check failed (non-fatal):', err);
     }
 

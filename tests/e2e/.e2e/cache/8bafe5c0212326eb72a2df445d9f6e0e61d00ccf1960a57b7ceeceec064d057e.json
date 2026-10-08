@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-03T15:22:36.654Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"06 Interchain Messaging 30 lessons · 2 h\" in \"06\"",
+        "target": {
+          "role": "link",
+          "name": "06 Interchain Messaging 30 lessons · 2 h",
+          "within": "06"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/agent-smoke.e2e.ts::agent%20opens%20the%20Interchain%20Messaging%20course%20from%20the%20Academy",
+      "targetId": "desktop",
+      "instructionDigest": "934212bc7183f9b37e329bd69d94bbeb62113fb33935e0e406c6f1de647a7261"
+    },
+    "summary": "Tapped \"06 Interchain Messaging\" on /academy. The course landing page opened at /academy/avalanche-l1/interchain-messaging with the heading \"Welcome to the course\". It shows 6 modules, 30 lessons and a \"Start course\" link.",
+    "startPath": "/academy",
+    "endPath": "/academy/avalanche-l1/interchain-messaging",
+    "endAnchors": [
+      {
+        "text": "Fundamentals"
+      },
+      {
+        "text": "L1 Development"
+      },
+      {
+        "text": "Interoperability"
+      },
+      {
+        "text": "VM Customization"
+      },
+      {
+        "text": "Applications"
+      },
+      {
+        "role": "link",
+        "name": "Welcome to the course"
+      },
+      {
+        "role": "link",
+        "name": "Interoperability between blockchain"
+      },
+      {
+        "role": "link",
+        "name": "Source, Message and Destination"
+      }
+    ],
+    "endWaitMs": 13649
+  }
+}

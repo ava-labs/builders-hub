@@ -627,7 +627,10 @@ export { GenesisBuilderInner };
 export default function GenesisBuilder(props: GenesisBuilderProps) {
   return (
     <GenesisHighlightProvider>
-      <GenesisBuilderInner {...props} />
+      {/* Standalone use has no Container, so set its mount marker here */}
+      <div data-console-tool="Genesis Builder">
+        <GenesisBuilderInner {...props} />
+      </div>
     </GenesisHighlightProvider>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { LiveDot, SectionHeader } from "@/components/explorer-v2/ui";
+import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   fmtCompact,
@@ -44,36 +45,25 @@ const SPARK_MAX_POINTS = 60;
 type GasDay = { d: string; utilPct: number; gas: number };
 function useGasHistory(chainId: string, n: number) {
   const days = 2 * n <= 7 ? 7 : 2 * n <= 30 ? 30 : 2 * n <= 90 ? 90 : 365;
-  const [out, setOut] = useState<Record<"util" | "gas", { pair: WindowPair; series: number[] }> | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    setOut(null);
-    fetch(`/api/gas-history/${chainId}?days=${days}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { daily?: GasDay[] } | null) => {
-        const today = new Date().toISOString().slice(0, 10);
-        const d = data?.daily?.filter((p) => p.d < today);
-        if (cancelled || !d || !d.length) return;
-        const cur = d.slice(-n);
-        const prev = d.slice(-2 * n, -n);
-        const read = (pick: (p: GasDay) => number, mode: "sum" | "avg") => {
-          const take = (arr: GasDay[]) => {
-            const total = arr.reduce((s, p) => s + pick(p), 0);
-            return mode === "sum" ? total : total / arr.length;
-          };
-          return {
-            pair: { cur: take(cur), prev: prev.length === n ? take(prev) : null },
-            series: cur.map(pick),
-          };
-        };
-        setOut({ util: read((p) => p.utilPct, "avg"), gas: read((p) => p.gas, "sum") });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
+  const data = useRememberedJson<{ daily?: GasDay[] }>(`/api/gas-history/${chainId}?days=${days}`);
+  return useMemo((): Record<"util" | "gas", { pair: WindowPair; series: number[] }> | null => {
+    const today = new Date().toISOString().slice(0, 10);
+    const d = data?.daily?.filter((p) => p.d < today);
+    if (!d || !d.length) return null;
+    const cur = d.slice(-n);
+    const prev = d.slice(-2 * n, -n);
+    const read = (pick: (p: GasDay) => number, mode: "sum" | "avg") => {
+      const take = (arr: GasDay[]) => {
+        const total = arr.reduce((s, p) => s + pick(p), 0);
+        return mode === "sum" ? total : total / arr.length;
+      };
+      return {
+        pair: { cur: take(cur), prev: prev.length === n ? take(prev) : null },
+        series: cur.map(pick),
+      };
     };
-  }, [chainId, days, n]);
-  return out;
+    return { util: read((p) => p.utilPct, "avg"), gas: read((p) => p.gas, "sum") };
+  }, [data, n]);
 }
 
 /* the native token's day-by-day price and market cap for the live row's
@@ -83,24 +73,12 @@ function useMarketHistory(chainId: string, n: number, wanted: boolean) {
   // the upstream stops at a year, so the all-time clock traces the last
   // year; the day clock gets hourly points
   const days = !wanted ? null : n <= 1 ? "1" : n <= 7 ? "7" : n <= 30 ? "30" : n <= 90 ? "90" : "365";
-  const [hist, setHist] = useState<Record<MarketSeries, number[]> | null>(null);
-  useEffect(() => {
-    if (!days) return;
-    let cancelled = false;
-    setHist(null);
-    fetch(`/api/market-history/${chainId}?days=${days}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { prices?: number[]; marketCaps?: number[] } | null) => {
-        if (cancelled || !data?.prices?.length) return;
-        const cut = (arr: number[]) => (n <= 1 ? arr : arr.slice(-n));
-        setHist({ price: cut(data.prices), marketCap: cut(data.marketCaps ?? []) });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [chainId, days, n]);
-  return hist;
+  const data = useRememberedJson<{ prices?: number[]; marketCaps?: number[] }>(days ? `/api/market-history/${chainId}?days=${days}` : null);
+  return useMemo((): Record<MarketSeries, number[]> | null => {
+    if (!data?.prices?.length) return null;
+    const cut = (arr: number[]) => (n <= 1 ? arr : arr.slice(-n));
+    return { price: cut(data.prices), marketCap: cut(data.marketCaps ?? []) };
+  }, [data, n]);
 }
 
 /** the clock's window of a daily series, oldest first */
@@ -141,21 +119,9 @@ function bucket(values: number[], max: number): number[] {
 const BAND_PX = 40;
 const BAND_H = 40;
 
-/** where a series ends inside the band, as a share of the band's height:
- *  the block's right face fills to this level so the trace reads as a
- *  solid passing through the box, not a picture on its front */
-export function bandLevel(values: number[] | undefined): number | null {
-  if (!values || values.length < 2) return null;
-  const pts = bucket(values, SPARK_MAX_POINTS);
-  const min = Math.min(...pts);
-  const span = Math.max(...pts) - min || 1;
-  return ((pts[pts.length - 1] - min) / span) * ((BAND_H - 4) / BAND_H) + 1 / BAND_H;
-}
-
 /** the trace as the block's liquid: the area under the line filled in
- *  the tape's block gray, one flat tone, a crisp top edge, the level
- *  carried onto the shaded right face. The same vessel the block tape
- *  draws, poured to a curve instead of a line. */
+ *  the tape's block gray, one flat tone, a crisp top edge. The same
+ *  vessel the block tape draws, poured to a curve instead of a line. */
 export function SparkBand({ values }: { values: number[] }) {
   const pts = bucket(values, SPARK_MAX_POINTS);
   if (pts.length < 2) return null;
@@ -179,18 +145,15 @@ export function SparkBand({ values }: { values: number[] }) {
 const DEPTH = "0.5rem";
 
 /** One reading as an extruded block: a lit top face, a shaded right
- *  face, the front face holding the content. `side` pours into the right
- *  face from the bottom, so a trace inside reads as a solid passing
- *  through the box. The whole block lifts on hover when it is a door. */
+ *  face, the front face holding the content. The faces are the frame and
+ *  carry no data: a series drawn onto the right face reads as a mark cut
+ *  by the frame. The whole block lifts on hover when it is a door. */
 export function ReadoutBlock({
   href,
-  side,
   className,
   children,
 }: {
   href?: string;
-  /** what fills the right face, anchored to its bottom */
-  side?: React.ReactNode;
   /** the front face's layout and padding */
   className?: string;
   children: React.ReactNode;
@@ -210,11 +173,9 @@ export function ReadoutBlock({
       {/* right face, shaded */}
       <span
         aria-hidden
-        className="absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] overflow-hidden border border-l-0 border-zinc-200 bg-zinc-200 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900"
+        className="absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] border border-l-0 border-zinc-200 bg-zinc-200 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900"
         style={{ width: DEPTH }}
-      >
-        {side}
-      </span>
+      />
       {href ? (
         <Link href={href} className={cn(face, "hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
           {children}
@@ -226,17 +187,6 @@ export function ReadoutBlock({
   );
 }
 
-/** the trace's end level carried onto the right face */
-export function SideLevel({ level }: { level: number | null }) {
-  if (level === null) return null;
-  return (
-    <span
-      className="absolute inset-x-0 bottom-0 border-t border-zinc-700/60 bg-[#A2AFB2]/70 dark:border-zinc-300/60 dark:bg-[#A2AFB2]/50"
-      style={{ height: Math.round(level * BAND_PX) }}
-    />
-  );
-}
-
 /* the readings' shared voices */
 export const LABEL = "font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400";
 export const FIGURE =
@@ -244,6 +194,18 @@ export const FIGURE =
 export const FIG_UNIT = "ml-1 font-mono text-[12px] font-normal tracking-normal text-zinc-400 dark:text-zinc-500";
 export const SUB = "font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
 export const BLOCK_FACE = "items-start gap-3 px-5 pb-12 pt-3 md:px-6";
+
+/** a long figure, such as a chain height on a phone, shrinks to its
+ *  block's width instead of running under the edge. The text column is
+ *  the container. In FIGURE's font a digit takes about 0.62 em, a capital
+ *  or % 0.8 em and a comma or point 0.3 em; a unit in FIG_UNIT's 12 px
+ *  mono takes about 7.3 px a character after its 4 px margin. */
+function fitFigure(value: React.ReactNode, unit?: string): React.CSSProperties | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  const em = [...value].reduce((sum, ch) => sum + (/[,.:]/.test(ch) ? 0.3 : /[A-Z%]/.test(ch) ? 0.8 : 0.62), 0);
+  const unitPx = unit ? 4 + unit.length * 7.3 : 0;
+  return { fontSize: `min(22px, calc((100cqi - ${unitPx}px) / ${em.toFixed(2)}))` };
+}
 
 /* The live readout: what is true this second, as a row of blocks. It
    sits between the search and the live boards, so the page reads:
@@ -267,12 +229,12 @@ export function LiveReadoutAt({ chainId, cells, days }: { chainId: string; cells
         const spark = c.values ?? (c.series ? market?.[c.series] : undefined);
         const move = c.series ? windowMove(c, n, market?.[c.series]) : null;
         return (
-          <ReadoutBlock key={c.label} href={c.href} side={<SideLevel level={bandLevel(spark)} />} className={BLOCK_FACE}>
+          <ReadoutBlock key={c.label} href={c.href} className={BLOCK_FACE}>
             {c.live && <LiveDot className="mt-1.5 shrink-0" />}
-            <span className="relative z-10 flex min-w-0 flex-col gap-1">
+            <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-1 @container">
               <span className={LABEL}>{c.label}</span>
               <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                <span className={FIGURE}>
+                <span className={FIGURE} style={fitFigure(c.value, c.unit)}>
                   {c.value}
                   {c.unit && <span className={FIG_UNIT}>{c.unit}</span>}
                 </span>
@@ -410,7 +372,7 @@ export function EvmOverviewStats({
     const delta = pctOf(p);
     const spark = opts.spark && opts.spark.length >= 2 ? opts.spark : undefined;
     return (
-      <ReadoutBlock key={label} href={href} side={<SideLevel level={bandLevel(spark)} />} className={BLOCK_FACE}>
+      <ReadoutBlock key={label} href={href} className={BLOCK_FACE}>
         <span className="relative z-10 flex min-w-0 flex-col gap-1.5">
           <span className={LABEL}>{label}</span>
           <span className={cn(FIGURE, "truncate")}>
@@ -441,7 +403,8 @@ export function EvmOverviewStats({
       <SectionHeader
         label="Chain Stats"
         action={<span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">{windowLabel}
-            {span && <span className="font-normal tracking-[0.08em]"> · {span}</span>}
+            {/* the dates would push the label out on a phone; the window's name is enough there */}
+            {span && <span className="hidden font-normal tracking-[0.08em] sm:inline"> · {span}</span>}
           </span>}
       />
       <div className="grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2 lg:grid-cols-4">

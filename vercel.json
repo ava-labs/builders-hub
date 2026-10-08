@@ -1,4 +1,5 @@
 {
+  "buildCommand": "yarn build:remote && node ./scripts/build-with-typecheck.mjs && yarn update-index",
   "crons": [
     {
       "path": "/api/validator-alerts/check",
@@ -7,10 +8,6 @@
     {
       "path": "/api/verify/cleanup",
       "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/explorer/query/warm",
-      "schedule": "30 5 * * *"
     }
   ],
   "functions": {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChartBoard } from "@/components/explorer-v2/ui";
@@ -8,7 +8,9 @@ import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { StackBlock, type StackCol, type StackLayer } from "@/components/explorer-v2/gas/instruments";
 import { useNarrow } from "@/components/explorer-v2/evm/query/motion";
+import { useRememberedJson } from "@/components/explorer-v2/page-data";
 import { fmtBurn } from "./token-live";
+import { priceHistoryUrl } from "./network-reads";
 
 /* The token page's instruments: where the 720M cap sits, what was
    issued, what each chain has burned, and the fees burned on the page
@@ -24,22 +26,9 @@ export const usdOf = (v: number, price: number) => (price > 0 ? `$${fmtCompact(v
 /* Price history for the price readout's trace, on the page clock       */
 
 export function usePriceHistory(n: number): number[] | undefined {
-  // the upstream stops at a year; the day clock gets hourly points
-  const days = n <= 1 ? "1" : n <= 7 ? "7" : n <= 30 ? "30" : n <= 90 ? "90" : "365";
-  const [prices, setPrices] = useState<number[] | undefined>(undefined);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/market-history/43114?days=${days}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { prices?: number[] } | null) => {
-        if (!cancelled && data?.prices?.length) setPrices(n <= 1 ? data.prices : data.prices.slice(-n));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [days, n]);
-  return prices;
+  // a window read before opens from memory while it is read again
+  const data = useRememberedJson<{ prices?: number[] }>(priceHistoryUrl(n));
+  return useMemo(() => (data?.prices?.length ? (n <= 1 ? data.prices : data.prices.slice(-n)) : undefined), [data, n]);
 }
 
 /* ------------------------------------------------------------------ */
@@ -126,7 +115,7 @@ export function SupplyBoard({ circulating, staked, locked, burned }: { circulati
     { key: "staked", label: "Staked", value: staked, tone: "bg-zinc-800 dark:bg-zinc-200", href: "/explorer/mainnet/p-chain/staking" },
     { key: "locked", label: "Locked", value: locked, tone: "bg-zinc-500 dark:bg-zinc-500" },
     { key: "liquid", label: "Liquid", value: Math.max(0, circulating - staked - locked), tone: "bg-[#A2AFB2]" },
-    { key: "unissued", label: "Not yet issued", value: Math.max(0, supply - circulating), tone: "bg-[#A2AFB2]/35" },
+    { key: "unissued", label: "Not yet minted", value: Math.max(0, supply - circulating), tone: "bg-[#A2AFB2]/35" },
     { key: "burned", label: "Burned", value: burned, tone: "bg-[#E6212F]" },
   ];
   return (
@@ -151,7 +140,7 @@ export function IssuedBoard({ genesis, rewards, circulating, burned }: { genesis
   ];
   return (
     <ChartBoard
-      label="Issued"
+      label="Minted"
       action={
         <span className="font-mono text-[10px] tabular-nums tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
           {avax(issued)} = {avax(circulating)} circulating + {avax(burned)} burned
@@ -220,9 +209,20 @@ export function BurnBoard({ c, p, x, sinceOpen = null }: { c: number; p: number;
 
 export interface FeeBucket {
   date: string;
+  /** the bucket's whole burn, today's partial share included */
   cChainFees: number;
   icmFees: number;
+  /** the part of cChainFees burned today, which is not over yet */
+  todayFees?: number;
+  /** the bucket's day, week, or month is still running */
+  partial?: boolean;
 }
+
+/** the burn's red: a stack layer's faces and its key's swatch */
+export const BURN_RED = {
+  faces: ["fill-[#EE5A65] dark:fill-[#B8232F]", "fill-[#F8A5AB] dark:fill-[#D9434E]", "fill-[#C42331] dark:fill-[#7A1119]"],
+  swatch: "bg-[#EE5A65] dark:bg-[#B8232F]",
+} as const;
 
 const BURN_LAYERS: StackLayer[] = [
   {
@@ -232,17 +232,11 @@ const BURN_LAYERS: StackLayer[] = [
     faces: ["fill-[#F6BDC1] dark:fill-[#6E2A30]", "fill-[#FBDDE0] dark:fill-[#8A3B42]", "fill-[#E08E95] dark:fill-[#4E1A1F]"],
     swatch: "bg-[#F6BDC1] dark:bg-[#6E2A30]",
   },
-  {
-    key: "rest",
-    label: "Other",
-    what: "every other C-Chain transaction",
-    faces: ["fill-[#EE5A65] dark:fill-[#B8232F]", "fill-[#F8A5AB] dark:fill-[#D9434E]", "fill-[#C42331] dark:fill-[#7A1119]"],
-    swatch: "bg-[#EE5A65] dark:bg-[#B8232F]",
-  },
+  { key: "rest", label: "Other", what: "every other C-Chain transaction", ...BURN_RED },
 ];
 
 /* the Helicon upgrade: fees follow max(gas used, half the limit) from here */
-const HELICON = "2026-09-22";
+export const HELICON = "2026-09-22";
 
 export function BurnHistory({
   buckets,
@@ -250,6 +244,7 @@ export function BurnHistory({
   dateLabel,
   tickLabel,
   note,
+  running = "day",
   price,
 }: {
   buckets: FeeBucket[];
@@ -259,19 +254,33 @@ export function BurnHistory({
   /** a bucket's date, short, for the axis */
   tickLabel: (date: string) => string;
   note?: string | null;
+  /** what a bucket spans, for the running bucket's words */
+  running?: "day" | "week" | "month";
   price: number;
 }) {
   const cols = useMemo<StackCol[]>(
     () =>
       buckets.map((b) => {
         const icm = Math.min(b.icmFees, b.cChainFees);
-        return { key: b.date, long: dateLabel(b.date), tick: tickLabel(b.date), parts: { icm, rest: b.cChainFees - icm } };
+        const today = b.partial && running === "day";
+        return {
+          key: b.date,
+          long: dateLabel(b.date),
+          tick: today ? "Today" : tickLabel(b.date),
+          partial: b.partial,
+          parts: { icm, rest: b.cChainFees - icm },
+        };
       }),
-    [buckets, dateLabel, tickLabel],
+    [buckets, dateLabel, tickLabel, running],
   );
   // beside the live panel the history stands as tall as it; a phone keeps it short
   const narrow = useNarrow();
-  const all = buckets.reduce((s, b) => s + b.cChainFees, 0);
+  // the headline holds whole days; today's burn so far is said beside it
+  const all = buckets.reduce((s, b) => s + b.cChainFees - (b.todayFees ?? 0), 0);
+  const soFar = buckets.reduce((s, b) => s + (b.todayFees ?? 0), 0);
+  // the span runs to the last bucket that holds a whole day
+  const spanned = buckets.filter((b) => b.cChainFees > (b.todayFees ?? 0) || !b.todayFees);
+  const span = spanned.length > 1 ? `${dateLabel(spanned[0].date)} to ${dateLabel(spanned[spanned.length - 1].date)}` : "";
   // the bucket that holds the upgrade, when the window reaches back past it
   const hIdx = buckets.reduce((at, b, i) => (b.date <= HELICON ? i : at), -1);
   const marker = hIdx > 0 && hIdx < buckets.length ? { key: buckets[hIdx].date, label: "Helicon" } : undefined;
@@ -282,10 +291,11 @@ export function BurnHistory({
       note={note}
       figure={avax(all)}
       unit="AVAX"
-      sub={`${usdOf(all, price) ? `${usdOf(all, price)} · ` : ""}${buckets.length > 1 ? `${dateLabel(buckets[0].date)} to ${dateLabel(buckets[buckets.length - 1].date)}` : ""}`}
+      sub={[usdOf(all, price), span, soFar > 0 ? `today so far ${avax(soFar)} AVAX` : ""].filter(Boolean).join(" · ")}
       cols={cols}
       layers={BURN_LAYERS}
       marker={marker}
+      partialLabel={running === "day" ? "Today, so far" : `This ${running}, so far`}
       height={narrow ? 220 : 340}
       fmt={(v) => `${avax(v)} AVAX`}
       tip={(c) => {
@@ -295,10 +305,13 @@ export function BurnHistory({
             <p className="whitespace-nowrap font-mono text-[10px] text-zinc-500">
               {c.long} · {avax(total)} AVAX{usdOf(total, price) ? ` · ${usdOf(total, price)}` : ""}
             </p>
+            {c.partial && (
+              <p className="whitespace-nowrap font-mono text-[10px] text-zinc-500">So far: the {running} is still running (UTC), not its final burn</p>
+            )}
             {(c.parts.icm ?? 0) > 0 && (
               <p className="whitespace-nowrap font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">ICM {c.parts.icm.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX</p>
             )}
-            <p className="whitespace-nowrap font-mono text-[11px] font-semibold tabular-nums text-[#E6212F]">{total.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX burned</p>
+            <p className="whitespace-nowrap font-mono text-[11px] font-semibold tabular-nums text-[#E6212F]">{total.toLocaleString("en-US", { maximumFractionDigits: 2 })} AVAX burned{c.partial ? " so far" : ""}</p>
           </>
         );
       }}

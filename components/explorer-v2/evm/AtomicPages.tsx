@@ -17,8 +17,9 @@ import { usePrice, usdOfWei } from "@/components/explorer-v2/evm/hooks";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { formatNumber, formatTime, timeAgo, truncate as truncFmt, ageShort } from "@/components/explorer-v2/format";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
-import { UtxoColumn } from "@/components/explorer-v2/pchain/PchainTx";
+import { UtxoColumn } from "@/components/explorer-v2/pchain/utxo-ledger";
 import type { AssetAmount, Utxo } from "@/lib/pchain-explorer";
+import { isAddress } from "@/lib/explorer-query/values";
 
 function useAtomic<T>(path: string | null): T | null {
   const [data, setData] = useState<T | null>(null);
@@ -118,10 +119,8 @@ function StatusMark({ tone, label, title }: { tone: "done" | "open"; label: stri
   );
 }
 
-const isEvmAddress = (a?: string) => !!a && /^0x[0-9a-fA-F]{40}$/.test(a);
-
 export function AtomicTxsList({ network, chainSlug, address }: { network: string; chainSlug: string; address?: string }) {
-  const addr = isEvmAddress(address) ? address!.toLowerCase() : undefined;
+  const addr = isAddress(address) ? address.toLowerCase() : undefined;
   const [pages, setPages] = useState<AtomicTxRow[][]>([]);
   const [before, setBefore] = useState<string>("");
   const [done, setDone] = useState(false);

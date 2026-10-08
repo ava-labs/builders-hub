@@ -37,6 +37,7 @@ import {
   windowSeries,
   type RatioPoint,
 } from "./data";
+import { RateCurvesChart, RateCurvesLegend, rateCurveSeries } from "./rate-curves";
 
 /* The Primary Network's staking economy as one instrument: what secures
    the network and what securing it pays. Split out of the old validators
@@ -194,64 +195,8 @@ function AreaTrend({
   );
 }
 
-interface ApyPoint {
-  day: string;
-  maxAPY: number;
-  minAPY: number;
-}
-
-/* validator (max) and delegator (min) yield curves */
-function ApyChart({ data }: { data: ApyPoint[] }) {
-  return (
-    <div className="h-40 text-zinc-900 dark:text-zinc-100">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={MARGIN}>
-          <CartesianGrid vertical={false} stroke={GRID_STROKE} />
-          <XAxis {...dayX("day")} />
-          <YAxis {...rightY(pctFmt)} />
-          <RechartsTooltip
-            cursor={{ stroke: "rgba(161,161,170,0.35)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as ApyPoint;
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{fmtDay(d.day)}</p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.maxAPY.toFixed(2)}% · 1-year term
-                  </p>
-                  <p className="text-[10px] tabular-nums text-zinc-500">
-                    2-week {d.minAPY.toFixed(2)}%
-                  </p>
-                </TipPlate>
-              );
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="maxAPY"
-            stroke="currentColor"
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="minAPY"
-            stroke={QUIET_BAR}
-            strokeWidth={1.5}
-            strokeDasharray="4 3"
-            dot={false}
-            isAnimationActive={false}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-/* staked share of the circulating supply: the auto domain magnifies the
-   drift, which IS the signal here; the tooltip carries the absolutes */
+/* staked share of the P-Chain supply, before burns: the auto domain magnifies
+   the drift, which IS the signal here; the tooltip carries the absolutes */
 function RatioChart({ data }: { data: RatioPoint[] }) {
   return (
     <div className="h-40 text-zinc-900 dark:text-zinc-100">
@@ -269,7 +214,7 @@ function RatioChart({ data }: { data: RatioPoint[] }) {
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{fmtDay(d.day)}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.pct.toFixed(1)}% of supply staked
+                    {d.pct.toFixed(1)}% of P-Chain supply staked
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
                     {fmtCompact(d.staked)} of {fmtCompact(d.supply)} AVAX
@@ -770,10 +715,9 @@ export function PrimaryStakingContent({
     ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
   const delegators = num(metrics?.delegator_count?.current_value);
   const cumulativeRewards = num(metrics?.cumulative_rewards?.current_value);
-  // the APY feed carries the live circulating supply (AVAX units) and the
-  // all-time burn: the ratio is THE number behind the reward rate
+  // the APY feed carries the P-Chain supply (AVAX units, before burns) and
+  // the all-time burn: the ratio is THE number behind the reward rate
   const supplyAvax = num(apy?.current?.supply);
-  const totalBurned = num(apy?.current?.totalBurned);
   const stakingRatio =
     totalStaked !== null && supplyAvax !== null && supplyAvax > 0
       ? (totalStaked / supplyAvax) * 100
@@ -804,15 +748,7 @@ export function PrimaryStakingContent({
     [metrics, chartDays],
   );
 
-  const apySeries = useMemo<ApyPoint[]>(() => {
-    if (!apy?.data) return [];
-    const today = new Date().toISOString().slice(0, 10);
-    const sorted = [...apy.data]
-      .filter((p) => p.date !== today)
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .map((p) => ({ day: p.date, maxAPY: p.maxAPY, minAPY: p.minAPY }));
-    return thin(windowSeries(sorted, chartDays));
-  }, [apy, chartDays]);
+  const apySeries = useMemo(() => rateCurveSeries(apy, chartDays, 280, true), [apy, chartDays]);
 
   const dailyRewardSeries = useMemo<RewardPoint[]>(() => {
     // the moving average runs over the FULL series so the window's left
@@ -952,7 +888,7 @@ export function PrimaryStakingContent({
           the uptime requirement through the whole term. Rewards are newly minted AVAX.
           Auto-renewed staking (
           <Link
-            href="/docs/acps/236-auto-renewed-staking"
+            href="/docs/acps/236-auto-renewed-staking" prefetch={false}
             className="text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
           >
             ACP-236
@@ -990,7 +926,7 @@ export function PrimaryStakingContent({
                 totalStaked !== null
                   ? [
                       avaxUsd !== null ? `≈ $${fmtCompact(totalStaked * avaxUsd)}` : null,
-                      stakingRatio !== null ? `${stakingRatio.toFixed(1)}% of supply` : null,
+                      stakingRatio !== null ? `${stakingRatio.toFixed(1)}% of P-Chain supply` : null,
                     ]
                       .filter(Boolean)
                       .join(" · ") || undefined
@@ -1068,7 +1004,7 @@ export function PrimaryStakingContent({
         >
           {stakingRatio !== null && ratioStart !== null && (
             <Caption>
-              <Ink>{stakingRatio.toFixed(1)}%</Ink> of the circulating supply is staked, against {ratioStart.toFixed(1)}% at the start of {windowWord}.
+              <Ink>{stakingRatio.toFixed(1)}%</Ink> of the P-Chain supply, before burns, is staked, against {ratioStart.toFixed(1)}% at the start of {windowWord}.
             </Caption>
           )}
           {ratioSeries.length ? (
@@ -1078,29 +1014,32 @@ export function PrimaryStakingContent({
           )}
         </ChartBoard>
 
-        {/* max/min are DURATIONS (1-year vs 2-week terms), not a promise
+        {/* the curves are DURATIONS (1-year, 2-week, 2-day terms), not a promise
             band: the legend says which is which */}
         <ChartBoard
           label={`Reward Rate · est${weekFloor}`}
           href={door("apy")}
-          action={
-            <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> 1-year term
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> 2-week
-              </span>
-            </span>
-          }
+          action={<RateCurvesLegend series={apySeries} />}
         >
           {lastApy && (
             <Caption>
               A 1-year term earns about <Ink>{lastApy.maxAPY.toFixed(2)}%</Ink> a year at today&apos;s rate; a 2-week term about{" "}
-              <Ink>{lastApy.minAPY.toFixed(2)}%</Ink>. Estimates, before any validator fee.
+              <Ink>{lastApy.twoWeekAPY.toFixed(2)}%</Ink>
+              {lastApy.twoDayAPY !== null && (
+                <>
+                  ; a 2-day term about <Ink>{lastApy.twoDayAPY.toFixed(2)}%</Ink>
+                </>
+              )}
+              . Estimates, before any validator fee.
             </Caption>
           )}
-          {apySeries.length ? <ApyChart data={apySeries} /> : <ChartEmpty failed={apyFailed} />}
+          {apySeries.length ? (
+            <div className="h-40 text-zinc-900 dark:text-zinc-100">
+              <RateCurvesChart data={apySeries} variant="board" />
+            </div>
+          ) : (
+            <ChartEmpty failed={apyFailed} />
+          )}
         </ChartBoard>
       </div>
 
@@ -1240,7 +1179,7 @@ export function PrimaryStakingContent({
             label="Staking Parameters"
             action={
               <Link
-                href="/docs/primary-network/validate/how-to-stake"
+                href="/docs/primary-network/validate/how-to-stake" prefetch={false}
                 className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               >
                 How to stake

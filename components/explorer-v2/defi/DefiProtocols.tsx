@@ -46,7 +46,6 @@ import { YieldBoard } from "./YieldBoard";
    Every change reads over the page clock. */
 
 const PAGE = 50;
-const DAY = 86_400;
 
 function dayOf(t: number): string {
   return new Date(t * 1000).toISOString().slice(0, 10);

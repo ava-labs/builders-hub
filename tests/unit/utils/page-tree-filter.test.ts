@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterTreeByPrefix } from "@/lib/page-tree-filter";
+import { filterTreeByPrefix, filterTreeWithOwnId } from "@/lib/page-tree-filter";
 
 type Node = { name: string; url?: string; children?: Node[] };
 
@@ -39,5 +39,26 @@ describe("filterTreeByPrefix", () => {
     const root = { children: [leaf("/academy/avalanche-l1/a"), leaf("/academy/blockchain/x")] };
     const out = filterTreeByPrefix(root, "/academy/avalanche-l1") as { children: Node[] };
     expect(out.children).toEqual([leaf("/academy/avalanche-l1/a")]);
+  });
+});
+
+describe("filterTreeWithOwnId", () => {
+  const full = {
+    $id: "root",
+    name: "Academy",
+    children: [leaf("/academy/avalanche-l1/a"), leaf("/academy/blockchain/x"), leaf("/academy/team1/t")],
+  };
+
+  // fumadocs-ui keeps the sidebar tree by its root $id, so two tracks with one $id showed the old track after a move.
+  it("gives each track tree a root $id of its own, unlike the full tree's", () => {
+    const ids = ["/academy/avalanche-l1", "/academy/blockchain", "/academy/team1"].map((prefix) => filterTreeWithOwnId(full, prefix).$id);
+    expect(new Set([...ids, full.$id]).size).toBe(4);
+  });
+
+  it("keeps the children filterTreeByPrefix keeps, and leaves the full tree as it was", () => {
+    const out = filterTreeWithOwnId(full, "/academy/blockchain");
+    expect(out.children).toEqual(filterTreeByPrefix(full, "/academy/blockchain").children);
+    expect(full.$id).toBe("root");
+    expect(full.children).toHaveLength(3);
   });
 });

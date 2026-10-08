@@ -4,6 +4,9 @@ import { type SimpleValidator, type ValidatorVersion, type SubnetStats } from '@
 import { MAINNET_VALIDATOR_DISCOVERY_URL, FUJI_VALIDATOR_DISCOVERY_URL } from '@/constants/validator-discovery';
 import l1ChainsData from "@/constants/l1-chains.json";
 import { minorVersionLine } from "@/lib/node-version";
+import { fetchSubnetsById, seatsOf, type ValidatorSeat } from "@/lib/pchain-subnets";
+import { pchainPost } from "@/lib/pchain-rpc";
+import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 
 // Minimal subnet shape consumed from our /v1 subnets endpoint (Glacier-shape).
 // blockchains is null (Go nil slice) for subnets that never created a chain.
@@ -17,6 +20,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const LIST_CACHE_DURATION = 24 * 60 * 60 * 1000;
+const PARTIAL_CACHE_DURATION = 60 * 1000;
 const VERSION_CACHE_DURATION = 15 * 60 * 1000;
 const STATS_CACHE_DURATION = 15 * 60 * 1000;
 const PAGE_SIZE = 100;
@@ -26,6 +30,7 @@ const PAGE_SIZE = 100;
 // warmer keeps them hot, so the steady-state path is sub-second.
 const FETCH_TIMEOUT = 60000;
 const CACHE_CONTROL_HEADER = 'public, max-age=0, s-maxage=900, stale-while-revalidate=3600';
+const PCHAIN_TIMEOUT = 10000;
 
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
 const subnetsCached: Partial<Record<string, { data: SubnetInfo[]; timestamp: number; promise?: Promise<SubnetInfo[]> }>> = {};
@@ -105,6 +110,39 @@ async function listL1Validators(network: "mainnet" | "fuji"): Promise<SimpleVali
     }));
 }
 
+/* Fuji's L1 validators from the P-Chain's running sets, in one call. On
+   2026-10-07 three reads of the l1Validators list gave Fuji 318, about
+   13,000 and 411 rows (100 a page, 2.6 s a page when cold), and the P-Chain
+   ran ~330 seats. So a failed P-Chain read does not read the list: it
+   serves the last good result, or throws when there is none. A running set
+   counts only when its subnet read says L1 (see seatsOf). complete is false
+   when a subnet read failed or the last good result stands in. */
+let lastFujiL1: SimpleValidator[] | null = null;
+
+async function listFujiL1Validators(): Promise<{ validators: SimpleValidator[]; complete: boolean }> {
+  try {
+    const res = await pchainPost('fuji', {
+      jsonrpc: '2.0', id: 1,
+      method: 'platform.getAllValidatorsAt',
+      params: { height: 'proposed' },
+    }, PCHAIN_TIMEOUT);
+    if (!res.ok) throw new Error(`p-chain ${res.status}`);
+    const sets = (await res.json())?.result?.validatorSets;
+    if (!sets || typeof sets !== 'object') throw new Error('unexpected p-chain response');
+    const running = Object.entries(sets as Record<string, { validators?: ValidatorSeat[] } | null>)
+      .filter(([subnetId, set]) => subnetId !== PRIMARY_SUBNET_ID && (set?.validators?.length ?? 0) > 0)
+      .map(([subnetId]) => subnetId);
+    const subnets = await fetchSubnetsById('fuji', running);
+    const validators = seatsOf(sets, subnets);
+    lastFujiL1 = validators;
+    return { validators, complete: subnets.length === running.length };
+  } catch (error) {
+    if (!lastFujiL1) throw error;
+    console.error('[listFujiL1Validators] P-Chain read failed, serving the last good list:', error);
+    return { validators: lastFujiL1, complete: false };
+  }
+}
+
 async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
   const now = Date.now();
   const cache = validatorsCached[network];
@@ -121,17 +159,17 @@ async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleVali
 
   // Start new fetch
   const promise = (async () => {
-    const [l1Validators, classicValidators] = await Promise.all([
-      listL1Validators(network),
+    const [l1, classicValidators] = await Promise.all([
+      network === 'fuji' ? listFujiL1Validators() : listL1Validators(network).then(validators => ({ validators, complete: true })),
       listClassicValidators(network)
     ]);
 
-    const allValidators = [...l1Validators, ...classicValidators];
+    const allValidators = [...l1.validators, ...classicValidators];
     
-    // Store in cache with timestamp
+    // Store in cache with timestamp. An incomplete list holds for 60 s only, so the next request reads again.
     validatorsCached[network] = {
       data: allValidators,
-      timestamp: Date.now(),
+      timestamp: l1.complete ? Date.now() : Date.now() - LIST_CACHE_DURATION + PARTIAL_CACHE_DURATION,
     };
     
     return allValidators;
@@ -192,6 +230,19 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<SubnetInfo[]>
   return promise;
 }
 
+/* Fuji has ~8,000 subnets (80 pages, more than 120 s cold), and the stats
+   keep only the subnets with stake. So Fuji names only the subnets its
+   validators stand on, one read per subnet. A subnet whose read fails gets
+   the "Unknown" name, as an unlisted subnet does. */
+async function getStakedSubnets(network: "mainnet" | "fuji", validators: SimpleValidator[]): Promise<SubnetInfo[]> {
+  const subnets = await fetchSubnetsById(network, validators.map(v => v.subnetId));
+  return subnets.map(s => ({
+    subnetId: s.subnetId,
+    isL1: !!s.isL1,
+    blockchains: s.blockchains ? s.blockchains.map(b => ({ blockchainName: b.blockchainName ?? '' })) : null,
+  }));
+}
+
 async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<string, string>> {
   const now = Date.now();
   const cache = validatorVersionsCached[network];
@@ -243,9 +294,10 @@ async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<st
 }
 
 async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<SubnetStats[]> {
+  const validatorsRead = getAllValidators(network);
   const [validators, subnets, versionMap] = await Promise.all([
-    getAllValidators(network),
-    getAllSubnets(network),
+    validatorsRead,
+    network === 'fuji' ? validatorsRead.then(v => getStakedSubnets(network, v)) : getAllSubnets(network),
     getValidatorVersions(network)
   ]);
 
@@ -373,7 +425,8 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
   if (!pendingPromise) {
     pendingPromise = getNetworkStatsInternal(network);
     pendingStatsRequests.set(network, pendingPromise);
-    pendingPromise.finally(() => pendingStatsRequests.delete(network));
+    // the caller gets the error: this chain only frees the slot
+    pendingPromise.finally(() => pendingStatsRequests.delete(network)).catch(() => {});
   }
   
   const freshData = await pendingPromise; 
@@ -387,7 +440,8 @@ function createResponse(
   status = 200
 ) {
   const headers: Record<string, string> = { 
-    'Cache-Control': CACHE_CONTROL_HEADER, 
+    // an error answer is not kept: the next request asks again
+    'Cache-Control': status >= 400 ? 'no-store' : CACHE_CONTROL_HEADER, 
     'X-Data-Source': meta.source 
   };
   if (meta.network) headers['X-Network'] = meta.network;

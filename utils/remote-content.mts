@@ -1,15 +1,7 @@
 // Main orchestrator script for remote content processing
 import { updateGitignore, processFile, type FileConfig } from './remote-content/shared.mts';
 import { parsers } from './remote-content/parsers/index.mts';
-import { getCrossChainConfigs } from './remote-content/cross-chain.mts';
-import { getApisConfigs } from './remote-content/apis.mts';
-import { getPrimaryNetworkConfigs } from './remote-content/primary-network.mts';
-import { getAvalancheL1sConfigs } from './remote-content/avalanche-l1s.mts';
-import { getAcpsConfigs } from './remote-content/acps.mts';
-import { getToolingConfigs } from './remote-content/tooling.mts';
-import { getReleasesConfigs } from './remote-content/releases.mts';
-import { getIcmReleasesConfigs } from './remote-content/icm-releases.mts';
-// import { getSDKSConfigs } from './remote-content/sdks.mts';
+import { getFixedSections, getGitHubSections } from './remote-content/sections.mts';
 
 /**
  * Process files for a specific section
@@ -28,17 +20,7 @@ async function main(): Promise<void> {
   console.log('🚀 Starting remote content processing...\n');
   
   // Collect all file configurations organized by section
-  const allSections = [
-    { name: 'Cross-Chain', configs: getCrossChainConfigs() },
-    { name: 'APIs', configs: getApisConfigs() },
-    { name: 'Primary Network', configs: getPrimaryNetworkConfigs() },
-    { name: 'Avalanche L1s', configs: getAvalancheL1sConfigs() },
-    { name: 'Tooling', configs: getToolingConfigs() },
-    { name: 'ACPs', configs: await getAcpsConfigs() },
-    { name: 'Releases', configs: await getReleasesConfigs() },
-    { name: 'ICM Releases', configs: await getIcmReleasesConfigs() },
-    // { name: 'SDKS', configs: getSDKSConfigs() },
-  ];
+  const allSections = [...getFixedSections(), ...(await getGitHubSections())];
 
   // Flatten all configs for gitignore update
   const allConfigs = allSections.flatMap(section => section.configs);

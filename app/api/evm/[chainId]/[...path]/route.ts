@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EVM_API_BASE } from "@/lib/evm-explorer";
 import { toStatsChainId } from "@/lib/dedicated-stats";
+import { softStatus } from "@/lib/explorer-soft-status";
 
 // Server-side proxy to the EVM chain explorer API (plain HTTP on an IP). The
 // browser calls same-origin `/api/evm/{chainId}/{...}`; this handler fetches
@@ -23,10 +24,15 @@ const FAST_CHAINS = new Set(["43114"]);
 const IMMUTABLE_CACHE_CONTROL =
   "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
-function cacheControlFor(resource: string, chainId: string): string {
+function cacheControlFor(resource: string, chainId: string, query: URLSearchParams): string {
   if (resource.startsWith("tx/") || resource.startsWith("block/")) {
     return IMMUTABLE_CACHE_CONTROL;
   }
+  // The newest transactions are polled every 5 s (a chain's home and its
+  // live list). With stale-while-revalidate each poll got the copy the poll
+  // before had asked for, 3 to 5 s old: one poll behind. A page of older
+  // ones (`before`) keeps the longer cache.
+  if (resource === "txs" && !query.has("before")) return FAST_CACHE_CONTROL;
   return FAST_CHAINS.has(chainId) ? FAST_CACHE_CONTROL : CACHE_CONTROL;
 }
 
@@ -61,19 +67,20 @@ export async function GET(
   try {
     const res = await fetchWithTimeout(upstream);
     const body = await res.text();
-    // Pass through status + body; attach cache headers only on success.
-    return new NextResponse(body, {
-      status: res.status,
-      headers: {
+    // Pass through status + body; attach cache headers only on success. A
+    // miss or an upstream error comes back soft to a read that asks.
+    return new NextResponse(
+      body,
+      softStatus(req, res.status, {
         "content-type": res.headers.get("content-type") ?? "application/json",
-        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId) } : {}),
-      },
-    });
+        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId, req.nextUrl.searchParams) } : {}),
+      }),
+    );
   } catch (err) {
     const aborted = err instanceof DOMException && err.name === "AbortError";
     return NextResponse.json(
       { error: aborted ? "explorer API timeout" : "explorer API unreachable" },
-      { status: 504 },
+      softStatus(req, 504),
     );
   }
 }

@@ -334,11 +334,11 @@ const metadata: ConsoleToolMetadata = {
   description: (
     <>
       Transfer AVAX between the{' '}
-      <Link href="/docs/rpcs/c-chain/api" className={LINK}>
+      <Link href="/docs/rpcs/c-chain" className={LINK}>
         C-Chain
       </Link>{' '}
       and{' '}
-      <Link href="/docs/rpcs/p-chain/api" className={LINK}>
+      <Link href="/docs/rpcs/p-chain" className={LINK}>
         P-Chain
       </Link>
       . Requires two{' '}

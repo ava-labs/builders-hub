@@ -49,3 +49,17 @@ export function filterTreeByPrefix<T>(tree: T, prefix: string): T {
     })
     .filter((node) => node !== null) as unknown as T;
 }
+
+/**
+ * The tree filtered to one prefix, with a root `$id` of its own.
+ *
+ * fumadocs-ui keeps the sidebar's tree by the root's `$id`
+ * (node_modules/fumadocs-ui/dist/contexts/tree.js: useMemo on `props.tree.$id`).
+ * filterTreeByPrefix copies the root with a spread, so every filtered tree has
+ * the full tree's `$id`. After a client move from one academy track to another,
+ * the sidebar then kept the old track's tree, found no path to the new page in
+ * it, and listed the track folders instead of the course.
+ */
+export function filterTreeWithOwnId<T extends { $id?: string }>(tree: T, prefix: string): T {
+  return { ...filterTreeByPrefix(tree, prefix), $id: `${tree.$id ?? 'root'}:${prefix}` };
+}

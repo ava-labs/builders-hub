@@ -131,9 +131,6 @@ const dict: Record<EventsLang, Dict> = {
     "events.discovery.communityEvents.title": "Community Events",
     "events.discovery.communityEvents.description":
       "Check out and join the global meetups, workshops and events organized by Avalanche Team1",
-    "events.discovery.campusConnect.title": "Campus Connect",
-    "events.discovery.campusConnect.description":
-      "Discover opportunities for students and educators to explore blockchain technology and join our community of builders.",
     "events.past": "Past",
     "events.search.placeholder": "Search by name, track or location",
     "events.search.button": "Search",
@@ -662,9 +659,6 @@ const dict: Record<EventsLang, Dict> = {
     "events.discovery.communityEvents.title": "Eventos de la comunidad",
     "events.discovery.communityEvents.description":
       "Descubre y únete a meetups, workshops y eventos globales organizados por Avalanche Team1",
-    "events.discovery.campusConnect.title": "Campus Connect",
-    "events.discovery.campusConnect.description":
-      "Descubre oportunidades para estudiantes y docentes para explorar blockchain y unirse a nuestra comunidad de builders.",
     "events.past": "Pasados",
     "events.search.placeholder": "Buscar por nombre, track o ubicación",
     "events.search.button": "Buscar",

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getContractSources } from "@/lib/sourcify";
 
 /*
- * Source files for a verified contract, from whichever verifier has them
- * — ours or Sourcify's. The Contract tab asks this route and never has to
+ * Source files for a verified contract, from whichever verifier has them:
+ * ours or Sourcify's. The Contract tab asks this route and never has to
  * know which one answered.
  *
  * Split out from the sibling metadata route because source trees are big
@@ -23,11 +23,9 @@ export async function GET(
   const { chainId, address } = await params;
   const sources = await getContractSources(Number(chainId), address);
 
+  // a miss is an answer, as in the sibling route: no console error for it
   if (!sources) {
-    return NextResponse.json(
-      { available: false },
-      { status: 404, headers: { "Cache-Control": MISS_CACHE } },
-    );
+    return NextResponse.json({ available: false }, { headers: { "Cache-Control": MISS_CACHE } });
   }
 
   return NextResponse.json(

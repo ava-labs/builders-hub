@@ -1,0 +1,280 @@
+"use client";
+
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+/* The ticker: a feed lands in batches (a poll's blocks, a block's txs), and
+   the list should read as a steady tape. Newcomers queue up and are
+   released one at a time at the feed's own rate, so a batch of three a
+   second shows one every third of a second, not three at once and then
+   nothing. The list is a strict sequence: a row goes in at the top, only
+   ever newer than the row before it, so nothing on screen moves except to
+   make room. A newcomer older than the top row (a hole filled late) is let
+   go rather than slotted in, and a newcomer with a row's own key (the same
+   tx, read again with more on it) takes that row's place without moving
+   it. The first batch paints whole, and while the window is short a
+   newcomer older than its last row fills in beneath it: a board fed by two
+   sources (the indexer's page and the stream's first blocks) opens full
+   whichever lands first.
+
+   A feed that polls on a clock (`every`) gets a pace from the clock
+   instead: the rows that wait spread until a little before the next poll
+   lands, so the tape never stands still between polls, and none waits more
+   than an interval and a half after it landed, so the tape never falls
+   behind the feed. A board merged from feeds that answer at different
+   times (`merged`) keeps its queue in time order, oldest first: a newcomer
+   that lands after a newer one, but is still newer than the top row, goes
+   out in its turn rather than being let go. Every row still goes in at the
+   top, so the ages on the board only grow down the list. */
+
+/* the release pace stays between these */
+const MIN_MS = 150;
+const MAX_MS = 700;
+/* a fresh batch waits this long before its first row, so names can warm */
+const WARM_MS = 180;
+/* a clocked feed's rows are all out this share of an interval after the last
+   batch landed. A poll's batches land within about a second, so at 0.9 the
+   tape runs until about the next poll lands. In replays of 13 min of the
+   overview's reads, 0.8 left the blocks board with no new row in 10% of its
+   seconds (0.9: none, at the median), and each 0.1 more added about 0.3 s to
+   the age of the newest row. */
+const SPREAD = 0.9;
+/* and none waits more than this many intervals after it landed. A chain
+   whose reads answer late (8 s) brings its rows every other poll, in bursts:
+   at 1 interval those bursts ran out early and the transactions board stood
+   still more than 3 times a minute in 5 of 54 replayed minutes; at 1.5, in
+   none. Rows that come every poll go out by SPREAD first. */
+const MAX_WAIT = 1.5;
+
+/** Where a batch of newcomers goes. An empty window paints them whole.
+ *  Otherwise a newcomer newer than the top row and than every row waiting
+ *  joins the queue (oldest first), one older than the last row fills in
+ *  beneath it while the window is short, and one in between is let go.
+ *  `merged`: a newcomer newer than the top row joins the queue at its place
+ *  by time, newer than every row waiting or not. */
+export function admit<T>(
+  visible: readonly T[],
+  queue: readonly T[],
+  fresh: readonly T[],
+  visibleMax: number,
+  newer: (a: T, b: T) => number,
+  merged = false,
+): { visible: T[]; queue: T[] } {
+  const sorted = [...fresh].sort(newer);
+  if (!visible.length) return { visible: sorted.slice(0, visibleMax), queue: [...queue] };
+  const top = visible[0];
+  const last = visible[visible.length - 1];
+  const room = visibleMax - visible.length;
+  const below = room > 0 ? sorted.filter((t) => newer(t, last) > 0).slice(0, room) : [];
+  const shown = below.length ? [...visible, ...below] : [...visible];
+  if (merged) {
+    const join = sorted.filter((t) => !below.includes(t) && newer(t, top) < 0);
+    return { visible: shown, queue: [...queue, ...join].sort((a, b) => newer(b, a)) };
+  }
+  const tail = queue[queue.length - 1];
+  const next = [...queue];
+  for (const t of [...sorted].reverse()) {
+    if (newer(t, top) >= 0) continue;
+    if (tail !== undefined && newer(t, tail) >= 0) continue;
+    next.push(t);
+  }
+  return { visible: shown, queue: next };
+}
+
+/** The next row out of the queue (oldest first), in at the top: the board
+ *  and the queue after it. Far behind, the queue skips to its newest window
+ *  rather than replay history. `visible` is null when the queue is empty. */
+export function releaseOne<T>(
+  visible: readonly T[],
+  queue: readonly T[],
+  visibleMax: number,
+): { visible: T[] | null; queue: T[] } {
+  const q = queue.length > visibleMax * 2 ? queue.slice(queue.length - visibleMax) : [...queue];
+  const next = q.shift();
+  return { visible: next === undefined ? null : [next, ...visible].slice(0, visibleMax), queue: q };
+}
+
+/** A clocked feed's pace: the wait after the last row for the next one.
+ *  The rows waiting share the time from the last release until SPREAD of an
+ *  interval after the last batch landed, so they fill the time to the next
+ *  poll; but none waits more than MAX_WAIT intervals: they are all out by
+ *  then after the longest-waiting one landed (`firstLanded`). One row never
+ *  waits more than an interval after the last, and a backlog (rows held
+ *  under the pointer) catches up at the floor. */
+export function clockPace(
+  every: number,
+  firstLanded: number,
+  lastBatch: number,
+  lastRelease: number,
+  waiting: number,
+): number {
+  const left = Math.min(firstLanded + every * MAX_WAIT, lastBatch + every * SPREAD) - lastRelease;
+  return Math.min(every, Math.max(MIN_MS, left / Math.max(1, waiting)));
+}
+
+/** `incoming` is newest first and keeps each row's object between
+ *  renders while the row is unchanged: a new object is read as the row
+ *  read again, and is drawn again */
+export function useTicker<T>(
+  incoming: T[],
+  visibleMax: number,
+  opts: {
+    key: (t: T) => string;
+    /** negative when `a` is newer than `b` */
+    newer: (a: T, b: T) => number;
+    /** hold the tape still (the pointer is over it); newcomers queue and catch up once released */
+    paused?: boolean;
+    /** the newcomers of a batch, before any shows: the caller warms their names */
+    onEnqueue?: (fresh: T[]) => void;
+    /** false: the feed's rows show as they come (a list that swaps whole on
+     *  each poll); the ticker still keeps count of them, so turning it on
+     *  carries on from the rows on screen */
+    enabled?: boolean;
+    /** the feed's poll interval in ms: the rows that wait spread until about
+     *  the next poll, and none waits more than an interval and a half (see clockPace) */
+    every?: number;
+    /** the rows come from feeds that answer at different times: the queue
+     *  keeps them in time order (see admit) */
+    merged?: boolean;
+  },
+): T[] {
+  const { key, newer, paused = false, onEnqueue, enabled = true, every, merged } = opts;
+  const [visible, setVisible] = useState<T[]>([]);
+  const visibleRef = useRef<T[]>([]);
+  // oldest first: the next to release is at the front
+  const queue = useRef<T[]>([]);
+  const seen = useRef(new Set<string>());
+  const pausedRef = useRef(paused);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRelease = useRef(0);
+  const lastArrive = useRef(0);
+  // a clocked feed's waiting rows, by key: when each landed
+  const landed = useRef(new Map<string, number>());
+  // the feed's rate, items a second, smoothed over the last batches
+  const rate = useRef(0);
+  const onEnqueueRef = useRef(onEnqueue);
+  onEnqueueRef.current = onEnqueue;
+  const newerRef = useRef(newer);
+  newerRef.current = newer;
+  const keyRef = useRef(key);
+  keyRef.current = key;
+
+  const pace = () => {
+    if (every) {
+      const k = keyRef.current;
+      const first = Math.min(...queue.current.map((t) => landed.current.get(k(t)) ?? Date.now()));
+      return clockPace(every, first, lastArrive.current, lastRelease.current, queue.current.length);
+    }
+    const r = Math.max(rate.current, 0.001);
+    let p = 1000 / r;
+    // a backlog past a couple of seconds' worth tightens the pace
+    if (queue.current.length > 2 * r + 2) p *= 0.6;
+    return Math.min(MAX_MS, Math.max(MIN_MS, p));
+  };
+
+  const release = () => {
+    timer.current = null;
+    if (pausedRef.current) return;
+    const out = releaseOne(visibleRef.current, queue.current, visibleMax);
+    queue.current = out.queue;
+    if (!out.visible) return;
+    lastRelease.current = Date.now();
+    visibleRef.current = out.visible;
+    setVisible(out.visible);
+    arm(false);
+  };
+
+  const arm = (fresh: boolean) => {
+    if (timer.current || pausedRef.current || !queue.current.length) return;
+    const wait = Math.max(0, lastRelease.current + pace() - Date.now(), fresh ? WARM_MS : 0);
+    timer.current = setTimeout(release, wait);
+  };
+
+  const remember = (rows: T[]) => {
+    const k = keyRef.current;
+    for (const t of rows) seen.current.add(k(t));
+    if (seen.current.size > 2000) seen.current = new Set([...seen.current].slice(-1000));
+  };
+
+  // before paint: rows that are there when the list mounts (a page opened
+  // from memory) show in its first frame, not one frame after a skeleton
+  useLayoutEffect(() => {
+    const k = keyRef.current;
+    if (!enabled) {
+      // the rows on screen are the feed's own; counted, so the ticker can take over from them
+      remember(incoming);
+      queue.current = [];
+      const shown = incoming.slice(0, visibleMax);
+      const same = shown.length === visibleRef.current.length && shown.every((t, i) => k(t) === k(visibleRef.current[i]));
+      if (same) return;
+      visibleRef.current = shown;
+      setVisible(shown);
+      if (shown.length) lastRelease.current = lastArrive.current = Date.now();
+      return;
+    }
+    // a row read again (the same key, another object) is refreshed where it stands
+    const byKey = new Map(incoming.map((t) => [k(t), t]));
+    let changed = false;
+    const refreshed = visibleRef.current.map((v) => {
+      const n = byKey.get(k(v));
+      if (n === undefined || n === v) return v;
+      changed = true;
+      return n;
+    });
+    if (changed) {
+      visibleRef.current = refreshed;
+      setVisible(refreshed);
+    }
+    queue.current = queue.current.map((q) => byKey.get(k(q)) ?? q);
+    const fresh = incoming.filter((t) => !seen.current.has(k(t)));
+    if (!fresh.length) return;
+    remember(fresh);
+    onEnqueueRef.current?.(fresh);
+    const now = Date.now();
+    const opening = !visibleRef.current.length;
+    const placed = admit(visibleRef.current, queue.current, fresh, visibleMax, newerRef.current, merged);
+    queue.current = placed.queue;
+    if (every) {
+      const was = landed.current;
+      landed.current = new Map(placed.queue.map((t) => [k(t), was.get(k(t)) ?? now]));
+    }
+    if (placed.visible.length !== visibleRef.current.length) {
+      visibleRef.current = placed.visible;
+      setVisible(placed.visible);
+    }
+    if (opening) {
+      lastRelease.current = now;
+      lastArrive.current = now;
+      return;
+    }
+    // the rate: this batch over the time since the last, smoothed
+    const dt = Math.max(250, now - lastArrive.current) / 1000;
+    lastArrive.current = now;
+    const inst = fresh.length / dt;
+    rate.current = rate.current ? 0.35 * inst + 0.65 * rate.current : inst;
+    // a clocked feed's batch changes the pace of the rows still waiting: plan the next release again
+    if (every && timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    arm(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incoming, visibleMax, enabled]);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+    if (!paused) arm(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused]);
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+      // a Fast Refresh runs the effects again on the same refs: a stale id
+      // would keep arm() from ever planning a release again
+      timer.current = null;
+    },
+    [],
+  );
+
+  return enabled ? visible : incoming.slice(0, visibleMax);
+}

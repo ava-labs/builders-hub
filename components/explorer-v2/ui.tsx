@@ -522,6 +522,19 @@ export function LiveDot({ className, size = "h-1.5 w-1.5" }: { className?: strin
   );
 }
 
+/** a LIVE label whose ping takes the chain's accent, where LiveDot keeps to green */
+export function LiveTag() {
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--chain-accent,#E6212F)] opacity-60" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]" />
+      </span>
+      Live
+    </span>
+  );
+}
+
 /** A row that opens a page on click and Enter without being an anchor,
  *  so the hash, the parties and the token inside it can be real links.
  *  Nested anchors are invalid HTML; this keeps one link per identifier. */
@@ -594,14 +607,11 @@ export function Tabs<T extends string>({
   active,
   onChange,
   labels,
-  marks,
 }: {
   tabs: T[];
   active: T;
   onChange: (t: T) => void;
   labels: Record<T, string>;
-  /** a tab that needs attention, with the reason shown on hover and read to screen readers */
-  marks?: Partial<Record<T, string>>;
 }) {
   return (
     // a phone scrolls the tabs sideways rather than letting the last one fall off
@@ -611,21 +621,14 @@ export function Tabs<T extends string>({
           key={t}
           onClick={() => onChange(t)}
           aria-pressed={active === t}
-          title={marks?.[t]}
           className={cn(
-            "-mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
+            "-mb-px shrink-0 whitespace-nowrap border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
             active === t
               ? "border-[#E6212F] text-zinc-900 dark:text-zinc-50"
               : "border-transparent text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
           )}
         >
           {labels[t]}
-          {marks?.[t] && (
-            <>
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              <span className="sr-only">: {marks[t]}</span>
-            </>
-          )}
         </button>
       ))}
     </div>
@@ -693,24 +696,7 @@ export function HashChip({
 /* ------------------------------------------------------------------ */
 /* TxTypePill — squared badge, tinted by tx/block-type family          */
 
-/* Full static class strings (so Tailwind's scanner keeps the arbitrary
-   hex utilities) — one tone per functional family. */
-const PILL_TONES = {
-  stake:
-    "border-[#4e9a52]/40 bg-[#4e9a52]/10 text-[#3f7d43] dark:border-[#4e9a52]/45 dark:text-[#77c47b]",
-  reward:
-    "border-[#C7911B]/40 bg-[#C7911B]/12 text-[#9c7112] dark:border-[#C7911B]/45 dark:text-[#e2b953]",
-  subnet:
-    "border-[#0061E2]/35 bg-[#0061E2]/10 text-[#0052bd] dark:border-[#0061E2]/50 dark:text-[#5f9dff]",
-  crosschain:
-    "border-[#0891B2]/40 bg-[#0891B2]/10 text-[#0c7590] dark:border-[#0891B2]/50 dark:text-[#3fc1dc]",
-  danger:
-    "border-[#E6212F]/40 bg-[#E6212F]/10 text-[#c11824] dark:border-[#E6212F]/50 dark:text-[#ff6b73]",
-  neutral:
-    "border-zinc-300 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
-} as const;
-
-export function pillTone(type: string): keyof typeof PILL_TONES {
+export function pillTone(type: string): keyof typeof TONE_TEXT {
   const t = type.toLowerCase();
   if (t.includes("abort") || t.includes("disable") || t.includes("remove")) return "danger";
   if (t.includes("reward")) return "reward";
@@ -760,8 +746,8 @@ export function TxTypePill({
   );
 }
 
-/* Text-only variant of the pill tones, for surfaces (like the block tape)
-   where a bordered badge is too heavy but the family color still reads. */
+/* The pill tones: one text color per functional family. The pill wears it
+   on its square; surfaces like the block tape color their word with it. */
 const TONE_TEXT = {
   stake: "text-[#3f7d43] dark:text-[#77c47b]",
   reward: "text-[#9c7112] dark:text-[#e2b953]",

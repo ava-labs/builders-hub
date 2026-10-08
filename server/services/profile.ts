@@ -61,7 +61,8 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
         where: { id: id },
         data: {
             bio: data.bio,
-            image: data.image,
+            // no client sets the photo: the profile has no upload, and
+            // only sign-in writes User.image (a URL from the request would show to everyone)
             name: data.name,
             notification_email: data.notification_email,
             notifications: data.notifications,

@@ -5,14 +5,14 @@ description: Now that we have defined our precompile, let's deploy it to a local
 
 We made it! Everything works in our Ginkgo tests, and now we want to spin up a local network with the Hello World precompile activated.
 
-Start the server in a terminal in a new tab using avalanche-network-runner. Please check out [this link](/docs/tooling/avalanche-cli) for more information on Avalanche Network Runner, how to download it, and how to use it. The server will be in "listening" mode waiting for API calls.
+Start the server in a terminal in a new tab using avalanche-network-runner. Please check out [this link](https://github.com/ava-labs/avalanche-network-runner) for more information on Avalanche Network Runner, how to download it, and how to use it. The server will be in "listening" mode waiting for API calls.
 
 We will start the server from the Subnet-EVM directory so that we can use a relative file path to the genesis JSON file:
 
 <Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
 <Tab value="Subnet-EVM">
 ```bash
-cd $GOPATH/src/github.com/ava-labs/subnet-evm
+cd $GOPATH/src/github.com/ava-labs/avalanchego/graft/subnet-evm
 ```
 </Tab>
 
@@ -50,7 +50,7 @@ The following command will "issue requests" to the server we just spun up. We ca
   --number-of-nodes=5 \
   --avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
   --plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
-  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "./tests/precompile/genesis/hello_world.json"}]'
+  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "./hello_world.json"}]'
 ```
 
 We can look at the server terminal tab and see it booting up the local network. If the network startup is successful then you should see something like this:
@@ -69,12 +69,12 @@ For example, you can use the RPC URL: `http://127.0.0.1:9650/ext/bc/2jDWMrF9yKK8
 
 ## Maintenance
 
-You should always keep your fork up to date with the latest changes in the official Subnet-EVM repo. If you have forked the Subnet-EVM repo, there could be conflicts and you may need to manually resolve them.
+You should always keep your fork up to date with the latest changes in the official AvalancheGo repository, which contains Subnet-EVM in `graft/subnet-evm`. If you have forked it, there could be conflicts and you may need to manually resolve them.
 
-If you used Precompile-EVM, you can update your repo by bumping Subnet-EVM versions in [`go.mod`](https://github.com/ava-labs/precompile-evm/blob/hello-world-example/go.mod#L7) and [`version.sh`](https://github.com/ava-labs/precompile-evm/blob/hello-world-example/scripts/versions.sh#L4)
+Precompile-EVM is archived and deprecated, and the standalone Subnet-EVM module (`github.com/ava-labs/subnet-evm`) has no release after `v0.8.0`. The Subnet-EVM Go module is now `github.com/ava-labs/avalanchego/graft/subnet-evm`, and it has a tag for each AvalancheGo release (for example `graft/subnet-evm/v1.15.1`).
 
 ## Conclusion
 
 We have now created a stateful precompile from scratch with the precompile generation tool. We hope you had fun and learned a little more about the Subnet-EVM. Now that you have created a simple stateful precompile, we urge you to create one of your own.
 
-If you have an idea for a stateful precompile that may be useful to the community, feel free to create a fork of [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and create a pull request.
+If you have an idea for a stateful precompile that may be useful to the community, feel free to create a fork of [AvalancheGo](https://github.com/ava-labs/avalanchego) and open a pull request against `graft/subnet-evm`.

@@ -3,7 +3,18 @@
 import { CliAlternative } from '@/components/console/cli-alternative';
 
 import { useEffect, useId, useState } from 'react';
-import { AlertTriangle, ArrowRight, CalendarClock, Check, Info, Loader2, Lock, Repeat } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarClock,
+  Check,
+  Info,
+  Loader2,
+  Lock,
+  Plus,
+  Repeat,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,
@@ -27,6 +38,7 @@ import type { ConvertToL1Validator } from '@/components/toolbox/components/Valid
 import {
   BLS_PROOF_OF_POSSESSION_REGEX,
   BLS_PUBLIC_KEY_REGEX,
+  validateManagedNodeCredentials,
 } from '@/components/toolbox/components/ValidatorListInput/nodeCredentials';
 import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { ConnectedWalletIcon, useConnectedWalletName } from '@/components/toolbox/components/ConnectedWalletIcon';
@@ -257,7 +269,7 @@ const metadata: ConsoleToolMetadata = {
         validator
       </Link>{' '}
       to Avalanche's{' '}
-      <Link href="/docs/rpcs/p-chain/api" className={LINK}>
+      <Link href="/docs/rpcs/p-chain" className={LINK}>
         Primary Network
       </Link>
       . Issues an{' '}
@@ -268,7 +280,8 @@ const metadata: ConsoleToolMetadata = {
       <Link href="/docs/acps/236-auto-renewed-staking" className={LINK}>
         AddAutoRenewedValidatorTx
       </Link>{' '}
-      for auto-renewed staking (ACP-236).
+      for auto-renewed staking (ACP-236). An auto-renewed validator's cycle period and auto-compounding change with a
+      SetAutoRenewedValidatorConfigTx.
     </>
   ),
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
@@ -567,6 +580,8 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
   const { pChainAddress, isTestnet, avalancheNetworkID } = useWalletStore();
   const { avalancheWalletClient } = useWallet();
 
+  const [action, setAction] = useState<'stake' | 'manage'>('stake');
+  const [manageNodeID, setManageNodeID] = useState('');
   const [validator, setValidator] = useState<ConvertToL1Validator | null>(null);
   const [stakingMode, setStakingMode] = useState<'fixed' | 'autoRenew'>('fixed');
   const [stakeInAvax, setStakeInAvax] = useState<string>('');
@@ -577,6 +592,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
 
   const [existingValidator, setExistingValidator] = useState<ExistingValidatorInfo | null>(null);
   const [checkingExisting, setCheckingExisting] = useState(false);
+  const [notValidating, setNotValidating] = useState(false);
   const [updPeriodHours, setUpdPeriodHours] = useState<string>('');
   const [updAutoCompound, setUpdAutoCompound] = useState<string>('');
   const [confirmStop, setConfirmStop] = useState(false);
@@ -592,12 +608,16 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
   const networkName = onFuji ? 'Fuji' : 'Mainnet';
   const isAutoRenew = stakingMode === 'autoRenew';
   const isUpdateMode = existingValidator?.kind === 'autoRenewed' && existingValidator.isAuthority;
+  // Changing a config only needs the NodeID, so managing skips the BLS credentials a new stake requires.
+  const managedID = validateManagedNodeCredentials({ nodeID: manageNodeID, publicKey: '', proofOfPossession: '' });
+  const lookupNodeID = action === 'manage' ? (managedID.ok ? managedID.value.nodeID : undefined) : validator?.nodeID;
 
   // Once a NodeID is entered, check whether it is already an active validator:
   // an auto-renewed one owned by this wallet switches the tool to config-update mode.
   useEffect(() => {
-    const nodeID = validator?.nodeID;
+    const nodeID = lookupNodeID;
     setExistingValidator(null);
+    setNotValidating(false);
     setConfirmStop(false);
     if (!nodeID?.startsWith('NodeID-')) return;
 
@@ -612,7 +632,10 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       .then(({ validators }) => {
         if (cancelled) return;
         const v = validators?.[0];
-        if (!v) return;
+        if (!v) {
+          setNotValidating(true);
+          return;
+        }
         const stakeAvax = (Number(v.stakeAmount ?? v.weight ?? 0) / 1e9).toLocaleString();
         const walletAddr = pChainAddress?.replace(/^P-/, '');
         if (v.nextPeriod !== undefined || v.validatorAuthority) {
@@ -654,7 +677,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
     return () => {
       cancelled = true;
     };
-  }, [validator?.nodeID, onFuji, pChainAddress]);
+  }, [lookupNodeID, onFuji, pChainAddress]);
 
   // Initialize defaults
   if (!stakeInAvax) {
@@ -848,18 +871,25 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
     }
   };
 
-  const cliCommand = isUpdateMode
-    ? `platform-cli validator set-auto-renewed-config --tx-id ${existingValidator?.txID || '<tx-id>'} --node-id ${validator?.nodeID || '<node-id>'} --period ${updPeriodHours || '<hours>'}h --auto-compound ${Number(updAutoCompound || 0) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`
-    : isAutoRenew
-      ? `platform-cli validator add-auto-renewed --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --period ${periodHours}h --delegation-fee ${Number(delegationFee) / 100} --auto-compound ${Number(autoCompound) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`
-      : `platform-cli validator add-permissionless --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --duration ${getDurationHours()}h --delegation-fee ${Number(delegationFee) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`;
+  const cliCommand =
+    isUpdateMode || action === 'manage'
+      ? `platform-cli validator set-auto-renewed-config --tx-id ${existingValidator?.txID || '<tx-id>'} --node-id ${lookupNodeID || '<node-id>'} --period ${updPeriodHours ? `${updPeriodHours}h` : '<hours>h'} --auto-compound ${updAutoCompound ? Number(updAutoCompound) / 100 : '<0-1>'} --network ${onFuji ? 'fuji' : 'mainnet'}`
+      : isAutoRenew
+        ? `platform-cli validator add-auto-renewed --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --period ${periodHours}h --delegation-fee ${Number(delegationFee) / 100} --auto-compound ${Number(autoCompound) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`
+        : `platform-cli validator add-permissionless --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --duration ${getDurationHours()}h --delegation-fee ${Number(delegationFee) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`;
 
   const durationHours = getDurationHours();
   const endDate = endTime ? new Date(endTime) : null;
 
   return (
     <SDKCodeViewer
-      sources={isUpdateMode ? SET_CONFIG_SDK_SOURCES : isAutoRenew ? AUTO_RENEW_SDK_SOURCES : FIXED_SDK_SOURCES}
+      sources={
+        isUpdateMode || action === 'manage'
+          ? SET_CONFIG_SDK_SOURCES
+          : isAutoRenew
+            ? AUTO_RENEW_SDK_SOURCES
+            : FIXED_SDK_SOURCES
+      }
       height="auto"
     >
       <div className="not-prose">
@@ -889,6 +919,8 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                 setAutoCompound(DEFAULT_AUTO_COMPOUND);
                 setDelegationFee(DEFAULT_DELEGATOR_FEE);
                 setExistingValidator(null);
+                setNotValidating(false);
+                setManageNodeID('');
                 setUpdPeriodHours('');
                 setUpdAutoCompound('');
                 setConfirmStop(false);
@@ -902,40 +934,95 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
         ) : (
           <Steps>
             <Step>
-              <h3>Node credentials</h3>
-              <p>Your node&apos;s ID and BLS credentials.</p>
+              <h3>Action</h3>
+              <p>Stake a new validator, or change an auto-renewed validator you already run.</p>
 
-              <AddValidatorControls
-                defaultAddress={pChainAddress || ''}
-                canAddMore={!validator}
-                onAddValidator={setValidator}
-                isTestnet={false}
-              />
+              <div
+                role="radiogroup"
+                aria-label="Action"
+                className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800"
+              >
+                <Option
+                  selected={action === 'stake'}
+                  onSelect={() => {
+                    setAction('stake');
+                    setError(null);
+                  }}
+                  icon={<Plus className="h-4 w-4" />}
+                  title="Stake a validator"
+                  description="Fixed duration or auto-renewed."
+                />
+                <Option
+                  selected={action === 'manage'}
+                  onSelect={() => {
+                    setAction('manage');
+                    setError(null);
+                  }}
+                  icon={<SlidersHorizontal className="h-4 w-4" />}
+                  title="Manage auto-renewal"
+                  description="Change the cycle period or auto-compounding, or stop."
+                />
+              </div>
+            </Step>
 
-              {validator && (
-                <Sheet
-                  label="Node"
-                  action={
-                    checkingExisting ? (
-                      <Status tone="idle">Checking status</Status>
-                    ) : existingValidator ? (
-                      <Status tone="warn">Already validating</Status>
-                    ) : null
-                  }
-                >
-                  <SpecRow label="Node ID">
-                    <HashChip value={validator.nodeID} len={16} />
-                  </SpecRow>
-                  <SpecRow label="BLS public key">
-                    <HashChip value={validator.nodePOP.publicKey} len={16} />
-                  </SpecRow>
-                </Sheet>
-              )}
+            <Step>
+              {action === 'manage' ? (
+                <>
+                  <h3>Validator</h3>
+                  <p>Enter your auto-renewed validator&apos;s NodeID. Only its authority wallet can change it.</p>
 
-              {isUpdateMode && (
-                <Notice tone="warn">
-                  This node already has auto-renewed staking, so the tool switched to updating its config.
-                </Notice>
+                  <Field
+                    label="Node ID"
+                    value={manageNodeID}
+                    onChange={setManageNodeID}
+                    placeholder="NodeID-..."
+                    hint="The NodeID your node reports in info.getNodeID"
+                    error={!managedID.ok && manageNodeID.trim().length >= 40 ? managedID.error : null}
+                  />
+
+                  {checkingExisting && <Status tone="idle">Checking current validator status</Status>}
+                  {notValidating && (
+                    <Notice tone="warn">This node is not a current Primary Network validator on {networkName}.</Notice>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h3>Node credentials</h3>
+                  <p>Your node&apos;s ID and BLS credentials.</p>
+
+                  <AddValidatorControls
+                    defaultAddress={pChainAddress || ''}
+                    canAddMore={!validator}
+                    onAddValidator={setValidator}
+                    isTestnet={false}
+                  />
+
+                  {validator && (
+                    <Sheet
+                      label="Node"
+                      action={
+                        checkingExisting ? (
+                          <Status tone="idle">Checking status</Status>
+                        ) : existingValidator ? (
+                          <Status tone="warn">Already validating</Status>
+                        ) : null
+                      }
+                    >
+                      <SpecRow label="Node ID">
+                        <HashChip value={validator.nodeID} len={16} />
+                      </SpecRow>
+                      <SpecRow label="BLS public key">
+                        <HashChip value={validator.nodePOP.publicKey} len={16} />
+                      </SpecRow>
+                    </Sheet>
+                  )}
+
+                  {isUpdateMode && (
+                    <Notice tone="warn">
+                      This node already has auto-renewed staking, so the tool switched to updating its config.
+                    </Notice>
+                  )}
+                </>
               )}
             </Step>
 
@@ -1052,7 +1139,15 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                 </>
               )}
 
-              {!existingValidator && (
+              {!existingValidator && action === 'manage' && (
+                <>
+                  <h3>Auto-renewal config</h3>
+                  <p>Enter the NodeID above to load the validator&apos;s current cycle period and auto-compounding.</p>
+                  <CliAlternative command={cliCommand} />
+                </>
+              )}
+
+              {!existingValidator && action === 'stake' && (
                 <>
                   <h3>Stake configuration</h3>
                   <p>
@@ -1216,7 +1311,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
               )}
             </Step>
 
-            {(!existingValidator || isUpdateMode) && (
+            {(isUpdateMode || (action === 'stake' && !existingValidator)) && (
               <Step>
                 {isUpdateMode ? (
                   <>
@@ -1296,6 +1391,14 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     )}
 
                     <CliAlternative command={cliCommand} />
+                    <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
+                      To stop auto-renewal from the CLI, run it with{' '}
+                      <code className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
+                        --period 0 --auto-compound 0
+                      </code>
+                      . The <code className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300">--tx-id</code> is
+                      the validator&apos;s original AddAutoRenewedValidatorTx.
+                    </p>
                   </>
                 ) : (
                   <>

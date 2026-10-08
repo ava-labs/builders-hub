@@ -65,11 +65,13 @@ function summaryLines(
 
 export function StepReview() {
   const form = useFormContext<AuditWizardValues>();
-  const { setStep, consent, setConsent, firms } = useAuditWizard();
+  const { setStep, consent, setConsent, shareHandle, setShareHandle, firms } = useAuditWizard();
   const values = form.watch();
   const chosenCount = values.shortlist_auditor_ids.length
     ? firms.filter((f) => values.shortlist_auditor_ids.includes(f.id)).length
     : 0;
+  // An empty handle has nothing to share, so the box waits for one.
+  const handleEmpty = values.contact_handle.trim() === "";
 
   return (
     <div className="space-y-6">
@@ -109,23 +111,57 @@ export function StepReview() {
         />
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
-        <FormField
-          control={form.control}
-          name="contact_handle"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Telegram <span className="font-normal text-muted-foreground">· optional</span>
-              </FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="@handle" className="h-11 md:h-10" />
-              </FormControl>
-              <FormDescription>For quick questions during the audit.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* items-start: the share box makes the Telegram column taller, and a
+          stretched FormItem would spread the Calendar field's rows apart. */}
+      <div className="grid items-start gap-6 sm:grid-cols-2 sm:gap-4">
+        <div className="space-y-3">
+          <FormField
+            control={form.control}
+            name="contact_handle"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Telegram <span className="font-normal text-muted-foreground">· optional</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      // Clearing the field unticks the share.
+                      if (event.target.value.trim() === "") setShareHandle(false);
+                    }}
+                    placeholder="@handle"
+                    className="h-11 md:h-10"
+                  />
+                </FormControl>
+                <FormDescription>For quick questions during the audit.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* The Telegram share. Chosen at sending like the consent below, so
+              never autosaved; the server stamps it only with a stored handle. */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <Checkbox
+              checked={shareHandle}
+              disabled={handleEmpty}
+              onCheckedChange={(next) => setShareHandle(next === true)}
+              className="mt-0.5"
+              aria-labelledby="share-handle-label"
+              aria-describedby="share-handle-hint"
+            />
+            <span className="text-sm leading-snug text-zinc-700 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:text-zinc-300">
+              <span id="share-handle-label">
+                Share my Telegram handle with the firms that receive this request
+              </span>
+              <span id="share-handle-hint" className="mt-1 block text-muted-foreground">
+                They can message you before they quote. Your name and email stay hidden until you
+                accept a quote.
+              </span>
+            </span>
+          </label>
+        </div>
         <FormField
           control={form.control}
           name="contact_calendar_url"
@@ -189,9 +225,8 @@ export function StepReview() {
           aria-describedby="consent-copy"
         />
         <span id="consent-copy" className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-          I understand that my contact details in this request are shared with the vetted audit
-          firms on the Ava Labs whitelist that receive it, and with the winning firm once I accept a
-          quote.
+          I understand that the firm whose quote I accept receives my contact details. If I share my
+          Telegram handle above, every firm that receives this request can see it.
         </span>
       </label>
     </div>

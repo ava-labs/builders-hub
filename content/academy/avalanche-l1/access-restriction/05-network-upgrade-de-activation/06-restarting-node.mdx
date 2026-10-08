@@ -57,7 +57,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
   <Step>
     ### Step 3: Confirm the upgrade config was loaded
 
-    On startup, Subnet-EVM prints the chain configuration. You’re looking for log output that includes an `UpgradeConfig` / `precompileUpgrades` section containing your two disable entries.
+    On startup, Subnet-EVM prints the chain configuration. Look for the log line that contains `Upgrade Config:`. Its JSON shows a `precompileUpgrades` list with your two disable entries.
 
     <Callout type="info">
     If you don’t see the upgrade config reflected in logs, double-check you created `upgrade.json` in the correct directory: it must be next to `config.json` inside `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/`.
@@ -70,7 +70,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 Your node restarts successfully and logs show it parsed an `UpgradeConfig` that includes your disable upgrades.
 
 ```
-... Initialised chain configuration ... UpgradeConfig: {"precompileUpgrades":[ ... ]}
+... Upgrade Config: {"precompileUpgrades":[ ... ]}
 ```
 
 ## Verification

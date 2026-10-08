@@ -1,8 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -27,51 +25,6 @@ import { Board, BoardHeader, Rise, SectionHeader } from '@/components/explorer-v
 import { EcosystemMarquee } from '@/components/console/ecosystem-marquee';
 import { AlphaSequence } from '@/components/console/alpha-sequence';
 import { PromptComposer } from '@/components/studio/PromptComposer';
-
-function RedirectLogic() {
-  const { data: session, status } = useSession();
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    // Note: PostHog tracking is handled by the layout's TrackNewUser component
-    // This component only handles the redirect logic to avoid duplicate tracking
-    //
-    // IMPORTANT: Don't redirect if user is a "pending" user (hasn't accepted terms yet)
-    // The LoginModalWrapper will handle showing Terms and BasicProfile modals
-    // Only redirect after they've completed the full registration flow
-    if (status === 'authenticated' && session?.user?.is_new_user) {
-      // Check if this is a pending user who hasn't accepted terms yet
-      const isPendingUser = session.user.id?.startsWith('pending_');
-      if (isPendingUser) {
-        // Let LoginModalWrapper handle the Terms/BasicProfile flow
-        // Don't redirect - the modals will appear
-        return;
-      }
-
-      // Redirect existing new users (who have accepted terms but notifications is null) to profile page
-      if (pathname !== '/profile') {
-        // Store the original URL with search params in localStorage
-        const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('redirectAfterProfile', originalUrl);
-        }
-        router.replace('/profile');
-      }
-    }
-  }, [session, status, pathname, router, searchParams]);
-
-  return null;
-}
-
-function RedirectIfNewUser() {
-  return (
-    <Suspense fallback={null}>
-      <RedirectLogic />
-    </Suspense>
-  );
-}
 
 const ECOSYSTEM_CHAINS = [
   // Gaming
@@ -140,12 +93,6 @@ const ECOSYSTEM_CHAINS = [
     image:
       'https://images.ctfassets.net/gcj8jwzm6086/7plQHTCA1MePklfF2lDgaE/1f4d00bf534a1ae180b3ea1de76308c8/SLIR8rz7_400x400.jpg',
     link: 'https://studioartery.com/',
-  },
-  {
-    name: 'Hatchyverse',
-    image:
-      'https://dashboard-assets.dappradar.com/document/8825/hatchyverse-project-games-8825-logo_aaafc4cafbea89ae57991f888d963abb.png',
-    link: 'https://hatchyverse.com/',
   },
   // DeFi & Finance
   {
@@ -575,7 +522,6 @@ function ConsoleHome() {
 export default function ConsolePage() {
   return (
     <>
-      <RedirectIfNewUser />
       <ConsoleHome />
     </>
   );

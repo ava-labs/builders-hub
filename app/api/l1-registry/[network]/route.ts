@@ -1,43 +1,25 @@
 import { NextResponse } from "next/server";
-import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
+import { isPchainNetwork } from "@/lib/pchain-explorer";
+import { pchainPost } from "@/lib/pchain-rpc";
+import { fetchAllSubnets, fetchSubnetsById, mergeSubnetReads, runningL1Count, type RegistrySubnet } from "@/lib/pchain-subnets";
 
 // The chain build-out registry, aggregated server-side: every subnet the
 // P-Chain has ever created (the box's /v1 subnets endpoint, ~6 pages),
 // reduced to the totals, a monthly cumulative creation series, and the
 // newest launches, each with its active validators so the network map can
 // stand a new L1 up before the catalog knows it. Creations are
-// slow-moving, so cache aggressively.
+// slow-moving, so cache aggressively. Fuji reads less: see readFujiSubnets.
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 100;
 const FETCH_TIMEOUT_MS = 20_000;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h in-process
 const CACHE_CONTROL = "public, max-age=900, s-maxage=3600, stale-while-revalidate=86400";
 const PRIMARY_SUBNET_ID = "11111111111111111111111111111111LpoYY";
-const P_CHAIN_RPC: Record<string, string> = {
-  mainnet: "https://api.avax.network/ext/bc/P",
-  fuji: "https://api.avax-test.network/ext/bc/P",
-};
-
-interface RegistryBlockchain {
-  blockchainId: string;
-  blockchainName?: string;
-  createBlockTimestamp?: number;
-  evmChainId?: number;
-  subnetId?: string;
-  vmId?: string;
-}
-
-interface RegistrySubnet {
-  subnetId: string;
-  isL1?: boolean;
-  createBlockTimestamp?: number;
-  blockchains?: RegistryBlockchain[] | null;
-}
 
 export interface L1Registry {
-  totals: { subnets: number; l1s: number; blockchains: number; evmChains: number };
+  /** l1s: every subnet ever converted; activeL1s: the L1s among the running sets, null when the P-Chain did not answer */
+  totals: { subnets: number; l1s: number; activeL1s: number | null; blockchains: number; evmChains: number };
   /** newest blockchain launches, newest first */
   recent: {
     name: string;
@@ -49,40 +31,27 @@ export interface L1Registry {
     /** active validators at the proposed height; null when the P-Chain did not answer */
     validators: number | null;
   }[];
+  /** every subnet whose set runs now, named by its newest chain, newest
+   *  first; empty when the P-Chain did not answer. Not all are L1s: legacy
+   *  subnets (gunz, StepNetwork) run sets too, so an L1 count reads isL1,
+   *  or totals.activeL1s */
+  active: L1Registry["recent"];
   lastUpdated: number;
 }
 
 const cache = new Map<string, { data: L1Registry; at: number }>();
-
-async function fetchAllSubnets(network: string): Promise<RegistrySubnet[]> {
-  const out: RegistrySubnet[] = [];
-  let pageToken: string | undefined;
-  for (let i = 0; i < 50; i++) {
-    const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
-    const res = await fetch(
-      `${EXPLORER_API_BASE}/v1/networks/${network}/subnets?pageSize=${PAGE_SIZE}${tok}`,
-      { headers: { accept: "application/json" }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
-    );
-    if (!res.ok) throw new Error(`subnets upstream ${res.status}`);
-    const page = (await res.json()) as { subnets?: RegistrySubnet[]; nextPageToken?: string };
-    const subnets = page.subnets ?? [];
-    out.push(...subnets);
-    pageToken = page.nextPageToken;
-    if (!pageToken || subnets.length < PAGE_SIZE) break;
-  }
-  return out;
-}
+// the last counts the P-Chain gave, per network: a busy or rate-limited P-Chain serves them rather than none
+const lastCounts = new Map<string, Map<string, number>>();
 
 /* each subnet's active validators at the proposed height, from one call:
    a subnet whose set is empty is not running */
 async function fetchValidatorCounts(network: string): Promise<Map<string, number> | null> {
   try {
-    const res = await fetch(P_CHAIN_RPC[network], {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "platform.getAllValidatorsAt", params: { height: "proposed" } }),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
+    const res = await pchainPost(
+      network,
+      { jsonrpc: "2.0", id: 1, method: "platform.getAllValidatorsAt", params: { height: "proposed" } },
+      FETCH_TIMEOUT_MS,
+    );
     if (!res.ok) return null;
     const sets = (await res.json())?.result?.validatorSets;
     if (!sets || typeof sets !== "object") return null;
@@ -97,8 +66,24 @@ async function fetchValidatorCounts(network: string): Promise<Map<string, number
   }
 }
 
+/* Fuji has ~8,000 subnets: 80 pages are too slow for one request. Read the
+   newest page (100 subnets, newest first) for the recent launches and the
+   sites, and name each running set by its subnet ID. The totals then count
+   only these subnets, not every subnet on Fuji. No Fuji page reads the
+   totals: the L1s tab is mainnet only. missing counts the running sets
+   that no read named. */
+async function readFujiSubnets(counts: Promise<Map<string, number> | null>): Promise<{ subnets: RegistrySubnet[]; missing: number }> {
+  const runningIds = counts.then((c) => [...(c ?? [])].filter(([id, n]) => n > 0 && id !== PRIMARY_SUBNET_ID).map(([id]) => id));
+  const [newest, byId, ids] = await Promise.all([
+    fetchAllSubnets("fuji", 1),
+    runningIds.then((ids) => fetchSubnetsById("fuji", ids)),
+    runningIds,
+  ]);
+  return mergeSubnetReads(newest, byId, ids);
+}
+
 function buildRegistry(subnets: RegistrySubnet[], counts: Map<string, number> | null): L1Registry {
-  const totals = { subnets: 0, l1s: 0, blockchains: 0, evmChains: 0 };
+  const totals = { subnets: 0, l1s: 0, activeL1s: counts ? runningL1Count(counts, subnets) : null, blockchains: 0, evmChains: 0 };
   const allChains: L1Registry["recent"] = [];
 
   for (const s of subnets) {
@@ -123,7 +108,10 @@ function buildRegistry(subnets: RegistrySubnet[], counts: Map<string, number> | 
   }
 
   allChains.sort((a, b) => b.createdAt - a.createdAt);
-  return { totals, recent: allChains.slice(0, 8), lastUpdated: Date.now() };
+  // one per running set, so the map can stand the L1s the catalog does not list
+  const active = new Map<string, L1Registry["recent"][number]>();
+  for (const c of allChains) if ((c.validators ?? 0) > 0 && !active.has(c.subnetId)) active.set(c.subnetId, c);
+  return { totals, recent: allChains.slice(0, 8), active: [...active.values()], lastUpdated: Date.now() };
 }
 
 export async function GET(
@@ -132,20 +120,28 @@ export async function GET(
 ) {
   const { network } = await params;
   if (!isPchainNetwork(network)) {
-    return NextResponse.json({ error: `unknown network '${network}'` }, { status: 404 });
+    return NextResponse.json({ error: `unknown network '${network}'` }, { status: 400, headers: { "cache-control": "no-store" } });
   }
   const hit = cache.get(network);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
     return NextResponse.json(hit.data, { headers: { "cache-control": CACHE_CONTROL } });
   }
   try {
-    const [subnets, counts] = await Promise.all([fetchAllSubnets(network), fetchValidatorCounts(network)]);
+    const read = fetchValidatorCounts(network).then((fresh) => {
+      if (fresh) lastCounts.set(network, fresh);
+      return fresh ?? lastCounts.get(network) ?? null;
+    });
+    const [{ subnets, missing }, counts] = await Promise.all([
+      network === "fuji" ? readFujiSubnets(read) : fetchAllSubnets(network).then((all) => ({ subnets: all, missing: 0 })),
+      read,
+    ]);
     const data = buildRegistry(subnets, counts);
-    cache.set(network, { data, at: Date.now() });
+    // built without any counts, or with a running set no read named, it holds a minute rather than the hour, so the map recovers
+    cache.set(network, { data, at: counts && missing === 0 ? Date.now() : Date.now() - CACHE_TTL_MS + 60_000 });
     return NextResponse.json(data, { headers: { "cache-control": CACHE_CONTROL } });
   } catch {
-    // serve the stale aggregate over an error — creations move slowly
+    // serve the stale aggregate over an error: creations move slowly
     if (hit) return NextResponse.json(hit.data, { headers: { "cache-control": CACHE_CONTROL } });
-    return NextResponse.json({ error: "registry upstream unreachable" }, { status: 504 });
+    return NextResponse.json({ error: "registry upstream unreachable" }, { status: 504, headers: { "cache-control": "no-store" } });
   }
 }

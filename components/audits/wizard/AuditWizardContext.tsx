@@ -39,6 +39,10 @@ interface AuditWizardContextValue {
       draft asks again. */
   consent: boolean;
   setConsent: (next: boolean) => void;
+  /** Step 4's Telegram share checkbox. Not autosaved either, for the same
+      reason: the choice is made at sending, so a resubmit asks again. */
+  shareHandle: boolean;
+  setShareHandle: (next: boolean) => void;
   /** The public firm list, server-rendered once and held for the wizard's
       lifetime; its length is the whitelist count. */
   firms: PublicFirm[];
@@ -69,6 +73,7 @@ export function AuditWizardProvider({
   const [step, setStepState] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [shareHandle, setShareHandle] = useState(false);
 
   const form = useForm<AuditWizardValues>({
     // The resolver carries the SUBMIT-level rules; steps only ever trigger
@@ -133,7 +138,7 @@ export function AuditWizardProvider({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // The server refuses without it; the checkbox on step 4 is what sets it.
-        body: JSON.stringify({ contact_consent: true }),
+        body: JSON.stringify({ contact_consent: true, share_contact_handle: shareHandle }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.success) {
@@ -156,7 +161,7 @@ export function AuditWizardProvider({
     } finally {
       setSubmitting(false);
     }
-  }, [flush, form, router, setStep]);
+  }, [flush, form, router, setStep, shareHandle]);
 
   const value = useMemo(
     () => ({
@@ -174,6 +179,8 @@ export function AuditWizardProvider({
       ensureDraftId,
       consent,
       setConsent,
+      shareHandle,
+      setShareHandle,
       firms,
     }),
     [
@@ -190,6 +197,7 @@ export function AuditWizardProvider({
       submitting,
       ensureDraftId,
       consent,
+      shareHandle,
       firms,
     ],
   );

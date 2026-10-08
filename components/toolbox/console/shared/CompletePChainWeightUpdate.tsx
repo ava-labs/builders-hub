@@ -7,12 +7,8 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import {
-  getRegistrationJustification,
-  newL1ValidatorWeightMessage,
-  newWarpMessage,
-  packWarpIntoAccessList,
-} from '@avalanche-sdk/interchain/warp';
+import { newL1ValidatorWeightMessage, newWarpMessage, packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
+import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -220,7 +216,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       // Step 3: Get justification (only for ChangeWeight, delegation doesn't need it)
       let justification: Uint8Array | undefined;
       if (isChangeWeight) {
-        const fetchedJustification = await getRegistrationJustification(
+        const fetchedJustification = await findRegistrationJustification(
           weightMessageData.validationIdHex,
           subnetIdL1,
           chainPublicClient!,

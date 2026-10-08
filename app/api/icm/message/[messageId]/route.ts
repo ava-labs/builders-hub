@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { STATS_API_BASE } from "@/lib/stats-api";
 import { normalizeMessageId, type IcmMessage } from "@/lib/icm-message";
+import { softStatus } from "@/lib/explorer-soft-status";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ const FINAL_CACHE = "public, max-age=3600, s-maxage=86400, stale-while-revalidat
 const PENDING_CACHE = "public, max-age=30, s-maxage=30, stale-while-revalidate=120";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ messageId: string }> },
 ) {
   const { messageId } = await params;
@@ -32,10 +33,10 @@ export async function GET(
     });
 
     if (res.status === 404) {
-      return NextResponse.json({ error: "not found" }, { status: 404 });
+      return NextResponse.json({ error: "not found" }, softStatus(req, 404));
     }
     if (!res.ok) {
-      return NextResponse.json({ error: "upstream error" }, { status: 502 });
+      return NextResponse.json({ error: "upstream error" }, softStatus(req, 502));
     }
 
     const body = (await res.json()) as IcmMessage;
@@ -44,7 +45,7 @@ export async function GET(
       headers: { "Cache-Control": final ? FINAL_CACHE : PENDING_CACHE },
     });
   } catch {
-    return NextResponse.json({ error: "upstream unreachable" }, { status: 504 });
+    return NextResponse.json({ error: "upstream unreachable" }, softStatus(req, 504));
   } finally {
     clearTimeout(timer);
   }

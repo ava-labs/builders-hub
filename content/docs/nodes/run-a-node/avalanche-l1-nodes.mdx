@@ -25,12 +25,14 @@ After building AvalancheGo successfully, you need to build the Subnet-EVM plugin
 
 <Steps>
 <Step>
-Navigate to the Subnet-EVM directory within AvalancheGo and run the build script. Save the plugin to the `plugins` folder of your `.avalanchego` data directory, naming it after the `VMID` of the Avalanche L1 you wish to track. The `VMID` of the WAGMI Avalanche L1 is the value beginning with **srEX...**
+Go to the Subnet-EVM directory in AvalancheGo and run the build script with no argument. The script builds `build/subnet-evm` in the AvalancheGo directory. Then it links the binary into the `plugins` folder of your `.avalanchego` data directory, under the Subnet-EVM `VMID` (the value that starts with **srEX...**). The WAGMI Avalanche L1 uses this `VMID`.
 
 ```bash
 cd $GOPATH/src/github.com/ava-labs/avalanchego/graft/subnet-evm
-./scripts/build.sh ~/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+./scripts/build.sh
 ```
+
+If the L1 that you track uses a different `VMID`, copy `build/subnet-evm` to `~/.avalanchego/plugins/<VMID>`. Do not give the plugin path as an argument to `build.sh`. The script then links the binary onto itself. On macOS, this replaces the plugin with a broken link, and the node cannot load the plugin.
 
 <Accordions>
 <Accordion title="Where can I find Avalanche L1 parameters like VMID?">
@@ -54,7 +56,7 @@ echo '{"track-subnets": "28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY"}' >
 
 ## Run the Node
 
-Run AvalancheGo with the `—config-file` flag to start your node and ensure it tracks the Avalanche L1s included in the configuration file.
+Run AvalancheGo with the `--config-file` flag to start your node and ensure it tracks the Avalanche L1s included in the configuration file.
 
 ```bash
 cd $GOPATH/src/github.com/ava-labs/avalanchego

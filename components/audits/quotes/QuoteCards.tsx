@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils";
 import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import {
+  durationLabel,
   formatIsoDate,
   formatUsd,
   isOutsideWindow,
   priceDeltaLabel,
-  weeksLabel,
 } from "@/components/audits/shared/format";
 import { QuoteChipPill, chipsFor } from "@/components/audits/quotes/QuotesPanel";
 import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
@@ -69,7 +69,7 @@ export function QuoteCards({ quotes, neededBy = null, onAccept }: QuoteCardsProp
           <dl className="mt-3 rounded-[10px] border border-zinc-200 dark:border-white/10">
             <div className="flex items-baseline justify-between gap-4 px-3.5 py-2.5 text-sm">
               <dt className="text-zinc-600 dark:text-[#A2AFB2]">Duration</dt>
-              <dd className="font-mono text-[13px]">{weeksLabel(quote.duration_weeks)}</dd>
+              <dd className="font-mono text-[13px]">{durationLabel(quote.duration, quote.duration_unit)}</dd>
             </div>
             <div className="flex items-baseline justify-between gap-4 border-t border-zinc-200 px-3.5 py-2.5 text-sm dark:border-white/[0.08]">
               <dt className="text-zinc-600 dark:text-[#A2AFB2]">Can start</dt>

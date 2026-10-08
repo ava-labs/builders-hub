@@ -43,13 +43,48 @@ const defaultArgs: PackL1ConversionMessageArgs = {
 
 describe('L1 Conversion Tests', () => {
   it('should correctly marshal subnet to L1 conversion data', () => {
+    // The P-Chain accepts a conversion only with validators sorted by NodeID bytes,
+    // and it hashes them in that order. node2 (0x3495...) sorts before node1 (0x9e99...).
     const marshaledData = marshalSubnetToL1ConversionData(defaultArgs);
     expect(bufferToHex(marshaledData)).toBe(
-      '0x000032858f45b192eeb190e643f6915d45f832def5d2021b77b151867ec29843af18359f4649f7d828a1ea590ae669509ac86fa9fc0cd7cd83f048323a73a1d315ad00000014c0dd1cdd60bd82a4c48fa06ddbd927da5443c58a00000002000000149e99c96338c2ae4131ba1d4fb1a9dd146e06d16ca2ea5071b185225223ceb743fe265b47905fff03c64d6517733b9f79bde4937bfab0a7b903e697e2b4b5b90a7aa744270000000000000064000000143495ce47a5968640acd0cbf613c050fd0a5b30cea09e63e32ce3b24205455bc470b54d6260bc826821857458b67adcab63ea842b392407b9dff0564ce520f6337ac2b5ca0000000000000064',
+      '0x000032858f45b192eeb190e643f6915d45f832def5d2021b77b151867ec29843af18359f4649f7d828a1ea590ae669509ac86fa9fc0cd7cd83f048323a73a1d315ad00000014c0dd1cdd60bd82a4c48fa06ddbd927da5443c58a00000002000000143495ce47a5968640acd0cbf613c050fd0a5b30cea09e63e32ce3b24205455bc470b54d6260bc826821857458b67adcab63ea842b392407b9dff0564ce520f6337ac2b5ca0000000000000064000000149e99c96338c2ae4131ba1d4fb1a9dd146e06d16ca2ea5071b185225223ceb743fe265b47905fff03c64d6517733b9f79bde4937bfab0a7b903e697e2b4b5b90a7aa744270000000000000064',
     );
 
     const conversionID = subnetToL1ConversionID(defaultArgs);
-    expect(bufferToHex(conversionID)).toBe('0xae4984e3c1f0b73c2e160b899295e4a2d44b2229f23bdb7b8eccbbbcb0ba7d93');
+    expect(bufferToHex(conversionID)).toBe('0x2df2b6d72ff53488cdbae244f47f89826a0943cb5032a9b248ec0187b0d11a24');
+  });
+
+  it('matches the conversionID the P-Chain recorded for a Fuji L1', () => {
+    // Fuji ConvertSubnetToL1Tx 2N6tzZQv338eazcQKiJAJ8sFzcJf5eYwEn1AdpjivTRxd6UKKA, validators in reverse order.
+    const args: PackL1ConversionMessageArgs = {
+      subnetId: '2JTusgMZNJUkrMX4iyk2ZUMVs26R2JxgHjUfJNePxpDcRoqS12',
+      managerChainID: 'RE6UavxW2LZJJdtahKDUdPTUhzdg5HQU36JvRdiPhXPFCHMbq',
+      managerAddress: '0x0feedc0de0000000000000000000000000000000',
+      validators: [
+        {
+          nodeID: '0x87faefe9f6699b1c5308cda2c92d102ae10635a0',
+          nodePOP: {
+            publicKey:
+              '0xa589cf54da93293ead602cea7ee65a8bb13557a230f04a9610ed4d8f7511d58045c9eccdd4437eba65f9f4753994bebb',
+            proofOfPossession: '0x',
+          },
+          weight: 100,
+        },
+        {
+          nodeID: '0x69a40ea2df933ca0ec830e6aa610f55b4e703e39',
+          nodePOP: {
+            publicKey:
+              '0xb42ee4de052229f296f9cc5d295709810eb5078e24f7fd30ae41047e64237ab3ba5662ac6c9f5854aaab58b9505f2de5',
+            proofOfPossession: '0x',
+          },
+          weight: 100,
+        },
+      ],
+    };
+
+    // platform.getSubnet conversionID of the subnet.
+    const onChainConversionID = utils.base58check.decode('2eSKRF2wapCWveTJaxaEVP5Y27wAS7k6cNEARrgSY1Hky2wnjg');
+    expect(bufferToHex(subnetToL1ConversionID(args))).toBe(bufferToHex(onChainConversionID));
   });
 
   describe('AddressedCall', () => {
@@ -81,7 +116,7 @@ describe('L1 Conversion Tests', () => {
       '0x000000000005' + //fuji ID
       '0000000000000000000000000000000000000000000000000000000000000000' + //platform chain id
       '00000034' + // ?
-      '0000000000010000000000000026000000000000ae4984e3c1f0b73c2e160b899295e4a2d44b2229f23bdb7b8eccbbbcb0ba7d93'; //subnetConversionAddressedCall
+      '00000000000100000000000000260000000000002df2b6d72ff53488cdbae244f47f89826a0943cb5032a9b248ec0187b0d11a24'; //subnetConversionAddressedCall
 
     const [message, justification] = packL1ConversionMessage(defaultArgs, 5, '11111111111111111111111111111111LpoYY');
     expect(bufferToHex(message)).toBe(expectedMessage);

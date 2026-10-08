@@ -8,10 +8,12 @@ export function formatUsd(amount: number): string {
   return usd.format(amount);
 }
 
-/** "1 week", "6 weeks". Durations are rendered in half a dozen places and
-    every one of them used to hardcode the plural. */
-export function weeksLabel(weeks: number): string {
-  return `${weeks} week${weeks === 1 ? "" : "s"}`;
+/** "1 day", "10 days", "1 week", "6 weeks": a quote's duration in the unit
+    the firm picked. Durations are rendered in half a dozen places and every
+    one of them used to hardcode the plural. */
+export function durationLabel(duration: number, unit: string): string {
+  const noun = unit === "days" ? "day" : "week";
+  return `${duration} ${noun}${duration === 1 ? "" : "s"}`;
 }
 
 /**

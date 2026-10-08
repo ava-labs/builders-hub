@@ -75,7 +75,8 @@ export async function createCoreWalletClient(
   }
 
   const provider = avalancheProvider();
-  if (!provider) return null; // Neither Core nor a Console wallet
+  // An element with id="avalanche" (an "Avalanche" heading) is also window.avalanche, so check for a real provider.
+  if (typeof provider?.request !== 'function') return null; // Neither Core nor a Console wallet
 
   // Determine testnet status: prefer the explicit override, fall back to
   // Core Wallet's own report (which is unreliable for custom L1 chains).

@@ -1,6 +1,6 @@
 // All comments in English (as requested).
 
-function isSupportedTimeZone(timeZone: string): boolean {
+export function isSupportedTimeZone(timeZone: string): boolean {
     if (!timeZone) return false;
     try {
         new Intl.DateTimeFormat('en-US', { timeZone });

@@ -23,10 +23,10 @@ You should already have a created L1 from the [Permissioned L1 course](/academy/
 
 ### Create Subnet with necessary Precompiles
 
-When creating your subnet, you **must** enable the Native Minter and Reward Manager precompiles in your genesis configuration. These are essential for native token staking:
+When you create the chain, enable these precompiles in your genesis configuration. The Native Minter is **required** for native token staking. The Reward Manager is optional:
 
 - **Native Minter**: Allows the staking manager to mint reward tokens
-- **Reward Manager**: Automates reward distribution to validators
+- **Reward Manager** (optional): Sets where transaction fees go (a reward address, the block producer, or burn). It does not pay staking rewards.
 
 <ToolboxMdxWrapper walletMode="c-chain">
     <CreateChain embedded={true} />

@@ -13,6 +13,8 @@
 //   resource = "" (home) | blocks | block/{id} | txs | tx/{id}
 //              | address/{addr} | node/{nodeId} | validators
 
+import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+
 export const EXPLORER_API_BASE =
   process.env.EXPLORER_API_URL || "https://stats-api.avax.network";
 
@@ -123,7 +125,7 @@ export function knownChainName(cb58?: string): string | undefined {
 export function classifyLocally(q: string): { type: "block" | "node" | "address"; id: string } | null {
   if (/^\d+$/.test(q)) return { type: "block", id: q };
   if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) return { type: "node", id: q };
-  if (/^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
+  if (/^([XP]-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
   return null;
 }
 
@@ -324,9 +326,22 @@ export interface FundedBy {
   funders: string[];
 }
 
+/** an address's AVAX by status, in nAVAX; atomic memory is not part of `balance` */
+export interface AddressBreakdown {
+  unlockedUnstaked: string;
+  unlockedStaked: string;
+  lockedStaked: string;
+  lockedStakeable: string;
+  lockedPlatform: string;
+  pendingStaked: string;
+  atomicMemoryUnlocked: string;
+  atomicMemoryLocked: string;
+}
+
 export interface Address {
   address: string;
   balance: { total: string; unlocked: string; locked: string; staked: string };
+  breakdown?: AddressBreakdown;
   utxoCount: number;
   fundedBy?: FundedBy;
   utxos: AddressUtxo[];
@@ -351,6 +366,7 @@ export const TX_TYPE_LABELS: Record<string, string> = {
   BaseTx: "Transfer",
   CreateSubnetTx: "Create Subnet",
   CreateChainTx: "Create Chain",
+  TransferSubnetOwnershipTx: "Transfer Subnet Ownership",
   ConvertSubnetToL1Tx: "Convert to L1",
   RegisterL1ValidatorTx: "Register L1 Validator",
   SetL1ValidatorWeightTx: "Set L1 Validator Weight",
@@ -358,9 +374,28 @@ export const TX_TYPE_LABELS: Record<string, string> = {
   DisableL1ValidatorTx: "Disable L1 Validator",
 };
 
+/** The staking money flow by day: rewards paid over the last 30 days and
+ *  stake unlocking over the next 30 (ClickHouse, behind /api/pchain-activity). */
+export function pchainActivityPath(network: string): string {
+  return `/api/pchain-activity/${network}`;
+}
+
+/** The ACP-77 ops by day over the last `days`, and the conversions to date
+ *  by month (ClickHouse, behind /api/pchain-l1-ops). */
+export function pchainL1OpsPath(network: string, days: 30 | 90 | 365 = 30): string {
+  return `/api/pchain-l1-ops/${network}?days=${days}`;
+}
+
 /** Display name for a tx type, falling back to the raw type minus its `Tx`. */
 export function txTypeLabel(txType: string): string {
   return TX_TYPE_LABELS[txType] ?? txType.replace(/Tx$/, "");
+}
+
+/** A block type's kind: "BanffCommitBlock" reads "Commit". The Banff and
+ *  Apricot prefixes name protocol eras; Standard, Proposal, Commit and
+ *  Abort are what a reader needs. */
+export function blockTypeLabel(blockType: string): string {
+  return blockType.replace(/^(Banff|Apricot)/, "").replace(/Block$/, "");
 }
 
 export interface AddressTx {
@@ -444,6 +479,10 @@ export interface NodeResponse {
 
 export interface ValidationPeriod {
   txHash: string;
+  /** the network the term validated; absent means the Primary Network. A
+   *  subnet validator's term stakes no AVAX and earns no reward: its
+   *  amountStaked is the subnet's weight */
+  subnetId?: string;
   startTimestamp: number;
   endTimestamp: number;
   amountStaked: string;
@@ -455,13 +494,19 @@ export interface ValidationPeriod {
   /** nAVAX actually paid out of the delegators' rewards as this node's fee */
   delegationReward: string;
   rewardTxHash?: string;
-  /** a term that closed without paying missed the uptime requirement */
+  /** a Primary Network term that closed without paying missed the uptime requirement */
   rewarded: boolean;
+}
+
+/** a term on the Primary Network, not a subnet validator's */
+export function isPrimaryTerm(p: ValidationPeriod): boolean {
+  return !p.subnetId || p.subnetId === PRIMARY_SUBNET_ID;
 }
 
 export interface ValidationsResponse {
   nodeId: string;
   periods: ValidationPeriod[];
+  /** the Primary Network terms only: a subnet term pays no reward, so it never counts as unrewarded */
   totals: {
     periods: number;
     validationReward: string;
@@ -471,6 +516,16 @@ export interface ValidationsResponse {
     /** terms that closed without a reward */
     unrewarded: number;
   };
+}
+
+/* When a subnet became an L1. Served by
+   app/api/pchain-conversion/[network]/[subnetId]. */
+export interface ConversionResponse {
+  subnetId: string;
+  /** the ConvertSubnetToL1Tx; null while the subnet is not converted */
+  txHash: string | null;
+  /** unix seconds of the conversion's block */
+  timestamp: number | null;
 }
 
 export interface ValidatorSummary {

@@ -3,6 +3,7 @@ import { utils } from '@avalabs/avalanchejs';
 import { CB58ToHex, hexToCB58 } from '@avalanche-sdk/client/utils';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import type { ConvertToL1Validator } from '@/components/toolbox/coreViem/methods/convertToL1';
+import { pChainOwnerProblem } from '@/components/toolbox/coreViem/utils/pchainOwner';
 
 /* Checks that must pass before a ConvertSubnetToL1Tx is signed. The
    conversion is permanent, and the P-Chain checks none of its manager
@@ -139,11 +140,8 @@ export function conversionProblems(input: ConversionInput): string[] {
       [v.remainingBalanceOwner, 'remaining balance owner'],
       [v.deactivationOwner, 'deactivation owner'],
     ] as const) {
-      if (owner.addresses.length === 0 || owner.threshold < 1 || owner.threshold > owner.addresses.length) {
-        problems.push(
-          `${which}: the ${label} needs at least one address and a threshold from 1 to the number of addresses.`,
-        );
-      }
+      const problem = pChainOwnerProblem(owner);
+      if (problem) problems.push(`${which}: the ${label} ${problem}.`);
     }
   });
   return problems;

@@ -156,6 +156,19 @@ describe("submitRequestForReview", () => {
     expect(txRequestUpdateMock).not.toHaveBeenCalled();
   });
 
+  it("rejects a stored row with no lines of code, which firms cannot price", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...completeDraft, nsloc: null });
+
+    const result = await submitRequestForReview("req-1", OWNER);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.code).toBe("invalid");
+      expect(result.errors?.nsloc).toBeDefined();
+    }
+    expect(txRequestUpdateMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a row whose required needed_by date is null (no 1970 coercion)", async () => {
     txRequestFindFirstMock.mockResolvedValue({ ...completeDraft, needed_by: null });
 
@@ -314,5 +327,51 @@ describe("consent", () => {
     const stamped = txRequestUpdateMock.mock.calls[0][0].data.contact_consent_at as Date;
     expect(stamped).toBeInstanceOf(Date);
     expect(stamped.getTime()).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe("Telegram share", () => {
+  const withHandle = { ...completeDraft, contact_handle: "@alexstone" };
+  const sharedAt = () => txRequestUpdateMock.mock.calls[0][0].data.contact_handle_shared_at;
+
+  it("stamps the share at submission when the project ticked it and the row holds a handle", async () => {
+    txRequestFindFirstMock.mockResolvedValue(withHandle);
+    const before = Date.now();
+
+    await submitRequestForReview("req-1", OWNER, true);
+
+    expect(sharedAt()).toBeInstanceOf(Date);
+    expect(sharedAt().getTime()).toBeGreaterThanOrEqual(before);
+  });
+
+  it("writes null without the tick, which clears the stamp of an earlier submit", async () => {
+    txRequestFindFirstMock.mockResolvedValue({
+      ...withHandle,
+      contact_handle_shared_at: new Date("2026-10-01T09:00:00Z"),
+    });
+
+    await submitRequestForReview("req-1", OWNER, false);
+
+    // null, not undefined: Prisma leaves a column untouched on undefined.
+    expect(sharedAt()).toBeNull();
+  });
+
+  it("writes null with the tick when the stored handle is empty", async () => {
+    for (const contact_handle of [null, "", "   "]) {
+      txRequestUpdateMock.mockClear();
+      txRequestFindFirstMock.mockResolvedValue({ ...completeDraft, contact_handle });
+
+      await submitRequestForReview("req-1", OWNER, true);
+
+      expect(sharedAt()).toBeNull();
+    }
+  });
+
+  it("shares nothing when the caller does not say", async () => {
+    txRequestFindFirstMock.mockResolvedValue(withHandle);
+
+    await submitRequestForReview("req-1", OWNER);
+
+    expect(sharedAt()).toBeNull();
   });
 });

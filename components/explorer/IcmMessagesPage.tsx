@@ -13,7 +13,8 @@ import {
 } from "recharts";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
-import { LiveTag, getChainFromBlockchainId } from "@/components/explorer/L1ExplorerPage";
+import { LiveTag } from "@/components/explorer-v2/ui";
+import { getChainFromBlockchainId } from "@/components/explorer/utils/chainLookup";
 import { FeedDown } from "@/components/explorer-v2/evm/bits";
 import { CellLabel, ChartBoard, idInk } from "@/components/explorer-v2/ui";
 import { dayLong, dayShort, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
@@ -136,14 +137,14 @@ function useIcmSeries(chainId: string, windowDays: number): { days: IcmDay[] | n
 }
 
 /* who this chain talks to, split by direction, plus the network total;
-   the flow feed takes the clock's window directly */
-function useIcmRoutes(chainId: string, windowDays: number): { routes: Route[] | null; networkTotal: number } {
+   the flow feed takes the clock's window directly, and the page's network */
+function useIcmRoutes(chainId: string, windowDays: number, network: string): { routes: Route[] | null; networkTotal: number } {
   const [routes, setRoutes] = useState<Route[] | null>(null);
   const [networkTotal, setNetworkTotal] = useState(0);
   useEffect(() => {
     let cancelled = false;
     setRoutes(null);
-    fetch(`/api/icm-flow?days=${windowDays}`)
+    fetch(`/api/icm-flow?days=${windowDays}&network=${network === "fuji" || network === "testnet" ? "fuji" : "mainnet"}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((data: { flows?: IcmFlow[]; totalMessages?: number }) => {
         if (cancelled) return;
@@ -177,7 +178,7 @@ function useIcmRoutes(chainId: string, windowDays: number): { routes: Route[] | 
     return () => {
       cancelled = true;
     };
-  }, [chainId, windowDays]);
+  }, [chainId, windowDays, network]);
   return { routes, networkTotal };
 }
 
@@ -288,7 +289,7 @@ export function IcmMessagesPage({
   const chartDays = Math.max(7, rangeDays);
 
   const { days, failed: seriesFailed } = useIcmSeries(chainId, rangeDays);
-  const { routes, networkTotal } = useIcmRoutes(chainId, rangeDays);
+  const { routes, networkTotal } = useIcmRoutes(chainId, rangeDays, network);
 
   useEffect(() => {
     let cancelled = false;
@@ -460,7 +461,7 @@ export function IcmMessagesPage({
         <ChartBoard
           label={rangeDays < 7 ? "Daily Messages · 7 days" : "Daily Messages"}
           action={<DirectionKey />}
-          href="/explorer/mainnet/chains"
+          href={`/explorer/${network}/chains`}
           className="min-w-0"
         >
           {totals && peak && (

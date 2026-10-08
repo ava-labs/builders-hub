@@ -2,6 +2,7 @@ import { z } from "zod";
 import { emailSchema } from "@/lib/email";
 import {
   DEPLOYMENT_TARGETS,
+  QUOTE_DURATION_UNITS,
   SUBSIDY_DECISION_STATES,
   URGENCY_OPTIONS,
 } from "@/lib/audits/status";
@@ -10,11 +11,12 @@ import {
   AUDIT_LANGUAGES,
   AUDIT_PROJECT_TYPES,
   AUDIT_SERVICES,
-  MAX_QUOTE_WEEKS,
+  MAX_QUOTE_DURATION,
   SHORTLIST_LIMIT,
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
 import { isAllowedAttachmentSrc, isAllowedLogoSrc } from "@/lib/audits/blobSrc";
+import { parseWholeNumber } from "@/components/audits/shared/format";
 
 const MAX_NAME = 200;
 const MAX_URL = 2048;
@@ -75,6 +77,19 @@ const auditorServicesField = z
 // "required" instead.
 const requiredDate = (message: string) =>
   z.preprocess((v) => v ?? undefined, z.coerce.date({ message }));
+
+// Firms price from this number (Joey, 2026-09-30: two of them could not quote
+// a request that left it blank). The wizard holds it as typed text ("4,200"),
+// the stored row as an integer, and both pass through this one gate.
+const LINES_OF_CODE_MESSAGE = "Enter the lines of code as a whole number, like 4200";
+const requiredLinesOfCode = z.preprocess(
+  (v) => (typeof v === "string" ? parseWholeNumber(v) : v),
+  z
+    .number({ message: LINES_OF_CODE_MESSAGE })
+    .int(LINES_OF_CODE_MESSAGE)
+    .min(1, LINES_OF_CODE_MESSAGE)
+    .max(100_000_000, LINES_OF_CODE_MESSAGE),
+);
 
 const repoDraftSchema = z.strictObject({
   url: trimmed(MAX_URL),
@@ -154,6 +169,7 @@ export const auditSubmitSchema = z.object({
     .max(20)
     .optional()
     .default([]),
+  nsloc: requiredLinesOfCode,
   doc_links: z.array(httpsUrl).max(20).optional().default([]),
   // Re-checked against the STORED row at submit, like every other link:
   // without this the draft-time refinement is the only gate and a row written
@@ -167,26 +183,35 @@ export const auditSubmitSchema = z.object({
 });
 export type AuditSubmitData = z.infer<typeof auditSubmitSchema>;
 
-export const auditQuoteSchema = z.strictObject({
-  price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
-  duration_weeks: z.number().int().min(1).max(MAX_QUOTE_WEEKS),
-  earliest_start: requiredDate("Pick the earliest start date"),
-  message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
-  // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
-  // a pasted "docs.google.com/..." still resolves.
-  deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
-});
+export const auditQuoteSchema = z
+  .strictObject({
+    price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
+    duration: z.number().int().min(1),
+    duration_unit: z.enum(QUOTE_DURATION_UNITS),
+    earliest_start: requiredDate("Pick the earliest start date"),
+    message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
+    // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
+    // a pasted "docs.google.com/..." still resolves.
+    deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
+  })
+  // One year at most, in the unit the firm picked.
+  .refine((quote) => quote.duration <= MAX_QUOTE_DURATION[quote.duration_unit], {
+    message: "A quote can run at most one year",
+    path: ["duration"],
+  });
 export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
 
 /**
  * Submission carries the consent explicitly rather than reading a stored
  * flag: consent is given at the moment of sending, so it is re-affirmed on
- * every submit and the server stamps the time itself.
+ * every submit and the server stamps the time itself. The Telegram share is
+ * chosen the same way; a body without it shares nothing.
  */
 export const submitRequestSchema = z.strictObject({
   contact_consent: z.literal(true, {
     message: "Confirm that your contact details can be shared with the audit firms",
   }),
+  share_contact_handle: z.boolean().default(false),
 });
 
 export const acceptQuoteSchema = z.strictObject({

@@ -692,7 +692,7 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                       </a>{' '}
                       and{' '}
                       <a
-                        href="https://build.avax.network/docs/nodes/chain-configs/subnet-evm"
+                        href="https://build.avax.network/docs/nodes/chain-configs/avalanche-l1s/subnet-evm"
                         target="_blank"
                         className={LINK}
                         rel="noreferrer"
@@ -996,7 +996,7 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                   Node config
                 </a>
                 <a
-                  href="https://build.avax.network/docs/nodes/chain-configs/subnet-evm"
+                  href="https://build.avax.network/docs/nodes/chain-configs/avalanche-l1s/subnet-evm"
                   target="_blank"
                   className={LINK}
                   rel="noreferrer"

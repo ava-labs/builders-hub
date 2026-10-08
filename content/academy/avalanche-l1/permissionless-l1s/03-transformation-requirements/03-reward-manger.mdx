@@ -6,13 +6,13 @@ authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-The **Reward Manager** is an **optional but highly recommended component** that automates the calculation and distribution of staking rewards. While the Native Minter precompile handles the actual token minting, the Reward Manager determines *how much* each validator and delegator should receive based on their staking duration, stake amount, and network parameters.
+The **Reward Manager** is an optional Subnet-EVM precompile at `0x0200000000000000000000000000000000000004`. It sets where the L1 sends transaction fees: to a reward address (`setRewardAddress`), to the block producer (`allowFeeRecipients`), or to the burn address (`disableRewards`). It does not calculate or pay staking rewards. On a permissionless L1, the staking manager contract calculates staking rewards with its reward calculator contract, and the Native Minter precompile mints them.
 
-Without the Reward Manager enabled, rewards are set to zero—validators receive only their original stake back when they unstake, no reward UTXOs are created, and transaction fees are burned rather than distributed. This eliminates economic incentives for validators beyond minimal transaction fee revenue, significantly weakening the security model of Proof of Stake and reducing decentralization.
+Without the Reward Manager, the staking manager still pays staking rewards. The L1 burns transaction fees by default. If the genesis chain config sets `allowFeeRecipients`, each block producer gets the fees of its blocks at the `feeRecipient` address in its node config. Enable the Reward Manager to send fees to one reward address, or to change the fee destination after the chain starts.
 
 ## How the Reward Manager Works
 
-The reward system operates through a **proposal-commit/abort mechanism** on the P-Chain. When a validator's or delegator's staking period ends, the system automatically calculates and distributes their rewards.
+The P-Chain does not pay staking rewards to L1 validators. The **proposal-commit/abort mechanism** below applies only to Primary Network validators and delegators. This page shows it for comparison. On a permissionless L1, the staking manager contract calculates and pays rewards on the L1.
 
 <Mermaid
   chart="sequenceDiagram
@@ -35,13 +35,13 @@ The reward system operates through a **proposal-commit/abort mechanism** on the 
         PE->>PS: Create delegatee reward UTXO (if accumulated)
         PE->>PS: Remove from current validators
         PS-->>V: Stake + Validation Reward
-        PS-->>D: Accumulated Delegation Fees
+        PS-->>V: Accumulated Delegation Fees
     else Abort Path
         PE->>PS: Return staked tokens only
         PE->>PS: Decrease supply by potential reward
         PE->>PS: Return accumulated delegatee rewards
         PS-->>V: Stake only (no validation reward)
-        PS-->>D: Accumulated Delegation Fees
+        PS-->>V: Accumulated Delegation Fees
     end
     
     note over BB,D: When delegator ends
@@ -58,17 +58,22 @@ The reward system operates through a **proposal-commit/abort mechanism** on the 
 
 ## Reward Calculation
 
-When a validator's or delegator's staking period ends, the system calculates rewards using the `reward.Calculator` which considers:
+When the P-Chain adds a Primary Network validator or delegator, it calculates the potential reward with `reward.Calculator` and adds it to the current supply. At the end of the staking period, the P-Chain pays this reward (commit) or removes it from the supply (abort). The calculation uses:
 
 1. **Staking Duration**: How long tokens were staked
-2. **Stake Amount**: The weight of the validator (own stake + delegated stake)
+2. **Stake Amount**: The staker's own stake. A validator's reward does not count the stake of its delegators. Each delegator gets a separate reward.
 3. **Current Supply**: The total token supply affects reward rate
 4. **Network Parameters**: Configured reward rates and caps
 
 The calculation follows this general formula:
 
 ```
-reward = (stake_amount × staking_duration × reward_rate) / supply_factor
+remaining_supply = supply_cap - current_supply
+minting_rate = min_rate + (max_rate - min_rate) × duration / minting_period
+reward = remaining_supply × (stake / current_supply) × minting_rate × (duration / minting_period)
+
+# Mainnet: supply_cap = 720,000,000 AVAX, max_rate = 12%, minting_period = 365 days.
+# min_rate is 10% for stakes that started before Helicon. For later stakes it falls linearly to 7.5% over the 90 days after Helicon (ACP-285).
 ```
 
 The reward rate typically decreases as supply increases, creating controlled inflation.
@@ -101,10 +106,10 @@ The transaction can follow two paths:
   - **Post-Cortina**: Accumulated for the validator to claim later
   - **Pre-Cortina**: Paid immediately to the validator
 
-#### Abort Path (Network Issues)
+#### Abort Path (Uptime Below the Requirement)
 - Validator receives: Only their original stake (no rewards)
 - Potential rewards are burned (supply decreased)
 - Accumulated delegation fees are still returned
-- This protects the network from rewarding validators during unstable periods
+- Each node prefers abort when it measures the validator's uptime below the requirement: at least 90% for validations that start at or after Helicon (ACP-267), at least 80% for earlier validations
 
 <Quiz quizId="4067"/>

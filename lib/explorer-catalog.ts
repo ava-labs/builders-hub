@@ -5,8 +5,37 @@
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { isBareAliasOf } from "@/lib/chain-alias";
+import type { PchainNetwork } from "@/lib/pchain-explorer";
 
 const CATALOG = l1ChainsData as L1Chain[];
+
+const catalogs = new Map<PchainNetwork, Map<string, L1Chain>>();
+
+/** The network's catalog chains by EVM chain ID: Fuji's are the testnet entries. One map per network, built once. */
+export function catalogOf(network: PchainNetwork = "mainnet"): Map<string, L1Chain> {
+  let byId = catalogs.get(network);
+  if (!byId) {
+    const testnet = network === "fuji";
+    byId = new Map(CATALOG.filter((c) => (c.isTestnet === true) === testnet).map((c) => [String(c.chainId), c]));
+    catalogs.set(network, byId);
+  }
+  return byId;
+}
+
+const bySubnets = new Map<PchainNetwork, Map<string, L1Chain>>();
+
+/** The network's catalog chains by subnet ID, for the ones that have a subnet. One map per network, built once. */
+export function catalogBySubnet(network: PchainNetwork = "mainnet"): Map<string, L1Chain> {
+  let bySubnet = bySubnets.get(network);
+  if (!bySubnet) {
+    bySubnet = new Map([...catalogOf(network).values()].filter((c) => c.subnetId).map((c) => [String(c.subnetId), c]));
+    bySubnets.set(network, bySubnet);
+  }
+  return bySubnet;
+}
+
+/** Each network's C-Chain EVM chain ID: the Primary Network's chain, downtown in the City. */
+export const C_CHAIN_ID: Record<PchainNetwork, string> = { mainnet: "43114", fuji: "43113" };
 
 export function wantsTestnet(network: string): boolean {
   return network === "fuji" || network === "testnet";
@@ -14,9 +43,9 @@ export function wantsTestnet(network: string): boolean {
 
 export const TESTNET_COUNTERPART: Record<string, string> = {
   "c-chain": "c-chain", // 43114 ↔ 43113
-  // Add pairs here as their testnet indexing comes online:
-  //   beam: "beam-l1",        // 4337 ↔ 13337
-  //   dexalot: "dexalot-l1",  // 432204 ↔ 432201
+  beam: "beam-l1", // 4337 ↔ 13337
+  dexalot: "dexalot-l1", // 432204 ↔ 432201
+  // Add pairs here as their testnet indexing comes online.
 };
 
 export const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
@@ -28,7 +57,13 @@ export function resolveCatalogChain(network: string, slug: string | undefined): 
   if (!slug) return undefined;
   const testnet = wantsTestnet(network);
   const candidates = CATALOG.filter((c) => c.slug === slug);
-  return candidates.find((c) => (c.isTestnet === true) === testnet) ?? candidates[0];
+  const exact = candidates.find((c) => (c.isTestnet === true) === testnet);
+  if (exact) return exact;
+  const pairSlug = testnet ? TESTNET_COUNTERPART[slug] : MAINNET_COUNTERPART[slug];
+  const pair = pairSlug
+    ? CATALOG.find((c) => c.slug === pairSlug && (c.isTestnet === true) === testnet)
+    : undefined;
+  return pair ?? candidates[0];
 }
 
 /** Whether this URL points at a chain the explorer has no data for. */

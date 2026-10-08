@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-02T13:13:51.024Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Toggle Menu\"",
+        "target": {
+          "role": "button",
+          "name": "Toggle Menu"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Explorer\" in \"Solutions\"",
+        "target": {
+          "role": "link",
+          "name": "Explorer",
+          "within": "Solutions"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/site-navigation.e2e.ts::phone%20menu%20leads%20from%20the%20home%20page%20to%20the%20Explorer",
+      "targetId": "phone",
+      "instructionDigest": "e821603f045aeb50797a4192fd69132011c493315556a575f1b62e07ce028ca2"
+    },
+    "summary": "Menu opened and Explorer link followed. The page is now /explorer/mainnet, showing the \"Avalanche Explorer\" heading, an \"All Networks\" selector, and the Explorer/Chains/AVAX/Query tabs.",
+    "startPath": "/",
+    "endPath": "/explorer/mainnet",
+    "endAnchors": [
+      {
+        "role": "heading",
+        "name": "Avalanche Explorer"
+      },
+      {
+        "text": "All Networks"
+      },
+      {
+        "text": "Chains"
+      },
+      {
+        "role": "link",
+        "name": "AVAX"
+      },
+      {
+        "role": "link",
+        "name": "Query"
+      },
+      {
+        "text": "Time range for all stats on this page"
+      },
+      {
+        "role": "option",
+        "name": "1W"
+      },
+      {
+        "role": "option",
+        "name": "1Y"
+      }
+    ],
+    "endWaitMs": 20527
+  }
+}

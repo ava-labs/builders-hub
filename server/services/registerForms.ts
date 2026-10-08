@@ -136,9 +136,10 @@ export async function createRegisterForm(
   // emails). Keep them out of the RegisterForm payload itself.
   const rawTeammates = Array.isArray(registerData.teammates) ? registerData.teammates : [];
 
-  // Telegram is mandatory on the User profile (BasicProfileSetup gate),
-  // so the registration form no longer asks for it. Pull it from the user
-  // record here so the validation, upsert, and HubSpot payload all see it.
+  // Telegram is optional on the User profile, so the registration form
+  // collects it too. When the user record
+  // already has one, it takes precedence here so the validation, upsert, and
+  // HubSpot payload all see the canonical value.
   // newsletter_subscription is treated as a per-event snapshot of the
   // canonical User.notifications value; mirror it here so the column reflects
   // the user's current marketing consent even when the grouped block in
@@ -387,7 +388,7 @@ export async function createRegisterForm(
         .filter((link) => !link.Success)
         .map((link) => link.User);
     } catch (err) {
-      // The whole batch failed before any send completed — surface every
+      // The whole batch failed before any send completed: surface every
       // teammate so the user knows none of the invites went out.
       console.error("[Registration] Failed to send teammate invitations:", err);
       failedInvites = [...dedupedTeammates];

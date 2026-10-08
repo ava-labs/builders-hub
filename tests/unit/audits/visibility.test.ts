@@ -150,7 +150,8 @@ describe("getOwnerRequestDetail", () => {
           id: "q-1",
           status: "not_selected",
           price_usd: 36000,
-          duration_weeks: 3,
+          duration: 3,
+          duration_unit: "weeks",
           earliest_start: FUTURE,
           message: "Three weeks.",
           reaudit_included: false,
@@ -164,7 +165,8 @@ describe("getOwnerRequestDetail", () => {
           id: "q-2",
           status: "accepted",
           price_usd: 34500,
-          duration_weeks: 4,
+          duration: 4,
+          duration_unit: "weeks",
           earliest_start: FUTURE,
           message: "Fixed fee.",
           reaudit_included: true,
@@ -192,7 +194,8 @@ describe("getOwnerRequestDetail", () => {
       id: "q-2",
       status: "accepted",
       price_usd: 30000,
-      duration_weeks: 3,
+      duration: 3,
+      duration_unit: "weeks",
       earliest_start: FUTURE,
       message: "m",
       reaudit_included: false,
@@ -483,6 +486,131 @@ describe("auditor scope · subsidy", () => {
 
     expect(view!.subsidy).toBeNull();
     expect(subsidyFindFirstMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("auditor scope · Telegram share", () => {
+  // What AUDITOR_SAFE_REQUEST_SELECT returns for a request open to quotes.
+  const collectingRow = {
+    id: "req-1",
+    project_name: "Glacierswap",
+    description: "A concentrated-liquidity DEX on C-Chain.",
+    scope: "Router and pool factory contracts.",
+    project_types: ["DeFi protocol"],
+    deployment_target: "c_chain",
+    multichain: false,
+    services: ["Smart contract audit (Solidity / Vyper)"],
+    repos: [],
+    languages: ["Solidity"],
+    frameworks: ["Foundry"],
+    nsloc: 4200,
+    doc_links: [],
+    attachments: [],
+    needed_by: FUTURE,
+    quote_deadline: FUTURE,
+    urgency: "within_6_weeks",
+    status: "collecting",
+    submitted_at: new Date("2026-10-01T09:00:00Z"),
+    created_at: new Date("2026-09-30T12:00:00Z"),
+  };
+  // The guarded read: the handle and its stamp, as the row stores them.
+  const shareRow = (over: Record<string, unknown> = {}) => ({
+    contact_handle: "@ada_glacier",
+    contact_handle_shared_at: new Date("2026-10-01T09:00:00Z"),
+    ...over,
+  });
+  const submittedQuote = { id: "q-1", status: "submitted", price_usd: 28000 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    deliveryFindUniqueMock.mockResolvedValue({ auditor: { active: true } });
+    requestFindFirstMock.mockResolvedValue(collectingRow);
+    quoteFindUniqueMock.mockResolvedValue(null);
+    requestFindUniqueMock.mockResolvedValue(shareRow());
+  });
+
+  it("shows an active notified firm the handle the project shared, while the request collects", async () => {
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.shared_handle).toBe("@ada_glacier");
+    expect(view!.contacts).toBeNull();
+  });
+
+  it("reads the handle alone, apart from the contact-free request select", async () => {
+    await getRequestForAuditor("aud-1", "req-1");
+
+    expect(requestFindUniqueMock.mock.calls[0][0]).toEqual({
+      where: { id: "req-1" },
+      select: { contact_handle: true, contact_handle_shared_at: true },
+    });
+    const safeSelect = requestFindFirstMock.mock.calls[0][0].select;
+    for (const column of [
+      "contact_name",
+      "contact_email",
+      "contact_handle",
+      "contact_calendar_url",
+      "contact_handle_shared_at",
+    ]) {
+      expect(safeSelect[column]).toBeUndefined();
+    }
+  });
+
+  it("keeps it past the deadline, where the stored status is still collecting", async () => {
+    requestFindFirstMock.mockResolvedValue({ ...collectingRow, quote_deadline: PAST });
+    quoteFindUniqueMock.mockResolvedValue(submittedQuote);
+
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.window_open).toBe(false);
+    expect(view!.shared_handle).toBe("@ada_glacier");
+  });
+
+  const hidden: [string, { share?: object; status?: string; quote?: object; active?: boolean }][] = [
+    ["the project did not share it", { share: shareRow({ contact_handle_shared_at: null }) }],
+    ["the stored handle is null", { share: shareRow({ contact_handle: null }) }],
+    ["the stored handle is blank", { share: shareRow({ contact_handle: "   " }) }],
+    ["the firm lost to an accepted quote", { status: "engaged", quote: { ...submittedQuote, status: "not_selected" } }],
+    ["the project withdrew the request", { status: "withdrawn", quote: submittedQuote }],
+    ["the request waits for approval", { status: "pending_review" }],
+    ["the request was rejected", { status: "rejected" }],
+    ["the request went back to draft", { status: "draft" }],
+    ["the firm is deactivated", { active: false }],
+  ];
+
+  it.each(hidden)("hides it when %s", async (_case, setup) => {
+    if (setup.share) requestFindUniqueMock.mockResolvedValue(setup.share);
+    if (setup.status) requestFindFirstMock.mockResolvedValue({ ...collectingRow, status: setup.status });
+    if (setup.quote) quoteFindUniqueMock.mockResolvedValue(setup.quote);
+    if (setup.active === false) deliveryFindUniqueMock.mockResolvedValue({ auditor: { active: false } });
+
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.shared_handle).toBeNull();
+  });
+
+  it("gives the winner the full contact block instead, never both", async () => {
+    const contacts = {
+      contact_name: "Ada Stone",
+      contact_email: "ada@glacierswap.example",
+      contact_handle: "@ada_glacier",
+      contact_calendar_url: "https://cal.com/ada-glacierswap",
+    };
+    requestFindFirstMock.mockResolvedValue({ ...collectingRow, status: "engaged" });
+    quoteFindUniqueMock.mockResolvedValue({ ...submittedQuote, status: "accepted" });
+    requestFindUniqueMock.mockResolvedValue(contacts);
+    subsidyFindFirstMock.mockResolvedValue(null);
+
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.contacts).toEqual(contacts);
+    expect(view!.shared_handle).toBeNull();
+  });
+
+  it("reads nothing for a firm the request never reached", async () => {
+    deliveryFindUniqueMock.mockResolvedValue(null);
+
+    expect(await getRequestForAuditor("aud-1", "req-1")).toBeNull();
+    expect(requestFindUniqueMock).not.toHaveBeenCalled();
   });
 });
 

@@ -1,10 +1,14 @@
 /* Runs a guarded query against the read-only ClickHouse and describes
    the tables it may read. The schema card is read from the database
-   itself, so the model always sees the real columns and types. */
+   itself, so the model always sees the real columns and types; the
+   reference tables our server builds (sources.ts) add their own lines. */
 
 import { withQuerySlot } from "@/lib/clickhouse/client";
 import { MAX_ROWS } from "./guard";
-import { targetOf } from "./target";
+import { headTime } from "./head";
+import { networkChains, refSchema, withSources, type NetworkChain } from "./sources";
+import { NETWORK_ID, targetOf } from "./target";
+import type { SourceNote } from "./types";
 
 export interface ColumnMeta {
   name: string;
@@ -25,6 +29,44 @@ export interface QueryResult {
 }
 
 const QUERY_TIMEOUT_S = 45;
+
+/** what a reader is told when ClickHouse stops a read as too large or too slow; answer.ts ends the question on it */
+export class ScanLimitError extends Error {
+  constructor(rows: number | null, max: number | null) {
+    super(`This question scans too much of the chain${rows ? `: about ${quantity(rows)} rows${max ? `, and one question may read ${quantity(max)}` : ""}` : ""}. Narrow the time range or add a filter.`);
+    this.name = "ScanLimitError";
+  }
+}
+
+/** the query service was still busy (503) or over the rate (429) after the short waits: the same read works again shortly */
+export class QueryBusyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QueryBusyError";
+  }
+}
+
+const quantity = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : `${Math.round(n / 1e6)} million`);
+
+/* ClickHouse's words when it stops a read before or early in it:
+   - past max_rows_to_read or max_bytes_to_read (TOO_MANY_ROWS, TOO_MANY_BYTES): "Limit for rows (controlled by
+     'max_rows_to_read' setting) exceeded, max rows: 1.20 billion, current rows: 1.59 billion", or "Limit for rows to
+     read exceeded, ..." in older versions;
+   - past max_estimated_execution_time (TOO_SLOW): "Estimated query execution time (120.5 seconds) is too long.
+     Maximum: 45. Estimated rows to process: 1592500817", after timeout_before_checking_execution_speed.
+   A result past max_result_rows says "Limit for result exceeded", which is no scan */
+const OVER_SCAN = /Limit for (?:rows|\(uncompressed\) bytes) (?:\(controlled by 'max_(?:rows|bytes)_to_read' setting\) |to read )exceeded|Estimated query execution time \([\d.]+ seconds\) is too long/i;
+const SCALE: Record<string, number> = { thousand: 1e3, million: 1e6, billion: 1e9, trillion: 1e12 };
+
+/** the refusal an error's text is, or null for any other error */
+export function scanLimit(text: string): ScanLimitError | null {
+  if (!OVER_SCAN.test(text)) return null;
+  const count = (label: string) => {
+    const m = new RegExp(`${label}: ([\\d.]+)(?:\\s*(thousand|million|billion|trillion))?`, "i").exec(text);
+    return m ? Number(m[1]) * (SCALE[m[2]?.toLowerCase() ?? ""] ?? 1) : null;
+  };
+  return new ScanLimitError(count("current rows") ?? count("Estimated rows to process"), count("max rows"));
+}
 
 function endpoint(): string {
   const url = process.env.QUERY_CLICKHOUSE_URL || process.env.CLICKHOUSE_URL;
@@ -51,6 +93,9 @@ const SETTINGS: Record<string, string> = {
   max_bytes_before_external_group_by: "3000000000",
   max_memory_usage: "9000000000",
   max_rows_to_read: "20000000000",
+  // a read ClickHouse expects to run past the timeout stops early (after timeout_before_checking_execution_speed),
+  // and a cheap read of many rows, such as a count over the whole history, still runs
+  max_estimated_execution_time: String(QUERY_TIMEOUT_S),
   // a SELECT that aliases hex(method_id) AS method_id must still filter on
   // the column in WHERE, not on its own alias
   prefer_column_name_to_alias: "1",
@@ -101,6 +146,9 @@ async function statsSlot<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+/** what a writer and a reader are told when the rows stop short, and how to write the query so they do not */
+const CUT_OFF = "the query service cut its answer off, as it does when a value is NaN or infinite: divide by nullIf(x, 0), and wrap ratios and quantiles in ifNotFinite(x, NULL)";
+
 async function postStats(sql: string): Promise<RawJson> {
   const key = process.env.STATS_QUERY_KEY;
   if (!key) throw new Error("STATS_QUERY_KEY is not set");
@@ -108,6 +156,7 @@ async function postStats(sql: string): Promise<RawJson> {
   // instances share the key, so this one's slots are not the whole story
   let res: Response | null = null;
   let text = "";
+  let pages = 0;
   for (let attempt = 0; attempt < 4; attempt += 1) {
     // the rows stream: the query runs until the body is read, so the slot is held until then
     const got = await statsSlot(async () => {
@@ -121,6 +170,11 @@ async function postStats(sql: string): Promise<RawJson> {
     });
     res = got.r;
     text = got.t;
+    // a 403 web page in place of JSON is the service's answer, not the query's (r12's H07 got one): once more
+    if (res.status === 403 && /^\s*</.test(text) && pages++ < 1) {
+      await new Promise((r) => setTimeout(r, 1000));
+      continue;
+    }
     if (res.status !== 429 && res.status !== 503) break;
     const after = Number(res.headers.get("retry-after"));
     if (attempt === 3) break;
@@ -131,6 +185,9 @@ async function postStats(sql: string): Promise<RawJson> {
   try {
     body = JSON.parse(text) as StatsQueryJson;
   } catch {
+    // rows that began and stopped: the service ends its answer where a value is NaN or infinite, which JSON cannot hold
+    if (text.startsWith('{"columns":')) throw new Error(CUT_OFF);
+    if (res.status === 403 && /^\s*</.test(text)) throw new Error("stats-api 403: the query service answered with a web page, not a query error, so the SQL may be right: run it again");
     throw new Error(`stats-api ${res.status}: ${text.slice(0, 200)}`);
   }
   // the endpoint streams, so a query can fail after the rows began: the trailer says so
@@ -138,7 +195,11 @@ async function postStats(sql: string): Promise<RawJson> {
     // the reason is in message ("clickhouse: … code: 47, message: …"); error is only the status text
     const why = body.message ?? body.error ?? `stats-api ${res.status}`;
     const inner = why.match(/message:\s*(.+?)(?:\s*\(version [^)]*\))?$/s)?.[1] ?? why;
-    throw new Error(inner.replace(/^clickhouse:\s*/, "").slice(0, 500));
+    const over = scanLimit(why);
+    if (over) throw over;
+    const message = inner.replace(/^clickhouse:\s*/, "").slice(0, 500);
+    if (res.status === 429 || res.status === 503) throw new QueryBusyError(message);
+    throw new Error(message);
   }
   // an empty answer can carry null in place of its lists
   const meta = (body.columns ?? []).map((name, i) => ({ name, type: body.types?.[i] ?? "String" }));
@@ -172,6 +233,8 @@ async function post(sql: string): Promise<RawJson> {
   if (!res.ok) {
     // ClickHouse puts the readable reason on one line after the code
     const line = text.split("\n").find((l) => /DB::Exception/.test(l)) ?? text;
+    const over = scanLimit(line);
+    if (over) throw over;
     throw new Error(line.replace(/^Code:\s*\d+\.\s*/, "").slice(0, 500));
   }
   return JSON.parse(text) as RawJson;
@@ -189,26 +252,77 @@ function binaryColumns(body: RawJson): string[] {
     .map((c) => c.name);
 }
 
+/** a column an address name marks: address, from, to_address, sender; never token0, topic2 or token_id */
+const ADDRESS_NAME = /address|^(from|to)(_|$)|sender|recipient|caller|contract/i;
+
+/** the 20 bytes of an address a log topic carries, left-padded to 32; null for a 32-byte number such as a v3 position
+    id, whose 20 low bytes start with 8 zero bytes (the zero address stays an address) */
+export function paddedAddress(v: unknown): string | null {
+  if (typeof v !== "string" || !/^0x0{24}[0-9a-fA-F]{40}$/.test(v)) return null;
+  const a = v.slice(26).toLowerCase();
+  return /^0{16}/.test(a) && /[^0]/.test(a) ? null : `0x${a}`;
+}
+
+/** an address read from a log topic is left-padded to 32 bytes; show the 20, in the columns an address name marks */
+export function unpadAddresses(meta: ColumnMeta[], rows: Record<string, unknown>[]): void {
+  for (const c of meta) {
+    if (!ADDRESS_NAME.test(c.name)) continue;
+    for (const r of rows) {
+      const a = paddedAddress(r[c.name]);
+      if (a) r[c.name] = a;
+    }
+  }
+}
+
+/** the types the query service sends right when a value is NULL. It scans each row into the row before's holders
+    (stats-api query.go), and its driver clears a holder on NULL only for these (clickhouse-go nullable.go). Every
+    other Nullable type, and every LowCardinality(Nullable(...)) (lowcardinality.go), keeps the row before's value */
+const NULL_SAFE = /^(U?Int(8|16|32|64)|Float(32|64)|String|FixedString\(\d+\)|Enum(8|16)\(.*\)|Date|Date32|DateTime(\(.*\))?|DateTime64\(.*\)|Nothing)$/;
+
+/** how a column whose NULLs arrive wrong is read again so a NULL stays NULL: a LowCardinality one as its plain type
+    (toString keeps LowCardinality), the rest as text. back turns the text into what the endpoint writes for the type */
+function reread(type: string): { sql: (q: string) => string; back?: (v: string) => unknown } | undefined {
+  const lc = /^LowCardinality\(Nullable\((.*)\)\)$/.exec(type)?.[1];
+  const inner = lc ?? /^Nullable\((.*)\)$/.exec(type)?.[1];
+  if (inner === undefined || (lc === undefined && NULL_SAFE.test(inner))) return undefined;
+  const plain = (q: string) => (lc === undefined ? q : `CAST(${q} AS Nullable(${inner}))`);
+  if (NULL_SAFE.test(inner)) return { sql: plain };
+  const back = /^U?Int(128|256)$/.test(inner) ? Number : inner === "Bool" ? (v: string) => v === "true" : undefined;
+  return { sql: (q) => `toString(${plain(q)})`, back };
+}
+
 export async function runQuery(sql: string): Promise<QueryResult> {
   let body = await post(sql);
   // a query that returned bytes (a model forgot hex()) runs once more with
-  // those columns as 0x text, so the page never shows mangled bytes
+  // those columns as 0x text, so the page never shows mangled bytes; one
+  // with a column whose NULLs arrive wrong runs once more with it read so a NULL stays NULL
   const bytes = binaryColumns(body);
-  if (bytes.length) {
+  const stale = body.meta.flatMap((c) => {
+    const r = reread(c.type);
+    return r ? [{ column: c, ...r }] : [];
+  });
+  if (bytes.length || stale.length) {
     const cols = body.meta
       .map((c) => {
         const q = "`" + c.name.replace(/`/g, "") + "`";
-        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : q;
+        const s = stale.find((x) => x.column === c);
+        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : s ? `${s.sql(q)} AS ${q}` : q;
       })
       .join(", ");
-    body = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+    const again = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+    // each keeps its type, and its values read as the endpoint writes them: a big integer as a number, a Bool as
+    // true or false, a decimal, UUID or IP as text
+    for (const { column, back } of stale) {
+      if (back) for (const r of again.data) if (typeof r[column.name] === "string") r[column.name] = back(r[column.name] as string);
+    }
+    body = { ...again, meta: again.meta.map((m) => stale.find((x) => x.column.name === m.name)?.column ?? m) };
   }
-  // an address read from a log topic is left-padded to 32 bytes; show the 20
-  for (const c of body.meta) {
-    if (!/address|^from|^to|sender|recipient|caller|contract/i.test(c.name)) continue;
-    for (const r of body.data) {
-      const v = r[c.name];
-      if (typeof v === "string" && /^0x0{24}[0-9a-fA-F]{40}$/.test(v)) r[c.name] = `0x${v.slice(26).toLowerCase()}`;
+  unpadAddresses(body.meta, body.data);
+  // hex() writes capitals; the explorer writes every hash and selector in lowercase
+  for (const r of body.data) {
+    for (const k in r) {
+      const v = r[k];
+      if (typeof v === "string" && v.startsWith("0x") && /[A-F]/.test(v) && /^0x[0-9a-fA-F]+$/.test(v)) r[k] = v.toLowerCase();
     }
   }
   return {
@@ -229,11 +343,13 @@ export async function runQuery(sql: string): Promise<QueryResult> {
 const schemaCache = new Map<string, { at: number; text: string }>();
 const SCHEMA_TTL_MS = 60 * 60_000;
 
-/** the tables as the database describes them, one line per table */
+/** the tables as the database describes them, one line per table, then
+    the reference tables this network has (sources.ts) */
 export async function schemaCard(chainId: number): Promise<string> {
   const { kind, tables } = targetOf(chainId);
+  const refs = refSchema(chainId);
   const hit = schemaCache.get(kind);
-  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.text;
+  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return [hit.text, ...refs].join("\n");
   const list = tables.map((t) => `'${t}'`).join(", ");
   const r = await runQuery(
     `SELECT table, name, type FROM system.columns WHERE database = currentDatabase() AND table IN (${list}) ORDER BY table, position`,
@@ -248,7 +364,7 @@ export async function schemaCard(chainId: number): Promise<string> {
     .join("\n");
   if (!text) throw new Error("schema card empty");
   schemaCache.set(kind, { at: Date.now(), text });
-  return text;
+  return [text, ...refs].join("\n");
 }
 
 export interface Coverage {
@@ -265,10 +381,22 @@ const COVERAGE_TTL_MS = 10 * 60_000;
 /** a chain with no rows is asked again after an hour, not every ten minutes */
 const EMPTY_TTL_MS = 60 * 60_000;
 
+/** a read still running: a second caller waits for it, never runs the same query beside it. The route gives up on
+    its read after 4 s and the answer asks again, so a cold read (20 s on a large L1) held both query slots */
+const coverageReads = new Map<number, Promise<Coverage | null>>();
+
 /** the window of this chain the database holds; null when it holds no rows. Throws when the database cannot be read. */
-async function readCoverage(chainId: number): Promise<Coverage | null> {
+function readCoverage(chainId: number): Promise<Coverage | null> {
   const hit = coverageCache.get(chainId);
-  if (hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS)) return hit.value;
+  if (hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS)) return Promise.resolve(hit.value);
+  const running = coverageReads.get(chainId);
+  if (running) return running;
+  const read = queryCoverage(chainId).finally(() => coverageReads.delete(chainId));
+  coverageReads.set(chainId, read);
+  return read;
+}
+
+async function queryCoverage(chainId: number): Promise<Coverage | null> {
   const r = await runQuery(
     targetOf(chainId).kind === "pchain"
       ? `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_height) AS lo, max(block_height) AS hi, count() AS blocks FROM raw_p_blocks WHERE chain_id = ${chainId}`
@@ -283,8 +411,9 @@ async function readCoverage(chainId: number): Promise<Coverage | null> {
   return value;
 }
 
-/** what window of this chain the database holds */
+/** what window of this chain the database holds; null for the network, whose chains each hold their own */
 export async function coverage(chainId: number): Promise<Coverage | null> {
+  if (chainId === NETWORK_ID) return null;
   try {
     return await readCoverage(chainId);
   } catch {
@@ -295,12 +424,56 @@ export async function coverage(chainId: number): Promise<Coverage | null> {
 /** for the page: the chain's window, "empty" when nothing is indexed, or
     null when the database did not answer in time (the page then says nothing) */
 export async function indexState(chainId: number, timeoutMs = 4000): Promise<Coverage | "empty" | null> {
+  if (chainId === NETWORK_ID) return null;
   const read = readCoverage(chainId).then(
     (c) => c ?? ("empty" as const),
     () => null,
   );
   const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
   return Promise.race([read, late]);
+}
+
+/** every network chain's window, from one read of raw_blocks grouped by chain; each seeds that chain's own window, so
+    the network costs one read where its chains would cost one each. Kept as a chain's own is */
+let networkRead: { at: number; value: Promise<Map<number, Coverage>> } | null = null;
+function networkCoverage(chains: readonly NetworkChain[]): Promise<Map<number, Coverage>> {
+  if (networkRead && Date.now() - networkRead.at < COVERAGE_TTL_MS) return networkRead.value;
+  const value = runQuery(
+    `SELECT chain_id, toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id IN (${chains.map((c) => c.chainId).join(", ")}) GROUP BY chain_id`,
+  ).then((r) => {
+    const by = new Map<number, Coverage>();
+    for (const row of r.rows) {
+      const c = { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
+      by.set(Number(row.chain_id), c);
+      coverageCache.set(Number(row.chain_id), { at: Date.now(), value: c });
+    }
+    return by;
+  });
+  networkRead = { at: Date.now(), value };
+  value.catch(() => {
+    if (networkRead?.value === value) networkRead = null;
+  });
+  return value;
+}
+
+/** what the network's prompt says of its windows: the chains that stop more than a day before the C-Chain, and those
+    with no rows. Null when the database does not answer */
+export async function networkCoverageText(): Promise<string | null> {
+  const chains = await networkChains();
+  try {
+    const by = await networkCoverage(chains);
+    const c = by.get(43114);
+    if (!c) return null;
+    const behind = chains.filter((x) => (by.get(x.chainId)?.untilUnix ?? Infinity) < c.untilUnix - 86_400);
+    const empty = chains.filter((x) => !by.has(x.chainId));
+    const day = (x: NetworkChain) => by.get(x.chainId)!.until.slice(0, 10);
+    return [
+      `raw_blocks holds the network's ${by.size} chains to within a day of the C-Chain's last block (${c.until} UTC)${behind.length ? `, except these, whose index stops earlier: ${behind.map((x) => `${x.name} (${x.chainId}) on ${day(x)}`).join("; ")}` : ""}.`,
+      empty.length ? `No rows for: ${empty.map((x) => `${x.name} (${x.chainId})`).join(", ")}.` : "",
+    ].join(" ").trim();
+  } catch {
+    return null;
+  }
 }
 
 export function coverageText(chainId: number, c: Coverage): string {
@@ -311,14 +484,28 @@ export function coverageText(chainId: number, c: Coverage): string {
 /** how far behind the clock the index may run before "now" means its last block */
 const LAG_S = 15 * 60;
 
+/** a question's SQL as it goes to the database: now() as the data knows
+    it, and the reference tables it reads (sources.ts) defined in front of
+    it as they are now. Every path that runs a question's SQL comes here. */
+export async function anchored(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null; sources: SourceNote[] }> {
+  const a = await anchorNow(sql, chainId);
+  const s = await withSources(a.sql, chainId);
+  return { sql: s.sql, anchor: a.anchor, sources: s.sources };
+}
+
 /** "now" as the data knows it. When the index runs behind the clock, a
     window such as the last hour would end past the data and come back
     empty; so now() is read as the time of the last indexed block. The
     query as written keeps now(), so it stays right once the index is live. */
-export async function anchored(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null }> {
+async function anchorNow(sql: string, target: number): Promise<{ sql: string; anchor: string | null }> {
   if (!/\bnow\(\s*\)/i.test(sql)) return { sql, anchor: null };
+  // the network reads every chain over one window, the C-Chain's
+  const chainId = target === NETWORK_ID ? 43114 : target;
   const c = await coverage(chainId);
   if (!c) return { sql, anchor: null };
   if (!Number.isFinite(c.untilUnix) || Date.now() / 1000 - c.untilUnix < LAG_S) return { sql, anchor: null };
+  // a quiet chain is not a late index: when the index holds the chain's newest block, now() stays now
+  const head = await headTime(chainId);
+  if (head !== null && head <= (c.untilUnix + 60) * 1000) return { sql, anchor: null };
   return { sql: sql.replace(/\bnow\(\s*\)/gi, `toDateTime(${Math.floor(c.untilUnix)})`), anchor: c.until };
 }

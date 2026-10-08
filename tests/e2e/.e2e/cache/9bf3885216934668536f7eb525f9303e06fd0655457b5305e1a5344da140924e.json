@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-03T17:55:34.975Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Start the course\" in \"Start here\"",
+        "target": {
+          "role": "link",
+          "name": "Start the course",
+          "within": "Start here"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Consensus Mechanisms\"",
+        "target": {
+          "role": "link",
+          "name": "Consensus Mechanisms"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-academy.e2e.ts::learner%20starts%20Avalanche%20Fundamentals%20and%20opens%20its%20second%20lesson",
+      "targetId": "desktop",
+      "instructionDigest": "f5295c55971cbf274325fb1ca3a03cf5385c19513bd1ba7cca0f9e96142fd543"
+    },
+    "summary": "The course was started and the second lesson is open. The page is /academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms, titled \"Consensus Mechanisms\", and it shows \"Lesson 2 of 4\" under \"Primer on Avalanche Consensus\". The sidebar highlights that lesson.…",
+    "startPath": "/academy",
+    "endPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
+    "endAnchors": [
+      {
+        "text": "Fundamentals"
+      },
+      {
+        "text": "L1 Development"
+      },
+      {
+        "text": "Interoperability"
+      },
+      {
+        "text": "VM Customization"
+      },
+      {
+        "text": "Applications"
+      },
+      {
+        "role": "link",
+        "name": "Welcome to the Course"
+      },
+      {
+        "role": "link",
+        "name": "Avalanche Consensus"
+      },
+      {
+        "role": "link",
+        "name": "Consensus Mechanisms"
+      }
+    ],
+    "endWaitMs": 30757
+  }
+}

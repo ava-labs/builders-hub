@@ -21,6 +21,7 @@ import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { usePchainData } from "@/components/explorer-v2/pchain/hooks";
 import { hasRealChainLogo, type Stats } from "@/lib/pchain-explorer";
+import { SECONDS_PER_DAY } from "@/lib/explorer-query/values";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import {
@@ -42,7 +43,6 @@ import {
 
 const L1_COLOR = "#0061E2";
 const NANO = 1e9;
-const SECONDS_PER_DAY = 86_400;
 const SECONDS_PER_MONTH = 30 * SECONDS_PER_DAY;
 
 interface SeatPoint {
@@ -576,7 +576,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
           L1 validators don&apos;t stake AVAX or earn rewards. Each seat prepays a continuous fee
           from its own balance — burned per second at the network&apos;s current price (
           <Link
-            href="/docs/acps/77-reinventing-subnets"
+            href="/docs/acps/77-reinventing-subnets" prefetch={false}
             className="text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
           >
             ACP-77

@@ -1,30 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
-import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
-import { Board, BoardHeader, ChartBoard, SectionHeader, StatCell, StatDash, StatFigure, TxTypePill, idInk, txToneText, HEAD, RowSkeleton, ROW } from "@/components/explorer-v2/ui";
-import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
-import {
-  usePrimaryMetrics,
-  toSeries,
-  fmtCompact,
-  NANO,
-  type SeriesPoint,
-} from "@/components/explorer-v2/staking/data";
-import { formatAvax, formatNumber, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
-import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
-import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+import { Board } from "@/components/explorer-v2/ui";
+import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
+import { ColumnsBlock, type Col } from "@/components/explorer-v2/gas/instruments";
+import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { usePolledJson, useRememberedJson } from "@/components/explorer-v2/page-data";
+import { levelWindow, usePrimaryHistory, type DayPoint } from "@/components/explorer-v2/network/overview-series";
+import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
+import { ROWS } from "@/components/explorer-v2/evm/belt";
+import { dayLong, dayShort } from "@/components/explorer-v2/format";
 import { useValidatorStats } from "@/components/explorer-v2/validator-stats";
-import { txTypeLabel, type Stats, type TxSummary, type BlockSummary } from "@/lib/pchain-explorer";
+import { L1Versions } from "@/components/explorer-v2/network/l1-versions";
+import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+import { pchainActivityPath, pchainL1OpsPath, type BlockSummary, type BlocksList, type Stats, type TxSummary } from "@/lib/pchain-explorer";
+import { LIVE_REFRESH_MS, usePchainData } from "./hooks";
+import { LatestPchainBlocks, LatestPchainTxs } from "./boards";
 
-/* The /api/pchain-activity contract: staking money-flow, not tx counts.
-   Rewards paid ride red (stake moving = the chain alive); stake about to
-   unlock rides block gray (value at rest, waiting). */
+/* The /api/pchain-activity contract: staking money flow, not tx counts */
 interface RewardDay {
   date: string;
   avax: number;
@@ -40,9 +36,15 @@ interface StakingSeries {
   unlocks: UnlockDay[];
 }
 
-/* Sub-unit totals are real on Fuji: 30 days of staking rewards there is ~0.42
-   AVAX, and Math.round put "0 AVAX" next to a chart full of bars — the bars
-   autoscale to dataMax, so they look full whatever the magnitude. */
+/* the part of the /api/pchain-l1-ops contract the home reads: each day's
+   conversions, and the conversions to date by month */
+interface L1Ops {
+  ops: { date: string; convert: number }[];
+  conversions: { month: string; cumulative: number }[];
+}
+
+/* Sub-unit totals are real on Fuji: 30 days of staking rewards there is
+   ~0.42 AVAX, and a rounded figure would print "0 AVAX" over a full chart */
 const fmtAvaxShort = (n: number) =>
   n >= 1_000_000
     ? `${(n / 1_000_000).toFixed(2)}M`
@@ -56,190 +58,114 @@ const fmtAvaxShort = (n: number) =>
             : `${Number(n.toPrecision(2))}`
           : "0";
 
-/* "BanffCommitBlock" → "Commit": the Banff prefix is a protocol-upgrade
-   implementation detail; Commit/Proposal/Standard is what the reader needs. */
-function blockKind(blockType: string): string {
-  return blockType.replace(/^Banff/, "").replace(/Block$/, "");
-}
-
+const NO_BLOCKS: BlockSummary[] = [];
+const NO_TXS: TxSummary[] = [];
+const NO_MOVE: { spark?: number[]; delta: number | null } = { delta: null };
 
 /* ------------------------------------------------------------------ */
-/* Chain Stats — the P-Chain's readings in the C-Chain board grammar:
-   bordered plate, fused CHAIN STATS title bar, uniform figure grid.
-   The figures are levels (stake, supply, seat counts), not flows, so
-   the window reading is the level's move against N days ago. On
-   mainnet the title carries the page clock and the staking figures
-   their move; other networks get the same plate without the window
-   voice — the metrics feed is mainnet-only. */
+/* The readouts: the P-Chain's job is staking and L1s. On mainnet each
+   level moves against the page clock's window and draws its days; the
+   metrics feed is mainnet's, so Fuji shows the levels alone. */
 
-const FIG =
-  "min-w-0 whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
+function HomeReadouts({ s, done, network, base, days }: { s: Stats | null; done: boolean; network: string; base: string; days: number | null }) {
+  const { subnets, loading: stakeLoading } = useValidatorStats(network);
+  const history = usePrimaryHistory(days !== null);
+  // the staking and L1 sheets are mainnet's; Fuji's figures door into its validators
+  const sheet = (path: string, fuji?: string) => (network === "mainnet" ? `${base}/${path}` : fuji && `${base}/${fuji}`);
+  const ops = usePolledJson<L1Ops>(pchainL1OpsPath(network));
 
-interface StatDef {
-  label: string;
-  href?: string;
-  value: React.ReactNode;
-  sub?: React.ReactNode;
-}
+  // the Primary Network's stake now, from the liveness feed (nAVAX)
+  const staked = useMemo(() => {
+    const primary = subnets?.find((sub) => sub.id === PRIMARY_SUBNET_ID);
+    return primary?.totalStakeString ? Number(primary.totalStakeString) / 1e9 : null;
+  }, [subnets]);
+  const supply = s?.currentSupply ? Number(s.currentSupply) / 1e9 : null;
+  const move = (points: DayPoint[] | undefined) => (days === null ? NO_MOVE : levelWindow(points, days));
+  const stakeMove = move(history?.staked);
+  const validatorMove = move(history?.validators);
+  const delegatorMove = move(history?.delegators);
 
-/* a level's move over the window: last daily close vs N days before it,
-   in the metric's own unit — absolute heads, not percents */
-function levelDiff(points: SeriesPoint[], n: number): number | null {
-  const cur = points[points.length - 1];
-  // a window wider than the history (the ALL tick) reads from the first
-  // point: the diff becomes "since the series began"
-  const prev = points[Math.max(0, points.length - 1 - n)];
-  if (!cur || !prev || cur === prev) return null;
-  return cur.value - prev.value;
-}
+  const conversions = ops.data?.conversions ?? [];
+  const toDate = conversions.length ? conversions[conversions.length - 1].cumulative : null;
+  const recent = ops.data ? ops.data.ops.reduce((t, d) => t + d.convert, 0) : null;
+  // a stats read that failed shows the dash, not a figure still loading
+  const count = (v: number | undefined) => (v !== undefined ? v.toLocaleString("en-US") : done ? "—" : null);
 
-/* the Etherscan parenthetical in absolute units — the evm Delta chip's
-   voice, but "+327" / "-12.4K AVAX" instead of a percent */
-function DeltaAbs({ value, unit }: { value: number | null; unit?: string }) {
-  if (value === null) return null;
-  const up = value >= 0;
   return (
-    <span className={up ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
-      {up ? "+" : "-"}
-      {fmtCompact(Math.abs(value))}
-      {unit ? ` ${unit}` : ""} vs prev
-    </span>
+    <ReadoutRow cols={6} className="sm:grid-cols-3">
+      <Readout
+        label="Staked"
+        href={sheet("staking/total-stake", "validators")}
+        value={staked !== null ? fmtCompact(staked) : stakeLoading ? null : "—"}
+        unit="AVAX"
+        sub={staked && supply ? `${((staked / supply) * 100).toFixed(1)}% of supply` : undefined}
+        delta={stakeMove.delta}
+        spark={stakeMove.spark}
+      />
+      <Readout label="Primary Validators" href={`${base}/validators`} value={count(s?.validatorCount)} delta={validatorMove.delta} spark={validatorMove.spark} />
+      <Readout label="Delegators" href={sheet("staking/total-stake", "validators")} value={count(s?.delegatorCount)} delta={delegatorMove.delta} spark={delegatorMove.spark} />
+      <Readout label="L1 Validators" href={`${base}/validators/l1s`} value={count(s?.l1ValidatorCount)} />
+      {/* each conversion makes an L1: the curve is the L1s to date, month by month */}
+      <Readout
+        label="L1 Conversions"
+        href={sheet("l1s")}
+        value={toDate !== null ? toDate.toLocaleString("en-US") : ops.loading ? null : "—"}
+        sub={recent !== null ? `${recent.toLocaleString("en-US")} in the last 30 days` : undefined}
+        spark={conversions.length >= 2 ? conversions.map((c) => c.cumulative) : undefined}
+      />
+      {/* the P-Chain's own counter: every AVAX minted, the rewards held for current stakers too, no burn taken off */}
+      <Readout label="P-Chain Supply" value={supply !== null ? fmtCompact(supply) : done ? "—" : null} unit="AVAX" sub="before burns" />
+    </ReadoutRow>
   );
 }
 
-function buildStatCells(
-  s: Stats | null,
-  totalStake: number | null,
-  stakingRatio: number | null,
-  base: string,
-  subs?: {
-    staked?: React.ReactNode;
-    delegators?: React.ReactNode;
-    validators?: React.ReactNode;
-  },
-): StatDef[] {
-  const avax = (v: number | string) => (
-    <span className={FIG}>
-      {formatAvax(v, { compact: true, symbol: false })}
-      <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
-    </span>
-  );
-  return [
-    {
-      label: "Total Staked",
-      href: `${base}/staking/total-stake`,
-      value: totalStake ? avax(totalStake) : <StatDash />,
-      sub: subs?.staked,
-    },
-    {
-      // denominator is the TOTAL SUPPLY cell beside it — the two read
-      // as one statement
-      label: "Staked · of Total Supply",
-      value:
-        stakingRatio !== null ? (
-          <span className={FIG}>
-            {stakingRatio.toFixed(1)}
-            <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-          </span>
-        ) : (
-          <StatDash />
-        ),
-    },
-    {
-      label: "Total Supply",
-      value: s?.currentSupply ? avax(s.currentSupply) : <StatDash />,
-    },
-    {
-      label: "Delegators",
-      href: `${base}/staking/total-stake`,
-      value: s ? <StatFigure value={s.delegatorCount} className="md:text-2xl" /> : <StatDash />,
-      sub: subs?.delegators,
-    },
-    {
-      label: "Primary Validators",
-      href: `${base}/validators`,
-      value: s ? <StatFigure value={s.validatorCount} className="md:text-2xl" /> : <StatDash />,
-      sub: subs?.validators,
-    },
-    {
-      label: "L1 Validators",
-      href: `${base}/validators`,
-      value: s ? <StatFigure value={s.l1ValidatorCount} className="md:text-2xl" /> : <StatDash />,
-    },
-  ];
-}
-
-/* the plate itself — EvmOverviewStats' frame with two rows of three:
-   the money row (stake against supply), then the participants row */
-function ChainStatsBoard({ cells, action }: { cells: StatDef[]; action?: React.ReactNode }) {
-  const grid =
-    "grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-3 lg:divide-y-0 dark:divide-zinc-800";
-  const row = (slice: StatDef[]) =>
-    slice.map((c) => (
-      <StatCell key={c.label} label={c.label} href={c.href} sub={c.sub}>
-        {c.value}
-      </StatCell>
-    ));
-  return (
-    <Board divide={false} className="border">
-      <BoardHeader label="Chain Stats" display action={action} />
-      <div className={`${grid} border-b border-zinc-200 dark:border-zinc-800`}>
-        {row(cells.slice(0, 3))}
-      </div>
-      <div className={grid}>{row(cells.slice(3))}</div>
-    </Board>
-  );
-}
-
-/* mainnet: the board rides the page clock — the subnav range control
-   appears because this registers as a consumer, exactly like the
-   C-Chain's Chain Stats */
-function MainnetChainStats({
-  s,
-  totalStake,
-  stakingRatio,
-  base,
-}: {
-  s: Stats | null;
-  totalStake: number | null;
-  stakingRatio: number | null;
-  base: string;
-}) {
+/* mainnet: the readouts ride the page clock, so the subnav shows its range control */
+function ClockedReadouts(props: { s: Stats | null; done: boolean; network: string; base: string }) {
   const clock = useExplorerTimeRange();
-  const n = RANGE_DAYS[clock];
-  const { data: metrics } = usePrimaryMetrics();
+  return <HomeReadouts {...props} days={RANGE_DAYS[clock]} />;
+}
 
-  const moves = useMemo(() => {
-    if (!metrics) return null;
-    const own = toSeries(metrics.validator_weight);
-    const delegated = new Map(toSeries(metrics.delegator_weight).map((p) => [p.day, p.value]));
-    const staked = own.map((p) => ({ day: p.day, value: p.value + (delegated.get(p.day) ?? 0) }));
-    // the weight series ride in nAVAX — the head converts so the chip
-    // speaks the same unit as the figure above it
-    const stakedDiff = levelDiff(staked, n);
-    return {
-      staked: stakedDiff === null ? null : stakedDiff / NANO,
-      delegators: levelDiff(toSeries(metrics.delegator_count), n),
-      validators: levelDiff(toSeries(metrics.validator_count), n),
-    };
-  }, [metrics, n]);
+/* ------------------------------------------------------------------ */
+/* The staking money flow: the 30 days behind in rewards paid out, the
+   30 days ahead in stake coming unlocked. Each doors into its sheet. */
 
-  const sub = (v: number | null | undefined, unit?: string) =>
-    v == null ? undefined : <DeltaAbs value={v} unit={unit} />;
+const dayCol = (d: { date: string; avax: number }): Col => ({ key: d.date, long: dayLong(d.date), tick: dayShort(d.date), v: d.avax });
+const tipAvax = (v: number) => (v >= 1 ? Math.round(v).toLocaleString("en-US") : fmtAvaxShort(v));
 
+function StakingFlow({ staking, base, doors }: { staking: StakingSeries; base: string; doors: boolean }) {
+  const sum = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((t, r) => t + f(r), 0);
+  const tip = (c: Col, line: string) => (
+    <>
+      <p className="font-mono text-[10px] text-zinc-500">{c.long}</p>
+      <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{tipAvax(c.v)} AVAX</p>
+      <p className="font-mono text-[10px] tabular-nums text-zinc-500">{line}</p>
+    </>
+  );
   return (
-    <ChainStatsBoard
-      action={
-        <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-          {rangeWindowLabel(clock)}
-        </span>
-      }
-      cells={buildStatCells(s, totalStake, stakingRatio, base, {
-        staked: sub(moves?.staked, "AVAX"),
-        delegators: sub(moves?.delegators),
-        validators: sub(moves?.validators),
-      })}
-    />
+    <div className="grid grid-cols-1 gap-x-4 gap-y-5 lg:grid-cols-2">
+      <ColumnsBlock
+        label="Rewards Paid"
+        href={doors ? `${base}/staking/rewards` : undefined}
+        figure={fmtAvaxShort(sum(staking.rewards, (d) => d.avax))}
+        unit="AVAX"
+        sub={`over the last 30 days · ${sum(staking.rewards, (d) => d.payouts).toLocaleString("en-US")} payouts`}
+        cols={staking.rewards.map(dayCol)}
+        fmt={fmtAvaxShort}
+        height={120}
+        tip={(c, i) => tip(c, `${staking.rewards[i].payouts.toLocaleString("en-US")} payouts`)}
+      />
+      <ColumnsBlock
+        label="Stake Expiring"
+        href={doors ? `${base}/staking/expiry` : undefined}
+        figure={fmtAvaxShort(sum(staking.unlocks, (d) => d.avax))}
+        unit="AVAX"
+        sub={`over the next 30 days · ${sum(staking.unlocks, (d) => d.stakers).toLocaleString("en-US")} stake entries end`}
+        cols={staking.unlocks.map(dayCol)}
+        fmt={fmtAvaxShort}
+        height={120}
+        tip={(c, i) => tip(c, `${staking.unlocks[i].stakers.toLocaleString("en-US")} stake entries end`)}
+      />
+    </div>
   );
 }
 
@@ -247,289 +173,56 @@ function MainnetChainStats({
 
 export function PchainHome({ chain, network }: { chain: string; network: string }) {
   const base = `/explorer/${network}/${chain}`;
-  // the page is an instrument panel, not a report — txs/blocks poll live;
-  // stats move slowly so they poll at half the cadence
   const live = { refreshMs: LIVE_REFRESH_MS };
+  // the figures move slowly, so they poll at half the boards' cadence
   const stats = usePchainData<Stats>(network, "stats", undefined, { refreshMs: LIVE_REFRESH_MS * 2 });
-  const txs = usePchainData<TxSummary[]>(network, "txs", { limit: 8 }, live);
-  // one blocks fetch feeds both the tape (all 20) and the list (first 8)
-  const blocks = usePchainData<{ blocks: BlockSummary[] }>(
-    network,
-    "blocks",
-    { limit: 20 },
-    live,
-  );
+  // a board's worth and the row under its clip (LiveBoards ROWS + 1)
+  const txs = usePchainData<TxSummary[]>(network, "txs", { limit: ROWS + 1 }, live);
+  const blocks = usePchainData<BlocksList>(network, "blocks", { limit: ROWS + 1 }, live);
+  // the staking money flow does not draw without its aggregate feed
+  const activity = useRememberedJson<StakingSeries>(pchainActivityPath(network));
+  const staking = activity?.rewards?.length ? activity : null;
 
   const s = stats.data;
-
-  // total AVAX staked on the Primary Network — the strip is a staking
-  // dashboard, and the ratio against supply is its headline
-  const { subnets } = useValidatorStats(network);
-  const totalStake = useMemo(() => {
-    const primary = subnets?.find((sub) => sub.id === PRIMARY_SUBNET_ID);
-    return primary?.totalStakeString ? Number(primary.totalStakeString) : null;
-  }, [subnets]);
-
-  const supply = s?.currentSupply ? Number(s.currentSupply) : null;
-  const stakingRatio = totalStake && supply ? (totalStake / supply) * 100 : null;
-
-  // staking money-flow: rewards paid (last 14d) and stake unlocking (next
-  // 14d). The section simply doesn't render without aggregate data.
-  const [staking, setStaking] = useState<StakingSeries | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    setStaking(null);
-    fetch(`/api/pchain-activity/${network}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: StakingSeries | null) => {
-        if (!cancelled && data?.rewards?.length) setStaking(data);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [network]);
-
-  const tape = blocks.data?.blocks ?? [];
-  const tapeBlocks: TapeBlock[] = tape.map((b) => {
-    const kind = blockKind(b.blockType);
-    return {
-      key: String(b.blockNumber),
-      number: formatNumber(b.blockNumber),
-      txCount: b.txCount,
-      label: kind,
-      labelClass: txToneText(kind),
-      ago: timeAgo(b.blockTimestamp),
-      href: `${base}/block/${b.blockNumber}`,
-    };
-  });
   const noData = !stats.loading && (stats.error === "not found" || (s && s.tipHeight === 0));
 
   return (
     <ExplorerShell chain={chain} network={network}>
       {noData ? (
         <Board divide={false} className="px-6 py-16 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
-            No data indexed yet for this network
-          </p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">No data indexed yet for this network</p>
         </Board>
       ) : (
         <div className="flex flex-col gap-12">
-          {/* instrument cluster: live block tape over the ledger strip */}
-          <div className="flex flex-col gap-4">
-            {blocks.loading && !tape.length ? (
-              <BlockTapeSkeleton />
-            ) : (
-              tapeBlocks.length > 0 && <BlockTape blocks={tapeBlocks} />
-            )}
-
-            {/* the board is the P-Chain's actual job: staking. Activity
-                already lives in the tape above. Same instrument grammar
-                as the C-Chain's Chain Stats — window tag and moves ride
-                the page clock where the mainnet metrics feed reaches. */}
-            {network === "mainnet" ? (
-              <MainnetChainStats
-                s={s}
-                totalStake={totalStake}
-                stakingRatio={stakingRatio}
-                base={base}
-              />
-            ) : (
-              <ChainStatsBoard cells={buildStatCells(s, totalStake, stakingRatio, base)} />
-            )}
-          </div>
-
-          {/* staking money-flow: the 30 days behind us in rewards paid out
-              (red: stake moving) beside the 30 days ahead in stake coming
-              unlocked (block gray: value at rest, waiting). Past | future
-              across one rule; each card doors into its staking sheet.
-              Fixed windows from the feed — the labels say so. */}
-          {staking && (
-            <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-              <ChartBoard
-                label="Rewards Paid · last 30 days"
-                href={`${base}/staking/rewards`}
-                className="min-w-0"
-                action={
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                    {fmtAvaxShort(staking.rewards.reduce((s, d) => s + d.avax, 0))} AVAX
-                  </span>
-                }
-              >
-                <div className="h-24">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={staking.rewards} barCategoryGap="18%">
-                      <YAxis hide domain={[0, "dataMax"]} />
-                      <RechartsTooltip
-                        cursor={{ fill: "rgba(161,161,170,0.08)" }}
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.[0]) return null;
-                          const d = payload[0].payload as RewardDay;
-                          return (
-                            <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                              <p className="text-[10px] text-zinc-500">{d.date}</p>
-                              <p className="text-xs font-semibold tabular-nums text-[#E6212F]">
-                                {Math.round(d.avax).toLocaleString()} AVAX
-                              </p>
-                              <p className="text-[10px] tabular-nums text-zinc-500">
-                                {d.payouts.toLocaleString()} payouts
-                              </p>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Bar dataKey="avax" fill="#E6212F" isAnimationActive={false} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </ChartBoard>
-
-              <ChartBoard
-                label="Stake Expiring · next 30 days"
-                href={`${base}/staking/expiry`}
-                className="min-w-0"
-                action={
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                    {fmtAvaxShort(staking.unlocks.reduce((s, d) => s + d.avax, 0))} AVAX
-                  </span>
-                }
-              >
-                <div className="h-24">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={staking.unlocks} barCategoryGap="18%">
-                      <YAxis hide domain={[0, "dataMax"]} />
-                      <RechartsTooltip
-                        cursor={{ fill: "rgba(161,161,170,0.08)" }}
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.[0]) return null;
-                          const d = payload[0].payload as UnlockDay;
-                          return (
-                            <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                              <p className="text-[10px] text-zinc-500">{d.date}</p>
-                              <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                                {d.avax.toLocaleString()} AVAX
-                              </p>
-                              <p className="text-[10px] tabular-nums text-zinc-500">
-                                {d.stakers.toLocaleString()} stake entries end
-                              </p>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Bar dataKey="avax" fill="#A2AFB2" isAnimationActive={false} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </ChartBoard>
-            </div>
+          {network === "mainnet" ? (
+            <ClockedReadouts s={s} done={!stats.loading} network={network} base={base} />
+          ) : (
+            <HomeReadouts s={s} done={!stats.loading} network={network} base={base} days={null} />
           )}
 
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
-            {/* Latest blocks */}
-            <section className="flex flex-col gap-4">
-              <SectionHeader
-                label="Latest Blocks"
-                action={
-                  <Link
-                    href={`${base}/blocks`}
-                    className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
-                  >
-                    View all →
-                  </Link>
-                }
-              />
-              <Board>
-                <div className={cn(HEAD, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem_3.5rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
-                  <span>Height</span>
-                  <span>Type</span>
-                  <span className="text-right">Txs</span>
-                  <span className="text-right">Age</span>
-                </div>
-                {blocks.loading && !tape.length && <RowSkeleton n={8} />}
-                {tape.slice(0, 8).map((b) => (
-                  <Link
-                    key={b.blockNumber}
-                    href={`${base}/block/${b.blockNumber}`}
-                    className={cn(ROW, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem_3.5rem]")}
-                  >
-                    <span className={`font-mono text-[13px] tabular-nums ${idInk}`}>
-                      #{formatNumber(b.blockNumber)}
-                    </span>
-                    <span className="min-w-0 text-left">
-                      <TxTypePill type={blockKind(b.blockType)} />
-                    </span>
-                    <span className="hidden text-right font-mono text-[11px] tabular-nums text-zinc-500 md:block dark:text-zinc-400">
-                      {b.txCount} tx
-                    </span>
-                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {ageShort(b.blockTimestamp)}
-                    </span>
-                  </Link>
-                ))}
-              </Board>
-            </section>
+          {/* the P-Chain keeps every set: below lg, where the city has no
+              Versions lens, each set's AvalancheGo versions stand here */}
+          {network === "mainnet" && <L1Versions className="lg:hidden" />}
 
-            {/* Latest transactions */}
-            <section className="flex flex-col gap-4">
-              <SectionHeader
-                label="Latest Transactions"
-                action={
-                  <Link
-                    href={`${base}/txs`}
-                    className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
-                  >
-                    View all →
-                  </Link>
-                }
-              />
-              <Board>
-                <div className={cn(HEAD, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.75rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
-                  <span>Hash</span>
-                  <span>Type</span>
-                  <span className="text-right">Age</span>
-                </div>
-                {txs.loading && <RowSkeleton n={8} />}
-                {txs.data?.map((t) => (
-                  <Link
-                    key={t.txHash}
-                    href={`${base}/tx/${t.txHash}`}
-                    className={cn(ROW, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.75rem]")}
-                  >
-                    <span className={`truncate font-mono text-[12px] ${idInk}`}>
-                      {truncate(t.txHash, 6)}
-                    </span>
-                    <span className="min-w-0 text-left">
-                      <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
-                    </span>
-                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {ageShort(t.blockTimestamp)}
-                    </span>
-                  </Link>
-                ))}
-              </Board>
-            </section>
+          {/* the live chain, 2:3 as on the C-Chain: the blocks board has five
+              short columns, the transactions board a type and a node */}
+          <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <LatestPchainBlocks blocks={blocks.data?.blocks ?? NO_BLOCKS} base={base} loading={blocks.loading} />
+            <LatestPchainTxs txs={txs.data ?? NO_TXS} base={base} loading={txs.loading} />
           </div>
 
-          {/* red band — the sanctioned solid-red divider, closing the sheet
-              with the hand-off to the network observatory (StoryHome idiom) */}
-          {network === "mainnet" && (
-            <Link
-              href="/explorer/mainnet"
-              className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] px-5 py-5 md:px-6"
-            >
-              <span
-                aria-hidden
-                className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover:scale-x-100"
-              />
-              <span className="relative z-10 text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F]">
-                Track the full network
-              </span>
-              <ArrowRight className="relative z-10 h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
-            </Link>
-          )}
+          {/* the staking sheets are mainnet's: Fuji's flow has no door */}
+          {staking && <StakingFlow staking={staking} base={base} doors={network === "mainnet"} />}
+
+          {/* red band: the sanctioned solid-red divider, closing the sheet
+              with the hand-off to this network's All Networks view */}
+          <Link href={`/explorer/${network}`} className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] px-5 py-5 md:px-6">
+            <span aria-hidden className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover:scale-x-100" />
+            <span className="relative z-10 text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F]">Track the full network</span>
+            <ArrowRight className="relative z-10 h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
+          </Link>
         </div>
       )}
     </ExplorerShell>
   );
 }
-

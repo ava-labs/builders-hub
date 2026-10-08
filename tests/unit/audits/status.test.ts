@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   deriveRequestStatus,
   deriveQuoteDisplayStatus,
+  isAdminDeletable,
   isQuoteWindowOpen,
+  STORED_REQUEST_STATUSES,
 } from "@/lib/audits/status";
 
 const NOW = new Date("2026-08-10T12:00:00Z");
@@ -92,5 +94,16 @@ describe("isQuoteWindowOpen", () => {
 
   it("stays open defensively while collecting without a deadline", () => {
     expect(isQuoteWindowOpen({ status: "collecting", quote_deadline: null }, NOW)).toBe(true);
+  });
+});
+
+describe("isAdminDeletable", () => {
+  it("lets an admin delete every submitted request but an engaged one", () => {
+    expect(STORED_REQUEST_STATUSES.filter(isAdminDeletable)).toEqual([
+      "pending_review",
+      "rejected",
+      "collecting",
+      "withdrawn",
+    ]);
   });
 });

@@ -9,21 +9,23 @@ import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explo
 const SHOW_TAPE = false;
 import { Board } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
-import { formatGwei } from "./format";
 import { EvmOverviewStats, LiveReadout } from "./EvmOverviewStats";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { ChainRecord } from "./ChainRecord";
 import { useEvmData, LIVE_REFRESH_MS, usePrice } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { LatestBlocksBoard, LatestTxsBoard, type BlockRow, type TxRow } from "./LiveBoards";
+import { LatestBlocksBoard, LatestTxsBoard, ROWS, type BlockRow } from "./LiveBoards";
+import { useTxWindow } from "./tx-window";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import type { StatsResponse, TxListResponse, BlockListResponse } from "@/lib/evm-explorer";
+import type { StatsResponse, TxListResponse, TxSummary, BlockListResponse } from "@/lib/evm-explorer";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
-import { useTokenList, decodeErc20Call, formatTokenAmount } from "@/lib/token-list";
+import { useTokenList } from "@/lib/token-list";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
 import { readRpc } from "@/lib/explorer-rpc";
 
 
+
+const NO_TXS: TxSummary[] = [];
 
 export function EvmHome({ network }: { network: string }) {
   const c = useChainContext();
@@ -32,14 +34,16 @@ export function EvmHome({ network }: { network: string }) {
   const live = { refreshMs: LIVE_REFRESH_MS };
 
   const stats = useEvmData<StatsResponse>(c.chainId, "stats", undefined, { refreshMs: LIVE_REFRESH_MS * 2 });
-  const txs = useEvmData<TxListResponse>(c.chainId, "txs", { limit: 8 }, live);
+  // a board's worth and the row under its clip, so a chain without the stream opens full too
+  const txs = useEvmData<TxListResponse>(c.chainId, "txs", { limit: ROWS + 1 }, live);
   const blocks = useEvmData<BlockListResponse>(c.chainId, "blocks", { limit: 20 }, live);
 
   const s = stats.data;
   const blockList = blocks.data?.blocks ?? [];
-  const txList = txs.data?.transactions ?? [];
   const { price, settled: priceSettled } = usePrice(c.chainId);
   const isCchain = String(c.chainId) === "43114";
+  // a chain whose token has a market price keeps its price cells in place while the price loads
+  const priced = isCchain || !!c.priced;
 
   // The tip, read from the RPC header once a second. The indexer list
   // trails the chain by seconds and refreshes every five, so the tape and
@@ -117,37 +121,12 @@ export function EvmHome({ network }: { network: string }) {
         gasLimit: b.gasLimit,
       }));
 
-  // the transactions board: receipts as blocks settle (Continuous
-  // Execution chains), else the indexer's recent window
+  // the transactions board: the receipts stream and the indexer's page as
+  // one window (Continuous Execution chains), else the indexer's page. It
+  // opens full from whichever feed lands first; the newer rows of the other
+  // tick in above
   const tokens = useTokenList(c.chainId);
-  // same rule as the blocks: the receipts feed leads only while it is current
-  const streaming = head.streamTxs.length > 0 && head.streamTxs[0].blockNumber >= (txList[0]?.blockNumber ?? -1);
-  const txRows: TxRow[] = streaming
-    ? head.streamTxs.map((t) => {
-        const tok = t.to ? tokens.get(t.to.toLowerCase()) : undefined;
-        const call = tok ? decodeErc20Call(t.input) : null;
-        return {
-          hash: t.hash,
-          blockNumber: t.blockNumber,
-          from: t.from,
-          to: t.to,
-          value: t.value,
-          methodId: t.methodId,
-          success: t.success,
-          feeWei: t.feeWei,
-          tokenAmount: call && tok ? `${formatTokenAmount(call.amount, tok.decimals)} ${tok.symbol}` : null,
-        };
-      })
-    : txList.map((t) => ({
-        hash: t.hash,
-        blockNumber: t.blockNumber,
-        from: t.from,
-        to: t.to,
-        value: t.value,
-        methodId: t.methodId ?? "",
-        success: t.success,
-        feeWei: null,
-      }));
+  const txRows = useTxWindow(head.streamTxs, txs.data?.transactions ?? NO_TXS, tokens);
 
   // the header that committed a block's state root: the lowest head whose
   // settledHeight reaches it (heads are tip-first, so the last match)
@@ -186,35 +165,46 @@ export function EvmHome({ network }: { network: string }) {
           <LiveReadout
             chainId={c.chainId}
             cells={[
+                // throughput leads, where the All Networks overview puts it, so a switch of network keeps it in place
+                {
+                  label: "Throughput",
+                  live: true,
+                  href: `${base}/txs`,
+                  value: recentTps != null ? recentTps.toFixed(1) : "—",
+                  unit: recentTps != null ? "TPS" : undefined,
+                  // each block's transactions per second of its gap
+                  values: paceTrace?.tps,
+                },
                 {
                   label: "Chain Height",
                   live: true,
                   href: `${base}/blocks`,
-                  value: formatNumber(Math.max(tip?.number ?? 0, s?.tipHeight ?? 0, blockList[0]?.number ?? 0)),
+                  // 0 means no feed has answered yet: show the placeholder, not a height of 0
+                  value: formatNumber(Math.max(tip?.number ?? 0, s?.tipHeight ?? 0, blockList[0]?.number ?? 0) || undefined),
                   // the heights over the stream's window: a straight climb, the cadence's line
                   values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
                 },
 
-                ...(price
+                ...(price || priced
                   ? [
                       {
                         label: "Price",
                         live: true,
                         href: isCchain ? `/explorer/${network}/token` : undefined,
                         series: "price" as const,
-                        value: formatPrice(price.price),
+                        value: price ? formatPrice(price.price) : "—",
                         // the readout turns these into the move over the clock's window
-                        raw: price.price,
-                        change24h: price.change24h,
-                        sub: price.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX` : undefined,
+                        raw: price?.price,
+                        change24h: price?.change24h,
+                        sub: price?.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX` : undefined,
                       },
                       {
                         label: "Market Cap",
                         live: true,
                         href: isCchain ? `/explorer/${network}/token` : undefined,
                         series: "marketCap" as const,
-                        value: price.marketCap ? formatMarketCap(price.marketCap) : "—",
-                        raw: price.marketCap || undefined,
+                        value: price?.marketCap ? formatMarketCap(price.marketCap) : "—",
+                        raw: price?.marketCap || undefined,
                       },
                     ]
                   : []),
@@ -226,15 +216,6 @@ export function EvmHome({ network }: { network: string }) {
                   unit: avgBlockTime != null ? "s" : undefined,
                   // each block's gap to the one before it, over the stream's window
                   values: paceTrace?.gaps,
-                },
-                {
-                  label: "Throughput",
-                  live: true,
-                  href: `${base}/txs`,
-                  value: recentTps != null ? recentTps.toFixed(1) : "—",
-                  unit: recentTps != null ? "TPS" : undefined,
-                  // each block's transactions per second of its gap
-                  values: paceTrace?.tps,
                 },
             ]}
           />
@@ -257,8 +238,8 @@ export function EvmHome({ network }: { network: string }) {
               rpcUrl={readRpc(c.chainId, c.rpcUrl)}
               symbol={sym ?? "AVAX"}
               base={base}
-              loading={txs.loading && !streaming}
-              streaming={streaming}
+              loading={txs.loading && !head.streamTxs.length}
+              streaming={!!liveRpc}
             />
           </div>
 

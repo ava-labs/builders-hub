@@ -36,6 +36,12 @@ export type QuoteStatus = (typeof QUOTE_STATUSES)[number];
 export const DISPLAY_QUOTE_STATUSES = [...QUOTE_STATUSES, "expired"] as const;
 export type DisplayQuoteStatus = (typeof DISPLAY_QUOTE_STATUSES)[number];
 
+// A firm quotes its duration in weeks or in days (Joey, 2026-09-30), and the
+// unit is stored as picked so the quote reads back the way the firm wrote it.
+// Weeks come first: every quote before days existed was in weeks.
+export const QUOTE_DURATION_UNITS = ["weeks", "days"] as const;
+export type QuoteDurationUnit = (typeof QUOTE_DURATION_UNITS)[number];
+
 // Full vocabulary kept for forward compatibility; v1 only ever writes
 // approved | declined (subsidy is admin-side only, decided after acceptance).
 export const SUBSIDY_STATES = ["none", "requested", "approved", "declined", "paid"] as const;
@@ -72,6 +78,7 @@ export const AUDIT_EVENT_ACTIONS = [
   "subsidy_declined",
   "request_withdrawn",
   "request_reopened",
+  "request_deleted",
   "auditor_added",
   "auditor_updated",
   "auditor_deactivated",
@@ -115,6 +122,24 @@ export function deriveQuoteDisplayStatus(
     return "expired";
   }
   return "submitted";
+}
+
+// What an admin may delete for good: every submitted request but an engaged
+// one, whose accepted quote and subsidy decisions are the program's record of
+// what it funds. Drafts belong to their owner and never reach the admin views.
+export const ADMIN_DELETABLE_STATUSES = [
+  "pending_review",
+  "rejected",
+  "collecting",
+  "withdrawn",
+] as const satisfies readonly StoredRequestStatus[];
+
+/**
+ * Whether an admin may delete a request, by its stored status. Shared by the
+ * delete service and the admin page so the two can never disagree.
+ */
+export function isAdminDeletable(storedStatus: string): boolean {
+  return (ADMIN_DELETABLE_STATUSES as readonly string[]).includes(storedStatus);
 }
 
 /**

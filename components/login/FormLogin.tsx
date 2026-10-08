@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { LoginArtwork } from "./LoginArtwork";
 
 import SocialLogin from "./social-login/SocialLogin";
+import { EmbeddedBrowserWarning } from "./EmbeddedBrowserWarning";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -11,6 +12,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "../ui/form";
 import { Input } from "../ui/input";
@@ -19,13 +21,20 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import axios from "axios";
+import { sendOtpErrorMessage } from "@/lib/auth/otp-errors";
 import { LoadingButton } from "../ui/loading-button";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
+function Formlogin({
+  callbackUrl = "/",
+  mode = "signin",
+}: {
+  callbackUrl?: string;
+  mode?: "signin" | "signup";
+}) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +54,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
       });
       setIsVerifying(true);
     } catch (error) {
-      formMethods.setError("email", { message: "Error sending OTP" });
+      formMethods.setError("email", { message: sendOtpErrorMessage(error, "Error sending OTP") });
     }
 
     setIsLoading(false);
@@ -54,13 +63,8 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
   return (
     <main>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4  items-center mt-8">
-        <div className="hidden lg:block p-10 w-full h-full bg-zinc-900">
-          <Image
-            src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/avalancheLoginLogo-LUyz1IYs0fZrQ3tE0CUjst07LPVAv8.svg"
-            alt="logo_avalanche "
-            width="560"
-            height="685"
-          />
+        <div className="hidden lg:flex p-10 w-full h-full items-center justify-center">
+          <LoginArtwork className="w-full max-w-[559px]" />
         </div>
         {isVerifying && email && (
           <div className="justify-between p-10">
@@ -76,10 +80,12 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
             <div className="flex flex-col justify-center items-center gap-2">
               <div className="text-center ">
                 <h3 className="font-medium text-2xl">
-                  Sign in to your account
+                  {mode === "signup" ? "Create your Builder Hub account" : "Sign in to your account"}
                 </h3>
                 <p className="text-zinc-400 text-sm pt-2">
-                  Enter your email to receive a sign-in code
+                  {mode === "signup"
+                    ? "Enter your email to get started. Already have an account? We'll sign you in."
+                    : "Enter your email to receive a sign-in code"}
                 </p>
               </div>
 
@@ -96,8 +102,11 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                           name="email"
                           render={({ field }) => (
                             <FormItem>
+                              <FormLabel>Email address</FormLabel>
                               <FormControl>
                                 <Input
+                                  type="email"
+                                  autoComplete="email"
                                   className="bg-transparent w-full"
                                   placeholder="name@example.com"
                                   {...field}
@@ -120,11 +129,12 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                     </form>
                   </Form>
                 </div>
+                <EmbeddedBrowserWarning />
                 <SocialLogin callbackUrl={callbackUrl} />
                 <div>
                   <footer className="pt-10">
                     <p className="text-zinc-400 items-center justify-center w-full max-w-[400px] text-center text-sm font-medium">
-                      By signing in, you agree to our{" "}
+                      By continuing, you agree to our{" "}
                       <Link
                         href="https://www.avax.network/terms-of-use"
                         target="_blank"

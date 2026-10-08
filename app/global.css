@@ -66,7 +66,6 @@ header[aria-label="Main"] [data-radix-popover-content] {
   pointer-events: auto !important; /* Ensure all dropdowns are clickable */
 }
 
-
 /* Add padding-top to table of contents when banner exists */
 #nd-toc {
   padding-top: 72px !important;
@@ -76,7 +75,6 @@ header[aria-label="Main"] [data-radix-popover-content] {
 .integrations-page {
   scroll-padding-top: 4rem;
 }
-
 
 /* Integrations page: Add scroll margin to section anchors for proper positioning */
 .integrations-page section[id] {
@@ -792,6 +790,28 @@ html {
   --color-surface-dark: #121212;
   --color-card-dark: #1f1f1f;
   --color-ink-soft-dark: #a2afb2;
+  /* Academy tokens. Their values live on the [data-academy] roots
+     (components/academy/theme/academy-tokens.css), so these utilities resolve only inside the
+     Academy. */
+  --color-ac-ground: var(--ac-ground);
+  --color-ac-docs-ground: var(--ac-docs-ground);
+  --color-ac-paper: var(--ac-paper);
+  --color-ac-panel: var(--ac-panel);
+  --color-ac-tile: var(--ac-tile);
+  --color-ac-ink: var(--ac-ink);
+  --color-ac-ink-2: var(--ac-ink-2);
+  --color-ac-ink-3: var(--ac-ink-3);
+  --color-ac-rule: var(--ac-rule);
+  --color-ac-rule-2: var(--ac-rule-2);
+  --color-ac-red: var(--ac-red);
+  --color-ac-ok: var(--ac-ok);
+  --color-ac-ok-bg: var(--ac-ok-bg);
+  --color-ac-code: var(--ac-code);
+  --color-ac-line: var(--ac-line);
+  --color-ac-h: var(--ac-h);
+  --color-ac-t: var(--ac-t);
+  --font-ac-display: var(--ac-display);
+  --font-ac-mono: var(--ac-mono);
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -963,11 +983,11 @@ nav button {
   color: rgb(212 212 216); /* zinc-300 */
 }
 
-/* Normalize trigger geometry: menu triggers WITH a url nest an <a> that
-   picks up the global `nav a` padding, while url-less triggers (Ecosystem)
-   render plain text with only the button's 0.1rem padding — making its
-   hover block smaller and its label sit off-line. Let the button carry the
-   padding in both cases and strip it from the nested anchor. */
+/* Normalize trigger geometry: a trigger that nests an <a> (a menu url, or a
+   Link as its text) picks up the global `nav a` padding, while a plain-text
+   trigger has only the button's 0.1rem padding, so its hover block is smaller
+   and its label sits off-line. Let the button carry the padding in both cases
+   and strip it from the nested anchor. */
 #nd-nav nav > ul li > button {
   padding: 0.36rem 0.5rem !important;
 }
@@ -1148,7 +1168,7 @@ nav li > a {
   color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
-/* Hover state for type: 'main' nav links (University, Blog) - direct <a> children, not wrapped in buttons */
+/* Hover state for type: 'main' nav links (Blog) - direct <a> children, not wrapped in buttons */
 /* v2: quiet squared hover — a whisper of surface, ink darkens, no shadow */
 nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
   background-color: rgba(0, 0, 0, 0.04) !important;
@@ -1483,9 +1503,23 @@ nav button[aria-current="page"]:hover {
   gap: 0.5rem !important;
 }
 
+/* Keep the full menu beside the logo when centered links would meet the
+   search and account controls. Fumadocs already uses this layout below xl. */
+@media (max-width: 1500px) {
+  #nd-nav ul.flex.flex-row.items-center.gap-2.px-6.max-sm\:hidden {
+    position: static !important;
+    transform: none !important;
+  }
+}
+
 #nd-nav div.flex.flex-row.items-center.justify-end.gap-1\.5.flex-1.max-lg\:hidden {
-  flex: 1 0 auto !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
   justify-content: flex-end !important;
+}
+
+#nd-nav div.flex.flex-row.items-center.justify-end.gap-1\.5.flex-1.max-lg\:hidden > ul a {
+  white-space: nowrap;
 }
 
 /* Add overflow scroll for mobile menu on small screens */
@@ -1868,27 +1902,14 @@ html.embed-mode #nd-toc {
   from { opacity: 0.85; }
   to { opacity: 0; }
 }
-/* a ripple on the ground: a ring that widens from its origin and fades */
-@keyframes bh-ripple {
-  0% { transform: scale(0.12); opacity: 0; }
-  10% { opacity: 0.9; }
-  100% { transform: scale(1); opacity: 0; }
-}
 /* a tile that settles into its place */
 @keyframes bh-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-/* a comet down a path drawn with pathLength=1 and a 0.22 dash: head first, gone at the end */
-@keyframes bh-comet {
-  from { stroke-dashoffset: 0.22; }
-  to { stroke-dashoffset: -1.02; }
-}
-/* a place that waits for what lands in it */
-@keyframes bh-breathe {
-  0%, 100% { opacity: 0.08; }
-  50% { opacity: 0.3; }
-}
+/* the P-Chain's helicopters (city-heli.tsx): along the ground from --a to
+   --b and on to --c, up from --z0 to --z1, down to --z2 over the drop and
+   up to --z3 away; a rotor turning; the message falling --fall */
 
 /* Subtle 1px highlight at the top of every shadcn Card in dark mode.
    Differentiates cards from the page background (both are near-black
@@ -2078,6 +2099,14 @@ html.embed-mode #nd-toc {
   height: auto;
   margin-bottom: 8px;
 }
+/* two featured cards side by side (marker: .nav-duo, the Developers menu):
+   two equal columns at the 2x2 panel width. Placed after the .nav-featured
+   popover rule so it wins at equal specificity. */
+#nd-nav > :last-child [class*="lg:grid-cols-3"]:has(.nav-duo) {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  max-width: 44rem;
+  margin-left: max(1.5rem, calc(52% - 22rem));
+}
 
 /* v2 display voice: brand-aligned heavy caps, matching avalanche.com's
    headline grammar. Every statement on the story/solutions pages uses
@@ -2194,5 +2223,50 @@ html.embed-mode #nd-toc {
     100% {
       background-position: 0% 0;
     }
+  }
+}
+
+/* on a large screen the city is one window under the navbar, so no scroll can carry the subnav
+   away: the site's footer and chat button stand down (the city's news takes that corner), and the
+   explorer's full-screen wrapper adds no height. The page marks itself in its server render, so
+   this holds from the first paint. Phones keep the footer and the chat button */
+@media (min-width: 1024px) {
+  body:has([data-city-page]) [data-site-footer],
+  body:has([data-city-page]) .chatbot-container {
+    display: none;
+  }
+  div:has(> [data-city-page]) {
+    min-height: 0;
+  }
+}
+
+/* the phone menu sheet reaches the bottom of the screen, where the chat button would cover its
+   last links: the button stands down while the menu is open (components/navigation/navbar-dropdown.tsx) */
+body:has([data-navbar-dropdown] > button[aria-expanded="true"]) .chatbot-container {
+  display: none;
+}
+
+/* the city and 2D explorer toggle (components/explorer-v2/view-switch.tsx): the view it leaves fades out fast, and the one it
+   opens fades in once the old one is nearly gone */
+::view-transition-old(.vs-out) {
+  animation: 140ms ease-out both vs-fade reverse;
+}
+::view-transition-new(.vs-in) {
+  animation: 220ms ease-in 80ms both vs-fade;
+}
+@keyframes vs-fade {
+  from {
+    opacity: 0;
+  }
+}
+/* the rest of the page (the navbar, the page's ground) holds still through the toggle's fade */
+:root:active-view-transition-type(view-switch)::view-transition-old(root),
+:root:active-view-transition-type(view-switch)::view-transition-new(root) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.vs-out),
+  ::view-transition-new(.vs-in) {
+    animation: none;
   }
 }

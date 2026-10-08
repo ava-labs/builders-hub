@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Download, Maximize2, Minimize2, Trash2 } from 'lucide-react';
-import { DetailSkeleton, Tabs, idInk } from '@/components/explorer-v2/ui';
+import { DetailSkeleton, idInk } from '@/components/explorer-v2/ui';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { cn } from '@/lib/utils';
 import { api, errorText, type ProjectOverview } from './api';
@@ -18,7 +18,7 @@ import { PlanPanel } from './PlanPanel';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductionPanel } from './ProductionPanel';
 import { useBlueprints } from './StudioHome';
-import { Button, LABEL, Notice, Pill } from './ui';
+import { Button, LABEL, MarkedTabs, Notice, Pill } from './ui';
 import { useFullScreen } from './useFullScreen';
 
 const TABS = ['plan', 'deploy', 'networks', 'contracts', 'preview', 'files', 'audit', 'production'] as const;
@@ -247,7 +247,7 @@ export function StudioWorkspace({ projectId }: { projectId: string }) {
               full ? 'top-0' : '-top-2 md:-top-3',
             )}
           >
-            <Tabs tabs={[...TABS]} active={tab} onChange={setTab} labels={TAB_LABELS} marks={marks} />
+            <MarkedTabs tabs={[...TABS]} active={tab} onChange={setTab} labels={TAB_LABELS} marks={marks} />
           </div>
           <div className="flex flex-col gap-6 px-5 pb-5 pt-6 md:px-6">
             {error && <Notice tone="bad">{error}</Notice>}

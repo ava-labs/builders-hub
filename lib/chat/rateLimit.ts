@@ -14,6 +14,12 @@ interface RateLimitEntry {
   windowStart: number;
 }
 
+/** a limit per anonymous IP and per signed-in user; windows of an hour at most, which the cleanup assumes */
+export interface RateLimits {
+  anonymous: { maxRequests: number; windowMs: number };
+  authenticated: { maxRequests: number; windowMs: number };
+}
+
 interface RateLimitResult {
   allowed: boolean;
   remaining: number;
@@ -22,7 +28,7 @@ interface RateLimitResult {
 }
 
 // Rate limit configuration
-const RATE_LIMITS = {
+const RATE_LIMITS: RateLimits = {
   anonymous: {
     maxRequests: 10,
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -31,7 +37,7 @@ const RATE_LIMITS = {
     maxRequests: 1000,
     windowMs: 60 * 60 * 1000, // 1 hour
   },
-} as const;
+};
 
 // In-memory storage for rate limits
 // Key format: "anon:{ip}" or "auth:{userId}"
@@ -73,11 +79,15 @@ function isLoopback(identifier: string): boolean {
  *
  * @param identifier - User ID for authenticated users, IP for anonymous
  * @param isAuthenticated - Whether the user is logged in
+ * @param limits - Another budget than the chat's, such as Query's reads with no model
+ * @param name - The budget's name, which keeps its counts apart from the chat's
  * @returns Rate limit result with allowed status and metadata
  */
 export function checkChatRateLimit(
   identifier: string,
-  isAuthenticated: boolean
+  isAuthenticated: boolean,
+  limits: RateLimits = RATE_LIMITS,
+  name?: string
 ): RateLimitResult {
   const now = Date.now();
 
@@ -87,9 +97,9 @@ export function checkChatRateLimit(
   if (process.env.NODE_ENV === 'development' && !isAuthenticated && isLoopback(identifier)) {
     return {
       allowed: true,
-      remaining: RATE_LIMITS.anonymous.maxRequests,
-      resetTime: new Date(now + RATE_LIMITS.anonymous.windowMs),
-      limit: RATE_LIMITS.anonymous.maxRequests,
+      remaining: limits.anonymous.maxRequests,
+      resetTime: new Date(now + limits.anonymous.windowMs),
+      limit: limits.anonymous.maxRequests,
     };
   }
 
@@ -99,10 +109,10 @@ export function checkChatRateLimit(
   }
 
   const config = isAuthenticated
-    ? RATE_LIMITS.authenticated
-    : RATE_LIMITS.anonymous;
+    ? limits.authenticated
+    : limits.anonymous;
 
-  const key = isAuthenticated ? `auth:${identifier}` : `anon:${identifier}`;
+  const key = `${name ? `${name}:` : ''}${isAuthenticated ? 'auth' : 'anon'}:${identifier}`;
   const entry = rateLimitStore.get(key);
 
   // No existing entry - create new window

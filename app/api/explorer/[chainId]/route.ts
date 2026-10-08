@@ -3,6 +3,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
 import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
 import { assertPublicRpcTarget } from "@/lib/rpcUrlValidator";
+import { readNewBlocks } from "./new-blocks";
 
 interface Block {
   number: string;
@@ -400,7 +401,7 @@ async function fetchHistoricalIcmMessages(
   }
 }
 
-async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
+async function fetchExplorerData(evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
   const startTime = Date.now();
   const timing: Record<string, number> = {};
 
@@ -501,7 +502,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     for (let i = 0; i < allTxHashes.length; i++) {
       const { blockIndex, txHash } = allTxHashes[i];
       const receipt = receiptMap.get(txHash);
-      const block = validBlocks[blockIndex];
 
       if (receipt && receipt.gasUsed) {
         const gasUsed = BigInt(receipt.gasUsed);
@@ -903,50 +903,16 @@ export async function GET(
       return NextResponse.json({ error: "RPC URL not configured. Provide rpcUrl query parameter for custom chains." }, { status: 400 });
     }
 
-    // If blocksOnly, return just the newest block headers (tx hashes, no
-    // bodies) — the network tape's polling diet: no receipts, no ICM scan
+    // If blocksOnly, return just the newest block headers: the All Networks
+    // boards' polling diet (see new-blocks.ts)
     if (blocksOnly) {
-      const blocksOnlyStart = Date.now();
-      const latest = hexToNumber(await fetchFromRPC(rpcUrl, "eth_blockNumber"));
-      if (lastFetchedBlock !== undefined && lastFetchedBlock >= latest) {
-        return NextResponse.json({ blocks: [], latestBlock: latest });
-      }
-      const count =
-        lastFetchedBlock !== undefined && lastFetchedBlock > 0
-          ? Math.min(latest - lastFetchedBlock, 10)
-          : 6;
-      const headers = await Promise.all(
-        Array.from({ length: count }, (_, i) => latest - i)
-          .filter((n) => n >= 0)
-          .map(
-            (n) =>
-              fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${n.toString(16)}`, false]).catch(
-                () => null
-              ) as Promise<RpcBlock | null>
-          )
-      );
-      const blocks = headers
-        .filter((b): b is RpcBlock => b !== null)
-        .map((block) => ({
-          number: hexToNumber(block.number).toString(),
-          hash: block.hash,
-          timestamp: formatTimestamp(block.timestamp),
-          transactionCount: block.transactions?.length || 0,
-          gasUsed: hexToNumber(block.gasUsed).toLocaleString(),
-          gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
-          timestampMilliseconds: block.timestampMilliseconds
-            ? parseInt(block.timestampMilliseconds, 16)
-            : undefined,
-        }));
-      requestTiming.blocksOnly = Date.now() - blocksOnlyStart;
-      requestTiming.total = Date.now() - requestStart;
-      return NextResponse.json({ blocks, latestBlock: latest });
+      return NextResponse.json(await readNewBlocks(rpcUrl, lastFetchedBlock, Number(searchParams.get("txs")) || 0));
     }
 
     // Fetch fresh data and check Glacier support in parallel
     const dataFetchStart = Date.now();
     const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
+      fetchExplorerData(chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
       checkGlacierSupport(chainId),
     ]);
     requestTiming.dataFetch = Date.now() - dataFetchStart;

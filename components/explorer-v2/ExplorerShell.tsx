@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowUp, ArrowUpRight, Clock, History, Search, Sparkles, X } from "lucide-react";
 import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
@@ -20,15 +19,21 @@ import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import {
   ChainHitRow,
   EntityHitRow,
+  bech32AddressCached,
+  heightHitCached,
   matchChains,
   looksLikeIdentifier,
   lookupTxAcrossChainsCached,
   useSearchEntity,
+  xchainSearchCached,
   type ChainHit,
+  type EntityTargets,
 } from "@/components/explorer-v2/chain-search";
-import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
+import { useIndexedChainIds, useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import { Rise } from "@/components/explorer-v2/ui";
-import { buildAddressUrl, buildTxUrl } from "@/utils/eip3091";
+import { AskingFrame, useAskTo } from "@/components/explorer-v2/evm/query-asking";
+import { PCHAIN_COLUMN, QueryWorking } from "@/components/explorer-v2/evm/QueryWorking";
+import { buildAddressUrl, buildBlockUrl, buildTxUrl } from "@/utils/eip3091";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 type EntityType = "block" | "tx" | "address" | "node" | "chain";
@@ -63,7 +68,8 @@ function truncateId(id: string, max = 34) {
    focus, recents on focus, API classification only for ambiguous hashes.
    Exported for the network-scope shell: with chain="p-chain" it already
    routes every identifier to the right chain (P-Chain entities home, EVM
-   addresses to the C-Chain, tx hashes raced across every indexed chain). */
+   addresses to the C-Chain, tx hashes raced across the network's indexed
+   chains). */
 export function SearchBox({
   chain,
   network,
@@ -87,8 +93,8 @@ export function SearchBox({
   const [sel, setSel] = useState(-1);
 
   const base = `/explorer/${network}/${chain}`;
-  // the P-Chain's tables cover mainnet and Fuji
-  const askable = (ask || !!askAt) && (network === "mainnet" || network === "fuji");
+  // the P-Chain's tables cover mainnet and Fuji; the network's Query page is mainnet only
+  const askable = (ask && (network === "mainnet" || network === "fuji")) || (!!askAt && network === "mainnet");
   const queryPage = askAt ?? `${base}/query`;
   // the network box asks about any chain: both indexes' recents and starters
   const starters = (askAt ? [...EXAMPLES.slice(0, 1), ...PCHAIN_EXAMPLES.slice(0, 1)] : PCHAIN_EXAMPLES).flatMap((g) => g.items.map((i) => i.q));
@@ -101,25 +107,35 @@ export function SearchBox({
   // chain suggestions — same engine and rows as the portal's search, so a
   // name, chain ID, subnet ID, or blockchain ID finds its chain from any
   // page. Liveness (for ranking + the validators figure) loads on demand.
-  const { live: liveValidators } = useLiveValidatorCounts("mainnet", q.trim().length >= 2);
-  const hits = useMemo(() => matchChains(q, liveValidators), [q, liveValidators]);
+  // A Fuji box lists Fuji chains only, so it also reads the indexed set.
+  const net = isPchainNetwork(network) ? network : "mainnet";
+  const typed = q.trim().length >= 2;
+  const { live: liveValidators } = useLiveValidatorCounts(net, typed);
+  const indexed = useIndexedChainIds(net === "fuji" && typed);
+  const hits = useMemo(() => matchChains(q, liveValidators, net, indexed), [q, liveValidators, net, indexed]);
 
   // what the identifier in the box resolves to — tx hashes race every
   // chain live, so the dropdown names the chain before Enter is pressed
-  const entity = useSearchEntity(q, {
+  const targets: EntityTargets = {
     network,
     blockBase: base,
-    blockChainName: "P-Chain",
+    blockChainName: getExplorerChain(chain)?.name ?? "P-Chain",
     evmAddressBase: `/explorer/${network}/c-chain`,
     evmAddressChainName: "C-Chain",
-  });
+    // the network box: a height the P-Chain lacks is a C-Chain height, as in the page's Latest Blocks
+    heightFallback: askAt ? { base: `/explorer/${network}/c-chain`, chainName: "C-Chain" } : undefined,
+  };
+  const entity = useSearchEntity(q, targets);
 
-  const goToHref = (href: string) => {
+  // a question's Query page: the shell draws its first frame at once
+  const askTo = useAskTo();
+  const goToHref = (href: string, question?: string) => {
     setQ("");
     setSel(-1);
     setNotFound(false);
     inputRef.current?.blur();
-    router.push(href);
+    if (question && askTo) askTo(href, question);
+    else router.push(href);
   };
 
   const goToChain = (hit: ChainHit) => {
@@ -158,7 +174,7 @@ export function SearchBox({
 
     // a sentence is a question for the P-Chain's Query page
     if (question && sel < 0) {
-      goToHref(askHref);
+      goToHref(askHref, q.trim());
       return;
     }
 
@@ -170,14 +186,40 @@ export function SearchBox({
       return;
     }
 
+    // the network box's height goes where its row points; only a P-Chain block is a recent
+    if (targets.heightFallback && /^\d+$/.test(query)) {
+      setBusy(true);
+      try {
+        const hit = await heightHitCached(query, targets);
+        if (hit.href === buildBlockUrl(base, query)) go("block", query);
+        else if (hit.href) goToHref(hit.href);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     const local = classifyLocally(query);
+    // a bech32 address asks the chains which hold it: a prefix selects the
+    // chain, a bare address lands on the chain with the account
+    if (local?.type === "address") {
+      setBusy(true);
+      try {
+        const [h] = await bech32AddressCached(network, local.id);
+        setRecents(saveRecent(network, { type: "address", id: h.id }));
+        goToHref(`/explorer/${network}/${h.chain}/address/${h.id}`);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (local) {
       go(local.type, local.id);
       return;
     }
     // a phrase that is no identifier and no chain is asked, as on the C-Chain
     if (canAsk && !looksLikeIdentifier(query)) {
-      goToHref(askHref);
+      goToHref(askHref, q.trim());
       return;
     }
 
@@ -196,11 +238,21 @@ export function SearchBox({
         go(r.type, r.id);
         return;
       }
-      if (network === "mainnet" && /^0x[a-fA-F0-9]{64}$/.test(query)) {
-        // same cache the dropdown's entity row fills — usually instant
-        const result = await lookupTxAcrossChainsCached(query);
+      // a CB58 id the P-Chain does not claim can still be an X-Chain tx or
+      // genesis asset — the x-api has no search endpoint, so probe it
+      if (/^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(query) && !/^(P-)?(avax|fuji|custom)1/i.test(query)) {
+        const x = await xchainSearchCached(network, query);
+        if (x.type !== "none") {
+          goToHref(`/explorer/${network}/x-chain/${x.type}/${x.id}`);
+          return;
+        }
+      }
+      if (/^0x[a-fA-F0-9]{64}$/.test(query)) {
+        // the dropdown's entity row fills the same cache, so this is usually
+        // instant. The race stays on this box's network.
+        const result = await lookupTxAcrossChainsCached(query, net);
         if (result.found && result.chain) {
-          router.push(buildTxUrl(`/explorer/mainnet/${result.chain.slug}`, query));
+          router.push(buildTxUrl(`/explorer/${net}/${result.chain.slug}`, query));
           return;
         }
       }
@@ -213,11 +265,11 @@ export function SearchBox({
   };
 
   const identifier = looksLikeIdentifier(q.trim()) || !!classifyLocally(q.trim());
-  const question = askable && !entity && looksLikeQuestion(q, { identifier, chainHit: hits.length > 0 });
-  const canAsk = askable && !entity && canAskPhrase(q, identifier);
+  const question = askable && entity.length === 0 && looksLikeQuestion(q, { identifier, chainHit: hits.length > 0 });
+  const canAsk = askable && entity.length === 0 && canAskPhrase(q, identifier);
   const askHref = `${queryPage}?q=${encodeURIComponent(q.trim())}`;
   const showRecents = focused && !q && (recents.length > 0 || askable);
-  const showHits = focused && !!q.trim() && (hits.length > 0 || entity !== null || canAsk);
+  const showHits = focused && !!q.trim() && (hits.length > 0 || entity.length > 0 || canAsk);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!showHits || hits.length === 0) return;
@@ -262,6 +314,8 @@ export function SearchBox({
           onBlur={() => setFocused(false)}
           onKeyDown={onKeyDown}
           placeholder={askable ? "Search an address, tx, block, NodeID or chain, or ask a question…" : "Search chains by name or ID, block height, tx hash, NodeID, or any address"}
+          // focus warms the P-Chain Query page; not the network one, which reads every chain's coverage
+          data-asks={askable && !askAt ? queryPage : undefined}
           aria-label={askable ? "Search or ask a question" : "Search"}
           spellCheck={false}
           className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"
@@ -297,13 +351,15 @@ export function SearchBox({
           shared chain rows every explorer search uses */}
       {showHits && (
         <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_40px_-20px_rgba(24,24,27,0.35)] dark:border-zinc-800 dark:bg-zinc-950">
-          {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
+          {entity.map((hit) => (
+            <EntityHitRow key={hit.href ?? hit.status} hit={hit} onSelect={goToHref} />
+          ))}
           {canAsk && (
             <button
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault();
-                goToHref(askHref);
+                goToHref(askHref, q.trim());
               }}
               className={cn(
                 "group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-3 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900",
@@ -352,7 +408,7 @@ export function SearchBox({
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        goToHref(`${queryPage}?q=${encodeURIComponent(item)}`);
+                        goToHref(`${queryPage}?q=${encodeURIComponent(item)}`, item);
                       }}
                       className="group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900"
                     >
@@ -417,6 +473,8 @@ export function ExplorerShell({
   network,
   aside,
   hideHeader = false,
+  heading = true,
+  rise = true,
   children,
 }: {
   chain: string;
@@ -427,36 +485,52 @@ export function ExplorerShell({
    *  the chain identity header and search, keeping only the subnav spine.
    *  Same contract as ExplorerLayout's hideHeader. */
   hideHeader?: boolean;
+  /** Set false where the page shows its own h1, such as a Query answer */
+  heading?: boolean;
+  /** Set false where the body must paint with the first frame, such as Query's */
+  rise?: boolean;
   children: React.ReactNode;
 }) {
   const c = getExplorerChain(chain) ?? EXPLORER_CHAINS["p-chain"];
+  // a div: the site layout's <main> holds the page
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
+    <div className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
       {/* the drafting-sheet triangle lattice, snowfall only — visible in the
           margins; the content column is an opaque sheet laid on top of it,
           bounded by the vertical rules */}
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
-        {/* the app's spine: chain switcher, section tabs, network */}
-        <ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />
-        {/* load sequence, as on the homepage/solutions: header rises first,
-            the page body follows. Rise wraps the <header> from OUTSIDE so its
-            div never becomes a `header > div` (the global navbar padding hack). */}
-        {!hideHeader && (
-          <Rise delay={0.05}>
-            <header className="flex flex-col gap-6 pb-10">
-              {/* the subnav names the chain; the header is the search and the
-                  page's live figure beside it. pl-0!/pr-0! override the global
-                  `header > div` navbar padding hack (global.css). */}
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
-                <SearchBox chain={chain} network={network} ask={chain === "p-chain"} />
-                {aside}
-              </div>
-            </header>
-          </Rise>
-        )}
-        <Rise delay={0.14}>{children}</Rise>
+        {/* no display title by design; the h1 names the page for screen readers */}
+        {heading && <h1 className="sr-only">{c.name} Explorer</h1>}
+        {/* a question asked in the box shows the P-Chain Query page's first frame under the subnav at once */}
+        <AskingFrame
+          // the app's spine: chain switcher, section tabs, network
+          above={<ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />}
+          working={(q) => (
+            <div className={PCHAIN_COLUMN}>
+              <QueryWorking question={q} kind="pchain" chainName="the P-Chain" />
+            </div>
+          )}
+        >
+          {/* load sequence, as on the homepage/solutions: header rises first,
+              the page body follows. Rise wraps the <header> from OUTSIDE so its
+              div never becomes a `header > div` (the global navbar padding hack). */}
+          {!hideHeader && (
+            <Rise delay={0.05}>
+              <header className="flex flex-col gap-6 pb-10">
+                {/* the subnav names the chain; the header is the search and the
+                    page's live figure beside it. pl-0!/pr-0! override the global
+                    `header > div` navbar padding hack (global.css). */}
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
+                  <SearchBox chain={chain} network={network} ask={chain === "p-chain"} />
+                  {aside}
+                </div>
+              </header>
+            </Rise>
+          )}
+          {rise ? <Rise delay={0.14}>{children}</Rise> : <div>{children}</div>}
+        </AskingFrame>
       </div>
-    </main>
+    </div>
   );
 }

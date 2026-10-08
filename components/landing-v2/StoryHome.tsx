@@ -14,12 +14,17 @@ import {
 } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { GlobeData } from "@/components/landing/globe";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import BuiltOnMarquee from "@/components/landing-v2/BuiltOnMarquee";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
+import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
+import HeroSplash from "@/components/landing-v2/HeroSplash";
+import AvaxCoin from "@/components/landing-v2/AvaxCoin";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import PillarsChapter from "@/components/landing-v2/PillarsChapter";
-import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
+import ChainDiagram from "@/components/landing-v2/diagrams/ChainDiagram";
+import { formatCompact, formatCompactIn, formatExact } from "@/components/landing-v2/compactFigure";
+import NetworkLanes from "@/components/landing-v2/NetworkLanes";
+import { rosterOf } from "@/components/explorer-v2/network/network-reads";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ROTATE_MS, SCRUB_SPRING } from "@/components/landing-v2/scrub";
 import { track } from "@/components/landing-v2/track";
@@ -61,110 +66,107 @@ const DAY_SECONDS = 86_400;
 // every flow metric on the page reads over the same 30-day window
 const MONTH_SECONDS = 30 * DAY_SECONDS;
 
-// Money is set to the cent, always — a ledger doesn't round its own entries.
-const fmtUsd = (n: number) =>
-  `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
 // Extrapolated live counter for FLOW metrics (transactions, messages,
 // volume): the figure climbs at the average rate the aggregate implies,
 // then re-anchors when fresh data arrives. Levels (validators, stake)
 // must never use this — a ticking level would be fiction.
 // Re-anchoring never steps the visible figure backwards unless the
 // measurement window clearly rolled (new value well below what's shown).
-// integer=false keeps the raw float for money figures, whose cents tick live
-function useExtrapolatedCount(value: number, periodSeconds?: number, integer = true): number {
+function useExtrapolatedCount(value: number, periodSeconds?: number): number {
   const [display, setDisplay] = useState(value);
   const shownRef = useRef(value);
 
   useEffect(() => {
     shownRef.current =
       value < shownRef.current * 0.95 ? value : Math.max(shownRef.current, value);
-    setDisplay(integer ? Math.floor(shownRef.current) : shownRef.current);
+    setDisplay(Math.floor(shownRef.current));
     if (!periodSeconds || value <= 0) return;
     const rate = value / periodSeconds;
     const timer = setInterval(() => {
       shownRef.current += rate * 0.25;
-      setDisplay(integer ? Math.floor(shownRef.current) : shownRef.current);
+      setDisplay(Math.floor(shownRef.current));
     }, 250);
     return () => clearInterval(timer);
-  }, [value, periodSeconds, integer]);
+  }, [value, periodSeconds]);
 
   return display;
 }
 
-function LedgerFigure({
-  value,
-  animateIn,
-  tickPeriod,
-}: {
-  value: number;
-  animateIn: boolean;
-  /** seconds the aggregate covers; set only for flow metrics that should tick */
-  tickPeriod?: number;
-}) {
+// Compact on screen; the exact figure in the hover title and for screen
+// readers. The exact copy is unselectable, so a copied figure is the one shown.
+function Figure({ shown, exact, className }: { shown: string; exact: string; className?: string }) {
+  return (
+    <span className={className} title={exact}>
+      <span aria-hidden>{shown}</span>
+      <span className="sr-only select-none">{exact}</span>
+    </span>
+  );
+}
+
+const FIGURE_CLASS =
+  "font-mono text-2xl tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem] md:leading-8";
+// the dominant figure takes the display face: in mono, its decimal point
+// fills a whole cell at this size and splits the figure in two
+const STAKE_CLASS =
+  "v2-heading text-5xl tabular-nums leading-none text-zinc-900 dark:text-zinc-50 md:text-7xl xl:text-8xl";
+
+// Board figures are compact (three significant digits), so a live tick
+// would not move them. Transactions and validators refresh with the 60 s
+// poll; the other figures refresh when the page revalidates.
+function LedgerFigure({ value, animateIn }: { value: number; animateIn: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const [display, setDisplay] = useState(animateIn ? 0 : value);
   // live refreshes count from the last shown figure, not from zero again
   const shownRef = useRef(0);
-  const settledRef = useRef(!animateIn);
 
   useEffect(() => {
     if (!animateIn) {
-      shownRef.current = Math.max(shownRef.current, value);
-      setDisplay(Math.round(shownRef.current));
+      shownRef.current = value;
+      setDisplay(value);
       return;
     }
     if (!inView) return;
-    const from = shownRef.current;
-    const to = value < from * 0.95 ? value : Math.max(value, from);
-    const controls = animate(from, to, {
+    const controls = animate(shownRef.current, value, {
       duration: 1.4,
-      ease: [0.22, 1, 0.36, 1],
+      ease: EASE_OUT,
       onUpdate: (v) => {
         shownRef.current = v;
-        setDisplay(Math.round(v));
+        setDisplay(v);
       },
+      // land on the exact target, so the last frame is the compact figure
       onComplete: () => {
-        settledRef.current = true;
+        shownRef.current = value;
+        setDisplay(value);
       },
     });
     return () => controls.stop();
   }, [inView, value, animateIn]);
 
-  // after the entrance settles, flow metrics keep climbing in real time
-  useEffect(() => {
-    if (!tickPeriod || value <= 0) return;
-    const rate = value / tickPeriod;
-    const timer = setInterval(() => {
-      if (!settledRef.current) return;
-      shownRef.current += rate * 0.25;
-      setDisplay(Math.floor(shownRef.current));
-    }, 250);
-    return () => clearInterval(timer);
-  }, [value, tickPeriod]);
-
   return (
-    <span ref={ref} className="font-mono text-2xl md:text-[1.75rem] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
-      {display.toLocaleString("en-US")}
+    <span ref={ref}>
+      <Figure shown={formatCompactIn(display, value)} exact={formatExact(value)} className={FIGURE_CLASS} />
     </span>
   );
 }
 
 function LedgerCell({
   label,
+  period,
   children,
   live = false,
   href,
   className = "",
 }: {
   label: string;
+  /** the window a flow figure covers ("30D"); phones set it on its own line */
+  period?: string;
   children: React.ReactNode;
   live?: boolean;
   href?: string;
   className?: string;
 }) {
-  const cellClass = `flex flex-col gap-1.5 px-5 py-5 md:px-6 ${className}`;
+  const cellClass = `flex flex-col gap-1.5 px-5 py-3 md:px-6 md:py-5 ${className}`;
   const content = (
     <>
       <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400 lg:whitespace-nowrap">
@@ -174,7 +176,15 @@ function LedgerCell({
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
           </span>
         )}
-        {label}
+        <span>
+          {label}
+          {period && (
+            <>
+              <span className="max-sm:hidden"> · </span>
+              <span className="max-sm:block">{period}</span>
+            </>
+          )}
+        </span>
       </span>
       {children}
     </>
@@ -191,6 +201,8 @@ function LedgerCell({
   }
   return <div className={cellClass}>{content}</div>;
 }
+
+const FIRST_ROW_OF_TWO = "max-lg:border-b max-lg:border-zinc-200 dark:max-lg:border-zinc-800";
 
 function LedgerStrip({
   globeData,
@@ -212,16 +224,24 @@ function LedgerStrip({
     // chrome (border/background) is owned by the parent board
     <div className="w-full">
       <div className="mx-auto grid max-w-7xl grid-cols-2 lg:grid-cols-4 divide-x divide-zinc-200 dark:divide-zinc-800">
-        <LedgerCell label="TRANSACTIONS · 30D" live href="/explorer/mainnet">
+        {/* below lg the strip is two rows of two: a hairline closes the first row */}
+        <LedgerCell label="TRANSACTIONS" period="30D" live href="/explorer/mainnet" className={FIRST_ROW_OF_TWO}>
           {agg ? (
-            <LedgerFigure value={agg.totalTxCount} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
+            <LedgerFigure value={agg.totalTxCount} animateIn={animateIn} />
           ) : (
             <LedgerDash />
           )}
         </LedgerCell>
-        <LedgerCell label="CROSS-CHAIN MSGS · 30D" live href="/explorer/mainnet/chains">
+        {/* ends the first row of two below lg: no divider at the screen edge */}
+        <LedgerCell
+          label="CROSS-CHAIN MSGS"
+          period="30D"
+          live
+          href="/explorer/mainnet/chains"
+          className={`${FIRST_ROW_OF_TWO} max-lg:border-r-0`}
+        >
           {icmTotal30d > 0 ? (
-            <LedgerFigure value={icmTotal30d} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
+            <LedgerFigure value={icmTotal30d} animateIn={animateIn} />
           ) : (
             <LedgerDash />
           )}
@@ -235,6 +255,11 @@ function LedgerStrip({
       </div>
     </div>
   );
+}
+
+function UsdFigure({ value }: { value: number | null }) {
+  if (value === null) return <LedgerDash />;
+  return <Figure shown={formatCompact(value, "usd")} exact={formatExact(value, "usd")} className={FIGURE_CLASS} />;
 }
 
 function LedgerDash() {
@@ -300,26 +325,54 @@ function ChapterOne() {
     return () => window.removeEventListener("resize", measure);
   }, [noun]);
 
+  // Some phone browsers (Brave on iOS, for one) resize the page when their
+  // toolbar hides, which changes svh too, so the hero would grow on the first
+  // scroll. On a touch screen the hero keeps the height it loaded with, and
+  // follows only a change of width (a rotation)
+  useLayoutEffect(() => {
+    const el = sectionRef.current;
+    if (!el || !window.matchMedia("(pointer: coarse)").matches) return;
+    let width = window.innerWidth;
+    const hold = () => el.style.setProperty("--v2-hero-h", `${window.innerHeight}px`);
+    hold();
+    const onResize = () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      hold();
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   // top-to-bottom load sequence: each block rises in after the one above it
-  const rise = (delay: number) =>
-    reducedMotion
-      ? {}
-      : {
-          initial: { opacity: 0, y: 16 },
-          animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
-        };
+  // The server cannot read reduced motion, so it always sends the hidden
+  // start. With reduced motion the client skips the start (initial false) but
+  // keeps animate, so framer writes the shown values over the server's
+  const rise = (delay: number) => ({
+    initial: reducedMotion ? (false as const) : { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
+  });
 
   return (
-    // In-flow navbar (~3.5rem) sits above; subtract it so the section is one viewport
-    <section ref={sectionRef} data-chapter="hero" className="v2-snap-section relative flex min-h-[calc(100vh-3.5rem)] flex-col">
+    // In-flow navbar (~3.5rem) sits above; subtract it so the section is one viewport.
+    // The small viewport (svh): on a phone, 100vh is the screen with the browser's
+    // toolbars collapsed, so the ridge and the tape would start under them
+    <section
+      ref={sectionRef}
+      data-chapter="hero"
+      className="v2-snap-section relative flex min-h-[calc(100vh-3.5rem)] flex-col supports-[height:100svh]:min-h-[calc(var(--v2-hero-h,100svh)-3.5rem)]"
+    >
       <motion.div
         className="flex flex-1 flex-col"
         style={reducedMotion ? undefined : { opacity: exitOpacity }}
       >
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 text-center">
+        {/* the splash ends at the ecosystem tape, so the tape never crops it */}
+        <HeroSplash />
+        {/* phones: as large as the widest noun ("marketplace.", 7.53em) allows */}
         <motion.h1
-          className="v2-display text-[2.5rem] text-zinc-900 dark:text-zinc-50 md:text-[4rem] xl:text-[5rem]"
+          className="v2-display text-[clamp(2.5rem,calc((100vw_-_2.75rem)/7.6),3.5rem)] text-zinc-900 dark:text-zinc-50 md:text-[4rem] xl:text-[5rem]"
           {...rise(0.05)}
         >
           Build {article}{" "}
@@ -365,6 +418,7 @@ function ChapterOne() {
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
           <BrandButton
             href="/console"
+            prefetchOnIntent
             onClick={() => track("home_cta_clicked", { section: "hero", label: "Build an L1", href: "/console" })}
             className="w-full sm:w-auto"
           >
@@ -379,13 +433,15 @@ function ChapterOne() {
             Build on C-Chain
           </BrandButton>
           </div>
-          <Link
+          <HoverPrefetchLink
             href="/docs/avalanche-l1s"
             onClick={() => track("home_cta_clicked", { section: "hero", label: "Read the architecture", href: "/docs/avalanche-l1s" })}
-            className="font-mono text-[11px] tracking-[0.18em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            // over the splash sky, zinc-500 and zinc-400 fall below AA contrast. On a
+            // phone the ridge and the plume rise behind the link, so it sits on a chip
+            className="font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 max-md:bg-white/95 max-md:px-3 max-md:py-2 dark:text-zinc-300 dark:hover:text-zinc-100 dark:max-md:bg-zinc-950/95"
           >
             READ THE ARCHITECTURE →
-          </Link>
+          </HoverPrefetchLink>
         </motion.div>
       </div>
 
@@ -424,6 +480,56 @@ function TokenStack({ srcs }: { srcs: string[] }) {
 /* Chapter 2 — proof: one dominant figure and its quiet receipts       */
 /* ------------------------------------------------------------------ */
 
+// The dominant figure: stake in USD, or in AVAX when the price is down
+function StakeFigure({
+  primaryStakeAvax,
+  primaryStakeUsd,
+  supplyStakedPct,
+}: {
+  primaryStakeAvax: number | null;
+  primaryStakeUsd: number | null;
+  supplyStakedPct: number | null;
+}) {
+  const avax =
+    primaryStakeAvax !== null
+      ? { shown: `${formatCompact(primaryStakeAvax)} AVAX`, exact: `${formatExact(primaryStakeAvax)} AVAX` }
+      : null;
+  return (
+    <Link
+      href="/explorer/mainnet/p-chain/validators"
+      className="group flex flex-col gap-2 md:gap-3 lg:items-end lg:text-right"
+    >
+      {/* the same link grammar as the page's other mono links: text plus arrow */}
+      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 transition-colors group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100">
+        STAKE SECURING THE NETWORK
+        <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+      </span>
+      {primaryStakeUsd !== null ? (
+        <Figure shown={formatCompact(primaryStakeUsd, "usd")} exact={formatExact(primaryStakeUsd, "usd")} className={STAKE_CLASS} />
+      ) : avax ? (
+        <Figure shown={avax.shown} exact={avax.exact} className={STAKE_CLASS} />
+      ) : (
+        <LedgerDash />
+      )}
+      {primaryStakeUsd !== null && avax && (
+        // one line on phones too, at a tighter tracking: the chapter fits one phone screen
+        <span className="font-mono text-[11px] tracking-[0.06em] text-zinc-600 sm:text-xs sm:tracking-[0.16em] dark:text-zinc-300">
+          <span className="whitespace-nowrap">
+            <Figure shown={avax.shown} exact={avax.exact} />
+            {supplyStakedPct !== null && <span> ·</span>}
+          </span>
+          {supplyStakedPct !== null && (
+            <>
+              {" "}
+              <span className="whitespace-nowrap">{supplyStakedPct.toFixed(1)}% OF CIRCULATING SUPPLY</span>
+            </>
+          )}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function StatsChapter({
   globeData,
   l1Count,
@@ -444,29 +550,31 @@ function StatsChapter({
   reducedMotion: boolean;
 }) {
   const staticMode = reducedMotion;
-  // DEX volume is a flow, so it ticks like the transaction counters — kept
-  // as a float so the cents visibly move with it
-  const liveDexVolume = useExtrapolatedCount(defi.dexVolume30dUsd ?? 0, MONTH_SECONDS, false);
+  // the lanes row is decided at first render: with no chains it stays out
+  // for the visit, since a row that came with a later poll would push the board down
+  const [lanesRow] = useState(() => rosterOf(globeData?.metrics?.chains ?? []).length > 0);
 
   return (
     // One panel: ledger, figures, and table are rows of the same board.
     // The whole board loads when the section snaps into view — rows cascade
     // in; nothing is gated behind further scrolling.
-    <section data-chapter="stats" className="v2-snap-section relative flex flex-col justify-center py-16 lg:min-h-[calc(100vh-3.5rem)] lg:py-0">
-      {/* reference-hero structure: arrowed eyebrow, measured headline on
-          the left, small mono caption holding the opposite corner */}
-      <div className="mx-auto mb-8 w-full max-w-7xl px-5 md:px-6">
+    <section data-chapter="stats" className="v2-snap-section relative flex flex-col justify-center pt-8 md:py-16 lg:min-h-[calc(100vh-3.5rem)] lg:py-0">
+      {/* the claim on the left, its proof on the right: the stake that
+          secures the network, the figure institutions underwrite */}
+      <div className="mx-auto mb-6 w-full max-w-7xl px-5 md:mb-10 md:px-6">
         <motion.div
-          className="flex items-center justify-between gap-10"
+          className="flex flex-col gap-5 md:gap-10 lg:flex-row lg:items-end lg:justify-between"
           initial={staticMode ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.6, ease: EASE_OUT }}
         >
           {/* staircase stack per the /solutions hero: lines step right,
-              the red period closes the set; the validator globe holds the
-              other end of the line */}
-          <h2 className="v2-display text-3xl text-zinc-900 dark:text-zinc-50 md:text-5xl xl:text-6xl">
+              the red period closes the set. The page's largest claim after
+              the hero: fluid with the width, so "TECHNOLOGY" plus the stake
+              figure fit one row from lg up, and with the height, so the
+              chapter fits one laptop screen */}
+          <h2 className="v2-display text-[clamp(2.5rem,11.5vw,3.25rem)] text-zinc-900 dark:text-zinc-50 md:text-[clamp(3.5rem,min(0.5rem_+_6vw,10vh),6.75rem)]">
             <span className="block">Technology</span>
             <span className="block" style={{ marginLeft: "0.6em" }}>
               built for
@@ -475,7 +583,11 @@ function StatsChapter({
               business<span className="text-[#E6212F]">.</span>
             </span>
           </h2>
-          <NetworkGlobe />
+          <StakeFigure
+            primaryStakeAvax={primaryStakeAvax}
+            primaryStakeUsd={primaryStakeUsd}
+            supplyStakedPct={supplyStakedPct}
+          />
         </motion.div>
       </div>
       <motion.div
@@ -485,43 +597,29 @@ function StatsChapter({
         whileInView="show"
         viewport={{ once: true, amount: 0.35 }}
       >
+        {/* the network now: every block the busiest chains make, as it lands */}
+        {lanesRow && (
+          <motion.div variants={ROW_VARIANTS}>
+            <div className="mx-auto w-full max-w-7xl px-5 py-3 md:px-6 md:pt-4">
+              <NetworkLanes
+                rows={globeData?.metrics?.chains ?? []}
+                reducedMotion={reducedMotion}
+                renderMark={(c) => <ChainMark chain={{ chainId: c.chainId, chainName: c.name, chainLogoURI: c.logo }} />}
+              />
+            </div>
+          </motion.div>
+        )}
         <motion.div variants={ROW_VARIANTS}>
           <LedgerStrip globeData={globeData} l1Count={l1Count} animateIn={!reducedMotion} />
         </motion.div>
 
-        {/* key stat: the economic security institutions underwrite. Row
-            wrappers stay full-width so the board's dividers run full-bleed;
-            content insets to the 7xl measure inside. */}
+        {/* on-chain capital. Row wrappers stay full-width so the board's
+            dividers run full-bleed; content insets to the 7xl measure. */}
         <motion.div variants={ROW_VARIANTS}>
-          <Link
-            href="/explorer/mainnet/p-chain/validators"
-            className="mx-auto flex w-full max-w-7xl flex-col justify-center gap-4 px-5 py-10 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900 lg:py-12"
-          >
-            <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-              STAKE SECURING THE NETWORK
-            </span>
-            <span className="font-mono text-4xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl md:text-6xl xl:text-8xl">
-              {primaryStakeUsd !== null
-                ? fmtUsd(primaryStakeUsd)
-                : primaryStakeAvax !== null
-                  ? `${primaryStakeAvax.toLocaleString("en-US")} AVAX`
-                  : "—"}
-            </span>
-            {primaryStakeUsd !== null && primaryStakeAvax !== null && (
-              <span className="font-mono text-xs tracking-[0.16em] text-zinc-600 dark:text-zinc-300">
-                {primaryStakeAvax.toLocaleString("en-US")} AVAX
-                {supplyStakedPct !== null && ` · ${supplyStakedPct.toFixed(1)}% OF CIRCULATING SUPPLY`}
-              </span>
-            )}
-          </Link>
-        </motion.div>
-
-        {/* on-chain capital */}
-        <motion.div variants={ROW_VARIANTS}>
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 divide-y divide-zinc-200 dark:divide-zinc-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0 lg:divide-zinc-200 dark:lg:divide-zinc-800">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-2 lg:grid-cols-3 lg:divide-x lg:divide-zinc-200 dark:lg:divide-zinc-800">
           <Link
             href="/explorer/mainnet/c-chain/defi/stablecoins"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
+            className="flex flex-col justify-between gap-1 px-5 py-3 transition-colors hover:bg-zinc-100 md:gap-1.5 md:px-6 md:py-6 dark:hover:bg-zinc-900 border-zinc-200 max-lg:col-span-2 max-lg:border-b dark:border-zinc-800"
           >
             <span className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -529,13 +627,11 @@ function StatsChapter({
               </span>
               <TokenStack srcs={["/logos/tokens/usdc.png", "/logos/tokens/usdt.png", "/logos/tokens/eurc.png", "/logos/tokens/jpyc.png", "/logos/tokens/xsgd.png"]} />
             </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem]">
-              {defi.stablesUsd !== null ? fmtUsd(defi.stablesUsd) : "—"}
-            </span>
+            <UsdFigure value={defi.stablesUsd} />
           </Link>
           <Link
             href="/explorer/mainnet/c-chain/defi"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
+            className="flex flex-col justify-between gap-1 px-5 py-3 transition-colors hover:bg-zinc-100 md:gap-1.5 md:px-6 md:py-6 dark:hover:bg-zinc-900 border-zinc-200 max-lg:border-r dark:border-zinc-800"
           >
             <span className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -543,13 +639,11 @@ function StatsChapter({
               </span>
               <TokenStack srcs={["/logos/tokens/aave.png", "/logos/tokens/benqi.png", "/logos/tokens/gmx.png"]} />
             </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem]">
-              {defi.tvlUsd !== null ? fmtUsd(defi.tvlUsd) : "—"}
-            </span>
+            <UsdFigure value={defi.tvlUsd} />
           </Link>
           <Link
             href="/explorer/mainnet/c-chain/defi"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
+            className="flex flex-col justify-between gap-1 px-5 py-3 transition-colors hover:bg-zinc-100 md:gap-1.5 md:px-6 md:py-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -557,23 +651,24 @@ function StatsChapter({
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
                 </span>
-                DEX VOLUME · 30D
+                <span>
+                  DEX VOLUME<span className="max-sm:hidden"> · </span>
+                  <span className="max-sm:block">30D</span>
+                </span>
               </span>
               <TokenStack srcs={["/logos/tokens/uniswap.png", "/logos/tokens/lfj.png", "/logos/tokens/pharaoh.png"]} />
             </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 md:text-[1.75rem]">
-              {liveDexVolume > 0 ? fmtUsd(liveDexVolume) : "—"}
-            </span>
+            <UsdFigure value={defi.dexVolume30dUsd} />
           </Link>
         </div>
         </motion.div>
 
         {/* board footer: the full instrument lives at /stats */}
         <motion.div variants={ROW_VARIANTS}>
-          <Link
+          <HoverPrefetchLink
             href="/explorer"
             onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore the network", href: "/explorer" })}
-            className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-5"
+            className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-4 md:py-5"
           >
             <span
               aria-hidden
@@ -585,7 +680,7 @@ function StatsChapter({
               </span>
               <ArrowRight className="h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
             </span>
-          </Link>
+          </HoverPrefetchLink>
         </motion.div>
       </motion.div>
     </section>
@@ -649,7 +744,7 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
               25% and 75% of the board, so the wire spans the middle half. */}
           <div
             aria-hidden
-            className="pointer-events-none absolute left-[calc(25%+28px)] right-[calc(25%+28px)] top-[68px] hidden lg:block"
+            className="pointer-events-none absolute left-[calc(25%+32px)] right-[calc(25%+32px)] top-[72px] hidden lg:block"
           >
             <div className="h-px w-full bg-zinc-300 dark:bg-zinc-700" />
             <span className="v2-wire-dot absolute -top-[3px] h-[7px] w-[7px] rounded-full bg-[#E6212F]" />
@@ -669,12 +764,9 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
             >
               {/* the known chain wears the mark; yours is still to be drawn */}
               {offering.mark === "avax" ? (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E6212F]">
-                  {/* the mark's paths carry hardcoded red fills; force them white on the disc */}
-                  <AvalancheLogo className="size-6 [&_path]:fill-white" />
-                </span>
+                <AvaxCoin />
               ) : (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-400 dark:border-zinc-500">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-400 dark:border-zinc-500">
                   <span className="font-mono text-base text-zinc-500 dark:text-zinc-400">?</span>
                 </span>
               )}
@@ -696,19 +788,20 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
               <div className="mt-auto flex flex-col items-center gap-5 pt-9 sm:flex-row sm:gap-7">
                 <BrandButton
                   href={offering.cta.href}
+                  prefetchOnIntent
                   onClick={() => track("home_cta_clicked", { section: "offering", path: offering.eyebrow, label: offering.cta.text, href: offering.cta.href })}
                   className="w-full sm:w-auto"
                 >
                   {offering.cta.text}
                 </BrandButton>
-                <Link
+                <HoverPrefetchLink
                   href={offering.secondary.href}
                   onClick={() => track("home_cta_clicked", { section: "offering", path: offering.eyebrow, label: offering.secondary.text, href: offering.secondary.href })}
                   className="group inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"
                 >
                   {offering.secondary.text}
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                </HoverPrefetchLink>
               </div>
             </div>
           ))}
@@ -974,14 +1067,14 @@ function LiveChainsChapter({
             ALL CHAINS
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <Link
+          <HoverPrefetchLink
             href="/explorer"
             onClick={() => track("home_cta_clicked", { section: "live-chains", label: "Explorer", href: "/explorer" })}
             className="group inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"
           >
             EXPLORER
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          </HoverPrefetchLink>
         </motion.div>
       </div>
     </section>
@@ -989,7 +1082,7 @@ function LiveChainsChapter({
 }
 
 /* ------------------------------------------------------------------ */
-/* Chapter 6 — pinned assembly of a sovereign L1                       */
+/* Chapter 6: playbooks, one L1 in three access modes                  */
 /* ------------------------------------------------------------------ */
 
 const PLAYBOOKS = [
@@ -1011,269 +1104,6 @@ const PLAYBOOKS = [
 ] as const;
 
 type PlaybookKey = (typeof PLAYBOOKS)[number]["key"];
-
-function ArchitectureDiagram({ mode }: { mode: PlaybookKey }) {
-  const SIZE = 480;
-  const CX = SIZE / 2;
-  const CY = SIZE / 2;
-  const RING = 118;
-  const BOUNDARY = 172;
-  const OUTER = 216;
-
-  const ring = Array.from({ length: 8 }, (_, i) => {
-    const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
-    return { x: CX + RING * Math.cos(a), y: CY + RING * Math.sin(a) };
-  });
-  const outer = Array.from({ length: 4 }, (_, i) => {
-    const a = ((i + 0.5) / 4) * Math.PI * 2 - Math.PI / 2;
-    return {
-      a,
-      x: CX + OUTER * Math.cos(a),
-      y: CY + OUTER * Math.sin(a),
-      bx: CX + (BOUNDARY + 2) * Math.cos(a),
-      by: CY + (BOUNDARY + 2) * Math.sin(a),
-      rx: CX + (RING + 14) * Math.cos(a),
-      ry: CY + (RING + 14) * Math.sin(a),
-    };
-  });
-
-  const showExternal = mode !== "private";
-  const filled = mode !== "public";
-
-  return (
-    // cropped to the drawing's true extent (actors sit at r=216+4 from
-    // center 240) so the instrument renders at full weight, no dead margin
-    <svg
-      viewBox="14 14 452 452"
-      className="w-full max-w-[540px] select-none"
-      role="img"
-      aria-label={`${mode} L1 architecture`}
-    >
-      {/* external actors: joiners (public) or gated users (permissioned) */}
-      <g
-        className="transition-opacity duration-500"
-        style={{ opacity: showExternal ? 1 : 0 }}
-      >
-        {outer.map((pt, i) => (
-          <g key={i}>
-            <line
-              x1={pt.x}
-              y1={pt.y}
-              x2={mode === "permissioned" ? pt.bx : pt.rx}
-              y2={mode === "permissioned" ? pt.by : pt.ry}
-              strokeDasharray="2 5"
-              strokeWidth={1}
-              className="stroke-zinc-400 transition-all duration-500 dark:stroke-zinc-500"
-            />
-            <circle cx={pt.x} cy={pt.y} r={4} className="fill-zinc-400 dark:fill-zinc-500" />
-          </g>
-        ))}
-      </g>
-
-      {/* Mode choreography. Drawn BEFORE the boundary, ring, and core so the
-          white core disc occludes spokes and arriving dots exactly the way
-          it occludes the resident validators' spokes — nothing ever draws
-          over the instrument's structure. */}
-
-      {/* PUBLIC — an open set: anyone transacts, validators rotate in and
-          out. Loop periods are deliberately incommensurate so the traffic
-          never visibly falls into a pattern (no client randomness allowed —
-          the SVG must hydrate identically on server and client). */}
-      <g className="transition-opacity duration-500" style={{ opacity: mode === "public" ? 1 : 0 }}>
-        {/* transactions stream in from all four open participants */}
-        {[
-          { path: "M392.74,87.26 L261.21,218.79", dur: "2.2s", begin: "0s" },
-          { path: "M87.26,392.74 L218.79,261.21", dur: "2.9s", begin: "0.9s" },
-          { path: "M392.74,392.74 L261.21,261.21", dur: "3.7s", begin: "1.7s" },
-          { path: "M87.26,87.26 L218.79,218.79", dur: "3.1s", begin: "2.3s" },
-        ].map((tx) => (
-          <circle key={tx.begin} r={3.5} fill="#E6212F" opacity={0}>
-            <animateMotion path={tx.path} dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.12;0.85;1" dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-          </circle>
-        ))}
-        {/* a validator arrives, docks between two ring slots, and gets
-            wired into consensus — its spoke draws in while it's seated */}
-        <line x1={240} y1={240} x2={285.16} y2={130.98} strokeWidth={1} opacity={0} className="stroke-zinc-300 dark:stroke-zinc-700">
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.35;0.42;0.75;0.85;1" dur="9s" repeatCount="indefinite" />
-        </line>
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.08;0.35;0.75;0.85;1" dur="9s" repeatCount="indefinite" />
-          <animateMotion path="M318.45,50.6 L285.16,130.98" calcMode="linear" keyPoints="0;0;1;1" keyTimes="0;0.08;0.35;1" dur="9s" repeatCount="indefinite" />
-          <circle r={9} strokeWidth={1.25} className="fill-white stroke-zinc-500 dark:fill-zinc-950 dark:stroke-zinc-400" />
-          <circle r={2.5} className="fill-zinc-500 dark:fill-zinc-400" />
-        </g>
-        {/* ...while another is unwired and leaves the set */}
-        <line x1={240} y1={240} x2={130.98} y2={285.16} strokeWidth={1} opacity={0} className="stroke-zinc-300 dark:stroke-zinc-700">
-          <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.4;0.47;1" dur="11s" begin="4s" repeatCount="indefinite" />
-        </line>
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.05;0.45;0.72;0.8;1" dur="11s" begin="4s" repeatCount="indefinite" />
-          <animateMotion path="M130.98,285.16 L50.6,318.45" calcMode="linear" keyPoints="0;0;1;1" keyTimes="0;0.45;0.75;1" dur="11s" begin="4s" repeatCount="indefinite" />
-          <circle r={9} strokeWidth={1.25} className="fill-white stroke-zinc-500 dark:fill-zinc-950 dark:stroke-zinc-400" />
-          <circle r={2.5} className="fill-zinc-500 dark:fill-zinc-400" />
-        </g>
-      </g>
-
-      {/* PERMISSIONED — KYC at the gate. Each participant pauses at the
-          boundary while its credential card is reviewed: photo, name lines,
-          signature. One card takes the red approval stamp — its holder
-          turns red (cleared to transact) and continues to the core. The
-          other card is stamped ✕ and its holder walks back out. */}
-      <g className="transition-opacity duration-500" style={{ opacity: mode === "permissioned" ? 1 : 0 }}>
-        <g>
-          {/* boundary sits at 22.6% of this path's length, so the dot
-              holds there while its card is checked */}
-          <animateMotion
-            path="M392.74,87.26 L363.04,116.96 L261.21,218.79"
-            calcMode="linear"
-            keyPoints="0;0.226;0.226;1;1"
-            keyTimes="0;0.25;0.5;0.8;1"
-            dur="6s"
-            repeatCount="indefinite"
-          />
-          <circle r={4} opacity={0}>
-            <animate attributeName="fill" values="#a1a1aa;#a1a1aa;#E6212F;#E6212F" keyTimes="0;0.5;0.55;1" dur="6s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.06;0.5;0.8;0.86;1" dur="6s" repeatCount="indefinite" />
-          </circle>
-        </g>
-        {/* the credential card, reviewed while its holder waits */}
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.26;0.3;0.62;0.7;1" dur="6s" repeatCount="indefinite" />
-          <rect x={374} y={82} width={32} height={22} rx={2} strokeWidth={1.25} className="fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100" />
-          <circle cx={381.5} cy={90} r={3} className="fill-zinc-400 dark:fill-zinc-500" />
-          <line x1={388} y1={88} x2={401} y2={88} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={388} y1={92} x2={398} y2={92} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={379} y1={99} x2={401} y2={99} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-        </g>
-        <path d="M396,100 l4,4 l7,-8" fill="none" strokeWidth={2} stroke="#E6212F" opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.38;0.43;0.62;0.7;1" dur="6s" repeatCount="indefinite" />
-        </path>
-        {/* the refused holder: same review, failing stamp, turned away */}
-        <g>
-          <animateMotion
-            path="M87.26,392.74 L116.96,363.04"
-            calcMode="linear"
-            keyPoints="0;0;1;1;0;0"
-            keyTimes="0;0.1;0.32;0.62;0.88;1"
-            dur="7s"
-            begin="1.5s"
-            repeatCount="indefinite"
-          />
-          <circle r={4} opacity={0} className="fill-zinc-400 dark:fill-zinc-500">
-            <animate attributeName="opacity" values="0;1;1;1;0;0" keyTimes="0;0.14;0.62;0.85;0.92;1" dur="7s" begin="1.5s" repeatCount="indefinite" />
-          </circle>
-        </g>
-        <g opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.33;0.37;0.64;0.7;1" dur="7s" begin="1.5s" repeatCount="indefinite" />
-          <rect x={72} y={352} width={32} height={22} rx={2} strokeWidth={1.25} className="fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100" />
-          <circle cx={79.5} cy={360} r={3} className="fill-zinc-400 dark:fill-zinc-500" />
-          <line x1={86} y1={358} x2={99} y2={358} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={86} y1={362} x2={96} y2={362} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-          <line x1={77} y1={369} x2={99} y2={369} strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700" />
-        </g>
-        <g className="stroke-zinc-500 dark:stroke-zinc-400" opacity={0}>
-          <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.45;0.5;0.64;0.7;1" dur="7s" begin="1.5s" repeatCount="indefinite" />
-          <line x1={97} y1={366} x2={105} y2={374} strokeWidth={2} />
-          <line x1={105} y1={366} x2={97} y2={374} strokeWidth={2} />
-        </g>
-      </g>
-
-      {/* PRIVATE — the network is fully alive, but only inside the seal:
-          transactions run validator-to-validator on chords that never cross
-          the boundary. Outside, nothing moves — that's the point. */}
-      <g className="transition-opacity duration-500" style={{ opacity: mode === "private" ? 1 : 0 }}>
-        {[
-          { path: "M156.56,156.56 L358,240", dur: "2.6s", begin: "0s" },
-          { path: "M240,358 L323.44,156.56", dur: "3.3s", begin: "1.1s" },
-          { path: "M122,240 L323.44,323.44", dur: "4.1s", begin: "2.1s" },
-        ].map((tx) => (
-          <circle key={tx.begin} r={3} fill="#E6212F" opacity={0}>
-            <animateMotion path={tx.path} dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.12;0.85;1" dur={tx.dur} begin={tx.begin} repeatCount="indefinite" />
-          </circle>
-        ))}
-      </g>
-
-      {/* boundary: absent → dashed → sealed */}
-      <circle
-        cx={CX}
-        cy={CY}
-        r={BOUNDARY}
-        fill="none"
-        strokeWidth={1.5}
-        strokeDasharray={mode === "permissioned" ? "5 7" : "none"}
-        className="stroke-zinc-900 transition-all duration-500 dark:stroke-zinc-100"
-        style={{ opacity: mode === "public" ? 0 : 1 }}
-      />
-      <circle
-        cx={CX}
-        cy={CY}
-        r={BOUNDARY + 7}
-        fill="none"
-        strokeWidth={1}
-        className="stroke-zinc-900 transition-opacity duration-500 dark:stroke-zinc-100"
-        style={{ opacity: mode === "private" ? 0.5 : 0 }}
-      />
-
-      {/* validator ring */}
-      {ring.map((pt, i) => (
-        <g key={i}>
-          <line
-            x1={CX}
-            y1={CY}
-            x2={pt.x}
-            y2={pt.y}
-            strokeWidth={1}
-            className="stroke-zinc-300 dark:stroke-zinc-700"
-          />
-          <circle
-            cx={pt.x}
-            cy={pt.y}
-            r={9}
-            strokeWidth={1.25}
-            className={`transition-all duration-500 ${
-              filled
-                ? "fill-zinc-700 stroke-zinc-700 dark:fill-zinc-300 dark:stroke-zinc-300"
-                : "fill-white stroke-zinc-500 dark:fill-zinc-950 dark:stroke-zinc-400"
-            }`}
-          />
-          <circle
-            cx={pt.x}
-            cy={pt.y}
-            r={2.5}
-            className={`transition-all duration-500 ${
-              filled ? "fill-white dark:fill-zinc-950" : "fill-zinc-500 dark:fill-zinc-400"
-            }`}
-          />
-        </g>
-      ))}
-
-      {/* core */}
-      <circle
-        cx={CX}
-        cy={CY}
-        r={30}
-        strokeWidth={1.5}
-        className="fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100"
-      />
-      <circle cx={CX} cy={CY} r={5} fill="#E6212F">
-        <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
-      </circle>
-
-      <text
-        x={CX}
-        y={CY + 52}
-        textAnchor="middle"
-        fontSize={10}
-        letterSpacing={2}
-        className="fill-zinc-500 font-mono dark:fill-zinc-400"
-      >
-        YOUR CHAIN
-      </text>
-    </svg>
-  );
-}
 
 function PlaybookSelector({
   mode,
@@ -1372,6 +1202,7 @@ function PlaybooksChapter({ reducedMotion }: { reducedMotion: boolean }) {
             <BrandButton
               variant="secondary"
               href="/console"
+              prefetchOnIntent
               onClick={() => track("home_cta_clicked", { section: "playbooks", label: "Configure your L1", href: "/console" })}
             >
               Configure your L1
@@ -1379,16 +1210,17 @@ function PlaybooksChapter({ reducedMotion }: { reducedMotion: boolean }) {
           </div>
         </div>
         <div className="hidden flex-col items-center lg:flex">
-          <ArchitectureDiagram mode={mode} />
+          <ChainDiagram mode={mode} cycle={cycle} />
         </div>
 
         {/* sub-lg stage: same instrument, compact, below the selector so the
             rotating list visibly drives something */}
         <div className="flex flex-col items-center gap-4 lg:hidden">
-          <ArchitectureDiagram mode={mode} />
+          <ChainDiagram mode={mode} cycle={cycle} className="-mx-5 w-[calc(100%+2.5rem)]" />
           <BrandButton
             variant="secondary"
             href="/console"
+            prefetchOnIntent
             onClick={() => track("home_cta_clicked", { section: "playbooks", label: "Configure your L1", href: "/console" })}
             className="mt-4 w-full sm:w-auto"
           >
@@ -1428,7 +1260,7 @@ function FinaleRow({
   description: string;
 }) {
   return (
-    <Link
+    <HoverPrefetchLink
       href={href}
       onClick={() => track("home_cta_clicked", { section: "finale", label: title, href })}
       className="group grid grid-cols-[1fr_auto] items-center gap-6 px-5 py-7 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
@@ -1442,7 +1274,7 @@ function FinaleRow({
         </span>
       </span>
       <ArrowRight className="h-5 w-5 text-zinc-400 transition-transform group-hover:translate-x-1 group-hover:text-zinc-900 dark:group-hover:text-zinc-50" />
-    </Link>
+    </HoverPrefetchLink>
   );
 }
 
@@ -1461,7 +1293,8 @@ function FinaleChapter({ reducedMotion }: { reducedMotion: boolean }) {
           <span className="text-[#E6212F] motion-safe:animate-[pulse_3s_ease-in-out_infinite]">.</span>
         </h2>
 
-        <div className="mt-14 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+        {/* a solid panel: the rows read on paper, not over the sheet's lattice */}
+        <div className="mt-14 divide-y divide-zinc-200 border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
           <FinaleRow
             href="/docs/primary-network"
             title="Build on the C-Chain"
@@ -1562,12 +1395,7 @@ export default function StoryHome({
   }, []);
 
   return (
-    <motion.main
-      className="relative bg-white dark:bg-zinc-950"
-      initial={reducedMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-    >
+    <main className="relative bg-white dark:bg-zinc-950">
       <SheetBackdrop />
       <div className="relative">
         <ChapterOne />
@@ -1578,6 +1406,6 @@ export default function StoryHome({
         <LiveChainsChapter globeData={liveGlobeData} kiteTxCount={kiteTxCount} reducedMotion={!!reducedMotion} />
         <FinaleChapter reducedMotion={!!reducedMotion} />
       </div>
-    </motion.main>
+    </main>
   );
 }

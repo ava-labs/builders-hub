@@ -42,8 +42,6 @@ export function ChainGenesisPageClient({ network }: { network: string }) {
       chainSlug={chain.chainSlug}
       themeColor={chain.themeColor}
       chainLogoURI={chain.chainLogoURI}
-      website={chain.website}
-      socials={chain.socials}
       rpcUrl={chain.rpcUrl}
     >
       <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-10 px-5 pb-16 pt-2 md:px-6">

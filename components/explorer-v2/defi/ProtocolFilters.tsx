@@ -15,11 +15,11 @@ import { groupTone, usd } from "./palette";
 
 type Counts = Record<FacetKey, Record<string, { n: number; tvl: number }>>;
 
-const CHIP =
+export const CHIP =
   "inline-flex items-center gap-1.5 border px-2 py-1 font-mono text-[10.5px] tabular-nums transition-colors disabled:cursor-default disabled:opacity-40";
-const OFF =
+export const OFF =
   "border-zinc-200 bg-white/80 text-zinc-600 enabled:hover:border-zinc-400 enabled:hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:enabled:hover:border-zinc-500 dark:enabled:hover:text-zinc-100";
-const ON = "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900";
+export const ON = "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900";
 
 export function ProtocolFilters({
   query,

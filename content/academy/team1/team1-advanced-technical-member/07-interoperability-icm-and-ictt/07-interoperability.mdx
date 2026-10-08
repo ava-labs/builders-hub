@@ -30,7 +30,7 @@ The `WarpMessenger` precompile lives at:
 0x0200000000000000000000000000000000000005
 ```
 
-It exposes three functions through the `IWarpMessenger` interface:
+It exposes four functions through the `IWarpMessenger` interface. The three that most applications use are:
 
 ```solidity
 // Emit a cross-chain message. Returns the message ID (sha256 hash).
@@ -46,11 +46,11 @@ function getBlockchainID() external view returns (bytes32 blockchainID);
 
 When a contract calls `sendWarpMessage`, the precompile emits a `SendWarpMessage` event with the unsigned message. Validators then individually sign this message with their BLS keys. A relayer collects enough signatures and submits the signed message to the destination chain.
 
-On the destination side, the signed message must be included as a **predicate** in the receiving transaction’s access list before block processing. The EVM verifies the BLS signature at block execution time. After that, any contract can call `getVerifiedWarpMessage` to read the verified contents. Because the predicate is part of the block itself, every node reaches the same conclusion and block re-execution remains deterministic.
+On the destination side, the signed message must be included as a **predicate** in the receiving transaction’s access list before block processing. The node verifies the BLS signature when it builds or verifies the block, and it records the result in the block header. During execution, a contract can call `getVerifiedWarpMessage` to read the verified contents. Because the predicate is part of the block itself, every node reaches the same conclusion and block re-execution remains deterministic.
 
 ## Why Messages Can Only Be Sent Between Avalanche L1s
 
-The WarpMessenger precompile is embedded in `subnet-evm`, the EVM implementation used by all Avalanche L1s including the C-Chain. It works by looking up source chain validator sets from the **P-Chain**, which tracks all registered L1s and their validators.
+The C-Chain does not run Subnet-EVM: it ran Coreth until the Helicon upgrade and now runs the C-Chain VM (`vms/saevm/cchain` in AvalancheGo). Two EVMs include the WarpMessenger precompile: Subnet-EVM, the EVM for L1s, and the C-Chain VM. In both, the WarpMessenger precompile has the same interface and the same address. It works by looking up source chain validator sets from the **P-Chain**, which tracks all registered L1s and their validators.
 
 This means cross-chain messages work natively between any two Avalanche L1s because they all share the P-Chain as the source of validator set truth. External blockchains like Ethereum mainnet do not run `subnet-evm`, do not have the WarpMessenger precompile, and are not registered on the Avalanche P-Chain, so they cannot participate in AWM natively.
 
@@ -222,7 +222,7 @@ The security of a bridge depends entirely on how it verifies that events actuall
 ## Key Takeaways
 
 - Avalanche interoperability has three layers: AWM (cryptographic attestation via BLS), ICM/Teleporter (smart contract messaging layer), and ICTT (token transfer application).
-- The WarpMessenger precompile at `0x0200000000000000000000000000000000000005` handles sending and receiving raw Warp messages. It is available on all Avalanche L1s running `subnet-evm`, including the C-Chain.
+- The WarpMessenger precompile at `0x0200000000000000000000000000000000000005` handles sending and receiving raw Warp messages. It is available on the C-Chain and on L1s that run Subnet-EVM with `warpConfig` enabled.
 - Messages can only be sent between Avalanche L1s because the precompile relies on the P-Chain to track validator sets. The P-Chain is what makes this possible.
 - BLS signature aggregation compresses many validator signatures into one 96-byte proof, making cross-chain message verification affordable on-chain.
 - Trust in ICM comes from the source chain’s validators, not from relayers. Relayers are mechanical delivery agents; validators are the security backbone.

@@ -1,10 +1,11 @@
 ---
 title: Transaction Fees
+description: "How the P-Chain, X-Chain and C-Chain calculate and burn transaction fees."
 ---
 
 In order to prevent spam, transactions on Avalanche require the payment of a transaction fee. The fee is paid in AVAX. **The transaction fee is burned (destroyed forever).**
 
-When you issue a transaction through Avalanche's API, the transaction fee is automatically deducted from one of the addresses you control. 
+The wallet or SDK that builds a transaction pays its fee from inputs or an account that you control. AvalancheGo nodes do not build or sign transactions for you: v1.12.2 removed the keystore API. 
 
 The [avalanchego wallet](https://github.com/ava-labs/avalanchego/blob/master/wallet/chain) contains example code written in golang for building and signing transactions on all three mainnet chains. 
 
@@ -40,7 +41,7 @@ Transaction fees for non-atomic transactions are based on Ethereum's EIP-1559 st
 
 The fee cap specifies the maximum price the transaction is willing to pay per unit of gas. The tip cap (also called the priority fee) specifies the maximum amount above the base fee that the transaction is willing to pay per unit of gas. Therefore, the effective gas price paid by a transaction will be `min(gasFeeCap, baseFee + gasTipCap)`. Unlike in Ethereum, where the priority fee is paid to the miner that produces the block, in Avalanche both the base fee and the priority fee are burned. For legacy transactions, which only specify a single gas price, the gas price serves as both the gas fee cap and the gas tip cap.
 
-Use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) API method to estimate the base fee for the next block. If more blocks are produced in between the time that you construct your transaction and it is included in a block, the base fee could be different from the base fee estimated by the API call, so it is important to treat this value as an estimate.
+Use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) API method to get an upper bound on the base fee for the next block. Since the Helicon upgrade, this method returns the worst-case base fee, not a point estimate. The base fee that the next block pays at execution is equal to or lower than this bound. If more blocks are produced before your transaction is included, the bound can change, so set `gasFeeCap` with a margin above it.
 
 Next, use [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API call to estimate the priority fee needed to be included in a block. This API call will look at the most recent blocks and see what tips have been paid by recent transactions in order to be included in the block.
 
@@ -50,7 +51,7 @@ Based off of this information, you can specify the `gasFeeCap` and `gasTipCap` t
 
 #### Base Fee
 
-Since the Fortuna upgrade activated [ACP-176](/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates) on April 8, 2025, the minimum base fee on the C-Chain is 1 wei, and there is no upper bound. Under normal load the base fee sits well below 1 nAVAX. You can use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
+Since the Helicon upgrade activated [ACP-283](/docs/acps/283-dynamic-minimum-gas-price) on Mainnet on September 22, 2026, validators vote on the minimum base fee of the C-Chain. There is no upper bound. In late September 2026, Mainnet validators raised the minimum from 1 wei to 5 nAVAX. On October 3, 2026, the Mainnet base fee was at or near this minimum. The value can change by vote, so read the current base fee from the RPC. You can use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
 
 The minimum base fee has changed across network upgrades:
 
@@ -58,15 +59,16 @@ The minimum base fee has changed across network upgrades:
 | --- | --- | --- |
 | 25 nAVAX | September 22, 2021 to December 16, 2024 | Apricot Phase 4 |
 | 1 nAVAX | December 16, 2024 to April 8, 2025 | Etna upgrade ([ACP-125](/docs/acps/125-basefee-reduction)) |
-| 1 wei | since April 8, 2025 | Fortuna upgrade ([ACP-176](/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates)) |
+| 1 wei | April 8, 2025 to September 22, 2026 | Fortuna upgrade ([ACP-176](/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates)) |
+| Voted by validators (5 nAVAX on Mainnet since late September 2026) | since September 22, 2026 | Helicon upgrade ([ACP-283](/docs/acps/283-dynamic-minimum-gas-price)) |
 
-With the Helicon upgrade (active on Fuji since July 28, 2026 at 15:00 UTC, scheduled on Mainnet for September 22, 2026 at 15:00 UTC), [ACP-283](/docs/acps/283-dynamic-minimum-gas-price) makes the minimum gas price a dynamic parameter driven by stake-weighted validator preference. It starts at 1 wei at activation and moves only if validators prefer a different floor.
+With the Helicon upgrade (active on Fuji since July 28, 2026 at 15:00 UTC and on Mainnet since September 22, 2026 at 15:00 UTC), [ACP-283](/docs/acps/283-dynamic-minimum-gas-price) makes the minimum gas price a dynamic parameter driven by stake-weighted validator preference. It starts at 1 wei at activation and moves only if validators prefer a different floor.
 
 <Callout type="info" title="Helicon also changes how transactions pay fees (ACP-194)">
 [Continuous Execution](/docs/acps/194-continuous-execution) decouples consensus from execution, which changes fee handling on networks where Helicon is active:
 
 - The `baseFeePerGas` field in block headers becomes a worst-case bound on the gas price at the start of the block's execution, not the realized price.
-- To be included, a transaction's sender must be able to cover the worst-case cost at inclusion time: the gas limit times the worst-case gas price, plus any transferred value.
+- To be included, a transaction must set `maxFeePerGas` at or above the block's worst-case base fee. The sender's balance, less the worst-case cost of its earlier transactions that are not executed yet, must cover the gas limit times `maxFeePerGas`, plus any transferred value.
 - Gas charged becomes `max(gasUsed, gasLimit / 2)`, so setting a gas limit more than twice the actual usage costs real money.
 
 See the [Helicon Upgrade page](/docs/primary-network/helicon-upgrade) for the full list of changes.

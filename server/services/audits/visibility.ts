@@ -58,7 +58,9 @@ export interface OwnerRequestSummary {
 export interface OwnerQuote {
   id: string;
   price_usd: number;
-  duration_weeks: number;
+  /** In duration_unit, as the firm typed it: "weeks" | "days". */
+  duration: number;
+  duration_unit: string;
   earliest_start: Date;
   message: string;
   /** The firm's own proposal or SOW, if it attached one. */
@@ -129,7 +131,8 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
   const quotes: OwnerQuote[] = row.quotes.map((quote) => ({
     id: quote.id,
     price_usd: quote.price_usd,
-    duration_weeks: quote.duration_weeks,
+    duration: quote.duration,
+    duration_unit: quote.duration_unit,
     earliest_start: quote.earliest_start,
     message: quote.message,
     deal_doc_url: quote.deal_doc_url,
@@ -346,10 +349,11 @@ export interface AuditorContacts {
 
 export async function getRequestForAuditor(auditorId: string, requestId: string) {
   // The fan-out delivery row IS the invitation: without it the request does
-  // not exist for this firm (routes 404).
+  // not exist for this firm (routes 404). The firm's active flag rides along
+  // for the Telegram share below.
   const delivery = await prisma.auditFanoutDelivery.findUnique({
     where: { request_id_auditor_id: { request_id: requestId, auditor_id: auditorId } },
-    select: { request_id: true },
+    select: { auditor: { select: { active: true } } },
   });
   if (!delivery) return null;
 
@@ -387,6 +391,21 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
     subsidy = decision?.state === "approved" ? decision : null;
   }
 
+  // The Telegram share: if the project opted in at submit, every active firm
+  // the request reached sees its Telegram handle, and nothing else of its
+  // contact, while the stored status is collecting (deciding and expired
+  // included). Acceptance, withdrawal or deactivation take it away. Read
+  // apart from AUDITOR_SAFE_REQUEST_SELECT, which stays contact-free.
+  let shared_handle: string | null = null;
+  if (request.status === "collecting" && delivery.auditor.active) {
+    const share = await prisma.auditRequest.findUnique({
+      where: { id: requestId },
+      select: { contact_handle: true, contact_handle_shared_at: true },
+    });
+    const handle = share?.contact_handle?.trim();
+    shared_handle = share?.contact_handle_shared_at && handle ? handle : null;
+  }
+
   return {
     ...request,
     // The store URL never leaves the server: a blob URL is a bearer token and
@@ -398,7 +417,8 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
           id: own_quote.id,
           status: own_quote.status,
           price_usd: own_quote.price_usd,
-          duration_weeks: own_quote.duration_weeks,
+          duration: own_quote.duration,
+          duration_unit: own_quote.duration_unit,
           earliest_start: own_quote.earliest_start,
           message: own_quote.message,
           deal_doc_url: own_quote.deal_doc_url,
@@ -406,6 +426,7 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
         }
       : null,
     contacts,
+    shared_handle,
     subsidy,
     window_open: isQuoteWindowOpen(request),
   };
@@ -718,7 +739,8 @@ export async function getAdminRequestDetail(requestId: string) {
     quotes: row.quotes.map((quote) => ({
       id: quote.id,
       price_usd: quote.price_usd,
-      duration_weeks: quote.duration_weeks,
+      duration: quote.duration,
+      duration_unit: quote.duration_unit,
       earliest_start: quote.earliest_start,
       message: quote.message,
       // Admins decide subsidies against these quotes; the proposal doc is
