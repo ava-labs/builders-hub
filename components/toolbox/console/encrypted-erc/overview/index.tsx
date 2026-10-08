@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
@@ -10,34 +9,21 @@ import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId'
 import { loadIdentity } from '@/lib/eerc/identity';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { listKnownChains } from '@/lib/eerc/deployments';
-import { boardContainer, boardItem } from '@/components/console/motion';
-import { EERCKeyframes } from '../shared/EERCKeyframes';
+import { Rise } from '@/components/explorer-v2/ui';
+import { EERCStepNav } from '../shared/EERCStepNav';
 import { HeroCard } from './HeroCard';
 import { EncryptedBalanceCard } from './EncryptedBalanceCard';
 import { CompareCard } from './CompareCard';
 import { RecentActivityCard } from './RecentActivityCard';
 
 /**
- * Encrypted-ERC overview hub.
- *
- * The hero now reads as a small dashboard in its own right: a status
- * row across the top (network · identity · auditor) sits above the
- * title, then the journey stepper sits below the CTAs. Below the hero,
- * an `EncryptedBalanceCard` shows the user's actual on-chain encrypted
- * balance (decrypted client-side via the BJJ identity) next to a tx
- * activity feed; the public-vs-encrypted explainer pins the bottom for
- * first-time visitors.
- *
- * The previous Network card was retired — its information (chain name,
- * deployed modes, token symbol) was already present in the hero status
- * row and the new balance card. Keeping it on the hub would have been
- * duplicate, dashboard-quality real-estate spent on text the user had
- * just read.
+ * Encrypted-ERC overview hub: the tool tabs, a headline with the next action
+ * and on-chain status, the journey track, then the user's encrypted balance
+ * next to their recent activity, and the public-vs-encrypted explainer.
  *
  * Data wiring stays here because it spans every card: address → hero,
- * registration → status row, balance → encrypted-balance card +
- * stepper "deposit" tick, deployment & auditor → status row + balance
- * card metadata.
+ * registration → status strip, balance → balance card + journey "deposit"
+ * tick, deployment & auditor → status strip.
  */
 function Overview() {
   const { address } = useAccount();
@@ -55,14 +41,13 @@ function Overview() {
   const balance = useEERCBalance(balanceDeployment, balanceMode, balanceToken);
 
   // `useEERCRegistration` reads `Registrar.getUserPublicKey` so the
-  // progress strip only ticks "register" once the on-chain pubkey is
-  // set — not when the user has merely derived a key locally.
+  // journey only ticks "register" once the on-chain pubkey is set — not
+  // when the user has merely derived a key locally.
   const reg = useEERCRegistration(deployment);
   const isRegistered = reg.status === 'registered';
 
-  // Auditor address powers the hero status row. `refresh` is wrapped
-  // in `useCallback` inside the hook with `[publicClient, deployment]`
-  // as its deps, so including it here is stable.
+  // `refresh` is wrapped in `useCallback` inside the hook with
+  // `[publicClient, deployment]` as its deps, so including it here is stable.
   const auditor = useEERCAuditorAndTokenId(balanceDeployment, balanceToken?.address);
   const auditorRefresh = auditor.refresh;
   useEffect(() => {
@@ -70,8 +55,8 @@ function Overview() {
   }, [balanceDeployment, auditorRefresh]);
 
   // `hasIdentity` reflects the localStorage cache, used purely for the
-  // hero "BJJ cached" hint. Re-resolved whenever the registration hook
-  // reports a new identity in case the user just registered.
+  // "key cached" hint. Re-resolved whenever the registration hook reports
+  // a new identity in case the user just registered.
   const [hasIdentity, setHasIdentity] = useState(false);
   useEffect(() => {
     if (!address || !deployment) {
@@ -90,20 +75,17 @@ function Overview() {
     return set;
   }, [address, isRegistered, balance.decryptedCents]);
 
-  // Resolve the chain name for the hero status pill. Pulls from the
-  // wallet store first, then falls back to the canonical Fuji entry.
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const known = listKnownChains();
   const chainEntry = known.find((k) => k.chainId === walletChainId && k.modes.length > 0) ?? null;
   const isOnConnectedChain = Boolean(chainEntry);
 
   return (
-    <div className="relative -m-4 md:-m-8 p-4 md:p-8">
-      <EERCKeyframes />
+    <div className="mx-auto w-full max-w-6xl pb-16">
+      <EERCStepNav />
 
-      <motion.div className="relative max-w-6xl mx-auto" variants={boardContainer} initial="hidden" animate="visible">
-        {/* Row 1 — hero hub: status row + brand + journey stepper */}
-        <motion.div className="mb-3" variants={boardItem}>
+      <div className="flex flex-col gap-8">
+        <Rise>
           <HeroCard
             address={address}
             isRegistered={isRegistered}
@@ -115,17 +97,11 @@ function Overview() {
             auditorAddress={auditor.auditorAddress}
             auditorLoading={auditor.isLoading}
           />
-        </motion.div>
+        </Rise>
 
-        {/* Row 2 — encrypted balance + recent activity. Both cards
-            use TileShell's built-in `h-full` and the grid intentionally
-            stretches them to a shared height so the row reads as a
-            balanced pair. The activity feed will pad with empty space
-            below its rows when the balance card is the taller of the
-            two. */}
-        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3" variants={boardContainer}>
+        <Rise delay={0.06} className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-5">
           <EncryptedBalanceCard
-            className="md:col-span-2"
+            className="lg:col-span-2"
             address={address}
             isRegistered={isRegistered}
             isOnConnectedChain={isOnConnectedChain}
@@ -133,14 +109,13 @@ function Overview() {
             mode={balanceMode}
             tokenSymbol={balanceToken?.symbol ?? null}
           />
-          <RecentActivityCard className="md:col-span-4" />
-        </motion.div>
+          <RecentActivityCard className="lg:col-span-3" />
+        </Rise>
 
-        {/* Row 3 — teaching aid, full width */}
-        <motion.div variants={boardItem}>
+        <Rise delay={0.12}>
           <CompareCard />
-        </motion.div>
-      </motion.div>
+        </Rise>
+      </div>
     </div>
   );
 }

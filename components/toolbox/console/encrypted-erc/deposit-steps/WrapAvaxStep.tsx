@@ -6,10 +6,12 @@ import { formatUnits, parseAbi, parseEther } from 'viem';
 import { BookOpen, Check } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
 import { RawInput } from '@/components/toolbox/components/Input';
+import { Alert } from '@/components/toolbox/components/Alert';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { EERCToolShell } from '../shared/EERCToolShell';
 import { EERCTxLink } from '../shared/EERCTxLink';
+import { Choice, ChoiceGroup, Code, HairlineGrid, Panel, Reading } from '../shared/ui';
 import { WAVAX_SOURCES } from '@/lib/eerc/contractSources';
 
 type Mode = 'wrap' | 'unwrap';
@@ -108,146 +110,100 @@ export default function WrapAvaxStep() {
   return (
     <EERCToolShell
       contracts={WAVAX_SOURCES}
-      footerLinks={[
-        { label: 'ERC-20', href: 'https://eips.ethereum.org/EIPS/eip-20', icon: <BookOpen className="w-3.5 h-3.5" /> },
-      ]}
+      showNav={false}
+      footerLinks={[{ label: 'ERC-20', href: 'https://eips.ethereum.org/EIPS/eip-20', icon: <BookOpen /> }]}
     >
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard label="AVAX (native)" value={avaxBalance === null ? '…' : formatUnits(avaxBalance, 18).slice(0, 7)} />
-        <StatCard
-          label="WAVAX (ERC20)"
-          value={wavaxBalance === null ? '…' : formatUnits(wavaxBalance, 18).slice(0, 7)}
-          done={hasWavax}
+      <HairlineGrid cols={2}>
+        <Reading
+          label="AVAX (native)"
+          value={avaxBalance === null ? '' : formatUnits(avaxBalance, 18).slice(0, 7)}
+          loading={avaxBalance === null}
+          sub="Pays gas"
         />
-      </div>
+        <Reading
+          label="WAVAX (ERC20)"
+          value={wavaxBalance === null ? '' : formatUnits(wavaxBalance, 18).slice(0, 7)}
+          loading={wavaxBalance === null}
+          sub={
+            hasWavax ? (
+              <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                <Check className="h-3 w-3" />
+                Ready to deposit
+              </span>
+            ) : (
+              'Deposit spends this'
+            )
+          }
+        />
+      </HairlineGrid>
 
-      {/* Direction toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 w-fit">
-        <ToggleChip active={mode === 'wrap'} onClick={() => setMode('wrap')}>
-          Wrap → WAVAX
-        </ToggleChip>
-        <ToggleChip active={mode === 'unwrap'} onClick={() => setMode('unwrap')}>
-          Unwrap → AVAX
-        </ToggleChip>
-      </div>
+      <ChoiceGroup label="Direction">
+        <Choice selected={mode === 'wrap'} onSelect={() => setMode('wrap')} title="Wrap" hint="AVAX → WAVAX" />
+        <Choice selected={mode === 'unwrap'} onSelect={() => setMode('unwrap')} title="Unwrap" hint="WAVAX → AVAX" />
+      </ChoiceGroup>
 
-      <div
-        className={
-          'p-4 rounded-xl border transition-colors ' +
-          (hasWavax && mode === 'wrap'
-            ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
-            : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700')
-        }
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className={
-              'shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ' +
-              (hasWavax && mode === 'wrap'
-                ? 'bg-green-500 text-white'
-                : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300')
-            }
-          >
-            {hasWavax && mode === 'wrap' ? <Check className="w-4 h-4" /> : '1'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {mode === 'wrap' ? 'Wrap AVAX → WAVAX' : 'Unwrap WAVAX → AVAX'}
-            </h3>
-            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-              {mode === 'wrap'
-                ? 'WAVAX.deposit() is payable — the contract mints you 1 WAVAX for every 1 AVAX sent. Users with WAVAX already can skip this step.'
-                : 'WAVAX.withdraw(amount) burns your WAVAX and returns the equivalent amount of native AVAX. Use this after an eERC Withdraw to get back to native AVAX.'}
-            </p>
+      <Panel label={mode === 'wrap' ? 'Wrap AVAX → WAVAX' : 'Unwrap WAVAX → AVAX'} bodyClassName="flex flex-col gap-4">
+        <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {mode === 'wrap' ? (
+            <>
+              <Code>WAVAX.deposit()</Code> is payable: you get 1 WAVAX for every 1 AVAX sent. Already hold WAVAX? Skip
+              this step.
+            </>
+          ) : (
+            <>
+              <Code>WAVAX.withdraw(amount)</Code> burns WAVAX and returns the same amount of native AVAX. Use it after
+              an Encrypted ERC withdraw.
+            </>
+          )}
+        </p>
 
-            {/* Single-row layout: input + Max + primary CTA all share `h-10`
-                so they sit on the same baseline. The previous Input wrapper
-                added a label slot + mb-6, which left the buttons visually
-                floating below the input field. */}
-            <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
-              <RawInput
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={mode === 'wrap' ? 'Amount of AVAX' : 'Amount of WAVAX'}
-                className="h-10 flex-1 rounded-md"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={setMax}
-                  className="h-10 px-3 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors whitespace-nowrap"
-                  title={mode === 'wrap' ? 'Use max AVAX (reserves 0.1 for gas)' : 'Use full WAVAX balance'}
-                >
-                  Max
-                </button>
-                <Button
-                  variant="primary"
-                  loading={busy}
-                  disabled={!canSubmit || busy}
-                  onClick={submit}
-                  className="h-10 !w-auto px-5"
-                >
-                  {mode === 'wrap' ? 'Wrap' : 'Unwrap'}
-                </Button>
-              </div>
-            </div>
-            {error && <div className="mt-2 text-[11px] text-red-600 dark:text-red-400">{error}</div>}
-            {txHash && (
-              <div className="mt-2 text-[11px]">
-                <EERCTxLink chainId={converter.chainId} txHash={txHash}>
-                  {mode === 'wrap' ? 'Wrapped' : 'Unwrapped'} — {txHash.slice(0, 10)}...
-                </EERCTxLink>
-              </div>
-            )}
-            {hasWavax && mode === 'wrap' && (
-              <div className="mt-3 text-[11px] text-zinc-500 dark:text-zinc-400">
-                You have WAVAX. Click <strong>Next</strong> to deposit.
-              </div>
-            )}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-0">
+          <RawInput
+            type="number"
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder={mode === 'wrap' ? 'Amount of AVAX' : 'Amount of WAVAX'}
+            className="h-10 flex-1 font-mono"
+          />
+          <div className="flex gap-2 sm:gap-0">
+            <button
+              type="button"
+              onClick={setMax}
+              className="h-10 whitespace-nowrap border border-zinc-200 px-3 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 sm:-ml-px dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
+              title={mode === 'wrap' ? 'Use max AVAX (keeps 0.1 for gas)' : 'Use full WAVAX balance'}
+            >
+              Max
+            </button>
+            <Button
+              variant="primary"
+              loading={busy}
+              loadingText={mode === 'wrap' ? 'Wrapping…' : 'Unwrapping…'}
+              disabled={!canSubmit || busy}
+              onClick={submit}
+              stickLeft
+              className="h-10 flex-1 px-5 sm:flex-none"
+            >
+              {mode === 'wrap' ? 'Wrap' : 'Unwrap'}
+            </Button>
           </div>
         </div>
-      </div>
+
+        {error && <Alert variant="error">{error}</Alert>}
+        {txHash && (
+          <Alert variant={busy ? 'info' : 'success'}>
+            {mode === 'wrap' ? 'Wrapped' : 'Unwrapped'}.{' '}
+            <EERCTxLink chainId={converter.chainId} txHash={txHash}>
+              {txHash.slice(0, 10)}…
+            </EERCTxLink>
+          </Alert>
+        )}
+        {hasWavax && mode === 'wrap' && (
+          <p className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+            You have WAVAX. Click <span className="text-zinc-900 dark:text-zinc-50">Next</span> to deposit.
+          </p>
+        )}
+      </Panel>
     </EERCToolShell>
-  );
-}
-
-function StatCard({ label, value, done }: { label: string; value: string; done?: boolean }) {
-  return (
-    <div
-      className={
-        done
-          ? 'rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/10 p-3'
-          : 'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 p-3'
-      }
-    >
-      <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</div>
-      <div className="font-mono text-sm mt-0.5 text-zinc-900 dark:text-zinc-100">{value}</div>
-    </div>
-  );
-}
-
-function ToggleChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        active
-          ? 'px-3 py-1.5 text-xs font-medium rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-sm transition-colors'
-          : 'px-3 py-1.5 text-xs font-medium rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors'
-      }
-    >
-      {children}
-    </button>
   );
 }

@@ -1,25 +1,13 @@
 'use client';
 
 import React, { memo, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ArrowRight, EyeOff } from 'lucide-react';
-import { boardItem } from '@/components/console/motion';
-import { TileShell } from './TileShell';
+import { cn } from '@/lib/utils';
+import { ArrowLink, EYEBROW, FRAME } from '../shared/ui';
 
 /**
- * Side-by-side comparison of a public ERC20 transfer event vs. an
- * encrypted ERC `PrivateTransfer` event.
- *
- * Now full-width on the Overview, the two payloads sit as a paired
- * column at `md+` so the matching `0xALICE → 0xBOB` reads at a glance
- * and the only contrast on the row is the amount/auditorPCT swap.
- *
- * The encrypted payload's auditorPCT placeholder is replaced with a
- * tiny rolling-hex component (`<RotatingBytes />`) so the demo feels
- * live — the bytes flip every 900ms, matching the cipher language of
- * the hero. The component is `memo`-isolated so its setInterval-driven
- * re-renders don't cascade into this card's parents.
+ * A public ERC20 transfer event next to an encrypted ERC `PrivateTransfer`
+ * event. The sender and recipient read the same in both; only the amount
+ * becomes ciphertext. The auditorPCT bytes tick so the demo reads as live.
  */
 interface CompareCardProps {
   className?: string;
@@ -27,93 +15,56 @@ interface CompareCardProps {
 
 export function CompareCard({ className }: CompareCardProps) {
   return (
-    <motion.div className={className} variants={boardItem}>
-      <TileShell className="h-full">
-        <div className="mb-4 flex items-center gap-2">
-          <EyeOff className="h-4 w-4 text-zinc-500 dark:text-zinc-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            What a block explorer sees
-          </h3>
-          <Link
-            href="/academy/encrypted-erc"
-            className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-          >
-            Deep dive
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
+    <section className={cn(FRAME, className)}>
+      <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+        <p className={EYEBROW}>What a block explorer sees</p>
+        <ArrowLink href="/academy/encrypted-erc" className="text-[10.5px]">
+          Deep dive
+        </ArrowLink>
+      </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <PayloadPanel
-            kind="public"
-            label="Public ERC20"
-            payload={
-              <>
-                Transfer(0xALICE, 0xBOB, <span className="text-rose-500 dark:text-rose-400">1500000000</span>)
-              </>
-            }
-          />
-          <PayloadPanel
-            kind="encrypted"
-            label="Encrypted ERC"
-            payload={
-              <>
-                PrivateTransfer(0xALICE, 0xBOB,
-                <br />
-                auditorPCT=
-                <RotatingBytes />)
-              </>
-            }
-          />
-        </div>
+      <div className="grid grid-cols-1 gap-px border-b border-zinc-200 bg-zinc-200 md:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800">
+        <PayloadPanel
+          label="Public ERC20"
+          payload={
+            <>
+              Transfer(0xALICE, 0xBOB, <span className="text-[#E6212F]">1500000000</span>)
+            </>
+          }
+        />
+        <PayloadPanel
+          label="Encrypted ERC"
+          payload={
+            <>
+              PrivateTransfer(0xALICE, 0xBOB,
+              <br />
+              auditorPCT=
+              <RotatingBytes />)
+            </>
+          }
+        />
+      </div>
 
-        <p className="mt-4 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Same sender and recipient are visible both times — eERC doesn't obfuscate <em>who</em>, only <em>how much</em>
-          . The 7-element auditorPCT is Poseidon-encrypted; only the auditor's key can reveal the amount.
-        </p>
-      </TileShell>
-    </motion.div>
+      <p className="px-4 py-3 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        Both show who sent to whom. Encrypted ERC hides only how much. The amount is Poseidon-encrypted, and only the
+        auditor&apos;s key can read it.
+      </p>
+    </section>
   );
 }
 
-interface PayloadPanelProps {
-  kind: 'public' | 'encrypted';
-  label: string;
-  payload: React.ReactNode;
-}
-
-function PayloadPanel({ kind, label, payload }: PayloadPanelProps) {
-  const isEncrypted = kind === 'encrypted';
+function PayloadPanel({ label, payload }: { label: string; payload: React.ReactNode }) {
   return (
-    <div
-      className={
-        isEncrypted
-          ? 'rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3 ring-1 ring-emerald-500/[0.04] dark:border-emerald-900/50 dark:bg-emerald-900/10 dark:ring-emerald-400/[0.06]'
-          : 'rounded-xl border border-zinc-200/80 bg-zinc-50/60 p-3 ring-1 ring-zinc-900/[0.02] dark:border-zinc-800 dark:bg-zinc-900/40 dark:ring-white/[0.02]'
-      }
-    >
-      <div
-        className={
-          isEncrypted
-            ? 'mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400'
-            : 'mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-500'
-        }
-      >
-        {label}
-      </div>
-      <code className="block break-all font-mono text-[11px] leading-relaxed text-zinc-700 dark:text-zinc-300">
+    <div className="flex flex-col gap-2 bg-white p-4 dark:bg-zinc-950">
+      <span className={EYEBROW}>{label}</span>
+      <code className="block break-all font-mono text-[12px] leading-relaxed text-zinc-800 dark:text-zinc-200">
         {payload}
       </code>
     </div>
   );
 }
 
-/**
- * Tiny "auditorPCT bytes are live" indicator. Memoised + isolated so the
- * 900ms interval driving its state doesn't ripple into the parent card.
- * Three short hex segments separated by commas — flips one segment per
- * tick so it doesn't feel like a slot machine.
- */
+/** Memoised so the 900ms interval driving its state doesn't ripple into the parent card. */
 const RotatingBytes = memo(function RotatingBytes() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -121,12 +72,10 @@ const RotatingBytes = memo(function RotatingBytes() {
     return () => clearInterval(id);
   }, []);
 
-  // Deterministic LCG seeded by `tick` so the value scrolls predictably
-  // and is stable across re-renders within a tick.
   const segments = pickSegments(tick);
 
   return (
-    <span className="text-emerald-600 dark:text-emerald-400">
+    <span className="text-zinc-400 dark:text-zinc-500">
       [{segments[0]},{segments[1]},{segments[2]}]
     </span>
   );
