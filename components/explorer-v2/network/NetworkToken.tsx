@@ -116,7 +116,8 @@ export function NetworkToken() {
       (Array.isArray(icmRows) ? icmRows : [])
         .filter((item) => !lastFeeDate || item.date <= lastFeeDate)
         .map((item) => ({ date: item.date, timestamp: item.timestamp, value: item.feesPaid / 1e18 }))
-        .reverse(),
+        // oldest first, as the C-Chain series: the clock's window is the tail
+        .sort((a, b) => a.date.localeCompare(b.date)),
     [icmRows, lastFeeDate],
   );
   // today's partial bucket, drawn apart from the whole days; it only follows a fee history that has loaded
