@@ -10,6 +10,13 @@ import { DEFAULT_PRECOMPILES, type PrecompileConfig, type ValidatorMode } from '
 import { cn } from '@/lib/utils';
 import StakingPreviewCard from './StakingPreviewCard';
 
+const CARD = 'flex h-fit flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950';
+const CARD_HEAD = 'border-b border-zinc-200 bg-zinc-50/80 px-5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/40';
+const CARD_TITLE = 'font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100';
+const CARD_SUB = 'mt-1 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400';
+const FIELD_LABEL =
+  'block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400';
+
 /**
  * Basic Setup intake form.
  *
@@ -20,7 +27,7 @@ import StakingPreviewCard from './StakingPreviewCard';
  *
  * Design goals:
  *   - Generous vertical breathing room, not cramped
- *   - Inputs feel substantial — rounded-xl, soft bg, large text
+ *   - Inputs feel substantial — square hairline fields, large text
  *   - Only one primary CTA; everything else is muted link-level
  *   - Staggered entrance animation to establish "this is a moment"
  */
@@ -242,9 +249,9 @@ export default function BasicSetupForm() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
         whileHover={{ x: -2 }}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+        className="mb-4 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-3.5 w-3.5" />
         Back to setup choice
       </motion.button>
 
@@ -255,12 +262,12 @@ export default function BasicSetupForm() {
         transition={{ duration: 0.4, delay: 0.05 }}
         className="mb-6"
       >
-        <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
-          <Sparkles className="h-3 w-3" />
+        <div className="mb-3 inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          <Sparkles className="h-3 w-3 text-[#E6212F]" />
           Basic setup
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Create your L1</h1>
-        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 max-w-2xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Create your L1</h1>
+        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400">
           Name your chain and pick an owner. We&apos;ll configure the subnet, genesis, a managed validator node, and the
           Validator Manager for you.
         </p>
@@ -328,7 +335,7 @@ export default function BasicSetupForm() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-300"
+                className="border border-red-300 bg-red-50 px-4 py-3 font-mono text-[12px] text-red-700 [overflow-wrap:anywhere] dark:border-red-900/70 dark:bg-red-950/20 dark:text-red-300"
               >
                 {error}
               </motion.div>
@@ -339,39 +346,36 @@ export default function BasicSetupForm() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.45 }}
             >
-              <motion.button
+              <button
                 type="submit"
                 disabled={!canSubmit || submitting}
-                whileHover={canSubmit && !submitting ? { y: -2 } : {}}
-                whileTap={canSubmit && !submitting ? { scale: 0.99 } : {}}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 className={cn(
-                  'group relative w-full inline-flex items-center justify-center gap-3 rounded-xl px-6 py-3.5 text-base font-semibold transition-colors',
+                  'group/btn relative inline-flex h-12 w-full items-center justify-center gap-2 border px-6 font-mono text-[12px] font-bold uppercase tracking-[0.14em] transition-colors',
                   canSubmit && !submitting
-                    ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed',
+                    ? 'border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300'
+                    : 'cursor-not-allowed border-zinc-200 bg-zinc-50 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500',
                 )}
-                style={
-                  canSubmit && !submitting
-                    ? { boxShadow: '0 4px 14px rgba(37,99,235,0.25), 0 1px 3px rgba(37,99,235,0.15)' }
-                    : undefined
-                }
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Starting deployment…
                   </>
                 ) : (
                   <>
                     Create Chain
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform',
+                        canSubmit && 'text-[#E6212F] group-hover/btn:translate-x-0.5',
+                      )}
+                    />
                   </>
                 )}
-              </motion.button>
+              </button>
 
               {/* Reassurance line — small, muted */}
-              <p className="mt-2 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
+              <p className="mt-2 text-center font-mono text-[10.5px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
                 Usually takes 1–2 minutes. You can leave the tab open.
               </p>
             </motion.div>
@@ -431,13 +435,11 @@ function ChainDetailsCard({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit flex flex-col"
+      className={CARD}
     >
-      <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-900">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Chain details</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Name your L1, pick how validators join, and choose the owner.
-        </p>
+      <div className={CARD_HEAD}>
+        <h3 className={CARD_TITLE}>Chain details</h3>
+        <p className={CARD_SUB}>Name your L1, pick how validators join, and choose the owner.</p>
       </div>
 
       <div className="px-5 py-5 space-y-5 flex-1">
@@ -497,15 +499,15 @@ function ValidatorTypeToggle({ value, onChange }: { value: ValidatorMode; onChan
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator management</label>
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+        <label className={FIELD_LABEL}>Validator management</label>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
           Switch later
         </span>
       </div>
       <div
         role="tablist"
         aria-label="Validator management type"
-        className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/60"
+        className="grid grid-cols-2 gap-px border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800"
       >
         <ValidatorTypeOption
           active={value.type === 'poa'}
@@ -546,17 +548,19 @@ function ValidatorTypeOption({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        'relative flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg text-left transition-all duration-200',
+        'relative flex flex-col items-start gap-0.5 bg-white px-3 py-2.5 text-left transition-colors dark:bg-zinc-950',
         active
-          ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-zinc-100'
-          : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100',
+          ? 'z-10 text-zinc-900 outline outline-2 -outline-offset-2 outline-zinc-900 dark:text-zinc-100 dark:outline-zinc-100'
+          : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100',
       )}
     >
       <span className="flex items-center gap-1.5">
         <span
           className={cn(
-            'flex h-5 w-5 items-center justify-center rounded-md',
-            active ? 'bg-primary/10 text-primary' : 'bg-zinc-200/60 dark:bg-zinc-700/60',
+            'flex h-5 w-5 items-center justify-center border',
+            active
+              ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
+              : 'border-zinc-200 dark:border-zinc-800',
           )}
         >
           {icon}
@@ -605,7 +609,7 @@ function BigField({
       }}
       className="space-y-2"
     >
-      <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">{label}</label>
+      <label className={FIELD_LABEL}>{label}</label>
       <input
         type="text"
         value={value}
@@ -614,21 +618,20 @@ function BigField({
         maxLength={maxLength}
         aria-invalid={error ? true : undefined}
         className={cn(
-          'w-full rounded-xl border bg-white dark:bg-zinc-900',
-          'px-4 py-3.5 text-[15px] text-zinc-900 dark:text-zinc-100',
+          'h-12 w-full border bg-white px-4 dark:bg-zinc-950',
+          'text-[15px] text-zinc-900 dark:text-zinc-100',
           'placeholder:text-zinc-400 dark:placeholder:text-zinc-600',
-          'transition-all duration-200',
-          'focus:outline-none focus:ring-4',
+          'transition-colors focus:outline-none',
           mono && 'font-mono',
           error
-            ? 'border-red-400 dark:border-red-500 focus:border-red-500 focus:ring-red-500/10'
-            : 'border-zinc-200 dark:border-zinc-800 focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-zinc-900/5 dark:focus:ring-white/5 hover:border-zinc-300 dark:hover:border-zinc-700',
+            ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+            : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
         )}
       />
       {error ? (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>
       ) : (
-        hint && <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
+        hint && <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{hint}</p>
       )}
     </motion.div>
   );
@@ -690,15 +693,13 @@ function PrecompileCard({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit"
+      className={CARD}
     >
-      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompiles</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Baked into genesis. Admin list seeded with your owner address.
-        </p>
+      <div className={CARD_HEAD}>
+        <h3 className={CARD_TITLE}>Precompiles</h3>
+        <p className={CARD_SUB}>Baked into genesis. Admin list seeded with your owner address.</p>
       </div>
-      <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+      <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
         {PRECOMPILE_META.map((p) => (
           <PrecompileRow
             key={p.key}
@@ -725,13 +726,11 @@ function PrecompileRow({
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="w-full flex items-center gap-3 px-3.5 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
-    >
+    <button type="button" onClick={onToggle} className="group/row flex w-full items-center gap-3 px-5 py-2.5 text-left">
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">{title}</div>
+        <div className="text-[13px] font-medium leading-tight text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-100">
+          {title}
+        </div>
         <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">{description}</div>
       </div>
       <Toggle checked={enabled} />
@@ -763,21 +762,19 @@ function ManagedRelayerCard({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit"
+      className={CARD}
     >
-      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Managed ICM Relayer</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Optional. Spins up a dedicated relayer + bridges 10 MockUSDC to your owner address.
-        </p>
+      <div className={CARD_HEAD}>
+        <h3 className={CARD_TITLE}>Managed ICM Relayer</h3>
+        <p className={CARD_SUB}>Optional. Spins up a dedicated relayer + bridges 10 MockUSDC to your owner address.</p>
       </div>
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+        className="group/row flex w-full items-center gap-3 px-5 py-2.5 text-left"
       >
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
+          <div className="text-[13px] font-medium leading-tight text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-100">
             Run a relayer for me
           </div>
           <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
@@ -800,16 +797,16 @@ function Toggle({ checked }: { checked: boolean }) {
     <span
       aria-hidden
       className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 mt-0.5 rounded-full border transition-colors',
+        'relative mt-0.5 inline-flex h-5 w-9 shrink-0 border transition-colors',
         checked
-          ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white'
-          : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
+          ? 'border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100'
+          : 'border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950',
       )}
     >
       <span
         className={cn(
-          'absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-200',
-          checked ? 'left-[18px] bg-white dark:bg-zinc-900' : 'left-0.5 bg-white dark:bg-zinc-600',
+          'absolute top-[3px] h-3 w-3 transition-all duration-200',
+          checked ? 'left-[19px] bg-white dark:bg-zinc-900' : 'left-[3px] bg-zinc-300 dark:bg-zinc-600',
         )}
       />
     </span>

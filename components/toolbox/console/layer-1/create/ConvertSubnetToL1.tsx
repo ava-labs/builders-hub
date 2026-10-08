@@ -17,7 +17,7 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from '@/components/toolbox/components/Steps';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
@@ -211,10 +211,12 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
           <p className="text-sm text-muted-foreground mb-4">
             The validator manager contract controls your L1's validator set. If you used{' '}
             <strong>Console defaults</strong> for your L1 genesis, a proxy is pre-deployed at{' '}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">0xfacade...</code>
+            <code className="border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-[12px] text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+              0xfacade...
+            </code>
           </p>
 
-          <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
+          <p className="mb-4 flex items-center gap-1.5 text-[12px] text-zinc-500 dark:text-zinc-400">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
             <span>
               These values are <strong>permanent</strong> and cannot be changed after conversion.

@@ -312,7 +312,7 @@ export function AvaxJumper({ className, onExit }: { className?: string; onExit?:
       animate={shakeKey > 0 ? { x: [0, -5, 5, -3, 3, 0], y: [0, 2, -2, 1, 0] } : {}}
       transition={{ duration: 0.45, ease: 'easeOut' }}
       className={cn(
-        'relative cursor-pointer select-none overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-gradient-to-b from-zinc-50 to-zinc-100/60 dark:from-zinc-900 dark:to-zinc-950',
+        'relative cursor-pointer select-none overflow-hidden border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950',
         className,
       )}
       style={{ width: WIDTH, height: HEIGHT, touchAction: 'none' }}
@@ -450,20 +450,22 @@ export function AvaxJumper({ className, onExit }: { className?: string; onExit?:
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] dark:bg-black/30"
+            className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-zinc-950/60"
           >
             <motion.div
               initial={{ opacity: 0, y: 8, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-              className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/80 px-4 py-2.5 text-center shadow-lg"
+              className="border border-zinc-200 bg-white px-4 py-2.5 text-center dark:border-zinc-800 dark:bg-zinc-950"
             >
               {gameState === 'ready' ? (
                 <>
-                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">Bounce up the platforms</p>
+                  <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
+                    Bounce up the platforms
+                  </p>
                   <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                    <kbd className="mx-0.5 rounded bg-zinc-200 dark:bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px]">
+                    <kbd className="mx-0.5 border border-zinc-300 px-1.5 py-0.5 font-mono text-[10px] dark:border-zinc-700">
                       ← →
                     </kbd>{' '}
                     tilt to steer
@@ -471,7 +473,7 @@ export function AvaxJumper({ className, onExit }: { className?: string; onExit?:
                 </>
               ) : (
                 <>
-                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                  <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
                     Fell off — <span className="font-mono tabular-nums">{displayedScore}</span> pts
                     {displayedScore === highScore && displayedScore > 0 && <span className="ml-1">🏆 new best</span>}
                   </p>

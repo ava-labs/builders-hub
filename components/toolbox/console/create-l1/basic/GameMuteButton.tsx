@@ -31,7 +31,7 @@ export function GameMuteButton() {
       aria-pressed={!muted}
       aria-label={label}
       title={label}
-      className={`flex h-[22px] w-[22px] items-center justify-center rounded-md border border-zinc-300/80 dark:border-zinc-700/80 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors ${
+      className={`flex h-[22px] w-[22px] items-center justify-center border border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors ${
         muted && !isReady ? 'opacity-60' : 'opacity-100'
       }`}
     >
