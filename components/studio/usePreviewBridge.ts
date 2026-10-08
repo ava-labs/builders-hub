@@ -32,6 +32,17 @@ export interface BridgeApp {
 
 const WALLET_EVENTS = ['accountsChanged', 'chainChanged'] as const;
 
+/** Requests a Console wallet would sign without a prompt; the preview confirms each one. */
+const CONFIRM_METHODS = new Set(['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4']);
+
+function describeRequest(method: string, params: unknown): string {
+  const first = (Array.isArray(params) ? params[0] : undefined) as { to?: string; value?: string } | undefined;
+  if (method !== 'eth_sendTransaction') return 'sign a message';
+  const value =
+    first?.value && BigInt(first.value) > 0n ? ` with ${Number(BigInt(first.value)) / 1e18} of the native coin` : '';
+  return `send a transaction to ${first?.to ?? 'a new contract'}${value}`;
+}
+
 /**
  * The parent side of a sandboxed Studio frontend: the frame's only ways out.
  * Wallet requests from the allowlist go to `wallet`; token lookups go to
@@ -140,6 +151,16 @@ export function usePreviewBridge({
         if (m.method === 'eth_accounts') reply({ type: 'rpc-result', id: m.id, result: [] });
         else fail(m.id, 4100, live.current.noWalletMessage);
         return;
+      }
+      // A Console wallet signs without a prompt, so the preview asks before an app's code spends or signs with it.
+      if ((current as { isConsoleWallet?: boolean }).isConsoleWallet && CONFIRM_METHODS.has(m.method)) {
+        const ok = window.confirm(
+          `The previewed app asks your Console wallet to ${describeRequest(m.method, m.params)}.\n\nAllow it?`,
+        );
+        if (!ok) {
+          fail(m.id, 4001, 'You declined the request.');
+          return;
+        }
       }
       try {
         reply({ type: 'rpc-result', id: m.id, result: await current.request({ method: m.method, params: m.params }) });

@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { getAddress } from 'viem';
 import { useActiveWalletProvider } from '@/components/toolbox/hooks/useLiveWalletChainId';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { getActiveConsoleWallet, setActiveConsoleWallet, subscribeActiveConsoleWallet } from './core-provider';
 import { browserSigner, consoleSigner, type ConsoleSigner } from './signer';
 import { accountFor, listWallets, subscribe, type WalletInfo } from './vault';
 
@@ -61,12 +62,15 @@ export function saveChoice(scope: string, choice: SignerChoice | null) {
 export type SignerNeed = 'choose' | 'connect' | 'unlock' | 'mismatch' | null;
 
 /**
- * The signer for a scope. With `pinnedAddress` (a deployment that already has
- * a signer) the wallet is whichever one owns that address, whatever was chosen.
+ * The signer for a scope. The top bar's Console wallet is the console's wallet, so it wins over the scope's saved
+ * choice, and choosing here switches the top bar too. With `pinnedAddress` (a deployment that already has a signer)
+ * the wallet is whichever one owns that address, whatever was chosen.
  */
 export function useConsoleSigner(scope: string, options: { pinnedAddress?: string | null } = {}) {
   const { wallets, ready } = useConsoleWallets();
-  const [choice, setChoice] = useState<SignerChoice | null>(null);
+  const [saved, setChoice] = useState<SignerChoice | null>(null);
+  const active = useSyncExternalStore(subscribeActiveConsoleWallet, getActiveConsoleWallet, () => null);
+  const choice = active ?? saved;
   const browserAddress = useWalletStore((s) => s.walletEVMAddress) || null;
   const provider = useActiveWalletProvider({ enabled: Boolean(browserAddress), refreshKey: browserAddress ?? '' });
 
@@ -81,7 +85,13 @@ export function useConsoleSigner(scope: string, options: { pinnedAddress?: strin
     };
   }, [scope]);
 
-  const choose = useCallback((next: SignerChoice | null) => saveChoice(scope, next), [scope]);
+  const choose = useCallback(
+    (next: SignerChoice | null) => {
+      saveChoice(scope, next);
+      if (next) setActiveConsoleWallet(next === 'browser' ? null : next);
+    },
+    [scope],
+  );
   const pinned = options.pinnedAddress ? getAddress(options.pinnedAddress) : null;
 
   return useMemo(() => {

@@ -81,7 +81,16 @@ describe('vault', () => {
     const wallet = await createWallet('Deployer', PIN);
     expect(wallet).toMatchObject({ label: 'Deployer', backedUp: false, unlocked: true });
     const [listed] = await listWallets();
-    expect(Object.keys(listed).sort()).toEqual(['address', 'backedUp', 'createdAt', 'id', 'label', 'unlocked']);
+    expect(Object.keys(listed).sort()).toEqual([
+      'address',
+      'backedUp',
+      'createdAt',
+      'id',
+      'label',
+      'publicKeys',
+      'unlocked',
+    ]);
+    expect(Object.keys(listed.publicKeys!).sort()).toEqual(['evm', 'xp']);
     expect(accountFor(wallet.id)?.address).toBe(wallet.address);
   });
 

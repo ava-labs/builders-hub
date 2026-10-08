@@ -1,5 +1,6 @@
 import { getAddress, isHex, type Hex } from 'viem';
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
+import { privateKeyToAvalancheAccount } from '@avalanche-sdk/client/accounts';
 import { PBKDF2_ITERATIONS, checkPin, openKey, sealKey, type SealedKey } from './crypto';
 
 /**
@@ -13,12 +14,14 @@ export interface WalletRecord extends SealedKey {
   id: string;
   label: string;
   address: `0x${string}`;
+  /** Public, so a locked wallet can still show its P-Chain address; older records gain them on the next unlock. */
+  publicKeys?: { evm: Hex; xp: Hex };
   backedUp: boolean;
   createdAt: string;
 }
 
 /** What the UI may see: never the sealed key. */
-export type WalletInfo = Pick<WalletRecord, 'id' | 'label' | 'address' | 'backedUp' | 'createdAt'> & {
+export type WalletInfo = Pick<WalletRecord, 'id' | 'label' | 'address' | 'publicKeys' | 'backedUp' | 'createdAt'> & {
   unlocked: boolean;
 };
 
@@ -79,7 +82,18 @@ export function configureVault(options: { storage?: WalletStorage; iterations?: 
 
 /* Unlocked wallets: an account object in this tab's memory only, dropped after idle time. */
 
-const unlocked = new Map<string, { account: PrivateKeyAccount; timer: ReturnType<typeof setTimeout> }>();
+/** The same key as an EVM account and as Avalanche P/X-Chain signer, for the console's Core-compatible provider. */
+export type AvalancheAccount = ReturnType<typeof privateKeyToAvalancheAccount>;
+
+const publicKeysOf = (a: AvalancheAccount) => ({
+  evm: a.evmAccount.publicKey as Hex,
+  xp: a.xpAccount!.publicKey as Hex,
+});
+
+const unlocked = new Map<
+  string,
+  { account: PrivateKeyAccount; avalanche: AvalancheAccount; timer: ReturnType<typeof setTimeout> }
+>();
 const listeners = new Set<() => void>();
 let channel: BroadcastChannel | null | undefined;
 
@@ -148,10 +162,16 @@ export function accountFor(id: string): PrivateKeyAccount | null {
   return entry.account;
 }
 
+/** The unlocked wallet as an Avalanche account (EVM and P/X-Chain); each use pushes the idle lock back too. */
+export function avalancheAccountFor(id: string): AvalancheAccount | null {
+  return accountFor(id) ? unlocked.get(id)!.avalanche : null;
+}
+
 const info = (r: WalletRecord): WalletInfo => ({
   id: r.id,
   label: r.label,
   address: r.address,
+  publicKeys: r.publicKeys,
   backedUp: r.backedUp,
   createdAt: r.createdAt,
   unlocked: unlocked.has(r.id),
@@ -177,16 +197,18 @@ async function add(privateKey: Hex, label: string, pin: string, backedUp: boolea
   const account = privateKeyToAccount(privateKey);
   const existing = (await store().all()).find((r) => r.address.toLowerCase() === account.address.toLowerCase());
   if (existing) throw new Error(`This browser already has that wallet as “${existing.label}”`);
+  const avalanche = privateKeyToAvalancheAccount(privateKey);
   const record: WalletRecord = {
     id: newId(),
     label: label.trim() || `Wallet ${account.address.slice(2, 6)}`,
     address: account.address as `0x${string}`,
+    publicKeys: publicKeysOf(avalanche),
     backedUp,
     createdAt: new Date().toISOString(),
     ...(await sealKey(privateKey, pin, account.address, iterations)),
   };
   await store().put(record);
-  unlocked.set(record.id, { account, timer: armTimer(record.id) });
+  unlocked.set(record.id, { account, avalanche, timer: armTimer(record.id) });
   changed();
   return info(record);
 }
@@ -208,9 +230,14 @@ export async function unlock(id: string, pin: string) {
   const key = await openKey(record, pin, record.address);
   const account = privateKeyToAccount(key);
   if (getAddress(account.address) !== getAddress(record.address)) throw new Error('This wallet record is damaged');
+  const avalanche = privateKeyToAvalancheAccount(key);
   lock(id);
-  unlocked.set(id, { account, timer: armTimer(id) });
-  notify();
+  unlocked.set(id, { account, avalanche, timer: armTimer(id) });
+  if (!record.publicKeys) {
+    record.publicKeys = publicKeysOf(avalanche);
+    await store().put(record);
+    changed();
+  } else notify();
   return info(record);
 }
 
