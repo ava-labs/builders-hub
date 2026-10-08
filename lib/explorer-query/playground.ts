@@ -9,7 +9,7 @@
 
 import { adoptBoards, type Board, type MetricSeries, type MetricTile } from "./board";
 import { playgroundBoardId } from "./board-links";
-import { MAX_TILES } from "./board-wire";
+import { MAX_TILES } from "./board-limits";
 import { DEFAULT_DAYS, MAX_METRIC_SERIES, METRIC_CHAIN, isMetricKey } from "./stats-metrics";
 
 /** the boards a Playground dashboard comes over to */

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { RouterRef, type Router } from "@/components/explorer-v2/router-ref";
+import { useAskTo } from "@/components/explorer-v2/evm/query-asking";
 import dynamic from "next/dynamic";
 import { Component, memo, startTransition, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Search, X } from "lucide-react";
@@ -671,17 +672,6 @@ class SceneFence extends Component<{ inset: Inset; children: ReactNode }, { fell
   }
 }
 
-/* Next's router for the app's links, kept in a ref by a child that renders nothing: useRouter reads the layout's context,
-   which changes with every change of the URL, so an app that called it would render again for each one */
-type Router = ReturnType<typeof useRouter>;
-function RouterRef({ into }: { into: { current: Router | null } }) {
-  const router = useRouter();
-  useEffect(() => {
-    into.current = router;
-  }, [into, router]);
-  return null;
-}
-
 export function CityApp({
   data,
   height,
@@ -1264,10 +1254,13 @@ export function CityApp({
   const question = entity.length === 0 && looksLikeQuestion(trimmed, { identifier: idShape, chainHit: hits.length > 0 });
   const canAsk = entity.length === 0 && canAskPhrase(trimmed, idShape);
   const askHref = `${ASK_AT}?q=${encodeURIComponent(trimmed)}`;
-  const go = (href: string) => {
+  // a question's Query page: the page around the city draws its first frame at once
+  const askTo = useAskTo();
+  const go = (href: string, q?: string) => {
     setQuery("");
     setPending(null);
-    router.current?.push(href);
+    if (q && askTo) askTo(href, q);
+    else router.current?.push(href);
   };
   // where a question goes: the chain it names, the P-Chain for staking (for the L1 picked, when one is), the chain picked, else the C-Chain
   const pickedAsk = selected === PCHAIN_PICK ? "p-chain" : selectedRow?.chain?.isTestnet ? null : selectedRow?.node?.role === "hub" ? "c-chain" : (selectedRow?.chain?.slug ?? null);
@@ -1276,7 +1269,7 @@ export function CityApp({
   const askScope = askRoute?.for ? (askChains.find((c) => c.slug === askRoute.for) ?? null) : null;
   // a question: a large screen answers it in a window over the city, a phone on the Query page
   const askIt = () => {
-    if (!wide || !askOn) return go(askHref);
+    if (!wide || !askOn) return go(askHref, trimmed);
     setQuery("");
     setPending(null);
     setHi(-1);

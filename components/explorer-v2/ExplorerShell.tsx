@@ -31,6 +31,8 @@ import {
 } from "@/components/explorer-v2/chain-search";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import { Rise } from "@/components/explorer-v2/ui";
+import { AskingFrame, useAskTo } from "@/components/explorer-v2/evm/query-asking";
+import { PCHAIN_COLUMN, QueryWorking } from "@/components/explorer-v2/evm/QueryWorking";
 import { buildAddressUrl, buildBlockUrl, buildTxUrl } from "@/utils/eip3091";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
@@ -120,12 +122,15 @@ export function SearchBox({
   };
   const entity = useSearchEntity(q, targets);
 
-  const goToHref = (href: string) => {
+  // a question's Query page: the shell draws its first frame at once
+  const askTo = useAskTo();
+  const goToHref = (href: string, question?: string) => {
     setQ("");
     setSel(-1);
     setNotFound(false);
     inputRef.current?.blur();
-    router.push(href);
+    if (question && askTo) askTo(href, question);
+    else router.push(href);
   };
 
   const goToChain = (hit: ChainHit) => {
@@ -164,7 +169,7 @@ export function SearchBox({
 
     // a sentence is a question for the P-Chain's Query page
     if (question && sel < 0) {
-      goToHref(askHref);
+      goToHref(askHref, q.trim());
       return;
     }
 
@@ -209,7 +214,7 @@ export function SearchBox({
     }
     // a phrase that is no identifier and no chain is asked, as on the C-Chain
     if (canAsk && !looksLikeIdentifier(query)) {
-      goToHref(askHref);
+      goToHref(askHref, q.trim());
       return;
     }
 
@@ -303,6 +308,8 @@ export function SearchBox({
           onBlur={() => setFocused(false)}
           onKeyDown={onKeyDown}
           placeholder={askable ? "Search an address, tx, block, NodeID or chain, or ask a question…" : "Search chains by name or ID, block height, tx hash, NodeID, or any address"}
+          // focus warms the P-Chain Query page; not the network one, which reads every chain's coverage
+          data-asks={askable && !askAt ? queryPage : undefined}
           aria-label={askable ? "Search or ask a question" : "Search"}
           spellCheck={false}
           className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"
@@ -346,7 +353,7 @@ export function SearchBox({
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault();
-                goToHref(askHref);
+                goToHref(askHref, q.trim());
               }}
               className={cn(
                 "group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-3 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900",
@@ -395,7 +402,7 @@ export function SearchBox({
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        goToHref(`${queryPage}?q=${encodeURIComponent(item)}`);
+                        goToHref(`${queryPage}?q=${encodeURIComponent(item)}`, item);
                       }}
                       className="group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900"
                     >
@@ -461,6 +468,7 @@ export function ExplorerShell({
   aside,
   hideHeader = false,
   heading = true,
+  rise = true,
   children,
 }: {
   chain: string;
@@ -473,6 +481,8 @@ export function ExplorerShell({
   hideHeader?: boolean;
   /** Set false where the page shows its own h1, such as a Query answer */
   heading?: boolean;
+  /** Set false where the body must paint with the first frame, such as Query's */
+  rise?: boolean;
   children: React.ReactNode;
 }) {
   const c = getExplorerChain(chain) ?? EXPLORER_CHAINS["p-chain"];
@@ -486,25 +496,34 @@ export function ExplorerShell({
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
         {/* no display title by design; the h1 names the page for screen readers */}
         {heading && <h1 className="sr-only">{c.name} Explorer</h1>}
-        {/* the app's spine: chain switcher, section tabs, network */}
-        <ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />
-        {/* load sequence, as on the homepage/solutions: header rises first,
-            the page body follows. Rise wraps the <header> from OUTSIDE so its
-            div never becomes a `header > div` (the global navbar padding hack). */}
-        {!hideHeader && (
-          <Rise delay={0.05}>
-            <header className="flex flex-col gap-6 pb-10">
-              {/* the subnav names the chain; the header is the search and the
-                  page's live figure beside it. pl-0!/pr-0! override the global
-                  `header > div` navbar padding hack (global.css). */}
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
-                <SearchBox chain={chain} network={network} ask={chain === "p-chain"} />
-                {aside}
-              </div>
-            </header>
-          </Rise>
-        )}
-        <Rise delay={0.14}>{children}</Rise>
+        {/* a question asked in the box shows the P-Chain Query page's first frame under the subnav at once */}
+        <AskingFrame
+          // the app's spine: chain switcher, section tabs, network
+          above={<ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />}
+          working={(q) => (
+            <div className={PCHAIN_COLUMN}>
+              <QueryWorking question={q} kind="pchain" chainName="the P-Chain" />
+            </div>
+          )}
+        >
+          {/* load sequence, as on the homepage/solutions: header rises first,
+              the page body follows. Rise wraps the <header> from OUTSIDE so its
+              div never becomes a `header > div` (the global navbar padding hack). */}
+          {!hideHeader && (
+            <Rise delay={0.05}>
+              <header className="flex flex-col gap-6 pb-10">
+                {/* the subnav names the chain; the header is the search and the
+                    page's live figure beside it. pl-0!/pr-0! override the global
+                    `header > div` navbar padding hack (global.css). */}
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
+                  <SearchBox chain={chain} network={network} ask={chain === "p-chain"} />
+                  {aside}
+                </div>
+              </header>
+            </Rise>
+          )}
+          {rise ? <Rise delay={0.14}>{children}</Rise> : <div>{children}</div>}
+        </AskingFrame>
       </div>
     </div>
   );

@@ -5,8 +5,8 @@
 import { z } from "zod";
 import { visualSpecSchema } from "./visual";
 import { MAX_METRIC_SERIES, METRIC_CHAIN, METRIC_KEYS } from "./stats-metrics";
+import { MAX_TILES } from "./board-limits";
 
-export const MAX_TILES = 40;
 export const MAX_BOARDS = 200;
 /** the JSON of one board's tiles, snapshots removed */
 export const MAX_TILES_BYTES = 256 * 1024;

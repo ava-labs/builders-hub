@@ -5,6 +5,9 @@ import { PRIMARY_NETWORK_ID, mixOf, useValidatorStats } from "@/components/explo
 import { defaultVersionTarget, sortVersionsDesc } from "@/components/stats/VersionBreakdown";
 import { ViewSwitchFade } from "@/components/explorer-v2/view-switch";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { AskingFrame } from "@/components/explorer-v2/evm/query-asking";
+import { QueryWorking } from "@/components/explorer-v2/evm/QueryWorking";
 import { useCityData, type SizeBy, type VersionMix } from "@/components/explorer-v2/network/icm-map";
 import { CityApp, type Height, type Market } from "@/components/explorer-v2/network/city-app";
 import { RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
@@ -80,7 +83,22 @@ function useWide(): boolean | null {
   return wide;
 }
 
+/** a question asked in the city's box on a phone opens the network Query page; its first frame shows in the city's place at once */
+const working = (q: string) => (
+  <NetworkShell search={false} rise={false}>
+    <QueryWorking question={q} kind="evm" chainName="the C-Chain" scope="network" />
+  </NetworkShell>
+);
+
 export function NetworkChains({ indexedChainIds = null }: { indexedChainIds?: string[] | null } = {}) {
+  return (
+    <AskingFrame working={working}>
+      <ChainsCity indexedChainIds={indexedChainIds} />
+    </AskingFrame>
+  );
+}
+
+function ChainsCity({ indexedChainIds }: { indexedChainIds: string[] | null }) {
   const wide = useWide();
   const activity = useChainActivity(RANGE);
   const market = useAvaxMarket();

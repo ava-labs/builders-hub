@@ -4,11 +4,12 @@
    boards it built, and questions worth asking. Three quiet sections with
    room between them; everything is one click from an answer. */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, History, LayoutGrid, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Rise } from "@/components/explorer-v2/ui";
 import type { EXAMPLES, Glyph as GlyphKind } from "@/lib/explorer-query/examples";
 import { forgetQuestion, forgetQuestions, useRecentQuestions } from "@/lib/explorer-query/recent";
 import { boardHref, boardScope, boardsHref, useBoards, useHydrated } from "@/lib/explorer-query/board";
@@ -200,7 +201,10 @@ export function QueryHome({
 }) {
   // the store is this device's; draw it only once the client has it
   const hydrated = useHydrated();
-  return (
+  // drawn by the server, the landing fades in, so the device's recent questions and boards come in above the
+  // suggestions out of sight; drawn later by the client (New question), the store is in and nothing moves
+  const fade = useRef(!hydrated).current;
+  const landing = (
     <div className={cn("flex flex-col gap-10 pt-4", className)}>
       {hydrated && (
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
@@ -211,4 +215,5 @@ export function QueryHome({
       <Suggestions examples={examples} onAsk={onAsk} />
     </div>
   );
+  return fade ? <Rise delay={0.14}>{landing}</Rise> : landing;
 }

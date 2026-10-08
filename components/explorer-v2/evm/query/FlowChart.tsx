@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { RouterRef, type Router } from "@/components/explorer-v2/router-ref";
 import { ResponsiveContainer, Sankey } from "recharts";
 import { cn } from "@/lib/utils";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
@@ -21,7 +21,6 @@ import { flowOf, type Flow, type FlowNode } from "./flow";
    the bands restyles the chart's marks and nothing else. */
 
 type Row = Record<string, unknown>;
-type Router = ReturnType<typeof useRouter>;
 
 /** the senders' inks, largest sender first; red is kept for what failed */
 const TONES = ["#0061E2", "#0d9488", "#d97706", "#7c3aed"];
@@ -62,16 +61,6 @@ const pct = (v: number, total: number) => {
   const p = total > 0 ? (v / total) * 100 : 0;
   return `${p >= 10 || p === 0 ? p.toFixed(0) : p >= 0.1 ? p.toFixed(1) : "<0.1"}%`;
 };
-
-/* Next's router for the node links, kept in a ref by a child that renders nothing: useRouter reads the layout's
-   context, which changes with every change of the URL, so a chart that called it would render again for each one */
-function RouterRef({ into }: { into: { current: Router | null } }) {
-  const router = useRouter();
-  useEffect(() => {
-    into.current = router;
-  }, [into, router]);
-  return null;
-}
 
 export type FlowChartProps = {
   panel: Panel;
