@@ -6,6 +6,7 @@ import {
   costOf,
   fillOf,
   minBlockDelayMs,
+  streamFeeBlocks,
   tipStats,
   type MarketBlock,
   type MarketTx,
@@ -66,6 +67,37 @@ describe('the base fee a block charged', () => {
     ];
     expect(baseFeeNow(blocks)).toMatchObject({ fee: 5_040_000_000n, block: { number: 11 } });
     expect(baseFeeNow([])).toBeNull();
+  });
+});
+
+// The chain overview reads the base fee from its head stream: headers tip first, and the executed txs it keeps.
+describe('the base fee from a head stream', () => {
+  const head = (number: number, bound: bigint | null = FLOOR, floor: bigint | null = FLOOR) => ({ number, bound, floor });
+  const sent = (blockNumber: number, t: MarketTx) => ({ blockNumber, ...t });
+
+  it('pairs each head with its txs and leaves out heads with none or with no base fee', () => {
+    const blocks = streamFeeBlocks(
+      [head(13), head(12, 5_090_000_000n), head(11, null), head(10)],
+      [sent(12, legacy(7n * NANO)), sent(12, dyn(10n * NANO, 150n, 5_040_000_150n)), sent(11, legacy(7n * NANO)), sent(10, legacy(6n * NANO))],
+    );
+    expect(blocks.map((b) => [b.number, b.txs.length])).toEqual([
+      [12, 2],
+      [10, 1],
+    ]);
+  });
+
+  it('reads the base fee charged, not the bound', () => {
+    const blocks = streamFeeBlocks([head(12, 5_090_000_000n), head(11)], [sent(12, dyn(10n * NANO, 150n, 5_040_000_150n)), sent(11, legacy(6n * NANO))]);
+    expect(baseFeeNow(blocks)).toMatchObject({ fee: 5_040_000_000n, block: { number: 12 } });
+  });
+
+  it('falls back to an older block when the newest one leaves the charge open', () => {
+    const blocks = streamFeeBlocks([head(12, 5_100_000_000n), head(11)], [sent(12, legacy(7n * NANO)), sent(11, legacy(6n * NANO))]);
+    expect(baseFeeNow(blocks)).toMatchObject({ fee: FLOOR, block: { number: 11 } });
+  });
+
+  it('is unknown before the stream holds a tx', () => {
+    expect(baseFeeNow(streamFeeBlocks([head(12)], []))).toBeNull();
   });
 });
 

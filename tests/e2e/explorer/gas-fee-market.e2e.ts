@@ -42,6 +42,20 @@ test('c-chain gas page shows the fee market now and keeps it current', async ({ 
   await expect(head).not.toHaveText(first ?? '', { timeout: 30_000 });
 });
 
+// The overview's Base Fee card shows the base fee charged, as Fee Market Now writes it (formatPricePerGas): three
+// places from 1 nAVAX, whole from 100, three significant digits under 1, and wei under a thousandth of one
+// (components/explorer-v2/gas/base-fee.ts). The header's bound in two places ("5.18nAVAX") or a Fuji fee of a few wei
+// as "0.000nAVAX" do not match.
+const CHARGED = /^(1|[1-9]\d?\.\d{3}|100\.000|\d{3}|\d{1,3}(,\d{3})+|0\.\d*[1-9]\d*)nAVAX$|^[\d,]+wei$/;
+
+for (const network of ['mainnet', 'fuji']) {
+  test(`${network} c-chain overview shows the base fee charged`, async ({ app, screen }) => {
+    await app.open(`/explorer/${network}/c-chain`);
+    const card = screen.getByRole('link', /^Base Fee/);
+    await expect(card.getByText(CHARGED)).toBeVisible(DATA);
+  });
+}
+
 // Fuji test AVAX has no dollar price and Fuji's base fee is a few wei, so the costs read in nAVAX and the table has no
 // USD column.
 test('fuji c-chain gas page shows the fee market now without a dollar price', async ({ app, screen }) => {

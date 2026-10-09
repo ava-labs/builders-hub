@@ -190,7 +190,8 @@ export function nanoUnit(symbol?: string): string {
   return symbol === "AVAX" ? "nAVAX" : "gwei";
 }
 
-/** the Base Fee readout, shared by the Gas tab and the chain overview */
+/** the Base Fee readout, shared by an L1's Gas tab and its chain overview
+ *  (the C-Chain's overview shows the base fee charged: gas/base-fee.ts) */
 export function baseFeeCell(baseFeeWei: number | null, symbol: string | undefined, base: string, values?: number[]): LiveCell {
   return {
     label: "Base Fee",

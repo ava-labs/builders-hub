@@ -28,6 +28,15 @@ export interface TxFeeFacts {
   floor: bigint | null;
 }
 
+/** a tx's bid from its RPC copy (hex or decimal strings); a tx with no
+ *  price field bids the price it paid */
+export function bidOf(tx: { gasPrice?: string; maxFeePerGas?: string; maxPriorityFeePerGas?: string }, paid: bigint): FeeBid {
+  if (tx.maxFeePerGas !== undefined && tx.maxPriorityFeePerGas !== undefined) {
+    return { maxFeePerGas: BigInt(tx.maxFeePerGas), maxPriorityFeePerGas: BigInt(tx.maxPriorityFeePerGas) };
+  }
+  return { gasPrice: tx.gasPrice !== undefined ? BigInt(tx.gasPrice) : paid };
+}
+
 const min = (a: bigint, b: bigint): bigint => (a < b ? a : b);
 
 function isDynamic(bid: FeeBid): bid is FeeBid & { maxFeePerGas: bigint; maxPriorityFeePerGas: bigint } {

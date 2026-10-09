@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculatePrice, executedBaseFee, feeAmounts, priceFloor, splitPaid, tipAt } from '@/lib/evm-fee';
+import { bidOf, calculatePrice, executedBaseFee, feeAmounts, priceFloor, splitPaid, tipAt } from '@/lib/evm-fee';
 import { formatPricePerGas } from '@/components/explorer-v2/format';
 import { formatFeeAmount } from '@/components/explorer-v2/evm/format';
 
@@ -9,6 +9,20 @@ import { formatFeeAmount } from '@/components/explorer-v2/evm/format';
 // is the price paid.
 
 const NANO = 1_000_000_000n;
+
+describe('the bid of an RPC tx', () => {
+  it('a dynamic-fee tx bids its caps', () => {
+    expect(bidOf({ gasPrice: '0x12a05f200', maxFeePerGas: '0xf5de81400', maxPriorityFeePerGas: '0x96' }, 5n * NANO)).toEqual({
+      maxFeePerGas: 66n * NANO,
+      maxPriorityFeePerGas: 150n,
+    });
+  });
+
+  it('a legacy tx bids its gas price, and a tx with no price field what it paid', () => {
+    expect(bidOf({ gasPrice: '0x1a13b8600' }, 5n * NANO)).toEqual({ gasPrice: 7n * NANO });
+    expect(bidOf({}, 5n * NANO)).toEqual({ gasPrice: 5n * NANO });
+  });
+});
 
 describe('the tip a bid pays at a base fee', () => {
   it('a dynamic-fee tx pays its max priority fee while its max fee has room', () => {

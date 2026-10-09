@@ -37,17 +37,40 @@ export function minBlockDelayMs(minDelayExcess: bigint): number {
   return Number(calculatePrice(1n, minDelayExcess, 1n << 20n));
 }
 
+/** what a block's base fee reads from: its header and its txs with their receipts */
+export type FeeBlock = Pick<MarketBlock, "number" | "bound" | "floor" | "txs">;
+
 /** the base fee a block charged: read back from its receipts, or its bound
  *  when the bound sits at the floor (the charge is never under the floor
  *  nor over the bound); null when neither fixes it */
-export function chargedBaseFee(b: MarketBlock): bigint | null {
+export function chargedBaseFee(b: FeeBlock): bigint | null {
   const read = executedBaseFee(b.txs);
   if (read !== null) return read;
   return b.floor === null || b.floor >= b.bound ? b.bound : null;
 }
 
+/** a head stream's executed blocks: each head with a base fee in its header
+ *  and txs in the stream. A head with no txs there is left out, as its
+ *  receipts can still be missing. A block that the stream's cap cuts short
+ *  still reads right: one base fee applies to all its txs. */
+export function streamFeeBlocks(
+  heads: { number: number; bound: bigint | null; floor: bigint | null }[],
+  txs: { blockNumber: number; bid: FeeBid; paid: bigint }[],
+): FeeBlock[] {
+  const byBlock = new Map<number, MarketTx[]>();
+  for (const { blockNumber, bid, paid } of txs) {
+    const own = byBlock.get(blockNumber) ?? [];
+    own.push({ bid, paid });
+    byBlock.set(blockNumber, own);
+  }
+  return heads.flatMap(({ number, bound, floor }) => {
+    const own = byBlock.get(number);
+    return own && bound !== null ? [{ number, bound, floor, txs: own }] : [];
+  });
+}
+
 /** the base fee now: the newest block whose charge is known */
-export function baseFeeNow(blocks: MarketBlock[]): { fee: bigint; block: MarketBlock } | null {
+export function baseFeeNow<B extends FeeBlock>(blocks: B[]): { fee: bigint; block: B } | null {
   const newestFirst = [...blocks].sort((a, b) => b.number - a.number);
   for (const block of newestFirst) {
     const fee = chargedBaseFee(block);

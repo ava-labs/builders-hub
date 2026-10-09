@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { priceFloor } from "@/lib/evm-fee";
+import { bidOf, priceFloor } from "@/lib/evm-fee";
 import { minBlockDelayMs, type MarketBlock, type MarketTx } from "@/lib/fee-market";
 import { targetOfExponent } from "@/lib/gas-target-math";
 import { rpcBatch } from "@/components/explorer-v2/evm/useHeadStream";
@@ -84,13 +84,8 @@ async function withReceipts(rpcUrl: string, blocks: RpcBlock[], signal: AbortSig
     for (const t of b.transactions) {
       const r = byHash.get(t.hash);
       if (!r) return [];
-      txs.push({
-        bid:
-          t.maxFeePerGas !== undefined && t.maxPriorityFeePerGas !== undefined
-            ? { maxFeePerGas: BigInt(t.maxFeePerGas), maxPriorityFeePerGas: BigInt(t.maxPriorityFeePerGas) }
-            : { gasPrice: BigInt(t.gasPrice ?? r.effectiveGasPrice) },
-        paid: BigInt(r.effectiveGasPrice),
-      });
+      const paid = BigInt(r.effectiveGasPrice);
+      txs.push({ bid: bidOf(t, paid), paid });
     }
     return [toBlock(b, txs)];
   });
