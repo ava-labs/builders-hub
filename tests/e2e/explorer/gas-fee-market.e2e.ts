@@ -3,7 +3,7 @@ import { expect } from 'e2e';
 import { DATA } from './explorer-page';
 
 // The top of the C-Chain gas page is the fee market of this moment (components/explorer-v2/gas/fee-market.tsx): the
-// base fee, the suggested priority fee, the cost of an action and the wait for a block, read from the RPC every 2 s.
+// base fee and the suggested priority fee, read from the RPC every 2 s, beside the load readings; then the cost of an action.
 // Explorer data is live, so the test checks the structure and that the reading moves, not the values.
 
 // "block 97,067,822", the newest block the reading holds.
@@ -14,7 +14,9 @@ test('c-chain gas page shows the fee market now and keeps it current', async ({ 
   const market = screen.getByRole('region', 'Fee market now');
   await expect(market.getByText('Base Fee')).toBeVisible(DATA);
   await expect(market.getByText('Priority Fee')).toBeVisible();
-  await expect(market.getByText('Next Block')).toBeVisible();
+  await expect(market.getByText('Utilization')).toBeVisible();
+  await expect(market.getByText('Gas Reserved · 24h')).toBeVisible();
+  await expect(market.getByText('Next Block')).toHaveCount(0);
 
   // The cost of an action: a header row and four actions, each with an AVAX amount and a dollar amount.
   const costs = market.getByRole('table', 'Cost of an action');
