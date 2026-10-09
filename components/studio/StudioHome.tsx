@@ -144,7 +144,7 @@ export function StudioHome() {
             migration of the exact bytecode you tested.
           </p>
         </div>
-        <PromptComposer examples={examples} />
+        <PromptComposer examples={examples} beam="colorful" />
         {importing ? (
           <ImportNewProject onCancel={() => setImporting(false)} />
         ) : (
