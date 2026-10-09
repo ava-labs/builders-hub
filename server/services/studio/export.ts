@@ -22,7 +22,6 @@ import { tokenListIn } from './tokens';
  * with. `forge test` on the export is what the production gate asks for.
  */
 
-const ROOT = /* turbopackIgnore: true */ process.cwd();
 const ICM_ARTIFACTS = [
   'TeleporterMessenger',
   'TeleporterRegistry',
@@ -32,10 +31,10 @@ const ICM_ARTIFACTS = [
   'NativeTokenRemote',
 ];
 
-const readRepo = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const readRepo = (rel: string) => fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), rel), 'utf8');
 const listSol = (rel: string) =>
   fs
-    .readdirSync(path.join(ROOT, rel))
+    .readdirSync(path.join(/* turbopackIgnore: true */ process.cwd(), rel))
     .filter((f) => f.endsWith('.sol'))
     .sort();
 

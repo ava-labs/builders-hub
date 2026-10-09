@@ -59,6 +59,8 @@ const config = {
       // The eERC client an export copies when its app uses useEERC.
       './lib/eerc/**/*.ts',
       './types/eerc-modules.d.ts',
+      // An export pins its dependencies to the versions in the repo's package.json.
+      './package.json',
     ],
     // Published sites and their API read the blueprint registry, the studio-react source and contract artifacts.
     '/builder/**': [
