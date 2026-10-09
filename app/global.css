@@ -100,6 +100,15 @@ nav#nd-nav {
   border-bottom: 1px solid rgb(228 228 231) !important; /* zinc-200 */
 }
 
+/* iOS can move the document viewport after a wallet round-trip even when overflow is locked. The console shell is
+   fixed below this bar, so fix the site bar as well while a console page is mounted: its logo and controls then stay
+   in the reserved top row instead of leaving that row blank. */
+html.console-active #nd-nav {
+  position: fixed !important;
+  left: 0;
+  right: var(--removed-body-scroll-bar-size, 0px);
+}
+
 .dark #nd-nav,
 .dark header#nd-nav,
 .dark nav#nd-nav {

@@ -49,6 +49,7 @@ export function ConsoleViewport({ children }: { children: ReactNode }) {
     installFetchDiagnostics();
     const root = document.documentElement;
     const original = { html: root.style.overflow, body: document.body.style.overflow };
+    root.classList.add('console-active');
     root.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
 
@@ -75,6 +76,7 @@ export function ConsoleViewport({ children }: { children: ReactNode }) {
     toTop();
 
     return () => {
+      root.classList.remove('console-active');
       root.style.overflow = original.html;
       document.body.style.overflow = original.body;
       window.removeEventListener('scroll', onScroll);
@@ -86,10 +88,7 @@ export function ConsoleViewport({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div
-      className="contents"
-      style={{ [CONSOLE_VIEWPORT_VAR]: VIEWPORT_VALUE } as React.CSSProperties}
-    >
+    <div className="contents" style={{ [CONSOLE_VIEWPORT_VAR]: VIEWPORT_VALUE } as React.CSSProperties}>
       {children}
     </div>
   );
