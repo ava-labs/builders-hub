@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+import { installFetchDiagnostics } from '@/lib/console/fetch-diagnostics';
 
 /**
  * CSS variable name children read via `var(--console-viewport)` to size
@@ -37,37 +38,38 @@ const VIEWPORT_VALUE = 'calc(100dvh - 3.5rem - 1px - var(--fd-banner-height,0px)
  *      only stops the user: iOS still scrolls the page to a focused field, on
  *      a dialog's focus restore, or on returning from a wallet app, and then
  *      the console's own header and bottom sit off screen with no way back.
- *      While the keyboard is up for a focused field the page may move so iOS
- *      can lift the field above it; it returns once the keyboard closes.
+ *      The page never moves; when the keyboard opens, the focused field is
+ *      scrolled into view inside its own scroll container instead.
  *
  * Renders `display: contents` so the wrapper doesn't insert a box into
  * the layout tree — only the CSS variable cascades through.
  */
 export function ConsoleViewport({ children }: { children: ReactNode }) {
   useEffect(() => {
+    installFetchDiagnostics();
     const root = document.documentElement;
     const original = { html: root.style.overflow, body: document.body.style.overflow };
     root.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
 
-    // The page may move only while the on-screen keyboard is up for a focused field (iOS lifts the field above
-    // it). A field can keep focus after the keyboard closes, as in a dialog, so the keyboard is what's checked.
-    const typing = () => {
-      const field = document.activeElement?.matches('input, textarea, select, [contenteditable="true"]') ?? false;
-      const vv = window.visualViewport;
-      return field && !!vv && vv.height < window.innerHeight - 120;
-    };
     const toTop = () => {
       if (window.scrollY !== 0 || root.scrollTop !== 0) window.scrollTo(0, 0);
     };
-    const onScroll = () => {
-      if (!typing()) toTop();
+    // The document never scrolls in the console. When the keyboard opens, the focused field is brought into view
+    // inside its own scroll container (the pane or a dialog) instead of iOS shifting the whole page.
+    const onScroll = () => toTop();
+    const onViewportResize = () => {
+      toTop();
+      const field = document.activeElement;
+      if (field instanceof HTMLElement && field.matches('input, textarea, select, [contenteditable="true"]')) {
+        field.scrollIntoView({ block: 'center', inline: 'nearest' });
+        toTop();
+      }
     };
-    // focusout fires before the next element takes focus; wait a frame so moving between fields doesn't jump.
-    const onFocusOut = () => requestAnimationFrame(onScroll);
+    const onFocusOut = () => requestAnimationFrame(toTop);
     window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('focusout', onFocusOut);
-    window.visualViewport?.addEventListener('resize', onScroll);
+    window.visualViewport?.addEventListener('resize', onViewportResize);
     window.visualViewport?.addEventListener('scroll', onScroll);
     window.addEventListener('pageshow', toTop);
     toTop();
@@ -77,7 +79,7 @@ export function ConsoleViewport({ children }: { children: ReactNode }) {
       document.body.style.overflow = original.body;
       window.removeEventListener('scroll', onScroll);
       document.removeEventListener('focusout', onFocusOut);
-      window.visualViewport?.removeEventListener('resize', onScroll);
+      window.visualViewport?.removeEventListener('resize', onViewportResize);
       window.visualViewport?.removeEventListener('scroll', onScroll);
       window.removeEventListener('pageshow', toTop);
     };
