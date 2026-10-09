@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { rpcCall, useLiveTargetPct } from "@/components/explorer-v2/gas/live-target";
 import { cn } from "@/lib/utils";
 import {
   useExplorerTimeRange,
@@ -17,7 +18,7 @@ import type {
   GasRangeDays,
 } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
-import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { LiveReadout, type LiveCell } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { ShareMap } from "@/components/explorer-v2/ShareMap";
 import { dayLong, dayShort, hourLong } from "@/components/explorer-v2/format";
 import { ColumnsBlock, TraceBlock, WeekGrid, cellName, type TraceRow } from "@/components/explorer-v2/gas/instruments";
@@ -46,18 +47,6 @@ interface FeeSnapshot {
   tipLowWei: number | null;
   tipMidWei: number | null;
   tipFastWei: number | null;
-}
-
-async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const body = await res.json();
-  if (body.error) throw new Error(body.error.message);
-  return body.result;
 }
 
 function median(sortedAsc: number[]): number | null {
@@ -196,6 +185,19 @@ export function fmtNano(wei: number): string {
 
 export function nanoUnit(symbol?: string): string {
   return symbol === "AVAX" ? "nAVAX" : "gwei";
+}
+
+/** the Base Fee readout, shared by the Gas tab and the chain overview */
+export function baseFeeCell(baseFeeWei: number | null, symbol: string | undefined, base: string, values?: number[]): LiveCell {
+  return {
+    label: "Base Fee",
+    live: true,
+    href: `${base}/gas/base-fee`,
+    value: baseFeeWei !== null ? fmtNano(baseFeeWei) : "—",
+    unit: baseFeeWei !== null ? nanoUnit(symbol) : undefined,
+    sub: "per gas",
+    values,
+  };
 }
 
 export function fmtGas(gas: number): string {
@@ -353,6 +355,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const avgUtil = fee.utilization.length
     ? (fee.utilization.reduce((s, u) => s + u, 0) / fee.utilization.length) * 100
     : null;
+  // against the gas target where the chain has one: the block gas limit is a burst ceiling
+  const liveTarget = useLiveTargetPct(catalog.rpcUrl, evmChainId, FEE_HISTORY_BLOCKS);
+  const shownUtil = liveTarget ?? avgUtil;
 
   const gas24h = useMemo(() => {
     if (!market?.hourly.length) return null;
@@ -395,15 +400,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
         <LiveReadout
           chainId={String(evmChainId)}
           cells={[
-            {
-              label: "Base Fee",
-              live: true,
-              href: `${base}/gas/base-fee`,
-              value: fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : "—",
-              unit: fee.baseFeeWei !== null ? unit : undefined,
-              sub: "per gas",
-              values: market?.hourly.map((h) => h.p50),
-            },
+            baseFeeCell(fee.baseFeeWei, symbol, base, market?.hourly.map((h) => h.p50)),
             {
               label: `Send ${symbol || "tokens"}`,
               live: true,
@@ -420,9 +417,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
               label: "Utilization",
               live: true,
               href: `${base}/gas/utilization`,
-              value: avgUtil !== null ? avgUtil.toFixed(1) : "—",
-              unit: avgUtil !== null ? "%" : undefined,
-              sub: `last ${FEE_HISTORY_BLOCKS} blocks`,
+              value: shownUtil !== null ? shownUtil.toFixed(1) : "—",
+              unit: shownUtil !== null ? "%" : undefined,
+              sub: liveTarget !== null ? `of target, gas reserved · last ${FEE_HISTORY_BLOCKS} blocks` : `of the block gas limit · last ${FEE_HISTORY_BLOCKS} blocks`,
               values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
             },
             {
@@ -575,7 +572,7 @@ export function FeeTip({ r, unit }: { r: TraceRow; unit: string }) {
 }
 
 /* the Helicon date inside a daily series, if the window holds it */
-const HELICON_DAY = "2026-09-22";
+export const HELICON_DAY = "2026-09-22";
 
 export function HeliconNote() {
   return (

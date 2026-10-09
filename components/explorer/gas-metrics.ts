@@ -29,10 +29,11 @@ export const GAS_METRICS: Record<GasMetricKey, GasMetricDef> = {
   utilization: {
     title: "Utilization",
     blurb:
-      "How full blocks are: gas used against the gas limit, the demand signal the base fee responds to.",
+      "How busy the chain is: gas per second against the gas target, the sustained rate the base fee holds steady at.",
     methodology: [
-      "Per-block utilization is gas_used / gas_limit. The daily trend averages it across every block of the day; the distribution counts blocks by fullness bucket, which shows the shape of demand a single average hides: a chain idling at 10% with hourly spikes to 80% prices very differently from one flat at 25%.",
-      "Sustained utilization above the fee mechanism's target is what drives the base fee up; the two detail sheets are two views of the same market.",
+      "Daily utilization is a day's gas over its target capacity, the ACP-176 target per second read from the block headers times 86,400. The target can change, so each day uses the mean of the target at its first block and the next day's first block. Below 100% the base fee falls toward its floor; above it the base fee climbs.",
+      "Since Helicon a transaction reserves its whole gas limit in the block and is charged the larger of its gas used and half its limit. Charged gas, the receipts' gas used, is what fees and the gas clock count; reserved gas, the headers' gas used, is what fills a block. Before Helicon both were the gas used.",
+      "Block by Block and the fullness distribution show each block's reserved gas as a share of the block gas limit. That limit is a burst ceiling, sized for a block that carries several seconds of gas at the maximum rate of twice the target, so a chain can sit at its target with blocks a few percent full. Chains without an ACP-176 target fall back to the share of the block gas limit for the daily view too.",
     ],
   },
   demand: {
