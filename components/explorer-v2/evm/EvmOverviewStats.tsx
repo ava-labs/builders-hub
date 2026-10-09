@@ -228,30 +228,35 @@ export function LiveReadoutAt({ chainId, cells, days }: { chainId: string; cells
         // market series are fetched at the clock's own resolution, so they trace at every clock
         const spark = c.values ?? (c.series ? market?.[c.series] : undefined);
         const move = c.series ? windowMove(c, n, market?.[c.series]) : null;
-        return (
-          <ReadoutBlock key={c.label} href={c.href} className={BLOCK_FACE}>
-            {c.live && <LiveDot className="mt-1.5 shrink-0" />}
-            <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-1 @container">
-              <span className={LABEL}>{c.label}</span>
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                <span className={FIGURE} style={fitFigure(c.value, c.unit)}>
-                  {c.value}
-                  {c.unit && <span className={FIG_UNIT}>{c.unit}</span>}
-                </span>
-                {move && (
-                  <span className={cn("font-mono text-[10px] tabular-nums tracking-[0.04em]", move.pct >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]")}>
-                    {move.pct >= 0 ? "+" : ""}
-                    {move.pct.toFixed(2)}% <span className="text-zinc-400 dark:text-zinc-500">{move.span}</span>
-                  </span>
-                )}
-                {c.sub != null && <span className={SUB}>{c.sub}</span>}
-              </span>
-            </span>
-            {spark && spark.length >= 2 && <SparkBand values={spark} />}
-          </ReadoutBlock>
-        );
+        return <LiveBlock key={c.label} cell={c} spark={spark} move={move} />;
       })}
     </div>
+  );
+}
+
+/** one live reading as a block: its figure, an optional move, and its trace at the foot */
+export function LiveBlock({ cell: c, spark = c.values, move = null }: { cell: LiveCell; spark?: number[]; move?: { pct: number; span: string } | null }) {
+  return (
+    <ReadoutBlock href={c.href} className={BLOCK_FACE}>
+      {c.live && <LiveDot className="mt-1.5 shrink-0" />}
+      <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-1 @container">
+        <span className={LABEL}>{c.label}</span>
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className={FIGURE} style={fitFigure(c.value, c.unit)}>
+            {c.value}
+            {c.unit && <span className={FIG_UNIT}>{c.unit}</span>}
+          </span>
+          {move && (
+            <span className={cn("font-mono text-[10px] tabular-nums tracking-[0.04em]", move.pct >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]")}>
+              {move.pct >= 0 ? "+" : ""}
+              {move.pct.toFixed(2)}% <span className="text-zinc-400 dark:text-zinc-500">{move.span}</span>
+            </span>
+          )}
+          {c.sub != null && <span className={SUB}>{c.sub}</span>}
+        </span>
+      </span>
+      {spark && spark.length >= 2 && <SparkBand values={spark} />}
+    </ReadoutBlock>
   );
 }
 

@@ -382,7 +382,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   // before and after the validators raised its minimum (Sep 27, 2026)
   const feeLatest = feeSeries.length ? feeSeries[feeSeries.length - 1].p50 : null;
 
-  // the load readings: on the C-Chain they sit in the fee market block, beside the cost table
+  // the load readings: on the C-Chain they sit in the fee market block, beside the base and priority fees
   const loadCells: LiveCell[] = [
     {
       label: "Utilization",
@@ -418,7 +418,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
           usd={usd}
           usdSettled={usdSettled}
           base={base}
-          aside={<LiveReadout chainId={String(evmChainId)} cells={loadCells} />}
+          load={loadCells}
         />
       ) : (
         <section className="flex flex-col gap-4">

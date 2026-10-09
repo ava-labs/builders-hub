@@ -2,18 +2,18 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { ACTIONS, baseFeeNow, cadenceOf, costOf, fillOf, tipStats } from "@/lib/fee-market";
+import { ACTIONS, baseFeeNow, costOf, fillOf, tipStats } from "@/lib/fee-market";
 import { formatDollars, formatPricePerGas, formatNumber, unitParts } from "@/components/explorer-v2/format";
 import { formatFeeAmount } from "@/components/explorer-v2/evm/format";
-import { FIGURE, FIG_UNIT, LABEL, ReadoutBlock, SUB } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { FIGURE, FIG_UNIT, LABEL, LiveBlock, ReadoutBlock, SUB, type LiveCell } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { LiveDot, SectionHeader } from "@/components/explorer-v2/ui";
 import { MARKET_BLOCKS, useFeeMarket } from "./fee-market-data";
 
 /* The fee market now, on a chain with Continuous Execution (the C-Chain):
-   the base fee the newest block charged, the priority fee wallets add, what
-   a tx costs, and how long it waits for a block, read off the RPC every
-   two seconds. Then the cost of common actions, the priority fees txs paid,
-   and how the fees work. Every figure comes from blocks, txs and receipts;
+   the base fee the newest block charged and the priority fee wallets add,
+   read off the RPC every two seconds, beside the page's load readings. Then
+   the cost of common actions, the priority fees txs paid, and how the fees
+   work. Every figure comes from blocks, txs and receipts;
    the rules are in lib/fee-market.ts. */
 
 /** a block that reserves this share of its gas limit is full: a pending tx can then wait, and the priority fee decides who goes first */
@@ -38,7 +38,6 @@ function Cell({ label, value, unit, sub, href }: { label: string; value: string;
 const SUFFIX = "font-normal normal-case tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
 
 const pct = (share: number) => `${share * 100 >= 10 ? (share * 100).toFixed(0) : (share * 100).toFixed(1)}%`;
-const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}`;
 
 export function FeeMarketNow({
   rpcUrl,
@@ -46,7 +45,7 @@ export function FeeMarketNow({
   usd,
   usdSettled,
   base,
-  aside,
+  load = [],
 }: {
   rpcUrl: string | undefined;
   symbol: string;
@@ -54,8 +53,8 @@ export function FeeMarketNow({
   /** the price read has answered: a null usd then means the token has no price (Fuji) */
   usdSettled: boolean;
   base: string;
-  /** under the priority fees, beside the cost table: the page's load readings */
-  aside?: ReactNode;
+  /** beside the base and priority fees: the page's load readings */
+  load?: LiveCell[];
 }) {
   const feed = useFeeMarket(rpcUrl);
   const head = feed.blocks[0] ?? null;
@@ -64,7 +63,6 @@ export function FeeMarketNow({
   const tip = feed.suggestedTip;
   const stats = tip !== null ? tipStats(feed.blocks, tip) : null;
   const fill = fillOf(feed.blocks);
-  const cadence = cadenceOf(feed.blocks);
   const full = fill !== null && fill >= FULL;
   const price = fee && tip !== null ? fee.fee + tip : null;
 
@@ -74,10 +72,8 @@ export function FeeMarketNow({
     const wei = costOf(gas, price);
     return { avax: formatFeeAmount(wei, symbol), usd: usd !== null ? formatDollars((Number(wei) / 1e18) * usd) : "…" };
   };
-  const send = money(ACTIONS[0].gas);
   const baseParts = fee ? unitParts(formatPricePerGas(fee.fee, symbol)) : null;
   const tipParts = tip !== null ? unitParts(formatPricePerGas(tip, symbol)) : null;
-  const sendParts = unitParts(unpriced ? send.avax : send.usd);
   const above = fee && floor !== null && fee.fee > floor ? Number(((fee.fee - floor) * 10_000n) / floor) / 100 : null;
 
   return (
@@ -106,27 +102,19 @@ export function FeeMarketNow({
           unit={tipParts?.unit}
           sub={full ? "blocks are full: a higher fee goes first" : "suggested"}
         />
-        <Cell
-          label={`Send ${symbol}`}
-          value={sendParts.value}
-          unit={sendParts.unit}
-          sub={unpriced ? undefined : send.avax}
-        />
-        <Cell
-          label="Next Block"
-          value={cadence ? `~${seconds(cadence.waitMs)}` : "…"}
-          unit={cadence ? "s" : undefined}
-        />
+        {load.map((c) => (
+          <LiveBlock key={c.label} cell={c} />
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
-        <div className="flex flex-col gap-6">
-          <ActionCosts money={money} symbol={symbol} price={price} priced={!unpriced} />
-          <HowFeesWork floor={floor} symbol={symbol} target={head?.target ?? null} />
-        </div>
-        <div className="flex flex-col gap-6">
+      {/* the priority fees sit centered against the cost table, how the fees work under both */}
+      <div className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2">
+        <ActionCosts money={money} symbol={symbol} price={price} priced={!unpriced} />
+        <div className="lg:self-center">
           <TipsPaid stats={stats} tip={tip} symbol={symbol} blocks={feed.blocks.length} />
-          {aside}
+        </div>
+        <div className="lg:col-span-2">
+          <HowFeesWork floor={floor} symbol={symbol} target={head?.target ?? null} />
         </div>
       </div>
     </section>
