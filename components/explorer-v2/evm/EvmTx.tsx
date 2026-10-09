@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT } from "@/components/explorer-v2/ui";
 import { RailRow } from "@/components/explorer-v2/detail-parts";
-import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
-import { formatEther, formatNano } from "./format";
+import { formatNumber, formatTime, timeAgo, truncate, unitParts } from "@/components/explorer-v2/format";
+import { formatEther, formatFeeAmount, formatNano } from "./format";
 import { FeedDown } from "./bits";
 import { CopyButton } from "@/components/explorer/DetailRow";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
@@ -32,6 +32,8 @@ import { TokenLogo, TokenMark } from "./TokenMark";
 import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
 import { readRpc } from "@/lib/explorer-rpc";
 import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
+import { BURN_CHAINS } from "@/lib/evm-burn";
+import { TxFeeBreakdown, useFeeSplit } from "./TxFee";
 
 /* One transaction, in the block page's grammar: status in the section
    header, the hash as the subject with its time beside it, the readings
@@ -251,6 +253,14 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const gasPriceWei = fromRpc.data?.gasPrice ?? t?.gasPrice ?? "0";
   const feeWei = t ? BigInt(t.gasUsed) * BigInt(gasPriceWei || "0") : 0n;
   const gasPct = t && t.gasLimit > 0 ? (t.gasUsed / t.gasLimit) * 100 : 0;
+  // the fee's parts: the RPC copy carries the bid and its block's base fee range
+  const feeFacts = fromRpc.data?.fees ?? fromFallback.data?.fees ?? null;
+  const feeSplit = useFeeSplit(liveRpc ?? fallbackRpc, t?.blockNumber, feeFacts);
+  // since Helicon (its headers carry the price floor) a tx pays for at least half its gas limit
+  const halfLimit = !!t && feeFacts?.floor != null && t.gasUsed === Math.ceil(t.gasLimit / 2);
+  // the fee to eight places with the RPC's fee facts, as the Fee box's table reads; a fee under a millionth of the coin in its nano unit or in wei
+  const feeFigure = unitParts(formatFeeAmount(feeWei, sym, feeFacts ? 8 : 6));
+  const feeNote = [usdOfWei(feeWei, usd), BURN_CHAINS.has(String(c.chainId)) ? "burned" : null, feeFacts ? null : formatNano(gasPriceWei, sym)].filter(Boolean).join(" · ");
   const value = t ? Number(t.value) : 0;
 
   // the glance layer: the events' names (a precompile's ABI, the
@@ -438,18 +448,19 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                     {value > 0 ? formatEther(t.value, { decimals: value / 1e18 >= 1 ? 4 : 6 }) : "0"} <span className={UNIT}>{sym}</span>
                   </span>
                 </RailRow>
+                {/* with the RPC's fee facts the box holds the fee's parts, and its own link to the gas page */}
                 <RailRow
                   label="Fee"
-                  href={`${base}/gas`}
+                  href={feeFacts ? undefined : `${base}/gas`}
                   sub={
-                    <>
-                      {usdOfWei(feeWei, usd)}
-                      {usdOfWei(feeWei, usd) ? " · " : ""}
-                      {formatNano(gasPriceWei, sym)}
-                    </>
+                    feeFacts ? (
+                      <TxFeeBreakdown facts={feeFacts} split={feeSplit} symbol={sym} type={t.type} gas={t.gasUsed} note={feeNote} href={`${base}/gas`} />
+                    ) : (
+                      feeNote || undefined
+                    )
                   }
                 >
-                  <span className="text-red-700 dark:text-red-300">{formatEther(feeWei.toString(), { decimals: 6 })}</span> <span className={UNIT}>{sym}</span>
+                  <span className="text-red-700 dark:text-red-300">{feeFigure.value}</span> <span className={UNIT}>{feeFigure.unit}</span>
                 </RailRow>
                 {/* ACP-194: the receipt charges max(used, limit / 2), and the fee
                     is paid on that; what execution actually used comes from
@@ -467,6 +478,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                         </span>
                         {gasPct.toFixed(0)}% of the {formatNumber(t.gasLimit)} limit
                       </span>
+                      {halfLimit && <span>the minimum charge: half the gas limit</span>}
                       {trace?.gas && trace.gas.used !== t.gasUsed && <span>{formatNumber(trace.gas.used)} used by execution</span>}
                     </span>
                   }

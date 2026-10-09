@@ -49,6 +49,43 @@ export function formatUsd(nAvax: string | number | undefined, avaxUsd: number | 
   return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** "5.000 nAVAX" → { value: "5.000", unit: "nAVAX" }: a figure and its unit, for big type */
+export function unitParts(text: string): { value: string; unit?: string } {
+  const cut = text.lastIndexOf(" ");
+  return cut < 0 ? { value: text } : { value: text.slice(0, cut), unit: text.slice(cut + 1) };
+}
+
+/** a gas price in wei → "5.043 nAVAX", "0.15 nAVAX" or "150 wei": the
+ *  chain's nano unit from a thousandth of a nano up (three places, whole
+ *  from 100), and plain wei under that, where a tip of a few hundred wei
+ *  would otherwise read as zero */
+export function formatPricePerGas(wei: string | number | bigint | undefined | null, symbol = "AVAX"): string {
+  if (wei === undefined || wei === null || wei === "") return "—";
+  let v: bigint;
+  try {
+    v = BigInt(typeof wei === "number" ? Math.trunc(wei) : wei);
+  } catch {
+    return "—";
+  }
+  if (v < 0n) return "—";
+  if (v < 1_000_000n) return `${v.toLocaleString("en-US")} wei`;
+  const n = Number(v) / 1e9;
+  const unit = `n${symbol}`;
+  if (n >= 100) return `${Math.round(n).toLocaleString("en-US")} ${unit}`;
+  if (n >= 1) return `${n.toFixed(3)} ${unit}`;
+  return `${Number(n.toPrecision(3))} ${unit}`;
+}
+
+/** a dollar amount at the precision fees need: "$12.34", "$0.012", and
+ *  under a cent three significant digits ("$0.00133") instead of "<$0.01" */
+export function formatDollars(usd: number): string {
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
+  if (usd <= 0) return "$0.00";
+  const decimals = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
+  return `$${usd.toFixed(decimals).replace(/0$/, "")}`;
+}
+
 export function timeAgo(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
   const s = Math.floor(Date.now() / 1000 - unixSecs);
