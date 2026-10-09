@@ -22,6 +22,7 @@ import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import { useTokenList } from "@/lib/token-list";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
 import { readRpc } from "@/lib/explorer-rpc";
+import { useBaseFeeCell } from "@/components/explorer-v2/gas/base-fee";
 
 
 
@@ -55,6 +56,10 @@ export function EvmHome({ network }: { network: string }) {
   // RPC. Every other chain keeps the indexer path.
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc);
+  // the Gas tab's Base Fee block, on every chain with an RPC (the chains
+  // that get a Gas tab), off the public RPC like the Gas tab: the
+  // dedicated proxy does not allow eth_feeHistory
+  const baseFee = useBaseFeeCell(c.rpcUrl, String(c.chainId), sym, base);
   const heads = head.heads;
   const tip = head.tip;
   const pace = cadence(heads);
@@ -175,15 +180,7 @@ export function EvmHome({ network }: { network: string }) {
                   // each block's transactions per second of its gap
                   values: paceTrace?.tps,
                 },
-                {
-                  label: "Chain Height",
-                  live: true,
-                  href: `${base}/blocks`,
-                  // 0 means no feed has answered yet: show the placeholder, not a height of 0
-                  value: formatNumber(Math.max(tip?.number ?? 0, s?.tipHeight ?? 0, blockList[0]?.number ?? 0) || undefined),
-                  // the heights over the stream's window: a straight climb, the cadence's line
-                  values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
-                },
+                ...(c.rpcUrl ? [baseFee] : []),
 
                 ...(price || priced
                   ? [
@@ -208,6 +205,15 @@ export function EvmHome({ network }: { network: string }) {
                       },
                     ]
                   : []),
+                {
+                  label: "Chain Height",
+                  live: true,
+                  href: `${base}/blocks`,
+                  // 0 means no feed has answered yet: show the placeholder, not a height of 0
+                  value: formatNumber(Math.max(tip?.number ?? 0, s?.tipHeight ?? 0, blockList[0]?.number ?? 0) || undefined),
+                  // the heights over the stream's window: a straight climb, the cadence's line
+                  values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
+                },
                 {
                   label: "Avg Block Time",
                   live: true,

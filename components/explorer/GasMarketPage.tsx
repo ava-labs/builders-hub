@@ -190,6 +190,19 @@ export function nanoUnit(symbol?: string): string {
   return symbol === "AVAX" ? "nAVAX" : "gwei";
 }
 
+/** the Base Fee readout, shared by the Gas tab and the chain overview */
+export function baseFeeCell(baseFeeWei: number | null, symbol: string | undefined, base: string, values?: number[]): LiveCell {
+  return {
+    label: "Base Fee",
+    live: true,
+    href: `${base}/gas/base-fee`,
+    value: baseFeeWei !== null ? fmtNano(baseFeeWei) : "—",
+    unit: baseFeeWei !== null ? nanoUnit(symbol) : undefined,
+    sub: "per gas",
+    values,
+  };
+}
+
 export function fmtGas(gas: number): string {
   if (gas >= 1e12) return `${(gas / 1e12).toFixed(2)}T`;
   if (gas >= 1e9) return `${(gas / 1e9).toFixed(2)}B`;
@@ -411,15 +424,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
           <LiveReadout
             chainId={String(evmChainId)}
             cells={[
-              {
-                label: "Base Fee",
-                live: true,
-                href: `${base}/gas/base-fee`,
-                value: fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : "—",
-                unit: fee.baseFeeWei !== null ? unit : undefined,
-                sub: "per gas",
-                values: market?.hourly.map((h) => h.p50),
-              },
+              baseFeeCell(fee.baseFeeWei, symbol, base, market?.hourly.map((h) => h.p50)),
               {
                 label: `Send ${symbol || "tokens"}`,
                 live: true,
