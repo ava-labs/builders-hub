@@ -51,34 +51,27 @@ function ConsoleContent({ children }: { children: ReactNode }) {
         <NavbarDropdownInjector />
         <ConsoleViewport>
           <SidebarProvider
-            className="!overflow-hidden"
+            className="!fixed inset-x-0 bottom-0 z-20 !min-h-0 !overflow-hidden"
             style={
               {
                 "--sidebar-width": "calc(var(--spacing) * 72)",
                 "--header-height": "calc(var(--spacing) * 12)",
-                height: "var(--console-viewport)",
-                minHeight: "var(--console-viewport)",
-                maxHeight: "var(--console-viewport)",
+                top: "calc(3.5rem + 1px + var(--fd-banner-height, 0px))",
               } as React.CSSProperties
             }
           >
             <ConsoleSidebar variant="inset" />
             <SidebarInset
-              className="bg-white dark:bg-zinc-900 overflow-hidden m-2"
-              style={{ height: "calc(var(--console-viewport) - 1rem)" }}
+              className="m-2 h-[calc(100%-1rem)] min-h-0 overflow-hidden bg-white dark:bg-zinc-900"
             >
               <SiteHeader />
               <div
                 data-console-pane
                 className={cn(
-                  "flex flex-1 flex-col gap-4 overflow-y-auto",
+                  "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain",
                   // Full-height workspaces bring their own inner padding; the page gutter stays narrow around them.
                   fill ? "p-2 md:p-3 lg:overflow-hidden" : "p-4 md:p-8",
                 )}
-                style={{
-                  height:
-                    "calc(var(--console-viewport) - var(--header-height) - 1rem)",
-                }}
               >
                 <StepErrorBoundary fallbackMessage="Something went wrong rendering this page. The console sidebar is still available — try navigating to a different tool.">
                   <ConsolePageTransition fill={fill}>{children}</ConsolePageTransition>
