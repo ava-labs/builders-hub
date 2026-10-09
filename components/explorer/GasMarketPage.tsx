@@ -18,7 +18,7 @@ import type {
   GasRangeDays,
 } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
-import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { LiveReadout, type LiveCell } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { ShareMap } from "@/components/explorer-v2/ShareMap";
 import { dayLong, dayShort, hourLong } from "@/components/explorer-v2/format";
 import { ColumnsBlock, TraceBlock, WeekGrid, cellName, type TraceRow } from "@/components/explorer-v2/gas/instruments";
@@ -185,6 +185,19 @@ export function fmtNano(wei: number): string {
 
 export function nanoUnit(symbol?: string): string {
   return symbol === "AVAX" ? "nAVAX" : "gwei";
+}
+
+/** the Base Fee readout, shared by the Gas tab and the chain overview */
+export function baseFeeCell(baseFeeWei: number | null, symbol: string | undefined, base: string, values?: number[]): LiveCell {
+  return {
+    label: "Base Fee",
+    live: true,
+    href: `${base}/gas/base-fee`,
+    value: baseFeeWei !== null ? fmtNano(baseFeeWei) : "—",
+    unit: baseFeeWei !== null ? nanoUnit(symbol) : undefined,
+    sub: "per gas",
+    values,
+  };
 }
 
 export function fmtGas(gas: number): string {
@@ -387,15 +400,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
         <LiveReadout
           chainId={String(evmChainId)}
           cells={[
-            {
-              label: "Base Fee",
-              live: true,
-              href: `${base}/gas/base-fee`,
-              value: fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : "—",
-              unit: fee.baseFeeWei !== null ? unit : undefined,
-              sub: "per gas",
-              values: market?.hourly.map((h) => h.p50),
-            },
+            baseFeeCell(fee.baseFeeWei, symbol, base, market?.hourly.map((h) => h.p50)),
             {
               label: `Send ${symbol || "tokens"}`,
               live: true,
