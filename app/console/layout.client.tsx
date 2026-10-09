@@ -69,6 +69,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
             >
               <SiteHeader />
               <div
+                data-console-pane
                 className={cn(
                   "flex flex-1 flex-col gap-4 overflow-y-auto",
                   // Full-height workspaces bring their own inner padding; the page gutter stays narrow around them.

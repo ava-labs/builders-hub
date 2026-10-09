@@ -2270,3 +2270,9 @@ body:has([data-navbar-dropdown] > button[aria-expanded="true"]) .chatbot-contain
     animation: none;
   }
 }
+
+/* Light console: sections are white boards on a white pane, so they get a soft tint to stay visible.
+   Fields keep their white fill so they still read as inputs inside a tinted section. */
+html:not(.dark) [data-console-pane] :is(.bg-white, .bg-white\/80):not(input, textarea, select) {
+  background-color: #f4f4f5;
+}
