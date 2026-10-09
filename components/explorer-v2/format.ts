@@ -76,6 +76,16 @@ export function formatPricePerGas(wei: string | number | bigint | undefined | nu
   return `${Number(n.toPrecision(3))} ${unit}`;
 }
 
+/** a dollar amount at the precision fees need: "$12.34", "$0.012", and
+ *  under a cent three significant digits ("$0.00133") instead of "<$0.01" */
+export function formatDollars(usd: number): string {
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
+  if (usd <= 0) return "$0.00";
+  const decimals = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
+  return `$${usd.toFixed(decimals).replace(/0$/, "")}`;
+}
+
 export function timeAgo(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
   const s = Math.floor(Date.now() / 1000 - unixSecs);
