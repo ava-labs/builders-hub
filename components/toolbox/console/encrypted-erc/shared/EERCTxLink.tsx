@@ -22,7 +22,7 @@ export function EERCTxLink({
   chainId,
   txHash,
   children,
-  className = 'underline text-emerald-600 dark:text-emerald-400',
+  className = 'font-mono text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-[#E6212F] dark:text-zinc-50 dark:decoration-zinc-600 dark:hover:decoration-[#E6212F]',
 }: EERCTxLinkProps) {
   const url = getCChainTxUrl(chainId, txHash);
 

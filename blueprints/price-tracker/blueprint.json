@@ -1,0 +1,140 @@
+{
+  "id": "price-tracker",
+  "version": 1,
+  "title": "Price Tracker",
+  "summary": "Onchain oracle price reads",
+  "description": "Reads Chainlink Data Feeds on the C-Chain by pair name, rejects stale or non-positive answers, and values an amount of an asset in USD.",
+  "category": "data",
+  "level": "starter",
+  "tags": ["c-chain", "chainlink", "oracle", "prices"],
+  "prompts": [
+    "Show the live AVAX price in my app from an onchain oracle",
+    "I need a contract that converts an AVAX amount to USD",
+    "Track token prices with Chainlink on Avalanche"
+  ],
+  "networks": {
+    "main": {
+      "description": "C-Chain with Chainlink Data Feeds",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "mainnet-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "May add and repoint feeds",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "maxAge",
+      "type": "uint",
+      "description": "Seconds after which a round counts as stale. Fuji feeds can go hours between updates, so keep 24 hours on testnet.",
+      "default": 86400
+    }
+  ],
+  "prerequisites": ["Native gas on the C-Chain for the signer"],
+  "contracts": [
+    {
+      "name": "PriceTracker",
+      "source": "contracts/PriceTracker.sol",
+      "description": "Named Chainlink feeds with staleness and sign checks"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-tracker",
+      "title": "Deploy PriceTracker",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "PriceTracker",
+      "args": ["$ctx.deployer"]
+    },
+    {
+      "id": "add-avax-usd",
+      "title": "Register the AVAX/USD feed",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "PriceTracker",
+      "target": "$out.deploy-tracker.address",
+      "function": "setFeed",
+      "args": ["AVAX/USD", "$net.main.chainlink.feeds.AVAX/USD.address", "$param.maxAge"]
+    },
+    {
+      "id": "hand-over",
+      "title": "Transfer ownership to the builder",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "PriceTracker",
+      "target": "$out.deploy-tracker.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    }
+  ],
+  "checks": [
+    {
+      "description": "One AVAX is worth a fresh, positive USD amount",
+      "after": "add-avax-usd",
+      "network": "main",
+      "contract": "PriceTracker",
+      "target": "$out.deploy-tracker.address",
+      "function": "quote",
+      "args": ["AVAX/USD", "1000000000000000000", 18],
+      "expect": {
+        "gt": "0"
+      }
+    },
+    {
+      "description": "The builder owns the tracker",
+      "after": "hand-over",
+      "network": "main",
+      "contract": "PriceTracker",
+      "target": "$out.deploy-tracker.address",
+      "function": "owner",
+      "expect": {
+        "equals": "$param.owner"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-tracker",
+      "read": ["latestPrice", "latestPrices", "quote", "listPairs", "feedOf", "owner"],
+      "write": ["setFeed", "transferOwnership"]
+    }
+  ],
+  "review": [
+    "Every feed address comes from $net.main.chainlink.feeds, never typed in.",
+    "maxAge matches the feed's heartbeat on the chosen network; a value below the heartbeat makes reads revert between updates.",
+    "Callers handle the StalePrice revert instead of falling back to an old value silently."
+  ],
+  "frontend": {
+    "summary": "A live price board for major assets with a quick converter.",
+    "audience": ["Anyone checking prices", "Users of an app that prices things in USD"],
+    "journeys": [
+      "A board of prices with how fresh each is, updating on its own, no wallet needed.",
+      "Convert an amount ('12.5 AVAX ≈ $312.40').",
+      "A stale price stays visible, greyed out with its age, instead of disappearing."
+    ],
+    "flows": [
+      "Read several pairs at once with latestPrices(pairs); format answers with the returned decimals (8 for USD feeds).",
+      "Show updatedAt as the age of the price, and a warning state when a read reverts with StalePrice.",
+      "Convert an amount with quote(pair, amount, amountDecimals); for AVAX pass 18 decimals.",
+      "Reads need no wallet: use a public client on the network's rpcUrl."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Chainlink Data Feeds on Avalanche",
+      "url": "/integrations/chainlink-data-feeds"
+    },
+    {
+      "title": "Feed addresses and heartbeats",
+      "url": "https://docs.chain.link/data-feeds/price-feeds/addresses?network=avalanche"
+    }
+  ],
+  "related": ["icm-price-oracle", "usdc-checkout"]
+}

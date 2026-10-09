@@ -8,35 +8,40 @@ interface AlertProps {
   icon?: boolean;
 }
 
-export const Alert = ({ children, variant = 'info', className, icon = true }: AlertProps) => {
-  const variantConfig = {
-    error: {
-      container: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
-      icon: <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />,
-    },
-    warning: {
-      container:
-        'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300',
-      icon: <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />,
-    },
-    info: {
-      container: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
-      icon: <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />,
-    },
-    success: {
-      container:
-        'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',
-      icon: <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />,
-    },
-  };
+const VARIANTS = {
+  error: {
+    container: 'border-red-200 bg-red-50/60 text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300',
+    Icon: AlertCircle,
+    icon: 'text-red-600 dark:text-red-400',
+  },
+  warning: {
+    container:
+      'border-amber-200 bg-amber-50/60 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200',
+    Icon: AlertTriangle,
+    icon: 'text-amber-600 dark:text-amber-400',
+  },
+  info: {
+    container:
+      'border-zinc-200 bg-zinc-50/60 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300',
+    Icon: Info,
+    icon: 'text-zinc-500 dark:text-zinc-400',
+  },
+  success: {
+    container:
+      'border-emerald-200 bg-emerald-50/60 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-200',
+    Icon: CheckCircle2,
+    icon: 'text-emerald-600 dark:text-emerald-400',
+  },
+} as const;
 
-  const config = variantConfig[variant];
+export const Alert = ({ children, variant = 'info', className, icon = true }: AlertProps) => {
+  const { container, Icon, icon: iconClass } = VARIANTS[variant];
 
   return (
-    <div className={cn('p-3 rounded-md border text-sm max-h-48 overflow-y-auto', config.container, className)}>
-      <div className="flex gap-3 items-center">
-        {icon && config.icon}
-        <div className="flex-1 break-words">{children}</div>
+    <div className={cn('max-h-48 overflow-y-auto border px-4 py-3 text-[13px] leading-relaxed', container, className)}>
+      <div className="flex items-start gap-3">
+        {icon && <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', iconClass)} />}
+        <div className="min-w-0 flex-1 break-words">{children}</div>
       </div>
     </div>
   );

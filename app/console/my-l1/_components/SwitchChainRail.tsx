@@ -21,53 +21,16 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { SectionHeader } from '@/components/explorer-v2/ui';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { isPrimaryNetwork, type CombinedL1 } from '@/lib/console/my-l1/types';
-import {
-  chainKey,
-  useChainOrderStore,
-  useHiddenL1s,
-} from '@/lib/console/my-l1/chainOrderStore';
+import { FOCUS, TOOLTIP } from './chrome';
+import { chainKey, useChainOrderStore, useHiddenL1s } from '@/lib/console/my-l1/chainOrderStore';
 
-// ---------------------------------------------------------------------
-// Tinted fallback avatars
-// ---------------------------------------------------------------------
-//
 // Most managed L1s come through without a `logoUrl` (the upstream service
-// doesn't publish brand assets), so we fall back to a coloured initials
-// square. Five-tone palette + four well-known overrides is enough to
-// keep adjacent pills visually distinct without hand-curating every chain.
-
-const FALLBACK_BGS = [
-  'bg-rose-500',
-  'bg-emerald-500',
-  'bg-sky-500',
-  'bg-amber-500',
-  'bg-violet-500',
-] as const;
-
-const KNOWN_CHAIN_BGS: Record<string, (typeof FALLBACK_BGS)[number]> = {
-  '11111111111111111111111111111111LpoYY': 'bg-rose-500', // C-Chain (AVAX red)
-  i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK: 'bg-emerald-500', // Echo
-  '7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5': 'bg-violet-500', // Dispatch
-  '9m6a3Qte8FaRbLZixLhh8Ptdkemm4csNaLwQeKkENx5wskbWP': 'bg-rose-500', // Dexalot
-};
-
-function pickFallbackBg(subnetId: string): string {
-  const known = KNOWN_CHAIN_BGS[subnetId];
-  if (known) return known;
-  let hash = 0;
-  for (let i = 0; i < subnetId.length; i++) hash = (hash * 31 + subnetId.charCodeAt(i)) >>> 0;
-  return FALLBACK_BGS[hash % FALLBACK_BGS.length]!;
-}
-
+// doesn't publish brand assets), so pills fall back to a mono initials square.
 // "Avalanche Fuji" → "AF"; "Echo" → "Ec"; missing → "?".
 function chainInitials(name: string): string {
   const trimmed = name.trim();
@@ -92,16 +55,15 @@ const SEARCH_THRESHOLD = 8;
 // SwitchChainRail
 // ---------------------------------------------------------------------
 //
-// Horizontal row of chain "pills" — each shows a small logo on the left
-// and the chain name on the right, like an account chip. Active pill
-// picks up the emerald accent that matches the rest of the dashboard's
-// "this is the live thing" cue.
+// Horizontal row of square chain chips — each shows a small logo on the
+// left and the chain name on the right. The active chip takes full ink and
+// the red underline the explorer Tabs use for "you are here".
 //
 // Differences from the v1 marquee rail:
 //   - No marquee. v1 auto-scrolled every L1 past the user, which made
 //     scanning impossible and broke "which chain am I on?". Replaced
-//     with native horizontal scroll plus edge-fade gradients and
-//     scroll-arrow buttons that fade in only when there's overflow.
+//     with native horizontal scroll plus scroll-arrow buttons that
+//     appear only when there's overflow.
 //   - Logo + name (vs name only). Adjacent pills don't visually repeat
 //     anymore — each chain has its own colour or logo.
 //   - Search field appears above 8 chains so power-users can filter.
@@ -139,13 +101,11 @@ export function SwitchChainRail({
     if (!showSearch || query.trim() === '') return l1s;
     const needle = query.toLowerCase();
     return l1s.filter(
-      (l1) =>
-        l1.chainName.toLowerCase().includes(needle) ||
-        String(l1.evmChainId ?? '').includes(needle),
+      (l1) => l1.chainName.toLowerCase().includes(needle) || String(l1.evmChainId ?? '').includes(needle),
     );
   }, [l1s, query, showSearch]);
 
-  // Scroll-arrow / edge-fade visibility tracks the rail's actual scroll
+  // Scroll-arrow visibility tracks the rail's actual scroll
   // position. ResizeObserver catches viewport resizes; scroll listener
   // catches user scrolling.
   useEffect(() => {
@@ -178,9 +138,7 @@ export function SwitchChainRail({
       didMountRef.current = true;
       return;
     }
-    const active = scrollRef.current?.querySelector<HTMLElement>(
-      '[data-active="true"]',
-    );
+    const active = scrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
     active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [selected?.subnetId, selected?.evmChainId]);
 
@@ -211,20 +169,16 @@ export function SwitchChainRail({
       // /api/managed-testnet-nodes/...).
       orderStore.hide(key);
       orderStore.setOrder(orderSnapshot.filter((k) => k !== key));
-      toast.success(
-        `Hid ${l1.chainName}`,
-        'It’s still running. To decommission a node, use Managed Nodes below.',
-        {
-          id: `l1-hide:${key}`,
-          action: {
-            label: 'Undo',
-            onClick: () => {
-              chainOrderStore.getState().unhide(key);
-              chainOrderStore.getState().setOrder(orderSnapshot);
-            },
+      toast.success(`Hid ${l1.chainName}`, 'It’s still running. To decommission a node, use Managed Nodes below.', {
+        id: `l1-hide:${key}`,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            chainOrderStore.getState().unhide(key);
+            chainOrderStore.getState().setOrder(orderSnapshot);
           },
         },
-      );
+      });
       return;
     }
 
@@ -244,20 +198,16 @@ export function SwitchChainRail({
     orderStore.setOrder(orderSnapshot.filter((k) => k !== key));
     listStore.removeL1(l1.blockchainId);
 
-    toast.success(
-      `Removed ${l1.chainName}`,
-      'You can re-add it from the Add Chain modal.',
-      {
-        id: `l1-remove:${l1.blockchainId}`,
-        action: {
-          label: 'Undo',
-          onClick: () => {
-            l1ListStore.getState().addL1(itemSnapshot);
-            chainOrderStore.getState().setOrder(orderSnapshot);
-          },
+    toast.success(`Removed ${l1.chainName}`, 'You can re-add it from the Add Chain modal.', {
+      id: `l1-remove:${l1.blockchainId}`,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          l1ListStore.getState().addL1(itemSnapshot);
+          chainOrderStore.getState().setOrder(orderSnapshot);
         },
       },
-    );
+    });
   };
 
   const handleUnhideAll = () => chainOrderStore.getState().unhideAll();
@@ -280,9 +230,7 @@ export function SwitchChainRail({
   const derive = (l1: CombinedL1): PillState => ({
     isActive:
       selected !== null &&
-      (l1.evmChainId !== null
-        ? selected.evmChainId === l1.evmChainId
-        : selected.subnetId === l1.subnetId),
+      (l1.evmChainId !== null ? selected.evmChainId === l1.evmChainId : selected.subnetId === l1.subnetId),
     walletIsHere: l1.evmChainId !== null && walletChainId === l1.evmChainId,
     // Primary Network stays gated because the wallet store reseeds it on
     // every page load, so even a "hide" would be reversed.
@@ -290,55 +238,27 @@ export function SwitchChainRail({
   });
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
-        <h2 className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground">
-          Switch Chain
-        </h2>
-        {showSearch && <ChainSearchInput value={query} onChange={setQuery} />}
-      </div>
+    <div className="flex flex-col gap-3">
+      <SectionHeader
+        label="Switch chain"
+        action={showSearch ? <ChainSearchInput value={query} onChange={setQuery} /> : undefined}
+      />
 
       <div className="relative">
-        <div
-          className={cn(
-            'pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-10',
-            'bg-gradient-to-r from-background to-transparent transition-opacity duration-150',
-            canScrollLeft ? 'opacity-100' : 'opacity-0',
-          )}
-          aria-hidden="true"
-        />
-        <div
-          className={cn(
-            'pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-10',
-            'bg-gradient-to-l from-background to-transparent transition-opacity duration-150',
-            canScrollRight ? 'opacity-100' : 'opacity-0',
-          )}
-          aria-hidden="true"
-        />
+        {canScrollLeft && <ScrollArrow direction="left" onClick={() => scrollByDirection(-1)} />}
+        {canScrollRight && <ScrollArrow direction="right" onClick={() => scrollByDirection(1)} />}
 
-        {canScrollLeft && (
-          <ScrollArrow direction="left" onClick={() => scrollByDirection(-1)} />
-        )}
-        {canScrollRight && (
-          <ScrollArrow direction="right" onClick={() => scrollByDirection(1)} />
-        )}
-
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
             <div
               ref={scrollRef}
-              // Hide native scrollbar — the edge fade + arrow buttons
-              // already telegraph overflow, and a stray scrollbar across
-              // the rail's bottom looked unfinished against the rest of
-              // the dashboard chrome.
-              className="flex gap-2 overflow-x-auto pt-2 pb-2 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              // Hide native scrollbar — the arrow buttons
+              // already telegraph overflow. The vertical padding leaves room
+              // for each chip's remove button, which overhangs the corner.
+              className="flex gap-2 overflow-x-auto px-1 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {filteredL1s.length === 0 ? (
-                <div className="text-xs text-muted-foreground italic px-3 py-3">
+                <div className="px-3 py-2.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
                   No chains match &quot;{query}&quot;.
                 </div>
               ) : (
@@ -362,15 +282,13 @@ export function SwitchChainRail({
       </div>
 
       {showHiddenLink && (
-        <div className="px-1">
-          <button
-            type="button"
-            onClick={handleUnhideAll}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-2"
-          >
-            Show {hiddenL1s.length} hidden {hiddenL1s.length === 1 ? 'chain' : 'chains'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleUnhideAll}
+          className="w-fit px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+        >
+          Show {hiddenL1s.length} hidden {hiddenL1s.length === 1 ? 'chain' : 'chains'}
+        </button>
       )}
     </div>
   );
@@ -386,38 +304,26 @@ interface PillState {
   isRemovable: boolean;
 }
 
-function ChainSearchInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) {
+function ChainSearchInput({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   return (
     <div className="relative w-full max-w-[200px]">
       <Search
-        className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
+        className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
         aria-hidden="true"
       />
-      <Input
+      <input
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Filter chains"
         aria-label="Filter chains by name or chain id"
-        className="h-8 pl-8 text-xs"
+        className="h-8 w-full border border-zinc-200 bg-white/80 pl-8 pr-2 font-mono text-[11px] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-100 dark:focus:border-zinc-100"
       />
     </div>
   );
 }
 
-function ScrollArrow({
-  direction,
-  onClick,
-}: {
-  direction: 'left' | 'right';
-  onClick: () => void;
-}) {
+function ScrollArrow({ direction, onClick }: { direction: 'left' | 'right'; onClick: () => void }) {
   const Icon = direction === 'left' ? ChevronLeft : ChevronRight;
   return (
     <button
@@ -425,11 +331,10 @@ function ScrollArrow({
       onClick={onClick}
       aria-label={`Scroll ${direction}`}
       className={cn(
-        'absolute top-1/2 -translate-y-1/2 z-20 h-7 w-7 rounded-full',
-        'border border-border bg-background/95 text-muted-foreground shadow-sm',
-        'hover:text-foreground hover:bg-background',
-        'flex items-center justify-center',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'absolute top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center',
+        'border border-zinc-300 bg-white text-zinc-500 hover:border-zinc-900 hover:text-zinc-900',
+        'dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-100 dark:hover:text-zinc-100',
+        FOCUS,
         direction === 'left' ? 'left-1' : 'right-1',
       )}
     >
@@ -451,8 +356,7 @@ function SortablePill({
   onSelect: () => void;
   onRemove: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
   // Clamp y so the dragged pill stays on the rail axis — without this
   // the original element follows the cursor on both axes, which lets
@@ -479,23 +383,12 @@ function SortablePill({
       {...listeners}
     >
       <ChainPill l1={l1} state={state} onSelect={onSelect} />
-      {state.isRemovable && (
-        <RemoveButton chainName={l1.chainName} onRemove={onRemove} />
-      )}
+      {state.isRemovable && <RemoveButton chainName={l1.chainName} onRemove={onRemove} />}
     </div>
   );
 }
 
-function ChainPill({
-  l1,
-  state,
-  onSelect,
-}: {
-  l1: CombinedL1;
-  state: PillState;
-  onSelect: () => void;
-}) {
-  const fallbackBg = pickFallbackBg(l1.subnetId);
+function ChainPill({ l1, state, onSelect }: { l1: CombinedL1; state: PillState; onSelect: () => void }) {
   const [imgFailed, setImgFailed] = useState(false);
   const showImg = Boolean(l1.logoUrl) && !imgFailed;
 
@@ -516,22 +409,17 @@ function ChainPill({
             .filter(Boolean)
             .join(' ')}
           className={cn(
-            'flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm',
-            'transition-[background-color,border-color,color,transform,box-shadow] duration-150',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'relative flex h-10 items-center gap-2 border pl-1.5 pr-3 text-[13px] transition-colors duration-150',
+            FOCUS,
             state.isActive
-              ? 'border-emerald-500/60 bg-emerald-500/5 text-foreground shadow-[0_0_0_1px_rgba(16,185,129,0.15)]'
-              : 'border-border bg-card text-muted-foreground hover:border-foreground/30 hover:-translate-y-px hover:text-foreground',
+              ? 'border-zinc-900 bg-white text-zinc-900 dark:border-zinc-100 dark:bg-zinc-950 dark:text-zinc-50'
+              : 'border-zinc-200 bg-white/80 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100',
           )}
         >
-          {/* 24x24 logo / initials avatar with optional wallet-here pip. */}
+          {state.isActive && <span aria-hidden="true" className="absolute inset-x-0 -bottom-px h-0.5 bg-[#E6212F]" />}
+          {/* 28px logo / initials square with optional wallet-here dot. */}
           <div className="relative flex-shrink-0">
-            <div
-              className={cn(
-                'h-6 w-6 rounded-md overflow-hidden flex items-center justify-center',
-                showImg ? 'bg-muted' : fallbackBg,
-              )}
-            >
+            <div className="flex h-7 w-7 items-center justify-center overflow-hidden border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
               {showImg ? (
                 <img
                   src={l1.logoUrl}
@@ -542,32 +430,32 @@ function ChainPill({
                   className="h-full w-full object-contain p-0.5"
                 />
               ) : (
-                <span className="text-white text-[10px] font-bold tracking-tight">
+                <span className="font-mono text-[10px] font-bold text-zinc-600 dark:text-zinc-300">
                   {chainInitials(l1.chainName)}
                 </span>
               )}
             </div>
             {state.walletIsHere && (
               <span
-                className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
+                className="absolute -bottom-1 -right-1 flex h-2 w-2"
                 title="Your wallet is currently on this L1"
                 aria-hidden="true"
               >
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-50 animate-ping [animation-duration:2.4s]" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 ring-2 ring-background" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50 [animation-duration:2.4s]" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-950" />
               </span>
             )}
           </div>
-          <span className="font-medium whitespace-nowrap">{l1.chainName}</span>
-          {l1.source === 'managed' && l1.expiresAt && (
-            <ExpiryPip expiresAt={l1.expiresAt} />
-          )}
+          <span className={cn('whitespace-nowrap', state.isActive ? 'font-semibold' : 'font-medium')}>
+            {l1.chainName}
+          </span>
+          {l1.source === 'managed' && l1.expiresAt && <ExpiryPip expiresAt={l1.expiresAt} />}
         </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" align="center">
+      <TooltipContent side="bottom" align="center" sideOffset={6} className={TOOLTIP}>
         <div className="space-y-0.5">
           <div className="font-medium">{l1.chainName}</div>
-          <div className="text-[10px] text-muted-foreground font-mono">
+          <div className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
             chain {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
           </div>
         </div>
@@ -576,13 +464,7 @@ function ChainPill({
   );
 }
 
-function RemoveButton({
-  chainName,
-  onRemove,
-}: {
-  chainName: string;
-  onRemove: () => void;
-}) {
+function RemoveButton({ chainName, onRemove }: { chainName: string; onRemove: () => void }) {
   return (
     <button
       type="button"
@@ -598,12 +480,11 @@ function RemoveButton({
       aria-label={`Remove ${chainName} from the rail`}
       title={`Remove ${chainName}`}
       className={cn(
-        'absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full',
-        'border border-border bg-background text-muted-foreground',
-        'opacity-0 group-hover/pill:opacity-100 focus-visible:opacity-100',
-        'hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30',
-        'transition-opacity duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center',
+        'border border-zinc-300 bg-white text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400',
+        'opacity-0 transition-opacity duration-150 focus-visible:opacity-100 group-hover/pill:opacity-100',
+        'hover:border-red-500 hover:text-red-600 dark:hover:border-red-700 dark:hover:text-red-400',
+        FOCUS,
       )}
     >
       <X className="h-3 w-3" aria-hidden="true" />
@@ -611,7 +492,7 @@ function RemoveButton({
   );
 }
 
-// Small expiry chip rendered inside managed pills. Counts down a minute
+// Small expiry readout rendered inside managed chips. Counts down a minute
 // at a time so the user catches expirations approaching without us
 // spamming re-renders. Switches to amber when ≤6h remain, red when
 // already expired.
@@ -624,13 +505,11 @@ function ExpiryPip({ expiresAt }: { expiresAt: string }) {
   }, []);
 
   const ms = new Date(expiresAt).getTime() - now;
+  const chip = 'inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.08em] tabular-nums';
   if (ms <= 0) {
     return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] text-red-700 dark:text-red-400"
-        aria-label="Managed nodes expired"
-      >
-        <Clock className="w-2.5 h-2.5" aria-hidden="true" />
+      <span className={cn(chip, 'text-red-600 dark:text-red-400')} aria-label="Managed nodes expired">
+        <Clock className="h-2.5 w-2.5" aria-hidden="true" />
         expired
       </span>
     );
@@ -639,19 +518,10 @@ function ExpiryPip({ expiresAt }: { expiresAt: string }) {
   const days = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
   const label = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
-  const tone =
-    totalHours < 6
-      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
-      : 'bg-muted text-muted-foreground';
+  const tone = totalHours < 6 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-400 dark:text-zinc-500';
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]',
-        tone,
-      )}
-      aria-label={`Expires in ${label}`}
-    >
-      <Clock className="w-2.5 h-2.5" aria-hidden="true" />
+    <span className={cn(chip, tone)} aria-label={`Expires in ${label}`}>
+      <Clock className="h-2.5 w-2.5" aria-hidden="true" />
       {label}
     </span>
   );

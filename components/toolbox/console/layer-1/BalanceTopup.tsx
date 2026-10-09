@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Check, ArrowUpRight, RefreshCw, Copy, Wallet, AlertTriangle } from 'lucide-react';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Check, ArrowUpRight, RefreshCw, Copy, RotateCcw } from 'lucide-react';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '../../components/Button';
+import { Alert } from '../../components/Alert';
+import { Board, BoardHeader, HashChip, SpecPlate, SpecRow, UNIT } from '@/components/explorer-v2/ui';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import SelectValidationID, { ValidationSelection } from '../../components/SelectValidationID';
 import SelectSubnetId from '../../components/SelectSubnetId';
@@ -115,7 +117,9 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
 
     try {
       if (!coreWalletClient) {
-        setError('This operation requires Core Wallet for P-Chain transactions. Use the CLI alternative below.');
+        setError(
+          'P-Chain transactions need Core or a Console wallet. Connect one from the top bar, or use the CLI alternative below.',
+        );
         setLoading(false);
         return;
       }
@@ -165,88 +169,77 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
   const isDisabled =
     loading || !validatorSelection.validationId || !amount || Number(amount) <= 0 || Number(amount) > pChainBalance;
 
+  const lowerError = error?.toLowerCase() ?? '';
+  const amountError = error && (lowerError.includes('amount') || lowerError.includes('balance')) ? error : null;
+  const generalError =
+    error &&
+    !lowerError.includes('amount') &&
+    !lowerError.includes('balance') &&
+    !lowerError.includes('validation') &&
+    !lowerError.includes('subnet')
+      ? error
+      : null;
+  const overBalance = amount !== '' && Number(amount) > pChainBalance;
+
   return (
     <SDKCodeViewer sources={SDK_SOURCES} height="auto">
-      <div>
+      <div className="not-prose">
         {operationSuccessful ? (
-          /* Success State */
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800">
-              <div className="flex items-start gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-green-900 dark:text-green-100">
-                    Balance Increased Successfully
-                  </h3>
-                  <p className="mt-1 text-xs text-green-700 dark:text-green-300">
-                    Added {amount} AVAX to validator balance
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Transaction Details */}
-            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">Amount</span>
-                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{amount} AVAX</span>
-              </div>
-              {subnetId && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">L1</span>
-                  <code className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
-                    {subnetId.slice(0, 8)}...{subnetId.slice(-6)}
-                  </code>
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">Validation ID</span>
-                <code className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
-                  {validatorSelection.validationId.slice(0, 8)}...{validatorSelection.validationId.slice(-6)}
-                </code>
-              </div>
-            </div>
-
-            {/* Transaction Hash */}
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-              <code className="flex-1 text-xs font-mono text-zinc-600 dark:text-zinc-400 truncate">
-                {validatorTxId}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopyTx}
-                className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                {txCopied ? (
-                  <Check className="h-3.5 w-3.5 text-green-500" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5 text-zinc-400" />
+          <div className="flex flex-col gap-4">
+            <Board className="border-x border-t">
+              <BoardHeader label="Balance increased" display action={<Confirmed />} />
+              <SpecPlate className="px-5 md:px-6">
+                <SpecRow label="Added">
+                  <span className="font-mono tabular-nums">
+                    {amount} <span className={UNIT}>AVAX</span>
+                  </span>
+                </SpecRow>
+                {subnetId && (
+                  <SpecRow label="L1">
+                    <HashChip value={subnetId} len={16} />
+                  </SpecRow>
                 )}
-              </button>
-              <a
-                href={explorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <ArrowUpRight className="h-3.5 w-3.5 text-zinc-400" />
-              </a>
-            </div>
+                <SpecRow label="Validation ID">
+                  <HashChip value={validatorSelection.validationId} len={16} />
+                </SpecRow>
+                <SpecRow label="Transaction">
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <code className="min-w-0 break-all font-mono text-[13px] text-zinc-700 dark:text-zinc-300">
+                        {validatorTxId}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={handleCopyTx}
+                        aria-label="Copy transaction ID"
+                        className="-m-1.5 shrink-0 p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+                      >
+                        {txCopied ? <Check className="h-3 w-3 text-[#E6212F]" /> : <Copy className="h-3 w-3" />}
+                      </button>
+                    </span>
+                    <a
+                      href={explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group/tx inline-flex shrink-0 items-center gap-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                    >
+                      Explorer
+                      <ArrowUpRight className="h-3 w-3 text-[#E6212F] transition-transform group-hover/tx:-translate-y-0.5 group-hover/tx:translate-x-0.5" />
+                    </a>
+                  </span>
+                </SpecRow>
+              </SpecPlate>
+            </Board>
 
-            <Button variant="secondary" onClick={clearForm} className="w-full">
+            <Button variant="outline" onClick={clearForm} icon={<RotateCcw className="h-3.5 w-3.5" />}>
               Increase Another Balance
             </Button>
           </div>
         ) : (
-          /* Form State with Steps */
           <Steps>
             <Step>
-              <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-1">Select L1</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                Choose the L1 network where your validator operates.
-              </p>
+              <h3>Select L1</h3>
+              <p>Choose the L1 your validator runs on.</p>
               <SelectSubnetId
                 value={subnetId}
                 onChange={setSubnetId}
@@ -256,10 +249,8 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
             </Step>
 
             <Step>
-              <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-1">Select Validator</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                Choose the validator to increase balance for.
-              </p>
+              <h3>Select Validator</h3>
+              <p>Choose the validator whose balance you want to increase.</p>
               <SelectValidationID
                 value={validatorSelection.validationId}
                 onChange={setValidatorSelection}
@@ -270,83 +261,101 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
             </Step>
 
             <Step>
-              <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-1">Enter Amount</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                Specify the AVAX amount to add to your validator's balance.
-              </p>
+              <h3>Enter Amount</h3>
+              <p>The AVAX to add to the validator&apos;s balance. It pays the continuous validation fee.</p>
 
-              <div className="space-y-4">
-                {/* Amount Input */}
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Amount</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.0"
-                      step="0.001"
-                      min="0"
-                      disabled={loading}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <label htmlFor="balance-topup-amount" className={EYEBROW}>
+                    Amount
+                  </label>
+                  <span className="inline-flex items-center gap-2">
+                    <span className={EYEBROW}>P-Chain balance</span>
+                    <span
                       className={cn(
-                        'w-full px-3 py-2 pr-16 text-sm rounded-lg border bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 transition-colors',
-                        error && error.toLowerCase().includes('amount')
-                          ? 'border-red-300 dark:border-red-700'
-                          : 'border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-600',
-                        'focus:outline-none focus:ring-2 focus:ring-zinc-500/20',
+                        'font-mono text-[12px] tabular-nums',
+                        overBalance ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-50',
                       )}
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700 rounded">
-                      AVAX
-                    </div>
-                  </div>
-                </div>
-
-                {/* Balance Display */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-zinc-400" />
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">P-Chain Balance</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                      {pChainBalance.toFixed(4)} AVAX
+                    >
+                      {pChainBalance.toFixed(4)} <span className={UNIT}>AVAX</span>
                     </span>
                     <button
                       type="button"
                       onClick={loading ? undefined : updatePChainBalance}
                       disabled={loading}
-                      className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                      aria-label="Refresh P-Chain balance"
+                      className="-m-1 p-1 text-zinc-400 transition-colors hover:text-zinc-900 disabled:opacity-50 dark:text-zinc-500 dark:hover:text-zinc-100"
                     >
-                      <RefreshCw className="w-3.5 h-3.5 text-zinc-400" />
+                      <RefreshCw className="h-3 w-3" />
                     </button>
-                  </div>
+                  </span>
                 </div>
-
-                {/* Error */}
-                {error &&
-                  !error.toLowerCase().includes('amount') &&
-                  !error.toLowerCase().includes('balance') &&
-                  !error.toLowerCase().includes('validation') &&
-                  !error.toLowerCase().includes('subnet') && (
-                    <div className="flex gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200/80 dark:border-red-800/50">
-                      <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-red-800 dark:text-red-200">{error}</p>
-                    </div>
-                  )}
-
-                {/* Submit Button */}
-                <CoreWalletTransactionButton
-                  onClick={increaseValidatorBalance}
-                  loading={loading}
-                  loadingText="Increasing Balance..."
-                  disabled={isDisabled}
-                  className="w-full"
-                  cliCommand={`platform-cli l1 increase-validator-balance --validation-id ${validatorSelection.validationId || '<validation-id>'} --balance ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'} --key-name <your-key-name>`}
-                >
-                  Increase Balance
-                </CoreWalletTransactionButton>
+                <div className="relative">
+                  <input
+                    id="balance-topup-amount"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.0"
+                    step="0.001"
+                    min="0"
+                    disabled={loading}
+                    aria-invalid={amountError ? true : undefined}
+                    className={cn(
+                      'h-10 w-full border bg-white px-3 pr-16 font-mono text-[13px] tabular-nums text-zinc-900 transition-colors placeholder:text-zinc-400 focus:outline-none disabled:opacity-60 dark:bg-zinc-950 dark:text-zinc-100',
+                      '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                      amountError || overBalance
+                        ? 'border-red-500 focus:border-red-600 dark:border-red-500 dark:focus:border-red-400'
+                        : 'border-zinc-300 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-100',
+                    )}
+                  />
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500"
+                  >
+                    AVAX
+                  </span>
+                </div>
+                {amountError ? (
+                  <p className="text-[12px] text-red-600 dark:text-red-400">{amountError}</p>
+                ) : overBalance ? (
+                  <p className="text-[12px] text-red-600 dark:text-red-400">More than your P-Chain balance.</p>
+                ) : null}
               </div>
+
+              <Board className="border-x border-t">
+                <BoardHeader
+                  label="Summary"
+                  action={<span className={EYEBROW}>{isTestnet ? 'Fuji' : 'Mainnet'}</span>}
+                />
+                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 px-5 py-4 text-[13px] md:px-6">
+                  <dt className="text-zinc-500 dark:text-zinc-400">Validation ID</dt>
+                  <dd className="flex min-w-0 justify-end text-right">
+                    {validatorSelection.validationId ? (
+                      <HashChip value={validatorSelection.validationId} len={12} />
+                    ) : (
+                      <span className="font-mono text-zinc-400 dark:text-zinc-500">—</span>
+                    )}
+                  </dd>
+                  <dt className="text-zinc-500 dark:text-zinc-400">Amount</dt>
+                  <dd className="text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-50">
+                    {amount || '—'} <span className={UNIT}>AVAX</span>
+                  </dd>
+                </dl>
+              </Board>
+
+              {generalError && <Alert variant="error">{generalError}</Alert>}
+
+              <CoreWalletTransactionButton
+                onClick={increaseValidatorBalance}
+                loading={loading}
+                loadingText="Increasing Balance..."
+                disabled={isDisabled}
+                className="w-full"
+                cliCommand={`platform-cli l1 increase-validator-balance --validation-id ${validatorSelection.validationId || '<validation-id>'} --balance ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'} --key-name <your-key-name>`}
+              >
+                Increase Balance
+              </CoreWalletTransactionButton>
             </Step>
           </Steps>
         )}
@@ -354,5 +363,16 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
     </SDKCodeViewer>
   );
 }
+
+function Confirmed() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400">
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+      Confirmed
+    </span>
+  );
+}
+
+const EYEBROW = 'font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400';
 
 export default withConsoleToolMetadata(ValidatorBalanceIncrease, metadata);

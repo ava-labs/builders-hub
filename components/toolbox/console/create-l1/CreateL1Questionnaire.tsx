@@ -1,29 +1,28 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import Link from 'next/link';
 import {
-  Shield,
-  Coins,
-  HandCoins,
-  User,
-  Users,
   ArrowRight,
-  ArrowLeft,
-  Sparkles,
   Check,
+  Coins,
   Droplets,
+  HandCoins,
   Link2,
   Link2Off,
+  Lock,
   PlayCircle,
+  Settings2,
+  Shield,
+  User,
+  Users,
   X,
   Zap,
-  Settings2,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Board, BoardHeader, Rise } from '@/components/explorer-v2/ui';
 import { AvaxLogo, LayersIcon, DockerLogo, CloudDeployIcon } from './icons';
-import Link from 'next/link';
 import {
   useCreateL1FlowStore,
   type StartingPoint,
@@ -36,157 +35,152 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { getCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { generateCreateL1Steps, getResumeStepKey, getStepLabel } from './generateSteps';
+import { clearStepFlowProgress } from '@/components/console/step-flow';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+const MIN_P_BALANCE = 0.1; // AVAX; pChainBalance from walletStore is in AVAX units
 
-const MIN_P_BALANCE = 0.1; // 0.1 AVAX — pChainBalance from walletStore is in AVAX units
+const EYEBROW = 'font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400';
+const LINK =
+  'text-zinc-600 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-zinc-100';
 
-// Q4 (multisig) only shown for PoA + C-Chain — total is dynamic
-
-// ---------------------------------------------------------------------------
-// Framer variants
-// ---------------------------------------------------------------------------
-
-const pageVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 80 : -80,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    transition: { type: 'spring' as const, stiffness: 300, damping: 30 },
-  },
-  exit: (direction: number) => ({
-    x: direction < 0 ? 80 : -80,
-    opacity: 0,
-    transition: { duration: 0.2 },
-  }),
+const VALIDATOR_LABEL: Record<ValidatorType, string> = {
+  poa: 'Proof of Authority',
+  'pos-native': 'Proof of Stake, native token',
+  'pos-erc20': 'Proof of Stake, ERC20',
 };
 
-// ---------------------------------------------------------------------------
-// Option card
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------------------------- */
 
-interface OptionCardProps<T extends string> {
-  id: T;
-  selected: boolean;
-  onSelect: (id: T) => void;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  recommended?: boolean;
-}
-
-function OptionCard<T extends string>({
-  id,
+/** One choice in a question: a cell in a hairline grid, outlined in ink when chosen. */
+function Option({
   selected,
   onSelect,
   icon,
   title,
   description,
   recommended,
-}: OptionCardProps<T>) {
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  recommended?: boolean;
+}) {
   return (
-    <motion.button
+    <button
       type="button"
-      onClick={() => onSelect(id)}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
       className={cn(
-        'relative flex flex-col items-start gap-4 rounded-2xl border p-6 text-left transition-all duration-200 w-full',
+        'group/opt relative flex flex-col gap-3 bg-white p-5 text-left transition-colors dark:bg-zinc-950',
         selected
-          ? 'border-zinc-600 bg-zinc-800 text-white'
-          : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700',
+          ? 'z-10 outline outline-2 -outline-offset-2 outline-zinc-900 dark:outline-zinc-100'
+          : 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-zinc-400 dark:hover:outline-zinc-600',
       )}
-      style={{
-        boxShadow: selected
-          ? 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)'
-          : 'inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 3px rgba(0,0,0,0.04)',
-      }}
     >
-      {/* Selection indicator */}
-      <div
-        className={cn(
-          'absolute top-5 right-5 flex h-5 w-5 items-center justify-center rounded-full transition-all duration-300',
-          selected
-            ? 'bg-white/20 text-white scale-100'
-            : 'border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-transparent scale-90',
-        )}
-      >
-        <Check className="h-3 w-3" strokeWidth={3} />
-      </div>
-
-      {/* Icon */}
-      <div
-        className={cn(
-          'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300',
-          selected ? 'bg-white/[0.08] text-zinc-200' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400',
-        )}
-      >
-        {icon}
-      </div>
-
-      {/* Text */}
-      <div className="space-y-1.5 pr-8">
-        <h4
-          className={cn(
-            'text-[15px] font-semibold leading-tight',
-            selected ? 'text-white' : 'text-zinc-900 dark:text-zinc-100',
-          )}
-        >
-          {title}
-        </h4>
-        <p className={cn('text-sm leading-relaxed', selected ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-400')}>
-          {description}
-        </p>
-      </div>
-
-      {/* Recommended */}
-      {recommended && (
+      <span className="flex items-start justify-between gap-3">
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase',
+            'flex h-9 w-9 items-center justify-center border transition-colors',
             selected
-              ? 'bg-white/[0.08] text-zinc-300'
-              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500',
+              ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-50'
+              : 'border-zinc-200 text-zinc-500 group-hover/opt:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:group-hover/opt:text-zinc-100',
           )}
         >
-          <Sparkles className="h-3 w-3" />
-          Recommended
+          {icon}
         </span>
-      )}
-    </motion.button>
+        <span className="flex items-center gap-2.5">
+          {recommended && <span className={EYEBROW}>Recommended</span>}
+          <span
+            className={cn(
+              'flex h-4 w-4 items-center justify-center rounded-full border',
+              selected
+                ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                : 'border-zinc-300 dark:border-zinc-700',
+            )}
+          >
+            {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+          </span>
+        </span>
+      </span>
+      <span className="mt-1 text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{title}</span>
+      <span className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</span>
+    </button>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Progress bar
-// ---------------------------------------------------------------------------
-
-function ProgressBar({ current, total }: { current: number; total: number }) {
+function Question({
+  n,
+  title,
+  hint,
+  cols,
+  children,
+}: {
+  n: number;
+  title: string;
+  hint: React.ReactNode;
+  cols: 2 | 3;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-center gap-2">
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} className="relative h-1 flex-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-          <motion.div
-            className="absolute inset-y-0 left-0 rounded-full bg-zinc-900 dark:bg-white"
-            initial={false}
-            animate={{ width: i <= current ? '100%' : '0%' }}
-            transition={{ duration: 0.4, ease: 'easeInOut' }}
-          />
-        </div>
-      ))}
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <p className="flex items-center gap-3">
+          <span className="font-mono text-[11px] font-bold tabular-nums text-[#E6212F]">
+            {String(n).padStart(2, '0')}
+          </span>
+          <span className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+            {title}
+          </span>
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        </p>
+        <p className="text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400">{hint}</p>
+      </div>
+      <div
+        role="radiogroup"
+        aria-label={title}
+        className={cn(
+          'grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800',
+          cols === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2',
+        )}
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/** A question an earlier answer already settles: shown with its answer and why, so nothing is hidden. */
+function Settled({ title, value, reason }: { title: string; value: string; reason: string }) {
+  return (
+    <div className="flex items-start gap-3 border border-zinc-200 bg-zinc-50 px-5 py-3.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+      <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        <span className="font-medium text-zinc-900 dark:text-zinc-100">{title}:</span> {value}. <span>{reason}</span>
+      </p>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
+function Notice({ tone, icon, children }: { tone: 'warn' | 'info'; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 border px-4 py-3 text-[13px]',
+        tone === 'warn'
+          ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200'
+          : 'border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300',
+      )}
+    >
+      {icon}
+      {children}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------------- */
 
 export default function CreateL1Questionnaire() {
   const router = useRouter();
@@ -194,60 +188,32 @@ export default function CreateL1Questionnaire() {
   const setCurrentStepIndex = useCreateL1FlowStore((s) => s.setCurrentStepIndex);
   const savedAnswers = useCreateL1FlowStore((s) => s.answers);
   const savedStepIndex = useCreateL1FlowStore((s) => s.currentStepIndex);
-
-  // Resume hint — surfaced as an opt-in banner on Q1 when an in-progress
-  // flow exists. We intentionally *don't* auto-redirect: network/store
-  // resets can leave stale `answers` in localStorage, and bouncing the user
-  // past the questionnaire against their will makes those resets confusing.
-  // One click to resume is a fair price for keeping the reset affordance
-  // working the way users expect.
-  const resumeStepKey = useMemo(() => getResumeStepKey(savedAnswers, savedStepIndex), [savedAnswers, savedStepIndex]);
   const resetFlow = useCreateL1FlowStore((s) => s.reset);
+
+  // Resume is opt-in: stale answers can survive a network or store reset, so the page never jumps ahead on its own.
+  const resumeStepKey = useMemo(() => getResumeStepKey(savedAnswers, savedStepIndex), [savedAnswers, savedStepIndex]);
 
   const { isTestnet, pChainBalance } = useWalletStore();
   const toolboxStore = useToolboxStore();
 
-  // Setup-mode gate: before any questionnaire question, ask whether the
-  // user wants a one-click Basic deploy or the full Advanced flow. `null`
-  // means the user hasn't chosen yet; 'advanced' continues into the
-  // existing Q1+ questions. `pendingSetupMode` is the transient card
-  // selection — committed to `setupMode` (or routed away) only when the
-  // user hits Continue, matching the typeform flow on every other Q.
-  const [setupMode, setSetupMode] = useState<'basic' | 'advanced' | null>(null);
-  const [pendingSetupMode, setPendingSetupMode] = useState<'basic' | 'advanced' | null>(null);
+  const [advanced, setAdvanced] = useState(false);
+  const configRef = useRef<HTMLDivElement>(null);
 
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-
-  // Q1: Validator type, Q2: VM location, Q3: Interop, Q4: Ownership (conditional), Q5: Hosting
-  // Convert-existing flow was dropped — the questionnaire only creates new L1s now.
+  // The questionnaire only creates new L1s; converting an existing Subnet is its own tool.
   const startingPoint: StartingPoint = 'new';
   const [validatorType, setValidatorTypeRaw] = useState<ValidatorType>('poa');
-  const [vmLocationRaw, setVmLocationRaw] = useState<VMLocation>('l1');
+  const [vmLocation, setVmLocationRaw] = useState<VMLocation>('l1');
   const [multisig, setMultisig] = useState(false);
-  // Advanced flow defaults to Docker — users who opted into Advanced are
-  // typically running their own infra. Managed remains the Basic flow's
-  // implicit choice.
+  // Advanced means running your own infra more often than not, so Docker is the default; Basic is the managed path.
   const [hosting, setHosting] = useState<HostingOption>('docker');
   const [interoperability, setInteroperability] = useState(true);
 
-  // VM-location setter that enforces the Warp-required-on-L1 invariant.
-  // When the Validator Manager lives on the L1, it has to issue Warp
-  // messages back to the P-Chain to register validator add/remove/weight
-  // changes — that's only possible if the Warp precompile is in genesis
-  // (i.e. interoperability=true). Auto-flipping interop on saves the
-  // user a confusing "you can't do that" prompt later. The reverse
-  // (l1→c-chain) deliberately doesn't change interop: the user may
-  // legitimately want it on for ICM/bridges even with a C-Chain manager.
+  // A Validator Manager on the L1 Warp-messages the P-Chain on every validator change, so it needs Warp in genesis.
   const setVmLocation = useCallback((v: VMLocation) => {
     setVmLocationRaw(v);
     if (v === 'l1') setInteroperability(true);
   }, []);
-  const vmLocation = vmLocationRaw;
 
-  // Auto-switch VM location to recommended when validator type changes.
-  // Reuses the guarded setter so the interop invariant kicks in on the
-  // l1 branch automatically.
   const setValidatorType = useCallback(
     (v: ValidatorType) => {
       setValidatorTypeRaw(v);
@@ -256,645 +222,410 @@ export default function CreateL1Questionnaire() {
     [setVmLocation],
   );
 
-  // Constraint cascade: hide questions whose answers are forced by an
-  // upstream choice. Asking "where should the manager live?" when the
-  // chosen validator type only allows one answer is busywork; the user
-  // sees the locked-in result on the Review screen instead.
-  //
-  //   - PoS-Native validators stake the L1's *own* native token, so the
-  //     staking manager has to live on the L1 (it needs nativeMinter
-  //     authority — only available from L1-native code). That forces
-  //     vmLocation = 'l1', which in turn forces interop = true (the
-  //     manager has to Warp-message the P-Chain on validator changes).
-  //     Skip Q2 + Q3.
-  //   - PoA / PoS-ERC20 with vmLocation === 'l1': Warp is required for
-  //     P-Chain messaging. Skip Q3.
-  //   - Multisig (Q4) was already conditional on poa + c-chain.
+  // Native staking mints the L1's own token, so its manager must live on the L1; that in turn forces Warp on.
   const isPosNative = validatorType === 'pos-native';
   const showVmLocationQ = !isPosNative;
   const showInteropQ = vmLocation !== 'l1';
   const showMultisigQ = validatorType === 'poa' && vmLocation === 'c-chain';
-  const showHostingQ = true;
+  const effectiveHosting: HostingOption = !isTestnet && hosting === 'managed' ? 'docker' : hosting;
 
-  // Sequential indices of each question, with `null` marking "not in the
-  // flow this round". Render guards and Continue/Back use these directly,
-  // so adding/removing a conditional question is a one-line edit here
-  // rather than a search-and-replace across the JSX.
-  const idxQ1 = 0;
-  const idxQ2 = showVmLocationQ ? 1 : null;
-  const idxQ3 = showInteropQ ? 1 + (showVmLocationQ ? 1 : 0) : null;
-  const idxQ4 = showMultisigQ ? 1 + (showVmLocationQ ? 1 : 0) + (showInteropQ ? 1 : 0) : null;
-  const idxQ5 = 1 + (showVmLocationQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0);
-
-  const totalQuestions =
-    1 + (showVmLocationQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0) + (showHostingQ ? 1 : 0);
-
-  const previewAnswers: QuestionnaireAnswers = useMemo(
+  const answers: QuestionnaireAnswers = useMemo(
     () => ({
       startingPoint,
       validatorType,
       vmLocation,
       multisig: showMultisigQ ? multisig : false,
-      hosting,
+      hosting: effectiveHosting,
       interoperability,
     }),
-    [startingPoint, validatorType, vmLocation, multisig, showMultisigQ, hosting, interoperability, showInteropQ],
+    [startingPoint, validatorType, vmLocation, multisig, showMultisigQ, effectiveHosting, interoperability],
   );
+  const steps = useMemo(() => generateCreateL1Steps(answers), [answers]);
 
-  const previewSteps = useMemo(() => generateCreateL1Steps(previewAnswers), [previewAnswers]);
-
-  // Wallet preflight
-  // Only show faucet warning when balance is loaded AND explicitly low.
-  // pChainBalance defaults to 0 before fetch — don't warn on unfetched state.
-  // The P-Chain step has its own balance check for the truly-zero case.
+  // pChainBalance is 0 until it loads, so only a loaded, low balance warns; the P-Chain step checks zero itself.
   const needsFaucet =
     isTestnet && typeof pChainBalance === 'number' && pChainBalance > 0 && pChainBalance < MIN_P_BALANCE;
 
-  const goNext = useCallback(() => {
-    if (questionIndex < totalQuestions) {
-      setDirection(1);
-      setQuestionIndex((i) => i + 1);
-    }
-  }, [questionIndex, totalQuestions]);
-
-  const goBack = useCallback(() => {
-    if (questionIndex > 0) {
-      setDirection(-1);
-      setQuestionIndex((i) => i - 1);
-    } else {
-      // At the first question, Back returns to the Basic vs Advanced chooser.
-      setSetupMode(null);
-    }
-  }, [questionIndex]);
+  const chooseAdvanced = () => {
+    setAdvanced(true);
+    requestAnimationFrame(() => configRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   function handleStart() {
-    // Clear stale data from previous sessions so steps start fresh
+    // A new run starts from clean chain, toolbox and step-progress state.
     getCreateChainStore(Boolean(isTestnet)).getState().reset();
     toolboxStore.reset();
-
-    setAnswers(previewAnswers);
+    clearStepFlowProgress('/console/create-l1');
+    setAnswers(answers);
     setCurrentStepIndex(0);
-    const firstStepKey = previewSteps[0]?.key;
-    if (firstStepKey) {
-      router.push(`/console/create-l1/${firstStepKey}`);
-    }
+    const first = steps[0]?.key;
+    if (first) router.push(`/console/create-l1/${first}`);
   }
 
-  // Review page is index === totalQuestions
-  const isReview = questionIndex === totalQuestions;
-
-  // Setup-mode chooser — rendered as the first question in the typeform
-  // flow, with the same progress bar / Back / Continue chrome as every
-  // other question. Card selection is pending until the user hits
-  // Continue; at that point we either route to /basic or flip into the
-  // Advanced questionnaire.
-  if (setupMode === null) {
-    const totalSteps = totalQuestions + 1; // +1 for this chooser
-    const handleContinue = () => {
-      if (pendingSetupMode === 'basic') {
-        router.push('/console/create-l1/basic');
-      } else if (pendingSetupMode === 'advanced') {
-        setSetupMode('advanced');
-      }
-    };
-
-    return (
-      <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col">
-        {/* Testnet suggestion — mirror the Q1 behavior so the preflight
-            hint surfaces on the very first screen. */}
-        {!isTestnet && (
-          <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
-            <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
-              We recommend starting on <span className="font-semibold">Fuji testnet</span> for development. Switch
-              networks in the top-right corner.
-            </p>
-          </div>
-        )}
-
-        {/* Progress bar — chooser is step 1 of totalSteps */}
-        <div className="mb-8">
-          <ProgressBar current={0} total={totalSteps + 1} />
-          <div className="flex items-center justify-between mt-3">
-            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-              Question 1 of {totalSteps}
-            </p>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
-          </div>
-        </div>
-
-        {/* Question area — animated like the rest of the flow */}
-        <div className="flex-1 relative">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="q-setup-mode"
-              custom={1}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Choose a setup
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  Basic is a one-click deploy with sensible defaults. Advanced opens up every configuration option.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <OptionCard
-                  id="basic"
-                  selected={pendingSetupMode === 'basic'}
-                  onSelect={setPendingSetupMode}
-                  icon={<Zap className="h-5 w-5" />}
-                  title="Basic setup"
-                  description="One-click deploy with sensible defaults. Subnet, genesis, a managed validator node, and the Validator Manager — handled."
-                  recommended
-                />
-                <OptionCard
-                  id="advanced"
-                  selected={pendingSetupMode === 'advanced'}
-                  onSelect={setPendingSetupMode}
-                  icon={<Settings2 className="h-5 w-5" />}
-                  title="Advanced setup"
-                  description="Configure each precompile, pick PoA / PoS Native / PoS ERC20, manage multisig keys, choose Docker or managed infra."
-                />
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Navigation — same shape as Q2+ */}
-        <div className="mt-10 flex items-center justify-between">
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <button
-            type="button"
-            onClick={handleContinue}
-            disabled={!pendingSetupMode}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-colors shadow-sm',
-              pendingSetupMode
-                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100'
-                : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed',
-            )}
-          >
-            Continue
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    );
-  }
+  let n = 0;
 
   return (
-    <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col">
-      {/* Testnet suggestion for new users on mainnet */}
-      {!isTestnet && questionIndex === 0 && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
-          <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
-            We recommend starting on <span className="font-semibold">Fuji testnet</span> for development. Switch
-            networks in the top-right corner.
-          </p>
-        </div>
-      )}
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 pb-20 pt-2">
+      <Rise className="flex flex-col gap-3">
+        <p className={EYEBROW}>Create L1</p>
+        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl dark:text-zinc-50">
+          Launch your own Avalanche L1.
+        </h1>
+        <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Deploy one on Fuji in a click, or choose how validators join, where the Validator Manager lives, whether the
+          chain talks to others, and who hosts the nodes.
+        </p>
+      </Rise>
 
-      {/* Resume banner — only on Q1, when an in-progress flow is detected.
-          Clicking "Resume" jumps the user to the step they left off on;
-          dismissing clears the flow store so the banner disappears and
-          normal questionnaire flow resumes. */}
-      {questionIndex === 0 && resumeStepKey && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3">
-          <PlayCircle className="h-5 w-5 text-zinc-600 dark:text-zinc-300 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Resume your previous flow</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-              Pick up at{' '}
-              <span className="font-medium text-zinc-700 dark:text-zinc-300">{getStepLabel(resumeStepKey)}</span>
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push(`/console/create-l1/${resumeStepKey}`)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 dark:bg-white px-3 py-1.5 text-xs font-semibold text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
-          >
-            Resume
-            <ArrowRight className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            onClick={resetFlow}
-            title="Dismiss — start a new flow"
-            className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* ── Progress ──────────────────────────────────────── */}
-      {/* The Basic vs Advanced chooser counts as Q1, so the Advanced
-          questionnaire picks up from Q2 onward. `+1` shifts both the
-          displayed index and the total. */}
-      <div className="mb-8">
-        <ProgressBar current={questionIndex + 1} total={totalQuestions + 2} />
-        <div className="flex items-center justify-between mt-3">
-          <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-            {isReview ? 'Review' : `Question ${questionIndex + 2} of ${totalQuestions + 1}`}
-          </p>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
-        </div>
-      </div>
-
-      {/* ── Question area ─────────────────────────────────── */}
-      <div className="flex-1 relative">
-        <AnimatePresence mode="wait" custom={direction}>
-          {/* Q1: Validator management type */}
-          {questionIndex === idxQ1 && (
-            <motion.div
-              key="q-validator"
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Validator management
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  How validators join and leave the network.{' '}
-                  <Link
-                    href="/academy/avalanche-l1/permissioned-l1s"
-                    target="_blank"
-                    className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
-                  >
-                    Compare approaches →
-                  </Link>
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <OptionCard
-                  id="poa"
-                  selected={validatorType === 'poa'}
-                  onSelect={setValidatorType}
-                  icon={<Shield className="h-5 w-5" />}
-                  title="Proof of Authority"
-                  description="An owner address controls who can validate. Best for private or permissioned networks."
-                />
-                <OptionCard
-                  id="pos-native"
-                  selected={validatorType === 'pos-native'}
-                  onSelect={setValidatorType}
-                  icon={<Coins className="h-5 w-5" />}
-                  title="Proof of Stake (Native)"
-                  description="Validators stake your L1's native token. Open and permissionless."
-                />
-                <OptionCard
-                  id="pos-erc20"
-                  selected={validatorType === 'pos-erc20'}
-                  onSelect={setValidatorType}
-                  icon={<HandCoins className="h-5 w-5" />}
-                  title="Proof of Stake (ERC20)"
-                  description="Validators stake an ERC20 token. Flexible tokenomics."
-                />
-              </div>
-            </motion.div>
+      {(!isTestnet || resumeStepKey) && (
+        <div className="flex flex-col gap-2">
+          {!isTestnet && (
+            <Notice tone="warn" icon={<Droplets className="h-4 w-4 shrink-0" />}>
+              <span className="flex-1">
+                You&apos;re on mainnet. Start on <span className="font-semibold">Fuji testnet</span> while you build:
+                switch networks from the top bar.
+              </span>
+            </Notice>
           )}
+          {resumeStepKey && (
+            <Notice tone="info" icon={<PlayCircle className="h-4 w-4 shrink-0 text-zinc-500" />}>
+              <span className="min-w-0 flex-1 truncate">
+                You have a deployment in progress. Pick up at{' '}
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">{getStepLabel(resumeStepKey)}</span>.
+              </span>
+              <button
+                type="button"
+                onClick={() => router.push(`/console/create-l1/${resumeStepKey}`)}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 border border-zinc-900 bg-zinc-900 px-3 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              >
+                Resume <ArrowRight className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetFlow();
+                  clearStepFlowProgress('/console/create-l1');
+                }}
+                title="Discard it and start a new one"
+                aria-label="Discard the deployment in progress"
+                className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </Notice>
+          )}
+        </div>
+      )}
 
-          {/* Q2: VM location — skipped when validatorType === 'pos-native'
-              because the staking manager has to live on the L1. */}
-          {idxQ2 !== null && questionIndex === idxQ2 && (
-            <motion.div
-              key="q-vm"
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Validator Manager location
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  Where the on-chain contract that manages your validators is deployed.{' '}
-                  <Link
-                    href="/docs/avalanche-l1s/validator-manager/contract"
-                    target="_blank"
-                    className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
-                  >
-                    Learn more →
+      <Rise
+        delay={0.05}
+        className="grid grid-cols-1 border-l border-t border-zinc-200 md:grid-cols-2 dark:border-zinc-800"
+      >
+        <button
+          type="button"
+          onClick={() => router.push('/console/create-l1/basic')}
+          className="group/door flex min-h-48 flex-col gap-3 border-b border-r border-zinc-200 bg-white/80 p-6 text-left dark:border-zinc-800 dark:bg-zinc-950/80"
+        >
+          <span className="flex items-center justify-between">
+            <span className={EYEBROW}>Basic · Fuji · Recommended</span>
+            <Zap className="h-4 w-4 text-zinc-400 transition-colors group-hover/door:text-zinc-900 dark:group-hover/door:text-zinc-100" />
+          </span>
+          <span className="mt-auto flex items-center gap-2 text-[20px] font-semibold text-zinc-900 dark:text-zinc-50">
+            <span className="underline-offset-4 group-hover/door:underline">One-click L1</span>
+            <ArrowRight className="h-4 w-4 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/door:translate-x-0 group-hover/door:opacity-100" />
+          </span>
+          <span className="max-w-md text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Subnet, genesis, a managed validator node and the Validator Manager, with sensible defaults. Name it and
+            deploy.
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={chooseAdvanced}
+          aria-expanded={advanced}
+          className={cn(
+            'group/door flex min-h-48 flex-col gap-3 border-b border-r border-zinc-200 p-6 text-left transition-colors dark:border-zinc-800',
+            advanced
+              ? 'bg-zinc-50 outline outline-2 -outline-offset-2 outline-zinc-900 dark:bg-zinc-900 dark:outline-zinc-100'
+              : 'bg-white/80 dark:bg-zinc-950/80',
+          )}
+        >
+          <span className="flex items-center justify-between">
+            <span className={EYEBROW}>Advanced · Fuji or mainnet</span>
+            <Settings2 className="h-4 w-4 text-zinc-400 transition-colors group-hover/door:text-zinc-900 dark:group-hover/door:text-zinc-100" />
+          </span>
+          <span className="mt-auto flex items-center gap-2 text-[20px] font-semibold text-zinc-900 dark:text-zinc-50">
+            <span className="underline-offset-4 group-hover/door:underline">Configure it yourself</span>
+            <ArrowRight
+              className={cn(
+                'h-4 w-4 text-[#E6212F] transition-all',
+                advanced
+                  ? 'rotate-90 opacity-100'
+                  : '-translate-x-1 opacity-0 group-hover/door:translate-x-0 group-hover/door:opacity-100',
+              )}
+            />
+          </span>
+          <span className="max-w-md text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Proof of Authority or Proof of Stake, the Validator Manager on your L1 or the C-Chain, a Safe multisig, and
+            Docker or managed nodes. Step by step, with your wallet.
+          </span>
+        </button>
+      </Rise>
+
+      {advanced && (
+        <div ref={configRef} className="grid scroll-mt-8 grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <Rise className="flex min-w-0 flex-col gap-10">
+            <Question
+              n={++n}
+              title="Validators"
+              cols={3}
+              hint={
+                <>
+                  How validators join and leave the network.{' '}
+                  <Link href="/academy/avalanche-l1/permissioned-l1s" target="_blank" className={LINK}>
+                    Compare approaches
                   </Link>
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <OptionCard
-                  id="l1"
+                </>
+              }
+            >
+              <Option
+                selected={validatorType === 'poa'}
+                onSelect={() => setValidatorType('poa')}
+                icon={<Shield className="h-4 w-4" />}
+                title="Proof of Authority"
+                description="An owner address decides who validates. For private or permissioned networks."
+              />
+              <Option
+                selected={validatorType === 'pos-native'}
+                onSelect={() => setValidatorType('pos-native')}
+                icon={<Coins className="h-4 w-4" />}
+                title="Proof of Stake, native"
+                description="Validators stake your L1's native token. Open and permissionless."
+              />
+              <Option
+                selected={validatorType === 'pos-erc20'}
+                onSelect={() => setValidatorType('pos-erc20')}
+                icon={<HandCoins className="h-4 w-4" />}
+                title="Proof of Stake, ERC20"
+                description="Validators stake an ERC20 token, for tokenomics of your own."
+              />
+            </Question>
+
+            {showVmLocationQ ? (
+              <Question
+                n={++n}
+                title="Validator Manager"
+                cols={2}
+                hint={
+                  <>
+                    Where the contract that registers and removes validators is deployed.{' '}
+                    <Link href="/docs/avalanche-l1s/validator-manager/contract" target="_blank" className={LINK}>
+                      How it works
+                    </Link>
+                  </>
+                }
+              >
+                <Option
                   selected={vmLocation === 'l1'}
-                  onSelect={setVmLocation}
-                  icon={<LayersIcon className="h-5 w-5" />}
+                  onSelect={() => setVmLocation('l1')}
+                  icon={<LayersIcon className="h-4 w-4" />}
                   title="On the L1"
-                  description="Included in genesis via proxy contract. Lower gas costs, validators manage their own chain."
-                  recommended={validatorType === 'poa' || validatorType === 'pos-native'}
+                  description="In genesis behind a proxy. Lower gas, and your validators run their own chain."
+                  recommended={validatorType === 'poa'}
                 />
-                <OptionCard
-                  id="c-chain"
+                <Option
                   selected={vmLocation === 'c-chain'}
-                  onSelect={setVmLocation}
-                  icon={<AvaxLogo className="h-5 w-5" />}
-                  title="On C-Chain"
-                  description="Deployed on Avalanche's C-Chain. Simpler bootstrap, required for ERC20 staking."
+                  onSelect={() => setVmLocation('c-chain')}
+                  icon={<AvaxLogo className="h-4 w-4" />}
+                  title="On the C-Chain"
+                  description="Deployed on Avalanche's C-Chain. Simpler to bootstrap; needed for ERC20 staking."
                   recommended={validatorType === 'pos-erc20'}
                 />
-              </div>
-            </motion.div>
-          )}
+              </Question>
+            ) : (
+              <Settled
+                title="Validator Manager"
+                value="on the L1"
+                reason="Native staking mints the L1's own token, which only code on the L1 can do."
+              />
+            )}
 
-          {/* Q3: Interoperability — only shown when vmLocation === 'c-chain'.
-              On-L1 Validator Managers force Warp on (the manager has to
-              Warp-message the P-Chain on validator changes), so the
-              question would have only one valid answer; we skip it. */}
-          {idxQ3 !== null && questionIndex === idxQ3 && !isReview && (
-            <motion.div
-              key="q-interop"
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Interoperability
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  Bake the Warp precompile and Teleporter (ICM) messenger into your L1&apos;s genesis so it can send and
-                  receive cross-chain messages.{' '}
-                  <Link
-                    href="/docs/cross-chain"
-                    target="_blank"
-                    className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
-                  >
-                    What is ICM? →
-                  </Link>
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <OptionCard
-                  id="yes"
+            {showInteropQ ? (
+              <Question
+                n={++n}
+                title="Interoperability"
+                cols={2}
+                hint={
+                  <>
+                    Put the Warp precompile and the Teleporter (ICM) messenger in genesis so the chain can message other
+                    chains.{' '}
+                    <Link href="/docs/cross-chain" target="_blank" className={LINK}>
+                      What is ICM
+                    </Link>
+                  </>
+                }
+              >
+                <Option
                   selected={interoperability}
                   onSelect={() => setInteroperability(true)}
-                  icon={<Link2 className="h-5 w-5" />}
-                  title="Enable cross-chain messaging"
-                  description="Includes the Warp precompile and pre-deploys the Teleporter messenger. Required for ICM, bridges, and ICTT."
+                  icon={<Link2 className="h-4 w-4" />}
+                  title="Cross-chain messaging"
+                  description="Warp plus a pre-deployed Teleporter messenger. Needed for ICM, bridges and ICTT."
                   recommended
                 />
-                <OptionCard
-                  id="no"
+                <Option
                   selected={!interoperability}
                   onSelect={() => setInteroperability(false)}
-                  icon={<Link2Off className="h-5 w-5" />}
+                  icon={<Link2Off className="h-4 w-4" />}
                   title="Isolated L1"
-                  description="Skips Warp and Teleporter. Smaller genesis, but your chain can't message other Avalanche L1s."
+                  description="No Warp or Teleporter. A smaller genesis, but no messages to other L1s."
                 />
-              </div>
-            </motion.div>
-          )}
+              </Question>
+            ) : (
+              <Settled
+                title="Interoperability"
+                value="on"
+                reason="A Validator Manager on the L1 reports validator changes to the P-Chain over Warp."
+              />
+            )}
 
-          {/* Q4: Ownership (only for PoA + C-Chain) */}
-          {idxQ4 !== null && questionIndex === idxQ4 && (
-            <motion.div
-              key="q3"
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Contract ownership
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  Who controls the Validator Manager. You can transfer ownership later.{' '}
-                  <Link
-                    href="/academy/avalanche-l1/permissioned-l1s"
-                    target="_blank"
-                    className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
-                  >
-                    Security best practices →
-                  </Link>
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <OptionCard
-                  id="no"
+            {showMultisigQ && (
+              <Question
+                n={++n}
+                title="Ownership"
+                cols={2}
+                hint={
+                  <>
+                    Who controls the Validator Manager. You can transfer it later.{' '}
+                    <Link href="/academy/avalanche-l1/permissioned-l1s" target="_blank" className={LINK}>
+                      Security practices
+                    </Link>
+                  </>
+                }
+              >
+                <Option
                   selected={!multisig}
                   onSelect={() => setMultisig(false)}
-                  icon={<User className="h-5 w-5" />}
+                  icon={<User className="h-4 w-4" />}
                   title="Single wallet"
-                  description="Your connected wallet. Fast and simple."
+                  description="The wallet you're connected with. Quick and simple."
                   recommended
                 />
-                <OptionCard
-                  id="yes"
+                <Option
                   selected={multisig}
                   onSelect={() => setMultisig(true)}
-                  icon={<Users className="h-5 w-5" />}
+                  icon={<Users className="h-4 w-4" />}
                   title="Safe multisig"
-                  description={
-                    vmLocation === 'c-chain'
-                      ? 'Transfer ownership to a Safe on C-Chain. Production-ready security.'
-                      : 'Requires Safe to be deployed on your L1 first. Safe must index your chain before setup.'
-                  }
+                  description="Ownership moves to a Safe on the C-Chain. Production-grade control."
                 />
-              </div>
-            </motion.div>
-          )}
+              </Question>
+            )}
 
-          {/* Q5 (index depends on which earlier questions are shown): Hosting */}
-          {showHostingQ && questionIndex === idxQ5 && !isReview && (
-            <motion.div
-              key="q-hosting"
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Infrastructure
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  How your L1 nodes and validators are hosted.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {isTestnet && (
-                  <OptionCard
-                    id="managed"
-                    selected={hosting === 'managed'}
-                    onSelect={setHosting}
-                    icon={<CloudDeployIcon className="h-5 w-5" />}
-                    title="Managed"
-                    description="One-click hosted nodes and relayer on Fuji testnet. Fastest way to get started."
-                    recommended
-                  />
-                )}
-                <OptionCard
-                  id="docker"
-                  selected={hosting === 'docker'}
-                  onSelect={setHosting}
-                  icon={<DockerLogo className="h-5 w-5" />}
-                  title="Docker"
-                  description="Run AvalancheGo in Docker on your own machine or server."
-                  recommended={!isTestnet}
+            <Question n={++n} title="Infrastructure" cols={2} hint="Where your L1's nodes run.">
+              {isTestnet && (
+                <Option
+                  selected={effectiveHosting === 'managed'}
+                  onSelect={() => setHosting('managed')}
+                  icon={<CloudDeployIcon className="h-4 w-4" />}
+                  title="Managed"
+                  description="Hosted nodes and a relayer on Fuji, set up for you. The fastest start."
+                  recommended
                 />
-              </div>
-            </motion.div>
-          )}
-
-          {isReview && (
-            <motion.div
-              key="review"
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-8"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Review your setup
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  Your custom deployment flow based on the choices above.
-                </p>
-              </div>
-
-              {needsFaucet && (
-                <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4">
-                  <Droplets className="h-5 w-5 text-amber-500 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Low P-Chain balance</p>
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      A faucet step has been added to your flow. You&apos;ll need AVAX for P-Chain transactions.
-                    </p>
-                  </div>
-                </div>
               )}
+              <Option
+                selected={effectiveHosting === 'docker'}
+                onSelect={() => setHosting('docker')}
+                icon={<DockerLogo className="h-4 w-4" />}
+                title="Docker"
+                description="AvalancheGo in Docker on your own machine or server."
+                recommended={!isTestnet}
+              />
+            </Question>
+          </Rise>
 
-              {/* Dark timeline card */}
-              <div
-                className="rounded-2xl border border-zinc-700 bg-zinc-800 p-6"
-                style={{
-                  boxShadow:
-                    'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
-                }}
-              >
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-base font-semibold text-white">Deployment steps</h3>
-                  <span className="text-sm text-zinc-400 tabular-nums">
-                    {previewSteps.length + (needsFaucet ? 1 : 0)} steps
-                  </span>
-                </div>
+          <aside className="lg:sticky lg:top-8 lg:self-start">
+            <Board className="border-x border-t">
+              <BoardHeader label="Your deployment" display />
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 px-5 py-4 text-[13px]">
+                <dt className="text-zinc-500 dark:text-zinc-400">Validators</dt>
+                <dd className="text-right font-medium text-zinc-900 dark:text-zinc-50">
+                  {VALIDATOR_LABEL[validatorType]}
+                </dd>
+                <dt className="text-zinc-500 dark:text-zinc-400">Manager</dt>
+                <dd className="text-right font-medium text-zinc-900 dark:text-zinc-50">
+                  {vmLocation === 'l1' ? 'On the L1' : 'On the C-Chain'}
+                </dd>
+                <dt className="text-zinc-500 dark:text-zinc-400">Interop</dt>
+                <dd className="text-right font-medium text-zinc-900 dark:text-zinc-50">
+                  {interoperability ? 'Warp + Teleporter' : 'Isolated'}
+                </dd>
+                {showMultisigQ && (
+                  <>
+                    <dt className="text-zinc-500 dark:text-zinc-400">Owner</dt>
+                    <dd className="text-right font-medium text-zinc-900 dark:text-zinc-50">
+                      {multisig ? 'Safe multisig' : 'Your wallet'}
+                    </dd>
+                  </>
+                )}
+                <dt className="text-zinc-500 dark:text-zinc-400">Nodes</dt>
+                <dd className="text-right font-medium text-zinc-900 dark:text-zinc-50">
+                  {effectiveHosting === 'managed' ? 'Managed' : 'Docker'}
+                </dd>
+              </dl>
 
-                <div className="space-y-0">
-                  {needsFaucet && (
-                    <div className="flex items-start gap-3">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 dark:bg-white text-[10px] font-bold text-white">
-                          <Droplets className="h-3 w-3" />
-                        </div>
-                        <div className="w-px h-5 bg-zinc-700" />
-                      </div>
-                      <span className="text-sm text-amber-400 pt-0.5 font-medium">Get testnet AVAX from faucet</span>
-                    </div>
-                  )}
-                  {previewSteps.map((step, idx) => (
-                    <div key={step.key} className="flex items-start gap-3">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-bold text-zinc-300">
-                          {idx + 1 + (needsFaucet ? 1 : 0)}
-                        </div>
-                        {idx < previewSteps.length - 1 && <div className="w-px h-5 bg-zinc-700" />}
-                      </div>
-                      <span className="text-sm text-zinc-300 pt-0.5">{getStepLabel(step.key)}</span>
-                    </div>
+              <div className="px-5 py-4">
+                <p className="mb-3 flex items-baseline justify-between">
+                  <span className={EYEBROW}>Steps</span>
+                  <span className="font-mono text-[10px] tabular-nums text-zinc-400">{steps.length}</span>
+                </p>
+                <ol className="flex flex-col gap-1.5">
+                  {steps.map((step, i) => (
+                    <li
+                      key={step.key}
+                      className="flex items-baseline gap-3 text-[13px] text-zinc-700 dark:text-zinc-300"
+                    >
+                      <span className="w-4 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-400">
+                        {i + 1}
+                      </span>
+                      {getStepLabel(step.key)}
+                    </li>
                   ))}
-                </div>
-
-                {previewSteps.length > 7 && (
-                  <p className="mt-5 text-xs text-zinc-500 border-t border-zinc-700 pt-4">
-                    This is a comprehensive flow. Each step can also be accessed individually from the{' '}
-                    <span className="text-zinc-400">Toolbox</span>.
+                </ol>
+                {steps.length > 7 && (
+                  <p className="mt-4 text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    Each step is also its own tool in the{' '}
+                    <Link href="/console/toolbox" className={LINK}>
+                      Toolbox
+                    </Link>
+                    .
                   </p>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
-      {/* ── Navigation ────────────────────────────────────── */}
-      <div className="mt-10 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={goBack}
-          className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-
-        {isReview ? (
-          <motion.button
-            type="button"
-            onClick={handleStart}
-            whileHover={{ y: -2, scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="group inline-flex items-center gap-3 rounded-xl bg-zinc-900 dark:bg-white px-8 py-3.5 text-base font-semibold text-white dark:text-zinc-900"
-            style={{
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.12)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)';
-            }}
-          >
-            Start deployment
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </motion.button>
-        ) : (
-          <button
-            type="button"
-            onClick={goNext}
-            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-6 py-3 text-sm font-semibold text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-sm"
-          >
-            Continue
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+              <div className="px-5 py-4">
+                <button
+                  type="button"
+                  onClick={handleStart}
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 border border-zinc-900 bg-zinc-900 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                >
+                  Start deployment <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                {needsFaucet && (
+                  <p className="mt-3 flex gap-2 text-[12px] leading-relaxed text-amber-700 dark:text-amber-300">
+                    <Droplets className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      Your P-Chain balance is under {MIN_P_BALANCE} AVAX, and the P-Chain steps pay fees from it.{' '}
+                      <Link href="/console/primary-network/faucet" className="underline underline-offset-4">
+                        Get test AVAX
+                      </Link>
+                    </span>
+                  </p>
+                )}
+              </div>
+            </Board>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,12 +4,42 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/toolbox/components/Container';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import {
+  AlertTriangle,
+  ArrowRight,
+  ChevronDown,
+  Cpu,
+  HardDrive,
+  KeyRound,
+  Loader2,
+  MemoryStick,
+  PenLine,
+  RotateCcw,
+  ShieldCheck,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
 import { ReverseProxySetup } from '@/components/toolbox/components/ReverseProxySetup';
-import { Button } from '@/components/toolbox/components/Button';
+import {
+  CELL,
+  CHECKBOX,
+  COUNT,
+  Choice,
+  ChoiceGrid,
+  CodeBlock,
+  EYEBROW,
+  GRID,
+  HoverArrow,
+  INLINE_CODE,
+  INPUT,
+  LINK,
+  NOTE,
+  Notice,
+  PRIMARY_BTN,
+  SECONDARY_BTN,
+} from '@/components/toolbox/components/NodeSetupUI';
 import { SyntaxHighlightedJSON } from '@/components/toolbox/components/genesis/SyntaxHighlightedJSON';
 import {
   GenesisHighlightProvider,
@@ -271,6 +301,8 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     }
   };
 
+  const walletRpcUrl = buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' });
+
   return (
     <Container
       title="Primary Network Node Setup with Docker"
@@ -279,249 +311,164 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     >
       <Steps>
         <Step>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Choose your network, node type, and configure settings. The configuration preview updates in real-time.
-          </p>
+          <h3>Configure Node Settings</h3>
+          <p>Choose your network, node type, and settings. The config preview updates as you go.</p>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">Network</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedNetwork('mainnet')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedNetwork === 'mainnet'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Mainnet</div>
-                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Production network</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedNetwork('fuji')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedNetwork === 'fuji'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Fuji</div>
-                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Testnet</div>
-                  </button>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="flex min-w-0 flex-col gap-5">
+              <ChoiceGrid label="Network" cols={2}>
+                <Choice
+                  selected={selectedNetwork === 'mainnet'}
+                  onSelect={() => setSelectedNetwork('mainnet')}
+                  title="Mainnet"
+                  description="Production network"
+                />
+                <Choice
+                  selected={selectedNetwork === 'fuji'}
+                  onSelect={() => setSelectedNetwork('fuji')}
+                  title="Fuji"
+                  description="Testnet"
+                />
+              </ChoiceGrid>
 
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">Node Type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNodeType('validator')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      nodeType === 'validator'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator</div>
-                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">P2P only</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNodeType('rpc')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      nodeType === 'rpc'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC</div>
-                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Pruned</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNodeType('archival')}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      nodeType === 'archival'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Archival</div>
-                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Full history</div>
-                  </button>
-                </div>
-              </div>
+              <ChoiceGrid label="Node type" cols={3}>
+                <Choice
+                  selected={nodeType === 'validator'}
+                  onSelect={() => setNodeType('validator')}
+                  title="Validator"
+                  description="P2P only"
+                />
+                <Choice
+                  selected={nodeType === 'rpc'}
+                  onSelect={() => setNodeType('rpc')}
+                  title="RPC"
+                  description="Pruned"
+                />
+                <Choice
+                  selected={nodeType === 'archival'}
+                  onSelect={() => setNodeType('archival')}
+                  title="Archival"
+                  description="Full history"
+                />
+              </ChoiceGrid>
 
               <div onMouseEnter={() => setHighlightPath('logLevel')} onMouseLeave={clearHighlight}>
-                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">Log Level</label>
-                <div className="flex flex-wrap gap-1.5">
+                <ChoiceGrid label="Log level · info is the default" cols={5}>
                   {[
                     { value: 'error', label: 'Error' },
                     { value: 'warn', label: 'Warn' },
-                    { value: 'info', label: 'Info', default: true },
+                    { value: 'info', label: 'Info' },
                     { value: 'debug', label: 'Debug' },
                     { value: 'verbo', label: 'Verbose' },
                   ].map((level) => (
-                    <button
+                    <Choice
                       key={level.value}
-                      type="button"
-                      onClick={() => setLogLevel(level.value)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                        logLevel === level.value
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                          : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600'
-                      }`}
-                    >
-                      {level.label}
-                      {level.default && logLevel !== level.value && (
-                        <span className="ml-1 text-[10px] text-zinc-400">(default)</span>
-                      )}
-                    </button>
+                      compact
+                      selected={logLevel === level.value}
+                      onSelect={() => setLogLevel(level.value)}
+                      title={level.label}
+                    />
                   ))}
-                </div>
+                </ChoiceGrid>
               </div>
 
               {/* Pruning and State Sync - grouped together due to their interdependency */}
-              <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Storage Settings</span>
-                </div>
-
-                <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={pruningEnabled}
-                      onChange={(e) => setPruningEnabled(e.target.checked)}
-                      className="rounded"
-                    />
-                    <span className="text-sm font-medium">Enable Pruning</span>
-                  </label>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                    <strong className="text-zinc-700 dark:text-zinc-300">Pruning reduces disk usage by ~44x</strong>{' '}
-                    (13TB → 300GB) by removing old state data.
-                    {nodeType === 'validator' && ' Recommended for validators.'}
-                    {nodeType === 'rpc' && ' Recommended for RPC nodes serving current state.'}
-                    {nodeType === 'archival' && ' Not recommended for archival nodes that need full historical data.'}
-                  </p>
-                </div>
-
-                <div onMouseEnter={() => setHighlightPath('stateSyncEnabled')} onMouseLeave={clearHighlight}>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={stateSyncEnabled}
-                      onChange={(e) => setStateSyncEnabled(e.target.checked)}
-                      className="rounded"
-                    />
-                    <span className="text-sm font-medium">Enable State Sync</span>
-                  </label>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                    Fast bootstrap by syncing from a state summary instead of replaying all blocks.
-                    {nodeType === 'validator' && ' Recommended for validators to speed up initial sync.'}
-                    {nodeType === 'rpc' && ' Recommended for RPC nodes.'}
-                    {nodeType === 'archival' && ' Disable for archival nodes that need full historical data.'}
-                  </p>
-                </div>
+              <Group label="Storage">
+                <Toggle
+                  path="pruning"
+                  checked={pruningEnabled}
+                  onChange={setPruningEnabled}
+                  label="Enable Pruning"
+                  hint={
+                    <>
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">Cuts disk usage by ~44x</span>{' '}
+                      (13TB → 300GB) by removing old state data.
+                      {nodeType === 'validator' && ' Recommended for validators.'}
+                      {nodeType === 'rpc' && ' Recommended for RPC nodes serving current state.'}
+                      {nodeType === 'archival' && ' Not recommended for archival nodes that need full historical data.'}
+                    </>
+                  }
+                />
+                <Toggle
+                  path="stateSyncEnabled"
+                  checked={stateSyncEnabled}
+                  onChange={setStateSyncEnabled}
+                  label="Enable State Sync"
+                  hint={
+                    <>
+                      Bootstraps from a state summary instead of replaying every block.
+                      {nodeType === 'validator' && ' Recommended for validators to speed up initial sync.'}
+                      {nodeType === 'rpc' && ' Recommended for RPC nodes.'}
+                      {nodeType === 'archival' && ' Disable for archival nodes that need full historical data.'}
+                    </>
+                  }
+                />
 
                 {/* Warning when pruning and state sync settings don't match */}
                 {pruningEnabled !== stateSyncEnabled && (
-                  <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                    <svg
-                      className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      <strong>Mismatched settings:</strong> Pruning and State Sync are typically used together.
+                  <div className="p-3">
+                    <Notice icon={<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />}>
+                      <span className="font-semibold">Mismatched settings:</span> Pruning and State Sync are usually
+                      used together.
                       {pruningEnabled && !stateSyncEnabled
-                        ? ' Pruning is enabled but State Sync is disabled. For validators, enable both for optimal performance.'
-                        : ' State Sync is enabled but Pruning is disabled. For archival RPC nodes, disable both to preserve full history.'}
-                    </p>
+                        ? ' Pruning is on but State Sync is off. For validators, enable both for best performance.'
+                        : ' State Sync is on but Pruning is off. For archival RPC nodes, disable both to keep full history.'}
+                    </Notice>
                   </div>
                 )}
-              </div>
+              </Group>
 
               {isRPC && (
-                <>
-                  <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={enableDebugTrace}
-                        onChange={(e) => setEnableDebugTrace(e.target.checked)}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Enable Debug Trace</span>
-                    </label>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                      Enables debug APIs and detailed tracing capabilities
-                    </p>
-                  </div>
-
-                  <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={!skipTxIndexing}
-                        onChange={(e) => setSkipTxIndexing(!e.target.checked)}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Enable Transaction Indexing</span>
-                    </label>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                      Required for eth_getLogs and transaction lookups. Disable to save disk space.
-                    </p>
-                  </div>
-                </>
+                <Group label="RPC">
+                  <Toggle
+                    path="ethApis"
+                    checked={enableDebugTrace}
+                    onChange={setEnableDebugTrace}
+                    label="Enable Debug Trace"
+                    hint="Enables debug APIs and detailed tracing."
+                  />
+                  <Toggle
+                    path="skipTxIndexing"
+                    checked={!skipTxIndexing}
+                    onChange={(checked) => setSkipTxIndexing(!checked)}
+                    label="Enable Transaction Indexing"
+                    hint={
+                      <>
+                        Required for <code className={INLINE_CODE}>eth_getLogs</code> and transaction lookups. Disable
+                        to save disk space.
+                      </>
+                    }
+                  />
+                </Group>
               )}
 
               {/* Advanced Settings */}
-              <div className="border-t pt-4">
+              <div className="flex flex-col">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                  className="flex items-center justify-between w-full text-left"
+                  aria-expanded={showAdvancedSettings}
+                  className="group/adv flex h-11 w-full items-center justify-between gap-3 border border-zinc-200 bg-white/80 px-4 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950/80 dark:hover:border-zinc-600"
                 >
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Advanced Settings</span>
-                  <svg
-                    className={`w-5 h-5 transition-transform ${showAdvancedSettings ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
+                    Advanced settings
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 text-zinc-400 transition-transform group-hover/adv:text-zinc-900 dark:group-hover/adv:text-zinc-100',
+                      showAdvancedSettings && 'rotate-180',
+                    )}
+                  />
                 </button>
 
                 {showAdvancedSettings && (
-                  <div className="space-y-4 mt-4">
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      For advanced configuration options, see the{' '}
+                  <div className="flex flex-col divide-y divide-zinc-200 border-x border-b border-zinc-200 bg-white/80 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
+                    <p className={cn(NOTE, 'px-4 py-3')}>
+                      For every option, see the{' '}
                       <a
                         href="https://build.avax.network/docs/nodes/configure/configs-flags"
                         target="_blank"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        className={LINK}
                         rel="noreferrer"
                       >
                         AvalancheGo configuration
@@ -530,564 +477,306 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                       <a
                         href="https://build.avax.network/docs/nodes/chain-configs/c-chain"
                         target="_blank"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        className={LINK}
                         rel="noreferrer"
                       >
                         C-Chain configuration
                       </a>{' '}
-                      documentation.
-                    </span>
+                      docs.
+                    </p>
 
-                    <div>
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Cache Settings</h4>
+                    <Section label="Cache">
+                      <Fields>
+                        <NumberField
+                          path="trieCleanCache"
+                          label="Trie Clean Cache (MB)"
+                          value={trieCleanCache}
+                          onChange={(v) => setTrieCleanCache(Math.max(0, parseInt(v) || 0))}
+                        />
+                        <NumberField
+                          path="trieDirtyCache"
+                          label="Trie Dirty Cache (MB)"
+                          value={trieDirtyCache}
+                          onChange={(v) => setTrieDirtyCache(Math.max(0, parseInt(v) || 0))}
+                        />
+                        <NumberField
+                          path="snapshotCache"
+                          label="Snapshot Cache (MB)"
+                          value={snapshotCache}
+                          onChange={(v) => setSnapshotCache(Math.max(0, parseInt(v) || 0))}
+                        />
+                        <NumberField
+                          path="acceptedCacheSize"
+                          label="Accepted Cache Size (blocks)"
+                          hint="Depth of accepted headers and logs cache"
+                          value={acceptedCacheSize}
+                          onChange={(v) => setAcceptedCacheSize(Math.max(1, parseInt(v) || 1))}
+                        />
+                        <NumberField
+                          path="trieDirtyCommitTarget"
+                          label="Trie Dirty Commit Target (MB)"
+                          hint="Memory limit before commit"
+                          value={trieDirtyCommitTarget}
+                          onChange={(v) => setTrieDirtyCommitTarget(Math.max(1, parseInt(v) || 1))}
+                        />
+                        <NumberField
+                          path="triePrefetcherParallelism"
+                          label="Trie Prefetcher Parallelism"
+                          hint="Max concurrent disk reads"
+                          value={triePrefetcherParallelism}
+                          onChange={(v) => setTriePrefetcherParallelism(Math.max(1, parseInt(v) || 1))}
+                        />
+                        <NumberField
+                          path="stateSyncServerTrieCache"
+                          label="State Sync Server Trie Cache (MB)"
+                          hint="Trie cache for state sync server"
+                          value={stateSyncServerTrieCache}
+                          onChange={(v) => setStateSyncServerTrieCache(Math.max(0, parseInt(v) || 0))}
+                        />
+                      </Fields>
+                    </Section>
 
-                      <div className="space-y-3">
-                        <div onMouseEnter={() => setHighlightPath('trieCleanCache')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Trie Clean Cache (MB)
-                          </label>
-                          <input
-                            type="number"
-                            value={trieCleanCache}
-                            onChange={(e) => setTrieCleanCache(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('trieCleanCache')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                        </div>
+                    <Section label="Metrics" flush>
+                      <Toggle
+                        path="metricsExpensive"
+                        focusHighlight
+                        checked={metricsExpensiveEnabled}
+                        onChange={setMetricsExpensiveEnabled}
+                        label="Enable Expensive Metrics"
+                        hint="Debug-level metrics, including Firewood metrics. May impact performance."
+                      />
+                    </Section>
 
-                        <div onMouseEnter={() => setHighlightPath('trieDirtyCache')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Trie Dirty Cache (MB)
-                          </label>
-                          <input
-                            type="number"
-                            value={trieDirtyCache}
-                            onChange={(e) => setTrieDirtyCache(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('trieDirtyCache')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                        </div>
+                    <Section label="Performance">
+                      <Fields>
+                        <NumberField
+                          path="commitInterval"
+                          label="Commit Interval (blocks)"
+                          hint="Interval to persist EVM and atomic tries"
+                          value={commitInterval}
+                          onChange={(v) => setCommitInterval(Math.max(1, parseInt(v) || 1))}
+                        />
+                        <NumberField
+                          path="rpcGasCap"
+                          label="RPC Gas Cap"
+                          hint="Maximum gas limit for RPC calls"
+                          value={rpcGasCap}
+                          onChange={(v) => setRpcGasCap(Math.max(0, parseInt(v) || 0))}
+                        />
+                        <NumberField
+                          path="rpcTxFeeCap"
+                          label="RPC Tx Fee Cap (AVAX)"
+                          hint="Maximum transaction fee cap"
+                          value={rpcTxFeeCap}
+                          onChange={(v) => setRpcTxFeeCap(Math.max(0, parseInt(v) || 0))}
+                        />
+                      </Fields>
+                    </Section>
 
-                        <div onMouseEnter={() => setHighlightPath('snapshotCache')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Snapshot Cache (MB)
-                          </label>
-                          <input
-                            type="number"
-                            value={snapshotCache}
-                            onChange={(e) => setSnapshotCache(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('snapshotCache')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                        </div>
+                    <Section label="API limits">
+                      <Fields>
+                        <NumberField
+                          path="batchRequestLimit"
+                          label="Batch Request Limit"
+                          hint="Max batched requests (0 = no limit)"
+                          value={batchRequestLimit}
+                          onChange={(v) => setBatchRequestLimit(Math.max(0, parseInt(v) || 0))}
+                        />
+                        <NumberField
+                          path="batchResponseMaxSize"
+                          label="Batch Response Max Size (bytes)"
+                          hint="Max batch response size (default: 25MB)"
+                          value={batchResponseMaxSize}
+                          onChange={(v) => setBatchResponseMaxSize(Math.max(0, parseInt(v) || 0))}
+                        />
+                      </Fields>
+                    </Section>
 
-                        <div onMouseEnter={() => setHighlightPath('acceptedCacheSize')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Accepted Cache Size (blocks)
-                          </label>
-                          <input
-                            type="number"
-                            value={acceptedCacheSize}
-                            onChange={(e) => setAcceptedCacheSize(Math.max(1, parseInt(e.target.value) || 1))}
-                            onFocus={() => setHighlightPath('acceptedCacheSize')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Depth of accepted headers and logs cache
-                          </p>
-                        </div>
-
-                        <div
-                          onMouseEnter={() => setHighlightPath('trieDirtyCommitTarget')}
-                          onMouseLeave={clearHighlight}
-                        >
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Trie Dirty Commit Target (MB)
-                          </label>
-                          <input
-                            type="number"
-                            value={trieDirtyCommitTarget}
-                            onChange={(e) => setTrieDirtyCommitTarget(Math.max(1, parseInt(e.target.value) || 1))}
-                            onFocus={() => setHighlightPath('trieDirtyCommitTarget')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Memory limit before commit</p>
-                        </div>
-
-                        <div
-                          onMouseEnter={() => setHighlightPath('triePrefetcherParallelism')}
-                          onMouseLeave={clearHighlight}
-                        >
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Trie Prefetcher Parallelism
-                          </label>
-                          <input
-                            type="number"
-                            value={triePrefetcherParallelism}
-                            onChange={(e) => setTriePrefetcherParallelism(Math.max(1, parseInt(e.target.value) || 1))}
-                            onFocus={() => setHighlightPath('triePrefetcherParallelism')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Max concurrent disk reads</p>
-                        </div>
-
-                        <div
-                          onMouseEnter={() => setHighlightPath('stateSyncServerTrieCache')}
-                          onMouseLeave={clearHighlight}
-                        >
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            State Sync Server Trie Cache (MB)
-                          </label>
-                          <input
-                            type="number"
-                            value={stateSyncServerTrieCache}
-                            onChange={(e) => setStateSyncServerTrieCache(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('stateSyncServerTrieCache')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Trie cache for state sync server
-                          </p>
-                        </div>
+                    <Section label="Transactions & state">
+                      <Fields>
+                        <NumberField
+                          path="transactionHistory"
+                          label="Transaction History (blocks)"
+                          hint="Max blocks to keep tx indices. 0 = archive mode (all history)"
+                          value={transactionHistory}
+                          onChange={(v) => setTransactionHistory(Math.max(0, parseInt(v) || 0))}
+                        />
+                      </Fields>
+                      <div className="-mx-4 -mb-4 mt-4 divide-y divide-zinc-200 border-t border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+                        <Toggle
+                          path="skipTxIndexing"
+                          focusHighlight
+                          checked={!skipTxIndexing}
+                          onChange={(checked) => setSkipTxIndexing(!checked)}
+                          label="Enable Transaction Indexing"
+                          hint="Index transactions for querying (uses more disk space)"
+                        />
+                        <Toggle
+                          path="preimagesEnabled"
+                          focusHighlight
+                          checked={preimagesEnabled}
+                          onChange={setPreimagesEnabled}
+                          label="Enable Preimages"
+                          hint="Record preimages (uses more disk)"
+                        />
+                        <Toggle
+                          path="localTxsEnabled"
+                          focusHighlight
+                          checked={localTxsEnabled}
+                          onChange={setLocalTxsEnabled}
+                          label="Enable Local Transactions"
+                          hint="Treat local account txs as local"
+                        />
                       </div>
-                    </div>
-
-                    <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Metrics Settings</h4>
-                      <div className="space-y-3">
-                        <div onMouseEnter={() => setHighlightPath('metricsExpensive')} onMouseLeave={clearHighlight}>
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={metricsExpensiveEnabled}
-                              onChange={(e) => setMetricsExpensiveEnabled(e.target.checked)}
-                              onFocus={() => setHighlightPath('metricsExpensive')}
-                              onBlur={clearHighlight}
-                              className="rounded"
-                            />
-                            <span className="text-xs text-zinc-600 dark:text-zinc-400">Enable Expensive Metrics</span>
-                          </label>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                            Enables debug-level metrics including Firewood metrics. May impact performance.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                        Performance Settings
-                      </h4>
-
-                      <div className="space-y-3">
-                        <div onMouseEnter={() => setHighlightPath('commitInterval')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Commit Interval (blocks)
-                          </label>
-                          <input
-                            type="number"
-                            value={commitInterval}
-                            onChange={(e) => setCommitInterval(Math.max(1, parseInt(e.target.value) || 1))}
-                            onFocus={() => setHighlightPath('commitInterval')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Interval to persist EVM and atomic tries
-                          </p>
-                        </div>
-
-                        <div onMouseEnter={() => setHighlightPath('rpcGasCap')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">RPC Gas Cap</label>
-                          <input
-                            type="number"
-                            value={rpcGasCap}
-                            onChange={(e) => setRpcGasCap(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('rpcGasCap')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Maximum gas limit for RPC calls
-                          </p>
-                        </div>
-
-                        <div onMouseEnter={() => setHighlightPath('rpcTxFeeCap')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            RPC Tx Fee Cap (AVAX)
-                          </label>
-                          <input
-                            type="number"
-                            value={rpcTxFeeCap}
-                            onChange={(e) => setRpcTxFeeCap(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('rpcTxFeeCap')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Maximum transaction fee cap</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">API Limits</h4>
-
-                      <div className="space-y-3">
-                        <div onMouseEnter={() => setHighlightPath('batchRequestLimit')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Batch Request Limit
-                          </label>
-                          <input
-                            type="number"
-                            value={batchRequestLimit}
-                            onChange={(e) => setBatchRequestLimit(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('batchRequestLimit')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Max batched requests (0 = no limit)
-                          </p>
-                        </div>
-
-                        <div
-                          onMouseEnter={() => setHighlightPath('batchResponseMaxSize')}
-                          onMouseLeave={clearHighlight}
-                        >
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Batch Response Max Size (bytes)
-                          </label>
-                          <input
-                            type="number"
-                            value={batchResponseMaxSize}
-                            onChange={(e) => setBatchResponseMaxSize(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('batchResponseMaxSize')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Max batch response size (default: 25MB)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Transaction & State</h4>
-
-                      <div className="space-y-3">
-                        <div onMouseEnter={() => setHighlightPath('transactionHistory')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Transaction History (blocks)
-                          </label>
-                          <input
-                            type="number"
-                            value={transactionHistory}
-                            onChange={(e) => setTransactionHistory(Math.max(0, parseInt(e.target.value) || 0))}
-                            onFocus={() => setHighlightPath('transactionHistory')}
-                            onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Max blocks to keep tx indices. 0 = archive mode (all history)
-                          </p>
-                        </div>
-
-                        <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={!skipTxIndexing}
-                              onChange={(e) => setSkipTxIndexing(!e.target.checked)}
-                              onFocus={() => setHighlightPath('skipTxIndexing')}
-                              onBlur={clearHighlight}
-                              className="rounded"
-                            />
-                            <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                              Enable Transaction Indexing
-                            </span>
-                          </label>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                            Index transactions for querying (uses more disk space)
-                          </p>
-                        </div>
-
-                        <div onMouseEnter={() => setHighlightPath('preimagesEnabled')} onMouseLeave={clearHighlight}>
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={preimagesEnabled}
-                              onChange={(e) => setPreimagesEnabled(e.target.checked)}
-                              onFocus={() => setHighlightPath('preimagesEnabled')}
-                              onBlur={clearHighlight}
-                              className="rounded"
-                            />
-                            <span className="text-xs text-zinc-600 dark:text-zinc-400">Enable Preimages</span>
-                          </label>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                            Record preimages (uses more disk)
-                          </p>
-                        </div>
-
-                        <div onMouseEnter={() => setHighlightPath('localTxsEnabled')} onMouseLeave={clearHighlight}>
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={localTxsEnabled}
-                              onChange={(e) => setLocalTxsEnabled(e.target.checked)}
-                              onFocus={() => setHighlightPath('localTxsEnabled')}
-                              onBlur={clearHighlight}
-                              className="rounded"
-                            />
-                            <span className="text-xs text-zinc-600 dark:text-zinc-400">Enable Local Transactions</span>
-                          </label>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                            Treat local account txs as local
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    </Section>
 
                     {nodeType === 'validator' && (
-                      <div className="border-t pt-3">
-                        <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                          Block Timing (Validator)
-                        </h4>
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mb-3 flex items-start gap-1">
-                          <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                              fillRule="evenodd"
-                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span>
-                            C-Chain has sub-second block times. Only modify if you understand the consensus
-                            implications.
-                          </span>
-                        </p>
+                      <Section label="Block timing · validator">
+                        <Notice
+                          icon={<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />}
+                          className="mb-4"
+                        >
+                          C-Chain has sub-second block times. Only change these if you understand the consensus
+                          implications.
+                        </Notice>
 
-                        <div className="space-y-3">
-                          <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
-                            <div className="flex items-center justify-between mb-2">
-                              <label className="block text-xs text-zinc-600 dark:text-zinc-400">Min Delay Target</label>
-                              <span className="text-xs font-mono text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                                {minDelayTarget}ms{minDelayTarget === 2000 ? ' (default)' : ''}
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              value={minDelayTarget}
-                              onChange={(e) => setMinDelayTarget(parseInt(e.target.value))}
-                              onFocus={() => setHighlightPath('minDelayTarget')}
-                              onBlur={clearHighlight}
-                              min="0"
-                              max="2000"
-                              step="100"
-                              className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                            />
-                            <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
-                              <span>0ms (fastest)</span>
-                              <span>1000ms</span>
-                              <span>2000ms (default)</span>
-                            </div>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                              Minimum time between blocks. Lower values = faster blocks but more network load.
-                            </p>
-                          </div>
-
-                          <div
-                            onMouseEnter={() => setHighlightPath('pushGossipNumValidators')}
-                            onMouseLeave={clearHighlight}
-                          >
-                            <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                              Push Gossip Num Validators
+                        <div
+                          className="mb-4 flex flex-col gap-2"
+                          onMouseEnter={() => setHighlightPath('minDelayTarget')}
+                          onMouseLeave={clearHighlight}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <label htmlFor="pn-min-delay-target" className={FIELD_LABEL}>
+                              Min Delay Target
                             </label>
-                            <input
-                              type="number"
-                              value={pushGossipNumValidators}
-                              onChange={(e) => setPushGossipNumValidators(Math.max(0, parseInt(e.target.value) || 0))}
-                              onFocus={() => setHighlightPath('pushGossipNumValidators')}
-                              onBlur={clearHighlight}
-                              className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md dark:bg-zinc-800 dark:text-white"
-                            />
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                              Number of validators to push gossip to (default: 100)
-                            </p>
+                            <span className="border border-zinc-200 bg-zinc-50 px-2 py-0.5 font-mono text-[11px] tabular-nums text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
+                              {minDelayTarget}ms{minDelayTarget === 2000 ? ' (default)' : ''}
+                            </span>
                           </div>
-
-                          <div
-                            onMouseEnter={() => setHighlightPath('pushGossipPercentStake')}
-                            onMouseLeave={clearHighlight}
-                          >
-                            <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                              Push Gossip Percent Stake
-                            </label>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              max="1"
-                              value={pushGossipPercentStake}
-                              onChange={(e) =>
-                                setPushGossipPercentStake(Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)))
-                              }
-                              onFocus={() => setHighlightPath('pushGossipPercentStake')}
-                              onBlur={clearHighlight}
-                              className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md dark:bg-zinc-800 dark:text-white"
-                            />
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                              Percentage of total stake to gossip to (default: 0.9)
-                            </p>
+                          <input
+                            id="pn-min-delay-target"
+                            type="range"
+                            value={minDelayTarget}
+                            onChange={(e) => setMinDelayTarget(parseInt(e.target.value))}
+                            onFocus={() => setHighlightPath('minDelayTarget')}
+                            onBlur={clearHighlight}
+                            min="0"
+                            max="2000"
+                            step="100"
+                            className="w-full cursor-pointer accent-zinc-900 dark:accent-zinc-100"
+                          />
+                          <div className="flex justify-between font-mono text-[10px] text-zinc-400">
+                            <span>0ms (fastest)</span>
+                            <span>1000ms</span>
+                            <span>2000ms (default)</span>
                           </div>
+                          <p className={FIELD_HINT}>
+                            Minimum time between blocks. Lower is faster blocks but more network load.
+                          </p>
                         </div>
-                      </div>
+
+                        <Fields>
+                          <NumberField
+                            path="pushGossipNumValidators"
+                            label="Push Gossip Num Validators"
+                            hint="Validators to push gossip to (default: 100)"
+                            value={pushGossipNumValidators}
+                            onChange={(v) => setPushGossipNumValidators(Math.max(0, parseInt(v) || 0))}
+                          />
+                          <NumberField
+                            path="pushGossipPercentStake"
+                            label="Push Gossip Percent Stake"
+                            hint="Share of total stake to gossip to (default: 0.9)"
+                            value={pushGossipPercentStake}
+                            step="0.1"
+                            min="0"
+                            max="1"
+                            onChange={(v) => setPushGossipPercentStake(Math.min(1, Math.max(0, parseFloat(v) || 0)))}
+                          />
+                        </Fields>
+                      </Section>
                     )}
 
                     {isRPC && (
-                      <div className="border-t pt-3">
-                        <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                          RPC-Specific Settings
-                        </h4>
-
-                        <div className="space-y-3">
-                          <div
-                            onMouseEnter={() => setHighlightPath('apiMaxBlocksPerRequest')}
-                            onMouseLeave={clearHighlight}
-                          >
-                            <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                              API Max Blocks Per Request
-                            </label>
-                            <input
-                              type="number"
-                              value={apiMaxBlocksPerRequest}
-                              onChange={(e) => setApiMaxBlocksPerRequest(Math.max(0, parseInt(e.target.value) || 0))}
-                              onFocus={() => setHighlightPath('apiMaxBlocksPerRequest')}
-                              onBlur={clearHighlight}
-                              className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                            />
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                              0 = no limit. Limits blocks per getLogs request
-                            </p>
-                          </div>
-
-                          <div
-                            onMouseEnter={() => setHighlightPath('allowUnfinalizedQueries')}
-                            onMouseLeave={clearHighlight}
-                          >
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={allowUnfinalizedQueries}
-                                onChange={(e) => setAllowUnfinalizedQueries(e.target.checked)}
-                                onFocus={() => setHighlightPath('allowUnfinalizedQueries')}
-                                onBlur={clearHighlight}
-                                className="rounded"
-                              />
-                              <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                                Allow Unfinalized Queries
-                              </span>
-                            </label>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                              When enabled, allows queries using block tags like{' '}
-                              <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">
-                                pending
-                              </code>
-                              ,{' '}
-                              <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">safe</code>
-                              , and{' '}
-                              <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">
-                                latest
-                              </code>{' '}
-                              that may return data from blocks not yet finalized.
-                            </p>
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
-                              <strong>Important:</strong> Enable this if your applications use these block tags (common
-                              in Ethereum tooling). Without this, only{' '}
-                              <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">
-                                finalized
-                              </code>{' '}
-                              queries are allowed, which may break some dApps.
-                            </p>
-                          </div>
+                      <Section label="RPC-specific">
+                        <Fields>
+                          <NumberField
+                            path="apiMaxBlocksPerRequest"
+                            label="API Max Blocks Per Request"
+                            hint="0 = no limit. Limits blocks per getLogs request"
+                            value={apiMaxBlocksPerRequest}
+                            onChange={(v) => setApiMaxBlocksPerRequest(Math.max(0, parseInt(v) || 0))}
+                          />
+                        </Fields>
+                        <div className="-mx-4 -mb-4 mt-4 border-t border-zinc-200 dark:border-zinc-800">
+                          <Toggle
+                            path="allowUnfinalizedQueries"
+                            focusHighlight
+                            checked={allowUnfinalizedQueries}
+                            onChange={setAllowUnfinalizedQueries}
+                            label="Allow Unfinalized Queries"
+                            hint={
+                              <>
+                                Allows block tags like <code className={INLINE_CODE}>pending</code>,{' '}
+                                <code className={INLINE_CODE}>safe</code>, and{' '}
+                                <code className={INLINE_CODE}>latest</code> that may return data from blocks not yet
+                                finalized.
+                                <span className="mt-1.5 block text-amber-700 dark:text-amber-400">
+                                  <span className="font-semibold">Important:</span> enable this if your apps use these
+                                  tags (common in Ethereum tooling). Otherwise only{' '}
+                                  <code className={INLINE_CODE}>finalized</code> queries are allowed, which may break
+                                  some dApps.
+                                </span>
+                              </>
+                            }
+                          />
                         </div>
-                      </div>
+                      </Section>
                     )}
 
-                    <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                        Profiling (Optional)
-                      </h4>
-
-                      <div className="space-y-3">
-                        <div
-                          onMouseEnter={() => setHighlightPath('continuousProfilerDir')}
-                          onMouseLeave={clearHighlight}
-                        >
-                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                            Continuous Profiler Directory
-                          </label>
-                          <input
-                            type="text"
-                            value={continuousProfilerDir}
-                            onChange={(e) => setContinuousProfilerDir(e.target.value)}
-                            onFocus={() => setHighlightPath('continuousProfilerDir')}
-                            onBlur={clearHighlight}
-                            placeholder="./profiles (leave empty to disable)"
-                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                          />
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Directory for continuous profiler output
-                          </p>
-                        </div>
-
+                    <Section label="Profiling · optional">
+                      <Fields>
+                        <NumberField
+                          path="continuousProfilerDir"
+                          type="text"
+                          label="Continuous Profiler Directory"
+                          hint="Directory for continuous profiler output"
+                          placeholder="./profiles (leave empty to disable)"
+                          value={continuousProfilerDir}
+                          onChange={setContinuousProfilerDir}
+                        />
                         {continuousProfilerDir && (
-                          <div
-                            onMouseEnter={() => setHighlightPath('continuousProfilerFrequency')}
-                            onMouseLeave={clearHighlight}
-                          >
-                            <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                              Profiler Frequency
-                            </label>
-                            <input
-                              type="text"
-                              value={continuousProfilerFrequency}
-                              onChange={(e) => setContinuousProfilerFrequency(e.target.value)}
-                              onFocus={() => setHighlightPath('continuousProfilerFrequency')}
-                              onBlur={clearHighlight}
-                              placeholder="15m"
-                              className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
-                            />
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                              How often to create profiles (e.g., 15m, 1h)
-                            </p>
-                          </div>
+                          <NumberField
+                            path="continuousProfilerFrequency"
+                            type="text"
+                            label="Profiler Frequency"
+                            hint="How often to create profiles (e.g., 15m, 1h)"
+                            placeholder="15m"
+                            value={continuousProfilerFrequency}
+                            onChange={setContinuousProfilerFrequency}
+                          />
                         )}
-                      </div>
-                    </div>
+                      </Fields>
+                    </Section>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Configuration Preview */}
-            <div className="lg:sticky lg:top-4 h-fit">
-              <div className="border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden">
-                <div className="border-b p-3 bg-zinc-50 dark:bg-zinc-900">
-                  <h4 className="text-sm font-semibold">Configuration Preview</h4>
+            <div className="h-fit min-w-0 lg:sticky lg:top-4">
+              <div className="border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/80">
+                <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+                  <h4 className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+                    Configuration Preview
+                  </h4>
+                  <span className={COUNT}>C-Chain config.json</span>
                 </div>
-                <div className="max-h-[600px] overflow-auto p-3 bg-zinc-50 dark:bg-zinc-950">
+                <div className="max-h-[600px] overflow-auto bg-zinc-50 p-3 dark:bg-zinc-900">
                   {configJson && !configJson.startsWith('Error:') ? (
                     <SyntaxHighlightedJSON code={configJson} highlightedLines={highlightedLines} />
                   ) : (
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
+                    <div className="py-8 text-center text-[13px] text-zinc-500 dark:text-zinc-400">
                       {configJson.startsWith('Error:') ? configJson : 'Configure your node to see the chain config'}
                     </div>
                   )}
@@ -1108,70 +797,29 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         </Step>
 
         <Step>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Provision a server with the following specifications.
-          </p>
+          <h3>Set up Instance</h3>
+          <p>Provision a server with these specs.</p>
 
-          {/* Hardware requirements - compact grid */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center gap-2 mb-1">
-                <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-                  />
-                </svg>
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
-              </div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4-8+ cores</div>
-            </div>
-            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center gap-2 mb-1">
-                <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
-              </div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">16-32 GB</div>
-            </div>
-            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center gap-2 mb-1">
-                <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-                  />
-                </svg>
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
-              </div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {nodeType === 'archival' ? '20 TB' : '1 TB'} {nodeType === 'validator' && 'NVMe'}
-              </div>
-            </div>
+          <div className={cn(GRID, 'grid-cols-3')}>
+            <Spec icon={<Cpu className="h-3.5 w-3.5" />} label="CPU" value="4-8+ cores" />
+            <Spec icon={<MemoryStick className="h-3.5 w-3.5" />} label="RAM" value="16-32 GB" />
+            <Spec
+              icon={<HardDrive className="h-3.5 w-3.5" />}
+              label="Storage"
+              value={`${nodeType === 'archival' ? '20 TB' : '1 TB'}${nodeType === 'validator' ? ' NVMe' : ''}`}
+            />
           </div>
 
-          {/* Storage note */}
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className={NOTE}>
             {nodeType === 'validator' ? (
               <>Use local NVMe, not cloud block storage (EBS, Persistent Disk). </>
             ) : nodeType === 'archival' ? (
-              <>Full historical state requires significant storage. </>
+              <>Full historical state needs a lot of storage. </>
             ) : (
-              <>Can use cloud block storage (EBS, Persistent Disk). </>
+              <>Cloud block storage (EBS, Persistent Disk) is fine. </>
             )}
-            <Link href="/docs/nodes/system-requirements" className="text-blue-500 hover:underline">
-              Details →
+            <Link href="/docs/nodes/system-requirements" className={LINK}>
+              System requirements
             </Link>
           </p>
         </Step>
@@ -1179,12 +827,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         <Step>
           <DockerInstallation includeCompose={false} />
 
-          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            If you do not want to use Docker, you can follow the{' '}
+          <p className={NOTE}>
+            Not using Docker? Follow the{' '}
             <a
               href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
               target="_blank"
-              className="text-blue-500 hover:underline"
+              className={LINK}
               rel="noreferrer"
             >
               manual installation instructions
@@ -1194,26 +842,20 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         </Step>
 
         <Step>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Create Configuration Files</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Run these commands to create the config files. AvalancheGo reads from these default locations on startup.
-          </p>
+          <h3>Create Configuration Files</h3>
+          <p>Run these to write the config files. AvalancheGo reads them from these default paths on startup.</p>
 
           <Steps>
             <Step>
-              <h4 className="text-sm font-medium mb-2">Create config directories</h4>
-              <DynamicCodeBlock lang="bash" code={`mkdir -p ~/.avalanchego/configs/chains/${C_CHAIN_ID}`} />
+              <h4 className={SUB_HEADING}>Create config directories</h4>
+              <CodeBlock code={`mkdir -p ~/.avalanchego/configs/chains/${C_CHAIN_ID}`} />
             </Step>
 
             <Step>
-              <h4 className="text-sm font-medium mb-2">
-                Node config{' '}
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">
-                  ~/.avalanchego/configs/node.json
-                </code>
+              <h4 className={SUB_HEADING}>
+                Node config <code className={INLINE_CODE}>~/.avalanchego/configs/node.json</code>
               </h4>
-              <DynamicCodeBlock
-                lang="bash"
+              <CodeBlock
                 code={(() => {
                   try {
                     const nodeConfig = generatePrimaryNetworkNodeConfig(nodeType, effectiveNetworkID);
@@ -1226,14 +868,11 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             </Step>
 
             <Step>
-              <h4 className="text-sm font-medium mb-2">
+              <h4 className={SUB_HEADING}>
                 C-Chain config{' '}
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">
-                  ~/.avalanchego/configs/chains/{C_CHAIN_ID.slice(0, 8)}...
-                </code>
+                <code className={INLINE_CODE}>~/.avalanchego/configs/chains/{C_CHAIN_ID.slice(0, 8)}...</code>
               </h4>
-              <DynamicCodeBlock
-                lang="bash"
+              <CodeBlock
                 code={(() => {
                   try {
                     const chainConfig = JSON.parse(configJson);
@@ -1246,66 +885,43 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             </Step>
           </Steps>
 
-          <div className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-            Docs:{' '}
+          <p className={cn(NOTE, 'flex flex-wrap items-center gap-x-3 gap-y-1')}>
+            <span className={EYEBROW}>Docs</span>
             <a
               href="https://build.avax.network/docs/nodes/configure/configs-flags"
               target="_blank"
-              className="text-blue-500 hover:underline"
+              className={LINK}
               rel="noreferrer"
             >
               Node config
             </a>
-            {' · '}
             <a
               href="https://build.avax.network/docs/nodes/chain-configs/c-chain"
               target="_blank"
-              className="text-blue-500 hover:underline"
+              className={LINK}
               rel="noreferrer"
             >
               C-Chain config
             </a>
-          </div>
+          </p>
         </Step>
 
         <Step>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Firewall</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Open the required ports for your node to communicate with the network.
-          </p>
+          <h3>Configure Firewall</h3>
+          <p>Open the ports your node needs to talk to the network.</p>
 
-          {/* Port explanation */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div
-              className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800'}`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9651</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                  Required
-                </span>
-              </div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">P2P / Staking port</div>
-              <div className="text-[10px] text-zinc-400 mt-1">Node-to-node communication</div>
-            </div>
-            <div
-              className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 opacity-50'}`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9650</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded ${isRPC ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}
-                >
-                  {isRPC ? 'Required' : 'RPC only'}
-                </span>
-              </div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">HTTP / RPC port</div>
-              <div className="text-[10px] text-zinc-400 mt-1">API requests from clients</div>
-            </div>
+          <div className={cn(GRID, 'grid-cols-2')}>
+            <Port port="9651" status="Required" title="P2P / Staking port" detail="Node-to-node communication" />
+            <Port
+              port="9650"
+              status={isRPC ? 'Required' : 'RPC only'}
+              title="HTTP / RPC port"
+              detail="API requests from clients"
+              dimmed={!isRPC}
+            />
           </div>
 
-          <DynamicCodeBlock
-            lang="bash"
+          <CodeBlock
             code={
               isRPC
                 ? `# Open SSH, P2P, and RPC ports
@@ -1322,44 +938,45 @@ sudo ufw status`
             }
           />
 
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+          <p className={NOTE}>
             {isRPC
-              ? 'RPC nodes need both ports open. Consider using a reverse proxy (nginx) for SSL termination on port 9650.'
-              : 'Validators only need the P2P port. The RPC port is bound to localhost for security.'}
+              ? 'RPC nodes need both ports open. Consider a reverse proxy (nginx) for SSL termination on port 9650.'
+              : 'Validators only need the P2P port. The RPC port stays bound to localhost.'}
           </p>
         </Step>
 
         <Step>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Start the node. Config is read from the mounted volume — no env vars needed.
+          <h3>Run Docker</h3>
+          <p>Start the node. Config is read from the mounted volume, so no env vars are needed.</p>
+
+          <CodeBlock code={getDockerCommand()} />
+
+          <p className={NOTE}>
+            Restart anytime with <code className={INLINE_CODE}>docker restart avago</code>. Config changes are picked up
+            automatically.
           </p>
 
-          <DynamicCodeBlock lang="bash" code={getDockerCommand()} />
-
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-            Restart anytime with{' '}
-            <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded">docker restart avago</code> — config
-            changes are picked up automatically.
-          </p>
-
-          <Accordions type="single" className="mt-4">
+          <Accordions type="single" className={ACCORDIONS}>
             <Accordion title="Running Multiple Nodes">
-              <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
-              <ul className="list-disc pl-5 mt-1 text-sm">
-                <li>
-                  Unique container name (change <code>--name</code> parameter)
-                </li>
-                <li>Different ports (modify port mappings)</li>
-                <li>
-                  Separate data directories (change <code>~/.avalanchego</code> path)
-                </li>
-              </ul>
+              <div className={ACCORDION_BODY}>
+                <p>To run multiple nodes on the same machine, give each node:</p>
+                <ul className="list-disc pl-5">
+                  <li>
+                    A unique container name (change <code className={INLINE_CODE}>--name</code>)
+                  </li>
+                  <li>Different ports (change the port mappings)</li>
+                  <li>
+                    A separate data directory (change <code className={INLINE_CODE}>~/.avalanchego</code>)
+                  </li>
+                </ul>
+              </div>
             </Accordion>
 
             <Accordion title="Monitoring Logs">
-              <p className="text-sm mb-2">Monitor your node with:</p>
-              <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+              <div className={ACCORDION_BODY}>
+                <p>Follow your node&apos;s logs with:</p>
+                <CodeBlock code="docker logs -f avago" />
+              </div>
             </Accordion>
           </Accordions>
         </Step>
@@ -1379,29 +996,33 @@ sudo ufw status`
 
         {isRPC && (
           <Step>
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Add Network to Wallet</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-              Point your wallet at your own C-Chain RPC endpoint.
-            </p>
+            <h3>Add Network to Wallet</h3>
+            <p>Point your wallet at your own C-Chain RPC endpoint.</p>
 
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                  <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">RPC Endpoint</div>
-                  <code className="text-xs text-zinc-900 dark:text-zinc-100 break-all">
-                    {buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' }) ??
-                      'Enter the node IP or domain in the reverse proxy step above'}
-                  </code>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                  <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">EVM Chain ID</div>
-                  <code className="text-sm text-zinc-900 dark:text-zinc-100">
-                    {selectedNetwork === 'fuji' ? '43113' : '43114'}
-                  </code>
-                </div>
+            <div className={cn(GRID, 'grid-cols-1 sm:grid-cols-[minmax(0,1fr)_12rem]')}>
+              <div className={cn(CELL, 'flex min-w-0 flex-col gap-1.5 p-4')}>
+                <span className={EYEBROW}>RPC endpoint</span>
+                <code
+                  className={cn(
+                    'break-all font-mono text-[12.5px]',
+                    walletRpcUrl ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 dark:text-zinc-500',
+                  )}
+                >
+                  {walletRpcUrl ?? 'Enter the node IP or domain in the reverse proxy step above'}
+                </code>
               </div>
+              <div className={cn(CELL, 'flex flex-col gap-1.5 p-4')}>
+                <span className={EYEBROW}>EVM chain ID</span>
+                <code className="font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                  {selectedNetwork === 'fuji' ? '43113' : '43114'}
+                </code>
+              </div>
+            </div>
 
-              <Button
+            <div>
+              <button
+                type="button"
+                className={PRIMARY_BTN}
                 onClick={() => {
                   const rpcUrl = buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' });
                   if (!rpcUrl) return;
@@ -1418,20 +1039,22 @@ sudo ufw status`
                 }}
                 disabled={isAddingToWallet || !buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' })}
               >
+                {isAddingToWallet && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {isAddingToWallet ? 'Adding...' : 'Add to Wallet'}
-              </Button>
-
-              {!buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' }) && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Your wallet can&apos;t reach localhost on a remote server. Enter the node&apos;s IP or domain in the
-                  reverse proxy step above, or choose &quot;This machine&quot; there if the node runs locally.
-                </p>
-              )}
+                <HoverArrow />
+              </button>
             </div>
 
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+            {!buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' }) && (
+              <Notice icon={<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />}>
+                Your wallet can&apos;t reach localhost on a remote server. Enter the node&apos;s IP or domain in the
+                reverse proxy step above, or choose &quot;This machine&quot; there if the node runs locally.
+              </Notice>
+            )}
+
+            <p className={NOTE}>
               Works with Core, MetaMask, and other EVM wallets connected via RainbowKit.
-              {selectedNetwork === 'fuji' && ' This will add the Fuji testnet using your own node as the RPC provider.'}
+              {selectedNetwork === 'fuji' && ' This adds the Fuji testnet with your own node as the RPC provider.'}
             </p>
           </Step>
         )}
@@ -1439,109 +1062,75 @@ sudo ufw status`
         {nodeType === 'validator' && (
           <>
             <Step>
-              <h3 className="text-xl font-bold mb-4">Wait for the Node to Bootstrap</h3>
+              <h3>Wait for the Node to Bootstrap</h3>
               <p>
-                Your node will now bootstrap and sync the Primary Network (P-Chain, X-Chain, and C-Chain). This process
-                can take <strong>several hours to days</strong> depending on your hardware and network connection.
+                Your node now bootstraps and syncs the Primary Network (P-Chain, X-Chain, and C-Chain). This can take{' '}
+                <strong className="font-medium text-zinc-900 dark:text-zinc-100">several hours to days</strong>{' '}
+                depending on your hardware and connection.
               </p>
 
-              <p className="mt-4">You can follow the process by checking the logs with the following command:</p>
+              <p className={NOTE}>Follow progress in the logs:</p>
 
-              <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+              <CodeBlock code="docker logs -f avago" />
 
-              <Accordions type="single" className="mt-8">
+              <Accordions type="single" className={ACCORDIONS}>
                 <Accordion title="Understanding the Logs">
-                  <p>The bootstrapping process involves syncing all three chains:</p>
-
-                  <ul className="list-disc pl-5 mt-1">
-                    <li>
-                      <strong>P-Chain (Platform Chain):</strong> Handles platform operations and staking
-                      <DynamicCodeBlock
-                        lang="bash"
-                        code='[05-04|17:14:13.793] INFO <P Chain> bootstrap/bootstrapper.go:615 fetching blocks {"numFetchedBlocks": 10099, "numTotalBlocks": 23657, "eta": "37s"}'
-                      />
-                    </li>
-                    <li>
-                      <strong>X-Chain (Exchange Chain):</strong> Handles asset creation and exchange
-                      <DynamicCodeBlock
-                        lang="bash"
-                        code='[05-04|17:14:45.641] INFO <X Chain> bootstrap/storage.go:244 executing blocks {"numExecuted": 9311, "numToExecute": 23657, "eta": "15s"}'
-                      />
-                    </li>
-                    <li>
-                      <strong>C-Chain (Contract Chain):</strong> EVM-compatible smart contract chain
-                      <DynamicCodeBlock
-                        lang="bash"
-                        code='[05-04|17:15:12.123] INFO <C Chain> chain/chain_state_manager.go:325 syncing {"current": 1234567, "target": 2345678}'
-                      />
-                    </li>
-                  </ul>
+                  <div className={ACCORDION_BODY}>
+                    <p>Bootstrapping syncs all three chains:</p>
+                    <ul className="flex flex-col gap-3">
+                      <li className="flex flex-col gap-2">
+                        <span>
+                          <strong className="font-medium text-zinc-900 dark:text-zinc-100">
+                            P-Chain (Platform Chain):
+                          </strong>{' '}
+                          platform operations and staking
+                        </span>
+                        <CodeBlock code='[05-04|17:14:13.793] INFO <P Chain> bootstrap/bootstrapper.go:615 fetching blocks {"numFetchedBlocks": 10099, "numTotalBlocks": 23657, "eta": "37s"}' />
+                      </li>
+                      <li className="flex flex-col gap-2">
+                        <span>
+                          <strong className="font-medium text-zinc-900 dark:text-zinc-100">
+                            X-Chain (Exchange Chain):
+                          </strong>{' '}
+                          asset creation and exchange
+                        </span>
+                        <CodeBlock code='[05-04|17:14:45.641] INFO <X Chain> bootstrap/storage.go:244 executing blocks {"numExecuted": 9311, "numToExecute": 23657, "eta": "15s"}' />
+                      </li>
+                      <li className="flex flex-col gap-2">
+                        <span>
+                          <strong className="font-medium text-zinc-900 dark:text-zinc-100">
+                            C-Chain (Contract Chain):
+                          </strong>{' '}
+                          EVM-compatible smart contract chain
+                        </span>
+                        <CodeBlock code='[05-04|17:15:12.123] INFO <C Chain> chain/chain_state_manager.go:325 syncing {"current": 1234567, "target": 2345678}' />
+                      </li>
+                    </ul>
+                  </div>
                 </Accordion>
               </Accordions>
             </Step>
 
             <Step>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-                Backup Validator Credentials
-              </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+              <h3>Backup Validator Credentials</h3>
+              <p>
                 Your validator identity is defined by these files in{' '}
-                <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">
-                  ~/.avalanchego/staking/
-                </code>
+                <code className={INLINE_CODE}>~/.avalanchego/staking/</code>
               </p>
 
-              {/* Key files - compact grid */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                      />
-                    </svg>
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">TLS Cert</span>
-                  </div>
-                  <div className="text-sm font-mono text-zinc-900 dark:text-zinc-100">staker.crt</div>
-                  <div className="text-[10px] text-zinc-400 mt-1">Node identity</div>
-                </div>
-                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                      />
-                    </svg>
-                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Private Key</span>
-                  </div>
-                  <div className="text-sm font-mono text-red-700 dark:text-red-300">staker.key</div>
-                  <div className="text-[10px] text-red-400 mt-1">Keep secret!</div>
-                </div>
-                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                    <span className="text-xs font-medium text-red-600 dark:text-red-400">BLS Key</span>
-                  </div>
-                  <div className="text-sm font-mono text-red-700 dark:text-red-300">signer.key</div>
-                  <div className="text-[10px] text-red-400 mt-1">P-Chain signing</div>
-                </div>
+              <div className={cn(GRID, 'grid-cols-1 sm:grid-cols-3')}>
+                <KeyFile icon={<ShieldCheck className="h-3.5 w-3.5" />} label="TLS Cert" file="staker.crt">
+                  Node identity
+                </KeyFile>
+                <KeyFile icon={<KeyRound className="h-3.5 w-3.5" />} label="Private Key" file="staker.key" secret>
+                  Keep secret
+                </KeyFile>
+                <KeyFile icon={<PenLine className="h-3.5 w-3.5" />} label="BLS Key" file="signer.key" secret>
+                  P-Chain signing
+                </KeyFile>
               </div>
 
-              <DynamicCodeBlock
-                lang="bash"
+              <CodeBlock
                 code={`# Backup your validator credentials
 mkdir -p ~/avalanche-backup
 cp -r ~/.avalanchego/staking ~/avalanche-backup/
@@ -1550,65 +1139,36 @@ cp -r ~/.avalanchego/staking ~/avalanche-backup/
 ls -la ~/avalanche-backup/staking/`}
               />
 
-              {/* Backup locations - inline */}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">Store securely:</span>
-                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                  Encrypted USB
-                </span>
-                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                  Encrypted S3
-                </span>
-                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                  Multiple locations
-                </span>
-              </div>
-
-              {/* Warnings - compact */}
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1.5 mt-4">
-                <p className="flex items-start gap-1.5">
-                  <span className="text-red-500 mt-0.5">⚠</span>
-                  <span>
-                    Lost keys = <strong className="text-zinc-700 dark:text-zinc-300">missed staking rewards</strong>{' '}
-                    (validator can&apos;t sign). NVMe drives can fail without warning.
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={EYEBROW}>Store securely</span>
+                {['Encrypted USB', 'Encrypted S3', 'Multiple locations'].map((place) => (
+                  <span
+                    key={place}
+                    className="border border-zinc-200 px-2 py-0.5 font-mono text-[11px] text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
+                  >
+                    {place}
                   </span>
-                </p>
-                <p className="flex items-start gap-1.5">
-                  <span className="text-amber-500 mt-0.5">🔒</span>
-                  <span>Never share private keys — anyone with them can impersonate your validator.</span>
-                </p>
+                ))}
               </div>
 
-              {/* Links */}
-              <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap gap-4 text-xs">
-                <a
-                  href="/docs/nodes/maintain/cube-signer-sidecar"
-                  className="text-blue-500 hover:underline flex items-center gap-1"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
-                  </svg>
-                  CubeSigner Remote Signing
-                </a>
-                <a
-                  href="/docs/nodes/maintain/backup-restore"
-                  className="text-blue-500 hover:underline flex items-center gap-1"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
-                    />
-                  </svg>
-                  Full Backup Guide
-                </a>
+              <ul className={cn(NOTE, 'flex flex-col gap-1.5')}>
+                <li className="flex items-baseline gap-2.5">
+                  <span aria-hidden className="h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full bg-red-500" />
+                  <span>
+                    Lost keys mean{' '}
+                    <strong className="font-medium text-zinc-900 dark:text-zinc-100">missed staking rewards</strong>{' '}
+                    (the validator can&apos;t sign). NVMe drives can fail without warning.
+                  </span>
+                </li>
+                <li className="flex items-baseline gap-2.5">
+                  <span aria-hidden className="h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full bg-amber-500" />
+                  <span>Never share private keys: anyone with them can impersonate your validator.</span>
+                </li>
+              </ul>
+
+              <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                <DocLink href="/docs/nodes/maintain/cube-signer-sidecar">CubeSigner Remote Signing</DocLink>
+                <DocLink href="/docs/nodes/maintain/backup-restore">Full Backup Guide</DocLink>
               </div>
             </Step>
           </>
@@ -1616,10 +1176,11 @@ ls -la ~/avalanche-backup/staking/`}
       </Steps>
 
       {configJson && !configJson.startsWith('Error:') && (
-        <div className="mt-6 flex justify-center">
-          <Button onClick={handleReset} variant="outline">
+        <div className="flex border-t border-zinc-200 pt-6 dark:border-zinc-800">
+          <button type="button" onClick={handleReset} className={SECONDARY_BTN}>
+            <RotateCcw className="h-3.5 w-3.5" />
             Start Over
-          </Button>
+          </button>
         </div>
       )}
     </Container>
@@ -1631,5 +1192,215 @@ export default function AvalancheGoDockerPrimaryNetwork() {
     <GenesisHighlightProvider>
       <AvalancheGoDockerPrimaryNetworkInner />
     </GenesisHighlightProvider>
+  );
+}
+
+/* ------------------------------------------------------------------------- */
+
+const FIELD_LABEL = 'text-[12px] font-medium text-zinc-700 dark:text-zinc-300';
+const FIELD_HINT = 'text-[11.5px] leading-relaxed text-zinc-500 dark:text-zinc-400';
+const SUB_HEADING = 'flex flex-wrap items-center gap-2 text-[13.5px] font-medium text-zinc-900 dark:text-zinc-50';
+const ACCORDIONS =
+  'rounded-none border-zinc-200 bg-white/80 divide-zinc-200 dark:border-zinc-800 dark:bg-zinc-950/80 dark:divide-zinc-800 [&_h3]:text-[13px] [&_h3]:font-medium [&_h3]:text-zinc-900 dark:[&_h3]:text-zinc-100';
+const ACCORDION_BODY =
+  'flex flex-col gap-3 pb-2 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400 [&_figure]:my-0';
+
+/** A bordered settings group: a mono title bar over hairline-divided rows. */
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/80">
+      <div className="flex min-h-9 items-center border-b border-zinc-200 bg-zinc-50/80 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <p className={EYEBROW}>{label}</p>
+      </div>
+      <div className="divide-y divide-zinc-200 dark:divide-zinc-800">{children}</div>
+    </div>
+  );
+}
+
+/** One titled block inside the advanced settings panel. */
+function Section({ label, flush = false, children }: { label: string; flush?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={flush ? 'flex flex-col' : 'flex flex-col p-4'}>
+      <p className={cn(EYEBROW, flush ? 'px-4 pt-4' : 'mb-3')}>{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function Fields({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">{children}</div>;
+}
+
+/** A checkbox row; hovering it highlights its key in the config preview. */
+function Toggle({
+  path,
+  checked,
+  onChange,
+  label,
+  hint,
+  focusHighlight = false,
+}: {
+  path: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  hint?: React.ReactNode;
+  focusHighlight?: boolean;
+}) {
+  const { setHighlightPath, clearHighlight } = useGenesisHighlight();
+  return (
+    <div className="px-4 py-3" onMouseEnter={() => setHighlightPath(path)} onMouseLeave={clearHighlight}>
+      <label className="flex cursor-pointer items-center gap-2.5">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          {...(focusHighlight ? { onFocus: () => setHighlightPath(path), onBlur: clearHighlight } : {})}
+          className={CHECKBOX}
+        />
+        <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{label}</span>
+      </label>
+      {hint && <p className={cn(FIELD_HINT, 'ml-6 mt-1')}>{hint}</p>}
+    </div>
+  );
+}
+
+/** A labelled input; hovering or focusing it highlights its key in the config preview. */
+function NumberField({
+  path,
+  label,
+  hint,
+  value,
+  onChange,
+  type = 'number',
+  placeholder,
+  step,
+  min,
+  max,
+}: {
+  path: string;
+  label: string;
+  hint?: string;
+  value: number | string;
+  onChange: (value: string) => void;
+  type?: 'number' | 'text';
+  placeholder?: string;
+  step?: string;
+  min?: string;
+  max?: string;
+}) {
+  const { setHighlightPath, clearHighlight } = useGenesisHighlight();
+  const id = `pn-${path}`;
+  return (
+    <div className="flex flex-col gap-1.5" onMouseEnter={() => setHighlightPath(path)} onMouseLeave={clearHighlight}>
+      <label htmlFor={id} className={FIELD_LABEL}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        step={step}
+        min={min}
+        max={max}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setHighlightPath(path)}
+        onBlur={clearHighlight}
+        className={INPUT}
+      />
+      {hint && <p className={FIELD_HINT}>{hint}</p>}
+    </div>
+  );
+}
+
+function Spec({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className={cn(CELL, 'flex flex-col gap-2 p-4')}>
+      <span className={cn(EYEBROW, 'flex items-center gap-1.5')}>
+        <span className="text-zinc-400">{icon}</span>
+        {label}
+      </span>
+      <span className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">{value}</span>
+    </div>
+  );
+}
+
+function Port({
+  port,
+  status,
+  title,
+  detail,
+  dimmed = false,
+}: {
+  port: string;
+  status: string;
+  title: string;
+  detail: string;
+  dimmed?: boolean;
+}) {
+  const required = status === 'Required';
+  return (
+    <div className={cn(CELL, 'flex flex-col gap-1.5 p-4', dimmed && 'opacity-50')}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-lg tabular-nums text-zinc-900 dark:text-zinc-50">{port}</span>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em]',
+            required ? 'text-emerald-700 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400',
+          )}
+        >
+          <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', required ? 'bg-emerald-500' : 'bg-zinc-400')} />
+          {status}
+        </span>
+      </div>
+      <span className="text-[13px] text-zinc-700 dark:text-zinc-300">{title}</span>
+      <span className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{detail}</span>
+    </div>
+  );
+}
+
+function KeyFile({
+  icon,
+  label,
+  file,
+  secret = false,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  file: string;
+  secret?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn(CELL, 'flex flex-col gap-1.5 p-4')}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={cn(EYEBROW, 'flex items-center gap-1.5')}>
+          <span className={secret ? 'text-[#E6212F]' : 'text-zinc-400'}>{icon}</span>
+          {label}
+        </span>
+        {secret && (
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-red-700 dark:text-red-400">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-red-500" />
+            Secret
+          </span>
+        )}
+      </div>
+      <span className="font-mono text-[14px] text-zinc-900 dark:text-zinc-50">{file}</span>
+      <span className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{children}</span>
+    </div>
+  );
+}
+
+function DocLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className="group/doc inline-flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-700 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+    >
+      {children}
+      <ArrowRight className="h-3 w-3 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/doc:translate-x-0 group-hover/doc:opacity-100" />
+    </a>
   );
 }

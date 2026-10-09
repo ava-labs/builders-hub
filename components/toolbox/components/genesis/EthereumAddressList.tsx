@@ -87,10 +87,12 @@ export default function EthereumAddressList({
 
   return (
     <div className="space-y-3 text-[12px]">
-      <div className="bg-white dark:bg-zinc-950 rounded-md border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="border-b border-zinc-200 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
           <div className="flex items-center gap-1.5">
-            <div className="font-medium text-zinc-800 dark:text-white">{role} Addresses</div>
+            <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              {role} Addresses
+            </div>
             <Tooltip>
               <TooltipTrigger className="inline-flex">
                 <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
@@ -107,18 +109,15 @@ export default function EthereumAddressList({
 
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {addresses.map((entry) => (
-            <div
-              key={entry.id}
-              className="flex justify-between items-center px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
-            >
+            <div key={entry.id} className="flex items-center justify-between px-3 py-2 transition-colors">
               <div
-                className={`font-mono text-[12px] ${entry.error ? 'text-red-500 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'}`}
+                className={`font-mono text-[12px] ${entry.error ? 'text-red-600 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'}`}
               >
                 <span className="inline-flex items-center">
                   {entry.address}
                   {entry.error && <AlertCircle className="h-4 w-4 ml-2 flex-shrink-0" />}
                 </span>
-                {entry.error && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">{entry.error}</p>}
+                {entry.error && <p className="text-[11px] text-red-600 dark:text-red-400 mt-1">{entry.error}</p>}
                 {entry.requiredReason && (
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 italic">{entry.requiredReason}</p>
                 )}
@@ -129,31 +128,31 @@ export default function EthereumAddressList({
                 ) : (
                   <button
                     onClick={() => onDeleteAddress(entry.id)}
-                    className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                    className="group/del p-1.5 transition-colors"
                     aria-label="Delete address"
                   >
-                    <Trash2 className="h-4 w-4 text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition-colors" />
+                    <Trash2 className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/del:text-red-600 dark:group-hover/del:text-red-400" />
                   </button>
                 )}
               </div>
             </div>
           ))}
 
-          <div className="flex items-center px-3 py-2 gap-3 bg-zinc-50/80 dark:bg-zinc-900/40">
-            <Plus className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+          <div className="flex items-center gap-3 bg-zinc-50/60 px-3 py-2 dark:bg-zinc-900/40">
+            <Plus className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
             <RawInput
               type="text"
               placeholder={`Add one or more addresses for ${role}`}
               value={newAddress}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 border-none bg-transparent shadow-none focus:ring-0 p-0 font-mono text-[12px]"
+              className="h-8 flex-1 border-none bg-transparent p-0 font-mono text-[12px]"
             />
             <button
               type="button"
               onClick={handleAddAddress}
               disabled={!canAddAddress}
-              className="px-2.5 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md disabled:opacity-50 transition-colors font-medium"
+              className="h-7 px-2.5 text-[10.5px] border border-zinc-900 bg-zinc-900 font-mono font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
             >
               Add
             </button>
@@ -163,7 +162,7 @@ export default function EthereumAddressList({
               addressSource={!checkDuplicate ? addresses : undefined}
             />
           </div>
-          {inputError && <p className="px-3 pb-2 text-[11px] text-red-500 dark:text-red-400">{inputError}</p>}
+          {inputError && <p className="px-3 pb-2 text-[11px] text-red-600 dark:text-red-400">{inputError}</p>}
         </div>
       </div>
     </div>

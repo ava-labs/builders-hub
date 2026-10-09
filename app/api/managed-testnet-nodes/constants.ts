@@ -1,7 +1,9 @@
 
+export const MANAGED_NODES_PRODUCTION_URL = 'https://nodes-prod.43.207.73.245.sslip.io';
+
 export let MANAGED_TESTNET_NODES_SERVICE_URL = process.env.MANAGED_NODES_OVERRIDE ||
   (process.env.VERCEL_ENV === "production"
-    ? 'https://nodes-prod.43.207.73.245.sslip.io'
+    ? MANAGED_NODES_PRODUCTION_URL
     : 'https://nodes-staging.35.74.237.34.sslip.io');
 
 if (MANAGED_TESTNET_NODES_SERVICE_URL.endsWith('/')) {

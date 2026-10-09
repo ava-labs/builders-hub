@@ -1,6 +1,15 @@
 import React from 'react';
 import { type StepDefinition } from '@/components/console/step-flow';
 import { type QuestionnaireAnswers } from '@/components/toolbox/stores/createL1FlowStore';
+import { getCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+
+/* What each P-Chain step leaves in the Create L1 store once its transaction has landed; the step bar reads these so a
+   step done by any route (an ID pasted in, a CLI run, a reload) shows as complete. */
+const chainState = () => getCreateChainStore(Boolean(useWalletStore.getState().isTestnet)).getState();
+const subnetCreated = () => !!chainState().subnetId;
+const chainCreated = () => !!chainState().chainID;
+const convertedToL1 = () => !!chainState().convertToL1TxId;
 
 // ── Layer-1 creation (P-Chain) ───────────────────────────────
 import CreateSubnet from '@/components/toolbox/console/layer-1/create/CreateSubnet';
@@ -104,6 +113,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
       title: 'Create Subnet',
       component: CreateSubnet,
       requiredChain: 'p-chain',
+      isComplete: subnetCreated,
     });
 
     if (answers.vmLocation === 'l1') {
@@ -114,6 +124,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Create Chain',
         component: createChainWithAnswers(answers),
         requiredChain: 'p-chain',
+        isComplete: chainCreated,
       });
 
       // Node hosting — after Create Chain (need chain ID), before Convert to L1
@@ -141,6 +152,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Convert to L1',
         component: ConvertSubnetToL1,
         requiredChain: 'p-chain',
+        isComplete: convertedToL1,
       });
       steps.push({
         type: 'single',
@@ -199,6 +211,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Create Chain',
         component: createChainWithAnswers(answers),
         requiredChain: 'p-chain',
+        isComplete: chainCreated,
       });
 
       // Node hosting — after Create Chain, before Convert to L1
@@ -226,6 +239,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         title: 'Convert to L1',
         component: ConvertSubnetToL1,
         requiredChain: 'p-chain',
+        isComplete: convertedToL1,
       });
       steps.push({
         type: 'single',

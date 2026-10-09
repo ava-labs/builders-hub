@@ -48,6 +48,33 @@ const config = {
   // Include tsconfig.json in serverless function bundles for twoslash
   outputFileTracingIncludes: {
     '/*': ['./tsconfig.json'],
+    // Studio reads blueprints, compiled ICM/eERC artifacts and the deps script from disk at run time.
+    '/api/studio/**': [
+      './blueprints/**/*',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+      './scripts/blueprints/setup-test-deps.sh',
+      // The exported Next.js app and the @studio/react hooks the preview compiles.
+      './templates/studio-web/**/*',
+      // The eERC client an export copies when its app uses useEERC.
+      './lib/eerc/**/*.ts',
+      './types/eerc-modules.d.ts',
+      // An export pins its dependencies to the versions in the repo's package.json.
+      './package.json',
+    ],
+    // Published sites and their API read the blueprint registry, the studio-react source and contract artifacts.
+    '/builder/**': [
+      './blueprints/**/*',
+      './templates/studio-web/lib/studio-react.ts',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+    ],
+    '/api/builder/**': [
+      './blueprints/**/*',
+      './templates/studio-web/lib/studio-react.ts',
+      './contracts/icm-contracts/compiled/*.json',
+      './contracts/encrypted-erc/compiled/*.json',
+    ],
   },
   transpilePackages: ["next-mdx-remote"],
   images: {
@@ -2546,6 +2573,8 @@ const config = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
+          // Apps exported from Studio prove with these from their own origin.
+          { key: 'Access-Control-Allow-Origin', value: '*' },
         ],
       },
       {

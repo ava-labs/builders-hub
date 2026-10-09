@@ -20,7 +20,7 @@ export interface L1HealthState {
   lastSampledAt: number | null;
 }
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 5_000;
 
 // Status thresholds for the L1's most-recent block. Exported for unit
 // testing — the hook itself uses the same boundaries.
@@ -40,8 +40,8 @@ export function deriveHealthStatus(blockAgeSec: number): L1HealthStatus {
 /**
  * Per-L1 RPC health probe. Independent of the wallet's selected chain — the
  * `rpcUrl` + `evmChainId` come from the L1 the dashboard is currently
- * viewing, not from the user's wallet. Polls every 30s and falls back to
- * `offline` on any RPC error.
+ * viewing, not from the user's wallet. Polls every 5s while the tab is visible
+ * and falls back to `offline` on any RPC error.
  *
  * Status semantics:
  * - healthy   — last block produced ≤ 2 min ago
@@ -73,14 +73,19 @@ export function useL1Health(rpcUrl: string | undefined, evmChainId: number | nul
 
     const requestId = ++requestIdRef.current;
     const client = createPublicClient({ transport: http(rpcUrl) });
+    let chainVerified = false;
+    let inFlight = false;
 
     const sample = async () => {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
       setState((s) => ({ ...s, isLoading: true }));
       try {
         // Liveness probe — fail fast if the chain ID doesn't match what we
         // expect from Glacier metadata.
-        if (evmChainId !== null) {
+        if (evmChainId !== null && !chainVerified) {
           const chainId = await client.getChainId();
+          chainVerified = chainId === evmChainId;
           if (chainId !== evmChainId && requestId === requestIdRef.current) {
             setState({
               status: 'offline',
@@ -95,10 +100,7 @@ export function useL1Health(rpcUrl: string | undefined, evmChainId: number | nul
           }
         }
 
-        const [blockResult, gasPriceResult] = await Promise.allSettled([
-          client.getBlock(),
-          client.getGasPrice(),
-        ]);
+        const [blockResult, gasPriceResult] = await Promise.allSettled([client.getBlock(), client.getGasPrice()]);
 
         if (requestId !== requestIdRef.current) return;
 
@@ -132,8 +134,7 @@ export function useL1Health(rpcUrl: string | undefined, evmChainId: number | nul
           }
         }
 
-        const gasPriceEth =
-          gasPriceResult.status === 'fulfilled' ? formatEther(gasPriceResult.value) : null;
+        const gasPriceEth = gasPriceResult.status === 'fulfilled' ? formatEther(gasPriceResult.value) : null;
 
         if (requestId !== requestIdRef.current) return;
 
@@ -157,12 +158,19 @@ export function useL1Health(rpcUrl: string | undefined, evmChainId: number | nul
           isLoading: false,
           lastSampledAt: Date.now(),
         });
+      } finally {
+        inFlight = false;
       }
     };
 
     sample();
     const id = setInterval(sample, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
+    const onVisible = () => !document.hidden && void sample();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [rpcUrl, evmChainId]);
 
   return state;

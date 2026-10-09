@@ -1,5 +1,5 @@
 // Base requirement action types
-type ActionType = 'redirect' | 'connect' | 'faucet' | 'network' | 'conditional' | 'login';
+type ActionType = 'redirect' | 'connect' | 'faucet' | 'network' | 'conditional' | 'login' | 'console-wallet';
 
 export interface BaseAction {
   type: ActionType;
@@ -26,6 +26,11 @@ export interface LoginAction extends BaseAction {
   type: 'login';
 }
 
+/** Opens the top bar's Console wallet switch. */
+export interface ConsoleWalletAction extends BaseAction {
+  type: 'console-wallet';
+}
+
 export interface ConditionalAction extends BaseAction {
   type: 'conditional';
   conditions: {
@@ -35,7 +40,13 @@ export interface ConditionalAction extends BaseAction {
   fallback?: RedirectAction | ConnectAction | NetworkAction | LoginAction;
 }
 
-export type RequirementAction = RedirectAction | ConnectAction | NetworkAction | ConditionalAction | LoginAction;
+export type RequirementAction =
+  | RedirectAction
+  | ConnectAction
+  | NetworkAction
+  | ConditionalAction
+  | LoginAction
+  | ConsoleWalletAction;
 
 // Requirement output interface (generic, used by both wallet and account requirements)
 export interface Requirement {

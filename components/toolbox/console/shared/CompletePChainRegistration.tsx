@@ -27,9 +27,11 @@ import {
 } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { Check } from 'lucide-react';
-import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { Check, Loader2 } from 'lucide-react';
+import { CliAlternative } from '@/components/console/cli-alternative';
+import { HashChip } from '@/components/explorer-v2/ui';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
+import { Field, Status } from '@/components/toolbox/console/shared/validator-flow-ui';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import { ProposerVMPreflightCard } from '@/components/toolbox/console/shared/ProposerVMPreflightCard';
 import {
@@ -351,7 +353,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
   }
 
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
   }
 
   const isButtonDisabled =
@@ -366,7 +368,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
   const step2Complete = !!registrationComplete;
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-5">
       <ProposerVMPreflightCard requiredTxId={pChainTxIdState.trim() || null} />
       {error && (
         <Alert variant="error">
@@ -377,128 +379,116 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         </Alert>
       )}
 
-      {/* Step 1: Enter P-Chain Transaction */}
-      <StepFlowCard
-        step={1}
-        title="Enter P-Chain Transaction"
-        description="Provide the P-Chain transaction ID to extract the registration data"
-        isComplete={step1Complete}
-      >
-        <div className="mt-2">
+      <Steps>
+        <Step>
+          <div>
+            <h3 className="flex items-center justify-between gap-3">
+              Enter the P-Chain transaction
+              {step1Complete && <Status tone="ok">Entered</Status>}
+            </h3>
+            <p>The registration data is read from this P-Chain transaction.</p>
+          </div>
           <Input
-            label="P-Chain Transaction ID"
+            label="P-Chain transaction ID"
             value={pChainTxIdState}
             onChange={setPChainTxIdState}
-            placeholder="Enter the P-Chain transaction ID from the previous step"
+            placeholder="Transaction ID from the previous step"
             disabled={isProcessing}
-            helperText="The transaction ID from the P-Chain validator registration"
+            helperText="The ID of the P-Chain validator registration transaction."
           />
-        </div>
-        {extractedData && (
-          <div className="mt-2 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-green-600 dark:text-green-400 font-medium">Node ID:</span>
-              <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                {extractedData.nodeID}
-              </code>
+          {extractedData && (
+            <div className="flex flex-col gap-3">
+              <Field label="Node ID">
+                <HashChip value={extractedData.nodeID} len={22} />
+              </Field>
+              <Field label="Weight">
+                <span className="font-mono tabular-nums">{extractedData.weight.toString()}</span>
+              </Field>
+              {(extractedData.validationId || validationID) && (
+                <Field label="Validation ID">
+                  <HashChip value={extractedData.validationId || validationID || ''} len={18} />
+                </Field>
+              )}
             </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-green-600 dark:text-green-400 font-medium">Weight:</span>
-              <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                {extractedData.weight.toString()}
-              </code>
-            </div>
-            {extractedData.validationId && (
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-green-600 dark:text-green-400 font-medium">Validation ID:</span>
-                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                  {extractedData.validationId}
-                </code>
-              </div>
-            )}
-            {validationID && !extractedData.validationId && (
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-green-600 dark:text-green-400 font-medium">Validation ID:</span>
-                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                  {validationID}
-                </code>
-              </div>
-            )}
-          </div>
-        )}
-        {!step1Complete && validationID && (
-          <div className="mt-2">
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-zinc-500 dark:text-zinc-400 font-medium">Validation ID:</span>
-              <code className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                {validationID}
-              </code>
-            </div>
-          </div>
-        )}
-      </StepFlowCard>
+          )}
+          {!step1Complete && validationID && (
+            <Field label="Validation ID">
+              <HashChip value={validationID} len={18} />
+            </Field>
+          )}
+        </Step>
 
-      {/* Step 2: Aggregate & Complete Registration */}
-      <StepFlowCard
-        step={2}
-        title="Aggregate & Complete Registration"
-        description={`Aggregate BLS signatures and submit the registration transaction (${tokenLabel})`}
-        isComplete={step2Complete}
-        isActive={step1Complete}
-      >
-        {isLoadingOwnership && step1Complete && (
-          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Checking contract ownership...</p>
-        )}
-
-        {pChainSignature && !step2Complete && (
-          <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
-            <Check className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">Signatures aggregated</span>
+        <Step>
+          <div>
+            <h3 className="flex items-center justify-between gap-3">
+              Aggregate and complete registration
+              {step2Complete ? (
+                <Status tone="ok">Completed</Status>
+              ) : pChainSignature ? (
+                <Status tone="ok">Aggregated</Status>
+              ) : null}
+            </h3>
+            <p>
+              Aggregates BLS signatures and submits the registration transaction{' '}
+              <span className="font-mono text-[12px]">({tokenLabel})</span>.
+            </p>
           </div>
-        )}
 
-        {step2Complete ? (
-          <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
-            <Check className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">Registration completed</span>
-          </div>
-        ) : step1Complete && !(!isCoreWallet && pChainSignature) ? (
-          <div className="mt-2">
+          {isLoadingOwnership && step1Complete && (
+            <p
+              role="status"
+              className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Checking contract ownership
+            </p>
+          )}
+
+          {pChainSignature && !step2Complete && (
+            <p className="flex items-center gap-1.5 text-[13px] text-emerald-700 dark:text-emerald-400">
+              <Check className="h-3.5 w-3.5" />
+              Signatures aggregated
+            </p>
+          )}
+
+          {step2Complete ? (
+            <p className="flex items-center gap-1.5 text-[13px] text-emerald-700 dark:text-emerald-400">
+              <Check className="h-3.5 w-3.5" />
+              Registration completed
+            </p>
+          ) : step1Complete && !(!isCoreWallet && pChainSignature) ? (
             <Button
               onClick={handleCompleteRegistration}
               disabled={isButtonDisabled}
               loading={isProcessing}
+              loadingText={isCoreWallet ? 'Completing…' : 'Aggregating…'}
               className="w-full"
             >
               {isLoadingOwnership
-                ? 'Checking ownership...'
-                : isProcessing
-                  ? 'Processing...'
-                  : isCoreWallet
-                    ? 'Complete Validator Registration'
-                    : 'Aggregate Signatures'}
+                ? 'Checking ownership…'
+                : isCoreWallet
+                  ? 'Complete validator registration'
+                  : 'Aggregate signatures'}
             </Button>
-          </div>
-        ) : null}
-      </StepFlowCard>
+          ) : !step1Complete ? (
+            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+              Waiting on the P-Chain transaction.
+            </p>
+          ) : null}
 
-      {/* Non-Core: CLI command after aggregation */}
-      {!isCoreWallet && pChainSignature && !txHash && (
-        <div className="p-3 rounded-xl border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 space-y-3">
-          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-            Signatures aggregated. Run this command to complete the validator registration:
-          </p>
-          <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
-        </div>
-      )}
+          {/* Non-Core: CLI command after aggregation */}
+          {!isCoreWallet && pChainSignature && !txHash && (
+            <div className="flex flex-col gap-3">
+              <p className="text-[13px] text-zinc-600 dark:text-zinc-400">
+                Signatures aggregated. Run this to complete the validator registration.
+              </p>
+              <CliAlternative command={generateCastCommand()} />
+            </div>
+          )}
+        </Step>
+      </Steps>
 
-      {registrationComplete && (
-        <div className="p-3 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
-          <p className="text-sm text-green-800 dark:text-green-200">
-            <strong>Success!</strong> Your validator is now registered and active on the L1.
-          </p>
-        </div>
-      )}
+      {registrationComplete && <Alert variant="success">Your validator is registered and active on the L1.</Alert>}
     </div>
   );
 };

@@ -1,18 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/toolbox/components/Button';
 import { useManagedTestnetRelayers } from '@/hooks/useManagedTestnetRelayers';
 import { Relayer, RelayerConfig } from './types';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import Link from 'next/link';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
-import { RefreshCw } from 'lucide-react';
-import { Input, RawInput } from '@/components/toolbox/components/Input';
+import { ArrowUpRight, Loader2 } from 'lucide-react';
+import { Board, BoardHeader, HashChip } from '@/components/explorer-v2/ui';
+import {
+  BalanceRows,
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  ChainPicker,
+  EYEBROW,
+  HoverArrow,
+  Notice,
+  resolveChainInfo,
+  SelectionSummary,
+} from './ui';
 import { formatEther, parseEther, Chain } from 'viem';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
@@ -21,7 +31,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 const metadata: ConsoleToolMetadata = {
   title: 'Create Managed Testnet Relayer',
   description:
-    'Create a free testnet ICM relayer to enable cross-chain message delivery between your L1s. These relayers will shut down after 3 days. They are suitable for quick testing. For production settings or extended testing, use self-hosted relayers. You need a Builder Hub Account to use this tool.',
+    'A free Fuji ICM relayer that carries messages between your L1s. It shuts down after 3 days, so use it for quick tests; run your own relayer for production or longer testing. Needs a Builder Hub account.',
   toolRequirements: [WalletRequirementsConfigKey.TestnetRequired],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -108,24 +118,7 @@ function CreateManagedTestnetRelayerBase() {
   };
 
   // Helper to get chain info from L1 list or fallback
-  const getChainInfo = (config: RelayerConfig) => {
-    // First check if it's C-Chain
-    if (config.rpcUrl.includes('avax-test.network') || config.subnetId === '11111111111111111111111111111111LpoYY') {
-      return { name: 'C-Chain (Fuji)', coinName: 'AVAX' };
-    }
-
-    // Look up in L1 list by blockchain ID
-    const l1 = l1List.find((item: L1ListItem) => item.id === config.blockchainId);
-    if (l1) {
-      return { name: l1.name, coinName: l1.coinName };
-    }
-
-    // Fallback: use blockchain ID prefix
-    return {
-      name: `${config.blockchainId.substring(0, 8)}...`,
-      coinName: 'Token',
-    };
-  };
+  const getChainInfo = (config: RelayerConfig) => resolveChainInfo(config, l1List);
 
   const updateTokenAmount = (blockchainId: string, amount: string) => {
     setTokenAmounts((prev) => ({
@@ -286,175 +279,94 @@ function CreateManagedTestnetRelayerBase() {
   return (
     <Steps>
       <Step>
-        <h2 className="text-lg font-medium">Step 1: Select Networks</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
-          Select the source networks to monitor and destination networks to deliver messages to.
-        </p>
-
-        {selectionError && (
-          <div className="text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded-md mb-4">{selectionError}</div>
-        )}
-
-        {l1List.length === 0 ? (
-          <div className="text-center py-8 text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
-            <p className="mb-2">No L1s available in your list.</p>
-            <p className="text-sm">Please create an L1 first before setting up a relayer.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Source Networks Column */}
-            <div className="space-y-4">
-              <div className="text-base font-medium">Source Networks</div>
-              <div className="space-y-2 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
-                {l1List.map((l1: L1ListItem) => (
-                  <div
-                    key={`source-${l1.id}`}
-                    className="flex items-center gap-3 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"
-                  >
-                    <input
-                      type="checkbox"
-                      id={`source-${l1.id}`}
-                      checked={selectedSources.includes(l1.id)}
-                      onChange={() => handleToggleSource(l1.id)}
-                      className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-600 focus:ring-zinc-500"
-                    />
-                    <label htmlFor={`source-${l1.id}`} className="flex-1 cursor-pointer">
-                      <div className="font-medium">{l1.name}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">Chain ID: {l1.evmChainId}</div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Destination Networks Column */}
-            <div className="space-y-4">
-              <div className="text-base font-medium">Destination Networks</div>
-              <div className="space-y-2 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
-                {l1List.map((l1: L1ListItem) => (
-                  <div
-                    key={`dest-${l1.id}`}
-                    className="flex items-center gap-3 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"
-                  >
-                    <input
-                      type="checkbox"
-                      id={`dest-${l1.id}`}
-                      checked={selectedDestinations.includes(l1.id)}
-                      onChange={() => handleToggleDestination(l1.id)}
-                      className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-600 focus:ring-zinc-500"
-                    />
-                    <label htmlFor={`dest-${l1.id}`} className="flex-1 cursor-pointer">
-                      <div className="font-medium">{l1.name}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">Chain ID: {l1.evmChainId}</div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        <h2>Select networks</h2>
+        <p>Pick the chains to watch for messages and the chains to deliver them to.</p>
+        {selectionError && l1List.length > 0 && <Notice tone="error">{selectionError}</Notice>}
+        <ChainPicker
+          l1List={l1List}
+          sources={selectedSources}
+          destinations={selectedDestinations}
+          onToggleSource={handleToggleSource}
+          onToggleDestination={handleToggleDestination}
+        />
       </Step>
 
       <Step>
-        <h2 className="text-lg font-medium">Step 2: Create Relayer</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
-          Review your network selection and create the managed testnet relayer.
-        </p>
-        <Button
-          onClick={handleCreate}
-          loading={isCreatingRelayer}
-          disabled={!!selectionError || l1List.length === 0 || isCreatingRelayer}
-        >
-          Create Relayer
-        </Button>
+        <h2>Create relayer</h2>
+        <p>Check the route, then create the relayer. It runs for 3 days.</p>
+        <Board className="border-x border-t">
+          <BoardHeader label="Your relayer" display />
+          <SelectionSummary l1List={l1List} sources={selectedSources} destinations={selectedDestinations} />
+          <div className="flex justify-end px-5 py-4">
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={!!selectionError || l1List.length === 0 || isCreatingRelayer}
+              className={BTN_PRIMARY}
+            >
+              {isCreatingRelayer && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {isCreatingRelayer ? 'Creating' : 'Create relayer'}
+              <HoverArrow />
+            </button>
+          </div>
+        </Board>
       </Step>
 
       <Step>
-        <h2 className="text-lg font-medium">Step 3: Fund Relayer</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
-          Your relayer has been created. Fund the relayer address on all configured chains to cover transaction fees.
-        </p>
+        <h2>Fund relayer</h2>
+        <p>Send gas tokens to the relayer address on every chain it serves.</p>
         {createdRelayerResponse && !createdRelayer && (
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md">
-            Loading relayer details...
+          <div
+            role="status"
+            className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+          >
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Loading relayer details
           </div>
         )}
-        {createdRelayer && createdRelayer.relayerId && (
-          <div className="mb-6 space-y-4">
-            <Input label="Relayer EVM Address" value={createdRelayer.relayerId || ''} disabled />
-
-            {/* Relayer Balances */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Relayer Balances</div>
-                <button
-                  onClick={fetchBalances}
-                  disabled={isLoadingBalances}
-                  className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-50"
-                  style={{ lineHeight: 0 }}
-                  title="Refresh balances"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
-              <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
-                Ensure the relayer address maintains a positive balance on all configured chains to cover transaction
-                fees.
-              </div>
-              <div className="space-y-2">
-                {createdRelayer.configs.map((config) => {
-                  const chainInfo = getChainInfo(config);
-
-                  return (
-                    <div
-                      key={config.blockchainId}
-                      className="flex items-center justify-between p-3 border border-zinc-200/80 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-800/50"
-                    >
-                      <div>
-                        <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{chainInfo.name}</div>
-                        <div className="flex items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
-                          {balances[config.blockchainId] !== undefined
-                            ? `${parseFloat(balances[config.blockchainId]).toFixed(4)} ${chainInfo.coinName}`
-                            : 'Loading...'}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RawInput
-                          value={tokenAmounts[config.blockchainId] || '1'}
-                          onChange={(e) => updateTokenAmount(config.blockchainId, e.target.value)}
-                          placeholder="1.0"
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          className="w-20 h-8"
-                        />
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          className="w-24 px-2 flex-shrink-0 h-8 text-sm"
-                          onClick={() => sendFunds(config)}
-                          loading={isSending}
-                        >
-                          Send {chainInfo.coinName}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        {createdRelayer && createdRelayer.relayerId ? (
+          <Board className="border-x border-t">
+            <div className="flex flex-col gap-1.5 px-5 py-3.5">
+              <p className={EYEBROW}>Relayer address</p>
+              <HashChip value={createdRelayer.relayerId} len={14} />
             </div>
-          </div>
+            <BalanceRows
+              configs={createdRelayer.configs}
+              chainInfo={getChainInfo}
+              balances={balances}
+              isLoadingBalances={isLoadingBalances}
+              onRefresh={fetchBalances}
+              tokenAmounts={tokenAmounts}
+              onAmountChange={updateTokenAmount}
+              onSend={sendFunds}
+              isSending={isSending}
+            />
+          </Board>
+        ) : (
+          !createdRelayerResponse && (
+            <p className="border border-zinc-200 px-5 py-4 text-[13px] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+              The relayer&apos;s address and balances show here once it&apos;s created.
+            </p>
+          )
         )}
       </Step>
 
       <Step>
-        <h2 className="text-lg font-medium">Step 4: Manage Relayer</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
-          Open the Testnet Relayer Manager to view, fund, and manage all your relayers.
-        </p>
-        <Link href="/console/testnet-infra/icm-relayer" target="_blank">
-          <Button disabled={!createdRelayer}>Open Testnet Relayer Manager</Button>
-        </Link>
+        <h2>Manage relayer</h2>
+        <p>Open the relayer manager to view, fund, restart or delete all your relayers.</p>
+        <div>
+          {createdRelayer ? (
+            <Link href="/console/testnet-infra/icm-relayer" target="_blank" className={BTN_SECONDARY}>
+              Open relayer manager
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : (
+            <button type="button" disabled className={BTN_SECONDARY}>
+              Open relayer manager
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </Step>
     </Steps>
   );

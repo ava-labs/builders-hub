@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import * as React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Home,
   Layers,
@@ -38,7 +38,8 @@ import {
   Bell,
   type LucideIcon,
   ShieldCheck,
-} from "lucide-react";
+  Sparkles,
+} from 'lucide-react';
 
 import {
   Sidebar,
@@ -54,17 +55,13 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   useSidebar,
-} from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useSidebarState } from "@/hooks/useSidebarState";
-import { useFavoriteTools } from "@/hooks/useFavoriteTools";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { cn } from "@/lib/utils";
-import { TOOLS as ALL_CONSOLE_TOOLS } from "@/components/toolbox/console/toolbox/tools";
+} from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useSidebarState } from '@/hooks/useSidebarState';
+import { useFavoriteTools } from '@/hooks/useFavoriteTools';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { cn } from '@/lib/utils';
+import { TOOLS as ALL_CONSOLE_TOOLS } from '@/components/toolbox/console/toolbox/tools';
 
 // C-Chain chain IDs (Fuji testnet and Mainnet)
 const C_CHAIN_IDS = [43113, 43114];
@@ -75,6 +72,8 @@ interface NavItem {
   url: string;
   icon: LucideIcon;
   comingSoon?: boolean;
+  /** Opens in a new tab with an external-link mark, for pages outside the console (https URLs are always external). */
+  external?: boolean;
   sourceCategory?: string;
   /** Optional override for the row's accessible name. Used by sub-step
    *  search results so screen readers hear the parent flow context. */
@@ -111,10 +110,8 @@ interface SearchableNavItem extends NavItem {
 }
 
 // Helper to check if item is a collapsible subgroup
-function isCollapsibleSubGroup(
-  item: NavItem | CollapsibleSubGroup
-): item is CollapsibleSubGroup {
-  return "items" in item && Array.isArray(item.items);
+function isCollapsibleSubGroup(item: NavItem | CollapsibleSubGroup): item is CollapsibleSubGroup {
+  return 'items' in item && Array.isArray(item.items);
 }
 
 // Sidebar state context for nested components
@@ -128,7 +125,7 @@ const SidebarStateContext = React.createContext<SidebarStateContextValue | null>
 function useSidebarStateContext() {
   const context = React.useContext(SidebarStateContext);
   if (!context) {
-    throw new Error("useSidebarStateContext must be used within SidebarStateProvider");
+    throw new Error('useSidebarStateContext must be used within SidebarStateProvider');
   }
   return context;
 }
@@ -137,42 +134,48 @@ function useSidebarStateContext() {
 const data = {
   navMain: [
     {
-      title: "Home",
-      url: "/console",
+      title: 'Home',
+      url: '/console',
       icon: Home,
     },
     {
-      title: "Toolbox",
-      url: "/console/toolbox",
+      title: 'Studio',
+      url: '/console/studio',
+      icon: Sparkles,
+    },
+    {
+      title: 'Toolbox',
+      url: '/console/toolbox',
       icon: LayoutGrid,
     },
   ],
   navGroups: [
     // Getting started — entry points
     {
-      id: "getting-started",
-      title: "Getting Started",
+      id: 'getting-started',
+      title: 'Getting Started',
       icon: Rocket,
       items: [
         {
-          title: "Create L1",
-          url: "/console/create-l1",
+          title: 'Create L1',
+          url: '/console/create-l1',
           icon: Layers,
         },
         {
-          title: "My L1 Dashboard",
-          url: "/console/my-l1",
+          title: 'My L1 Dashboard',
+          url: '/console/my-l1',
           icon: LayoutDashboard,
         },
         {
-          title: "Testnet Faucet",
-          url: "/console/primary-network/faucet",
+          title: 'Testnet Faucet',
+          url: '/console/primary-network/faucet',
           icon: Droplets,
         },
         {
-          title: "Security Audits",
-          url: "/audits",
+          title: 'Security Audits',
+          url: '/audits',
           icon: ShieldCheck,
+          external: true,
         },
       ],
     },
@@ -182,47 +185,47 @@ const data = {
     // it. The rest of the old Manage L1 group (Validator Set/Balance, Fee
     // Params) lives in /console/toolbox.
     {
-      id: "testnet-infra",
-      title: "Testnet Infrastructure",
+      id: 'testnet-infra',
+      title: 'Testnet Infrastructure',
       icon: Server,
       items: [
         {
-          title: "Testnet Nodes",
-          url: "/console/testnet-infra/nodes",
+          title: 'Testnet Nodes',
+          url: '/console/testnet-infra/nodes',
           icon: Server,
         },
         {
-          title: "ICM Relayer",
-          url: "/console/testnet-infra/icm-relayer",
+          title: 'ICM Relayer',
+          url: '/console/testnet-infra/icm-relayer',
           icon: Layers,
         },
       ],
     },
     // Primary Network
     {
-      id: "primary-network",
-      title: "Primary Network",
+      id: 'primary-network',
+      title: 'Primary Network',
       icon: Network,
       defaultOpen: true,
       items: [
         {
-          title: "Node Setup",
-          url: "/console/primary-network/node-setup",
+          title: 'Node Setup',
+          url: '/console/primary-network/node-setup',
           icon: Server,
         },
         {
-          title: "Stake AVAX",
-          url: "/console/primary-network/stake",
+          title: 'Stake AVAX',
+          url: '/console/primary-network/stake',
           icon: HandCoins,
         },
         {
-          title: "C/P Bridge",
-          url: "/console/primary-network/c-p-bridge",
+          title: 'C/P Bridge',
+          url: '/console/primary-network/c-p-bridge',
           icon: ArrowLeftRight,
         },
         {
-          title: "Validator Alerts",
-          url: "/console/primary-network/validator-alerts",
+          title: 'Validator Alerts',
+          url: '/console/primary-network/validator-alerts',
           icon: Bell,
         },
       ],
@@ -237,28 +240,28 @@ const data = {
     // change-weight, delegations, etc.) lives in /console/toolbox so power
     // users can still find them while the sidebar stays focused.
     {
-      id: "validators",
-      title: "L1 Validators",
+      id: 'validators',
+      title: 'L1 Validators',
       icon: Hexagon,
       items: [
         {
-          title: "Node Setup",
-          url: "/console/layer-1/l1-node-setup",
+          title: 'Node Setup',
+          url: '/console/layer-1/l1-node-setup',
           icon: Server,
         },
         {
-          title: "Add Validator",
-          url: "/console/add-validator",
+          title: 'Add Validator',
+          url: '/console/add-validator',
           icon: SquarePlus,
         },
         {
-          title: "Remove Validator",
-          url: "/console/remove-validator",
+          title: 'Remove Validator',
+          url: '/console/remove-validator',
           icon: ShieldOff,
         },
         {
-          title: "Validator Balance",
-          url: "/console/layer-1/l1-validator-balance",
+          title: 'Validator Balance',
+          url: '/console/layer-1/l1-validator-balance',
           icon: Coins,
         },
       ],
@@ -269,18 +272,18 @@ const data = {
     // discoverability, but exposing it as a separate sidebar row was confusing
     // because both URLs now redirect into the same flow at different steps.
     {
-      id: "cross-chain",
-      title: "Cross-Chain",
+      id: 'cross-chain',
+      title: 'Cross-Chain',
       icon: MessagesSquare,
       items: [
         {
-          title: "ICM Setup",
-          url: "/console/icm",
+          title: 'ICM Setup',
+          url: '/console/icm',
           icon: MessagesSquare,
         },
         {
-          title: "ICTT Setup",
-          url: "/console/ictt/setup",
+          title: 'ICTT Setup',
+          url: '/console/ictt/setup',
           icon: Workflow,
         },
       ],
@@ -290,18 +293,18 @@ const data = {
     // auditor) and Deploy Your Own (the wizard for custom L1s). The full
     // sub-tool catalog lives in /console/toolbox under "Encrypted ERC".
     {
-      id: "encrypted-erc",
-      title: "Encrypted ERC",
+      id: 'encrypted-erc',
+      title: 'Encrypted ERC',
       icon: Lock,
       items: [
         {
-          title: "Overview",
-          url: "/console/encrypted-erc/overview",
+          title: 'Overview',
+          url: '/console/encrypted-erc/overview',
           icon: BookOpen,
         },
         {
-          title: "Deploy Your Own",
-          url: "/console/encrypted-erc/deploy",
+          title: 'Deploy Your Own',
+          url: '/console/encrypted-erc/deploy',
           icon: Rocket,
         },
       ],
@@ -315,11 +318,9 @@ interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> {}
 function groupContainsPath(group: NavGroup, pathname: string): boolean {
   return group.items.some((item) => {
     if (isCollapsibleSubGroup(item)) {
-      return item.items.some(
-        (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/")
-      );
+      return item.items.some((sub) => pathname === sub.url || pathname.startsWith(sub.url + '/'));
     }
-    return pathname === item.url || pathname.startsWith(item.url + "/");
+    return pathname === item.url || pathname.startsWith(item.url + '/');
   });
 }
 
@@ -345,14 +346,11 @@ function CollapsibleSection({
     <Collapsible open={effectiveOpen} onOpenChange={onToggle}>
       <SidebarGroup className="py-1">
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors group/label font-semibold text-xs uppercase tracking-wide">
+          <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-none transition-colors group/label font-mono text-[10px] font-bold uppercase tracking-[0.18em]">
             <div className="flex items-center justify-between w-full">
               <span>{group.title}</span>
               <ChevronRight
-                className={cn(
-                  "h-3.5 w-3.5 opacity-50 transition-transform duration-200",
-                  effectiveOpen && "rotate-90"
-                )}
+                className={cn('h-3.5 w-3.5 opacity-50 transition-transform duration-200', effectiveOpen && 'rotate-90')}
               />
             </div>
           </SidebarGroupLabel>
@@ -362,27 +360,12 @@ function CollapsibleSection({
             <SidebarMenu>
               {group.items.map((item) => {
                 if (isCollapsibleSubGroup(item)) {
-                  return (
-                    <CollapsibleSubGroupItem
-                      key={item.id}
-                      subGroup={item}
-                      pathname={pathname}
-                    />
-                  );
+                  return <CollapsibleSubGroupItem key={item.id} subGroup={item} pathname={pathname} />;
                 }
-                if (group.id === "pinned" && onUnpin) {
-                  return (
-                    <PinnedNavMenuItem
-                      key={item.title}
-                      item={item}
-                      pathname={pathname}
-                      onUnpin={onUnpin}
-                    />
-                  );
+                if (group.id === 'pinned' && onUnpin) {
+                  return <PinnedNavMenuItem key={item.title} item={item} pathname={pathname} onUnpin={onUnpin} />;
                 }
-                return (
-                  <NavMenuItem key={item.title} item={item} pathname={pathname} />
-                );
+                return <NavMenuItem key={item.title} item={item} pathname={pathname} />;
               })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -401,7 +384,7 @@ function PinnedNavMenuItem({
   pathname: string;
   onUnpin: (path: string) => void;
 }) {
-  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+  const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
   const handleUnpin = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -412,17 +395,15 @@ function PinnedNavMenuItem({
     <SidebarMenuItem>
       <div
         className={cn(
-          "group/pinned flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors",
-          "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-          isActive && "bg-sidebar-accent text-sidebar-foreground"
+          'group/pinned flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors',
+          'hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+          isActive && 'bg-sidebar-accent text-sidebar-foreground',
         )}
       >
         <Link href={item.url} className="flex min-w-0 flex-1 flex-col px-2 py-1.5">
           <span className="truncate text-sm leading-4">{item.title}</span>
           {item.sourceCategory && (
-            <span className="truncate text-[10px] leading-3 text-sidebar-foreground/40">
-              {item.sourceCategory}
-            </span>
+            <span className="truncate text-[10px] leading-3 text-sidebar-foreground/40">{item.sourceCategory}</span>
           )}
         </Link>
         <button
@@ -431,9 +412,9 @@ function PinnedNavMenuItem({
           title={`Unpin ${item.title}`}
           aria-label={`Unpin ${item.title} from sidebar`}
           className={cn(
-            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-amber-500 transition-all",
-            "opacity-100 hover:bg-sidebar-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-            "sm:opacity-0 sm:group-hover/pinned:opacity-100 sm:focus-visible:opacity-100"
+            'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-amber-500 transition-all',
+            'opacity-100 hover:bg-sidebar-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            'sm:opacity-0 sm:group-hover/pinned:opacity-100 sm:focus-visible:opacity-100',
           )}
         >
           <Star className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />
@@ -444,20 +425,12 @@ function PinnedNavMenuItem({
 }
 
 // Collapsible Sub-group Component (nested within a section)
-function CollapsibleSubGroupItem({
-  subGroup,
-  pathname,
-}: {
-  subGroup: CollapsibleSubGroup;
-  pathname: string;
-}) {
+function CollapsibleSubGroupItem({ subGroup, pathname }: { subGroup: CollapsibleSubGroup; pathname: string }) {
   const { isCollapsed, toggleSection } = useSidebarStateContext();
   const subGroupId = `sub-${subGroup.id}`;
 
   // Check if any child is active
-  const hasActiveChild = subGroup.items.some(
-    (item) => pathname === item.url || pathname.startsWith(item.url + "/")
-  );
+  const hasActiveChild = subGroup.items.some((item) => pathname === item.url || pathname.startsWith(item.url + '/'));
 
   // Subgroups default collapsed — open if child is active or user explicitly expanded
   // (inverted: presence in collapsed set = user toggled open for subgroups)
@@ -470,32 +443,28 @@ function CollapsibleSubGroupItem({
           <SidebarMenuButton
             size="sm"
             className={cn(
-              "cursor-pointer text-sidebar-foreground/50 hover:text-sidebar-foreground font-medium",
-              hasActiveChild && "text-sidebar-foreground"
+              'cursor-pointer text-sidebar-foreground/50 hover:text-sidebar-foreground font-medium',
+              hasActiveChild && 'text-sidebar-foreground',
             )}
           >
             <span>{subGroup.title}</span>
             <ChevronRight
-              className={cn(
-                "ml-auto h-3 w-3 opacity-40 transition-transform duration-200",
-                isOpen && "rotate-90"
-              )}
+              className={cn('ml-auto h-3 w-3 opacity-40 transition-transform duration-200', isOpen && 'rotate-90')}
             />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent className="overflow-hidden transition-all data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
           <SidebarMenuSub>
             {subGroup.items.map((item) => {
-              const isActive =
-                pathname === item.url || pathname.startsWith(item.url + "/");
+              const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
               return (
                 <SidebarMenuSubItem key={item.title}>
                   <SidebarMenuSubButton
                     asChild
                     isActive={isActive}
                     className={cn(
-                      "text-sidebar-foreground/50 hover:text-sidebar-foreground",
-                      isActive && "text-sidebar-foreground"
+                      'text-sidebar-foreground/50 hover:text-sidebar-foreground',
+                      isActive && 'text-sidebar-foreground',
                     )}
                   >
                     <Link href={item.url}>
@@ -514,22 +483,15 @@ function CollapsibleSubGroupItem({
 
 // Map URLs to tour data attributes
 const TOUR_DATA_ATTRS: Record<string, string> = {
-  "/console/primary-network/faucet": "faucet-link",
-  "/console/create-l1": "create-l1-link",
-
+  '/console/primary-network/faucet': 'faucet-link',
+  '/console/create-l1': 'create-l1-link',
 };
 
 // Single Nav Menu Item
-function NavMenuItem({
-  item,
-  pathname,
-}: {
-  item: NavItem;
-  pathname: string;
-}) {
-  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+function NavMenuItem({ item, pathname }: { item: NavItem; pathname: string }) {
+  const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
   const isComingSoon = item.comingSoon;
-  const isExternal = item.url.startsWith("https://");
+  const isExternal = item.external || item.url.startsWith('https://');
   const tourAttr = TOUR_DATA_ATTRS[item.url];
 
   return (
@@ -538,9 +500,9 @@ function NavMenuItem({
         asChild
         isActive={isActive}
         className={cn(
-          "text-sidebar-foreground/70 hover:text-sidebar-foreground",
-          isActive && "text-sidebar-foreground",
-          isComingSoon && "opacity-50 cursor-not-allowed"
+          'text-sidebar-foreground/70 hover:text-sidebar-foreground',
+          isActive && 'text-sidebar-foreground',
+          isComingSoon && 'opacity-50 cursor-not-allowed',
         )}
         disabled={isComingSoon}
       >
@@ -549,12 +511,7 @@ function NavMenuItem({
             <span>{item.title} (soon)</span>
           </span>
         ) : isExternal ? (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center w-full"
-          >
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center w-full">
             <span>{item.title}</span>
             <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-50" />
           </a>
@@ -588,9 +545,9 @@ function SearchResultMenuItem({
   isMandatory: boolean;
   onTogglePin: (path: string) => void;
 }) {
-  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+  const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
   const isComingSoon = item.comingSoon;
-  const isExternal = item.url.startsWith("https://");
+  const isExternal = item.external || item.url.startsWith('https://');
   const tourAttr = TOUR_DATA_ATTRS[item.url];
   const showStar = isPinnable && !isComingSoon && !isExternal;
   const isPinned = isUserStarred || isMandatory;
@@ -616,20 +573,14 @@ function SearchResultMenuItem({
     <SidebarMenuItem data-tour={tourAttr}>
       <div
         className={cn(
-          "group/searchresult flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors",
-          "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-          isActive && "bg-sidebar-accent text-sidebar-foreground"
+          'group/searchresult flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors',
+          'hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+          isActive && 'bg-sidebar-accent text-sidebar-foreground',
         )}
       >
-        <Link
-          href={item.url}
-          aria-label={item.ariaLabel}
-          className="flex min-w-0 flex-1 flex-col px-2 py-1.5 text-sm"
-        >
+        <Link href={item.url} aria-label={item.ariaLabel} className="flex min-w-0 flex-1 flex-col px-2 py-1.5 text-sm">
           {item.parentName && (
-            <span className="truncate text-[10px] leading-tight text-sidebar-foreground/45">
-              {item.parentName} ›
-            </span>
+            <span className="truncate text-[10px] leading-tight text-sidebar-foreground/45">{item.parentName} ›</span>
           )}
           <span className="truncate">{item.title}</span>
         </Link>
@@ -641,19 +592,15 @@ function SearchResultMenuItem({
           aria-label={starTitle}
           aria-pressed={isPinned}
           className={cn(
-            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
             isPinned
-              ? "text-amber-500 opacity-100"
-              : "text-sidebar-foreground/40 opacity-0 hover:text-sidebar-foreground group-hover/searchresult:opacity-100 focus-visible:opacity-100",
-            isMandatory && "cursor-not-allowed opacity-60",
-            !isMandatory && "hover:bg-sidebar-accent"
+              ? 'text-amber-500 opacity-100'
+              : 'text-sidebar-foreground/40 opacity-0 hover:text-sidebar-foreground group-hover/searchresult:opacity-100 focus-visible:opacity-100',
+            isMandatory && 'cursor-not-allowed opacity-60',
+            !isMandatory && 'hover:bg-sidebar-accent',
           )}
         >
-          <Star
-            className="h-3.5 w-3.5"
-            fill={isPinned ? "currentColor" : "none"}
-            strokeWidth={isPinned ? 1.5 : 2}
-          />
+          <Star className="h-3.5 w-3.5" fill={isPinned ? 'currentColor' : 'none'} strokeWidth={isPinned ? 1.5 : 2} />
         </button>
       </div>
     </SidebarMenuItem>
@@ -662,7 +609,7 @@ function SearchResultMenuItem({
 
 export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const pathname = usePathname();
-  const sidebarState = useSidebarState(["primary-network"]);
+  const sidebarState = useSidebarState(['primary-network']);
   const { isCollapsed, toggleSection } = sidebarState;
 
   // Rail collapse state (icon mode). When the user shrinks the sidebar to
@@ -670,16 +617,20 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   // it for a search-icon button that re-expands the rail and focuses the
   // input on click. `useSidebar()` exposes `state` ("expanded"|"collapsed")
   // and `setOpen` from `components/ui/sidebar.tsx`.
-  const { state: railState, setOpen: setRailOpen } = useSidebar();
-  const isRailCollapsed = railState === "collapsed";
+  const { state: railState, setOpen: setRailOpen, setOpenMobile } = useSidebar();
+  const isRailCollapsed = railState === 'collapsed';
 
-  const [searchQuery, setSearchQuery] = React.useState("");
+  // On phones the sidebar is a sheet over the page; picking a page closes it.
+  React.useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
+
+  const [searchQuery, setSearchQuery] = React.useState('');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   // Get wallet chain ID to determine if user is on an L1
   const walletChainId = useWalletStore((s) => s.walletChainId);
-  const isConnectedToL1 =
-    walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
+  const isConnectedToL1 = walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
 
   // User-pinned tools from the toolbox. Mandatory tools are already in the
   // canonical sidebar groups below; we only inject what the user explicitly
@@ -696,13 +647,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   // whether a hit is "pinnable" (i.e., backed by a real tool) and should
   // surface the star toggle. Pure-navigation hits (e.g. "Console" home)
   // don't pin meaningfully so they get no star.
-  const toolPaths = React.useMemo(
-    () =>
-      new Set(
-        ALL_CONSOLE_TOOLS.filter((t) => !t.external).map((t) => t.path),
-      ),
-    [],
-  );
+  const toolPaths = React.useMemo(() => new Set(ALL_CONSOLE_TOOLS.filter((t) => !t.external).map((t) => t.path)), []);
 
   const starredGroup = React.useMemo<NavGroup | null>(() => {
     if (!favoritesHydrated || userStarred.length === 0) return null;
@@ -752,7 +697,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
       items.push(item);
     };
 
-    data.navMain.forEach((item) => push({ ...item, category: "" }));
+    data.navMain.forEach((item) => push({ ...item, category: '' }));
     navGroups.forEach((group) => {
       group.items.forEach((item) => {
         if (isCollapsibleSubGroup(item)) {
@@ -811,21 +756,19 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const filteredItems = React.useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
-    return allNavItems.filter((item) =>
-      item.title.toLowerCase().includes(query)
-    );
+    return allNavItems.filter((item) => item.title.toLowerCase().includes(query));
   }, [searchQuery, allNavItems]);
 
   const isSearching = searchQuery.trim().length > 0;
 
   // Clear search on navigation
   React.useEffect(() => {
-    setSearchQuery("");
+    setSearchQuery('');
   }, [pathname]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setSearchQuery("");
+    if (e.key === 'Escape') {
+      setSearchQuery('');
       searchInputRef.current?.blur();
     }
   };
@@ -866,7 +809,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               {searchQuery && (
                 <button
                   onClick={() => {
-                    setSearchQuery("");
+                    setSearchQuery('');
                     searchInputRef.current?.focus();
                   }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-sidebar-foreground/40 hover:text-sidebar-foreground"
@@ -878,7 +821,11 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
           )}
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent
+          onClick={(e) => {
+            if ((e.target as Element).closest('a')) setOpenMobile(false);
+          }}
+        >
           {isSearching ? (
             <SidebarGroup>
               <SidebarGroupContent>
@@ -895,7 +842,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
                         }
                       });
                       return grouped.map((group) => (
-                        <React.Fragment key={group.category || "_root"}>
+                        <React.Fragment key={group.category || '_root'}>
                           {group.category && (
                             <div className="px-3 pt-3 pb-1 text-xs font-medium text-sidebar-foreground/40">
                               {group.category}
@@ -906,9 +853,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
                               key={item.url}
                               item={item}
                               pathname={pathname}
-                              isPinnable={
-                                toolPaths.has(item.url) || isMandatoryTool(item.url)
-                              }
+                              isPinnable={toolPaths.has(item.url) || isMandatoryTool(item.url)}
                               isUserStarred={isUserStarred(item.url)}
                               isMandatory={isMandatoryTool(item.url)}
                               onTogglePin={toggleFavoriteTool}
@@ -931,14 +876,16 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               <SidebarGroup className="pb-0">
                 <SidebarMenu>
                   {data.navMain.map((item) => {
-                    const isActive = pathname === item.url;
+                    const isActive =
+                      item.url === '/console'
+                        ? pathname === item.url
+                        : pathname === item.url || pathname.startsWith(`${item.url}/`);
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                           asChild
                           isActive={isActive}
-                          size="sm"
-                          className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                          className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
                         >
                           <Link href={item.url}>
                             <item.icon className="h-3.5 w-3.5" />
@@ -967,7 +914,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
                     pathname={pathname}
                     isOpen={isOpen}
                     onToggle={() => toggleSection(group.id)}
-                    onUnpin={group.id === "pinned" ? toggleFavoriteTool : undefined}
+                    onUnpin={group.id === 'pinned' ? toggleFavoriteTool : undefined}
                   />
                 );
               })}

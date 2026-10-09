@@ -44,40 +44,46 @@ export function ValidatorItem({
   return (
     <div
       className={cn(
-        'bg-white dark:bg-zinc-900 rounded-lg border overflow-hidden shadow-sm hover:shadow transition-shadow duration-200',
-        hasError ? 'border-red-500 dark:border-red-500' : 'border-zinc-200 dark:border-zinc-700',
+        'overflow-hidden border bg-white transition-colors dark:bg-zinc-950',
+        hasError
+          ? 'border-red-300 dark:border-red-900'
+          : 'border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600',
       )}
     >
       <div
         className={cn(
-          'flex items-center justify-between p-3 cursor-pointer transition-colors',
-          hasError
-            ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20'
-            : 'hover:bg-zinc-50 dark:hover:bg-zinc-700',
+          'group/row flex cursor-pointer items-center justify-between p-3 transition-colors',
+          hasError && 'bg-red-50/60 dark:bg-red-950/20',
         )}
         onClick={() => onToggle(index)}
       >
-        <div className="flex-1 font-mono text-sm truncate">{validator.nodeID}</div>
+        <div className="flex-1 truncate font-mono text-[12px] text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-100">
+          {validator.nodeID}
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onRemove(index);
             }}
-            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors text-red-500"
+            className="p-1 text-zinc-400 transition-colors hover:text-red-600 dark:hover:text-red-400"
             title="Remove validator"
             type="button"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {isExpanded ? (
+            <ChevronUp className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/row:text-[#E6212F]" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/row:text-[#E6212F]" />
+          )}
         </div>
       </div>
 
       {isExpanded && (
-        <div className="p-3 border-t border-zinc-200 dark:border-zinc-700 space-y-3">
+        <div className="space-y-3 border-t border-zinc-200 p-3 dark:border-zinc-800">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
               Node ID (must be unique)
             </label>
             <input
@@ -85,12 +91,12 @@ export function ValidatorItem({
               value={validator.nodeID}
               onChange={(e) => onUpdate(index, { nodeID: e.target.value })}
               className={cn(
-                'w-full rounded p-2',
-                'bg-zinc-50 dark:bg-zinc-900',
-                'border border-zinc-200 dark:border-zinc-700',
+                'h-10 w-full rounded-none px-3',
+                'bg-white dark:bg-zinc-950',
+                'border border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
                 'text-zinc-900 dark:text-zinc-100',
-                'shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50',
-                'font-mono text-sm',
+                'transition-colors focus:outline-none',
+                'font-mono text-[12px]',
               )}
             />
           </div>
@@ -98,21 +104,23 @@ export function ValidatorItem({
           <div className={cn('grid gap-3', hideConsensusWeight ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
             {!hideConsensusWeight && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Consensus Weight</label>
+                <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                  Consensus Weight
+                </label>
                 <input
                   type="number"
                   value={validator.validatorWeight.toString()}
                   onChange={(e) => onUpdate(index, { validatorWeight: BigInt(e.target.value || 0) })}
                   className={cn(
-                    'w-full rounded p-2',
-                    'bg-zinc-50 dark:bg-zinc-900',
-                    'border border-zinc-200 dark:border-zinc-700',
+                    'h-10 w-full rounded-none px-3 text-[13px]',
+                    'bg-white dark:bg-zinc-950',
+                    'border border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
                     'text-zinc-900 dark:text-zinc-100',
-                    'shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50',
+                    'transition-colors focus:outline-none',
                   )}
                 />
                 {hasWeightError && (
-                  <p className="text-xs mt-1 text-red-500 dark:text-red-400">
+                  <p className="text-[12px] text-red-700 dark:text-red-400">
                     Warning: This validator's weight is 20% or more of the current L1 total stake (
                     {Number((validator.validatorWeight * 10000n) / l1TotalInitializedWeight / 100n).toFixed(2)}%).
                     Recommended to be less than 20%.
@@ -121,7 +129,7 @@ export function ValidatorItem({
               </div>
             )}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
                 Validator Balance (P-Chain AVAX)
               </label>
               <input
@@ -135,22 +143,20 @@ export function ValidatorItem({
                   })
                 }
                 className={cn(
-                  'w-full rounded p-2',
-                  'bg-zinc-50 dark:bg-zinc-900',
-                  'border border-zinc-200 dark:border-zinc-700',
+                  'h-10 w-full rounded-none border bg-white px-3 text-[13px] dark:bg-zinc-950',
                   insufficientBalanceError
-                    ? 'border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500/30'
-                    : 'focus:ring-primary/30 focus:border-primary',
+                    ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+                    : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
                   'text-zinc-900 dark:text-zinc-100',
-                  'shadow-sm focus:ring focus:ring-opacity-50',
+                  'transition-colors focus:outline-none',
                 )}
               />
-              <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">
+              <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
                 Will last for {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} with a fee
                 of 1.33 AVAX per month.
               </p>
               {insufficientBalanceError && (
-                <p className="text-xs mt-1 text-red-500 dark:text-red-400">{insufficientBalanceError}</p>
+                <p className="text-[12px] text-red-700 dark:text-red-400">{insufficientBalanceError}</p>
               )}
             </div>
           </div>

@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { ArrowLeftRight, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
 import { toast } from '@/lib/toast';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import { BTN_PRIMARY } from './chrome';
 
 // Inline header action that replaces the old full-width "Wallet on a different
 // chain…" banner. Lives next to Open Explorer in DetailHeader so the user
@@ -61,43 +61,35 @@ export function WalletNetworkAction({ l1 }: { l1: CombinedL1 }) {
         coinName: l1.coinName ?? '',
       });
     } catch (err) {
-      toast.error(
-        'Could not add chain',
-        err instanceof Error ? err.message : 'Failed to open Add Chain dialog',
-        {
-          id: `wallet-add:${l1.evmChainId}`,
-          action: { label: 'Retry', onClick: () => void handleAddToWallet() },
-        },
-      );
+      toast.error('Could not add chain', err instanceof Error ? err.message : 'Failed to open Add Chain dialog', {
+        id: `wallet-add:${l1.evmChainId}`,
+        action: { label: 'Retry', onClick: () => void handleAddToWallet() },
+      });
     }
   };
 
   if (isInWallet) {
     const switchLabel = `Switch wallet to ${l1.chainName} (chain ${l1.evmChainId}) so you can sign here.`;
     return (
-      <Button
+      <button
+        type="button"
         onClick={handleSwitch}
         disabled={isSwitching}
-        size="sm"
         title={switchLabel}
         aria-label={switchLabel}
+        className={BTN_PRIMARY}
       >
-        <ArrowLeftRight className="w-4 h-4 mr-2" />
+        <ArrowLeftRight className="h-3.5 w-3.5" />
         {isSwitching ? 'Switching…' : 'Switch Wallet'}
-      </Button>
+      </button>
     );
   }
 
   const addLabel = `Add ${l1.chainName} (chain ${l1.evmChainId}) to your wallet.`;
   return (
-    <Button
-      onClick={handleAddToWallet}
-      size="sm"
-      title={addLabel}
-      aria-label={addLabel}
-    >
-      <Wallet className="w-4 h-4 mr-2" />
+    <button type="button" onClick={handleAddToWallet} title={addLabel} aria-label={addLabel} className={BTN_PRIMARY}>
+      <Wallet className="h-3.5 w-3.5" />
       Add to Wallet
-    </Button>
+    </button>
   );
 }

@@ -136,19 +136,18 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
       )}
 
       {/* "or" divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-background px-3 text-xs text-muted-foreground uppercase tracking-wider">or</span>
-        </div>
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+          or
+        </span>
+        <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
       </div>
 
       {/* Paste Subnet ID — fallback for CLI users */}
       <div className="space-y-2">
-        <p className="text-sm font-medium">Already have a Subnet ID?</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-50">Already have a Subnet ID?</p>
+        <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
           If you created a subnet via the platform-cli or already own one, paste the Subnet ID below.
         </p>
         <InputSubnetId

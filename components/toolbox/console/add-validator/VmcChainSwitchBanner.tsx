@@ -48,35 +48,35 @@ export function VmcChainSwitchBanner({ mismatch }: VmcChainSwitchBannerProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 p-4" role="alert">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15">
-          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-        </div>
-        <div className="flex-1 space-y-3">
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              Wallet is on the wrong network for this L1
-            </h3>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              The Validator Manager for this subnet is deployed on{' '}
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">{expectedLabel}</span>, but your wallet is
-              currently on <span className="font-medium text-zinc-900 dark:text-zinc-100">{currentLabel}</span>. All
-              validator-manager reads and writes have to happen on its home chain.
-            </p>
-          </div>
-          <Button
-            onClick={handleSwitch}
-            loading={isSwitching}
-            loadingText="Switching…"
-            variant="primary"
-            size="sm"
-            icon={<ArrowRight className="h-3.5 w-3.5" />}
-          >
-            Switch to {expectedLabel}
-          </Button>
+    <div
+      className="flex flex-col gap-4 border border-amber-300 bg-white px-5 py-4 sm:flex-row sm:items-center dark:border-amber-900/70 dark:bg-zinc-950"
+      role="alert"
+    >
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400">
+            Wrong network
+          </p>
+          <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+            The Validator Manager lives on{' '}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">{expectedLabel}</span>. Your wallet is on{' '}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">{currentLabel}</span>. Every read and write
+            has to happen on its home chain.
+          </p>
         </div>
       </div>
+      <Button
+        onClick={handleSwitch}
+        loading={isSwitching}
+        loadingText="Switching…"
+        variant="primary"
+        size="sm"
+        className="w-full sm:w-auto"
+        icon={<ArrowRight className="h-3.5 w-3.5" />}
+      >
+        Switch to {expectedLabel}
+      </Button>
     </div>
   );
 }

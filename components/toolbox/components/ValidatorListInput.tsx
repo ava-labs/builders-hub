@@ -52,11 +52,13 @@ export function ValidatorListInput({
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{label}</h2>
-        {description && <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{description}</p>}
+        <h2 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          {label}
+        </h2>
+        {description && <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400">{description}</p>}
       </div>
 
-      <div className="bg-zinc-100/80 dark:bg-zinc-800/70 rounded-lg p-5 space-y-4 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+      <div className="space-y-4 border border-zinc-200 bg-zinc-50/60 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
         {/* Add new validator section */}
         {canAddMoreValidators && (
           <AddValidatorControls
@@ -77,7 +79,7 @@ export function ValidatorListInput({
         )}
 
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400">
+          <div className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300">
             {error}
           </div>
         )}

@@ -98,15 +98,17 @@ export const PrecompilesSection = ({
     <button
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-        'focus:outline-none focus:ring-2 focus:ring-green-500/20',
-        checked ? 'bg-green-600 dark:bg-green-500' : 'bg-zinc-300 dark:bg-zinc-700',
+        'relative inline-flex h-5 w-9 items-center border transition-colors',
+        'focus:outline-none',
+        checked
+          ? 'border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100'
+          : 'border-zinc-300 bg-zinc-100 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600',
       )}
     >
       <span
         className={cn(
-          'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-          checked ? 'translate-x-5' : 'translate-x-0.5',
+          'inline-block h-3.5 w-3.5 transform transition-transform',
+          checked ? 'translate-x-[18px] bg-white dark:bg-zinc-900' : 'translate-x-0.5 bg-white dark:bg-zinc-500',
         )}
       />
     </button>
@@ -161,7 +163,7 @@ export const PrecompilesSection = ({
           </div>
         </div>
 
-        <div className="divide-y divide-zinc-200 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
+        <div className="divide-y divide-zinc-200 overflow-hidden border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
           {/* Contract Deployer Allowlist */}
           <div className="px-3 py-2 text-[12px] bg-white dark:bg-zinc-950">
             <div className="flex items-center justify-between">

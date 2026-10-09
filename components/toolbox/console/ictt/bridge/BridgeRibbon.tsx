@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ChevronRight, Layers, MessageSquare, Plus, RotateCcw } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { ChevronDown, ChevronRight, Plus, RotateCcw } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/toolbox/components/Button';
+import { Alert } from '@/components/toolbox/components/Alert';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -17,19 +18,38 @@ import { HomeChainCard } from './HomeChainCard';
 import { RemoteChainCard } from './RemoteChainCard';
 import { RemoteTabs } from './RemoteTabs';
 import { IcmMessageSheet } from './activity/IcmMessageSheet';
-import { NavTrailingPill } from '@/components/console/nav-trailing-pill';
 import { truncateAddress } from './utils/explorer-url';
 import { formatRelativeTime } from './utils/relative-time';
 import { BRIDGE_BASE_PATH } from './bridge-steps';
+import {
+  BODY,
+  ChainMark,
+  Dot,
+  EYEBROW,
+  HoverArrow,
+  ListRow,
+  ListRows,
+  SHEET_CONTENT,
+  SheetBody,
+  SheetFoot,
+  SheetHead,
+  StatusTag,
+  TextAction,
+  type Tone,
+} from './ui';
 import type { ActivityEvent, Address } from './types';
 
 const RECENT_WINDOW_MS = 60 * 60 * 1000;
 
+const CELL = 'min-w-0 bg-white dark:bg-zinc-950';
+const SIDE = 'group/act flex w-full min-w-0 items-start gap-3 px-4 py-3.5 text-left';
+const SIDE_NAME =
+  'flex min-w-0 items-center gap-1.5 text-[14px] font-semibold text-zinc-900 decoration-zinc-400 underline-offset-4 group-hover/act:underline dark:text-zinc-50 dark:decoration-zinc-500';
+
 /**
- * Compact summary of the bridge identity (Home → ICM → Remote).
- * Replaces the previous floor-eating ChainCardsRow. Each side opens the full
- * chain-card detail in a Sheet so users can still inspect addresses, rows
- * and connection state.
+ * Compact summary of the bridge identity: Home → ICM → Remote, as two hairline
+ * cells joined by a mono arrow. Each side opens the full chain-card detail in a
+ * Sheet so users can still inspect addresses, rows and connection state.
  */
 export function BridgeRibbon() {
   const ctx = useBridgeContext();
@@ -41,7 +61,7 @@ export function BridgeRibbon() {
   useDeliveryWatcher();
   // Show every bridge event (deploy, register, collateral, send, …) for the
   // active bridge in the recent window — not just ICM-tagged ones. ICM-bearing
-  // rows surface a `msg 0x…` chip that opens the IcmMessageSheet detail view.
+  // rows surface a `msg 0x…` line that opens the IcmMessageSheet detail view.
   const bridgeEvents = useMemo(() => {
     const now = Date.now();
     return allActivity
@@ -52,38 +72,33 @@ export function BridgeRibbon() {
       .sort((a, b) => b.timestampMs - a.timestampMs);
   }, [allActivity, ctx.activeBridgeId]);
 
-  // The "+ New bridge" CTA lives in `BridgeLayout`'s navTrailing now (next to
-  // the activity chip). Keep the handler here for the locked-Home-sheet
-  // suggestion which still needs to offer a reset path inline.
+  // The "New bridge" CTA lives in `BridgeLayout`'s navTrailing. Keep the
+  // handler here for the locked-Home sheet, which still offers a reset path.
   const handleStartNewBridge = () => {
     ctx.startNewBridge();
     router.push(`${BRIDGE_BASE_PATH}/token`);
   };
 
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div className="flex w-full flex-col gap-4">
       {ctx.remotes.length > 1 && (
-        <div className="flex justify-end">
-          <RemoteTabs
-            remotes={ctx.remotes}
-            selectedRemoteId={ctx.selectedRemoteId}
-            onSelect={ctx.selectRemote}
-            onRemoveFromView={ctx.removeRemoteFromView}
-          />
-        </div>
+        <RemoteTabs
+          remotes={ctx.remotes}
+          selectedRemoteId={ctx.selectedRemoteId}
+          onSelect={ctx.selectRemote}
+          onRemoveFromView={ctx.removeRemoteFromView}
+        />
       )}
-      <div
-        className={cn(
-          'flex w-full flex-col gap-2 rounded-2xl border border-zinc-200/80 bg-white px-3 py-2 shadow-sm',
-          'md:flex-row md:items-stretch md:gap-3 md:px-2 md:py-2',
-          'dark:border-zinc-800 dark:bg-zinc-900',
-        )}
-      >
-        <HomeSide />
-        <Divider />
-        <BridgeLogPill events={bridgeEvents} />
-        <Divider />
-        <RemoteSide />
+      <div className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] dark:border-zinc-800 dark:bg-zinc-800">
+        <div className={CELL}>
+          <HomeSide />
+        </div>
+        <div className={cn(CELL, 'flex items-center justify-center')}>
+          <BridgeLog events={bridgeEvents} />
+        </div>
+        <div className={CELL}>
+          <RemoteSide />
+        </div>
       </div>
     </div>
   );
@@ -101,9 +116,9 @@ export function BridgeRibbon() {
         deployedAddress={ctx.bridge?.homeAddress ?? null}
         deployedLabel="TokenHome"
         emptyLabel="Setup pending"
-        sheetTitle={ctx.homeL1 ? `${ctx.homeL1.name} · Home` : 'Home chain'}
+        sheetTitle={ctx.homeL1 ? ctx.homeL1.name : 'Home chain'}
         sheetBody={
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             <ChangeHomeL1Section
               currentHomeL1Id={ctx.homeL1?.id ?? null}
               locked={homeIsLocked}
@@ -131,7 +146,7 @@ export function BridgeRibbon() {
           deployedAddress={ctx.remote.address}
           deployedLabel="TokenRemote"
           emptyLabel="Pending"
-          sheetTitle={ctx.remoteL1 ? `${ctx.remoteL1.name} · Remote` : 'Remote chain'}
+          sheetTitle={ctx.remoteL1 ? ctx.remoteL1.name : 'Remote chain'}
           sheetBody={
             <RemoteChainCard
               remoteL1={ctx.remoteL1 ?? null}
@@ -148,20 +163,15 @@ export function BridgeRibbon() {
     if (!ctx.bridge?.homeAddress) {
       return (
         <div
-          className={cn(
-            'flex flex-1 cursor-not-allowed items-center gap-2 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/40 px-3 py-2 text-left opacity-70',
-            'dark:border-zinc-800 dark:bg-zinc-900/40',
-          )}
+          className="flex min-w-0 cursor-not-allowed items-start gap-3 px-4 py-3.5"
           aria-label="Pick destination chain (disabled — deploy TokenHome first)"
         >
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-700 dark:text-zinc-600">
             <Plus className="h-3.5 w-3.5" aria-hidden />
           </span>
-          <div className="flex flex-1 flex-col">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-              Remote · Destination
-            </span>
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Deploy TokenHome first</span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className={EYEBROW}>Remote · Destination</span>
+            <span className="text-[14px] font-semibold text-zinc-400 dark:text-zinc-500">Deploy TokenHome first</span>
           </div>
         </div>
       );
@@ -202,11 +212,6 @@ function RibbonSide({
 }: RibbonSideProps) {
   const [open, setOpen] = useState(false);
   const eyebrow = role === 'home' ? 'Home · Origin' : 'Remote · Destination';
-  const eyebrowTone = role === 'home' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400';
-  const hoverTone =
-    role === 'home'
-      ? 'hover:border-red-200 hover:bg-red-50/40 dark:hover:border-red-900/60 dark:hover:bg-red-950/20'
-      : 'hover:border-emerald-200 hover:bg-emerald-50/40 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/20';
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -215,152 +220,90 @@ function RibbonSide({
           type="button"
           aria-haspopup="dialog"
           aria-label={`${role === 'home' ? 'Home' : 'Remote'} chain details`}
-          className={cn(
-            'group/side flex flex-1 items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-left transition-colors',
-            hoverTone,
-          )}
+          className={SIDE}
         >
-          <ChainAvatar l1={l1} role={role} />
-          <div className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', eyebrowTone)}>{eyebrow}</span>
-            <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {l1?.name ?? 'Select a chain'}
+          <ChainMark l1={l1} />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className={EYEBROW}>{eyebrow}</span>
+            <span className={SIDE_NAME}>
+              <span className="truncate">{l1?.name ?? 'Select a chain'}</span>
+              <HoverArrow />
             </span>
-            <span className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-              <span
-                aria-hidden
-                className={cn(
-                  'h-1.5 w-1.5 shrink-0 rounded-full',
-                  deployed ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700',
-                )}
-              />
+            <span className="flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+              <Dot tone={deployed ? 'ok' : 'idle'} />
               {deployed && deployedAddress ? (
-                <span className="font-mono text-zinc-600 dark:text-zinc-300">
-                  {deployedLabel} · {truncateAddress(deployedAddress)}
+                <span className="truncate text-zinc-700 dark:text-zinc-300">
+                  {deployedLabel} {truncateAddress(deployedAddress)}
                 </span>
               ) : (
-                <span>{emptyLabel}</span>
+                <span className="truncate">{emptyLabel}</span>
               )}
             </span>
           </div>
-          <ChevronRight
-            className="h-4 w-4 shrink-0 text-zinc-400 opacity-0 transition-opacity group-hover/side:opacity-100"
-            aria-hidden
-          />
         </button>
       </SheetTrigger>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col gap-0 p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
-          <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Layers aria-hidden className="h-4 w-4" />
-            {sheetTitle}
-          </SheetTitle>
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-4 py-4">{sheetBody}</div>
+      <SheetContent side="right" className={SHEET_CONTENT}>
+        <SheetHead eyebrow={role === 'home' ? 'Home chain' : 'Remote chain'} title={sheetTitle} />
+        <SheetBody>{sheetBody}</SheetBody>
       </SheetContent>
     </Sheet>
   );
 }
 
-function ChainAvatar({ l1, role }: { l1: L1ListItem | null; role: 'home' | 'remote' }) {
-  const fallbackTone =
-    role === 'home'
-      ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300'
-      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300';
-  if (!l1?.logoUrl) {
-    return (
-      <span
-        aria-hidden
-        className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold uppercase',
-          fallbackTone,
-        )}
-      >
-        {l1?.name?.slice(0, 1) ?? '?'}
-      </span>
-    );
-  }
-  return (
-    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-700/80">
-      <Image src={l1.logoUrl} alt="" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
-    </span>
-  );
-}
-
 /**
- * Central ribbon affordance — the canonical entry point to the bridge's
- * activity log. Replaces the old "ICM N" pill (which was always empty because
- * no hook ever set the `kind: 'icm'` / `icmMessageId` fields it filtered on)
- * and absorbs the role that used to live in the top-right Activity chip.
+ * The ribbon's centre: the mono arrow between the two chains doubles as the
+ * entry point to the bridge's activity log. A count follows once there are
+ * events; an amber pulse marks anything still in flight.
  *
- * Visual states:
- *   - no events: muted icon, no count chip, hairline ring
- *   - confirmed-only: zinc count chip
- *   - has-pending: amber icon + pulsing accent dot + amber count chip
- *
- * ICM-specific rows surface a `msg 0x…` chip that opens the
- * `IcmMessageSheet` for deep inspection — message ID is captured from the
- * Teleporter `SendCrossChainMessage` event in `useRegisterRemote` and
- * `useSendTokens`.
+ * ICM-specific rows surface a `msg 0x…` line that opens the `IcmMessageSheet`
+ * for deep inspection — message ID is captured from the Teleporter
+ * `SendCrossChainMessage` event in `useRegisterRemote` and `useSendTokens`.
  */
-function BridgeLogPill({ events }: { events: ActivityEvent[] }) {
+function BridgeLog({ events }: { events: ActivityEvent[] }) {
   const [open, setOpen] = useState(false);
   const [detailEvent, setDetailEvent] = useState<ActivityEvent | null>(null);
   const count = events.length;
   const hasEvents = count > 0;
-  // "Pending" in the dot means any row that's not yet at terminal state
-  // (delivered / failed / standalone confirmed). Both `pending` and the new
+  // "Pending" means any row that's not yet at terminal state (delivered /
+  // failed / standalone confirmed). Both `pending` and the
   // `confirmed-but-not-delivered` state should pulse.
   const hasPending = events.some(
     (e) => e.status === 'pending' || (e.status === 'confirmed' && (e.kind === 'send' || e.kind === 'register-sent')),
   );
-  const iconClassName = hasPending
-    ? 'text-amber-500 dark:text-amber-400'
-    : hasEvents
-      ? 'text-zinc-600 group-hover:text-zinc-800 dark:text-zinc-300 dark:group-hover:text-zinc-100'
-      : 'text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300';
-  const badgeClassName = hasPending
-    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300';
-  const pulseDecoration = hasPending ? (
-    <span aria-hidden className="absolute -right-1 -top-1 flex h-1.5 w-1.5">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400 ring-2 ring-amber-500/40 dark:ring-amber-400/30" />
-    </span>
-  ) : null;
   return (
-    <div className="flex items-center justify-center md:px-1">
+    <>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <NavTrailingPill
-            icon={MessageSquare}
-            iconClassName={iconClassName}
-            label="Bridge log"
-            badge={hasEvents ? (count > 99 ? '99+' : count) : undefined}
-            badgeClassName={badgeClassName}
-            focusRingClassName="focus-visible:ring-amber-400/60"
-            decoration={pulseDecoration}
+          <button
+            type="button"
             aria-haspopup="dialog"
             aria-label={`Bridge log, ${count} recent ${count === 1 ? 'event' : 'events'}${hasPending ? ', some pending' : ''}`}
             title="Open bridge activity log"
-          />
+            className="group/act flex h-full w-full flex-col items-center justify-center gap-1 px-5 py-3 md:min-w-[7.5rem]"
+          >
+            <span aria-hidden className="font-mono text-[13px] text-zinc-400 dark:text-zinc-500">
+              <span className="md:hidden">↓</span>
+              <span className="hidden md:inline">→</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 transition-colors group-hover/act:text-zinc-900 group-hover/act:underline dark:text-zinc-400 dark:group-hover/act:text-zinc-100">
+              {hasPending && <Dot tone="pending" pulse />}
+              ICM log
+              {hasEvents && <span className="tabular-nums">{count > 99 ? '99+' : count}</span>}
+            </span>
+          </button>
         </SheetTrigger>
-        <SheetContent side="right" className="flex w-full max-w-md flex-col gap-0 p-0 sm:max-w-md">
-          <SheetHeader className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
-            <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
-              <MessageSquare aria-hidden className="h-4 w-4" />
-              Bridge activity
-            </SheetTitle>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+        <SheetContent side="right" className={SHEET_CONTENT}>
+          <SheetHead eyebrow="Last hour" title="Bridge activity" />
+          <SheetBody>
             {events.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-zinc-200 px-3 py-8 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                No bridge activity in the last hour.
-              </p>
+              <div className="flex flex-col gap-2 border border-zinc-200 px-4 py-6 dark:border-zinc-800">
+                <p className={EYEBROW}>No activity</p>
+                <p className={BODY}>Nothing happened on this bridge in the last hour.</p>
+              </div>
             ) : (
               <ActivityList events={events} onSelect={(e) => setDetailEvent(e)} />
             )}
-          </div>
+          </SheetBody>
         </SheetContent>
       </Sheet>
       <IcmMessageSheet
@@ -368,7 +311,7 @@ function BridgeLogPill({ events }: { events: ActivityEvent[] }) {
         open={detailEvent !== null}
         onOpenChange={(o) => !o && setDetailEvent(null)}
       />
-    </div>
+    </>
   );
 }
 
@@ -376,7 +319,7 @@ function BridgeLogPill({ events }: { events: ActivityEvent[] }) {
  * Groups paired events (`send + receive`, `register-sent + register-received`)
  * into one expandable row; renders everything else as singletons. The source
  * row is what the user actually cares about — the receive row is collapsed
- * into a status pill until expanded.
+ * into a status tag until expanded.
  */
 function ActivityList({ events, onSelect }: { events: ActivityEvent[]; onSelect: (event: ActivityEvent) => void }) {
   // First pass: build pair map keyed by canonical source id. For sources the
@@ -399,7 +342,7 @@ function ActivityList({ events, onSelect }: { events: ActivityEvent[]; onSelect:
   }, [events]);
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="divide-y divide-zinc-200 border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
       {pairs.map(({ source, paired }) => (
         <ActivityRow key={source.id} source={source} paired={paired ?? null} onSelect={onSelect} />
       ))}
@@ -419,8 +362,9 @@ function ActivityRow({
   const [expanded, setExpanded] = useState(false);
   const isPairable = source.kind === 'send' || source.kind === 'register-sent';
   const statusForRow: ActivityEvent['status'] = paired ? 'delivered' : source.status;
+  const canExpand = !source.icmMessageId && isPairable;
   return (
-    <li className="overflow-hidden rounded-lg border border-zinc-200 bg-white text-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+    <li>
       <button
         type="button"
         onClick={() => {
@@ -430,27 +374,39 @@ function ActivityRow({
             setExpanded((x) => !x);
           }
         }}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/40"
+        className="group/act flex w-full items-start justify-between gap-3 px-4 py-3 text-left"
         aria-label={source.icmMessageId ? `Open ICM message detail for ${source.label}` : source.label}
       >
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">{source.label}</span>
-            <span className="shrink-0 text-[11px] text-zinc-500">{formatRelativeTime(source.timestampMs)}</span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-zinc-900 underline-offset-4 group-hover/act:underline dark:text-zinc-50">
+              <span className="truncate">{source.label}</span>
+              {source.icmMessageId && <HoverArrow />}
+            </span>
+            <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-zinc-400 dark:text-zinc-500">
+              {formatRelativeTime(source.timestampMs)}
+            </span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
             {source.icmMessageId && <span>msg {truncateAddress(source.icmMessageId, 8, 4)}</span>}
             {source.txHash && <span>tx {truncateAddress(source.txHash)}</span>}
-            <RowStatusPill status={statusForRow} />
+            <ActivityStatus status={statusForRow} />
+            {canExpand && paired && (
+              <span className="ml-auto text-zinc-400">
+                {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              </span>
+            )}
           </div>
         </div>
       </button>
       {expanded && paired && (
-        <div className="border-t border-dashed border-zinc-200 bg-zinc-50/40 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
-          <div className="font-medium text-zinc-700 dark:text-zinc-200">{paired.label}</div>
+        <div className="border-t border-dashed border-zinc-200 px-4 py-3 text-[12px] text-zinc-600 dark:border-zinc-800 dark:text-zinc-300">
+          <div className="font-medium text-zinc-900 dark:text-zinc-100">{paired.label}</div>
           {paired.sublabel && <div className="mt-0.5">{paired.sublabel}</div>}
           {paired.txHash && (
-            <div className="mt-1 font-mono text-[11px] text-zinc-500">tx {truncateAddress(paired.txHash, 8, 6)}</div>
+            <div className="mt-1 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+              tx {truncateAddress(paired.txHash, 8, 6)}
+            </div>
           )}
         </div>
       )}
@@ -458,36 +414,18 @@ function ActivityRow({
   );
 }
 
-function RowStatusPill({ status }: { status: ActivityEvent['status'] }) {
-  const tone =
-    status === 'delivered'
-      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-      : status === 'failed'
-        ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
-        : status === 'confirmed'
-          ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
-          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
-  return (
-    <span
-      className={cn(
-        'inline-flex h-4 items-center rounded-full px-1.5 text-[9px] font-semibold uppercase tracking-wider',
-        tone,
-      )}
-    >
-      {status}
-    </span>
-  );
-}
+const ACTIVITY_TONE: Record<ActivityEvent['status'], Tone> = {
+  delivered: 'ok',
+  failed: 'error',
+  confirmed: 'idle',
+  pending: 'pending',
+};
 
-function Divider() {
+function ActivityStatus({ status }: { status: ActivityEvent['status'] }) {
   return (
-    <span
-      aria-hidden
-      className={cn(
-        'hidden self-stretch border-t border-dashed border-zinc-200 dark:border-zinc-800',
-        'md:block md:border-l md:border-t-0',
-      )}
-    />
+    <StatusTag tone={ACTIVITY_TONE[status]} pulse={status === 'pending'}>
+      {status}
+    </StatusTag>
   );
 }
 
@@ -501,8 +439,8 @@ interface PickDestinationSheetProps {
 /**
  * Renders the empty Remote ribbon slot as a Sheet trigger. Clicking opens a
  * chain picker; selection is non-binding until the user clicks the explicit
- * "Continue in Phase 3" button — at which point the parent routes to Phase 3
- * with `?destination=<l1Id>` so the inspector pre-fills.
+ * "Continue" button — at which point the parent routes to Phase 3 with
+ * `?destination=<l1Id>` so the inspector pre-fills.
  */
 function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinationSheetProps) {
   const [open, setOpen] = useState(false);
@@ -533,131 +471,76 @@ function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinat
             type="button"
             aria-haspopup="dialog"
             aria-label={`${pendingChain.name} destination · pending deploy`}
-            className={cn(
-              'group/side flex flex-1 items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-left transition-colors',
-              'hover:border-emerald-200 hover:bg-emerald-50/40 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/20',
-            )}
+            className={SIDE}
           >
-            <PickerAvatar l1={pendingChain} />
-            <div className="flex min-w-0 flex-1 flex-col leading-tight">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
-                Remote · Destination
+            <ChainMark l1={pendingChain} />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className={EYEBROW}>Remote · Destination</span>
+              <span className={SIDE_NAME}>
+                <span className="truncate">{pendingChain.name}</span>
+                <HoverArrow />
               </span>
-              <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{pendingChain.name}</span>
-              <span className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
-                <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
-                Pending deploy
-              </span>
+              <StatusTag tone="pending">Pending deploy</StatusTag>
             </div>
-            <ChevronRight
-              className="h-4 w-4 shrink-0 text-zinc-400 opacity-0 transition-opacity group-hover/side:opacity-100"
-              aria-hidden
-            />
           </button>
         ) : (
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-label="Pick destination chain"
-            className={cn(
-              'group/side flex flex-1 items-center gap-2 rounded-xl border border-dashed border-emerald-300/60 bg-emerald-50/40 px-3 py-2 text-left transition-colors',
-              'hover:border-emerald-400 hover:bg-emerald-50/70',
-              'dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40',
-            )}
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <button type="button" aria-haspopup="dialog" aria-label="Pick destination chain" className={SIDE}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-dashed border-zinc-400 text-zinc-600 transition-colors group-hover/act:border-zinc-900 group-hover/act:text-zinc-900 dark:border-zinc-600 dark:text-zinc-300 dark:group-hover/act:border-zinc-100 dark:group-hover/act:text-zinc-50">
               <Plus className="h-3.5 w-3.5" aria-hidden />
             </span>
-            <div className="flex flex-1 flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
-                Remote · Destination
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className={EYEBROW}>Remote · Destination</span>
+              <span className={SIDE_NAME}>
+                <span className="truncate">Pick destination chain</span>
+                <HoverArrow />
               </span>
-              <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">Pick destination chain</span>
             </div>
-            <ChevronRight
-              className="h-4 w-4 text-emerald-500 opacity-70 transition-opacity group-hover/side:opacity-100"
-              aria-hidden
-            />
           </button>
         )}
       </SheetTrigger>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col gap-0 p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
-          <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Layers aria-hidden className="h-4 w-4" />
-            Pick a destination chain
-          </SheetTitle>
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-            Where should bridged tokens land? Choose any L1 except the Home chain. We&apos;ll open Phase 3 with this
-            chain pre-selected.
+      <SheetContent side="right" className={SHEET_CONTENT}>
+        <SheetHead eyebrow="Remote chain" title="Pick a destination" />
+        <SheetBody className="flex flex-col gap-4">
+          <p className={BODY}>
+            Where should bridged tokens land? Pick any L1 except the Home chain. Phase 3 opens with it selected.
           </p>
           {candidates.length === 0 ? (
-            <div className="flex flex-col items-stretch gap-2 rounded-lg border border-dashed border-zinc-200 px-3 py-6 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-              <p>You only have the Home L1 registered. Add another L1 to bridge to.</p>
-              <button
-                type="button"
-                onClick={() => void openAddChainModal()}
-                className="mx-auto inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-emerald-500"
-              >
-                <Plus className="h-3 w-3" aria-hidden />
+            <div className="flex flex-col items-start gap-3 border border-zinc-200 px-4 py-5 dark:border-zinc-800">
+              <p className={EYEBROW}>No other chains</p>
+              <p className={BODY}>Only the Home L1 is registered. Add another L1 to bridge to.</p>
+              <TextAction icon={Plus} onClick={() => void openAddChainModal()}>
                 Add a chain
-              </button>
+              </TextAction>
             </div>
           ) : (
-            <ul className="flex flex-col gap-1">
-              {candidates.map((l1: L1ListItem) => {
-                const active = pendingId === l1.id;
-                return (
-                  <li key={l1.id}>
-                    <button
-                      type="button"
-                      onClick={() => setPendingId(l1.id)}
-                      aria-pressed={active}
-                      className={cn(
-                        'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
-                        active
-                          ? 'bg-emerald-50 ring-1 ring-emerald-300 dark:bg-emerald-950/30 dark:ring-emerald-900/60'
-                          : 'hover:bg-zinc-100/70 dark:hover:bg-zinc-800/40',
-                      )}
+            <>
+              <ListRows>
+                {candidates.map((l1: L1ListItem) => (
+                  <ListRow key={l1.id} selected={pendingId === l1.id} onClick={() => setPendingId(l1.id)}>
+                    <ChainMark l1={l1} size="sm" />
+                    <span
+                      data-row-title
+                      className="min-w-0 flex-1 truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-50"
                     >
-                      <PickerAvatar l1={l1} />
-                      <span className="flex-1 truncate font-medium text-zinc-900 dark:text-zinc-100">{l1.name}</span>
-                      <span className="shrink-0 font-mono text-[10px] text-zinc-400">{l1.coinName}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                      {l1.name}
+                    </span>
+                    <span className="shrink-0 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
+                      {l1.coinName}
+                    </span>
+                  </ListRow>
+                ))}
+              </ListRows>
+              <TextAction icon={Plus} tone="muted" onClick={() => void openAddChainModal()}>
+                Add a chain
+              </TextAction>
+            </>
           )}
-          {candidates.length > 0 && (
-            <button
-              type="button"
-              onClick={() => void openAddChainModal()}
-              className="mt-2 inline-flex items-center gap-1 self-start rounded-md border border-dashed border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
-            >
-              <Plus className="h-3 w-3" aria-hidden />
-              Add a chain
-            </button>
-          )}
-        </div>
-        <footer className="flex items-center justify-end gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!selected}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-              selected
-                ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                : 'cursor-not-allowed bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500',
-            )}
-          >
-            {selected ? `Continue with ${selected.name}` : 'Select a chain to continue'}
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-          </button>
-        </footer>
+        </SheetBody>
+        <SheetFoot>
+          <Button onClick={handleConfirm} disabled={!selected} className="w-auto">
+            {selected ? `Continue with ${selected.name}` : 'Select a chain'}
+          </Button>
+        </SheetFoot>
       </SheetContent>
     </Sheet>
   );
@@ -698,85 +581,52 @@ function ChangeHomeL1Section({ currentHomeL1Id, locked, onStartNewBridge }: Chan
   };
 
   return (
-    <section className="flex flex-col gap-2">
-      <header className="flex flex-col gap-1">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-          Home L1
-        </span>
-        <p className="text-xs text-zinc-600 dark:text-zinc-300">
-          Home is the L1 where your token lives (or will be deployed). To bridge AVAX, leave Home on C-Chain. To bridge
-          a token from your own L1, switch Home to that L1 — your wallet will follow.
+    <section className="flex flex-col gap-3">
+      <header className="flex flex-col gap-1.5">
+        <span className={EYEBROW}>Home L1</span>
+        <p className={BODY}>
+          Home is the L1 where your token lives. To bridge AVAX, keep Home on C-Chain. To bridge a token from your own
+          L1, switch Home to it and your wallet follows.
         </p>
       </header>
       {locked && (
-        <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>TokenHome is already deployed on this Home L1, so it can&apos;t be switched here.</span>
-            <button
-              type="button"
-              onClick={onStartNewBridge}
-              className="inline-flex items-center gap-1 rounded-md border border-amber-300/80 bg-white px-2 py-0.5 text-[11px] font-medium text-amber-900 transition-colors hover:bg-amber-100/60 dark:border-amber-800/80 dark:bg-zinc-900 dark:text-amber-200"
-            >
-              <RotateCcw className="h-3 w-3" aria-hidden />
+        <Alert variant="warning">
+          <div className="flex flex-col items-start gap-2">
+            <span>TokenHome is already deployed on this Home L1, so Home can&apos;t change here.</span>
+            <TextAction icon={RotateCcw} onClick={onStartNewBridge}>
               Start new bridge
-            </button>
+            </TextAction>
           </div>
-        </div>
+        </Alert>
       )}
-      <ul className={cn('flex flex-col gap-1', locked && 'pointer-events-none opacity-60')}>
+      <ListRows className={cn(locked && 'pointer-events-none')}>
         {l1List.map((l1: L1ListItem) => {
           const active = l1.id === currentHomeL1Id;
           return (
-            <li key={l1.id}>
-              <button
-                type="button"
-                onClick={() => handlePick(l1)}
-                aria-pressed={active}
-                disabled={locked || isSwitching !== null}
-                className={cn(
-                  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
-                  active
-                    ? 'bg-red-50 ring-1 ring-red-200 dark:bg-red-950/20 dark:ring-red-900/60'
-                    : 'hover:bg-zinc-100/70 dark:hover:bg-zinc-800/40',
-                  isSwitching === l1.id && 'opacity-60',
-                )}
+            <ListRow
+              key={l1.id}
+              selected={active}
+              onClick={() => handlePick(l1)}
+              disabled={locked || isSwitching !== null}
+            >
+              <ChainMark l1={l1} size="sm" />
+              <span
+                data-row-title
+                className="min-w-0 flex-1 truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-50"
               >
-                <PickerAvatar l1={l1} />
-                <span className="flex-1 truncate font-medium text-zinc-900 dark:text-zinc-100">{l1.name}</span>
-                <span className="shrink-0 font-mono text-[10px] text-zinc-400">{l1.coinName}</span>
-                {active && (
-                  <span className="shrink-0 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-red-700 dark:bg-red-900/40 dark:text-red-300">
-                    Current
-                  </span>
-                )}
-              </button>
-            </li>
+                {l1.name}
+              </span>
+              <span className="shrink-0 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
+                {isSwitching === l1.id ? 'Switching…' : l1.coinName}
+              </span>
+              {active && <StatusTag tone="active">Current</StatusTag>}
+            </ListRow>
           );
         })}
-      </ul>
-      <button
-        type="button"
-        onClick={() => void openAddChainModal()}
-        className="inline-flex items-center gap-1 self-start rounded-md border border-dashed border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
-      >
-        <Plus className="h-3 w-3" aria-hidden />
+      </ListRows>
+      <TextAction icon={Plus} tone="muted" onClick={() => void openAddChainModal()}>
         Add a chain
-      </button>
+      </TextAction>
     </section>
-  );
-}
-
-function PickerAvatar({ l1 }: { l1: L1ListItem }) {
-  if (!l1.logoUrl) {
-    return (
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-200 text-[10px] font-semibold uppercase text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-        {l1.name.slice(0, 1)}
-      </span>
-    );
-  }
-  return (
-    <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-md bg-white ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-700">
-      <Image src={l1.logoUrl} alt="" width={24} height={24} className="h-6 w-6 object-contain" unoptimized />
-    </span>
   );
 }

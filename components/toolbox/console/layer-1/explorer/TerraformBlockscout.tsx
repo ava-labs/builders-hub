@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Step } from 'fumadocs-ui/components/steps';
+import { Step } from '@/components/toolbox/components/Steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { RPCURLInput } from '@/components/toolbox/components/RPCURLInput';

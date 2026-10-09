@@ -91,6 +91,7 @@ model User {
   github_access_token        String?
   chatConversations          ChatConversation[]
   queryBoards                QueryBoard[]
+  studioProjects             StudioProject[]
   consoleLog                 ConsoleLog[]
   evaluations                Evaluation[]              @relation("Evaluations")
   faucetClaims               FaucetClaim[]
@@ -1067,4 +1068,210 @@ model QueryBoard {
 
   @@id([user_id, id])
   @@index([user_id, scope])
+}
+
+/// A Studio workspace for one app: files, chats with the build agent, builds,
+/// audits and deployments. Work happens on testnet; production exists only
+/// through a StudioPromotion, whose gates the server checks.
+/// Statuses are plain text; the vocabularies live in lib/studio/status.ts.
+model StudioProject {
+  id            String    @id @default(uuid())
+  user_id       String
+  name          String
+  description   String    @default("")
+  /// Blueprints the project started from, in order.
+  blueprint_ids String[]  @default([])
+  /// Role to network key from blueprints/_shared/networks.json, e.g. {"main": "fuji-c-chain"}.
+  networks      Json      @default("{}")
+  /// Builder parameters for the blueprint steps.
+  params        Json      @default("{}")
+  /// Values bound at run time, such as the builder's own L1: {"l1": {"evmChainId": ..., "rpcUrl": ...}}.
+  runtime       Json      @default("{}")
+  /// testnet | production (after a promotion completes)
+  stage         String    @default("testnet")
+  archived_at   DateTime? @db.Timestamptz(3)
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
+
+  user        User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  chats       StudioChat[]
+  files       StudioFile[]
+  builds      StudioBuild[]
+  audits      StudioAuditReport[]
+  deployments StudioDeployment[]
+  promotions  StudioPromotion[]
+  site        StudioSite?
+
+  @@index([user_id, updated_at])
+}
+
+/// A project's published frontend, served at /builder/{owner_slug}/{slug} inside a sandboxed frame.
+/// A snapshot: republishing replaces it, so edits in Studio don't reach visitors until then.
+model StudioSite {
+  id           String   @id @default(uuid())
+  project_id   String   @unique
+  user_id      String
+  owner_slug   String
+  slug         String
+  title        String
+  /// [{path, content}] under frontend/
+  files        Json
+  /// The contracts and chains window.studio exposes, as at publish time.
+  contracts    Json
+  chains       Json
+  design_css   String
+  published_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime @updatedAt @db.Timestamptz(3)
+
+  project StudioProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@unique([owner_slug, slug])
+  @@index([user_id])
+}
+
+model StudioChat {
+  id         String   @id @default(uuid())
+  project_id String
+  title      String   @default("New chat")
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
+
+  project  StudioProject   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  messages StudioMessage[]
+
+  @@index([project_id, updated_at])
+}
+
+/// One AI SDK UIMessage. id is the message id the SDK generated, unique within its chat.
+model StudioMessage {
+  id         String
+  chat_id    String
+  /// user | assistant
+  role       String
+  parts      Json
+  /// Token usage for assistant messages, for per-user quotas.
+  usage      Json?
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  chat StudioChat @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+
+  @@id([chat_id, id])
+  @@index([chat_id, created_at])
+}
+
+model StudioFile {
+  id         String   @id @default(uuid())
+  project_id String
+  /// Relative path, e.g. contracts/Guestbook.sol or test/Guestbook.t.sol.
+  path       String
+  content    String
+  sha256     String
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
+
+  project StudioProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, path])
+}
+
+/// A compile of the project's contracts. Deployments and audits point at the
+/// build they used, so promotion can prove testnet and production run the same bytecode.
+model StudioBuild {
+  id          String   @id @default(uuid())
+  project_id  String
+  /// sha256 over the sorted (path, sha256) pairs of the compiled files.
+  files_hash  String
+  compiler    String
+  ok          Boolean
+  diagnostics Json     @default("[]")
+  /// [{file, name, abi, bytecode, bytecodeHash}]
+  contracts   Json     @default("[]")
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+
+  project     StudioProject       @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  audits      StudioAuditReport[]
+  deployments StudioDeployment[]
+  promotions  StudioPromotion[]
+
+  @@index([project_id, created_at])
+}
+
+model StudioAuditReport {
+  id           String   @id @default(uuid())
+  project_id   String
+  build_id     String
+  passed       Boolean
+  counts       Json
+  findings     Json     @default("[]")
+  /// [{fingerprint, reason, at}]
+  acknowledged Json     @default("[]")
+  tool_version String
+  /// review.md results the agent recorded: [{id, status, evidence}]
+  review       Json     @default("[]")
+  created_at   DateTime @default(now()) @db.Timestamptz(3)
+
+  project StudioProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  build   StudioBuild   @relation(fields: [build_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id, created_at])
+  @@index([build_id])
+}
+
+/// A plan of blueprint steps and its progress. The builder's wallet signs;
+/// every step's receipt is re-read from the chain before it is recorded.
+model StudioDeployment {
+  id           String    @id @default(uuid())
+  project_id   String
+  build_id     String
+  /// testnet | production
+  stage        String
+  blueprint_id String?
+  /// Role to network key, frozen when the deployment was proposed.
+  networks     Json
+  params       Json      @default("{}")
+  /// The steps to run, with contract, function and argument references.
+  plan         Json
+  /// proposed | running | succeeded | failed | cancelled
+  status       String    @default("proposed")
+  /// Per step id: {status, chainId, txHash, address, blockNumber, outputs, error}
+  steps        Json      @default("{}")
+  /// [{description, after, passed, actual, error, at}]
+  checks       Json      @default("[]")
+  signer       String?
+  promotion_id String?
+  created_at   DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime  @updatedAt @db.Timestamptz(3)
+  completed_at DateTime? @db.Timestamptz(3)
+
+  project      StudioProject     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  build        StudioBuild       @relation(fields: [build_id], references: [id], onDelete: Cascade)
+  promotion    StudioPromotion?  @relation("StudioPromotionDeployments", fields: [promotion_id], references: [id], onDelete: SetNull)
+  promotedFrom StudioPromotion[] @relation("StudioPromotionSource")
+
+  @@index([project_id, created_at])
+  @@index([promotion_id])
+}
+
+/// A request to run a proven testnet deployment's build on production networks.
+model StudioPromotion {
+  id                   String    @id @default(uuid())
+  project_id           String
+  source_deployment_id String
+  build_id             String
+  /// Testnet network key to production network key, e.g. {"fuji-c-chain": "mainnet-c-chain"}.
+  network_map          Json
+  /// Gate results when the promotion was requested: [{id, passed, detail}]
+  gates                Json      @default("[]")
+  tests_confirmed_at   DateTime? @db.Timestamptz(3)
+  /// ready | deploying | completed | failed | cancelled
+  status               String    @default("ready")
+  created_at           DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at           DateTime  @updatedAt @db.Timestamptz(3)
+
+  project          StudioProject      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  build            StudioBuild        @relation(fields: [build_id], references: [id], onDelete: Cascade)
+  sourceDeployment StudioDeployment   @relation("StudioPromotionSource", fields: [source_deployment_id], references: [id], onDelete: Cascade)
+  deployments      StudioDeployment[] @relation("StudioPromotionDeployments")
+
+  @@index([project_id, created_at])
 }

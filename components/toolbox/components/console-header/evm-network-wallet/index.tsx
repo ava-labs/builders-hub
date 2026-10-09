@@ -3,14 +3,13 @@
 import { useState } from 'react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu';
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
-import { Button } from '@/components/ui/button';
+import { HEADER_CHIP, HEADER_FIGURE, HEADER_PRIMARY } from '../chip';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { Wallet } from 'lucide-react';
 
 import { useNetworkData } from './hooks/useNetworkData';
 import { useNetworkActions } from './hooks/useNetworkActions';
 import { NetworkList } from './components/NetworkList';
-import { NetworkActions } from './components/NetworkActions';
 import { WalletInfo } from './components/WalletInfo';
 import { ChainLogo } from './components/ChainLogo';
 
@@ -24,7 +23,7 @@ export function EvmNetworkWallet() {
 
   const l1List = l1ListStore((s: any) => s.l1List);
 
-  const { handleNetworkChange, copyAddress, openExplorer, updateAllBalances } = useNetworkActions();
+  const { handleNetworkChange, updateAllBalances } = useNetworkActions();
 
   const { openConnectModal } = useConnectModal();
 
@@ -38,34 +37,37 @@ export function EvmNetworkWallet() {
 
   if (!walletEVMAddress) {
     return (
-      <Button onClick={handlePrimaryButtonClick} size="sm">
-        <Wallet className="mr-2 h-4 w-4" />
-        <span className="text-sm">Connect Wallet</span>
-      </Button>
+      <button
+        type="button"
+        onClick={handlePrimaryButtonClick}
+        aria-label="Connect wallet"
+        className={`${HEADER_PRIMARY} max-sm:w-8 max-sm:justify-center max-sm:px-0`}
+      >
+        <Wallet className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Connect wallet</span>
+      </button>
     );
   }
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-5 h-5 flex items-center justify-start">
-                <ChainLogo logoUrl={(currentNetwork as any)?.logoUrl} chainName={currentNetwork.name} />
-              </div>
-              <div className="flex gap-2 items-center">
-                <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>
-                <span className="text-xs text-muted-foreground leading-none">
-                  {currentNetwork.balance === null
-                    ? `n/a ${(currentNetwork as any).coinName}`
-                    : `${typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} ${(currentNetwork as any).coinName}`}
-                </span>
-              </div>
-            </div>
-          </Button>
+          <button type="button" title={currentNetwork.name} className={HEADER_CHIP}>
+            <ChainLogo
+              logoUrl={(currentNetwork as any)?.logoUrl}
+              chainName={currentNetwork.name}
+              className="shrink-0"
+            />
+            <span className="sr-only max-w-32 truncate xl:not-sr-only">{currentNetwork.name}</span>
+            <span className={HEADER_FIGURE}>
+              {currentNetwork.balance === null
+                ? `n/a ${(currentNetwork as any).coinName}`
+                : `${typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} ${(currentNetwork as any).coinName}`}
+            </span>
+          </button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuContent align="end" className="w-72">
           <NetworkList
             availableNetworks={l1List || []}
             getNetworkBalance={getNetworkBalance}
@@ -73,17 +75,14 @@ export function EvmNetworkWallet() {
             onNetworkSelect={handleNetworkChange}
             onNetworkRemove={handleRemoveNetwork}
             isEditMode={isEditMode}
+            onToggleEditMode={() => setIsEditMode((v) => !v)}
           />
-
-          <NetworkActions isEditMode={isEditMode} onToggleEditMode={() => setIsEditMode((v) => !v)} />
 
           <WalletInfo
             walletAddress={walletEVMAddress || ''}
             currentNetworkExplorerUrl={(currentNetwork as any)?.explorerUrl}
             currentNetwork={currentNetwork as any}
-            onCopyAddress={copyAddress}
             onRefreshBalances={updateAllBalances}
-            onOpenExplorer={openExplorer}
           />
         </DropdownMenuContent>
       </DropdownMenu>

@@ -34,17 +34,21 @@ export default function DisplayNativeBalance({ onError: _onError }: DisplayNativ
 
   if (isLoading) {
     return (
-      <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Native Balance</p>
-        <p className="text-xl font-semibold">Loading...</p>
+      <div className="flex flex-col gap-1 bg-white px-4 py-3 dark:bg-zinc-950" aria-busy>
+        <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          Native balance
+        </p>
+        <span aria-hidden className="mt-1 block h-5 w-28 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
       </div>
     );
   }
 
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">Native Balance</p>
-      <p className="text-xl font-semibold">
+    <div className="flex flex-col gap-1 bg-white px-4 py-3 dark:bg-zinc-950">
+      <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+        Native balance
+      </p>
+      <p className="font-mono text-[17px] tabular-nums text-zinc-900 dark:text-zinc-50">
         {nativeBalance === null ? 'Unavailable' : `${nativeBalance.toFixed(4)} ${nativeTokenSymbol}`}
       </p>
     </div>

@@ -1,0 +1,169 @@
+{
+  "id": "l1-quickstart",
+  "version": 1,
+  "title": "Launch an L1",
+  "summary": "Your own Avalanche L1 on Fuji in minutes",
+  "description": "Launches a Subnet-EVM L1 on Fuji through the Builder Hub's Quick L1 service: subnet, chain, Validator Manager on the C-Chain, a managed validator node, conversion to an L1, and optionally ICM with a managed relayer to the C-Chain. The result binds the `l1` network for every other blueprint.",
+  "category": "infra",
+  "level": "starter",
+  "tags": ["l1", "subnet-evm", "validator-manager", "icm", "native-minter", "fuji"],
+  "prompts": [
+    "Launch my own blockchain on Avalanche",
+    "Create an L1 with its own gas token",
+    "I need a testnet chain with ICM to the C-Chain for my app"
+  ],
+  "networks": {
+    "primary": {
+      "description": "Fuji C-Chain, where the Validator Manager lives",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "chainName",
+      "type": "string",
+      "description": "Name of the new chain",
+      "example": "Moon Chain"
+    },
+    {
+      "name": "tokenSymbol",
+      "type": "string",
+      "description": "Symbol of the native gas token",
+      "example": "MOON"
+    },
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns the Validator Manager, gets the genesis allocation, and administers precompiles",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "validatorMode",
+      "type": "string",
+      "description": "poa (owner-managed validators) or erc20-pos (anyone can stake a fresh staking token)",
+      "default": "poa"
+    },
+    {
+      "name": "nativeMinter",
+      "type": "bool",
+      "description": "Enable the Native Minter precompile; required by usdc-gas-l1",
+      "default": true
+    },
+    {
+      "name": "interoperability",
+      "type": "bool",
+      "description": "Enable Warp and preinstall Teleporter; required by every ICM blueprint",
+      "default": true
+    },
+    {
+      "name": "managedRelayer",
+      "type": "bool",
+      "description": "Run a managed ICM relayer to the C-Chain and bridge demo MockUSDC; needs interoperability",
+      "default": true
+    }
+  ],
+  "prerequisites": [
+    "A signed-in Builder Hub account: the Quick L1 API ties every L1 to a user",
+    "Managed nodes expire after 3 days on testnet; relaunch for longer tests"
+  ],
+  "contracts": [],
+  "steps": [
+    {
+      "id": "launch",
+      "title": "Start the Quick L1 job",
+      "kind": "offchain",
+      "network": "primary",
+      "action": "quick-l1.deploy",
+      "inputs": {
+        "chainName": "$param.chainName",
+        "tokenSymbol": "$param.tokenSymbol",
+        "ownerEvmAddress": "$param.owner",
+        "network": "fuji",
+        "validatorMode": {
+          "type": "$param.validatorMode"
+        },
+        "precompiles": {
+          "nativeMinter": "$param.nativeMinter",
+          "feeManager": false,
+          "rewardManager": false,
+          "interoperability": "$param.interoperability",
+          "txAllowList": false,
+          "contractDeployerAllowList": false
+        },
+        "enableManagedRelayer": "$param.managedRelayer"
+      },
+      "outputs": {
+        "jobId": "result.jobId"
+      }
+    },
+    {
+      "id": "wait-launch",
+      "title": "Wait for the chain to be live",
+      "kind": "wait",
+      "network": "primary",
+      "wait": {
+        "for": "quick-l1-job",
+        "id": "$out.launch.jobId",
+        "timeoutMinutes": 15
+      },
+      "outputs": {
+        "subnetId": "result.subnetId",
+        "blockchainId": "result.blockchainId",
+        "evmChainId": "result.evmChainId",
+        "rpcUrl": "result.rpcUrl",
+        "validatorManager": "result.validatorManagerAddress",
+        "nodeId": "result.nodeId",
+        "teleporterRegistry": "result.interop.icmRegistryAddress",
+        "relayer": "result.interop.relayerAddress",
+        "mockUsdc": "result.interop.mockUsdcAddress",
+        "tokenHome": "result.interop.tokenHomeAddress",
+        "tokenRemote": "result.interop.tokenRemoteAddress",
+        "explorerUrl": "result.explorer.url"
+      }
+    }
+  ],
+  "checks": [],
+  "panel": [],
+  "review": [
+    "The owner is the builder's address: it receives the genesis allocation and administers the Validator Manager and precompiles.",
+    "interoperability is on whenever the builder plans ICM or ICTT; it cannot be added after genesis without a network upgrade.",
+    "managedRelayer requires interoperability; the service rejects the request otherwise.",
+    "The builder knows the managed node and explorer expire after 3 days on testnet."
+  ],
+  "frontend": {
+    "summary": "Launch your own Avalanche L1 from a short form and watch it come to life.",
+    "audience": ["Builders and teams launching a test L1", "Their community, who add the new chain to their wallets"],
+    "journeys": [
+      "A short form: chain name and token symbol, with advanced options folded away.",
+      "A live launch tracker in plain steps (creating your chain, starting its validator, turning it into an L1), each with its transactions linked.",
+      "When it's live: the chain's name and token, 'Add to wallet', RPC and explorer links, and what to build next.",
+      "Say up front that test L1s last 3 days, and offer a relaunch."
+    ],
+    "flows": [
+      "POST the inputs to /api/quick-l1/deploy (session required), then poll /api/quick-l1/status/<jobId> about every 2 seconds.",
+      "Render progress from DEPLOYMENT_STEPS and STEP_LABEL in lib/quick-l1/types.ts, hiding MANAGED_RELAYER_ONLY_STEPS and ERC20_POS_ONLY_STEPS when those options are off.",
+      "Show each step's transactions from evidence, linked to the explorer for its chain.",
+      "When complete, offer 'Add to wallet' with evmChainId and rpcUrl, and suggest icm-messenger, ictt-token-bridge or usdc-gas-l1."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Quick L1 in the console",
+      "url": "/console/create-l1/basic"
+    },
+    {
+      "title": "Avalanche L1s",
+      "url": "/docs/avalanche-l1s"
+    },
+    {
+      "title": "Native Minter precompile",
+      "url": "/docs/avalanche-l1s/precompiles/native-minter"
+    },
+    {
+      "title": "Managed ICM relayer",
+      "url": "/console/testnet-infra/icm-relayer"
+    }
+  ],
+  "related": ["icm-messenger", "ictt-token-bridge", "usdc-gas-l1", "icm-price-oracle"]
+}

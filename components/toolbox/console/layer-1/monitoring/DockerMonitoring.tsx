@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { Step } from 'fumadocs-ui/components/steps';
+import { Step } from '@/components/toolbox/components/Steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Input } from '@/components/toolbox/components/Input';

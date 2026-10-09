@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useSelectedL1, useSetTeleporterRegistryAddress } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { Note } from '@/components/toolbox/components/Note';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import { HashChip } from '@/components/explorer-v2/ui';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_HOME_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from '@/components/console/inspector-shell';
 import { useDeployTokenHome } from '../hooks/useDeployTokenHome';
 import { truncateAddress } from '../utils/explorer-url';
+import { BODY, FIELD, Field, Inspector, MONO_FIELD, ReadOnlyValue, StatusTag } from '../ui';
 import type { Address, BridgePhase, Bridge } from '../types';
 
 interface HomeInspectorProps {
@@ -140,108 +142,92 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
 
   return (
     <ContractDeployViewer contracts={ICTT_HOME_SOURCES}>
-      <InspectorShell
-        banner={
-          !underlyingTokenAddress && (
-            <Note variant="warning">
-              <span className="text-xs">Pick a source token in Phase 1 first.</span>
-            </Note>
-          )
-        }
+      <Inspector
+        label="Phase 2 · TokenHome"
+        banner={!underlyingTokenAddress && <Alert variant="warning">Pick a source token in Phase 1 first.</Alert>}
         footer={
-          <>
-            <button
-              type="button"
-              onClick={handleDeploy}
-              disabled={!canDeploy}
-              className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
-              {isDeploying && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-              {bridge?.homeAddress ? 'Re-deploy TokenHome' : 'Deploy TokenHome'}
-              {!isDeploying && <ArrowRight className="h-3.5 w-3.5" aria-hidden />}
-            </button>
-          </>
+          <Button
+            onClick={handleDeploy}
+            disabled={!canDeploy}
+            loading={isDeploying}
+            loadingText="Deploying TokenHome…"
+            className="w-auto"
+            icon={<ArrowRight className="h-3.5 w-3.5" aria-hidden />}
+          >
+            {bridge?.homeAddress ? 'Re-deploy TokenHome' : 'Deploy TokenHome'}
+          </Button>
         }
       >
-        <div className="flex flex-col gap-4">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Deploying <span className="font-medium text-zinc-900 dark:text-zinc-100">ERC20TokenHome</span> on{' '}
+        <div className="flex flex-col gap-5">
+          <p className={BODY}>
+            Deploys <span className="font-medium text-zinc-900 dark:text-zinc-100">ERC20TokenHome</span> on{' '}
             <span className="font-medium text-zinc-900 dark:text-zinc-100">{selectedL1?.name ?? 'the Home chain'}</span>
-            . Your wallet must be on this chain — we&apos;ll auto-switch if needed. The constructor wires the contract
-            to the Teleporter registry and your token in one transaction.
+            . Your wallet must be on this chain; it switches for you if needed. One transaction wires the contract to
+            the Teleporter registry and your token.
           </p>
 
-          <FormField label="Source token" hint="Auto-filled from Phase 1.">
-            <code className="block rounded-md bg-zinc-100 px-2.5 py-1.5 font-mono text-[12px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-              {underlyingTokenAddress
-                ? `${truncateAddress(underlyingTokenAddress, 10, 6)}${symbol ? ` · ${symbol}` : ''}`
-                : '—'}
-            </code>
-          </FormField>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_10rem]">
+            <Field label="Source token" hint="Filled in from Phase 1.">
+              <ReadOnlyValue>
+                {underlyingTokenAddress
+                  ? `${truncateAddress(underlyingTokenAddress, 10, 6)}${symbol ? ` · ${symbol}` : ''}`
+                  : '—'}
+              </ReadOnlyValue>
+            </Field>
 
-          <FormField label="Token decimals" hint="Read from the source token contract.">
-            <input
-              type="number"
-              min={0}
-              value={decimals}
-              onChange={(e) => setDecimals(e.target.value)}
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            />
-            {decimalsError && <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{decimalsError}</p>}
-          </FormField>
+            <Field
+              label="Decimals"
+              htmlFor="ictt-home-decimals"
+              hint={decimalsError ? undefined : 'Read from the token.'}
+              error={decimalsError}
+            >
+              <input
+                id="ictt-home-decimals"
+                type="number"
+                min={0}
+                value={decimals}
+                onChange={(e) => setDecimals(e.target.value)}
+                className={`${FIELD} font-mono tabular-nums`}
+              />
+            </Field>
+          </div>
 
-          <FormField label="Teleporter registry" hint={registryHint}>
+          <Field label="Teleporter registry" htmlFor="ictt-home-registry" hint={registryHint}>
             <input
+              id="ictt-home-registry"
               type="text"
               value={registry}
               onChange={(e) => setRegistry(e.target.value.trim())}
               placeholder="0x…"
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className={MONO_FIELD}
             />
-          </FormField>
+          </Field>
 
-          <FormField label="Teleporter manager" hint="Address that can pause/upgrade ICM. Defaults to your wallet.">
+          <Field
+            label="Teleporter manager"
+            htmlFor="ictt-home-manager"
+            hint="Can pause or upgrade ICM on this contract. Defaults to your wallet."
+          >
             <input
+              id="ictt-home-manager"
               type="text"
               value={manager}
               onChange={(e) => setManager(e.target.value.trim())}
               placeholder="0x…"
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className={MONO_FIELD}
             />
-          </FormField>
+          </Field>
 
-          {error && (
-            <Note variant="destructive">
-              <span className="text-xs">{error.message}</span>
-            </Note>
-          )}
+          {error && <Alert variant="error">{error.message}</Alert>}
 
           {bridge?.homeAddress && (
-            <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50/60 px-3 py-2 text-xs dark:bg-emerald-950/20">
-              <span className="font-medium text-emerald-800 dark:text-emerald-300">TokenHome deployed</span>
-              <code className="font-mono text-[11px] text-emerald-800 dark:text-emerald-300">
-                {truncateAddress(bridge.homeAddress, 10, 6)}
-              </code>
+            <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-300 px-4 py-3 dark:border-emerald-900">
+              <StatusTag tone="ok">TokenHome deployed</StatusTag>
+              <HashChip value={bridge.homeAddress} len={14} />
             </div>
           )}
         </div>
-      </InspectorShell>
+      </Inspector>
     </ContractDeployViewer>
-  );
-}
-
-interface FormFieldProps {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}
-
-function FormField({ label, hint, children }: FormFieldProps) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-200">{label}</label>
-      {children}
-      {hint && <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{hint}</span>}
-    </div>
   );
 }

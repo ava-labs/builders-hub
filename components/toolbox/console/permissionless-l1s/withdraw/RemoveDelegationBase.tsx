@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { Input, type Suggestion } from '@/components/toolbox/components/Input';
 import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/InitiateDelegatorRemoval';
 import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteDelegatorRemoval';

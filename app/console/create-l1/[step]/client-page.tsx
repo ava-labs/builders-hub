@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import StepFlow from '@/components/console/step-flow';
+import StepFlow, { clearStepFlowProgress } from '@/components/console/step-flow';
 import { useCreateL1FlowStore } from '@/components/toolbox/stores/createL1FlowStore';
 import { generateCreateL1Steps } from '@/components/toolbox/console/create-l1/generateSteps';
 
@@ -25,9 +25,7 @@ export default function CreateL1StepClientPage({ currentStepKey }: { currentStep
   useEffect(() => {
     if (!hasFlow) return;
     const idx = steps.findIndex((s) =>
-      s.type === 'single'
-        ? s.key === currentStepKey
-        : s.options.some((o) => o.key === currentStepKey),
+      s.type === 'single' ? s.key === currentStepKey : s.options.some((o) => o.key === currentStepKey),
     );
     if (idx >= 0) setCurrentStepIndex(idx);
   }, [currentStepKey, steps, setCurrentStepIndex, hasFlow]);
@@ -42,16 +40,12 @@ export default function CreateL1StepClientPage({ currentStepKey }: { currentStep
   // Resume entry disappears and the next run starts clean.
   const handleFinish = useCallback(() => {
     useCreateL1FlowStore.getState().reset();
+    clearStepFlowProgress('/console/create-l1');
   }, []);
 
   if (!hasFlow) return null;
 
   return (
-    <StepFlow
-      steps={steps}
-      basePath="/console/create-l1"
-      currentStepKey={currentStepKey}
-      onFinish={handleFinish}
-    />
+    <StepFlow steps={steps} basePath="/console/create-l1" currentStepKey={currentStepKey} onFinish={handleFinish} />
   );
 }

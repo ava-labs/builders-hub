@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Container } from '@/components/toolbox/components/Container';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { AVALANCHE_DEPLOY_REPO } from './monitoringConfig';
 import TerraformMonitoring from './TerraformMonitoring';
 import KubernetesMonitoring from './KubernetesMonitoring';

@@ -1,7 +1,7 @@
 import React from 'react';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { nipify, HostInput } from './HostInput';
 import { HealthCheckButton } from './HealthCheckButton';
+import { Choice, ChoiceGrid, CodeBlock, EYEBROW, INLINE_CODE, NOTE } from './NodeSetupUI';
 
 interface ReverseProxySetupProps {
   domain: string;
@@ -73,61 +73,49 @@ export const ReverseProxySetup: React.FC<ReverseProxySetupProps> = ({
 }) => {
   const hasLocationToggle = nodeLocation !== undefined && setNodeLocation !== undefined;
 
+  const isLocal = hasLocationToggle && nodeLocation === 'local';
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-bold mb-4">Set Up Reverse Proxy</h3>
+    <div className="flex flex-col gap-4">
+      <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">Set Up Reverse Proxy</h3>
 
-        {hasLocationToggle && (
-          <div className="mb-4">
-            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Where does this node run?</div>
-            <div className="inline-flex rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setNodeLocation('remote')}
-                className={`px-3 py-1.5 text-sm ${
-                  nodeLocation === 'remote'
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                    : 'bg-transparent text-zinc-600 dark:text-zinc-400'
-                }`}
-              >
-                Remote server (needs this proxy)
-              </button>
-              <button
-                type="button"
-                onClick={() => setNodeLocation('local')}
-                className={`px-3 py-1.5 text-sm border-l border-zinc-200 dark:border-zinc-700 ${
-                  nodeLocation === 'local'
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                    : 'bg-transparent text-zinc-600 dark:text-zinc-400'
-                }`}
-              >
-                This machine (localhost)
-              </button>
-            </div>
-          </div>
-        )}
+      {hasLocationToggle && (
+        <ChoiceGrid label="Where does this node run?" cols={2}>
+          <Choice
+            selected={nodeLocation === 'remote'}
+            onSelect={() => setNodeLocation('remote')}
+            title="Remote server"
+            description="Needs this proxy"
+          />
+          <Choice
+            selected={nodeLocation === 'local'}
+            onSelect={() => setNodeLocation('local')}
+            title="This machine"
+            description={<span className="font-mono">localhost</span>}
+          />
+        </ChoiceGrid>
+      )}
 
-        {hasLocationToggle && nodeLocation === 'local' ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            A node on this machine is reachable at <code>http://localhost:9650</code> directly; browsers allow localhost
-            from an https page, so no reverse proxy is needed. Switch to &quot;Remote server&quot; if the node actually
-            runs elsewhere: your wallet and this page cannot reach a remote node&apos;s localhost.
+      {isLocal ? (
+        <p className={NOTE}>
+          A node on this machine is reachable at <code className={INLINE_CODE}>http://localhost:9650</code> directly;
+          browsers allow localhost from an https page, so no reverse proxy is needed. Switch to &quot;Remote
+          server&quot; if the node actually runs elsewhere: your wallet and this page cannot reach a remote node&apos;s
+          localhost.
+        </p>
+      ) : (
+        <>
+          <p className={NOTE}>
+            {hasLocationToggle
+              ? 'Your wallet and this page can only reach a remote node over https, so a reverse proxy in front of it is required. Browsers silently block plain http:// requests to remote hosts from an https page (mixed content).'
+              : 'To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.'}
           </p>
-        ) : (
-          <>
-            <p>
-              {hasLocationToggle
-                ? 'Your wallet and this page can only reach a remote node over https, so a reverse proxy in front of it is required. Browsers silently block plain http:// requests to remote hosts from an https page (mixed content).'
-                : 'To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.'}
-            </p>
 
-            <p className="mt-4">You can use the following command to check your IP:</p>
+          <SubStep label="Find your node's IP">
+            <CodeBlock code="curl checkip.amazonaws.com" />
+          </SubStep>
 
-            <DynamicCodeBlock lang="bash" code="curl checkip.amazonaws.com" />
-
-            <p className="mt-4">Paste the IP of your node below:</p>
-
+          <SubStep label="Paste it below">
             <HostInput
               label={
                 hasLocationToggle
@@ -138,35 +126,43 @@ export const ReverseProxySetup: React.FC<ReverseProxySetupProps> = ({
               onChange={setDomain}
               placeholder="example.com or 1.2.3.4"
             />
+          </SubStep>
 
-            {domain && (
-              <>
-                <p className="mt-4">
-                  Open ports 80 and 443 so Let&apos;s Encrypt can reach Caddy. On a cloud host, open them in your{' '}
-                  <strong>Security Group</strong> too — the host firewall alone is not enough.
+          {domain && (
+            <>
+              <SubStep label="Open ports 80 and 443">
+                <p className={NOTE}>
+                  So Let&apos;s Encrypt can reach Caddy. On a cloud host, open them in your{' '}
+                  <strong className="font-medium text-zinc-900 dark:text-zinc-100">Security Group</strong> too — the
+                  host firewall alone is not enough.
                 </p>
-                <DynamicCodeBlock lang="bash" code={`sudo ufw allow 80,443/tcp comment 'Caddy / ACME'`} />
+                <CodeBlock code={`sudo ufw allow 80,443/tcp comment 'Caddy / ACME'`} />
+              </SubStep>
 
-                <p className="mt-4">Run the following command on the machine of your node:</p>
-                <DynamicCodeBlock lang="bash" code={generateReverseProxyCommand(domain)} />
-              </>
-            )}
-          </>
-        )}
-      </div>
+              <SubStep label="Run Caddy on the node's machine">
+                <CodeBlock code={generateReverseProxyCommand(domain)} />
+              </SubStep>
+            </>
+          )}
+        </>
+      )}
 
-      {domain && showHealthCheck && !(hasLocationToggle && nodeLocation === 'local') && (
-        <div>
-          <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
-          <p>Do a final check from a machine different than the one that your node is running on.</p>
-
-          <div className="space-y-6 mt-4">
-            <DynamicCodeBlock lang="bash" code={generateHealthCheckCommand(domain, chainId)} />
-
-            <HealthCheckButton chainId={chainId} domain={domain} onResult={onHealthCheckResult} />
-          </div>
-        </div>
+      {domain && showHealthCheck && !isLocal && (
+        <SubStep label="Check connection via proxy">
+          <p className={NOTE}>Run this from a machine other than the one your node runs on.</p>
+          <CodeBlock code={generateHealthCheckCommand(domain, chainId)} />
+          <HealthCheckButton chainId={chainId} domain={domain} onResult={onHealthCheckResult} />
+        </SubStep>
       )}
     </div>
   );
 };
+
+function SubStep({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2.5 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+      <p className={EYEBROW}>{label}</p>
+      {children}
+    </div>
+  );
+}

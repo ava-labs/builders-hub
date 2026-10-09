@@ -10,7 +10,7 @@ import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
 import { useProxyAdmin } from '@/components/toolbox/hooks/contracts';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { Input } from '@/components/toolbox/components/Input';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from '@/components/toolbox/components/Steps';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,

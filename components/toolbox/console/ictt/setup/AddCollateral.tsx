@@ -21,12 +21,14 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useL1ByChainId, useSelectedL1, useL1List } from '@/components/toolbox/stores/l1ListStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { RadioGroup } from '@/components/toolbox/components/RadioGroup';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import versions from '@/scripts/versions.json';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
+import { EYEBROW, Loading, Option, OptionGrid, StatusTag } from '../bridge/ui';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 
@@ -531,8 +533,8 @@ function AddCollateral() {
   }, [nativeTokenRemoteAddress, selectedL1?.name]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">
+    <div className="not-prose grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      <div className="flex flex-col gap-4">
         <EVMAddressInput
           label={`Native Token Remote Contract Address (on ${selectedL1?.name})`}
           value={remoteContractAddress}
@@ -543,19 +545,13 @@ function AddCollateral() {
         />
 
         {isFetchingTokenHome && (
-          <div className="relative overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700 bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 p-6">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-600 dark:border-t-zinc-300"></div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Loading Token Home Details</span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Fetching source chain and token home address...
-                </span>
-              </div>
-            </div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-zinc-200/20 to-transparent dark:from-zinc-700/20 rounded-full -mr-16 -mt-16"></div>
+          <div className="flex flex-col gap-3 border border-zinc-200 px-4 py-4 dark:border-zinc-800">
+            <Loading>Loading Token Home details</Loading>
+            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
+              Reading the source chain and Token Home address.
+            </p>
+            <span aria-hidden className="block h-10 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+            <span aria-hidden className="block h-10 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />
           </div>
         )}
 
@@ -575,19 +571,22 @@ function AddCollateral() {
 
             {/* Token Type */}
             {tokenType && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Transferrer Type
-                </label>
-                <RadioGroup
-                  items={[
-                    { value: 'erc20', label: 'ERC20', isDisabled: true },
-                    { value: 'native', label: 'Native Token', isDisabled: true },
-                  ]}
-                  value={tokenType}
-                  onChange={() => {}}
-                  idPrefix="token-type-"
-                />
+              <div className="mb-6 flex flex-col gap-2">
+                <span className={EYEBROW}>Transferrer type</span>
+                <OptionGrid label="Transferrer type">
+                  <Option
+                    selected={tokenType === 'erc20'}
+                    onSelect={() => {}}
+                    disabled={tokenType !== 'erc20'}
+                    title="ERC20"
+                  />
+                  <Option
+                    selected={tokenType === 'native'}
+                    onSelect={() => {}}
+                    disabled={tokenType !== 'native'}
+                    title="Native token"
+                  />
+                </OptionGrid>
               </div>
             )}
 
@@ -603,51 +602,47 @@ function AddCollateral() {
         )}
 
         {tokenAddress && tokenSymbol && tokenDecimals !== null && (
-          <div className="p-3 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-sm space-y-1 bg-zinc-100 dark:bg-zinc-800">
-            <div>
-              Collateral Token: <code className="font-mono">{tokenSymbol}</code>
-            </div>
-            <div>
-              Token Address: <code className="font-mono">{tokenAddress}</code>
-            </div>
-            <div>
-              Token Decimals: <code className="font-mono">{tokenDecimals}</code>
-            </div>
+          <SpecPlate className="border border-zinc-200 px-4 dark:border-zinc-800">
+            <SpecRow label="Collateral token">
+              <span className="font-mono">{tokenSymbol}</span>
+            </SpecRow>
+            <SpecRow label="Token address">
+              <HashChip value={tokenAddress} len={16} />
+            </SpecRow>
+            <SpecRow label="Decimals">
+              <span className="font-mono">{tokenDecimals}</span>
+            </SpecRow>
             {tokenBalance !== null && (
-              <div>
-                Your Balance:{' '}
-                <code className="font-mono">
+              <SpecRow label="Your balance">
+                <span className="font-mono">
                   {formatUnits(tokenBalance, tokenDecimals)} {tokenSymbol}
-                </code>
-              </div>
+                </span>
+              </SpecRow>
             )}
             {allowance !== null && (
-              <div>
-                Current Allowance for Home Contract:{' '}
-                <code className="font-mono">
+              <SpecRow label="Home allowance">
+                <span className="font-mono">
                   {formatUnits(allowance, tokenDecimals)} {tokenSymbol}
-                </code>
-              </div>
+                </span>
+              </SpecRow>
             )}
             {collateralInfo !== null && (
-              <div>
-                Collateral Needed:{' '}
-                <code className="font-mono">
+              <SpecRow label="Needed">
+                <span className="font-mono">
                   {formatUnits(collateralInfo.needed, tokenDecimals)} {tokenSymbol}
-                </code>
-              </div>
+                </span>
+              </SpecRow>
             )}
             {isCollateralized !== null && (
-              <div className="mt-2 font-medium">
-                Collateralization Status:{' '}
+              <SpecRow label="Status">
                 {isCollateralized ? (
-                  <span className="text-green-600 dark:text-green-400">✅ Fully Collateralized</span>
+                  <StatusTag tone="ok">Fully collateralized</StatusTag>
                 ) : (
-                  <span className="text-red-600 dark:text-red-400">⚠️ Not Collateralized</span>
+                  <StatusTag tone="error">Not collateralized</StatusTag>
                 )}
-              </div>
+              </SpecRow>
             )}
-          </div>
+          </SpecPlate>
         )}
 
         <AmountInput
@@ -692,9 +687,9 @@ function AddCollateral() {
           }
         />
 
-        {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded-lg">{localError}</div>}
+        {localError && <Alert variant="error">{localError}</Alert>}
 
-        <div className="flex gap-2 pt-2 border-t mt-4 flex-wrap">
+        <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 sm:flex-row dark:border-zinc-800">
           {tokenType === 'erc20' && (
             <Button
               onClick={handleApprove}

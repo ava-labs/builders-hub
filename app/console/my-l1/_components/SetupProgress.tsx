@@ -4,14 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, ChevronRight, ListChecks, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BoardHeader } from '@/components/explorer-v2/ui';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { toast } from '@/lib/toast';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { setupSummary } from '@/lib/console/my-l1/setup-steps';
+import { COUNT, FRAME, NOTICE_WARN } from './chrome';
 
 // Inline "next step" hero — surfaces the single most important action a user
 // can take right now. Hidden when the L1 is fully configured (the green
@@ -36,8 +37,7 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
   // Skip the switch gate when we don't know the chain id yet (wallet store
   // still hydrating → walletChainId === 0) or when the L1 has no EVM chain
   // (we can't switch to it).
-  const needsSwitch =
-    l1.evmChainId !== null && walletChainId !== 0 && walletChainId !== l1.evmChainId;
+  const needsSwitch = l1.evmChainId !== null && walletChainId !== 0 && walletChainId !== l1.evmChainId;
 
   const handleClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!needsSwitch || isSwitching || l1.evmChainId === null) return;
@@ -80,114 +80,98 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
           : `Next setup step: ${nextStep.shortLabel}. ${done} of ${steps.length} complete.`
       }
       aria-busy={isSwitching}
-      className="group flex items-center gap-4 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] to-amber-500/[0.04] hover:from-amber-500/[0.12] hover:to-amber-500/[0.06] transition-colors px-4 py-3.5"
+      className={cn(
+        NOTICE_WARN,
+        'group/next flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 transition-colors hover:border-amber-500 dark:hover:border-amber-600',
+      )}
     >
-      <div
-        className="shrink-0 w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"
-        aria-hidden="true"
-      >
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+      <Icon className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] tabular-nums text-amber-800 dark:text-amber-300">
           Needs attention · {done}/{steps.length} complete
         </p>
-        <p className="text-base font-semibold text-foreground truncate">{nextStep.shortLabel}</p>
+        <p className="mt-1 truncate text-[15px] font-semibold text-zinc-900 underline-offset-4 group-hover/next:underline dark:text-zinc-50">
+          {nextStep.shortLabel}
+        </p>
       </div>
       <span
-        className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-foreground group-hover:translate-x-0.5 transition-transform"
+        className="inline-flex h-9 shrink-0 items-center gap-2 border border-zinc-900 bg-zinc-900 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors group-hover/next:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:group-hover/next:bg-zinc-300"
         aria-hidden="true"
       >
         {ctaLabel}
         {isSwitching ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/next:translate-x-0.5" />
         )}
       </span>
     </Link>
   );
 }
 
-export function SetupProgressCard({
-  l1,
-  fullWidth = false,
-}: {
-  l1: CombinedL1;
-  fullWidth?: boolean;
-}) {
+export function SetupProgressCard({ l1, fullWidth = false }: { l1: CombinedL1; fullWidth?: boolean }) {
   const { steps, done, pct } = setupSummary(l1);
 
   return (
-    <Card className={cn(fullWidth ? '' : 'lg:col-span-1')}>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ListChecks className="w-4 h-4 text-amber-500" />
-            Setup progress
-          </CardTitle>
-          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
+    <div className={cn(FRAME, fullWidth ? '' : 'lg:col-span-1')}>
+      <BoardHeader
+        display
+        label="Setup progress"
+        action={
+          <span className={COUNT}>
             {done}/{steps.length} · {pct}%
           </span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
-          <motion.div
-            // Animate via `scaleX` (a transform) instead of `width` so
-            // the browser can keep the bar on the compositor thread —
-            // width changes force a paint on every frame of the spring.
-            className="h-full origin-left bg-gradient-to-r from-amber-500 to-amber-400"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: pct / 100 }}
-            transition={{ type: 'spring', stiffness: 80, damping: 18 }}
-            style={{ width: '100%' }}
-          />
-        </div>
-        <ol
-          className={cn(
-            'space-y-1',
-            fullWidth && 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 space-y-0',
-          )}
-        >
-          {steps.map((s, i) => {
-            const nextUp = !s.completed && i === done;
-            return (
-              <li key={s.key}>
-                <Link href={s.href} className="group block">
-                  <div className="flex items-center gap-3 rounded-lg px-2 py-1.5 -mx-2 hover:bg-muted/50 transition-colors">
-                    <div
-                      className={cn(
-                        'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium shrink-0',
-                        s.completed
-                          ? 'bg-emerald-500 text-white'
-                          : nextUp
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      {s.completed ? <Check className="w-3 h-3" /> : i + 1}
-                    </div>
-                    <span
-                      className={cn(
-                        'flex-1 text-sm truncate',
-                        s.completed
-                          ? 'text-muted-foreground'
-                          : nextUp
-                            ? 'text-foreground font-medium'
-                            : 'text-muted-foreground',
-                      )}
-                    >
-                      {s.label}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ol>
-      </CardContent>
-    </Card>
+        }
+      />
+      <div className="h-1 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        <motion.div
+          // Animate via `scaleX` (a transform) instead of `width` so
+          // the browser can keep the bar on the compositor thread —
+          // width changes force a paint on every frame of the spring.
+          className="h-full origin-left bg-zinc-900 dark:bg-zinc-100"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: pct / 100 }}
+          transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+          style={{ width: '100%' }}
+        />
+      </div>
+      <ol
+        className={cn(
+          'divide-y divide-zinc-200 dark:divide-zinc-800',
+          fullWidth && 'grid grid-cols-1 md:grid-cols-2 md:divide-y-0',
+        )}
+      >
+        {steps.map((s, i) => {
+          const nextUp = !s.completed && i === done;
+          return (
+            <li key={s.key}>
+              <Link href={s.href} className="group/row flex items-center gap-3 px-5 py-2.5">
+                <span
+                  className={cn(
+                    'flex h-5 w-5 shrink-0 items-center justify-center border font-mono text-[10px] font-bold tabular-nums',
+                    s.completed
+                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                      : nextUp
+                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'border-zinc-300 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500',
+                  )}
+                >
+                  {s.completed ? <Check className="h-3 w-3" /> : i + 1}
+                </span>
+                <span
+                  className={cn(
+                    'flex-1 truncate text-[13.5px] underline-offset-4 group-hover/row:underline',
+                    nextUp ? 'font-medium text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400',
+                  )}
+                >
+                  {s.label}
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100" />
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

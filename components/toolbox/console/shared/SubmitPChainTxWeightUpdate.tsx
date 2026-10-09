@@ -5,14 +5,15 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { HashChip } from '@/components/explorer-v2/ui';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
+import { Field, Reveal, Status } from '@/components/toolbox/console/shared/validator-flow-ui';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
-import { Check } from 'lucide-react';
+import { Check, RotateCcw } from 'lucide-react';
 import { extractWarpMessageFromReceipt } from '@avalanche-sdk/interchain/warp';
 import { validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
-import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
@@ -241,7 +242,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       return;
     }
     if (isCoreWallet && !coreWalletClient) {
-      setErrorState('Core wallet not found');
+      setErrorState('Connect Core or a Console wallet to sign P-Chain transactions.');
       return;
     }
     if (isCoreWallet && !pChainAddress) {
@@ -299,7 +300,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
   }
 
   const step1Complete = !!unsignedWarpMessage;
@@ -307,17 +308,18 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
   const step3Complete = !!txSuccess;
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-5">
       {error && <Alert variant="error">{error}</Alert>}
 
-      {/* Step 1: Extract Warp Message */}
-      <StepFlowCard
-        step={1}
-        title="Extract Warp Message"
-        description="Enter the EVM transaction hash to extract the unsigned Warp message"
-        isComplete={step1Complete}
-      >
-        <div className="mt-2">
+      <Steps>
+        <Step>
+          <div>
+            <h3 className="flex items-center justify-between gap-3">
+              Extract the warp message
+              {step1Complete && <Status tone="ok">Extracted</Status>}
+            </h3>
+            <p>Paste the EVM transaction hash to pull out the unsigned warp message.</p>
+          </div>
           <Input
             label={txHashLabel}
             value={evmTxHash}
@@ -325,135 +327,118 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             placeholder={txHashPlaceholder}
             disabled={isProcessing || txSuccess !== null}
           />
-        </div>
-        {additionalInfo}
-        {step1Complete && eventData && (
-          <div className="mt-2 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
-              <span className="text-green-600 font-sans font-medium">Validation ID:</span>
-              <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">
-                {eventData.validationID}
-              </code>
+          {additionalInfo}
+          {step1Complete && eventData && (
+            <div className="flex flex-col gap-3">
+              <Field label="Validation ID">
+                <HashChip value={eventData.validationID} len={18} />
+              </Field>
+              {eventData.weight > 0n && (
+                <Field label="New weight">
+                  <span className="font-mono tabular-nums">{eventData.weight.toString()}</span>
+                </Field>
+              )}
+              {eventData.delegationID && (
+                <Field label="Delegation ID">
+                  <HashChip value={eventData.delegationID} len={18} />
+                </Field>
+              )}
+              <Reveal label="Unsigned warp message" value={unsignedWarpMessage || ''} />
             </div>
-            {eventData.weight > 0n && (
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-green-600 dark:text-green-400 font-medium">New Weight:</span>
-                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                  {eventData.weight.toString()}
-                </code>
-              </div>
-            )}
-            {eventData.delegationID && (
-              <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
-                <span className="text-green-600 font-sans font-medium">Delegation ID:</span>
-                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">
-                  {eventData.delegationID}
-                </code>
-              </div>
-            )}
-            <details className="mt-1">
-              <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
-                Show unsigned Warp message ({unsignedWarpMessage ? unsignedWarpMessage.length / 2 : 0} bytes)
-              </summary>
-              <div className="mt-1">
-                <DynamicCodeBlock lang="text" code={unsignedWarpMessage || ''} />
-              </div>
-            </details>
-          </div>
-        )}
-      </StepFlowCard>
+          )}
+        </Step>
 
-      {/* Step 2: Aggregate BLS signatures from the warp's signing subnet. */}
-      <StepFlowCard
-        step={2}
-        title="Aggregate Signatures"
-        description="Collect BLS signatures from the signing subnet's validators (67% quorum required)"
-        isComplete={step2Complete}
-        isActive={step1Complete && !step2Complete}
-      >
-        {step2Complete && (
-          <div className="mt-2 space-y-1">
-            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-              <Check className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">Signatures aggregated</span>
-            </div>
-            <details>
-              <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
-                Show signed Warp message ({signedWarpMessage ? signedWarpMessage.length / 2 : 0} bytes)
-              </summary>
-              <div className="mt-1">
-                <DynamicCodeBlock lang="text" code={signedWarpMessage || ''} />
-              </div>
-            </details>
-            {!step3Complete && (
-              <button
-                type="button"
-                onClick={handleAggregateSignatures}
-                disabled={isProcessing}
-                className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
-              >
-                Re-aggregate signatures
-              </button>
-            )}
+        {/* Step 2: Aggregate BLS signatures from the warp's signing subnet. */}
+        <Step>
+          <div>
+            <h3 className="flex items-center justify-between gap-3">
+              Aggregate signatures
+              {step2Complete && <Status tone="ok">Aggregated</Status>}
+            </h3>
+            <p>Collects BLS signatures from the signing subnet&apos;s validators. Needs a 67% quorum.</p>
           </div>
-        )}
-        {!step2Complete && step1Complete && !step3Complete && (
-          <div className="mt-2">
+          {step2Complete && (
+            <div className="flex flex-col gap-3">
+              <p className="flex items-center gap-1.5 text-[13px] text-emerald-700 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5" />
+                Signatures aggregated
+              </p>
+              <Reveal label="Signed warp message" value={signedWarpMessage || ''} />
+              {!step3Complete && (
+                <button
+                  type="button"
+                  onClick={handleAggregateSignatures}
+                  disabled={isProcessing}
+                  className="group/again inline-flex w-fit items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-900 underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Re-aggregate signatures
+                </button>
+              )}
+            </div>
+          )}
+          {!step2Complete && step1Complete && !step3Complete && (
             <Button
               onClick={handleAggregateSignatures}
               disabled={isAggregating || !unsignedWarpMessage}
               loading={isAggregating}
+              loadingText="Aggregating signatures…"
               className="w-full"
             >
-              {isAggregating ? 'Aggregating signatures…' : 'Aggregate Signatures'}
+              Aggregate signatures
             </Button>
-          </div>
-        )}
-      </StepFlowCard>
+          )}
+          {!step1Complete && (
+            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Waiting on the warp message.</p>
+          )}
+        </Step>
 
-      {/* Step 3: Submit the signed warp to P-Chain. Distinct from aggregation
-          so a partial-quorum aggregation can be retried independently without
-          re-prompting the wallet for a P-Chain signature. */}
-      <StepFlowCard
-        step={3}
-        title="Submit to P-Chain"
-        description="Send the signed warp message in a setL1ValidatorWeight transaction"
-        isComplete={step3Complete}
-        isActive={step2Complete && !step3Complete}
-      >
-        {step3Complete && txSuccess && (
-          <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
-            <Check className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">
-              P-Chain tx confirmed:{' '}
-              <code className="font-mono text-[11px] bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
-                {txSuccess}
-              </code>
-            </span>
+        {/* Step 3: Submit the signed warp to P-Chain. Distinct from aggregation
+            so a partial-quorum aggregation can be retried independently without
+            re-prompting the wallet for a P-Chain signature. */}
+        <Step>
+          <div>
+            <h3 className="flex items-center justify-between gap-3">
+              Submit to the P-Chain
+              {step3Complete && <Status tone="ok">Confirmed</Status>}
+            </h3>
+            <p>
+              Sends the signed warp message in a{' '}
+              <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">setL1ValidatorWeight</code>{' '}
+              transaction.
+            </p>
           </div>
-        )}
-        {!step3Complete && step2Complete && (
-          <div className="mt-2">
-            {isCoreWallet ? (
-              <CoreWalletTransactionButton
-                onClick={handleSubmitToPChain}
-                loading={isSubmitting}
-                loadingText="Submitting to P-Chain…"
-                disabled={isSubmitting || !signedWarpMessage}
-                className="w-full"
-              >
-                Submit to P-Chain
-              </CoreWalletTransactionButton>
-            ) : (
-              // Non-Core wallets don't sign P-Chain txs directly — the CLI
-              // panel below handles submission and accepts a manual tx ID.
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Submit via the CLI command below, then paste the resulting P-Chain transaction ID.
-              </p>
-            )}
-          </div>
-        )}
-      </StepFlowCard>
+          {step3Complete && txSuccess && (
+            <Field label="P-Chain tx">
+              <HashChip value={txSuccess} len={18} />
+            </Field>
+          )}
+          {!step3Complete && step2Complete && (
+            <>
+              {isCoreWallet ? (
+                <CoreWalletTransactionButton
+                  onClick={handleSubmitToPChain}
+                  loading={isSubmitting}
+                  loadingText="Submitting to P-Chain…"
+                  disabled={isSubmitting || !signedWarpMessage}
+                  className="w-full"
+                >
+                  Submit to P-Chain
+                </CoreWalletTransactionButton>
+              ) : (
+                // Non-Core wallets don't sign P-Chain txs directly — the CLI
+                // panel below handles submission and accepts a manual tx ID.
+                <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+                  Run the command below, then paste the P-Chain transaction ID it returns.
+                </p>
+              )}
+            </>
+          )}
+          {!step2Complete && (
+            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Waiting on the signatures.</p>
+          )}
+        </Step>
+      </Steps>
 
       {/* Non-Core: CLI command for manual submission */}
       {!isCoreWallet && signedWarpMessage && !txSuccess && (

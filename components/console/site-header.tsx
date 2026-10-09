@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -6,30 +6,45 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import dynamic from "next/dynamic";
-import { Fragment } from "react";
-import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
-import { pathToBreadcrumb } from "./breadcrumbs-mapping";
-import { HelpCircle, Gamepad2, Book, MessageCircle, RotateCcw } from "lucide-react";
-import Link from "next/link";
-import { ConsoleNotificationPanel } from "./notification-panel";
+} from '@/components/ui/breadcrumb';
+import { Separator } from '@/components/ui/separator';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
+import { Fragment } from 'react';
+import { useBreadcrumbs } from '@/hooks/use-breadcrumbs';
+import { pathToBreadcrumb } from './breadcrumbs-mapping';
+import { HelpCircle, Gamepad2, Book, MessageCircle, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
+import { ConsoleNotificationPanel } from './notification-panel';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useOnboardingTour } from "@/hooks/useOnboardingTour";
-import { resetAllStores } from "@/components/toolbox/stores/reset";
+} from '@/components/ui/dropdown-menu';
+import { useOnboardingTour } from '@/hooks/useOnboardingTour';
+import { resetAllStores } from '@/components/toolbox/stores/reset';
 
-const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/TestnetMainnetSwitch").then(m => m.TestnetMainnetSwitch), { ssr: false });
-const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
-const EvmNetworkWallet = dynamic(() => import("@/components/toolbox/components/console-header/evm-network-wallet/index").then(m => m.EvmNetworkWallet), { ssr: false });
+const TestnetMainnetSwitch = dynamic(
+  () =>
+    import('@/components/toolbox/components/console-header/TestnetMainnetSwitch').then((m) => m.TestnetMainnetSwitch),
+  { ssr: false },
+);
+const WalletPChain = dynamic(
+  () => import('@/components/toolbox/components/console-header/pchain-wallet').then((m) => m.WalletPChain),
+  { ssr: false },
+);
+const ConsoleWalletSwitch = dynamic(
+  () => import('@/components/console-wallets/ConsoleWalletSwitch').then((m) => m.ConsoleWalletSwitch),
+  { ssr: false },
+);
+const EvmNetworkWallet = dynamic(
+  () =>
+    import('@/components/toolbox/components/console-header/evm-network-wallet/index').then((m) => m.EvmNetworkWallet),
+  { ssr: false },
+);
 
 export function SiteHeader() {
   const breadcrumbs = useBreadcrumbs(pathToBreadcrumb);
@@ -44,51 +59,52 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0">
-        <SidebarTrigger className="-ml-1" />
-        <Separator
-          orientation="vertical"
-          className="mr-2 data-[orientation=vertical]:h-4"
-        />
-        <Breadcrumb className="overflow-hidden min-w-0">
-          <BreadcrumbList className="flex-nowrap">
+    <header className="console-header sticky top-0 z-30 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
+      <div className="flex w-full items-center gap-1 lg:gap-2 min-w-0">
+        {/* Pulls the icon, not its hit area, onto the page's left edge. */}
+        <SidebarTrigger className="-ml-1.5" />
+        <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4 sm:mr-2" />
+        <Breadcrumb className="nav-plain overflow-hidden min-w-0">
+          <BreadcrumbList className="flex-nowrap min-w-0">
             {breadcrumbs.map((breadcrumb, index) => (
               <Fragment key={`${breadcrumb.href}-${index}`}>
-                <BreadcrumbItem key={`${breadcrumb.href}-${index}`} className="whitespace-nowrap">
+                {/* Phones show only the page you're on; the trail returns from sm up. */}
+                <BreadcrumbItem
+                  key={`${breadcrumb.href}-${index}`}
+                  className={breadcrumb.isCurrentPage ? 'min-w-0' : 'hidden whitespace-nowrap sm:inline-flex'}
+                >
                   {breadcrumb.isCurrentPage ? (
-                    <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
-                  ) : breadcrumb.href === "#" ? (
+                    <BreadcrumbPage className="block truncate">{breadcrumb.label}</BreadcrumbPage>
+                  ) : breadcrumb.href === '#' ? (
                     <span className="text-muted-foreground">{breadcrumb.label}</span>
                   ) : (
-                    <BreadcrumbLink href={breadcrumb.href}>
-                      {breadcrumb.label}
-                    </BreadcrumbLink>
+                    <BreadcrumbLink href={breadcrumb.href}>{breadcrumb.label}</BreadcrumbLink>
                   )}
                 </BreadcrumbItem>
                 {index < breadcrumbs.length - 1 && (
-                  <BreadcrumbSeparator key={`breadcrumb-separator-${index}`} />
+                  <BreadcrumbSeparator key={`breadcrumb-separator-${index}`} className="hidden sm:block" />
                 )}
               </Fragment>
             ))}
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <div data-tour="network-switch">
             <TestnetMainnetSwitch />
           </div>
-          <div data-tour="wallet-connect" className="flex items-center gap-2">
-            <EvmNetworkWallet />
-            <WalletPChain />
+          <div data-tour="wallet-connect" className="flex items-center gap-1 sm:gap-2">
+            <ConsoleWalletSwitch />
+            {/* C-Chain and P-Chain share one bordered group: neighbours overlap a hairline, the hovered one on top. */}
+            <div className="flex [&>*+*]:-ml-px [&>*:hover]:z-10 [&>*]:relative">
+              <EvmNetworkWallet />
+              <WalletPChain />
+            </div>
           </div>
-          <Separator
-            orientation="vertical"
-            className="h-4!"
-          />
+          <Separator orientation="vertical" className="hidden h-4! sm:block" />
           <ConsoleNotificationPanel />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" title="Help & Resources">
+              <Button variant="ghost" size="icon" title="Help & Resources" className="h-8 w-8 sm:h-9 sm:w-9">
                 <HelpCircle className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -129,5 +145,5 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
-  )
+  );
 }

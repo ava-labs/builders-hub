@@ -1,8 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
+import { CliAlternative } from '@/components/console/cli-alternative';
+
+import { useEffect, useId, useState } from 'react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarClock,
+  Check,
+  Info,
+  Loader2,
+  Lock,
+  Plus,
+  Repeat,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,
@@ -28,13 +40,33 @@ import {
   BLS_PUBLIC_KEY_REGEX,
   validateManagedNodeCredentials,
 } from '@/components/toolbox/components/ValidatorListInput/nodeCredentials';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
+import { ConnectedWalletIcon, useConnectedWalletName } from '@/components/toolbox/components/ConnectedWalletIcon';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { Alert } from '@/components/toolbox/components/Alert';
 import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
-import { CliAlternative } from '@/components/console/cli-alternative';
+import { Board, BoardHeader, HashChip, SpecPlate, SpecRow, UNIT } from '@/components/explorer-v2/ui';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
+
+const EYEBROW = 'font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400';
+const LINK =
+  'text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-zinc-100';
+const BUTTON =
+  'group/btn inline-flex h-10 w-full items-center justify-center gap-2 border px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+const SECONDARY_BUTTON = cn(
+  BUTTON,
+  'border-zinc-300 text-zinc-700 hover:border-zinc-900 hover:text-zinc-900 disabled:hover:border-zinc-300 disabled:hover:text-zinc-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50',
+);
+const DANGER_OUTLINE_BUTTON = cn(
+  BUTTON,
+  'border-red-300 text-red-700 hover:border-red-600 hover:text-red-800 disabled:hover:border-red-300 dark:border-red-900 dark:text-red-400 dark:hover:border-red-500 dark:hover:text-red-300',
+);
+const DANGER_BUTTON = cn(
+  BUTTON,
+  'border-red-600 bg-red-600 text-white hover:bg-red-700 disabled:hover:bg-red-600 dark:border-red-500 dark:bg-red-500 dark:hover:bg-red-600',
+);
+const VALUE = 'font-mono tabular-nums';
 
 const STAKE_VALIDATOR_SOURCE = `import type { AvalanchePChainWalletClient } from "@avalanche-sdk/client";
 import { prepareAddPermissionlessValidatorTxn } from "@avalanche-sdk/client/methods/wallet/pChain";
@@ -233,22 +265,19 @@ const metadata: ConsoleToolMetadata = {
   description: (
     <>
       Add a{' '}
-      <Link href="/docs/nodes/run-a-node/manually" className="text-primary hover:underline">
+      <Link href="/docs/nodes/run-a-node/manually" className={LINK}>
         validator
       </Link>{' '}
       to Avalanche's{' '}
-      <Link href="/docs/rpcs/p-chain" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain" className={LINK}>
         Primary Network
       </Link>
       . Issues an{' '}
-      <Link
-        href="/docs/rpcs/p-chain/txn-format#unsigned-add-permissionless-validator-tx"
-        className="text-primary hover:underline"
-      >
+      <Link href="/docs/rpcs/p-chain/txn-format#unsigned-add-permissionless-validator-tx" className={LINK}>
         AddPermissionlessValidatorTx
       </Link>{' '}
       on the P-Chain, or an{' '}
-      <Link href="/docs/acps/236-auto-renewed-staking" className="text-primary hover:underline">
+      <Link href="/docs/acps/236-auto-renewed-staking" className={LINK}>
         AddAutoRenewedValidatorTx
       </Link>{' '}
       for auto-renewed staking (ACP-236). An auto-renewed validator's cycle period and auto-compounding change with a
@@ -258,6 +287,294 @@ const metadata: ConsoleToolMetadata = {
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
+
+/** A labelled square input; the hint sits under it and an error replaces the hint. */
+function Field({
+  label,
+  hideLabel = false,
+  unit,
+  hint,
+  error,
+  onChange,
+  ...props
+}: {
+  label: string;
+  hideLabel?: boolean;
+  unit?: string;
+  hint?: React.ReactNode;
+  error?: React.ReactNode;
+  onChange: (value: string) => void;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'className' | 'id'>) {
+  const id = useId();
+  const noteId = `${id}-note`;
+  const note = error || hint;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className={hideLabel ? 'sr-only' : EYEBROW}>
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          {...props}
+          id={id}
+          onChange={(e) => onChange(e.target.value)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={note ? noteId : undefined}
+          className={cn(
+            'h-10 w-full border bg-white px-3 font-mono text-[13px] tabular-nums text-zinc-900 transition-colors placeholder:text-zinc-400 focus:outline-none dark:bg-zinc-950 dark:text-zinc-100 dark:[color-scheme:dark]',
+            '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+            error
+              ? 'border-red-500 focus:border-red-600 dark:border-red-500 dark:focus:border-red-400'
+              : 'border-zinc-300 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-100',
+            unit && 'pr-16',
+          )}
+        />
+        {unit && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500"
+          >
+            {unit}
+          </span>
+        )}
+      </div>
+      {note && (
+        <p
+          id={noteId}
+          className={cn(
+            'text-[12px] leading-relaxed',
+            error ? 'text-red-600 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400',
+          )}
+        >
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Quick picks above a field: three cells sharing hairlines, the matching one outlined in ink. */
+function Presets({
+  label,
+  items,
+}: {
+  label: string;
+  items: { key: number; label: string; active: boolean; onSelect: () => void }[];
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="grid grid-cols-3 gap-px border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800"
+    >
+      {items.map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          aria-pressed={item.active}
+          onClick={item.onSelect}
+          className={cn(
+            'h-9 bg-white px-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] tabular-nums transition-colors dark:bg-zinc-950',
+            item.active
+              ? 'relative z-10 text-zinc-900 outline outline-2 -outline-offset-2 outline-zinc-900 dark:text-zinc-50 dark:outline-zinc-100'
+              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100',
+          )}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** One choice in a radio group: a cell in a hairline grid, outlined in ink when chosen. */
+function Option({
+  selected,
+  onSelect,
+  icon,
+  title,
+  description,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        'group/opt relative flex flex-col gap-2 bg-white p-4 text-left transition-colors dark:bg-zinc-950',
+        selected
+          ? 'z-10 outline outline-2 -outline-offset-2 outline-zinc-900 dark:outline-zinc-100'
+          : 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-zinc-400 dark:hover:outline-zinc-600',
+      )}
+    >
+      <span className="flex items-start justify-between gap-3">
+        <span
+          className={cn(
+            'flex h-8 w-8 items-center justify-center border transition-colors',
+            selected
+              ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-50'
+              : 'border-zinc-200 text-zinc-500 group-hover/opt:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:group-hover/opt:text-zinc-100',
+          )}
+        >
+          {icon}
+        </span>
+        <span
+          className={cn(
+            'flex h-4 w-4 items-center justify-center rounded-full border',
+            selected
+              ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+              : 'border-zinc-300 dark:border-zinc-700',
+          )}
+        >
+          {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+        </span>
+      </span>
+      <span className="mt-1 text-[14px] font-semibold text-zinc-900 dark:text-zinc-50">{title}</span>
+      <span className="text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</span>
+    </button>
+  );
+}
+
+function Notice({ tone, children }: { tone: 'warn' | 'error' | 'info'; children: React.ReactNode }) {
+  const Icon = tone === 'info' ? Info : AlertTriangle;
+  return (
+    <div
+      role={tone === 'error' ? 'alert' : undefined}
+      className={cn(
+        'flex items-start gap-3 border px-4 py-3 text-[13px] leading-relaxed',
+        tone === 'warn' &&
+          'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/20 dark:text-amber-200',
+        tone === 'error' &&
+          'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200',
+        tone === 'info' &&
+          'border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300',
+      )}
+    >
+      <Icon
+        className={cn(
+          'mt-0.5 h-4 w-4 shrink-0',
+          tone === 'warn' && 'text-amber-600 dark:text-amber-400',
+          tone === 'error' && 'text-red-600 dark:text-red-400',
+          tone === 'info' && 'text-zinc-400',
+        )}
+      />
+      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{children}</span>
+    </div>
+  );
+}
+
+/** A state the tool can't change from here, stated with the reason. */
+function Locked({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+      <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{children}</p>
+    </div>
+  );
+}
+
+function Status({ tone, children }: { tone: 'ok' | 'warn' | 'idle'; children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em]',
+        tone === 'ok' && 'text-emerald-700 dark:text-emerald-400',
+        tone === 'warn' && 'text-amber-700 dark:text-amber-400',
+        tone === 'idle' && 'text-zinc-400 dark:text-zinc-500',
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'h-1.5 w-1.5 rounded-full',
+          tone === 'ok' && 'bg-emerald-500 dark:bg-emerald-400',
+          tone === 'warn' && 'bg-amber-500 dark:bg-amber-400',
+          tone === 'idle' && 'animate-pulse bg-zinc-300 dark:bg-zinc-600',
+        )}
+      />
+      {children}
+    </span>
+  );
+}
+
+function Avax({ value }: { value: React.ReactNode }) {
+  return (
+    <span className={VALUE}>
+      {value} <span className={UNIT}>AVAX</span>
+    </span>
+  );
+}
+
+/** A Board of key/values: the validator on record, or the transaction about to be signed. */
+function Sheet({ label, action, children }: { label: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Board className="border-x border-t">
+      <BoardHeader label={label} action={action} />
+      <SpecPlate className="px-5 md:px-6">{children}</SpecPlate>
+    </Board>
+  );
+}
+
+/** Summary key/values set as right-aligned mono figures. */
+function Summary({ rows }: { rows: { label: string; value: React.ReactNode }[] }) {
+  return (
+    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 px-5 py-4 text-[13px] md:px-6">
+      {rows.map((row) => (
+        <div key={row.label} className="contents">
+          <dt className="text-zinc-500 dark:text-zinc-400">{row.label}</dt>
+          <dd className="flex min-w-0 justify-end text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-50">
+            {row.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** The square ink signing action, marked with the wallet that will sign. */
+function SignButton({
+  onClick,
+  disabled,
+  loading,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  children: React.ReactNode;
+}) {
+  const walletName = useConnectedWalletName();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="group flex w-full items-center gap-4 border border-zinc-900 bg-zinc-900 px-5 py-4 text-left text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 dark:disabled:border-zinc-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-500"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-current/20 bg-white/10 group-disabled:bg-transparent dark:bg-zinc-900/10">
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ConnectedWalletIcon className="h-4 w-4" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-mono text-[12px] font-bold uppercase tracking-[0.14em]">
+          {loading ? 'Processing...' : children}
+        </span>
+        <span className="mt-0.5 block text-[12px] opacity-70">
+          {loading ? 'Waiting on the P-Chain' : `Signs with ${walletName}`}
+        </span>
+      </span>
+      {!loading && (
+        <ArrowRight className="h-4 w-4 shrink-0 text-[#E6212F] transition-transform group-hover:translate-x-0.5 group-disabled:text-current" />
+      )}
+    </button>
+  );
+}
 
 function Stake({ onSuccess }: BaseConsoleToolProps) {
   const { pChainAddress, isTestnet, avalancheNetworkID } = useWalletStore();
@@ -398,7 +715,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const validateForm = (): string | null => {
-    if (!pChainAddress) return 'Connect Core Wallet to get your P-Chain address';
+    if (!pChainAddress) return 'Connect Core or a Console wallet to get your P-Chain address';
     if (!validator) return 'Please provide validator credentials';
     if (!validator.nodeID?.startsWith('NodeID-')) return 'Invalid NodeID format';
     if (!BLS_PUBLIC_KEY_REGEX.test(validator.nodePOP.publicKey))
@@ -561,6 +878,9 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
         ? `platform-cli validator add-auto-renewed --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --period ${periodHours}h --delegation-fee ${Number(delegationFee) / 100} --auto-compound ${Number(autoCompound) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`
         : `platform-cli validator add-permissionless --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --duration ${getDurationHours()}h --delegation-fee ${Number(delegationFee) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`;
 
+  const durationHours = getDurationHours();
+  const endDate = endTime ? new Date(endTime) : null;
+
   return (
     <SDKCodeViewer
       sources={
@@ -572,11 +892,25 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       }
       height="auto"
     >
-      <div>
+      <div className="not-prose">
         {txId ? (
-          <div className="space-y-4">
-            <Button
-              variant="secondary"
+          <div className="flex flex-col gap-4">
+            <Board className="border-x border-t">
+              <BoardHeader label="Transaction issued" display action={<Status tone="ok">Submitted</Status>} />
+              <SpecPlate className="px-5 md:px-6">
+                <SpecRow label="Transaction">
+                  <HashChip value={txId} len={16} />
+                </SpecRow>
+                {validator && (
+                  <SpecRow label="Node ID">
+                    <HashChip value={validator.nodeID} len={16} />
+                  </SpecRow>
+                )}
+              </SpecPlate>
+            </Board>
+            <button
+              type="button"
+              className={SECONDARY_BUTTON}
               onClick={() => {
                 setValidator(null);
                 setStakingMode('fixed');
@@ -593,583 +927,554 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                 setError(null);
                 setTxId('');
               }}
-              className="w-full"
             >
               {isUpdateMode ? 'Start Over' : 'Stake Another Validator'}
-            </Button>
+            </button>
           </div>
         ) : (
-          <div className="[&_.fd-step:not(:last-child)]:pb-10">
-            <Steps>
-              <Step>
-                <h3 className="text-[14px] font-semibold mb-1">Action</h3>
-                <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                  Stake a new validator, or change an auto-renewed validator you already run.
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      { id: 'stake', title: 'Stake a Validator', detail: 'Fixed duration or auto-renewed' },
-                      {
-                        id: 'manage',
-                        title: 'Manage Auto-Renewal',
-                        detail: 'Change the cycle period or auto-compounding, or stop',
-                      },
-                    ] as const
-                  ).map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => {
-                        setAction(option.id);
-                        setError(null);
-                      }}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        action === option.id
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                      }`}
+          <Steps>
+            <Step>
+              <h3>Action</h3>
+              <p>Stake a new validator, or change an auto-renewed validator you already run.</p>
+
+              <div
+                role="radiogroup"
+                aria-label="Action"
+                className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800"
+              >
+                <Option
+                  selected={action === 'stake'}
+                  onSelect={() => {
+                    setAction('stake');
+                    setError(null);
+                  }}
+                  icon={<Plus className="h-4 w-4" />}
+                  title="Stake a validator"
+                  description="Fixed duration or auto-renewed."
+                />
+                <Option
+                  selected={action === 'manage'}
+                  onSelect={() => {
+                    setAction('manage');
+                    setError(null);
+                  }}
+                  icon={<SlidersHorizontal className="h-4 w-4" />}
+                  title="Manage auto-renewal"
+                  description="Change the cycle period or auto-compounding, or stop."
+                />
+              </div>
+            </Step>
+
+            <Step>
+              {action === 'manage' ? (
+                <>
+                  <h3>Validator</h3>
+                  <p>Enter your auto-renewed validator&apos;s NodeID. Only its authority wallet can change it.</p>
+
+                  <Field
+                    label="Node ID"
+                    value={manageNodeID}
+                    onChange={setManageNodeID}
+                    placeholder="NodeID-..."
+                    hint="The NodeID your node reports in info.getNodeID"
+                    error={!managedID.ok && manageNodeID.trim().length >= 40 ? managedID.error : null}
+                  />
+
+                  {checkingExisting && <Status tone="idle">Checking current validator status</Status>}
+                  {notValidating && (
+                    <Notice tone="warn">This node is not a current Primary Network validator on {networkName}.</Notice>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h3>Node credentials</h3>
+                  <p>Your node&apos;s ID and BLS credentials.</p>
+
+                  <AddValidatorControls
+                    defaultAddress={pChainAddress || ''}
+                    canAddMore={!validator}
+                    onAddValidator={setValidator}
+                    isTestnet={false}
+                  />
+
+                  {validator && (
+                    <Sheet
+                      label="Node"
+                      action={
+                        checkingExisting ? (
+                          <Status tone="idle">Checking status</Status>
+                        ) : existingValidator ? (
+                          <Status tone="warn">Already validating</Status>
+                        ) : null
+                      }
                     >
-                      <div className="font-medium text-sm">{option.title}</div>
-                      <div className="text-xs text-zinc-500">{option.detail}</div>
-                    </button>
-                  ))}
-                </div>
-              </Step>
+                      <SpecRow label="Node ID">
+                        <HashChip value={validator.nodeID} len={16} />
+                      </SpecRow>
+                      <SpecRow label="BLS public key">
+                        <HashChip value={validator.nodePOP.publicKey} len={16} />
+                      </SpecRow>
+                    </Sheet>
+                  )}
 
-              <Step>
-                {action === 'manage' ? (
-                  <>
-                    <h3 className="text-[14px] font-semibold mb-1">Validator</h3>
-                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                      Enter your auto-renewed validator's NodeID. Only its authority wallet can change it.
-                    </p>
+                  {isUpdateMode && (
+                    <Notice tone="warn">
+                      This node already has auto-renewed staking, so the tool switched to updating its config.
+                    </Notice>
+                  )}
+                </>
+              )}
+            </Step>
 
-                    <Input
-                      label="Node ID"
-                      value={manageNodeID}
-                      onChange={setManageNodeID}
-                      placeholder="NodeID-..."
-                      helperText="The NodeID your node reports in info.getNodeID"
-                      error={!managedID.ok && manageNodeID.trim().length >= 40 ? managedID.error : null}
+            <Step>
+              {existingValidator?.kind === 'fixed' && (
+                <>
+                  <h3>Existing validator</h3>
+                  <p>This node is already a fixed-duration Primary Network validator.</p>
+                  <Sheet label="On record" action={<Status tone="ok">Fixed duration</Status>}>
+                    <SpecRow label="Stake">
+                      <Avax value={existingValidator.stakeAvax} />
+                    </SpecRow>
+                    <SpecRow label="Validating until">
+                      <span className={VALUE}>
+                        {existingValidator.endTime ? new Date(existingValidator.endTime * 1000).toLocaleString() : '—'}
+                      </span>
+                    </SpecRow>
+                  </Sheet>
+                  <Locked>
+                    Fixed-duration stake can&apos;t be modified. This node can be staked again after its current
+                    validation ends.
+                  </Locked>
+                </>
+              )}
+
+              {existingValidator?.kind === 'autoRenewed' && !existingValidator.isAuthority && (
+                <>
+                  <h3>Auto-renewed validator</h3>
+                  <p>This node already validates with auto-renewal. Read-only view.</p>
+                  <Sheet label="On record" action={<Status tone="ok">Auto-renewed</Status>}>
+                    <SpecRow label="Stake">
+                      <Avax value={existingValidator.stakeAvax} />
+                    </SpecRow>
+                    <SpecRow label="Cycle period">
+                      <span className={VALUE}>
+                        {existingValidator.periodHours} <span className={UNIT}>hours</span>
+                      </span>
+                    </SpecRow>
+                    <SpecRow label="Auto-compound">
+                      <span className={VALUE}>{existingValidator.autoCompoundPct}%</span>
+                    </SpecRow>
+                    <SpecRow label="Validator authority" align="start">
+                      <span className="flex flex-col gap-1">
+                        {existingValidator.authorityAddresses.length > 0
+                          ? existingValidator.authorityAddresses.map((a) => <HashChip key={a} value={a} len={16} />)
+                          : '—'}
+                      </span>
+                    </SpecRow>
+                  </Sheet>
+                  <Notice tone="warn">
+                    The connected wallet is not this validator&apos;s authority. Only the authority can update or stop
+                    it.
+                  </Notice>
+                </>
+              )}
+
+              {isUpdateMode && existingValidator && (
+                <>
+                  <h3>Auto-renewal config</h3>
+                  <p>Update the next cycle&apos;s period and auto-compounding for this validator.</p>
+
+                  <Sheet label="Current config" action={<Status tone="ok">Auto-renewed</Status>}>
+                    <SpecRow label="Stake">
+                      <Avax value={existingValidator.stakeAvax} />
+                    </SpecRow>
+                    <SpecRow label="Cycle period">
+                      <span className={VALUE}>
+                        {existingValidator.periodHours} <span className={UNIT}>hours</span>
+                      </span>
+                    </SpecRow>
+                    <SpecRow label="Auto-compound">
+                      <span className={VALUE}>{existingValidator.autoCompoundPct}%</span>
+                    </SpecRow>
+                  </Sheet>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field
+                      label="Cycle period"
+                      value={updPeriodHours}
+                      onChange={setUpdPeriodHours}
+                      type="number"
+                      min={config.minPeriodHours}
+                      max={MAX_PERIOD_HOURS}
+                      unit="hours"
+                      hint={`Min ${config.minPeriodHours} hours · Max 1 year (${networkName})`}
+                      error={
+                        error &&
+                        (Number(updPeriodHours) < config.minPeriodHours || Number(updPeriodHours) > MAX_PERIOD_HOURS)
+                          ? `Must be between ${config.minPeriodHours} hours and 1 year`
+                          : null
+                      }
                     />
-
-                    {checkingExisting && (
-                      <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-2">
-                        Checking current validator status…
-                      </p>
-                    )}
-                    {notValidating && (
-                      <Alert variant="warning" className="mt-3">
-                        This node is not a current Primary Network validator on {networkName}.
-                      </Alert>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-[14px] font-semibold mb-1">Node Credentials</h3>
-                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                      Provide your node's ID and BLS credentials.
-                    </p>
-
-                    <AddValidatorControls
-                      defaultAddress={pChainAddress || ''}
-                      canAddMore={!validator}
-                      onAddValidator={setValidator}
-                      isTestnet={false}
+                    <Field
+                      label="Auto-compound rewards"
+                      value={updAutoCompound}
+                      onChange={setUpdAutoCompound}
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="100"
+                      unit="%"
+                      hint="Share of each cycle's reward restaked (0 = withdraw all, 100 = restake all)"
+                      error={
+                        error && (Number(updAutoCompound) < 0 || Number(updAutoCompound) > 100)
+                          ? 'Must be between 0-100%'
+                          : null
+                      }
                     />
+                  </div>
 
-                    {validator && (
-                      <div className="mt-3 p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                            Node ID
-                          </div>
-                          <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">
-                            {validator.nodeID}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                            BLS Public Key
-                          </div>
-                          <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all truncate">
-                            {validator.nodePOP.publicKey}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                  <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
+                    Changes take effect from the next cycle.
+                  </p>
+                </>
+              )}
 
-                    {checkingExisting && (
-                      <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-2">
-                        Checking current validator status…
-                      </p>
-                    )}
-                    {isUpdateMode && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                        This node already has auto-renewed staking — switched to config update mode.
-                      </p>
-                    )}
-                  </>
-                )}
-              </Step>
+              {!existingValidator && action === 'manage' && (
+                <>
+                  <h3>Auto-renewal config</h3>
+                  <p>Enter the NodeID above to load the validator&apos;s current cycle period and auto-compounding.</p>
+                  <CliAlternative command={cliCommand} />
+                </>
+              )}
 
-              <Step>
-                {existingValidator?.kind === 'fixed' && (
-                  <>
-                    <h3 className="text-[14px] font-semibold mb-1">Existing Validator</h3>
-                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                      This node is already a fixed-duration Primary Network validator.
-                    </p>
-                    <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                          Stake
-                        </div>
-                        <div className="text-xs text-zinc-700 dark:text-zinc-300">
-                          {existingValidator.stakeAvax} AVAX
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                          Validating Until
-                        </div>
-                        <div className="text-xs text-zinc-700 dark:text-zinc-300">
-                          {existingValidator.endTime
-                            ? new Date(existingValidator.endTime * 1000).toLocaleString()
-                            : '—'}
-                        </div>
-                      </div>
-                    </div>
-                    <Alert variant="info" className="mt-3">
-                      Fixed-duration stake can't be modified. This node can be staked again after its current validation
-                      ends.
-                    </Alert>
-                  </>
-                )}
+              {!existingValidator && action === 'stake' && (
+                <>
+                  <h3>Stake configuration</h3>
+                  <p>
+                    {isAutoRenew
+                      ? 'Stake amount, delegation fee, cycle period and auto-compounding.'
+                      : 'Stake amount, delegation fee and duration.'}
+                  </p>
 
-                {existingValidator?.kind === 'autoRenewed' && !existingValidator.isAuthority && (
-                  <>
-                    <h3 className="text-[14px] font-semibold mb-1">Auto-Renewed Validator</h3>
-                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                      This node already validates with auto-renewal. Read-only view.
-                    </p>
-                    <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                          Stake
-                        </div>
-                        <div className="text-xs text-zinc-700 dark:text-zinc-300">
-                          {existingValidator.stakeAvax} AVAX
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                          Cycle Period
-                        </div>
-                        <div className="text-xs text-zinc-700 dark:text-zinc-300">
-                          {existingValidator.periodHours} hours
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                          Auto-Compound
-                        </div>
-                        <div className="text-xs text-zinc-700 dark:text-zinc-300">
-                          {existingValidator.autoCompoundPct}%
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                          Validator Authority
-                        </div>
-                        <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">
-                          {existingValidator.authorityAddresses.join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                    <Alert variant="warning" className="mt-3">
-                      The connected wallet is not this validator's authority — only the authority can update or stop it.
-                    </Alert>
-                  </>
-                )}
-
-                {isUpdateMode && existingValidator && (
-                  <>
-                    <h3 className="text-[14px] font-semibold mb-1">Auto-Renewal Config</h3>
-                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                      Update the next cycle's period and auto-compounding for this validator.
-                    </p>
-
-                    <div className="space-y-4">
-                      <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg space-y-2">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                            Stake
-                          </div>
-                          <div className="text-xs text-zinc-700 dark:text-zinc-300">
-                            {existingValidator.stakeAvax} AVAX
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                            Current Config
-                          </div>
-                          <div className="text-xs text-zinc-700 dark:text-zinc-300">
-                            {existingValidator.periodHours}h cycle · {existingValidator.autoCompoundPct}% auto-compound
-                          </div>
-                        </div>
-                      </div>
-
-                      <Input
-                        label="Cycle Period"
-                        value={updPeriodHours}
-                        onChange={setUpdPeriodHours}
-                        type="number"
-                        min={config.minPeriodHours}
-                        max={MAX_PERIOD_HOURS}
-                        unit="hours"
-                        helperText={`Min: ${config.minPeriodHours} hours · Max: 1 year (${networkName})`}
-                        error={
-                          error &&
-                          (Number(updPeriodHours) < config.minPeriodHours || Number(updPeriodHours) > MAX_PERIOD_HOURS)
-                            ? `Must be between ${config.minPeriodHours} hours and 1 year`
-                            : null
-                        }
+                  <div className="flex flex-col gap-2">
+                    <span id="stake-mode-label" className={EYEBROW}>
+                      Staking mode
+                    </span>
+                    <div
+                      role="radiogroup"
+                      aria-labelledby="stake-mode-label"
+                      className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800"
+                    >
+                      <Option
+                        selected={!isAutoRenew}
+                        onSelect={() => {
+                          setStakingMode('fixed');
+                          setError(null);
+                        }}
+                        icon={<CalendarClock className="h-4 w-4" />}
+                        title="Fixed duration"
+                        description="Stake until a set end date."
                       />
+                      <Option
+                        selected={isAutoRenew}
+                        onSelect={() => {
+                          setStakingMode('autoRenew');
+                          setError(null);
+                        }}
+                        icon={<Repeat className="h-4 w-4" />}
+                        title="Auto-renewed"
+                        description="Restakes every cycle until you stop it (ACP-236)."
+                      />
+                    </div>
+                  </div>
 
-                      <Input
-                        label="Auto-Compound Rewards"
-                        value={updAutoCompound}
-                        onChange={setUpdAutoCompound}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field
+                      label="Stake amount"
+                      value={stakeInAvax}
+                      onChange={setStakeInAvax}
+                      type="number"
+                      step="0.001"
+                      min={config.minStakeAvax}
+                      unit="AVAX"
+                      hint={`Minimum ${config.minStakeAvax.toLocaleString()} AVAX (${networkName})`}
+                      error={
+                        error && Number(stakeInAvax) < config.minStakeAvax
+                          ? `Minimum stake is ${config.minStakeAvax} AVAX`
+                          : null
+                      }
+                    />
+                    <Field
+                      label="Delegation fee"
+                      value={delegationFee}
+                      onChange={setDelegationFee}
+                      type="number"
+                      step="0.1"
+                      min="2"
+                      max="100"
+                      unit="%"
+                      hint="Your fee from delegators (2-100%)"
+                      error={
+                        error && (Number(delegationFee) < 2 || Number(delegationFee) > 100)
+                          ? 'Must be between 2-100%'
+                          : null
+                      }
+                    />
+                  </div>
+
+                  {!isAutoRenew && (
+                    <div className="flex flex-col gap-2">
+                      <span className={EYEBROW}>Duration</span>
+                      <Presets
+                        label="Duration presets"
+                        items={config.presets.map((preset) => ({
+                          key: preset.days,
+                          label: preset.label,
+                          active: isDateButtonActive(preset.days),
+                          onSelect: () => setEndInDays(preset.days),
+                        }))}
+                      />
+                      <Field
+                        label="End time"
+                        hideLabel
+                        value={endTime}
+                        onChange={setEndTime}
+                        type="datetime-local"
+                        hint={`Min ${config.minEndLabel} · Max 1 year`}
+                        error={(() => {
+                          if (!endTime || !error) return null;
+                          const d = Math.floor(new Date(endTime).getTime() / 1000) - Math.floor(Date.now() / 1000);
+                          if (d < config.minEndSeconds) return `Must be at least ${config.minEndLabel} from now`;
+                          if (d > MAX_END_SECONDS) return 'Must be within 1 year';
+                          return null;
+                        })()}
+                      />
+                    </div>
+                  )}
+
+                  {isAutoRenew && (
+                    <>
+                      <div className="flex flex-col gap-2">
+                        <span className={EYEBROW}>Cycle period</span>
+                        <Presets
+                          label="Cycle period presets"
+                          items={config.periodPresets.map((preset) => ({
+                            key: preset.hours,
+                            label: preset.label,
+                            active: Number(periodHours) === preset.hours,
+                            onSelect: () => setPeriodHours(String(preset.hours)),
+                          }))}
+                        />
+                        <Field
+                          label="Cycle period in hours"
+                          hideLabel
+                          value={periodHours}
+                          onChange={setPeriodHours}
+                          type="number"
+                          min={config.minPeriodHours}
+                          max={MAX_PERIOD_HOURS}
+                          unit="hours"
+                          hint={`Stake auto-renews every cycle · Min ${config.minPeriodHours} hours · Max 1 year (${networkName})`}
+                          error={
+                            error &&
+                            (Number(periodHours) < config.minPeriodHours || Number(periodHours) > MAX_PERIOD_HOURS)
+                              ? `Must be between ${config.minPeriodHours} hours and 1 year`
+                              : null
+                          }
+                        />
+                      </div>
+
+                      <Field
+                        label="Auto-compound rewards"
+                        value={autoCompound}
+                        onChange={setAutoCompound}
                         type="number"
                         step="1"
                         min="0"
                         max="100"
                         unit="%"
-                        helperText="Share of each cycle's reward restaked (0 = withdraw all, 100 = restake all)"
+                        hint="Share of each cycle's reward restaked (0 = withdraw all, 100 = restake all)"
                         error={
-                          error && (Number(updAutoCompound) < 0 || Number(updAutoCompound) > 100)
+                          error && (Number(autoCompound) < 0 || Number(autoCompound) > 100)
                             ? 'Must be between 0-100%'
                             : null
                         }
                       />
 
-                      <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                        Changes take effect from the next cycle.
-                      </p>
-                    </div>
-                  </>
-                )}
+                      <Notice tone="info">
+                        The stake renews automatically at the end of each cycle. Stop anytime: the validator exits at
+                        the end of its current cycle.
+                      </Notice>
+                    </>
+                  )}
+                </>
+              )}
+            </Step>
 
-                {!existingValidator && action === 'manage' && (
+            {(isUpdateMode || (action === 'stake' && !existingValidator)) && (
+              <Step>
+                {isUpdateMode ? (
                   <>
-                    <h3 className="text-[14px] font-semibold mb-1">Auto-Renewal Config</h3>
-                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                      Enter the NodeID above to load the validator's current cycle period and auto-compounding.
-                    </p>
-                    <CliAlternative command={cliCommand} />
-                  </>
-                )}
-
-                {!existingValidator && action === 'stake' && (
-                  <>
-                    <h3 className="text-[14px] font-semibold mb-1">Stake Configuration</h3>
-                    <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                      {isAutoRenew
-                        ? 'Set your stake amount, delegation fee, cycle period, and auto-compounding.'
-                        : 'Set your stake amount, delegation fee, and duration.'}
+                    <h3>Submit</h3>
+                    <p>
+                      Issues a{' '}
+                      <Link href="/docs/acps/236-auto-renewed-staking" className={LINK}>
+                        SetAutoRenewedValidatorConfigTx
+                      </Link>{' '}
+                      on the P-Chain.
                     </p>
 
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                          Staking Mode
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setStakingMode('fixed');
-                              setError(null);
-                            }}
-                            className={`p-3 rounded-xl border-2 text-left transition-all ${
-                              !isAutoRenew
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                            }`}
-                          >
-                            <div className="font-medium text-sm">Fixed Duration</div>
-                            <div className="text-xs text-zinc-500">Stake until a set end date</div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setStakingMode('autoRenew');
-                              setError(null);
-                            }}
-                            className={`p-3 rounded-xl border-2 text-left transition-all ${
-                              isAutoRenew
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                            }`}
-                          >
-                            <div className="font-medium text-sm">Auto-Renewed</div>
-                            <div className="text-xs text-zinc-500">Restakes each cycle (ACP-236)</div>
-                          </button>
-                        </div>
-                      </div>
-
-                      <Input
-                        label="Stake Amount"
-                        value={stakeInAvax}
-                        onChange={setStakeInAvax}
-                        type="number"
-                        step="0.001"
-                        min={config.minStakeAvax}
-                        unit="AVAX"
-                        helperText={`Minimum: ${config.minStakeAvax.toLocaleString()} AVAX (${networkName})`}
-                        error={
-                          error && Number(stakeInAvax) < config.minStakeAvax
-                            ? `Minimum stake is ${config.minStakeAvax} AVAX`
-                            : null
-                        }
+                    <Board className="border-x border-t">
+                      <BoardHeader label="Next cycle" />
+                      <Summary
+                        rows={[
+                          {
+                            label: 'Validator tx',
+                            value: existingValidator ? <HashChip value={existingValidator.txID} len={12} /> : '—',
+                          },
+                          { label: 'Cycle period', value: `${updPeriodHours || '—'} h` },
+                          { label: 'Auto-compound', value: `${updAutoCompound || '—'}%` },
+                        ]}
                       />
+                    </Board>
 
-                      <Input
-                        label="Delegation Fee"
-                        value={delegationFee}
-                        onChange={setDelegationFee}
-                        type="number"
-                        step="0.1"
-                        min="2"
-                        max="100"
-                        unit="%"
-                        helperText="Your fee from delegators (2-100%)"
-                        error={
-                          error && (Number(delegationFee) < 2 || Number(delegationFee) > 100)
-                            ? 'Must be between 2-100%'
-                            : null
-                        }
-                      />
+                    {error && <Notice tone="error">{error}</Notice>}
 
-                      {!isAutoRenew && (
-                        <div>
-                          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Duration
-                          </label>
-                          <div className="flex gap-2 mb-2">
-                            {config.presets.map((preset) => (
-                              <button
-                                key={preset.days}
-                                onClick={() => setEndInDays(preset.days)}
-                                className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                                  isDateButtonActive(preset.days)
-                                    ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100'
-                                    : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                                }`}
-                              >
-                                {preset.label}
-                              </button>
-                            ))}
-                          </div>
-                          <Input
-                            label=""
-                            value={endTime}
-                            onChange={setEndTime}
-                            type="datetime-local"
-                            helperText={`Min: ${config.minEndLabel} · Max: 1 year`}
-                            error={(() => {
-                              if (!endTime || !error) return null;
-                              const d = Math.floor(new Date(endTime).getTime() / 1000) - Math.floor(Date.now() / 1000);
-                              if (d < config.minEndSeconds) return `Must be at least ${config.minEndLabel} from now`;
-                              if (d > MAX_END_SECONDS) return 'Must be within 1 year';
-                              return null;
-                            })()}
-                          />
-                        </div>
-                      )}
+                    <SignButton
+                      onClick={() => submitConfigUpdate(false)}
+                      disabled={!pChainAddress || isSubmitting}
+                      loading={isSubmitting}
+                    >
+                      Update Config
+                    </SignButton>
 
-                      {isAutoRenew && (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                              Cycle Period
-                            </label>
-                            <div className="flex gap-2 mb-2">
-                              {config.periodPresets.map((preset) => (
-                                <button
-                                  key={preset.hours}
-                                  onClick={() => setPeriodHours(String(preset.hours))}
-                                  className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                                    Number(periodHours) === preset.hours
-                                      ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100'
-                                      : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                                  }`}
-                                >
-                                  {preset.label}
-                                </button>
-                              ))}
-                            </div>
-                            <Input
-                              label=""
-                              value={periodHours}
-                              onChange={setPeriodHours}
-                              type="number"
-                              min={config.minPeriodHours}
-                              max={MAX_PERIOD_HOURS}
-                              unit="hours"
-                              helperText={`Stake auto-renews every cycle · Min: ${config.minPeriodHours} hours · Max: 1 year (${networkName})`}
-                              error={
-                                error &&
-                                (Number(periodHours) < config.minPeriodHours || Number(periodHours) > MAX_PERIOD_HOURS)
-                                  ? `Must be between ${config.minPeriodHours} hours and 1 year`
-                                  : null
-                              }
-                            />
-                          </div>
-
-                          <Input
-                            label="Auto-Compound Rewards"
-                            value={autoCompound}
-                            onChange={setAutoCompound}
-                            type="number"
-                            step="1"
-                            min="0"
-                            max="100"
-                            unit="%"
-                            helperText="Share of each cycle's reward restaked (0 = withdraw all, 100 = restake all)"
-                            error={
-                              error && (Number(autoCompound) < 0 || Number(autoCompound) > 100)
-                                ? 'Must be between 0-100%'
-                                : null
-                            }
-                          />
-
-                          <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            The stake renews automatically at the end of each cycle. Stop anytime — the validator exits
-                            at the end of its current cycle.
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
-              </Step>
-
-              {(isUpdateMode || (action === 'stake' && !existingValidator)) && (
-                <Step>
-                  {isUpdateMode ? (
-                    <>
-                      <h3 className="text-[14px] font-semibold mb-1">Submit</h3>
-                      <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                        Issues a{' '}
-                        <Link href="/docs/acps/236-auto-renewed-staking" className="text-primary hover:underline">
-                          SetAutoRenewedValidatorConfigTx
-                        </Link>{' '}
-                        on the P-Chain.
-                      </p>
-
-                      {error && <Alert variant="error">{error}</Alert>}
-
-                      <Button
-                        onClick={() => submitConfigUpdate(false)}
-                        disabled={!pChainAddress || isSubmitting}
-                        loading={isSubmitting}
-                        loadingText="Processing..."
-                        variant="primary"
-                        className="w-full mt-3"
+                    {!confirmStop ? (
+                      <button
+                        type="button"
+                        className={DANGER_OUTLINE_BUTTON}
+                        onClick={() => setConfirmStop(true)}
+                        disabled={isSubmitting}
                       >
-                        Update Config
-                      </Button>
-
-                      {!confirmStop ? (
-                        <Button
-                          variant="outline-danger"
-                          className="w-full mt-2"
-                          onClick={() => setConfirmStop(true)}
-                          disabled={isSubmitting}
-                        >
-                          Stop Auto-Renewal
-                        </Button>
-                      ) : (
-                        <div className="mt-2 space-y-2">
-                          <Alert variant="warning">
-                            The validator exits at the end of its current cycle and the stake returns to your wallet.
-                          </Alert>
-                          <Button
-                            variant="danger"
-                            className="w-full"
-                            onClick={() => submitConfigUpdate(true)}
-                            disabled={isSubmitting}
-                            loading={isSubmitting}
-                            loadingText="Processing..."
-                          >
-                            Confirm Stop
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            className="w-full"
+                        Stop Auto-Renewal
+                      </button>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <Notice tone="warn">
+                          The validator exits at the end of its current cycle and the stake returns to your wallet.
+                        </Notice>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            className={SECONDARY_BUTTON}
                             onClick={() => setConfirmStop(false)}
                             disabled={isSubmitting}
                           >
                             Cancel
-                          </Button>
+                          </button>
+                          <button
+                            type="button"
+                            className={DANGER_BUTTON}
+                            onClick={() => submitConfigUpdate(true)}
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              'Confirm Stop'
+                            )}
+                          </button>
                         </div>
+                      </div>
+                    )}
+
+                    <CliAlternative command={cliCommand} />
+                    <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
+                      To stop auto-renewal from the CLI, run it with{' '}
+                      <code className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
+                        --period 0 --auto-compound 0
+                      </code>
+                      . The <code className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300">--tx-id</code> is
+                      the validator&apos;s original AddAutoRenewedValidatorTx.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3>Submit</h3>
+                    <p>
+                      {isAutoRenew ? (
+                        <>
+                          Issues an{' '}
+                          <Link href="/docs/acps/236-auto-renewed-staking" className={LINK}>
+                            AddAutoRenewedValidatorTx
+                          </Link>{' '}
+                          on the P-Chain. Your stake automatically renews every cycle.
+                        </>
+                      ) : (
+                        <>
+                          Issues an{' '}
+                          <Link
+                            href="/docs/rpcs/p-chain/txn-format#unsigned-add-permissionless-validator-tx"
+                            className={LINK}
+                          >
+                            AddPermissionlessValidatorTx
+                          </Link>{' '}
+                          on the P-Chain.
+                        </>
                       )}
+                    </p>
 
-                      <CliAlternative command={cliCommand} />
-                      <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                        To stop auto-renewal from the CLI, run it with <code>--period 0 --auto-compound 0</code>. The{' '}
-                        <code>--tx-id</code> is the validator's original AddAutoRenewedValidatorTx.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="text-[14px] font-semibold mb-1">Submit</h3>
-                      <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mb-4">
-                        {isAutoRenew ? (
-                          <>
-                            Issues an{' '}
-                            <Link href="/docs/acps/236-auto-renewed-staking" className="text-primary hover:underline">
-                              AddAutoRenewedValidatorTx
-                            </Link>{' '}
-                            on the P-Chain. Your stake automatically renews every cycle.
-                          </>
-                        ) : (
-                          <>
-                            Issues an{' '}
-                            <Link
-                              href="/docs/rpcs/p-chain/txn-format#unsigned-add-permissionless-validator-tx"
-                              className="text-primary hover:underline"
-                            >
-                              AddPermissionlessValidatorTx
-                            </Link>{' '}
-                            on the P-Chain.
-                          </>
-                        )}
-                      </p>
+                    <Board className="border-x border-t">
+                      <BoardHeader label="Summary" action={<span className={EYEBROW}>{networkName}</span>} />
+                      <Summary
+                        rows={[
+                          {
+                            label: 'Node ID',
+                            value: validator ? <HashChip value={validator.nodeID} len={12} /> : '—',
+                          },
+                          { label: 'Mode', value: isAutoRenew ? 'Auto-renewed' : 'Fixed duration' },
+                          { label: 'Stake', value: <Avax value={stakeInAvax || '—'} /> },
+                          { label: 'Delegation fee', value: `${delegationFee || '—'}%` },
+                          ...(isAutoRenew
+                            ? [
+                                { label: 'Cycle period', value: `${periodHours || '—'} h` },
+                                { label: 'Auto-compound', value: `${autoCompound || '—'}%` },
+                              ]
+                            : [
+                                {
+                                  label: 'Ends',
+                                  value:
+                                    endDate && !Number.isNaN(endDate.getTime())
+                                      ? `${endDate.toLocaleString()} · ${durationHours} h`
+                                      : '—',
+                                },
+                              ]),
+                          {
+                            label: 'Rewards to',
+                            value: pChainAddress ? <HashChip value={pChainAddress} len={12} /> : '—',
+                          },
+                        ]}
+                      />
+                    </Board>
 
-                      {error && <Alert variant="error">{error}</Alert>}
+                    {error && <Notice tone="error">{error}</Notice>}
 
-                      <Button
-                        onClick={submitStake}
-                        disabled={!pChainAddress || isSubmitting || checkingExisting}
-                        loading={isSubmitting}
-                        loadingText="Processing..."
-                        variant="primary"
-                        className="w-full mt-3"
-                      >
-                        Stake {networkName} Validator
-                      </Button>
+                    <SignButton
+                      onClick={submitStake}
+                      disabled={!pChainAddress || isSubmitting || checkingExisting}
+                      loading={isSubmitting}
+                    >
+                      Stake {networkName} Validator
+                    </SignButton>
 
-                      <CliAlternative command={cliCommand} />
-                    </>
-                  )}
-                </Step>
-              )}
-            </Steps>
-          </div>
+                    <CliAlternative command={cliCommand} />
+                  </>
+                )}
+              </Step>
+            )}
+          </Steps>
         )}
       </div>
     </SDKCodeViewer>

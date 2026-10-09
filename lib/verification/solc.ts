@@ -404,7 +404,8 @@ async function runCompiler(compilerPathOnDisk: string, input: string): Promise<s
   return new Promise((resolve, reject) => {
     let child: ChildProcess;
     try {
-      child = fork(file, [], {
+      // The runner is staged on disk at run time, so there is no module for the bundler to resolve.
+      child = fork(/* turbopackIgnore: true */ file, [], {
         // Big contracts need headroom, but not unbounded headroom, and
         // the cap belongs to the child rather than to this function.
         execArgv: ["--max-old-space-size=3072"],

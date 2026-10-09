@@ -36,11 +36,11 @@ function QuickSelect({
           type="button"
           onClick={() => onChange(opt.value)}
           disabled={disabled}
-          className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+          className={`border px-2.5 py-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.1em] transition-colors ${
             value === opt.value
-              ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white'
-              : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600'
-          } disabled:opacity-50`}
+              ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+              : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100'
+          } disabled:cursor-not-allowed disabled:opacity-50`}
         >
           {opt.label}
         </button>

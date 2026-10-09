@@ -10,6 +10,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { ManagerTypeBadge } from '../ManagerTypeBadge';
 import { buildStepConfig } from '../codeConfig';
+import { ActionPanel, LINK, StepLayout } from '@/components/toolbox/console/shared/validator-flow-ui';
 
 const PCHAIN_MIN_BALANCE = 0.1; // AVAX needed for P-Chain transaction gas
 
@@ -46,55 +47,50 @@ export default function PChainRegistrationStep() {
   const stepConfig = useMemo(() => buildStepConfig(flavor), [flavor]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">P-Chain Registration</h2>
+    <StepLayout aside={<StepCodeViewer activeStep={2} steps={stepConfig} />}>
+      {!store.evmTxHash && (
+        <Alert variant="warning">
+          No transaction hash from the previous step. Enter it below, or go back to{' '}
+          <strong>Initiate Registration</strong>.
+        </Alert>
+      )}
+      {!hasSufficientPChainBalance && (
+        <Alert variant="warning">
+          Not enough P-Chain balance for fees. You need at least{' '}
+          <span className="font-mono">{PCHAIN_MIN_BALANCE} AVAX</span>.{' '}
+          {isTestnet ? (
+            <Link href="/console/primary-network/faucet" className={LINK}>
+              Get testnet tokens from the faucet
+            </Link>
+          ) : (
+            <Link href="/console/primary-network/c-p-bridge" className={LINK}>
+              Bridge AVAX from C-Chain to P-Chain
+            </Link>
+          )}
+        </Alert>
+      )}
+      <ActionPanel
+        label="Register on the P-Chain"
+        action={
           <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
-        </div>
-        {!store.evmTxHash && (
-          <Alert variant="warning">
-            No transaction hash from the initiation step. You can enter it manually below, or go back to{' '}
-            <strong>Initiate Registration</strong>.
-          </Alert>
-        )}
-        {!hasSufficientPChainBalance && (
-          <Alert variant="warning">
-            Insufficient P-Chain balance for transaction fees. You need at least {PCHAIN_MIN_BALANCE} AVAX.{' '}
-            {isTestnet ? (
-              <Link href="/console/primary-network/faucet" className="underline font-medium">
-                Get testnet tokens from the faucet
-              </Link>
-            ) : (
-              <Link href="/console/primary-network/c-p-bridge" className="underline font-medium">
-                Bridge AVAX from C-Chain to P-Chain
-              </Link>
-            )}
-          </Alert>
-        )}
-        <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="p-4 space-y-3">
-            <SubmitPChainTxRegisterL1Validator
-              subnetIdL1={store.subnetIdL1}
-              signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
-              validatorBalance={validatorBalance}
-              userPChainBalanceNavax={userPChainBalanceNavax}
-              blsProofOfPossession={blsProofOfPossession}
-              evmTxHash={store.evmTxHash}
-              onSuccess={(pChainTxId) => {
-                store.setPChainTxId(pChainTxId);
-                store.setGlobalError(null);
-              }}
-              onError={(message) => store.setGlobalError(message)}
-            />
-          </div>
-          <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
-            <span className="text-xs text-zinc-500">Submits RegisterL1ValidatorTx</span>
-            <span className="text-[11px] text-zinc-400 font-mono">P-Chain</span>
-          </div>
-        </div>
-      </div>
-      <StepCodeViewer activeStep={2} steps={stepConfig} className="lg:sticky lg:top-4 lg:self-start" />
-    </div>
+        }
+        call="Submits RegisterL1ValidatorTx"
+        meta={<span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">P-Chain</span>}
+      >
+        <SubmitPChainTxRegisterL1Validator
+          subnetIdL1={store.subnetIdL1}
+          signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+          validatorBalance={validatorBalance}
+          userPChainBalanceNavax={userPChainBalanceNavax}
+          blsProofOfPossession={blsProofOfPossession}
+          evmTxHash={store.evmTxHash}
+          onSuccess={(pChainTxId) => {
+            store.setPChainTxId(pChainTxId);
+            store.setGlobalError(null);
+          }}
+          onError={(message) => store.setGlobalError(message)}
+        />
+      </ActionPanel>
+    </StepLayout>
   );
 }

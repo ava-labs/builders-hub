@@ -6,9 +6,8 @@ test('console opens on its dashboard', { tags: ['smoke'] }, async ({ app, screen
   await openAsReturningVisitor(app, browser, '/console');
   await expect(browser).toHaveTitle('Console | Avalanche Builder Hub');
   await expect(screen.getByRole('heading', 'Avalanche Builder Console', { level: 1 })).toBeAttached();
-  await expect(screen.getByRole('heading', 'Create L1', { level: 2 })).toBeVisible();
-  await expect(screen.getByRole('link', /^Create L1 Launch a new Layer 1/)).toHaveAttribute('href', '/console/create-l1');
-  await expect(screen.getByRole('heading', 'Testnet Faucet')).toBeVisible();
+  await expect(screen.getByRole('link', /^Layer 1 Create an L1/)).toHaveAttribute('href', '/console/create-l1');
+  await expect(screen.getByRole('link', /^Fuji Testnet faucet/)).toBeVisible();
 });
 
 test('unit converter shows its tool and converts without a wallet', async ({ app, browser }) => {
@@ -33,7 +32,7 @@ test('faucet asks for a wallet before it shows the tool', async ({ app, screen, 
   await expect(browser.locator('[data-console-tool]')).toHaveCount(0);
   // The Testnet/Mainnet switch renders only with a connected wallet. The header offers the connection.
   // The gate's own button is named "Connect", so this name finds the header button only.
-  await expect(screen.getByRole('button', 'Connect Wallet')).toBeVisible();
+  await expect(screen.getByRole('button', 'Connect wallet')).toBeVisible();
 });
 
 test('console tool page keeps the site name in its title', async ({ app, browser }) => {
@@ -48,7 +47,7 @@ test('console greets a new visitor with the welcome dialog', async ({ app, scree
   await expect(welcome).toBeVisible();
   await welcome.getByRole('button', 'Skip').tap();
   await expect(welcome).toBeHidden();
-  await expect(screen.getByRole('heading', 'Create L1', { level: 2 })).toBeVisible();
+  await expect(screen.getByRole('link', /^Layer 1 Create an L1/)).toBeVisible();
 });
 
 test('console welcome dialog can be skipped while the privacy banner shows', async ({ app, screen }) => {
@@ -68,7 +67,7 @@ test('console does not greet a visitor again after they skip the welcome dialog'
   await expect(welcome).toBeHidden();
   await browser.reload();
   // The header wallet button renders on the client only. When it shows, the welcome dialog component has mounted.
-  await expect(screen.getByRole('button', 'Connect Wallet')).toBeVisible();
+  await expect(screen.getByRole('button', 'Connect wallet')).toBeVisible();
   // The dialog opens 800 ms after it mounts (welcome-modal.tsx). Wait longer than that, then make sure it is not there.
   await browser.evaluate(() => new Promise<null>((resolve) => setTimeout(() => resolve(null), 2_000)));
   await expect(welcome).toHaveCount(0);

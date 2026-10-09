@@ -23,7 +23,9 @@ export default function CompleteDelegatorRemovalStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        {!coreWalletClient && <Alert variant="warning">Core Wallet required for P-Chain signature extraction.</Alert>}
+        {!coreWalletClient && (
+          <Alert variant="warning">P-Chain signature extraction needs Core or a Console wallet.</Alert>
+        )}
         {!store.pChainTxId && <Alert variant="warning">No P-Chain transaction ID from the previous step.</Alert>}
 
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">

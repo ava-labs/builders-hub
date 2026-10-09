@@ -3,13 +3,9 @@
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
-import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import type { ConsoleLog } from '@/types/console-log';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { sectionContainer, sectionItem } from '@/components/console/motion';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
@@ -17,11 +13,44 @@ import { useCreateChainStore } from '@/components/toolbox/stores/createChainStor
 import { useTxHistoryStore } from '@/components/toolbox/stores/txHistoryStore';
 import type { TxRecord, TxStatus } from '@/components/toolbox/stores/txHistoryStore';
 import { useNotificationPanelStore } from '@/components/console/notification-panel';
-import { Search, ExternalLink, Copy, Check, Download, LogIn, Clock, Database, Loader2, X, ArrowUpDown, Trash2 } from 'lucide-react';
+import {
+  Board,
+  CellLabel,
+  EmptyRow,
+  HEAD,
+  MUTED,
+  ROW,
+  Rise,
+  RowSkeleton,
+  SectionHeader,
+  SpecPlate,
+  SpecRow,
+  TxTypePill,
+} from '@/components/explorer-v2/ui';
+import { ArrowUpRight, Download, LogIn, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/cn';
+import {
+  COUNT,
+  DANGER_BUTTON,
+  EYEBROW,
+  HashCell,
+  PRIMARY_BUTTON,
+  SECONDARY_BUTTON,
+  SearchField,
+  StatusDot,
+  StatusText,
+  type Tone,
+} from './bits';
 
 const MAX_RECENT_ITEMS = 15;
+
+const SESSION_COLS = 'md:grid-cols-[0.75rem_minmax(0,1fr)_minmax(0,18rem)_1.5rem]';
+const TX_COLS = 'md:grid-cols-[0.75rem_6.5rem_minmax(0,1fr)_4.5rem_4.5rem_minmax(0,11rem)_5.5rem]';
+const LOG_COLS = 'md:grid-cols-[0.75rem_6.5rem_minmax(0,1fr)_5rem_minmax(0,11rem)]';
+
+/** Full outline, so a board standing alone under a section header reads as one box. */
+const BOX = 'border-x border-t';
 
 export default function ConsoleHistoryPage() {
   const { data: session, status } = useSession();
@@ -30,12 +59,25 @@ export default function ConsoleHistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const panelNotifications = useNotificationPanelStore((s) => s.notifications);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const { isTestnet } = useWalletStore();
   const selectedL1 = useSelectedL1();
   const toolboxStore = useToolboxStore();
   const createChainStore = useCreateChainStore()();
   const { transactions: txHistory, clearHistory: clearTxHistory } = useTxHistoryStore();
+
+  // "/" jumps to search from anywhere on the page, unless the reader is already typing somewhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (e.key !== '/' || target?.closest('input, textarea, [contenteditable="true"]')) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Build store-based config items (only show items the user actually deployed on this chain)
   const storeItems = useMemo(() => {
@@ -48,11 +90,28 @@ export default function ConsoleHistoryPage() {
     }> = [];
 
     if (createChainStore) {
-      if (createChainStore.subnetId) items.push({ id: 'cc-subnet', title: 'Subnet ID', address: createChainStore.subnetId, type: 'tx' });
-      if (createChainStore.chainID) items.push({ id: 'cc-chain', title: 'Blockchain ID', address: createChainStore.chainID, type: 'tx' });
-      if (createChainStore.convertToL1TxId) items.push({ id: 'cc-l1-tx', title: 'Convert to L1 Tx', address: createChainStore.convertToL1TxId, type: 'tx' });
-      if (createChainStore.managerAddress && createChainStore.managerAddress !== '0xfacade0000000000000000000000000000000000') {
-        items.push({ id: 'cc-manager', title: 'Manager Address', address: createChainStore.managerAddress, chainId: createChainStore.evmChainId?.toString(), type: 'address' });
+      if (createChainStore.subnetId)
+        items.push({ id: 'cc-subnet', title: 'Subnet ID', address: createChainStore.subnetId, type: 'tx' });
+      if (createChainStore.chainID)
+        items.push({ id: 'cc-chain', title: 'Blockchain ID', address: createChainStore.chainID, type: 'tx' });
+      if (createChainStore.convertToL1TxId)
+        items.push({
+          id: 'cc-l1-tx',
+          title: 'Convert to L1 Tx',
+          address: createChainStore.convertToL1TxId,
+          type: 'tx',
+        });
+      if (
+        createChainStore.managerAddress &&
+        createChainStore.managerAddress !== '0xfacade0000000000000000000000000000000000'
+      ) {
+        items.push({
+          id: 'cc-manager',
+          title: 'Manager Address',
+          address: createChainStore.managerAddress,
+          chainId: createChainStore.evmChainId?.toString(),
+          type: 'address',
+        });
       }
     }
 
@@ -118,19 +177,10 @@ export default function ConsoleHistoryPage() {
     return `${base}/c-chain/tx/${tx.txHash}`;
   };
 
-  const statusConfig: Record<TxStatus, { label: string; className: string }> = {
-    confirmed: {
-      label: 'Confirmed',
-      className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    },
-    pending: {
-      label: 'Pending',
-      className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    },
-    failed: {
-      label: 'Failed',
-      className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    },
+  const statusConfig: Record<TxStatus, { label: string; tone: Tone }> = {
+    confirmed: { label: 'Confirmed', tone: 'success' },
+    pending: { label: 'Pending', tone: 'pending' },
+    failed: { label: 'Failed', tone: 'failed' },
   };
 
   const handleExport = () => {
@@ -161,283 +211,302 @@ export default function ConsoleHistoryPage() {
 
   const shortAddr = (s: string) => (s.length > 14 ? `${s.slice(0, 8)}...${s.slice(-6)}` : s);
 
+  const hasAnything = fullHistory.length > 0 || storeItems.length > 0 || txHistory.length > 0;
+
   return (
-    <motion.div
-      className="mx-auto max-w-3xl py-8 px-4"
-      variants={sectionContainer}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div className="flex items-center justify-between mb-6" variants={sectionItem}>
-        <h1 className="text-xl font-semibold">History</h1>
-        {(fullHistory.length > 0 || storeItems.length > 0 || txHistory.length > 0) && (
-          <Button variant="ghost" size="sm" onClick={handleExport}>
-            <Download className="h-3.5 w-3.5 mr-1.5" />
-            Export
-          </Button>
-        )}
-      </motion.div>
-
-      <motion.div className="relative max-w-sm mb-6" variants={sectionItem}>
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
-        <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-8 text-sm" />
-      </motion.div>
-
-      {/* Current session activity (from notification panel) */}
-      {panelNotifications.length > 0 && (
-        <motion.section className="mb-8" variants={sectionItem}>
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="h-3.5 w-3.5 text-zinc-400" />
-            <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">This Session</h2>
-          </div>
-          <div className="space-y-1.5">
-            {panelNotifications.slice(0, 10).map((n) => (
-              <div key={n.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30">
-                {n.status === 'loading' ? (
-                  <Loader2 className="h-3.5 w-3.5 text-zinc-400 animate-spin shrink-0" />
-                ) : n.status === 'success' ? (
-                  <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                ) : (
-                  <X className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                )}
-                <span className="text-sm text-zinc-900 dark:text-zinc-100 flex-1 truncate">{n.name}</span>
-                <span className="text-[10px] text-zinc-400">{n.message}</span>
-                {n.explorerUrl && (
-                  <a href={n.explorerUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                    <ExternalLink className="h-3 w-3 text-zinc-400 hover:text-zinc-600" />
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </motion.section>
-      )}
-
-      {/* Local transaction history (from txHistoryStore — persisted in localStorage) */}
-      {filteredTxHistory.length > 0 && (
-        <motion.section className="mb-8" variants={sectionItem}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
-              <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Transaction History</h2>
-              <span className="text-[10px] text-zinc-400">({filteredTxHistory.length})</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={clearTxHistory} className="h-6 px-2 text-[10px] text-zinc-400 hover:text-zinc-600">
-              <Trash2 className="h-3 w-3 mr-1" />
-              Clear
-            </Button>
-          </div>
-          <div className="space-y-1.5">
-            {filteredTxHistory.map((tx) => {
-              const explorerUrl = getTxExplorerUrl(tx);
-              const status = statusConfig[tx.status];
-              return (
-                <div
-                  key={tx.id}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors',
-                    tx.status === 'failed'
-                      ? 'border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10'
-                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30',
-                    explorerUrl && 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50',
-                  )}
-                  onClick={() => explorerUrl && window.open(explorerUrl, '_blank')}
-                >
-                  {tx.status === 'confirmed' ? (
-                    <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                  ) : tx.status === 'pending' ? (
-                    <Loader2 className="h-3.5 w-3.5 text-yellow-500 animate-spin shrink-0" />
-                  ) : (
-                    <X className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{tx.operation}</span>
-                    {tx.txHash && (
-                      <code className="ml-2 text-[10px] text-zinc-400 font-mono">{shortAddr(tx.txHash)}</code>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', status.className)}>
-                      {status.label}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-                        tx.type === 'pchain'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-                      )}
-                    >
-                      {tx.type === 'pchain' ? 'P-Chain' : 'EVM'}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-                        tx.network === 'mainnet'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                      )}
-                    >
-                      {tx.network === 'mainnet' ? 'Mainnet' : 'Fuji'}
-                    </span>
-                    <span className="text-[10px] text-zinc-400">{format(new Date(tx.timestamp), 'MMM d HH:mm')}</span>
-                    {tx.txHash && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopy(tx.txHash, tx.id);
-                        }}
-                        className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      >
-                        {copiedId === tx.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-zinc-400" />}
-                      </button>
-                    )}
-                    {explorerUrl && (
-                      <a
-                        href={explorerUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="shrink-0"
-                      >
-                        <ExternalLink className="h-3 w-3 text-zinc-400 hover:text-zinc-600" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.section>
-      )}
-
-      {/* Server-side activity log (logged-in users) */}
-      <motion.section className="mb-8" variants={sectionItem}>
-        <div className="flex items-center gap-2 mb-3">
-          <Clock className="h-3.5 w-3.5 text-zinc-400" />
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Activity Log</h2>
-          {fullHistory.length > MAX_RECENT_ITEMS && (
-            <span className="text-[10px] text-zinc-400">(showing {MAX_RECENT_ITEMS} most recent)</span>
-          )}
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 pb-20 pt-2">
+      <Rise className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          <p className={EYEBROW}>History</p>
+          <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl dark:text-zinc-50">
+            What you deployed and signed.
+          </h1>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Saved IDs and addresses, this session&apos;s activity, and your transactions. Search, copy, or export them
+            as JSON.
+          </p>
         </div>
 
-        {status === 'loading' || loading ? (
-          <div className="py-8 text-center text-sm text-zinc-400">Loading...</div>
-        ) : !session?.user ? (
-          <div className="py-8 text-center border rounded-lg border-dashed border-zinc-300 dark:border-zinc-700">
-            <p className="text-sm text-zinc-500 mb-3">Sign in to save activity log across sessions</p>
-            <Button variant="outline" size="sm" onClick={() => (window.location.href = '/login')} className="gap-2">
-              <LogIn className="h-3.5 w-3.5" />
-              Sign In
-            </Button>
-          </div>
-        ) : filteredHistory.length === 0 ? (
-          <div className="py-8 text-center text-sm text-zinc-400">No activity yet</div>
-        ) : (
-          <div className="space-y-1.5">
-            {filteredHistory.map((log) => {
-              const data = log.data as any;
-              const mainId = data.txHash || data.txID || data.address || '';
-              const explorerUrl = getExplorerLink(log);
-              return (
-                <div
-                  key={log.id}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors',
-                    log.status === 'error'
-                      ? 'border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10'
-                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30',
-                    explorerUrl && 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50',
-                  )}
-                  onClick={() => explorerUrl && window.open(explorerUrl, '_blank')}
-                >
-                  {log.status === 'success' ? (
-                    <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                  ) : (
-                    <X className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatTitle(log)}</span>
-                    {mainId && (
-                      <code className="ml-2 text-[10px] text-zinc-400 font-mono">{shortAddr(mainId)}</code>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {data.network && (
-                      <span
-                        className={cn(
-                          'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-                          data.network === 'mainnet'
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                        )}
-                      >
-                        {data.network === 'mainnet' ? 'Mainnet' : 'Testnet'}
-                      </span>
-                    )}
-                    <span className="text-[10px] text-zinc-400">{format(new Date(log.timestamp), 'MMM d HH:mm')}</span>
-                    {mainId && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopy(mainId, log.id);
-                        }}
-                        className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      >
-                        {copiedId === log.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-zinc-400" />}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </motion.section>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <SearchField
+            ref={searchRef}
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search by name, hash or address"
+            label="Search history"
+          />
+          {hasAnything && (
+            <button type="button" onClick={handleExport} className={SECONDARY_BUTTON}>
+              <Download className="h-3.5 w-3.5" aria-hidden />
+              Export
+            </button>
+          )}
+          {filteredTxHistory.length > 0 && (
+            <button type="button" onClick={clearTxHistory} className={DANGER_BUTTON}>
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+              Clear transactions
+            </button>
+          )}
+        </div>
+      </Rise>
 
       {/* Console configuration (store-based) */}
       {filteredStoreItems.length > 0 && (
-        <motion.section variants={sectionItem}>
-          <div className="flex items-center gap-2 mb-3">
-            <Database className="h-3.5 w-3.5 text-zinc-400" />
-            <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Active Configuration</h2>
-            {selectedL1 && <span className="text-[10px] text-zinc-400">({selectedL1.name})</span>}
-          </div>
-          <div className="space-y-1.5">
-            {filteredStoreItems.map((item) => {
-              const network = isTestnet ? 'testnet' : 'mainnet';
-              const explorerUrl =
-                item.type === 'tx'
-                  ? getExplorerUrl(item.address, 'tx', network, 'P')
-                  : item.chainId
-                    ? getExplorerUrl(item.address, 'address', network, item.chainId)
-                    : null;
-              return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30',
-                    explorerUrl && 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50',
-                  )}
-                  onClick={() => explorerUrl && window.open(explorerUrl, '_blank')}
-                >
-                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 w-36 shrink-0">{item.title}</span>
-                  <code className="text-xs text-zinc-500 font-mono flex-1 truncate">{item.address}</code>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopy(item.address, item.id);
-                    }}
-                    className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 shrink-0"
-                  >
-                    {copiedId === item.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-zinc-400" />}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </motion.section>
+        <Rise delay={0.04}>
+          <section className="flex flex-col gap-4">
+            <SectionHeader
+              label="Saved values"
+              action={
+                <span className={COUNT}>
+                  {selectedL1 ? `${selectedL1.name} · ` : ''}
+                  {filteredStoreItems.length}
+                </span>
+              }
+            />
+            <Board divide={false} className={cn(BOX, 'px-5 md:px-6')}>
+              <SpecPlate>
+                {filteredStoreItems.map((item) => {
+                  const network = isTestnet ? 'testnet' : 'mainnet';
+                  const explorerUrl =
+                    item.type === 'tx'
+                      ? getExplorerUrl(item.address, 'tx', network, 'P')
+                      : item.chainId
+                        ? getExplorerUrl(item.address, 'address', network, item.chainId)
+                        : null;
+                  return (
+                    <SpecRow key={item.id} label={item.title}>
+                      <HashCell
+                        value={item.address}
+                        href={explorerUrl}
+                        copied={copiedId === item.id}
+                        onCopy={() => handleCopy(item.address, item.id)}
+                        full
+                      />
+                    </SpecRow>
+                  );
+                })}
+              </SpecPlate>
+            </Board>
+          </section>
+        </Rise>
       )}
-    </motion.div>
+
+      {/* Current session activity (from notification panel) */}
+      {panelNotifications.length > 0 && (
+        <Rise delay={0.06}>
+          <section className="flex flex-col gap-4">
+            <SectionHeader
+              label="This session"
+              action={<span className={COUNT}>{Math.min(panelNotifications.length, 10)}</span>}
+            />
+            <Board className={BOX}>
+              <div className={cn(HEAD, SESSION_COLS)}>
+                <span />
+                <span>Action</span>
+                <span>Result</span>
+                <span />
+              </div>
+              {panelNotifications.slice(0, 10).map((n) => {
+                const tone: Tone = n.status === 'loading' ? 'pending' : n.status === 'success' ? 'success' : 'failed';
+                return (
+                  <div key={n.id} className={cn(ROW, SESSION_COLS)}>
+                    <StatusDot tone={tone} label={n.status} />
+                    <span className="truncate text-[13.5px] font-medium text-zinc-900 dark:text-zinc-50">{n.name}</span>
+                    <span className={cn(MUTED, 'col-span-2 truncate md:col-span-1')}>{n.message}</span>
+                    <span className="hidden justify-end md:flex">
+                      {n.explorerUrl && (
+                        <a
+                          href={n.explorerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Open ${n.name} in explorer`}
+                          className="p-1 text-zinc-400 transition-colors hover:text-[#E6212F]"
+                        >
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </Board>
+          </section>
+        </Rise>
+      )}
+
+      {/* Local transaction history (from txHistoryStore, persisted in localStorage) */}
+      {filteredTxHistory.length > 0 && (
+        <Rise delay={0.08}>
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Transactions" action={<span className={COUNT}>{filteredTxHistory.length}</span>} />
+            <Board className={BOX}>
+              <div className={cn(HEAD, TX_COLS)}>
+                <span />
+                <span>Time</span>
+                <span>Action</span>
+                <span>Chain</span>
+                <span>Network</span>
+                <span>Hash</span>
+                <span className="text-right">Status</span>
+              </div>
+              {filteredTxHistory.map((tx) => {
+                const explorerUrl = getTxExplorerUrl(tx);
+                const txStatus = statusConfig[tx.status];
+                return (
+                  <div
+                    key={tx.id}
+                    className={cn(
+                      ROW,
+                      TX_COLS,
+                      'group/row',
+                      tx.status === 'failed' && 'bg-red-50/40 dark:bg-red-950/20',
+                      explorerUrl && 'cursor-pointer',
+                    )}
+                    onClick={() => explorerUrl && window.open(explorerUrl, '_blank')}
+                  >
+                    <StatusDot tone={txStatus.tone} label={txStatus.label} />
+                    <span className={MUTED}>
+                      <CellLabel>Time</CellLabel>
+                      {format(new Date(tx.timestamp), 'MMM d HH:mm')}
+                    </span>
+                    <span className="col-span-2 min-w-0 md:col-span-1">
+                      <CellLabel>Action</CellLabel>
+                      <TxTypePill
+                        type={tx.operation}
+                        label={tx.operation?.trim() || 'Transaction'}
+                        className="text-[11px] text-zinc-900 dark:text-zinc-50"
+                      />
+                    </span>
+                    <span className={MUTED}>
+                      <CellLabel>Chain</CellLabel>
+                      {tx.type === 'pchain' ? 'P-Chain' : 'EVM'}
+                    </span>
+                    <span className={MUTED}>
+                      <CellLabel>Network</CellLabel>
+                      {tx.network === 'mainnet' ? 'Mainnet' : 'Fuji'}
+                    </span>
+                    <span className="min-w-0">
+                      <CellLabel>Hash</CellLabel>
+                      {tx.txHash ? (
+                        <HashCell
+                          value={tx.txHash}
+                          display={shortAddr(tx.txHash)}
+                          href={explorerUrl}
+                          copied={copiedId === tx.id}
+                          onCopy={() => handleCopy(tx.txHash, tx.id)}
+                        />
+                      ) : (
+                        <span className="font-mono text-[12px] text-zinc-300 dark:text-zinc-700">—</span>
+                      )}
+                    </span>
+                    <span className="md:text-right">
+                      <CellLabel>Status</CellLabel>
+                      <StatusText tone={txStatus.tone}>{txStatus.label}</StatusText>
+                    </span>
+                  </div>
+                );
+              })}
+            </Board>
+          </section>
+        </Rise>
+      )}
+
+      {/* Server-side activity log (logged-in users) */}
+      <Rise delay={0.1}>
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            label="Activity log"
+            action={
+              fullHistory.length > MAX_RECENT_ITEMS ? (
+                <span className={COUNT}>{MAX_RECENT_ITEMS} most recent</span>
+              ) : undefined
+            }
+          />
+
+          {status === 'loading' || loading ? (
+            <Board className={BOX}>
+              <RowSkeleton n={4} />
+            </Board>
+          ) : !session?.user ? (
+            <div className="flex flex-col gap-4 border border-zinc-200 bg-white/80 px-5 py-5 sm:flex-row sm:items-center sm:justify-between md:px-6 dark:border-zinc-800 dark:bg-zinc-950/80">
+              <div className="flex flex-col gap-1.5">
+                <p className={EYEBROW}>Signed out</p>
+                <p className="text-[14px] text-zinc-600 dark:text-zinc-300">
+                  Sign in to keep your activity log across sessions.
+                </p>
+              </div>
+              <button type="button" onClick={() => (window.location.href = '/login')} className={PRIMARY_BUTTON}>
+                <LogIn className="h-3.5 w-3.5" aria-hidden />
+                Sign in
+              </button>
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <Board className={BOX}>
+              <EmptyRow>{searchTerm ? 'No activity matches this search.' : 'No activity yet.'}</EmptyRow>
+            </Board>
+          ) : (
+            <Board className={BOX}>
+              <div className={cn(HEAD, LOG_COLS)}>
+                <span />
+                <span>Time</span>
+                <span>Action</span>
+                <span>Network</span>
+                <span>ID</span>
+              </div>
+              {filteredHistory.map((log) => {
+                const data = log.data as any;
+                const mainId = data.txHash || data.txID || data.address || '';
+                const explorerUrl = getExplorerLink(log);
+                const tone: Tone = log.status === 'success' ? 'success' : 'failed';
+                return (
+                  <div
+                    key={log.id}
+                    className={cn(
+                      ROW,
+                      LOG_COLS,
+                      log.status === 'error' && 'bg-red-50/40 dark:bg-red-950/20',
+                      explorerUrl && 'cursor-pointer',
+                    )}
+                    onClick={() => explorerUrl && window.open(explorerUrl, '_blank')}
+                  >
+                    <StatusDot tone={tone} label={log.status} />
+                    <span className={MUTED}>
+                      <CellLabel>Time</CellLabel>
+                      {format(new Date(log.timestamp), 'MMM d HH:mm')}
+                    </span>
+                    <span className="col-span-2 min-w-0 md:col-span-1">
+                      <CellLabel>Action</CellLabel>
+                      <TxTypePill
+                        type={log.actionPath ?? ''}
+                        label={formatTitle(log)}
+                        className="text-[11px] text-zinc-900 dark:text-zinc-50"
+                      />
+                    </span>
+                    <span className={MUTED}>
+                      <CellLabel>Network</CellLabel>
+                      {data.network ? (data.network === 'mainnet' ? 'Mainnet' : 'Testnet') : '—'}
+                    </span>
+                    <span className="min-w-0">
+                      <CellLabel>ID</CellLabel>
+                      {mainId ? (
+                        <HashCell
+                          value={mainId}
+                          display={shortAddr(mainId)}
+                          href={explorerUrl}
+                          copied={copiedId === log.id}
+                          onCopy={() => handleCopy(mainId, log.id)}
+                        />
+                      ) : (
+                        <span className="font-mono text-[12px] text-zinc-300 dark:text-zinc-700">—</span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </Board>
+          )}
+        </section>
+      </Rise>
+    </div>
   );
 }

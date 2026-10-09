@@ -143,6 +143,9 @@ const l1ListInitialStateFuji = {
   ] as L1ListItem[],
 };
 
+/** The public testnets every console list starts with, as opposed to L1s the builder added. */
+export const BUILT_IN_TESTNET_L1_IDS: ReadonlySet<string> = new Set(l1ListInitialStateFuji.l1List.map((l) => l.id));
+
 const l1ListInitialStateMainnet = {
   l1List: [
     {

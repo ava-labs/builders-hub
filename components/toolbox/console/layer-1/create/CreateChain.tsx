@@ -3,7 +3,7 @@
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useEffect, useState, useRef } from 'react';
 import { GenesisBuilderInner } from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from '@/components/toolbox/components/Steps';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import {
   BaseConsoleToolProps,
@@ -169,12 +169,12 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
   // Show warning if no subnet selected
   if (!hasSubnet) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4">
-        <div className="p-4 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-4">
-          <AlertTriangle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
-        </div>
-        <h3 className="text-sm font-semibold text-center mb-2">No Subnet Selected</h3>
-        <p className="text-sm text-muted-foreground text-center max-w-md">
+      <div className="flex flex-col items-start gap-2 border border-zinc-200 bg-white/80 px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950/80">
+        <p className="flex items-center gap-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          No Subnet Selected
+        </p>
+        <p className="max-w-xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
           Please create or select a subnet with the Create Subnet tool before configuring your chain.
         </p>
       </div>
@@ -209,13 +209,13 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
             </p>
           </div>
           {!canProceedToStep2 ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Configure Chain First</h3>
-                <p className="text-sm text-muted-foreground">
-                  Please configure your chain name in Step 1 before proceeding.
-                </p>
-              </div>
+            <div className="flex flex-col gap-1.5 border border-zinc-200 px-5 py-5 dark:border-zinc-800">
+              <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                Configure Chain First
+              </p>
+              <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+                Please configure your chain name in Step 1 before proceeding.
+              </p>
             </div>
           ) : vmId === SUBNET_EVM_VM_ID ? (
             // For Subnet-EVM, use the GenesisBuilder
@@ -231,34 +231,17 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
           ) : (
             // For custom VMs, provide a simple JSON input
             <div className="space-y-4">
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                  <svg
-                    className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div>
-                    <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Custom Virtual Machine</h4>
-                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                      You're using a custom VM. Please provide your own genesis JSON configuration.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <Alert variant="warning">
+                <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]">Custom Virtual Machine</p>
+                <p className="mt-1">You're using a custom VM. Please provide your own genesis JSON configuration.</p>
+              </Alert>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Genesis JSON</label>
+                <label className="mb-2 block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                  Genesis JSON
+                </label>
                 <textarea
-                  className="w-full h-96 px-4 py-3 bg-zinc-900 dark:bg-zinc-950 text-zinc-100 rounded-lg border border-zinc-700 dark:border-zinc-800 font-mono text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="h-96 w-full resize-none border border-zinc-200 bg-zinc-950 px-4 py-3 font-mono text-[12px] text-zinc-100 transition-colors hover:border-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300"
                   placeholder='{"config": {...}, "alloc": {...}, ...}'
                   value={genesisData}
                   onChange={(e) => setGenesisData(e.target.value)}
@@ -268,13 +251,13 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
                     try {
                       JSON.parse(genesisData);
                       return (
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                        <p className="mt-2 font-mono text-[11px] text-emerald-700 dark:text-emerald-400">
                           ✓ Valid JSON ({(new Blob([genesisData]).size / 1024).toFixed(2)} KiB)
                         </p>
                       );
                     } catch (e) {
                       return (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                        <p className="mt-2 font-mono text-[11px] text-red-700 dark:text-red-400">
                           ✗ Invalid JSON: {(e as Error).message}
                         </p>
                       );
@@ -301,13 +284,13 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
             </p>
           </div>
           {!canProceedToStep3 ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Configure Genesis First</h3>
-                <p className="text-sm text-muted-foreground">
-                  Please complete the genesis configuration in Step 2 before creating your chain.
-                </p>
-              </div>
+            <div className="flex flex-col gap-1.5 border border-zinc-200 px-5 py-5 dark:border-zinc-800">
+              <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                Configure Genesis First
+              </p>
+              <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+                Please complete the genesis configuration in Step 2 before creating your chain.
+              </p>
             </div>
           ) : (
             <CoreWalletTransactionButton

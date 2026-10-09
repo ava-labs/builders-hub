@@ -15,11 +15,17 @@ import type { BJPoint } from './crypto/babyjub';
 // module off Turbopack's static graph — it's only loaded at proof time.
 
 /** URL helpers — circuits live at /eerc/circuits/<kind>/<kind>.{wasm,zkey}. */
+let circuitBase = '/eerc/circuits';
+
+/** Where the circuits are fetched from; an app exported from Studio points this at Builder Hub's copy. */
+export function setCircuitBase(base: string) {
+  circuitBase = base.replace(/\/+$/, '');
+}
 export function circuitWasmUrl(kind: CircuitKind): string {
-  return `/eerc/circuits/${kind}/${kind}.wasm`;
+  return `${circuitBase}/${kind}/${kind}.wasm`;
 }
 export function circuitZkeyUrl(kind: CircuitKind): string {
-  return `/eerc/circuits/${kind}/${kind}.zkey`;
+  return `${circuitBase}/${kind}/${kind}.zkey`;
 }
 
 /** Raw snarkjs output — we format it into the Solidity struct shape below. */
@@ -42,10 +48,7 @@ export interface GeneratedProof {
  * Generate a Groth16 proof for the given circuit + witness input.
  * `input` keys must match the circuit's signal names exactly (case-sensitive).
  */
-export async function generateProof(
-  kind: CircuitKind,
-  input: Record<string, unknown>,
-): Promise<GeneratedProof> {
+export async function generateProof(kind: CircuitKind, input: Record<string, unknown>): Promise<GeneratedProof> {
   const wasmUrl = circuitWasmUrl(kind);
   const zkeyUrl = circuitZkeyUrl(kind);
 

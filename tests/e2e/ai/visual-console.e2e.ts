@@ -12,11 +12,11 @@ test('faucet without a wallet is laid out without clipped or overlapping content
   const gate = browser.locator('[data-console-tool-gate]');
   await expect(gate.getByRole('heading', 'To use this tool you need:')).toBeVisible();
   // The header wallet button renders on the client only, so it shows that React has hydrated the page.
-  await expect(screen.getByRole('button', 'Connect Wallet')).toBeVisible();
+  await expect(screen.getByRole('button', 'Connect wallet')).toBeVisible();
   await waitForStillScreen(browser);
   await agent.assert(
     layoutIsIntact(
-      'the console header with its "Connect Wallet" button and the box listing what the tool needs, all fully visible',
+      'the console header with its "Connect wallet" button and the box listing what the tool needs, all fully visible',
     ),
     SCREENSHOT_ONLY,
   );
