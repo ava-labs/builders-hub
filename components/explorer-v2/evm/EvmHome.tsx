@@ -56,9 +56,10 @@ export function EvmHome({ network }: { network: string }) {
   // RPC. Every other chain keeps the indexer path.
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc);
-  // the Gas tab's Base Fee block, off the public RPC like the Gas tab
-  // (the dedicated proxy does not allow eth_feeHistory)
-  const baseFee = useBaseFeeCell(isCchain ? c.rpcUrl : undefined, String(c.chainId), sym, base);
+  // the Gas tab's Base Fee block, on every chain with an RPC (the chains
+  // that get a Gas tab), off the public RPC like the Gas tab: the
+  // dedicated proxy does not allow eth_feeHistory
+  const baseFee = useBaseFeeCell(c.rpcUrl, String(c.chainId), sym, base);
   const heads = head.heads;
   const tip = head.tip;
   const pace = cadence(heads);
@@ -179,7 +180,7 @@ export function EvmHome({ network }: { network: string }) {
                   // each block's transactions per second of its gap
                   values: paceTrace?.tps,
                 },
-                ...(isCchain ? [baseFee] : []),
+                ...(c.rpcUrl ? [baseFee] : []),
 
                 ...(price || priced
                   ? [
