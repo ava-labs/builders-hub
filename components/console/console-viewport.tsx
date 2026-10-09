@@ -33,6 +33,12 @@ const VIEWPORT_VALUE = 'calc(100dvh - 3.5rem - 1px - var(--fd-banner-height,0px)
  *      scrollbar appears whenever the document height computes slightly
  *      higher than the viewport, and iOS scrolls the root element even
  *      when only the body is locked.
+ *   3. Put the document back at the top whenever something scrolls it. A lock
+ *      only stops the user: iOS still scrolls the page to a focused field, on
+ *      a dialog's focus restore, or on returning from a wallet app, and then
+ *      the console's own header and bottom sit off screen with no way back.
+ *      While a text field has focus the page may move so iOS can lift it
+ *      above the keyboard; it returns once the field loses focus.
  *
  * Renders `display: contents` so the wrapper doesn't insert a box into
  * the layout tree — only the CSS variable cascades through.
@@ -43,9 +49,29 @@ export function ConsoleViewport({ children }: { children: ReactNode }) {
     const original = { html: root.style.overflow, body: document.body.style.overflow };
     root.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
+
+    const typing = () => document.activeElement?.matches('input, textarea, select, [contenteditable="true"]') ?? false;
+    const toTop = () => {
+      if (window.scrollY !== 0 || root.scrollTop !== 0) window.scrollTo(0, 0);
+    };
+    const onScroll = () => {
+      if (!typing()) toTop();
+    };
+    // focusout fires before the next element takes focus; wait a frame so moving between fields doesn't jump.
+    const onFocusOut = () => requestAnimationFrame(onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('focusout', onFocusOut);
+    window.visualViewport?.addEventListener('resize', onScroll);
+    window.addEventListener('pageshow', toTop);
+    toTop();
+
     return () => {
       root.style.overflow = original.html;
       document.body.style.overflow = original.body;
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('focusout', onFocusOut);
+      window.visualViewport?.removeEventListener('resize', onScroll);
+      window.removeEventListener('pageshow', toTop);
     };
   }, []);
 
