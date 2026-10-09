@@ -67,9 +67,12 @@ contract CreatorTipsTest is Test {
             bool allowed = (char >= 0x61 && char <= 0x7a) || (char >= 0x30 && char <= 0x39) || char == 0x5f;
             valid = valid && allowed;
         }
+        // Keep the character property independent of the "ava_labs" fixture in setUp:
+        // a syntactically valid fuzzed handle may legitimately collide with that profile.
+        CreatorTips isolated = new CreatorTips(usdc);
         address newcomer = makeAddr("newcomer");
         vm.prank(newcomer);
         if (!valid) vm.expectRevert(abi.encodeWithSelector(CreatorTips.InvalidHandle.selector, string(handle)));
-        tips.register(string(handle), "", "", "");
+        isolated.register(string(handle), "", "", "");
     }
 }
