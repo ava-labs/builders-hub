@@ -30,6 +30,7 @@ import { useContractNames } from "@/lib/sourcify-client";
 import { GAS_METRICS, type GasMetricKey } from "@/components/explorer/gas-metrics";
 import { TargetDailyBlock, useTargetDays } from "@/components/explorer-v2/gas/capacity";
 import { useLiveTargetPct } from "@/components/explorer-v2/gas/live-target";
+import { AboveFloorBlock } from "@/components/explorer-v2/gas/above-floor";
 import type { GasDayPoint, GasHistoryDays, GasHourPoint, GasMarket } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
 
@@ -97,22 +98,6 @@ function MetricFrame({ base, chainName, metric, children }: { base: string; chai
 
 const GRID = "grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2";
 
-/** how far p95 rides above the median, per bucket: the volatility one fee line hides */
-function spikeCols(rows: (GasDayPoint | GasHourPoint)[]): Col[] {
-  return rows.map((d) => {
-    const hourly = "t" in d;
-    const at = hourly ? d.t : d.d;
-    return {
-      key: at,
-      long: hourly ? hourLong(at) : dayLong(at),
-      tick: hourly ? `${dayShort(at)} ${at.slice(11, 13)}:00` : dayShort(at),
-      v: d.p50 > 0 ? ((d.p95 - d.p50) / d.p50) * 100 : 0,
-      p50: d.p50,
-      p95: d.p95,
-    } as Col & { p50: number; p95: number };
-  });
-}
-
 /* ---------------------------------------------------------------- */
 /* Base Fee                                                          */
 /* ---------------------------------------------------------------- */
@@ -145,7 +130,11 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
   }, [main]);
 
   const spark = main.map((p) => p.p50);
-  const premium = spikeCols(main);
+  // the floor chart keeps the running bucket, striped: a percentile does not collapse on a partial period
+  const now = new Date().toISOString();
+  const runningKey = isHourly ? `${now.slice(0, 13)}:00` : now.slice(0, 10);
+  const floorRows = isHourly ? main : [...windowed, ...(daily ?? []).filter((d) => d.d === runningKey)];
+  const floor = [...floorRows].reverse().find((p) => p.floor)?.floor ?? null;
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="base-fee">
@@ -153,7 +142,11 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
         <Readout label="Right Now" live value={fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : null} unit={unit} sub="the next block's base fee" />
         <Readout label="Typical" value={stats ? fmtFee(stats.typical) : null} unit={unit} sub={`median of ${isHourly ? "hourly" : "daily"} medians`} spark={spark} />
         <Readout label="Spike" value={stats ? fmtFee(stats.high.p95) : null} unit={unit} sub={stats ? `highest p95 · ${stats.when(stats.high)}` : undefined} />
-        <Readout label="Floor" value={stats ? fmtFee(stats.low.p50) : null} unit={unit} sub={stats ? `lowest median · ${stats.when(stats.low)}` : undefined} />
+        {floor ? (
+          <Readout label="Floor" value={fmtFee(floor.floor)} unit={unit} sub="the protocol minimum, voted by validators" />
+        ) : (
+          <Readout label="Floor" value={stats ? fmtFee(stats.low.p50) : null} unit={unit} sub={stats ? `lowest median · ${stats.when(stats.low)}` : undefined} />
+        )}
       </ReadoutRow>
 
       {main.length ? (
@@ -189,28 +182,8 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
         ) : (
           <HistoryEmpty missing={isHourly ? missing : marketMissing} />
         )}
-        {premium.length ? (
-          <ColumnsBlock
-            label="Spike Premium"
-            note={windowLabel}
-            figure={`+${median(premium.map((c) => c.v)).toFixed(0)}`}
-            unit="%"
-            sub="typical p95 over the median"
-            cols={premium}
-            fmt={(v) => `+${v.toFixed(0)}%`}
-            tip={(c) => {
-              const d = c as Col & { p50: number; p95: number };
-              return (
-                <>
-                  <p className="font-mono text-[10px] text-zinc-500">{c.long}</p>
-                  <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">+{c.v.toFixed(0)}% spike premium</p>
-                  <p className="font-mono text-[10px] tabular-nums text-zinc-500">
-                    p95 {fmtFee(d.p95)} vs median {fmtFee(d.p50)} {unit}
-                  </p>
-                </>
-              );
-            }}
-          />
+        {floorRows.length ? (
+          <AboveFloorBlock rows={floorRows} runningKey={runningKey} hourly={isHourly} note={windowLabel} unit={unit} stale={isHourly && stale} />
         ) : (
           <HistoryEmpty missing={isHourly ? marketMissing : missing} />
         )}
