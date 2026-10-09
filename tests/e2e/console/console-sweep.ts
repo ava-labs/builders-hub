@@ -34,9 +34,9 @@ const MOUNTED_VISIBLE = `${CONSOLE_TOOL_MOUNTED} >> visible=true`;
 // Routes that render no mount signal. Each shows its own visible heading instead.
 // Key: the final path, after the redirects. Value: the heading name and level.
 const HEADINGS: Record<string, { name: string; level: number }> = {
-  // The dashboard h1 is sr-only (app/console/page.tsx). Its first card heading is visible.
-  '/console': { name: 'Create L1', level: 2 },
+  '/console': { name: 'Avalanche Builder Console', level: 1 },
   '/console/history': { name: 'History', level: 1 },
+  '/console/studio': { name: 'Describe an app. Ship it to testnet. Promote it when it works.', level: 1 },
   '/console/toolbox': { name: 'Toolbox', level: 1 },
   '/console/encrypted-erc/overview': { name: 'Private balances, public accountability.', level: 1 },
   // The alerts need an account: a visitor without a session sees the sign-in prompt.
