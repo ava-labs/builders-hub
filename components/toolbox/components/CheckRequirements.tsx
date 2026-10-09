@@ -6,6 +6,13 @@ import { useAccountRequirements, AccountRequirementsConfigKey } from '../hooks/u
 import { ConnectedWalletProvider } from '../contexts/ConnectedWalletContext';
 import type { Requirement } from '../types/requirements';
 
+/**
+ * Fills what's visible of the console pane (its height less its padding, the gap and the footer) and centres the
+ * panel in it, so the gate never scrolls the page.
+ */
+const GATE_FRAME =
+  'flex min-h-[calc(var(--console-viewport)-var(--header-height)-8rem)] items-center justify-center md:min-h-[calc(var(--console-viewport)-var(--header-height)-10rem)]';
+
 // Export config key enums for convenience
 export { WalletRequirementsConfigKey, AccountRequirementsConfigKey };
 
@@ -93,7 +100,7 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (state.isLoading) {
     return (
-      <div className="flex h-[100vh] items-center justify-center p-4">
+      <div className={GATE_FRAME}>
         <div className={`${PANEL} flex items-center justify-center gap-2 px-6 py-8`}>
           <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
           <p className={EYEBROW}>Checking requirements…</p>
@@ -104,7 +111,7 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (state.error) {
     return (
-      <div className="flex h-[100vh] items-center justify-center p-4">
+      <div className={GATE_FRAME}>
         <div className={PANEL}>
           <div className="border-b border-zinc-200 px-6 py-5 dark:border-zinc-800">
             <p className={EYEBROW}>Requirements</p>
@@ -123,16 +130,16 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (!state.isActive) {
     return (
-      <div className="not-prose flex h-[100vh] items-center justify-center p-4" data-console-tool-gate>
+      <div className={`not-prose ${GATE_FRAME}`} data-console-tool-gate>
         <div className={PANEL}>
           {/* Header */}
-          <div className="flex items-start gap-4 border-b border-zinc-200 px-6 py-5 dark:border-zinc-800">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center gap-3.5 border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
               <Wallet className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             </span>
             <div className="min-w-0">
               <p className={EYEBROW}>Requirements</p>
-              <h2 className="mt-1.5 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              <h2 className="mt-1 text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                 To use this tool you need:
               </h2>
             </div>
@@ -141,7 +148,7 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
           {/* Requirements List */}
           <ul className="divide-y divide-zinc-200 border-b border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             {requirements.map((requirement) => (
-              <li key={requirement.id} className="flex items-start gap-3 px-6 py-3">
+              <li key={requirement.id} className="flex items-start gap-3 px-5 py-2.5">
                 <div className="mt-0.5 shrink-0">
                   {requirement.prerequisiteNotMet ? (
                     <CircleMinus className="h-4 w-4 text-zinc-300 dark:text-zinc-600" />
@@ -187,8 +194,8 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
             }
 
             return (
-              <div className="px-6 py-5">
-                <h3 className={`${EYEBROW} mb-3`}>How to meet these requirements</h3>
+              <div className="px-5 py-4">
+                <h3 className={`${EYEBROW} mb-2.5`}>How to meet these requirements</h3>
                 <div className="space-y-2">
                   {(() => {
                     const uniqueActions = new Map();
@@ -238,7 +245,7 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
                         {mainActions.map((actionGroup, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between gap-4 border border-zinc-200 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
+                            className="flex items-center justify-between gap-4 border border-zinc-200 bg-zinc-50/60 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/40"
                           >
                             <div className="min-w-0 flex-1">
                               <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-50">
@@ -266,20 +273,19 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
                         {alternativeActions.length > 0 && (
                           <>
-                            <div className="flex items-center gap-4 py-3">
+                            <div className="flex items-center gap-4 py-2">
                               <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-                              <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                                Or
-                              </span>
+                              <h4 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                                Or, just testing?
+                              </h4>
                               <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
                             </div>
 
                             <div className="space-y-2">
-                              <h4 className={EYEBROW}>Just learning or testing?</h4>
                               {alternativeActions.map((actionGroup, index) => (
                                 <div
                                   key={`alt-${index}`}
-                                  className="flex items-center justify-between gap-4 border border-zinc-200 px-4 py-3 dark:border-zinc-800"
+                                  className="flex items-center justify-between gap-4 border border-zinc-200 px-4 py-2.5 dark:border-zinc-800"
                                 >
                                   <div className="min-w-0 flex-1">
                                     <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-50">
