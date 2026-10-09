@@ -223,7 +223,7 @@ export function LiveReadoutAt({ chainId, cells, days }: { chainId: string; cells
   const market = useMarketHistory(chainId, n, cells.some((c) => c.series));
   if (cells.length === 0) return null;
   return (
-    <div className={cn("grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2", cells.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
+    <div className={cn("grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2", cells.length >= 6 ? "md:grid-cols-3 xl:grid-cols-6" : cells.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
       {cells.map((c) => {
         // market series are fetched at the clock's own resolution, so they trace at every clock
         const spark = c.values ?? (c.series ? market?.[c.series] : undefined);
