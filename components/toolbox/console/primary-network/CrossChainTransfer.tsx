@@ -21,6 +21,20 @@ import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code
 import { AutoSwitchChainGate } from '@/components/console/auto-switch-chain-gate';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { classifyEvmTxError } from '@/components/toolbox/lib/evmErrors';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
+import {
+  baseFeeNanoAvax,
+  blockedUtxosText,
+  maxSpendableNanoAvax,
+  MORE_UTXOS_TEXT,
+  nanoAvaxText,
+  newImportFeeCache,
+  readImportableShare,
+  readSharedMemory,
+  toSdkUtxos,
+  UTXO_PAGE_SIZE,
+} from '@/components/toolbox/utils/sharedMemoryImport';
 import Link from 'next/link';
 
 // Extended props for this specific tool
@@ -31,7 +45,31 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
 
 // Atomic export fee buffer: ~0.001 AVAX on both C-Chain (base-fee burn) and
 // P-Chain (flat tx fee). MAX subtracts this so the user always has gas left.
-const EXPORT_FEE_BUFFER_NAVAX = 1_000_000;
+const EXPORT_FEE_BUFFER_NAVAX = 1_000_000n;
+
+const INVALID_AMOUNT_TEXT = 'Please enter a valid positive amount.';
+
+/**
+ * The error of the typed export amount, or null when the page can export it. maxSpendable: the balance less the fee
+ * buffer, in nAVAX (maxSpendableNanoAvax).
+ */
+export function exportAmountError(amount: string, maxSpendable: bigint): string | null {
+  const numericAmount = Number(amount);
+  if (isNaN(numericAmount) || numericAmount <= 0) return INVALID_AMOUNT_TEXT;
+
+  let amountNAvax: bigint;
+  try {
+    amountNAvax = toNanoAvax(amount);
+  } catch {
+    return INVALID_AMOUNT_TEXT;
+  }
+  // toNanoAvax rounds the 10th decimal, so an amount below 0.5 nAVAX becomes 0
+  if (amountNAvax <= 0n) return 'Amount is below the smallest exportable unit (1 nAVAX).';
+  if (amountNAvax > maxSpendable) {
+    return `Amount exceeds available balance of ${nanoAvaxText(maxSpendable)} AVAX (your balance less 0.001 AVAX for the fees).`;
+  }
+  return null;
+}
 
 // Public API nodes no longer serve avax.getAtomicTxStatus after Helicon, so the
 // SDK's waitForTxn fails for C-Chain atomic txs. Poll avax.getAtomicTx instead:
@@ -91,10 +129,21 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   const [_completedExportXPChain, setCompletedExportXPChain] = useState<'P' | 'C'>('P');
   const [_completedImportXPChain, setCompletedImportXPChain] = useState<'P' | 'C'>('P');
   const [importTxId, setImportTxId] = useState<string | null>(null);
+  // The error of the export: the wallet, the network parameters, or the tx. The next Export click or a swap clears it.
   const [error, setError] = useState<string | null>(null);
+  // The error of the typed amount (exportAmountError). A new amount or a new direction clears it.
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  // The UTXOs of the next import: the wallet's own unlocked AVAX that one import takes, when the total is above the
+  // import fee (sharedMemoryImport.ts). handleImport gives the SDK exactly these UTXOs.
   const [cToP_UTXOs, setC_To_P_UTXOs] = useState<Utxo<TransferOutput>[]>([]);
   const [pToC_UTXOs, setP_To_C_UTXOs] = useState<Utxo<TransferOutput>[]>([]);
+  // The UTXOs in shared memory that this wallet cannot import, by the chain that would import them
+  const [blockedUtxos, setBlockedUtxos] = useState<Record<'P' | 'C', number>>({ P: 0, C: 0 });
+  // True for a side when shared memory holds more UTXOs than the page reads (readSharedMemory)
+  const [moreUtxos, setMoreUtxos] = useState<Record<'P' | 'C', boolean>>({ P: false, C: false });
+  // The fee price by side and set of UTXOs, so the 5 s poll reads the price once per set
+  const importFeeCacheRef = useRef(newImportFeeCache());
   const isFetchingRef = useRef(false);
   const autoImportTriggeredRef = useRef(false);
   const handleImportRef = useRef<() => Promise<void>>(undefined);
@@ -129,6 +178,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   // (which bypasses the wallet transport and fails from non-production origins).
   const { context: avalancheContext, error: contextError } = useAvalancheContext(Boolean(isTestnet));
 
+  const sourceBalance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
+  // The most that the page exports: the balance less the fee buffer. The Max line, MAX and exportAmountError use it.
+  const maxSpendable = maxSpendableNanoAvax(sourceBalance, EXPORT_FEE_BUFFER_NAVAX);
+  const maxSpendableText = nanoAvaxText(maxSpendable);
+
   // Calculate total AVAX in UTXOs
   const totalCToPUtxoAmount = cToP_UTXOs.reduce((sum, utxo) => {
     return sum + Number(utxo.output.amt.value()) / 1_000_000_000;
@@ -147,9 +201,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     }
   }, [updateCChainBalance, updatePChainBalance]);
 
-  // Fetch UTXOs from both chains
+  // Fetch UTXOs from both chains, page by page (readSharedMemory). Anyone can export a UTXO to the wallet's address, so
+  // the page keeps only the wallet's own unlocked AVAX that one import takes when its total is above the import fee,
+  // and counts the others (readImportableShare).
   const fetchUTXOs = useCallback(async () => {
-    if (!pChainAddress || !walletEVMAddress || isFetchingRef.current) return false;
+    if (!pChainAddress || !walletEVMAddress || !avalancheContext || isFetchingRef.current) return false;
 
     isFetchingRef.current = true;
 
@@ -160,35 +216,59 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     try {
       const platformEndpoint = getRPCEndpoint(Boolean(isTestnet));
       const pvmApi = new pvm.PVMApi(platformEndpoint);
-
-      const cChainUTXOs = await pvmApi.getUTXOs({
-        addresses: [pChainAddress],
-        sourceChain: 'C',
-      });
-      setC_To_P_UTXOs(cChainUTXOs.utxos as Utxo<TransferOutput>[]);
-
       const evmApi = new evm.EVMApi(platformEndpoint);
+      const feeCache = importFeeCacheRef.current;
+
+      // Get C-chain UTXOs (for C->P transfers)
+      const cChainUTXOs = await readSharedMemory((startIndex) =>
+        pvmApi.getUTXOs({ addresses: [pChainAddress], sourceChain: 'C', limit: UTXO_PAGE_SIZE, startIndex }),
+      );
+      const toP = await readImportableShare({
+        side: 'P',
+        utxos: cChainUTXOs.utxos,
+        address: pChainAddress,
+        context: avalancheContext,
+        readPrice: async () => (await pvmApi.getFeeState()).price,
+        feeCache,
+      });
+      setC_To_P_UTXOs(toP.utxos);
 
       // Get P-chain UTXOs (for P->C transfers)
-      const pChainUTXOs = await evmApi.getUTXOs({
-        addresses: [coreEthAddress],
-        sourceChain: 'P',
+      const pChainUTXOs = await readSharedMemory((startIndex) =>
+        evmApi.getUTXOs({ addresses: [coreEthAddress], sourceChain: 'P', limit: UTXO_PAGE_SIZE, startIndex }),
+      );
+      const toC = await readImportableShare({
+        side: 'C',
+        utxos: pChainUTXOs.utxos,
+        address: coreEthAddress,
+        context: avalancheContext,
+        readPrice: async () => baseFeeNanoAvax(await evmApi.getBaseFee()),
+        feeCache,
       });
-      setP_To_C_UTXOs(pChainUTXOs.utxos as Utxo<TransferOutput>[]);
+      setP_To_C_UTXOs(toC.utxos);
+      setBlockedUtxos((prev) =>
+        prev.P === toP.blocked && prev.C === toC.blocked ? prev : { P: toP.blocked, C: toC.blocked },
+      );
+      const more = { P: !cChainUTXOs.complete, C: !pChainUTXOs.complete };
+      setMoreUtxos((prev) => (prev.P === more.P && prev.C === more.C ? prev : more));
 
-      // Check if the number of UTXOs has changed
-      const newCToPCount = cChainUTXOs.utxos.length;
-      const newPToCCount = pChainUTXOs.utxos.length;
-
-      // Return true if UTXOs count changed
-      return prevCToPCount !== newCToPCount || prevPToCCount !== newPToCCount;
+      // Return true if the number of importable UTXOs changed
+      return prevCToPCount !== toP.utxos.length || prevPToCCount !== toC.utxos.length;
     } catch (e) {
       console.error('Error fetching UTXOs:', e);
       return false;
     } finally {
       isFetchingRef.current = false;
     }
-  }, [pChainAddress, walletEVMAddress, coreEthAddress, isTestnet, cToP_UTXOs.length, pToC_UTXOs.length]);
+  }, [
+    pChainAddress,
+    walletEVMAddress,
+    coreEthAddress,
+    isTestnet,
+    avalancheContext,
+    cToP_UTXOs.length,
+    pToC_UTXOs.length,
+  ]);
 
   const pollForUTXOChanges = useCallback(async () => {
     try {
@@ -227,19 +307,14 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     };
   }, [walletEVMAddress, pChainAddress, fetchUTXOs]);
 
+  // A new amount clears the error of the old amount. It keeps the error of the export.
+  const changeAmount = (value: string) => {
+    setAmount(value);
+    setAmountError(null);
+  };
+
   const handleMaxAmount = () => {
-    const balance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
-    if (!Number.isFinite(balance) || balance <= 0) {
-      setAmount('0');
-      return;
-    }
-    const balanceNAvax = Math.floor(balance * 1e9);
-    const spendableNAvax = balanceNAvax - EXPORT_FEE_BUFFER_NAVAX;
-    if (spendableNAvax <= 0) {
-      setAmount('0');
-      return;
-    }
-    setAmount((spendableNAvax / 1e9).toString());
+    changeAmount(maxSpendableText);
   };
 
   // Handler to swap source and destination chains
@@ -248,29 +323,17 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setSourceChain(destinationChain);
     setDestinationChain(tempChain);
     setError(null);
+    setAmountError(null);
     setImportError(null);
-  };
-
-  const validateAmount = (): boolean => {
-    const numericAmount = Number(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      setError('Please enter a valid positive amount.');
-      return false;
-    }
-
-    const currentBalance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
-    if (numericAmount > currentBalance) {
-      setError(`Amount exceeds available balance of ${currentBalance.toFixed(4)} AVAX.`);
-      return false;
-    }
-
-    setError(null);
-    return true;
   };
 
   // Add handlers for buttons
   const handleExport = async () => {
-    if (!validateAmount()) return;
+    // A click starts a new attempt, so the error of the last attempt goes
+    setError(null);
+    const invalidAmount = exportAmountError(amount, maxSpendable);
+    setAmountError(invalidAmount);
+    if (invalidAmount) return;
     if (!coreWalletClient) {
       setError(
         'Cross-chain transfers require Core Wallet for P-Chain signing. Please connect with Core Wallet or use the CLI alternative below.',
@@ -281,25 +344,20 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       setError(
         contextError
           ? `Could not load network parameters: ${contextError}`
-          : 'Network parameters are still loading — please try again in a moment.',
+          : 'Network parameters are still loading. Try again in a moment.',
       );
       return;
     }
 
     setExportLoading(true);
-    setError(null);
     autoImportTriggeredRef.current = false;
 
     // P-Chain/X-Chain transfer amounts are nAVAX (1 AVAX = 1e9 nAVAX). Parse
     // the typed decimal: `BigInt(0.5)` and the float drift from `amount * 1e9`
     // (e.g. 1.005 * 1e9 = 1004999999.9999999) both throw, and the SDK's
-    // avaxToNanoAvax does exactly that multiplication.
+    // avaxToNanoAvax does exactly that multiplication. exportAmountError
+    // checked above that the amount parses to at least 1 nAVAX.
     const amountNAvax = toNanoAvax(amount);
-    if (amountNAvax <= 0n) {
-      setError('Amount is below the smallest exportable unit (1 nAVAX).');
-      setExportLoading(false);
-      return;
-    }
 
     const exportPromise = (async () => {
       if (sourceChain === 'c-chain') {
@@ -332,10 +390,8 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       }
     })();
 
-    notify(
-      'exportCross',
-      exportPromise.then((r) => r.txHash),
-    );
+    // The result names the chain of the tx, so the history lists a C-Chain export as a C-Chain tx
+    notify('exportCross', exportPromise);
 
     try {
       const { txHash, xpChain } = await exportPromise;
@@ -347,7 +403,9 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       onBalanceChanged();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      if (/invalid nonce/i.test(msg)) {
+      if (classifyEvmTxError(error).kind === 'user-rejected') {
+        setError(WALLET_REJECTED_TEXT);
+      } else if (/invalid nonce/i.test(msg)) {
         setError(
           'Export failed: another C-Chain transaction from this wallet is still pending. Wait for it to confirm (or reset the account in Core: Settings → Advanced → Reset Account) and try again.',
         );
@@ -368,11 +426,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       setImportError(
         contextError
           ? `Could not load network parameters: ${contextError}`
-          : 'Network parameters are still loading — please try again in a moment.',
+          : 'Network parameters are still loading. Try again in a moment.',
       );
       return;
     }
-    // Guard against importing before the exported UTXOs have arrived — otherwise
+    // Guard against importing before the exported UTXOs have arrived. Otherwise
     // the SDK rejects with a raw "insufficient funds" (the bulk of importCross errors).
     const utxosReady = destinationChain === 'p-chain' ? cToP_UTXOs : pToC_UTXOs;
     if (utxosReady.length === 0) {
@@ -384,6 +442,9 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setImportLoading(true);
     setImportError(null);
 
+    // Give the SDK exactly the page's selection. Without `utxos`, the SDK reads every UTXO at the address again. Then
+    // a UTXO that the wallet cannot spend can lower the fee of a C-Chain import below what coreth takes, and too many
+    // inputs can put the import above coreth's gas limit or the P-Chain's gas capacity (sharedMemoryImport.ts).
     const importPromise = (async () => {
       if (destinationChain === 'p-chain') {
         const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
@@ -391,6 +452,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           importedOutput: {
             addresses: [pChainAddress],
           },
+          utxos: toSdkUtxos('P', cToP_UTXOs),
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
@@ -400,6 +462,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
         const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
           sourceChain: 'P',
           toAddress: walletEVMAddress as `0x${string}`,
+          utxos: toSdkUtxos('C', pToC_UTXOs),
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
@@ -408,10 +471,8 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       }
     })();
 
-    notify(
-      'importCross',
-      importPromise.then((r) => r.txHash),
-    );
+    // The result names the chain of the tx, so the history lists a C-Chain import as a C-Chain tx
+    notify('importCross', importPromise);
 
     try {
       const { txHash, xpChain } = await importPromise;
@@ -424,7 +485,9 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       onSuccess?.();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      setImportError(`Import failed: ${msg}`);
+      setImportError(
+        classifyEvmTxError(error).kind === 'user-rejected' ? WALLET_REJECTED_TEXT : `Import failed: ${msg}`,
+      );
     } finally {
       setImportLoading(false);
       setExportTxId('');
@@ -437,10 +500,15 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   // Get the available UTXOs based on current direction
   const availableUTXOs = destinationChain === 'p-chain' ? cToP_UTXOs : pToC_UTXOs;
   const totalUtxoAmount = destinationChain === 'p-chain' ? totalCToPUtxoAmount : totalPToCUtxoAmount;
+  const importSide = destinationChain === 'p-chain' ? 'P' : 'C';
+  const blockedText = blockedUtxosText(blockedUtxos[importSide]);
+  const moreText = moreUtxos[importSide] ? MORE_UTXOS_TEXT : null;
+  // One Export click sets at most one of the two: an amount error stops the click before the export starts
+  const exportError = amountError ?? error;
 
   // Step status logic with auto-collapse flow
   const getStep1Status = (): 'pending' | 'active' | 'waiting' | 'completed' | 'error' => {
-    if (error) return 'error';
+    if (exportError) return 'error';
     if (step1AutoCollapse) return 'completed';
     if (completedExportTxId) return 'waiting'; // Show as waiting after success, before auto-collapse
     if (exportLoading) return 'active';
@@ -500,13 +568,16 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   useEffect(() => {
     if (hasAutoSwitchedRef.current) return;
     if (!exportTxId && !completedExportTxId && !importTxId) {
+      // The page now offers the pending import, so an amount error of an earlier Export click goes
       if (cToP_UTXOs.length > 0 && pToC_UTXOs.length === 0) {
         setSourceChain('c-chain');
         setDestinationChain('p-chain');
+        setAmountError(null);
         hasAutoSwitchedRef.current = true;
       } else if (pToC_UTXOs.length > 0 && cToP_UTXOs.length === 0) {
         setSourceChain('p-chain');
         setDestinationChain('c-chain');
+        setAmountError(null);
         hasAutoSwitchedRef.current = true;
       }
     }
@@ -559,6 +630,7 @@ console.log("Export tx:", txnResponse.txHash);`,
           ? `import { CoreWalletClient } from "@core-wallet/sdk";
 
 // Import AVAX to P-Chain from C-Chain
+// Set \`utxos\` to the wallet's own spendable AVAX UTXOs only. Without it, the SDK uses every UTXO at the address.
 const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
   sourceChain: "C",
   importedOutput: {
@@ -572,6 +644,7 @@ console.log("Import tx:", txnResponse.txHash);`
           : `import { CoreWalletClient } from "@core-wallet/sdk";
 
 // Import AVAX to C-Chain from P-Chain
+// Set \`utxos\` to the wallet's own spendable AVAX UTXOs only. Without it, the SDK uses every UTXO at the address.
 const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
   sourceChain: "P",
   toAddress: "${walletEVMAddress || '<your-evm-address>'}",
@@ -592,7 +665,6 @@ console.log("Import tx:", txnResponse.txHash);`,
 
   const sourceChainName = sourceChain === 'c-chain' ? 'C-Chain' : 'P-Chain';
   const destChainName = destinationChain === 'c-chain' ? 'C-Chain' : 'P-Chain';
-  const sourceBalance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
   const destBalance = destinationChain === 'c-chain' ? cChainBalance : pChainBalance;
 
   const chainLogo = (chain: string) =>
@@ -629,17 +701,18 @@ console.log("Import tx:", txnResponse.txHash);`,
               </div>
               <AmountInput
                 label=""
+                aria-label="Amount"
                 value={amount}
-                onChange={setAmount}
+                onChange={changeAmount}
                 type="number"
                 min="0"
-                max={sourceBalance.toString()}
+                max={maxSpendableText}
                 step="0.000001"
                 required
                 disabled={exportLoading || importLoading}
-                error={error ?? undefined}
+                error={exportError ?? undefined}
                 button={
-                  <Button onClick={handleMaxAmount} disabled={exportLoading || sourceBalance <= 0} stickLeft>
+                  <Button onClick={handleMaxAmount} disabled={exportLoading || maxSpendable <= 0n} stickLeft>
                     MAX
                   </Button>
                 }
@@ -685,7 +758,7 @@ console.log("Import tx:", txnResponse.txHash);`,
               <Button
                 variant="primary"
                 onClick={handleExport}
-                disabled={Number(amount) <= 0 || !!error}
+                disabled={Number(amount) <= 0 || !!amountError}
                 icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                 className="w-full"
               >
@@ -707,9 +780,9 @@ console.log("Import tx:", txnResponse.txHash);`,
             )}
 
             {/* Export error */}
-            {error && (
+            {exportError && (
               <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                <p className="text-sm text-destructive">{error}</p>
+                <p className="text-sm text-destructive">{exportError}</p>
               </div>
             )}
 
@@ -774,6 +847,7 @@ console.log("Import tx:", txnResponse.txHash);`,
                     setImportTxId(null);
                     setAmount('');
                     setError(null);
+                    setAmountError(null);
                     setImportError(null);
                     setStep1AutoCollapse(false);
                     setStep2AutoCollapse(false);
@@ -791,6 +865,11 @@ console.log("Import tx:", txnResponse.txHash);`,
                 </Button>
               </>
             )}
+
+            {/* UTXOs that the wallet cannot import now: locked, other owners, another asset, not above the fee of
+                their own input, above the gas limit of one import, or below the fee of the import */}
+            {blockedText && <p className="text-xs text-muted-foreground px-1">{blockedText}</p>}
+            {moreText && <p className="text-xs text-muted-foreground px-1">{moreText}</p>}
           </div>
 
           {/* Fee */}

@@ -61,11 +61,14 @@ function CliCommandBlock({ command }: { command: string }) {
     <div className="group relative rounded-lg bg-muted/50 border border-border px-4 py-3">
       <button
         onClick={handleCopy}
-        className="absolute top-2.5 right-2.5 p-1.5 rounded-md text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors"
-        aria-label="Copy command"
+        className="absolute top-2.5 right-2.5 p-1.5 rounded-md text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground focus-visible:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+        aria-label={copied ? 'Copied' : 'Copy command'}
       >
         {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
       </button>
+      <span className="sr-only" aria-live="polite">
+        {copied ? 'Copied' : ''}
+      </span>
       <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
         <span className="text-muted-foreground/50 select-none">$ </span>
         <span className="text-foreground">{command}</span>
@@ -100,9 +103,10 @@ export function CoreWalletTransactionButton({
           <button
             onClick={onClick}
             disabled={disabled || loading}
+            aria-busy={loading}
             className="w-full group relative flex flex-col items-center gap-2 px-6 py-5 rounded-2xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100/50 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700/50 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
-            <img src="/images/core-wordmark.png" alt="Core" className="w-10 h-10 rounded-xl" />
+            <img src="/images/core-wordmark.png" alt="" className="w-10 h-10 rounded-xl" />
             {loading ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />

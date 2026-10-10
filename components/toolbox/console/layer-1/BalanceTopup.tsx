@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useId } from 'react';
 import { Check, ArrowUpRight, RefreshCw, Copy, Wallet, AlertTriangle } from 'lucide-react';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -21,9 +21,13 @@ import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code
 import { cn } from '@/lib/utils';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const INVALID_AMOUNT_ERROR = 'Invalid amount provided.';
+const AMOUNT_OVER_BALANCE_ERROR = 'Amount exceeds available P-Chain balance.';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Validator Balance Increase',
@@ -77,6 +81,10 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
   const [error, setError] = useState<string | null>(null);
   const [validatorTxId, setValidatorTxId] = useState<string>('');
   const [txCopied, setTxCopied] = useState(false);
+  const amountInputId = useId();
+  const errorTextId = useId();
+  // Only the two amount checks mark the amount field invalid. Every error shows once, in the alert below the form.
+  const amountInvalid = error === INVALID_AMOUNT_ERROR || error === AMOUNT_OVER_BALANCE_ERROR;
 
   const { pChainAddress, isTestnet } = useWalletStore();
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
@@ -100,11 +108,11 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
     }
     const amountNumber = Number(amount);
     if (isNaN(amountNumber) || amountNumber <= 0) {
-      setError('Invalid amount provided.');
+      setError(INVALID_AMOUNT_ERROR);
       return;
     }
     if (amountNumber > pChainBalance) {
-      setError('Amount exceeds available P-Chain balance.');
+      setError(AMOUNT_OVER_BALANCE_ERROR);
       return;
     }
 
@@ -128,11 +136,12 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
         notify('increaseL1ValidatorBalance', txPromise);
         return txPromise;
       });
+      // Keep the issued ID: when the confirmation wait fails, the tx can still commit.
+      setValidatorTxId(txHash);
 
       // Wait for P-Chain confirmation before declaring success
       await waitForPChainConfirmation(txHash, isTestnet);
 
-      setValidatorTxId(txHash);
       setOperationSuccessful(true);
       onSuccess?.();
 
@@ -141,6 +150,8 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
     } catch (error) {
       console.error('Error increasing validator balance:', error);
       setError(parsePChainError(error));
+      // A dropped tx cannot commit, so its ID is no longer pending.
+      if (isPChainTxDropped(error)) setValidatorTxId('');
     } finally {
       setLoading(false);
     }
@@ -217,6 +228,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
               <button
                 type="button"
                 onClick={handleCopyTx}
+                aria-label="Copy transaction ID"
                 className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 {txCopied ? (
@@ -229,6 +241,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                 href={explorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="View transaction in the explorer"
                 className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 <ArrowUpRight className="h-3.5 w-3.5 text-zinc-400" />
@@ -247,12 +260,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
                 Choose the L1 network where your validator operates.
               </p>
-              <SelectSubnetId
-                value={subnetId}
-                onChange={setSubnetId}
-                hidePrimaryNetwork={true}
-                error={error && error.toLowerCase().includes('subnet') ? error : undefined}
-              />
+              <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />
             </Step>
 
             <Step>
@@ -265,7 +273,6 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                 onChange={setValidatorSelection}
                 format="cb58"
                 subnetId={subnetId}
-                error={error && error.toLowerCase().includes('validation') ? error : undefined}
               />
             </Step>
 
@@ -278,9 +285,12 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
               <div className="space-y-4">
                 {/* Amount Input */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Amount</label>
+                  <label htmlFor={amountInputId} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Amount
+                  </label>
                   <div className="relative">
                     <input
+                      id={amountInputId}
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
@@ -288,9 +298,11 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                       step="0.001"
                       min="0"
                       disabled={loading}
+                      aria-invalid={amountInvalid || undefined}
+                      aria-describedby={amountInvalid ? errorTextId : undefined}
                       className={cn(
                         'w-full px-3 py-2 pr-16 text-sm rounded-lg border bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 transition-colors',
-                        error && error.toLowerCase().includes('amount')
+                        amountInvalid
                           ? 'border-red-300 dark:border-red-700'
                           : 'border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-600',
                         'focus:outline-none focus:ring-2 focus:ring-zinc-500/20',
@@ -316,6 +328,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                       type="button"
                       onClick={loading ? undefined : updatePChainBalance}
                       disabled={loading}
+                      aria-label="Refresh P-Chain balance"
                       className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                     >
                       <RefreshCw className="w-3.5 h-3.5 text-zinc-400" />
@@ -324,16 +337,18 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                 </div>
 
                 {/* Error */}
-                {error &&
-                  !error.toLowerCase().includes('amount') &&
-                  !error.toLowerCase().includes('balance') &&
-                  !error.toLowerCase().includes('validation') &&
-                  !error.toLowerCase().includes('subnet') && (
-                    <div className="flex gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200/80 dark:border-red-800/50">
-                      <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-red-800 dark:text-red-200">{error}</p>
+                {error && (
+                  <div
+                    role="alert"
+                    className="flex gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200/80 dark:border-red-800/50"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0 space-y-1 text-xs text-red-800 dark:text-red-200">
+                      <p id={errorTextId}>{error}</p>
+                      {validatorTxId && <IssuedTxNote txId={validatorTxId} isTestnet={isTestnet} />}
                     </div>
-                  )}
+                  </div>
+                )}
 
                 {/* Submit Button */}
                 <CoreWalletTransactionButton

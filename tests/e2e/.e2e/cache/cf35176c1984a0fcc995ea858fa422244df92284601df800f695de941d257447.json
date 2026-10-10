@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:18:47.799Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Start the course\" in \"Start here\"",
+        "target": {
+          "role": "link",
+          "name": "Start the course",
+          "within": "Start here"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Consensus Mechanisms\"",
+        "target": {
+          "role": "link",
+          "name": "Consensus Mechanisms"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-academy.e2e.ts::learner%20starts%20Avalanche%20Fundamentals%20and%20opens%20its%20second%20lesson",
+      "targetId": "desktop",
+      "instructionDigest": "f5295c55971cbf274325fb1ca3a03cf5385c19513bd1ba7cca0f9e96142fd543",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Tapped \"Start the course\" on /academy, which opened the Avalanche Fundamentals landing page (\"Welcome to the Course\"). I then opened the second lesson in the sidebar, \"Consensus Mechanisms\", at /academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms. The pa…",
+    "startPath": "/academy",
+    "endPath": "/academy/avalanche-l1/avalanche-fundamentals/02-avalanche-consensus-intro/02-consensus-mechanisms",
+    "endAnchors": [
+      {
+        "text": "Fundamentals"
+      },
+      {
+        "text": "L1 Development"
+      },
+      {
+        "text": "Interoperability"
+      },
+      {
+        "text": "VM Customization"
+      },
+      {
+        "text": "Applications"
+      },
+      {
+        "role": "link",
+        "name": "Welcome to the Course"
+      },
+      {
+        "role": "link",
+        "name": "Avalanche Consensus"
+      },
+      {
+        "role": "link",
+        "name": "Consensus Mechanisms"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "."
+      },
+      {
+        "text": "Guided courses, from blockchain fundamentals to launching your own L1."
+      },
+      {
+        "role": "link",
+        "name": "Overview"
+      },
+      {
+        "role": "link",
+        "name": "Tree"
+      },
+      {
+        "role": "link",
+        "name": "Stages"
+      },
+      {
+        "role": "image",
+        "name": "The Avalanche Fundamentals course banner: a grid of outlined blocks on red, with a white disc and the Avalanche mark"
+      },
+      {
+        "text": "Start here"
+      },
+      {
+        "role": "heading",
+        "name": "Avalanche Fundamentals"
+      }
+    ],
+    "endWaitMs": 12698
+  }
+}

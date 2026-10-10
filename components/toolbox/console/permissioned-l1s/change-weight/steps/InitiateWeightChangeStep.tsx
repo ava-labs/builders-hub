@@ -20,7 +20,7 @@ export default function InitiateWeightChangeStep() {
       <div className="space-y-4">
         {!store.subnetIdL1 && (
           <Alert variant="warning">
-            No L1 subnet selected. Go back to <strong>Select L1 Subnet</strong>.
+            No L1 selected. Go back to <strong>Select L1</strong>.
           </Alert>
         )}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">

@@ -44,7 +44,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
 
   const vmcAddress = useVMCAddress(subnetId);
 
-  // Read contract state from the VMC's own chain — independent of the
+  // Read contract state from the VMC's own chain, independent of the
   // wallet's currently-selected network. Resolves well-known C-Chain
   // IDs even when the user's l1List has been customized.
   const vmcPublicClient = usePublicClientForChain(vmcAddress.blockchainId);
@@ -93,7 +93,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
         const active = all.filter((v) => v.weight > 0).sort((a, b) => b.weight - a.weight);
         setValidators(active);
 
-        // Detect L1 vs legacy subnet — L1s have validators with validationId
+        // Detect L1 vs legacy subnet: L1s have validators with validationId
       } catch (err) {
         console.error('Error fetching validators:', err);
         setError('Failed to fetch validators');
@@ -141,7 +141,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
         {!subnetId ? (
           <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/30 p-8 text-center">
             <Users className="h-6 w-6 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Select a subnet to view its validators</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Select an L1 to see its validators.</p>
           </div>
         ) : isLoading ? (
           <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/30 p-8 text-center">

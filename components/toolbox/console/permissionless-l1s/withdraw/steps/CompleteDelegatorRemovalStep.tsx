@@ -33,7 +33,9 @@ export default function CompleteDelegatorRemovalStep() {
               stakingManagerAddress={stakingManagerAddress}
               tokenType={tokenType}
               subnetIdL1={store.subnetIdL1}
-              signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+              signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               pChainTxId={store.pChainTxId}
               onSuccess={(data) => {
                 store.setGlobalSuccess(data.message);

@@ -38,7 +38,8 @@ export function WalletNetworkAction({ l1 }: { l1: CombinedL1 }) {
     if (l1.evmChainId === null) return;
     setIsSwitching(true);
     try {
-      await safelySwitch(l1.evmChainId, l1.isTestnet);
+      // safelySwitch shows its own toast when the wallet does not switch.
+      if (!(await safelySwitch(l1.evmChainId, l1.isTestnet))) return;
       toast.success(`Wallet on ${l1.chainName}`, undefined, {
         id: `wallet-switch:${l1.evmChainId}`,
       });

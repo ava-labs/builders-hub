@@ -1,5 +1,5 @@
 import { useWalletStore } from '../stores/walletStore';
-import { useWalletSwitch } from './useWalletSwitch';
+import { useWalletSwitch, type SwitchOptions } from './useWalletSwitch';
 import type { AddChainOptions, AddChainResult } from '@/types/wallet';
 import { useModalTrigger } from './useModal';
 import { toast } from '@/lib/toast';
@@ -48,15 +48,14 @@ export function useWallet() {
     [walletClient, openModal],
   );
 
+  /**
+   * Switch the wallet to `chainId`. Returns true when the wallet switched. A
+   * failure shows a toast unless `options.toastOnFailure` is false.
+   */
   const switchChain = useCallback(
-    async (chainId: number, testnet?: boolean) => {
-      if (testnet !== undefined) {
-        return safelySwitch(chainId, testnet);
-      }
-
+    async (chainId: number, testnet?: boolean, options?: SwitchOptions) => {
       // If testnet not specified, try to determine from wallet store
-      const isTestnetChain = isTestnet ?? false;
-      return safelySwitch(chainId, isTestnetChain);
+      return safelySwitch(chainId, testnet ?? isTestnet ?? false, options);
     },
     [safelySwitch, isTestnet],
   );
@@ -67,8 +66,8 @@ export function useWallet() {
    * be in the user's wallet (e.g. ICTT bridge pickers, phase gate).
    */
   const switchChainOrAdd = useCallback(
-    async (l1: L1ListItem): Promise<boolean> => {
-      return safelySwitchOrAdd(l1);
+    async (l1: L1ListItem, options?: SwitchOptions): Promise<boolean> => {
+      return safelySwitchOrAdd(l1, options);
     },
     [safelySwitchOrAdd],
   );

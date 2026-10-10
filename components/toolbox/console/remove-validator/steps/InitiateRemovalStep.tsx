@@ -88,7 +88,7 @@ export default function InitiateRemovalStep() {
 
         {!store.subnetIdL1 && (
           <Alert variant="warning">
-            No L1 subnet selected. Go back to <strong>Select L1 Subnet</strong> to choose one.
+            No L1 selected. Go back to <strong>Select L1</strong> to choose one.
           </Alert>
         )}
 
@@ -120,12 +120,13 @@ export default function InitiateRemovalStep() {
                 <SelectValidationID
                   value={store.validationId}
                   onChange={(selection) => {
-                    store.setValidationId(selection.validationId);
+                    // setValidationId clears the later progress: call it only for a new ID
+                    if (selection.validationId !== store.validationId) store.setValidationId(selection.validationId);
                     store.setNodeId(selection.nodeId);
                   }}
                   format="hex"
                   subnetId={store.subnetIdL1}
-                  // getValidator() lives on the VMC, not the StakingManager — for
+                  // getValidator() lives on the VMC, not the StakingManager. For
                   // composition-model L1s they're different contracts.
                   validatorManagerAddress={validatorManagerAddress}
                 />
@@ -173,7 +174,7 @@ export default function InitiateRemovalStep() {
       <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
         <span className="text-xs text-zinc-500">
           {isStaking
-            ? 'Calls initiateValidatorRemoval() — uptime path or force, auto-selected'
+            ? 'Calls initiateValidatorRemoval() (uptime path or force, auto-selected)'
             : 'Calls initiateValidatorRemoval()'}
         </span>
         <a

@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 import StepFlow, { type StepDefinition } from "@/components/console/step-flow";
 import { steps as fullSteps } from "../steps";
 import { useRemoveValidatorStore } from "@/components/toolbox/stores/removeValidatorStore";
 import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManagerLayout";
+import { useSubnetIdQuery } from "@/components/toolbox/hooks/useSubnetIdQuery";
 import { useValidatorManagerContext } from "@/components/toolbox/contexts/ValidatorManagerContext";
 
 /**
- * Inner component — has access to ValidatorManagerContext (since it's rendered
+ * Inner component: it has access to ValidatorManagerContext (since it's rendered
  * inside <ValidatorManagerLayout>), which is where manager-type detection
  * resolves. The steps list is derived from the detected ownerType so we hide
  * claim-fees entirely for PoA flows (no delegations → nothing to claim).
@@ -31,7 +31,7 @@ function RemoveValidatorFlow({
 
   const steps = useMemo<StepDefinition[]>(() => {
     // PoA flows (EOA-owned or PoAManager-owned VMCs) have no delegation fees
-    // to claim — strip the claim-fees step entirely.
+    // to claim, so strip the claim-fees step entirely.
     const isPoA = vmcCtx.ownerType === "EOA" || vmcCtx.ownerType === "PoAManager";
     if (!isPoA) return fullSteps;
     return fullSteps.filter((step) => !(step.type === "single" && step.key === "claim-fees"));
@@ -49,16 +49,11 @@ function RemoveValidatorFlow({
 
 export default function RemoveValidatorClientPage({ currentStepKey }: { currentStepKey: string }) {
   const basePath = "/console/remove-validator";
-  const searchParams = useSearchParams();
-  const { subnetIdL1, globalError, pChainTxId, setSubnetIdL1 } = useRemoveValidatorStore();
-
-  useEffect(() => {
-    const subnetId = searchParams.get("subnetId");
-    if (subnetId && subnetId !== subnetIdL1) setSubnetIdL1(subnetId);
-  }, [searchParams, setSubnetIdL1, subnetIdL1]);
+  const { subnetIdL1, pChainTxId, flowCompleted, setSubnetIdL1 } = useRemoveValidatorStore();
+  useSubnetIdQuery(subnetIdL1, flowCompleted, setSubnetIdL1);
 
   return (
-    <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError}>
+    <ValidatorManagerLayout subnetIdL1={subnetIdL1}>
       <RemoveValidatorFlow basePath={basePath} currentStepKey={currentStepKey} pChainTxId={pChainTxId} />
     </ValidatorManagerLayout>
   );

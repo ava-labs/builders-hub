@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:19:25.461Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Search ⌘ K\"",
+        "target": {
+          "role": "button",
+          "name": "Search ⌘ K",
+          "text": "Search"
+        }
+      },
+      {
+        "name": "type",
+        "summary": "type \"teleporter\" into textbox \"Search\" in \"ESC\"",
+        "target": {
+          "role": "textbox",
+          "name": "Search",
+          "placeholder": "Search",
+          "within": "ESC"
+        },
+        "value": "teleporter"
+      },
+      {
+        "name": "tap",
+        "summary": "tap button \"What is Interchain Messaging?\" in \"ESC\"",
+        "target": {
+          "role": "button",
+          "name": "What is Interchain Messaging?",
+          "within": "ESC"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-docs.e2e.ts::docs%20search%20leads%20a%20visitor%20from%20%22teleporter%22%20to%20a%20page%20that%20explains%20Teleporter",
+      "targetId": "desktop",
+      "instructionDigest": "d39776f82e599c2006afb8360fd361df34031e241212b670b8a96a051a7cddf2",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Searched \"teleporter\" in docs search and opened the result \"What is Interchain Messaging?\" (/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm). It says ICM is also known as Teleporter and explains TeleporterMessenger and the protocol layer.",
+    "startPath": "/docs/primary-network",
+    "endPath": "/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm",
+    "endAnchors": [
+      {
+        "text": "Fundamentals"
+      },
+      {
+        "text": "L1 Development"
+      },
+      {
+        "text": "Interoperability"
+      },
+      {
+        "text": "VM Customization"
+      },
+      {
+        "text": "Applications"
+      },
+      {
+        "role": "link",
+        "name": "Welcome to the course"
+      },
+      {
+        "role": "link",
+        "name": "Interoperability between blockchain"
+      },
+      {
+        "role": "link",
+        "name": "Source, Message and Destination"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "Network"
+      },
+      {
+        "text": "Nodes"
+      },
+      {
+        "text": "APIs"
+      },
+      {
+        "text": "Tools"
+      },
+      {
+        "text": "ACPs"
+      },
+      {
+        "role": "link",
+        "name": "Primary Network"
+      },
+      {
+        "role": "link",
+        "name": "Snowman Consensus"
+      },
+      {
+        "role": "link",
+        "name": "AVAX Token"
+      }
+    ],
+    "endWaitMs": 14753
+  }
+}

@@ -17,7 +17,7 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function ChangeWeight() {
-  const { subnetIdL1, globalError } = useChangeWeightStore();
+  const { subnetIdL1 } = useChangeWeightStore();
   const firstKey = steps[0].type === 'single' ? steps[0].key : steps[0].options[0].key;
   const [currentStepKey, setCurrentStepKey] = useState(firstKey);
 
@@ -26,7 +26,7 @@ function ChangeWeight() {
   }, []);
 
   return (
-    <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError}>
+    <ValidatorManagerLayout subnetIdL1={subnetIdL1}>
       <StepFlow
         steps={steps}
         basePath=""

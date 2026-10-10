@@ -5,8 +5,9 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useWalletStore } from '../../stores/walletStore';
 import { useCreateChainStore } from '../../stores/createChainStore';
 import { Container } from '../../components/Container';
-import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork } from '../../coreViem/utils/glacier';
+import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork, GlacierHttpError } from '../../coreViem/utils/glacier';
 import InputSubnetId from '../../components/InputSubnetId';
+import { DATA_API_ERROR, pageLookupErrorText, subnetIdFormatErrorText } from '../../utils/vmcLookupText';
 import BlockchainDetailsDisplay from '../../components/BlockchainDetailsDisplay';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -23,7 +24,11 @@ import {
   generateNodeConfig,
   generateDockerCommand,
   generateAllConfigCommands,
+  isDebugTraceOn,
+  l1PortsTileText,
+  l1StorageTileText,
 } from './nodeConfig';
+import Link from 'next/link';
 import { useNodeConfigHighlighting } from './useNodeConfigHighlighting';
 import {
   AlertCircle,
@@ -47,14 +52,14 @@ import { networkIDs } from '@avalabs/avalanchejs';
 export interface AvalancheGoDockerL1Props {
   /**
    * Pre-fill the subnet ID input. When set, the component mounts with the
-   * subnet already selected — used when coming from the Create L1 flow where
+   * subnet already selected. Used when coming from the Create L1 flow where
    * the subnet was just created.
    */
   defaultSubnetId?: string;
   /**
    * Hide the node-type selector and force the given type. Used in the Create
    * L1 flow where the user must run a validator (they just created a
-   * validator set) — RPC/Archival options are noise in that context.
+   * validator set). RPC/Archival options are noise in that context.
    */
   forceNodeType?: 'validator' | 'rpc' | 'archival';
   /**
@@ -177,7 +182,7 @@ function AvalanchegoDockerInner({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
   // Track whether the user has manually touched enableDebugTrace. Without
-  // this, switching networks silently overrides their choice — a UX bug
+  // this, switching networks silently overrides their choice: a UX bug
   // where a user turns off debug trace, switches Fuji→Mainnet→Fuji, and
   // has debug trace flipped back on without touching the checkbox.
   const debugTraceUserSet = useRef(false);
@@ -247,7 +252,7 @@ function AvalanchegoDockerInner({
   }, [nodeType, cfg]);
 
   // Node-type preset. Patches only the fields this type has a strong
-  // opinion about — cache/gossip knobs, user's domain, etc. survive.
+  // opinion about. Cache/gossip knobs, user's domain, etc. survive.
   useEffect(() => {
     if (nodeType === 'validator') {
       setDomain('');
@@ -286,7 +291,7 @@ function AvalanchegoDockerInner({
     }
   }, [nodeType]);
 
-  // Default debug trace on/off by network — but only if the user hasn't
+  // Default debug trace on/off by network, but only if the user hasn't
   // explicitly toggled it. Prior logic overwrote user intent on every
   // network flip; the ref-guard keeps manual changes sticky.
   useEffect(() => {
@@ -294,7 +299,7 @@ function AvalanchegoDockerInner({
     setCfg((c) => ({ ...c, enableDebugTrace: selectedNetwork === 'fuji' }));
   }, [selectedNetwork]);
 
-  // Default to running both Validator + RPC on Fuji — the common single-box
+  // Default to running both Validator + RPC on Fuji: the common single-box
   // testnet shape. Effect only re-fires when selectedNetwork actually changes,
   // so a manual mid-Fuji click on Validator or RPC still sticks. The reset
   // happens cleanly on every Mainnet → Fuji entry, matching the user's mental
@@ -304,13 +309,14 @@ function AvalanchegoDockerInner({
     if (selectedNetwork === 'fuji') setNodeType('archival');
   }, [selectedNetwork, forceNodeType]);
 
-  // L1 lookup — refetch on subnet/network change, with AbortController.
+  // L1 lookup: refetch on subnet/network change, with AbortController.
   useEffect(() => {
     setSubnetIdError(null);
     setChainId('');
     setSubnet(null);
     setBlockchainInfo(null);
-    if (!subnetId) return;
+    // A value that is not a Subnet ID in form (for example while the user types) gets the field's text, and no read
+    if (!subnetId || subnetIdFormatErrorText(subnetId)) return;
 
     const abortController = new AbortController();
     setIsLoading(true);
@@ -331,15 +337,17 @@ function AvalanchegoDockerInner({
             const chainInfo = await getBlockchainInfoForNetwork(network, blockchainId, abortController.signal);
             if (abortController.signal.aborted) return;
             setBlockchainInfo(chainInfo);
-          } catch (error) {
-            if (!abortController.signal.aborted) {
-              setSubnetIdError((error as Error).message);
-            }
+          } catch {
+            if (!abortController.signal.aborted) setSubnetIdError(DATA_API_ERROR);
           }
         }
-      } catch {
+      } catch (error) {
+        // A miss names the Network toggle, which sets the network that this page reads. A Data API failure (5xx, 429,
+        // network error) does not blame the ID. The Subnet ID field reads the other network too, and its more exact
+        // text replaces this one when it has one.
         if (!abortController.signal.aborted) {
-          setSubnetIdError(`L1 not found on ${selectedNetwork}. Try switching networks.`);
+          const status = error instanceof GlacierHttpError ? error.status : undefined;
+          setSubnetIdError(pageLookupErrorText(status, selectedNetwork === 'fuji'));
         }
       } finally {
         if (!abortController.signal.aborted) setIsLoading(false);
@@ -412,7 +420,7 @@ function AvalanchegoDockerInner({
       const nodeConfig = generateNodeConfig(subnetId, nodeType, effectiveNetworkID);
       const chainConfig = JSON.parse(configJson);
       const vmId = blockchainInfo?.vmId || SUBNET_EVM_VM_ID;
-      return `#!/bin/bash\n# AvalancheGo L1 node config — generated by console\nset -euo pipefail\n\n${generateAllConfigCommands(
+      return `#!/bin/bash\n# AvalancheGo L1 node config, generated by the console\nset -euo pipefail\n\n${generateAllConfigCommands(
         subnetId,
         chainId,
         nodeConfig,
@@ -424,11 +432,11 @@ function AvalanchegoDockerInner({
     }
   }, [subnetId, chainId, configJson, nodeType, effectiveNetworkID, blockchainInfo]);
 
-  const verifySnippet = `# Check bootstrap progress — returns {"isBootstrapped": true} when ready
+  const verifySnippet = `# Check bootstrap progress. Returns {"isBootstrapped": true} when ready
 curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.isBootstrapped","params":{"chain":"P"}}' \\
   -H 'content-type:application/json;' http://localhost:9650/ext/info | jq
 
-# Get nodeID + BLS proof-of-possession (inputs for Convert to L1)
+# Get nodeID + BLS proof-of-possession (inputs for Convert to L1 or Add Validator)
 curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
   -H 'content-type:application/json;' http://localhost:9650/ext/info | jq`;
 
@@ -605,7 +613,7 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                 </div>
               )}
 
-              {/* Storage settings — pruning & state-sync are interdependent */}
+              {/* Storage settings: pruning & state-sync are interdependent */}
               <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="w-4 h-4 text-zinc-500" />
@@ -855,15 +863,16 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
               </div>
 
               {/* Storage Requirements Visualization (matches Primary Network setup).
-                  variant="l1" anchors the baseline on the ~40 GB Fuji / ~200 GB
-                  Mainnet figures shown in the Set up Instance tile — Primary
-                  Network's 13 TB archival numbers don't apply to L1s. */}
+                  variant="l1" uses the L1 baseline. The Set up Instance storage
+                  tile shows this chart's Initial figure for the node type's
+                  preset (l1StorageTileText). Primary Network's 13 TB archival
+                  numbers don't apply to L1s. */}
               <StorageRequirements
                 nodeType={nodeType}
                 pruningEnabled={cfg.pruningEnabled}
                 skipTxIndexing={cfg.skipTxIndexing}
                 stateSyncEnabled={cfg.stateSyncEnabled}
-                debugEnabled={cfg.enableDebugTrace}
+                debugEnabled={isDebugTraceOn(nodeType, cfg.enableDebugTrace)}
                 network={selectedNetwork}
                 variant="l1"
               />
@@ -921,7 +930,7 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                   <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
                 </div>
                 <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {isTestnet ? '~40 GB Fuji' : '~200 GB Mainnet'}
+                  {l1StorageTileText(nodeType, isTestnet)}
                 </div>
               </div>
               <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
@@ -929,7 +938,9 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                   <ShieldCheck className="w-4 h-4 text-zinc-500" />
                   <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Open ports</span>
                 </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">9651 P2P · 9650 RPC</div>
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {l1PortsTileText(nodeType)}
+                </div>
               </div>
             </div>
 
@@ -966,11 +977,19 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
           <h3 className="text-xl font-bold mb-4">Select L1</h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
             {subnetId && subnetId === (defaultSubnetId ?? createChainSubnetId)
-              ? 'Pre-filled from your Create Chain step — edit if you meant a different L1.'
+              ? 'Pre-filled from your Create Chain step. Edit it if you meant a different L1.'
               : 'Enter the Avalanche Subnet ID of the L1 you want to run a node for.'}
           </p>
 
-          <InputSubnetId value={subnetId} onChange={setSubnetId} error={subnetIdError} />
+          {/* The field reads the network of this page's Network toggle, not the wallet's. The suggestions come
+              from the L1 list of the wallet's network. Hide them when the toggle names the other network. */}
+          <InputSubnetId
+            value={subnetId}
+            onChange={setSubnetId}
+            error={subnetIdError}
+            isTestnet={isTestnet}
+            hideSuggestions={isTestnet !== walletIsTestnet}
+          />
 
           {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
             <div className="space-y-4 mt-4">
@@ -1171,7 +1190,7 @@ sudo ufw status`
 
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
                 {isRPC
-                  ? 'On a cloud host (AWS/GCP/Azure), open these same ports in your Security Group too — the host firewall alone is not enough.'
+                  ? 'On a cloud host (AWS/GCP/Azure), open these same ports in your Security Group too. The host firewall alone is not enough.'
                   : 'Validators only need the P2P port. The RPC port is bound to localhost for security.'}
               </p>
             </Step>
@@ -1179,7 +1198,8 @@ sudo ufw status`
             <Step>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Start the node. Config is read from the mounted volume — no env vars needed.
+                Start the node. The command gives the node the path of its config file and the VM ID. The node reads all
+                other settings from the mounted volume.
               </p>
 
               <DynamicCodeBlock
@@ -1223,8 +1243,8 @@ sudo ufw status`
                 {isCustomVM && (
                   <Accordion title="Custom VM Configuration">
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      This blockchain uses a non-standard Virtual Machine ID. The Docker command includes VM aliases
-                      mapping.
+                      This blockchain uses a non-standard Virtual Machine ID. The <code>aliases.json</code> file from
+                      Create Configuration Files maps this VM ID to Subnet-EVM.
                     </p>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
                       <strong>VM ID:</strong> {blockchainInfo.vmId}
@@ -1251,8 +1271,8 @@ sudo ufw status`
             <Step>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Verify the Node</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Wait for bootstrap, then grab the <code>nodeID</code> and BLS proof-of-possession — these are the inputs
-                for the Convert to L1 step.
+                Wait for bootstrap, then get the <code>nodeID</code> and BLS proof-of-possession. A new L1 needs them in
+                the Convert to L1 step. An L1 that already runs needs them in Add Validator.
               </p>
 
               <DynamicCodeBlock lang="bash" code={verifySnippet} />
@@ -1269,8 +1289,12 @@ sudo ufw status`
                   <Copy className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-zinc-500" />
                   <span>
                     Copy the <code>nodeID</code>, <code>nodePOP.publicKey</code>, and{' '}
-                    <code>nodePOP.proofOfPossession</code> from the second response — paste them into the Convert to L1
-                    step.
+                    <code>nodePOP.proofOfPossession</code> from the second response. Paste them into the Convert to L1
+                    step for a new L1, or into{' '}
+                    <Link href="/console/add-validator" className="text-blue-500 hover:underline">
+                      Add Validator
+                    </Link>{' '}
+                    for an L1 that already runs.
                   </span>
                 </div>
               )}
@@ -1317,9 +1341,11 @@ sudo ufw status`
 
                 <DynamicCodeBlock
                   lang="bash"
-                  code={`# Backup your validator credentials
+                  code={`# Back up your validator credentials
+# The node runs as root in Docker, so the key files belong to root
 mkdir -p ~/avalanche-backup
-cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo chown -R "$(id -u):$(id -g)" ~/avalanche-backup
 
 # Verify backup
 ls -la ~/avalanche-backup/staking/`}
@@ -1349,7 +1375,7 @@ ls -la ~/avalanche-backup/staking/`}
                   </p>
                   <p className="flex items-start gap-1.5">
                     <Key className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span>Never share private keys — anyone with them can impersonate your validator.</span>
+                    <span>Never share private keys. Anyone with them can impersonate your validator.</span>
                   </p>
                 </div>
 

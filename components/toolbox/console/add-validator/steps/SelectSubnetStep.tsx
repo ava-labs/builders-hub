@@ -1,22 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useAddValidatorStore } from '@/components/toolbox/stores/addValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { ManagerTypeBadge } from '../ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '../VmcChainSwitchBanner';
+import { StartOverButton } from '@/components/toolbox/console/shared/StartOverButton';
 
 export default function SelectSubnetStep() {
   const store = useAddValidatorStore();
   const vmcCtx = useValidatorManagerContext();
+  // Start over moves the focus to this field
+  const subnetFieldId = useId();
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Treat staking-type resolution as part of "detection" so the badge doesn't
   // briefly read "PoA" before the staking probe finishes for an inheritance-model
   // L1 (NativeStakingManager IS the VMC). When the wallet is on the wrong chain
-  // the reads are skipped entirely — the badge stays in "Detecting…" so it
+  // the reads are skipped entirely. The badge stays in "Detecting…" so it
   // doesn't claim a type we haven't actually confirmed on-chain.
   const isDetecting =
     !!vmcCtx.chainMismatch ||
@@ -28,7 +31,7 @@ export default function SelectSubnetStep() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+          <h2 className="text-lg font-semibold">Select L1</h2>
           {store.subnetIdL1 && (
             <ManagerTypeBadge
               ownerType={vmcCtx.ownerType}
@@ -36,12 +39,19 @@ export default function SelectSubnetStep() {
               isDetecting={isDetecting}
             />
           )}
+          <StartOverButton
+            show={!!store.subnetIdL1}
+            onStartOver={store.reset}
+            focusId={subnetFieldId}
+            className="ml-auto"
+          />
         </div>
         <p className="text-sm text-zinc-500 mb-4">
           Choose the L1 where you want to add a validator. We'll detect the validator manager type and adapt the next
           steps automatically.
         </p>
         <SelectSubnetId
+          id={subnetFieldId}
           value={store.subnetIdL1}
           onChange={store.setSubnetIdL1}
           error={vmcCtx.error}

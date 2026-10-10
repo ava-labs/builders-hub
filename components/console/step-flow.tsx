@@ -90,7 +90,7 @@ type StepFlowProps = {
    */
   onNavigate?: (stepKey: string) => void;
   /**
-   * Compact mode — tighter spacing for embedding in chat messages.
+   * Compact mode: tighter spacing for embedding in chat messages.
    */
   compact?: boolean;
   /**
@@ -138,7 +138,7 @@ export default function StepFlow({
   // reads a flow store reset by `onFinish`) before the modal can render.
   const handleFinish = useCallback(() => {
     // When onNavigate is provided (inline chat mode), skip URL navigation
-    // and fire onFinish immediately — there is no modal to wait for.
+    // and fire onFinish immediately. There is no modal to wait for.
     if (onNavigate) {
       if (onFinish) onFinish();
       return;
@@ -195,15 +195,12 @@ export default function StepFlow({
     return { currentIndex: -1, currentStep: undefined, selectedBranchOption: undefined };
   }, [currentStepKey, steps]);
 
-  if (currentIndex < 0 || !currentStep) {
-    return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
-  }
-
   const totalSteps = steps.length;
   const atFirst = currentIndex <= 0;
   const atLast = currentIndex >= totalSteps - 1;
 
   const CurrentComponent = useMemo(() => {
+    if (!currentStep) return undefined;
     if (currentStep.type === "single") return currentStep.component;
     // For branch steps, use the selected option's component
     return selectedBranchOption?.component || currentStep.options[0].component;
@@ -224,7 +221,7 @@ export default function StepFlow({
   }, [atFirst, currentIndex, steps, basePath]);
 
   const nextLink = useMemo(() => {
-    if (atLast) return null;
+    if (atLast || currentIndex < 0) return null;
     const nextStep = steps[currentIndex + 1];
 
     // When navigating forward, determine the appropriate destination
@@ -238,15 +235,21 @@ export default function StepFlow({
 
   // Helper: renders Link or button depending on onNavigate mode
   const NavEl = useMemo(() => {
+    type NavElProps = { stepKey: string; className?: string; current?: boolean; children: React.ReactNode };
     if (onNavigate) {
-      return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
-        <button type="button" onClick={() => onNavigate(stepKey)} className={cls}>{children}</button>
+      return ({ stepKey, className: cls, current, children }: NavElProps) => (
+        <button type="button" onClick={() => onNavigate(stepKey)} className={cls} aria-current={current ? "step" : undefined}>{children}</button>
       );
     }
-    return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
-      <Link href={`${basePath}/${stepKey}`} className={cls}>{children}</Link>
+    return ({ stepKey, className: cls, current, children }: NavElProps) => (
+      <Link href={`${basePath}/${stepKey}`} className={cls} aria-current={current ? "step" : undefined}>{children}</Link>
     );
   }, [onNavigate, basePath]);
+
+  // After every hook: the rules of hooks forbid an earlier return
+  if (currentIndex < 0 || !currentStep || !CurrentComponent) {
+    return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
+  }
 
   // Extract step key for navigation (handles branch steps)
   const getStepNavKey = (step: StepDefinition): string => {
@@ -261,7 +264,7 @@ export default function StepFlow({
       animate="visible"
       data-console-flow
     >
-      <motion.nav className={compact ? "mb-3" : "mb-6"} variants={sectionItem}>
+      <motion.nav aria-label="Steps" className={compact ? "mb-3" : "mb-6"} variants={sectionItem}>
         <div className="flex items-center gap-3">
           <ol className="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
@@ -273,6 +276,7 @@ export default function StepFlow({
                 <li key={s.key} className="flex items-center gap-3">
                   <NavEl
                     stepKey={s.key}
+                    current={isActiveStep}
                     className={cn(
                       "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                       isActiveStep
@@ -313,6 +317,7 @@ export default function StepFlow({
                         <React.Fragment key={opt.key}>
                           <NavEl
                             stepKey={opt.key}
+                            current={isOptionActive}
                             className={cn(
                               "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                               isOptionActive

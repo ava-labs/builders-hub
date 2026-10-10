@@ -97,7 +97,7 @@ export default function InitiateRegistrationStep() {
 
         {!store.subnetIdL1 && (
           <Alert variant="warning">
-            No L1 subnet selected. Go back to <strong>Select L1 Subnet</strong> to choose one.
+            No L1 selected. Go back to <strong>Select L1</strong> to choose one.
           </Alert>
         )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { Button } from '../Button';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { cn } from '../utils';
@@ -43,6 +43,7 @@ export function AddValidatorControls({
   const [error, setError] = useState<string | null>(null);
   const [managedNodes, setManagedNodes] = useState<ManagedTestnetNodeSuggestion[]>([]);
   const [managedNodesLoaded, setManagedNodesLoaded] = useState(false);
+  const fieldId = useId();
 
   const rpcCommand = `curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' -H "content-type:application/json;" 127.0.0.1:9650/ext/info`;
 
@@ -258,7 +259,7 @@ export function AddValidatorControls({
                         {node.node_id}
                       </div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight">
-                        {node.chain_name ? `${node.chain_name} — ` : ''}Subnet: {node.subnet_id || 'unknown'}
+                        {node.chain_name ? `${node.chain_name} · ` : ''}Subnet: {node.subnet_id || 'unknown'}
                       </div>
                       {node.public_key && node.proof_of_possession ? (
                         <div className="text-xs text-green-600 dark:text-green-400 leading-tight">
@@ -291,8 +292,11 @@ export function AddValidatorControls({
             Click the copy button to copy the command and run it in your node's terminal to get the node credentials.
           </p>
           <DynamicCodeBlock code={rpcCommand} lang="zsh" />
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Paste the JSON response below:</p>
+          <label htmlFor={`${fieldId}-json`} className="block text-sm text-zinc-600 dark:text-zinc-400">
+            Paste the JSON response below:
+          </label>
           <textarea
+            id={`${fieldId}-json`}
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
             placeholder='{"jsonrpc":"2.0","result":{"nodeID":"...","nodePOP":{"publicKey":"...",  "proofOfPossession":"..."}},"id":1}'
@@ -322,8 +326,11 @@ export function AddValidatorControls({
         <TabsContent value="manual" className="space-y-4">
           <div className="space-y-3">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Node ID</label>
+              <label htmlFor={`${fieldId}-node`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Node ID
+              </label>
               <Input
+                id={`${fieldId}-node`}
                 type="text"
                 value={manualNodeID}
                 onChange={(e) => setManualNodeID(e.target.value)}
@@ -332,8 +339,11 @@ export function AddValidatorControls({
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">BLS Public Key</label>
+              <label htmlFor={`${fieldId}-key`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                BLS Public Key
+              </label>
               <Input
+                id={`${fieldId}-key`}
                 type="text"
                 value={manualPublicKey}
                 onChange={(e) => setManualPublicKey(e.target.value)}
@@ -342,10 +352,11 @@ export function AddValidatorControls({
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label htmlFor={`${fieldId}-pop`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 BLS Proof of Possession
               </label>
               <Input
+                id={`${fieldId}-pop`}
                 type="text"
                 value={manualProof}
                 onChange={(e) => setManualProof(e.target.value)}
@@ -363,7 +374,10 @@ export function AddValidatorControls({
       </Tabs>
 
       {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400">
+        <div
+          role="alert"
+          className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400"
+        >
           {error}
         </div>
       )}

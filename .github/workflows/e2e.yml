@@ -4,8 +4,8 @@ name: E2E
 # in-app browser tests in tests/e2e/webview, which have their own targets.
 # A PR runs the tests that its changed files can break, plus a smoke set (tests/e2e/select picks them). Every push to
 # master and every night run the whole suite, so a test that a PR skipped runs within a day. A PR and a master push
-# run the sweeps (every page opens) at the desktop size only; the nightly run runs them at both sizes. Console wallet
-# flows have no tests until the framework can inject the wallet shim before page load (tester-army/e2e#696).
+# run the sweeps (every page opens) at the desktop size only; the nightly run runs them at both sizes. The Console
+# flows that send transactions are in tests/e2e/chain and run only in e2e-chain.yml.
 #
 # Targets: a PR tests the Vercel preview of its head commit, a master push the production deployment of its commit,
 # and the nightly run build.avax.network.
@@ -156,12 +156,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt. The engine launches Chromium
-      # headless with no channel, which runs the headless shell, so the full browser (187 MB) is not needed.
+      # The engine's own installer gets the Chromium of the Playwright version that @e2e-dev/web pins. It has no
+      # headless-shell option: before a run the engine looks for the full Chromium and downloads it when it is missing.
+      # The ubuntu image has the Chromium system libraries; --with-deps can hang on apt.
       - name: Install Chromium
         if: matrix.leg.browser
         timeout-minutes: 5
-        run: npx playwright install chromium --only-shell
+        run: npx @e2e-dev/web install chromium
 
       # Vercel builds the deployment in parallel with the steps above. The GitHub deployment for the commit can appear
       # only when the build is done, so poll for it.
@@ -219,7 +220,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           mapfile -t args < <(jq -r '.[]' <<< "$ARGS")
-          npx e2e run "${args[@]}"
+          # Fail a stale act recording (REPLAY_STALE): CI never re-records it, so it would call the model on every run.
+          npx e2e run --strict-cache "${args[@]}"
 
       - name: Job summary
         if: always()

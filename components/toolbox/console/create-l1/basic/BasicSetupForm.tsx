@@ -20,7 +20,7 @@ import StakingPreviewCard from './StakingPreviewCard';
  *
  * Design goals:
  *   - Generous vertical breathing room, not cramped
- *   - Inputs feel substantial — rounded-xl, soft bg, large text
+ *   - Inputs feel substantial: rounded-xl, soft bg, large text
  *   - Only one primary CTA; everything else is muted link-level
  *   - Staggered entrance animation to establish "this is a moment"
  */
@@ -86,7 +86,7 @@ function generateChainName(): string {
 }
 export default function BasicSetupForm() {
   const router = useRouter();
-  // walletEVMAddress only — connection + testnet + login are now gated
+  // walletEVMAddress only. Connection + testnet + login are now gated
   // at the page level by <CheckRequirements>, so we can assume the
   // wallet is connected on Fuji and the user is logged in by the time
   // this component mounts.
@@ -98,17 +98,17 @@ export default function BasicSetupForm() {
   const [symbolTouched, setSymbolTouched] = useState(false);
   const [ownerAddress, setOwnerAddress] = useState<string>('');
   const [ownerTouched, setOwnerTouched] = useState(false);
-  // Validator management — `poa` by default. PoS in Quick L1 is
+  // Validator management: `poa` by default. PoS in Quick L1 is
   // ERC20-only on Fuji C-Chain. Users *can* now bring their own
-  // staking token (see `stakingTokenAddress` below) — when unset, the
+  // staking token (see `stakingTokenAddress` below). When unset, the
   // orchestrator deploys a fresh ExampleERC20 as before. Staking
   // economics (reward bp, min/max stake, etc.) still default
   // server-side to the icm-contracts test values for the one-click
   // flow.
   const [validatorMode, setValidatorMode] = useState<ValidatorMode>({ type: 'poa' });
   const [precompiles, setPrecompiles] = useState<Required<PrecompileConfig>>(DEFAULT_PRECOMPILES);
-  // Managed ICM relayer + MockUSDC bridge — opt-in, off by default so
-  // the common path (baseline L1 deploy) stays ~30s. Enabling it costs
+  // Managed ICM relayer + MockUSDC bridge: opt-in, off by default so
+  // the common path (baseline L1 deploy) stays faster. Enabling it costs
   // ~60-120s for relayer boot + ICTT deploys. Requires Warp/ICM to be
   // on in genesis; we enforce that dependency on submit and visually
   // in the UI below.
@@ -117,7 +117,7 @@ export default function BasicSetupForm() {
   const togglePrecompile = (key: keyof PrecompileConfig) => {
     setPrecompiles((p) => {
       const next = { ...p, [key]: !p[key] };
-      // Relayer can't run without Warp — auto-untick relayer if the
+      // Relayer can't run without Warp: auto-untick relayer if the
       // user flips interop off. (The reverse is fine: Warp alone is
       // a valid standalone capability.)
       if (key === 'interoperability' && !next.interoperability) {
@@ -136,7 +136,7 @@ export default function BasicSetupForm() {
     const next = !enableManagedRelayer;
     setEnableManagedRelayer(next);
     // Turning the relayer ON implies Warp/Interop must be ON. Auto-
-    // enable rather than blocking the click — fewer clicks to a valid
+    // enable rather than blocking the click: fewer clicks to a valid
     // config. The linkage is bidirectional: turning Interop OFF while
     // relayer is on auto-disables the relayer (see togglePrecompile).
     if (next && !precompiles.interoperability) {
@@ -154,12 +154,12 @@ export default function BasicSetupForm() {
   }, [walletEVMAddress, ownerAddress, ownerTouched]);
 
   // Pre-fill chain name with a generated "Alpine Ridge" style default
-  // on mount so the Create Chain button is active immediately — user
+  // on mount so the Create Chain button is active immediately. The user
   // can still override. Generated client-side only (not in useState
   // initializer) to avoid server/client hydration mismatches from
   // randomness running twice.
   // Run exactly once on mount. `setChainName` is stable (React setter)
-  // so no deps needed — the empty array is correct for a mount-only
+  // so no deps needed: the empty array is correct for a mount-only
   // side effect that seeds a default name.
   useEffect(() => {
     setChainName((prev) => (prev ? prev : generateChainName()));
@@ -167,7 +167,7 @@ export default function BasicSetupForm() {
 
   // Chain name validation mirrors avalanchego's CreateChainTx rule
   // (vms/platformvm/txs/create_chain_tx.go): ASCII letters, digits, and
-  // spaces only — no `_`, `-`, `.`, emoji, accents. Reject up front so
+  // spaces only: no `_`, `-`, `.`, emoji, accents. Reject up front so
   // the user sees the issue immediately instead of failing mid-deploy
   // with a confusing P-Chain error. Returns null when the value is
   // acceptable, otherwise a one-line message for the field.
@@ -188,7 +188,7 @@ export default function BasicSetupForm() {
     if (chainNameTrimmed.length < 2) return 'At least 2 characters';
     if (chainNameTrimmed.length > 32) return 'At most 32 characters';
     if (!/^[a-zA-Z0-9 ]+$/.test(chainNameTrimmed)) {
-      return 'Only letters, digits, and spaces — no _, -, ., or emoji';
+      return 'Use only letters, digits, and spaces. Do not use _, -, ., or emoji.';
     }
     return null;
   })();
@@ -234,7 +234,7 @@ export default function BasicSetupForm() {
 
   return (
     <div className="mx-auto max-w-5xl py-6 px-4">
-      {/* Back link — subtle, top-left */}
+      {/* Back link: subtle, top-left */}
       <motion.button
         type="button"
         onClick={() => router.push('/console/create-l1')}
@@ -248,7 +248,7 @@ export default function BasicSetupForm() {
         Back to setup choice
       </motion.button>
 
-      {/* Hero — tighter so the form below fits without scroll */}
+      {/* Hero: tighter so the form below fits without scroll */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -267,7 +267,7 @@ export default function BasicSetupForm() {
       </motion.div>
 
       {/* Testnet + wallet + login preflight is handled upstream by
-          <CheckRequirements> in the page wrapper — no inline banner
+          <CheckRequirements> in the page wrapper, so no inline banner is
           needed here. By the time this form renders, we're guaranteed
           on Fuji with a connected wallet and an authenticated session. */}
 
@@ -287,7 +287,7 @@ export default function BasicSetupForm() {
           {/* Left: chain identity (with inline staking preview when
               PoS) + Included. Keeping the wallet token preview *inside*
               ChainDetailsCard puts it directly under the toggle that
-              triggered it — zero scroll required to see balances. */}
+              triggered it. Zero scroll required to see balances. */}
           <div className="space-y-4">
             <ChainDetailsCard
               chainName={chainName}
@@ -313,7 +313,7 @@ export default function BasicSetupForm() {
           {/* Right: precompile toggles + managed-relayer opt-in + CTA.
               Placing the Create Chain button inside this column (rather
               than as a full-width footer) closes the 2-column grid into
-              a clean rectangle — no orphan element below. Error message
+              a clean rectangle with no orphan element below. Error message
               sits just above the button so it's never far from the
               action it blocks. */}
           <div className="space-y-4">
@@ -370,9 +370,9 @@ export default function BasicSetupForm() {
                 )}
               </motion.button>
 
-              {/* Reassurance line — small, muted */}
+              {/* Reassurance line: small, muted */}
               <p className="mt-2 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
-                Usually takes 1–2 minutes. You can leave the tab open.
+                This usually takes 1 to 2 minutes. You can leave the tab open.
               </p>
             </motion.div>
           </div>
@@ -383,7 +383,7 @@ export default function BasicSetupForm() {
 }
 
 /**
- * Identity section — chain name + owner, wrapped in a card with the
+ * Identity section: chain name + owner, wrapped in a card with the
  * same chrome as PrecompileCard / ManagedRelayerCard on the right. The
  * card wrapper is the whole reason this page suddenly feels balanced:
  * before, the left column was two floating inputs next to two bordered
@@ -415,7 +415,7 @@ function ChainDetailsCard({
   onValidatorModeChange: (v: ValidatorMode) => void;
   walletAddress: string;
 }) {
-  // Owner field hint shifts with the validator mode — under PoA the
+  // Owner field hint shifts with the validator mode. Under PoA the
   // owner literally controls the membership allowlist, while under
   // erc20-pos they retain emergency pause/upgrade authority over the
   // staking manager but day-to-day membership is permissionless.
@@ -443,7 +443,7 @@ function ChainDetailsCard({
       <div className="px-5 py-5 space-y-5 flex-1">
         <BigField
           label="Chain name"
-          hint="Registered on the Avalanche P-Chain. 2–32 characters. Letters, digits, and spaces only."
+          hint="Registered on the Avalanche P-Chain. 2 to 32 characters. Letters, digits, and spaces only."
           value={chainName}
           onChange={setChainName}
           placeholder="My Awesome L1"
@@ -452,7 +452,7 @@ function ChainDetailsCard({
         />
         <BigField
           label="Coin symbol"
-          hint="Ticker for the native gas token. 2–5 letters. Auto-derived from chain name."
+          hint="Ticker for the native gas token. 2 to 5 letters. Auto-derived from chain name."
           value={tokenSymbol}
           onChange={setTokenSymbol}
           placeholder="COIN"
@@ -462,7 +462,7 @@ function ChainDetailsCard({
         <ValidatorTypeToggle value={validatorMode} onChange={onValidatorModeChange} />
         {/* Inline wallet preview, surfaced right below the PoS toggle so
             the user sees their Fuji C-Chain ERC20 balances at the
-            moment of decision — not buried in a sibling card below the
+            moment of decision, not buried in a sibling card below the
             scroll fold. The card is fully self-contained (its own
             fetch + states) so wiring is a single component drop. */}
         {validatorMode.type === 'erc20-pos' && <StakingPreviewCard walletAddress={walletAddress} />}
@@ -486,7 +486,7 @@ function ChainDetailsCard({
  * card's behaviour.
  *
  * Locked to two options because Quick L1 only supports ERC20-PoS on
- * Fuji C-Chain — Native PoS lives in the Advanced flow.
+ * Fuji C-Chain. Native PoS lives in the Advanced flow.
  *
  * Picking PoS resets the mode object to a bare `{ type: 'erc20-pos' }`
  * so the orchestrator falls back to the icm-contracts test defaults
@@ -570,7 +570,7 @@ function ValidatorTypeOption({
 
 /**
  * Substantial, airy input field. Custom design (not shared Input) to
- * keep the onboarding surface feeling intentional — large label,
+ * keep the onboarding surface feeling intentional: large label,
  * generous padding, subtle focus ring, hint below in muted text.
  */
 function BigField({
@@ -745,7 +745,7 @@ function PrecompileRow({
  *
  * Disabled state (when Warp is off) uses a muted look + helper text
  * so the requirement is legible before the user clicks. Clicking
- * anyway auto-enables Warp in the parent state — fewer clicks to a
+ * anyway auto-enables Warp in the parent state: fewer clicks to a
  * valid config than a blocked/disabled click.
  */
 function ManagedRelayerCard({
@@ -784,8 +784,8 @@ function ManagedRelayerCard({
             {enabled
               ? 'Adds ~60-120s to setup. Ready-to-use cross-chain bridge when done.'
               : warpEnabled
-                ? 'Leave off for a ~30s deploy. Enable anytime later from the relayer page.'
-                : 'Requires Warp/Interoperability — clicking will auto-enable it.'}
+                ? 'Leave it off for a faster deploy. You can turn it on later on the relayer page.'
+                : 'Needs Warp/Interoperability. Turning it on also turns on Warp.'}
           </div>
         </div>
         <Toggle checked={enabled} />
@@ -794,7 +794,7 @@ function ManagedRelayerCard({
   );
 }
 
-/** Small switch-style toggle. Controlled — parent handles state. */
+/** Small switch-style toggle. Controlled: parent handles state. */
 function Toggle({ checked }: { checked: boolean }) {
   return (
     <span

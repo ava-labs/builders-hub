@@ -99,12 +99,12 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
         <div>
           <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">On-chain auditor</div>
           <code className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-            {ev.auditorAddressOnChain ?? '—'}
+            {ev.auditorAddressOnChain ?? 'Not set'}
           </code>
         </div>
         {isAuditorWallet && ev.decryptionKey && (
           <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
-            ✓ Your wallet is the auditor — local key auto-loaded.
+            ✓ Your wallet is the auditor. The local key loaded automatically.
           </div>
         )}
       </div>
@@ -119,14 +119,14 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
             onChange={(e) => setKeyInput(e.target.value.trim())}
             placeholder="paste auditor sk"
             rows={2}
-            className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-2 font-mono text-[11px]"
+            className="ph-no-capture w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-2 font-mono text-[11px]"
           />
           <Button size="sm" variant="primary" onClick={() => ev.setDecryptionKey(keyInput)} disabled={!keyInput}>
             Load key
           </Button>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-            On the canonical Fuji demo, the key lives with whoever ran the deploy script — get it from them or appoint
-            yourself as the new auditor via <em>Set Auditor</em>.
+            On the canonical Fuji demo, the key is with the person who ran the deploy script. Get it from them, or
+            appoint yourself as the new auditor via <em>Set Auditor</em>.
           </p>
         </div>
       )}
@@ -183,13 +183,14 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
                     <KindBadge kind={e.kind} />
                   </td>
                   <td className="px-3 py-2 font-mono text-zinc-500 dark:text-zinc-400">
-                    {e.from ? `${e.from.slice(0, 10)}…` : '—'}
+                    {e.from ? `${e.from.slice(0, 10)}…` : 'None'}
                   </td>
                   <td className="px-3 py-2 font-mono text-zinc-500 dark:text-zinc-400">
-                    {e.to ? `${e.to.slice(0, 10)}…` : '—'}
+                    {e.to ? `${e.to.slice(0, 10)}…` : 'None'}
                   </td>
                   <td className="px-3 py-2 font-mono text-right text-zinc-700 dark:text-zinc-300">
-                    {e.amountFormatted ?? (ev.decryptionKey ? <span className="text-zinc-400">wrong key</span> : '—')}
+                    {e.amountFormatted ??
+                      (ev.decryptionKey ? <span className="text-zinc-400">wrong key</span> : 'Hidden')}
                   </td>
                   <td className="px-3 py-2">
                     <EERCTxLink

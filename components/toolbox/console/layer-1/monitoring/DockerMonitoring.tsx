@@ -19,7 +19,7 @@ import {
 
 /**
  * Grafana admin password, generated client-side via Web Crypto (same
- * pattern as SelfHostedExplorer's secrets) — anything is better than
+ * pattern as SelfHostedExplorer's secrets). Anything is better than
  * shipping the compose file with Grafana's default admin/admin.
  */
 function generateRandomSecret(byteLength = 24): string {
@@ -75,7 +75,7 @@ export default function DockerMonitoring() {
 
         {endpoint?.isManagedNode && (
           <Note variant="warning">
-            This is a Builder Console managed testnet node. Managed nodes expose only their chain RPC URL —{' '}
+            This is a Builder Console managed testnet node. Managed nodes expose only their chain RPC URL. Their{' '}
             <code>/ext/metrics</code> is not reachable, so Grafana monitoring can't be set up against them. To get full
             node metrics, run your own node with{' '}
             <Link href="/console/layer-1/l1-node-setup" className="text-blue-500 hover:underline">
@@ -94,7 +94,7 @@ export default function DockerMonitoring() {
               <code>127.0.0.1</code> by default (<code>--http-host</code>), requests to a DNS hostname are rejected with
               403 unless the node's <code>--http-allowed-hosts</code> includes it (raw IPs always work), and public RPC
               providers and load-balanced endpoints don't serve <code>/ext/metrics</code> at all. Keep the metrics port
-              firewalled to your own machines — never expose it publicly.
+              firewalled to your own machines. Never expose it publicly.
             </Note>
           </>
         )}
@@ -122,13 +122,13 @@ export default function DockerMonitoring() {
               >
                 avalanche-monitoring
               </a>{' '}
-              Grafana dashboards to install — the compose file below only downloads what you select:
+              Grafana dashboards to install. The compose file below only downloads what you select:
             </p>
             <div className="mt-4">
               {DASHBOARD_OPTIONS.map((d) => (
                 <Checkbox
                   key={d.file}
-                  label={`${d.title} — ${d.details}`}
+                  label={`${d.title}: ${d.details}`}
                   checked={selectedDashboards.includes(d.file)}
                   onChange={(checked) => toggleDashboard(d.file, checked)}
                 />
@@ -140,7 +140,7 @@ export default function DockerMonitoring() {
             {selectedDashboards.includes('subnets') && (
               <Note>
                 The Subnets dashboard filters by the <strong>Chain</strong> dropdown at the top, auto-populated from
-                your node's metrics once Prometheus has scraped it — pick your L1's blockchain ID there.
+                your node's metrics once Prometheus has scraped it. Pick your L1's blockchain ID there.
               </Note>
             )}
           </Step>
@@ -154,13 +154,16 @@ export default function DockerMonitoring() {
                   one-shot job that downloads your selected dashboards (pinned to a fixed commit). Both UIs bind to{' '}
                   <code>127.0.0.1</code> only.
                 </p>
+                {/* The compose file holds the generated Grafana password. Session replay skips it. */}
                 {composeEndpoint && (
-                  <DynamicCodeBlock
-                    lang="bash"
-                    code={composeSaveCommand(
-                      generateMonitoringCompose(composeEndpoint, selectedDashboards, grafanaPassword),
-                    )}
-                  />
+                  <div className="ph-no-capture">
+                    <DynamicCodeBlock
+                      lang="bash"
+                      code={composeSaveCommand(
+                        generateMonitoringCompose(composeEndpoint, selectedDashboards, grafanaPassword),
+                      )}
+                    />
+                  </div>
                 )}
               </Step>
 
@@ -171,7 +174,9 @@ export default function DockerMonitoring() {
                   Then open <code>http://localhost:3000</code> and log in as <code>admin</code> with the password baked
                   into your compose file:
                 </p>
-                <DynamicCodeBlock lang="text" code={grafanaPassword} />
+                <div className="ph-no-capture">
+                  <DynamicCodeBlock lang="text" code={grafanaPassword} />
+                </div>
                 <p className="text-sm mt-2">
                   Your dashboards are under <strong>Dashboards</strong> in the left sidebar; Prometheus itself is at{' '}
                   <code>http://localhost:9090</code>. Running the stack on a remote server? Reach it with an SSH tunnel
@@ -185,15 +190,15 @@ export default function DockerMonitoring() {
                   The Main dashboard covers node uptime, peers, successful/failed queries and throughput; Subnets tracks
                   block height and validator connectivity per L1; the chain dashboards break down each chain's
                   internals. The Main dashboard's CPU and disk panels use machine metrics from{' '}
-                  <code>node_exporter</code> — without it they show "No data"; see below to add it.
+                  <code>node_exporter</code>. Without it they show "No data". See below to add it.
                 </p>
                 <div className="mt-4">
                   <Accordions type="single">
                     <Accordion title="Full machine metrics (CPU, disk, network) via node_exporter">
                       <p>
                         The Machine Metrics dashboard needs Prometheus <code>node_exporter</code> running{' '}
-                        <strong>on the node's host</strong> (port 9100) — it can't be provided from this machine for a
-                        remote node. If you administer the node host, follow the{' '}
+                        <strong>on the node's host</strong> (port 9100). This machine can't provide it for a remote
+                        node. If you administer the node host, follow the{' '}
                         <a
                           href="/docs/nodes/maintain/monitoring"
                           target="_blank"
@@ -209,28 +214,28 @@ export default function DockerMonitoring() {
                     <Accordion title="Troubleshooting">
                       <ul className="list-disc pl-5 space-y-2">
                         <li>
-                          <strong>Prometheus target down / connection refused</strong> — the node isn't reachable from
+                          <strong>Prometheus target down / connection refused</strong>: the node isn't reachable from
                           Docker. Check <code>http://localhost:9090/targets</code>; for a node on this machine make sure
                           it listens on <code>--http-host=0.0.0.0</code> or <code>127.0.0.1</code> (we route via{' '}
                           <code>host.docker.internal</code>).
                         </li>
                         <li>
-                          <strong>403 from the node</strong> — you're scraping a DNS hostname the node doesn't allow.
-                          Add it to <code>--http-allowed-hosts</code> on the node, or scrape by IP.
+                          <strong>403 from the node</strong>: you're scraping a DNS hostname the node doesn't allow. Add
+                          it to <code>--http-allowed-hosts</code> on the node, or scrape by IP.
                         </li>
                         <li>
-                          <strong>404/405 from the endpoint</strong> — the endpoint is a load balancer or public RPC
-                          that doesn't expose <code>/ext/metrics</code>. Point at the node's API port directly.
+                          <strong>404/405 from the endpoint</strong>: the endpoint is a load balancer or public RPC that
+                          doesn't expose <code>/ext/metrics</code>. Point at the node's API port directly.
                         </li>
                         <li>
                           <strong>
                             <code>dashboards</code> service failed
-                          </strong>{' '}
-                          — the one-shot download from <code>raw.githubusercontent.com</code> was interrupted. Re-run{' '}
+                          </strong>
+                          : the one-shot download from <code>raw.githubusercontent.com</code> was interrupted. Re-run{' '}
                           <code>docker compose up -d</code>.
                         </li>
                         <li>
-                          <strong>Empty Subnets dashboard</strong> — select your blockchain ID from the{' '}
+                          <strong>Empty Subnets dashboard</strong>: select your blockchain ID from the{' '}
                           <strong>Chain</strong> dropdown at the top; it populates from your node's metrics after the
                           first Prometheus scrape.
                         </li>

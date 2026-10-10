@@ -9,6 +9,8 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface InitiateChangeWeightProps {
   subnetId: string;
@@ -93,7 +95,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       return;
     }
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      setErrorState(INVALID_L1_SELECTED);
       return;
     }
     if (ownershipState === 'differentEOA') {
@@ -129,7 +131,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         );
         if (validationDetails.exceedsMaximum) {
           const currentWeightDisplay = validatorCurrentWeight?.toString() || '0';
-          const errorMessage = `The proposed weight change from ${currentWeightDisplay} to ${weight} represents ${validationDetails.percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This adjustment percentage must be less than 20%.`;
+          const errorMessage = `The proposed weight change from ${currentWeightDisplay} to ${weight} represents ${validationDetails.percentageChange.toFixed(2)}% of the current total L1 weight (${contractTotalWeight}). This adjustment percentage must be less than 20%.`;
           setErrorState(errorMessage);
           setIsProcessing(false);
           return;
@@ -161,8 +163,8 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       });
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }
@@ -185,7 +187,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   return (
@@ -252,7 +254,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
             !validatorManagerAddress ||
             txSuccess !== null
           }
-          error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
+          error={!validatorManagerAddress && subnetId ? INVALID_L1_SELECTED : undefined}
         >
           {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Change Weight'}
         </Button>

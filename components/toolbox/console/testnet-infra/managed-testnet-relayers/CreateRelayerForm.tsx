@@ -13,12 +13,13 @@ interface CreateRelayerFormProps {
 }
 
 export default function CreateRelayerForm({ onClose, onSubmit, l1List, isCreating }: CreateRelayerFormProps) {
-  // Initialize with first chain as both source and destination if available
+  // Start with the first chain as the source and the second chain as the destination. The same chain on both sides
+  // is not a valid pair, so a list of one chain starts with no destination (CreateManagedTestnetRelayer does the same).
   const [selectedSources, setSelectedSources] = useState<string[]>(() => {
     return l1List.length > 0 ? [l1List[0].id] : [];
   });
   const [selectedDestinations, setSelectedDestinations] = useState<string[]>(() => {
-    return l1List.length > 0 ? [l1List[0].id] : [];
+    return l1List.length > 1 ? [l1List[1].id] : [];
   });
   const [error, setError] = useState<string | null>(null);
 

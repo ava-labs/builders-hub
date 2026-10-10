@@ -89,7 +89,7 @@ interface DockerComposeConfig {
 /**
  * Generates a cryptographically-random base64url string suitable for
  * Postgres passwords and Phoenix SECRET_KEY_BASE values. Runs on the
- * client via Web Crypto — no server round-trip.
+ * client via Web Crypto, with no server round-trip.
  */
 function generateRandomSecret(byteLength = 48): string {
   const buf = new Uint8Array(byteLength);
@@ -515,7 +515,10 @@ export default function DockerBlockscoutSetup({
 
               <div>
                 <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
-                <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                {/* The file holds the generated database password and SECRET_KEY_BASE. Session replay skips it. */}
+                <div className="ph-no-capture">
+                  <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                </div>
               </div>
 
               <div>

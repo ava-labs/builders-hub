@@ -14,8 +14,18 @@ import { validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
+import {
+  AggregationRemediation,
+  parseAggregationError,
+  type RemediationLink,
+} from '@/components/toolbox/hooks/contracts/parseAggregationError';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { Success } from '@/components/toolbox/components/Success';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
+import { SigningSubnetStatus, signingSubnetWaitText } from './SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 export interface WeightUpdateEventData {
   validationID: `0x${string}`;
@@ -29,6 +39,10 @@ export interface SubmitPChainTxWeightUpdateProps {
   subnetIdL1: string;
   initialEvmTxHash?: string;
   signingSubnetId: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   /** Label for the transaction hash input */
   txHashLabel?: string;
   /** Placeholder for the transaction hash input */
@@ -55,6 +69,8 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
   subnetIdL1,
   initialEvmTxHash,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   txHashLabel = 'EVM Transaction Hash',
   txHashPlaceholder = 'Enter the transaction hash from the previous step (0x...)',
   additionalInfo,
@@ -73,7 +89,10 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
   const [isAggregating, setIsAggregating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
+  const [aggRemediation, setAggRemediation] = useState<RemediationLink[] | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  // A SetL1ValidatorWeightTx that was issued but not confirmed. It may still commit.
+  const [issuedTxId, setIssuedTxId] = useState<string | null>(null);
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [eventData, setEventData] = useState<WeightUpdateEventData | null>(null);
@@ -180,6 +199,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
    */
   const handleAggregateSignatures = async () => {
     setErrorState(null);
+    setAggRemediation(null);
 
     if (!evmTxHash.trim()) {
       setErrorState('EVM transaction hash is required.');
@@ -187,8 +207,8 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!unsignedWarpMessage) {
@@ -196,11 +216,10 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       onError('Unsigned warp message not found.');
       return;
     }
-    if (!signingSubnetId) {
-      const msg =
-        'Signing subnet ID not available. The validator manager details may still be loading — wait a moment and retry.';
-      setErrorState(msg);
-      onError(msg);
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setErrorState(signingSubnetWait);
+      onError(signingSubnetWait);
       return;
     }
 
@@ -217,9 +236,13 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       const { signedMessage } = await aggregateSignaturePromise;
       setSignedWarpMessage(signedMessage);
     } catch (err: any) {
-      const message = parsePChainError(err);
-      setErrorState(`Signature aggregation failed: ${message}`);
-      onError(`Signature aggregation failed: ${message}`);
+      // The L1's own validators sign the message of a manager on the L1, so the L1 causes apply. The Primary
+      // Network signs the message of a manager on the C-Chain.
+      const mapped = signingSubnetId === subnetIdL1 ? parseAggregationError(err, 'l1') : null;
+      setAggRemediation(mapped?.remediation ?? null);
+      const display = mapped?.message ?? `Signature aggregation failed: ${parsePChainError(err)}`;
+      setErrorState(display);
+      onError(display);
     } finally {
       setIsAggregating(false);
     }
@@ -232,10 +255,11 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
    */
   const handleSubmitToPChain = async () => {
     setErrorState(null);
+    setAggRemediation(null);
     setTxSuccess(null);
 
     if (!signedWarpMessage) {
-      const msg = 'No signed warp message — aggregate signatures first.';
+      const msg = 'No signed warp message. Aggregate signatures first.';
       setErrorState(msg);
       onError(msg);
       return;
@@ -251,8 +275,9 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     }
 
     setIsSubmitting(true);
+    let pChainTxId: string | null = null;
     try {
-      const pChainTxId = await submitPChainTx(async (client) => {
+      pChainTxId = await submitPChainTx(async (client) => {
         const pChainTxIdPromise = client.setL1ValidatorWeight({
           signedWarpMessage: signedWarpMessage,
         });
@@ -262,12 +287,16 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
       await waitForPChainConfirmation(pChainTxId, isTestnet);
 
+      setIssuedTxId(null);
       setTxSuccess(pChainTxId);
       onSuccess(pChainTxId, eventData || undefined);
     } catch (err: any) {
+      // Keep an issued but unconfirmed tx ID visible, so the user can check it before sending again.
+      // A dropped tx cannot commit, so its ID is not kept.
+      if (pChainTxId && !isPChainTxDropped(err)) setIssuedTxId(pChainTxId);
       const message = parsePChainError(err);
-      setErrorState(`P-Chain submission failed: ${message}`);
-      onError(`P-Chain submission failed: ${message}`);
+      setErrorState(failureText('P-Chain submission failed: ', message));
+      onError(failureText('P-Chain submission failed: ', message));
     } finally {
       setIsSubmitting(false);
     }
@@ -276,7 +305,9 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
   const handleTxHashChange = (value: string) => {
     setEvmTxHash(value);
     setErrorState(null);
+    setAggRemediation(null);
     setTxSuccess(null);
+    setIssuedTxId(null);
     setSignedWarpMessage(null);
     setManualPChainTxId('');
   };
@@ -299,7 +330,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   const step1Complete = !!unsignedWarpMessage;
@@ -308,7 +339,14 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
   return (
     <div className="space-y-3">
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && (
+        <Alert variant="error">
+          <div>
+            {error}
+            {aggRemediation && <AggregationRemediation items={aggRemediation} />}
+          </div>
+        </Alert>
+      )}
 
       {/* Step 1: Extract Warp Message */}
       <StepFlowCard
@@ -367,7 +405,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       <StepFlowCard
         step={2}
         title="Aggregate Signatures"
-        description="Collect BLS signatures from the signing subnet's validators (67% quorum required)"
+        description="Collect BLS signatures from the validators of the Validator Manager chain (67% quorum required)"
         isComplete={step2Complete}
         isActive={step1Complete && !step2Complete}
       >
@@ -399,13 +437,20 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         )}
         {!step2Complete && step1Complete && !step3Complete && (
           <div className="mt-2">
+            <SigningSubnetStatus
+              signingSubnetId={signingSubnetId}
+              isLoading={signingSubnetLoading}
+              error={signingSubnetError}
+              className="mb-2"
+            />
             <Button
               onClick={handleAggregateSignatures}
-              disabled={isAggregating || !unsignedWarpMessage}
+              disabled={isAggregating || !unsignedWarpMessage || !signingSubnetId}
               loading={isAggregating}
+              loadingText="Aggregating signatures..."
               className="w-full"
             >
-              {isAggregating ? 'Aggregating signatures…' : 'Aggregate Signatures'}
+              Aggregate Signatures
             </Button>
           </div>
         )}
@@ -433,7 +478,22 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
           </div>
         )}
         {!step3Complete && step2Complete && (
-          <div className="mt-2">
+          <div className="mt-2 space-y-2">
+            {issuedTxId && (
+              <div className="space-y-1">
+                <Success
+                  label="SetL1ValidatorWeightTx ID (not confirmed)"
+                  value={issuedTxId}
+                  isTestnet={isTestnet}
+                  confirmed={false}
+                />
+                <IssuedTxNote
+                  txId={issuedTxId}
+                  isTestnet={isTestnet}
+                  className="text-xs text-zinc-500 dark:text-zinc-400"
+                />
+              </div>
+            )}
             {isCoreWallet ? (
               <CoreWalletTransactionButton
                 onClick={handleSubmitToPChain}
@@ -445,7 +505,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                 Submit to P-Chain
               </CoreWalletTransactionButton>
             ) : (
-              // Non-Core wallets don't sign P-Chain txs directly — the CLI
+              // Non-Core wallets don't sign P-Chain txs directly. The CLI
               // panel below handles submission and accepts a manual tx ID.
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Submit via the CLI command below, then paste the resulting P-Chain transaction ID.

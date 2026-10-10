@@ -7,10 +7,10 @@ import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManag
 
 export default function RemoveDelegationClientPage({ currentStepKey }: { currentStepKey: string }) {
     const basePath = "/console/permissionless-l1s/remove-delegation";
-    const { subnetIdL1, globalError, pChainTxId } = useRemoveDelegationStore();
+    const { subnetIdL1, pChainTxId } = useRemoveDelegationStore();
 
     return (
-        <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError} showPoSWarning>
+        <ValidatorManagerLayout subnetIdL1={subnetIdL1} showPoSWarning>
             <StepFlow
                 steps={steps}
                 basePath={basePath}

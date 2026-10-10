@@ -77,7 +77,9 @@ export default function CompleteRegistrationStep() {
               subnetIdL1={store.subnetIdL1}
               pChainTxId={store.pChainTxId}
               validationID={isStaking ? store.validationID : undefined}
-              signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+              signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               managerType={managerType}
               managerAddress={managerAddress}
               ownershipState={!isStaking ? vmcCtx.ownershipStatus : undefined}
@@ -86,6 +88,7 @@ export default function CompleteRegistrationStep() {
               ownerType={!isStaking ? vmcCtx.ownerType : undefined}
               onSuccess={(data) => {
                 store.setGlobalSuccess(data.message);
+                store.setFlowCompleted(true);
                 store.setGlobalError(null);
               }}
               onError={(message) => store.setGlobalError(message)}

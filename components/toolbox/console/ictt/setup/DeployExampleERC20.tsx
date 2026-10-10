@@ -21,7 +21,7 @@ const CONTRACT_SOURCES: ContractSource[] = [
     name: 'ExampleERC20',
     filename: 'ExampleERC20.sol',
     url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/mocks/ExampleERC20.sol`,
-    description: 'Mock ERC20 token with 1M supply minted to deployer, for testing ICTT transfers.',
+    description: 'Mock ERC20 token for ICTT tests. The constructor mints 10,000,000,000 tokens to the deployer.',
   },
 ];
 
@@ -63,7 +63,7 @@ function DeployExampleERC20() {
         <div className="">
           This will deploy an ERC20 token contract to your connected network (Chain ID: <code>{walletChainId}</code>).
           You can use this token for testing token transfers and other ERC20 interactions, where a total supply of
-          1,000,000 tokens will be minted to your wallet.
+          10,000,000,000 tokens will be minted to your wallet.
           <p className="flex items-center gap-1 mt-2">
             To deploy more custom ERC20 tokens, you can use the{' '}
             <a

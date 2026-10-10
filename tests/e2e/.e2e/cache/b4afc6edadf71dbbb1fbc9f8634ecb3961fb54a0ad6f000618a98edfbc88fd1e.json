@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:19:03.656Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Set up a Node\"",
+        "target": {
+          "role": "button",
+          "name": "Set up a Node"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Node Setup Overview\"",
+        "target": {
+          "role": "link",
+          "name": "Node Setup Overview"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-docs.e2e.ts::visitor%20finds%20the%20guide%20to%20run%20an%20Avalanche%20node%20from%20the%20Nodes%20docs",
+      "targetId": "desktop",
+      "instructionDigest": "ea73af13208dbd2566caf0cb883338d3e1ef64da491477ddd5ec528eaa84d502",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Expanded \"Set up a Node\" in the Nodes docs sidebar and opened \"Node Setup Overview\" (/docs/nodes/run-a-node). The page is open and covers the ways to run an AvalancheGo node: Docker, install script, binary, source, cloud, and L1 nodes.",
+    "startPath": "/docs/nodes",
+    "endPath": "/docs/nodes/run-a-node",
+    "endAnchors": [
+      {
+        "role": "link",
+        "name": "Node Setup Overview"
+      },
+      {
+        "role": "link",
+        "name": "Run AvalancheGo with Docker"
+      },
+      {
+        "role": "link",
+        "name": "Using Pre-Built Binary"
+      },
+      {
+        "role": "link",
+        "name": "Using Source Code"
+      },
+      {
+        "role": "link",
+        "name": "Avalanche L1 Nodes"
+      },
+      {
+        "text": "Set up a Node"
+      },
+      {
+        "role": "heading",
+        "name": "Node Setup Overview"
+      },
+      {
+        "text": "Choose the right setup path for running an Avalanche node, whether you're operating on the Primary Network or an Avalanche L1."
+      }
+    ],
+    "goneAnchors": [
+      {
+        "role": "heading",
+        "name": "Introduction"
+      },
+      {
+        "text": "A brief introduction to the concepts of nodes and validators within the Avalanche ecosystem."
+      },
+      {
+        "text": "AvalancheGo nodes relay transactions/blocks, expose APIs, and (when staked) participate in consensus on the Primary Network and any Avalanche L1s they validate."
+      },
+      {
+        "role": "link",
+        "name": "Node Roles"
+      },
+      {
+        "role": "columnheader",
+        "name": "Role"
+      },
+      {
+        "role": "columnheader",
+        "name": "Purpose"
+      },
+      {
+        "role": "columnheader",
+        "name": "Consensus Participation"
+      },
+      {
+        "role": "cell",
+        "name": "A Primary Network validator stakes AVAX on the P-Chain and validates the P-Chain, C-Chain and X-Chain. An L1 validator registers on the P-Chain, pays a continuous fee and does not need to validate the Primary Network."
+      }
+    ],
+    "endWaitMs": 12430
+  }
+}

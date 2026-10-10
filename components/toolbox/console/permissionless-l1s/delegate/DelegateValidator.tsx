@@ -37,7 +37,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
   const tokenLabel = isNative ? 'Native Token' : 'ERC20 Token';
 
   // Resolve the staking manager's actual ERC20 token address from the contract.
-  // Avoid useToolboxStore().exampleErc20Address — it's the example token from a
+  // Avoid useToolboxStore().exampleErc20Address. It's the example token from a
   // different setup wizard, not necessarily this chain's staking token.
   const stakingManagerAddress = validatorManagerDetails.contractOwner || '';
   const [resolvedErc20Address, setResolvedErc20Address] = useState<string | null>(null);
@@ -77,13 +77,12 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
 
   return (
     <div className="space-y-6">
-      {globalError && <Alert variant="error">Error: {globalError}</Alert>}
-
+      {/* Each step's tool shows its own error next to its button. globalError only shows the reset button. */}
       <Steps>
         <L1SubnetStep
           subnetId={l1State.subnetIdL1}
           onSubnetIdChange={l1State.setSubnetIdL1}
-          description={`Choose the L1 subnet where you want to delegate ${tokenLabel}s to a validator.`}
+          description={`Choose the L1 where you want to delegate ${tokenLabel}s to a validator.`}
           validatorManagerDetails={validatorManagerDetails}
           validatorManagerError={validatorManagerDetails.error}
           isExpanded={l1State.isValidatorManagerDetailsExpanded}
@@ -149,7 +148,9 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
             key={`pchain-${l1State.resetKey}-${tokenType}`}
             subnetIdL1={l1State.subnetIdL1}
             initialEvmTxHash={initiateDelegationTxHash}
-            signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
+            signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             txHashLabel="Initiate Delegation Transaction Hash"
             txHashPlaceholder="Enter the transaction hash from Step 3 (0x...)"
             additionalInfo={
@@ -180,7 +181,9 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
             key={`complete-${l1State.resetKey}-${tokenType}`}
             subnetIdL1={l1State.subnetIdL1}
             pChainTxId={pChainTxId}
-            signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
+            signingSubnetId={validatorManagerDetails.signingSubnetId}
+            signingSubnetLoading={validatorManagerDetails.isLoading}
+            signingSubnetError={validatorManagerDetails.error}
             updateType="Delegation"
             managerAddress={validatorManagerDetails.contractOwner || ''}
             delegationID={delegationID}

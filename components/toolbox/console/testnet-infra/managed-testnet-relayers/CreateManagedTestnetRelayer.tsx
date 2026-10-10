@@ -49,11 +49,12 @@ function CreateManagedTestnetRelayerBase() {
   const [tokenAmounts, setTokenAmounts] = useState<Record<string, string>>({});
   const [isSending, setIsSending] = useState(false);
 
-  // Initialize with first chain if available
+  // Start with the first chain as the source and the second chain as the destination. The same chain on both sides
+  // is not a valid pair, so a list of one chain starts with no destination.
   useEffect(() => {
     if (l1List.length > 0 && selectedSources.length === 0 && selectedDestinations.length === 0) {
       setSelectedSources([l1List[0].id]);
-      setSelectedDestinations([l1List[0].id]);
+      setSelectedDestinations(l1List[1] ? [l1List[1].id] : []);
     }
   }, [l1List]);
 
@@ -178,7 +179,7 @@ function CreateManagedTestnetRelayerBase() {
       // Get chain info for the transaction
       const chainInfo = getChainInfo(config);
       const l1 = l1List.find((item: L1ListItem) => item.id === config.blockchainId);
-      // Resolve the EVM chain ID — prefer the L1 list; for anything else
+      // Resolve the EVM chain ID. Prefer the L1 list; for anything else
       // query the RPC directly. The previous fallback, parseInt(cb58.slice(0,8), 16),
       // silently returned NaN for non-hex base58 characters and left
       // walletClient.switchChain with an invalid id.

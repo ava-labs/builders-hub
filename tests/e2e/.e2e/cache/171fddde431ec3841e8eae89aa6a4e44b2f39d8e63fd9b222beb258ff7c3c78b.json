@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:20:56.376Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Toggle Menu\"",
+        "target": {
+          "role": "button",
+          "name": "Toggle Menu"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Explorer\" in \"Log in\"",
+        "target": {
+          "role": "link",
+          "name": "Explorer",
+          "within": "Log in"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/site-navigation.e2e.ts::phone%20menu%20leads%20from%20the%20home%20page%20to%20the%20Explorer",
+      "targetId": "phone",
+      "instructionDigest": "e821603f045aeb50797a4192fd69132011c493315556a575f1b62e07ce028ca2",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Opened the Toggle Menu and tapped \"Explorer\" (/explorer/mainnet). The Avalanche Explorer page (\"All Networks | Avalanche Explorer\") loaded.",
+    "startPath": "/",
+    "endPath": "/explorer/mainnet",
+    "endAnchors": [
+      {
+        "role": "heading",
+        "name": "Avalanche Explorer"
+      },
+      {
+        "text": "All Networks"
+      },
+      {
+        "text": "Chains"
+      },
+      {
+        "role": "link",
+        "name": "AVAX"
+      },
+      {
+        "role": "link",
+        "name": "Query"
+      },
+      {
+        "text": "Time range for all stats on this page"
+      },
+      {
+        "role": "option",
+        "name": "1W"
+      },
+      {
+        "role": "option",
+        "name": "1Y"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "network"
+      },
+      {
+        "text": "."
+      },
+      {
+        "text": "Build an L1"
+      },
+      {
+        "text": "Build on C-Chain"
+      },
+      {
+        "role": "link",
+        "name": "READ THE ARCHITECTURE →"
+      },
+      {
+        "text": "JPMorgan"
+      },
+      {
+        "text": "Franklin Templeton"
+      },
+      {
+        "text": "T. Rowe Price"
+      }
+    ],
+    "endWaitMs": 13519
+  }
+}

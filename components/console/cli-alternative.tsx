@@ -52,8 +52,8 @@ export function CliAlternative({ command }: CliAlternativeProps) {
       <div className="group relative rounded-lg bg-muted/50 border border-border px-4 py-3.5">
         <button
           onClick={handleCopy}
-          className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors"
-          aria-label="Copy command"
+          className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground focus-visible:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+          aria-label={copied ? "Copied" : "Copy command"}
         >
           {copied ? (
             <Check className="w-4 h-4 text-emerald-500" />
@@ -61,6 +61,9 @@ export function CliAlternative({ command }: CliAlternativeProps) {
             <Copy className="w-4 h-4" />
           )}
         </button>
+        <span className="sr-only" aria-live="polite">
+          {copied ? "Copied" : ""}
+        </span>
 
         <pre className="text-sm font-mono leading-relaxed whitespace-pre-wrap break-all">
           <span className="text-muted-foreground/50 select-none">$ </span>

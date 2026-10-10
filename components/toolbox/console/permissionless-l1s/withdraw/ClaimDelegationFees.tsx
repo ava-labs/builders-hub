@@ -5,6 +5,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
 
 type TokenType = 'native' | 'erc20';
 
@@ -88,7 +89,7 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
 
       // Provide more helpful error messages
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('InvalidValidationID')) {
         message = 'Invalid validation ID. The validator may not exist.';
       } else if (message.includes('NoFeesToClaim') || message.includes('NothingToClaim')) {
@@ -97,8 +98,8 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
         message = 'Only the validator owner can claim delegation fees.';
       }
 
-      setErrorState(`Failed to claim delegation fees: ${message}`);
-      onError(`Failed to claim delegation fees: ${message}`);
+      setErrorState(failureText('Failed to claim delegation fees: ', message));
+      onError(failureText('Failed to claim delegation fees: ', message));
     } finally {
       setIsProcessing(false);
     }

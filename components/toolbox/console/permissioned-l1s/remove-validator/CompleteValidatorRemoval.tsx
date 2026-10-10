@@ -28,6 +28,8 @@ import {
   parseAggregationError,
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
+import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -44,6 +46,10 @@ interface CompleteValidatorRemovalProps {
   isContractOwner: boolean | null;
   validatorManagerAddress: string;
   signingSubnetId: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
   ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -57,6 +63,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   isContractOwner,
   validatorManagerAddress,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   contractOwner,
   isLoadingOwnership,
   ownerType,
@@ -107,13 +115,13 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required. Please select a subnet first.');
-      onError('L1 Subnet ID is required. Please select a subnet first.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager address is not set. Check L1 Subnet selection.');
-      onError('Validator Manager address is not set. Check L1 Subnet selection.');
+      setErrorState(INVALID_L1_SELECTED);
+      onError(INVALID_L1_SELECTED);
       return;
     }
     if (isContractOwner === false && !useMultisig) {
@@ -131,6 +139,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     if (!chainPublicClient) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      return;
+    }
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setErrorState(signingSubnetWait);
+      onError(signingSubnetWait);
       return;
     }
 
@@ -240,7 +254,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
-    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</div>;
   }
 
   const step1Complete = !!pChainTxId.trim();
@@ -366,26 +380,32 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
               </div>
             ) : !step2Complete ? (
               <div className="mt-2">
+                <SigningSubnetStatus
+                  signingSubnetId={signingSubnetId}
+                  isLoading={signingSubnetLoading}
+                  error={signingSubnetError}
+                  className="mb-2"
+                />
                 <Button
                   onClick={handleCompleteRemoval}
                   disabled={
                     isProcessing ||
                     !pChainTxId.trim() ||
+                    !signingSubnetId ||
                     !!successMessage ||
                     (isContractOwner === false && !useMultisig) ||
                     isLoadingOwnership ||
                     (!isCoreWallet && !!pChainSignature)
                   }
                   loading={isProcessing}
+                  loadingText="Processing..."
                   className="w-full"
                 >
                   {isLoadingOwnership
                     ? 'Checking ownership...'
-                    : isProcessing
-                      ? 'Processing...'
-                      : isCoreWallet
-                        ? 'Sign & Complete Validator Removal'
-                        : 'Aggregate Signatures'}
+                    : isCoreWallet
+                      ? 'Sign & Complete Validator Removal'
+                      : 'Aggregate Signatures'}
                 </Button>
               </div>
             ) : null}

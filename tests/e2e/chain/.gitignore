@@ -1,0 +1,2 @@
+# The run ledger (lib/ledger.ts): transaction IDs, the L1 and its validators. CI uploads it as an artifact.
+.run/

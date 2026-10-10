@@ -5,7 +5,7 @@ import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 import TransparentUpgradeableProxyABI from '@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json';
@@ -23,6 +23,7 @@ import { ContractDeployViewer, type ContractSource } from '@/components/console/
 import { Check, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { ADMIN_SLOT, implementationProblem } from './proxyTarget';
+import { proxyAdminSubnetId, savedProxyAdminFor, savedProxyAdminProblem } from './savedProxyAdmin';
 
 // Pre-deployed proxy address on L1s created via Builder Console
 const GENESIS_PROXY_ADDRESS = '0xfacade0000000000000000000000000000000000';
@@ -59,6 +60,9 @@ const metadata: ConsoleToolMetadata = {
 function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();
   const setCreateChainManagerAddress = useCreateChainStore()((state) => state.setManagerAddress);
+  const flowSubnetId = useCreateChainStore()((state) => state.subnetId);
+  const savedProxyAdmin = useCreateChainStore()((state) => state.proxyAdmin);
+  const setSavedProxyAdmin = useCreateChainStore()((state) => state.setProxyAdmin);
   const selectedL1 = useSelectedL1();
   const { walletChainId, walletEVMAddress } = useWalletStore();
   const walletClient = useResolvedWalletClient();
@@ -67,8 +71,19 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
   const chainPublicClient = useChainPublicClient();
 
-  // Upgrade state
-  const [proxyAddress, setProxyAddress] = useState<string>(GENESIS_PROXY_ADDRESS);
+  const fieldId = useId();
+  const isCChain = walletChainId === 43113 || walletChainId === 43114;
+
+  // Upgrade state. The C-Chain has no genesis proxy, so the field starts empty there.
+  const [proxyAddress, setProxyAddress] = useState<string>(() => (isCChain ? '' : GENESIS_PROXY_ADDRESS));
+  // True after the user types in the Proxy Address field. Until then the page
+  // sets the field for the wallet's chain: empty on the C-Chain, the genesis
+  // proxy on an L1. The standalone flow does not remount this page on a chain switch.
+  const userTypedProxyAddress = useRef(false);
+  useEffect(() => {
+    if (walletChainId === 0 || userTypedProxyAddress.current) return;
+    setProxyAddress(isCChain ? '' : GENESIS_PROXY_ADDRESS);
+  }, [walletChainId, isCChain]);
   const [proxyAdminAddress, setProxyAdminAddress] = useState<string>('');
   const [currentImplementation, setCurrentImplementation] = useState<string>('');
   const [desiredImplementation, setDesiredImplementation] = useState<string>('');
@@ -77,18 +92,17 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [proxyError, setProxyError] = useState<string>('');
 
   // Deploy state. Default the section OPEN when we're on C-Chain (43113
-  // Fuji / 43114 Mainnet) — there's no `0xfacade…` genesis proxy to
+  // Fuji / 43114 Mainnet). There's no `0xfacade…` genesis proxy to
   // upgrade, so "Deploy New Proxy" is the only path forward. On L1s
   // created through the Builder Console the genesis proxy exists and
   // Upgrade is the default.
-  const isCChain = walletChainId === 43113 || walletChainId === 43114;
   const [showDeploySection, setShowDeploySection] = useState<boolean>(isCChain);
 
   // `walletChainId` is often 0 on first render (WalletSync hasn't synced
   // wagmi state yet), so the `useState` initializer above can see the
   // wrong value and default to Upgrade. This one-shot effect re-syncs the
   // default once the chain id first becomes non-zero, and then steps out
-  // of the way — any later manual toggle or chain switch is respected.
+  // of the way. Any later manual toggle or chain switch is respected.
   const autoDefaultAppliedRef = useRef(false);
   useEffect(() => {
     if (autoDefaultAppliedRef.current) return;
@@ -105,9 +119,60 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [isCheckingImplementation, setIsCheckingImplementation] = useState(false);
   const [deployImplementationError, setDeployImplementationError] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
+  const [savedProxyAdminError, setSavedProxyAdminError] = useState<string | null>(null);
+
+  // A ProxyAdmin deployed here belongs to the wallet's chain and to one L1, and the account that deployed it owns it.
+  // The deploy results on screen are cleared when the chain, the L1 or the account changes. The saved ProxyAdmin is
+  // then checked again for the new account.
+  const adminSubnetId = proxyAdminSubnetId(selectedL1?.subnetId, flowSubnetId);
+  const deployScopeKey = `${walletChainId}:${adminSubnetId}:${walletEVMAddress.toLowerCase()}`;
+  const deployScopeRef = useRef(deployScopeKey);
+  useEffect(() => {
+    if (deployScopeRef.current === deployScopeKey) return;
+    deployScopeRef.current = deployScopeKey;
+    setNewProxyAdminAddress('');
+    setNewProxyAddress('');
+    setSavedProxyAdminError(null);
+  }, [deployScopeKey]);
+
+  // After a reload between the two deploys, show the ProxyAdmin that this page
+  // deployed, once the chain confirms it. A failed check removes the saved address,
+  // except when another account owns the ProxyAdmin: the owner can connect again.
+  // A new deploy replaces the saved address.
+  const savedProxyAdminAddress = savedProxyAdminFor(savedProxyAdmin, walletChainId, adminSubnetId);
+  const isCheckingSavedProxyAdmin =
+    !!savedProxyAdminAddress && savedProxyAdminAddress !== newProxyAdminAddress && !savedProxyAdminError;
+  useEffect(() => {
+    if (!savedProxyAdminAddress || savedProxyAdminAddress === newProxyAdminAddress) return;
+    if (!chainPublicClient || !walletEVMAddress) return;
+    let cancelled = false;
+    savedProxyAdminProblem(chainPublicClient, savedProxyAdminAddress, walletEVMAddress)
+      .then((problem) => {
+        if (cancelled) return;
+        setShowDeploySection(true);
+        if (problem) {
+          if (!problem.keepSaved) setSavedProxyAdmin(null);
+          setSavedProxyAdminError(problem.message);
+          return;
+        }
+        setSavedProxyAdminError(null);
+        setNewProxyAdminAddress(savedProxyAdminAddress);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setShowDeploySection(true);
+        setSavedProxyAdminError(
+          `Could not check the ProxyAdmin that this page deployed earlier (${savedProxyAdminAddress}). Check the network, then reload the page.`,
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [savedProxyAdminAddress, newProxyAdminAddress, chainPublicClient, walletEVMAddress]);
 
   // Load proxy address from selected L1
   useEffect(() => {
+    let cancelled = false;
     (async function () {
       try {
         const subnetId = selectedL1?.subnetId;
@@ -115,13 +180,17 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
         const info = await getSubnetInfo(subnetId);
         const contractAddress = info.l1ValidatorManagerDetails?.contractAddress;
-        if (contractAddress) {
+        if (contractAddress && !cancelled) {
+          userTypedProxyAddress.current = false;
           setProxyAddress(contractAddress);
         }
       } catch (error) {
         console.error('Failed to load L1 info:', error);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedL1?.subnetId]);
 
   // Pre-fill desired implementation from store. After an upgrade the store
@@ -208,7 +277,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
   // Pre-fill the Deploy New Proxy "implementation" field too. This is the
   // same ValidatorManager address the user just deployed in the previous
-  // step — the Deploy path needs it to initialize the TransparentUpgradeable-
+  // step. The Deploy path needs it to initialize the TransparentUpgradeable-
   // Proxy. Guarding on empty string so a user who manually cleared or
   // overrode the field doesn't get clobbered.
   useEffect(() => {
@@ -217,11 +286,17 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     }
   }, [validatorManagerAddress, deployImplementationAddress]);
 
-  // Read proxy info when address changes
+  // Read proxy info when address changes. Nothing sits at the genesis proxy
+  // address on the C-Chain: a read there shows an error before the user acts.
   useEffect(() => {
-    if (proxyAddress) {
-      readProxyInfo(proxyAddress);
+    if (!proxyAddress || (isCChain && proxyAddress === GENESIS_PROXY_ADDRESS)) {
+      // Clear the values of an earlier read, for example the L1's proxy before a switch to the C-Chain
+      setProxyAdminAddress('');
+      setCurrentImplementation('');
+      setProxyError('');
+      return;
     }
+    readProxyInfo(proxyAddress);
   }, [proxyAddress, walletChainId]);
 
   async function readProxyInfo(address: string) {
@@ -314,6 +389,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
   async function deployProxyAdmin() {
     if (!chainPublicClient) throw new Error('Chain not configured');
+    const scope = { evmChainId: walletChainId, subnetId: adminSubnetId };
+    const scopeKey = deployScopeKey;
 
     setIsDeployingProxyAdmin(true);
     setNewProxyAdminAddress('');
@@ -337,7 +414,13 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       if (receipt.status !== 'success' || !receipt.contractAddress) {
         throw new Error('The ProxyAdmin deployment reverted.');
       }
-      setNewProxyAdminAddress(receipt.contractAddress);
+      // Saved so that a reload before the proxy deploy does not offer this deploy again
+      setSavedProxyAdmin({ address: receipt.contractAddress, ...scope });
+      setSavedProxyAdminError(null);
+      // A chain or L1 switch during the deploy cleared the step: do not show this ProxyAdmin there
+      if (deployScopeRef.current === scopeKey) {
+        setNewProxyAdminAddress(receipt.contractAddress);
+      }
     } catch (err) {
       setTxError(errorText(err));
     } finally {
@@ -375,7 +458,10 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
         throw new Error('The proxy deployment reverted.');
       }
       setNewProxyAddress(receipt.contractAddress);
+      // The ProxyAdmin now has its proxy: a reload must not offer a second proxy for it
+      setSavedProxyAdmin(null);
       // Auto-fill the upgrade section with the new proxy
+      userTypedProxyAddress.current = false;
       setProxyAddress(receipt.contractAddress);
       setShowDeploySection(false);
       // Persist the new proxy address to both stores so downstream steps
@@ -409,7 +495,11 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         {/* Content area */}
         <div className="p-4 space-y-3">
-          {txError && <p className="text-[11px] text-red-600 dark:text-red-400 px-1">{txError}</p>}
+          {txError && (
+            <p role="alert" className="text-[11px] text-red-600 dark:text-red-400 px-1">
+              {txError}
+            </p>
+          )}
           {/* Upgrade Proxy Section (Primary) */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
@@ -441,13 +531,20 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                   {/* Proxy Address + Info Row */}
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
-                      <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                      <label
+                        htmlFor={`${fieldId}-proxy`}
+                        className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1"
+                      >
                         Proxy Address
                       </label>
                       <input
+                        id={`${fieldId}-proxy`}
                         type="text"
                         value={proxyAddress}
-                        onChange={(e) => setProxyAddress(e.target.value)}
+                        onChange={(e) => {
+                          userTypedProxyAddress.current = true;
+                          setProxyAddress(e.target.value);
+                        }}
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
                         placeholder="0x..."
                       />
@@ -456,7 +553,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                       onClick={() => readProxyInfo(proxyAddress)}
                       disabled={isLoadingProxyInfo || !proxyAddress}
                       className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                      title="Refresh"
+                      title="Read proxy info"
+                      aria-label="Read proxy info"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isLoadingProxyInfo ? 'animate-spin' : ''}`} />
                     </button>
@@ -486,10 +584,14 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
                   {/* Desired Implementation Input */}
                   <div>
-                    <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                    <label
+                      htmlFor={`${fieldId}-implementation`}
+                      className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1"
+                    >
                       New Implementation (ValidatorManager)
                     </label>
                     <input
+                      id={`${fieldId}-implementation`}
                       type="text"
                       value={desiredImplementation}
                       onChange={(e) => setDesiredImplementation(e.target.value)}
@@ -553,6 +655,16 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                   Only for L1s without genesis proxy. Builder Console L1s have proxy at{' '}
                   <code>{GENESIS_PROXY_ADDRESS.slice(0, 10)}...</code>
                 </p>
+                {savedProxyAdminError && (
+                  <p role="alert" className="text-[11px] text-red-600 dark:text-red-400 px-1 break-words">
+                    {savedProxyAdminError}
+                  </p>
+                )}
+                {isCheckingSavedProxyAdmin && (
+                  <p role="status" className="text-[11px] text-zinc-500 dark:text-zinc-400 px-1 break-words">
+                    Checking the ProxyAdmin that this page deployed earlier...
+                  </p>
+                )}
 
                 {/* Two-column layout for deploy steps */}
                 <div className="grid grid-cols-2 gap-3">
@@ -574,10 +686,10 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                         variant="secondary"
                         onClick={deployProxyAdmin}
                         loading={isDeployingProxyAdmin}
-                        disabled={isDeployingProxyAdmin}
+                        disabled={isDeployingProxyAdmin || isCheckingSavedProxyAdmin}
                         className="w-full text-xs py-1.5"
                       >
-                        Deploy
+                        Deploy ProxyAdmin
                       </Button>
                     )}
                   </div>
@@ -608,7 +720,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                         }
                         className="w-full text-xs py-1.5"
                       >
-                        Deploy
+                        Deploy Proxy
                       </Button>
                     )}
                   </div>
@@ -620,6 +732,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                     type="text"
                     value={deployImplementationAddress}
                     onChange={(e) => setDeployImplementationAddress(e.target.value)}
+                    aria-label="Implementation address"
                     className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
                     placeholder="Implementation address for proxy..."
                   />

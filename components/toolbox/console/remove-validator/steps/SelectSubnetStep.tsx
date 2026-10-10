@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { ManagerTypeBadge } from '@/components/toolbox/console/add-validator/ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
+import { StartOverButton } from '@/components/toolbox/console/shared/StartOverButton';
 
 export default function SelectSubnetStep() {
   const store = useRemoveValidatorStore();
   const vmcCtx = useValidatorManagerContext();
+  // Start over moves the focus to this field
+  const subnetFieldId = useId();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const isDetecting =
@@ -23,7 +26,7 @@ export default function SelectSubnetStep() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+          <h2 className="text-lg font-semibold">Select L1</h2>
           {store.subnetIdL1 && (
             <ManagerTypeBadge
               ownerType={vmcCtx.ownerType}
@@ -31,13 +34,20 @@ export default function SelectSubnetStep() {
               isDetecting={isDetecting}
             />
           )}
+          <StartOverButton
+            show={!!store.subnetIdL1}
+            onStartOver={store.reset}
+            focusId={subnetFieldId}
+            className="ml-auto"
+          />
         </div>
         <p className="text-sm text-zinc-500 mb-4">
-          Choose the L1 with the validator you want to remove. We'll detect the validator manager type — PoS attempts
-          uptime-proof removal first (preserves staking rewards) and falls back to force-removal if the validator is
-          ineligible for rewards.
+          Choose the L1 with the validator you want to remove. The tool detects the validator manager type. For PoS, it
+          tries uptime-proof removal first (this keeps the staking rewards). It uses force-removal if the validator
+          cannot get rewards.
         </p>
         <SelectSubnetId
+          id={subnetFieldId}
           value={store.subnetIdL1}
           onChange={store.setSubnetIdL1}
           error={vmcCtx.error}

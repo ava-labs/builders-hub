@@ -49,12 +49,12 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
   });
   const [isSwitching, setIsSwitching] = useState(false);
 
-  // No requirement or P-Chain (no EVM switch needed) — pass through
+  // No requirement or P-Chain (no EVM switch needed): pass through
   if (!requiredChain || requiredChain === 'any' || requiredChain === 'p-chain') {
     return <>{children}</>;
   }
 
-  // No wallet connected — show children anyway (individual steps handle wallet checks)
+  // No wallet connected: show children anyway (individual steps handle wallet checks)
   if (!walletEVMAddress) {
     return <>{children}</>;
   }
@@ -75,7 +75,7 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     chainLabel = resolved.chainLabel;
   }
 
-  // Can't determine expected chain — pass through
+  // Can't determine expected chain: pass through
   if (expectedChainId === null) {
     return <>{children}</>;
   }
@@ -111,7 +111,7 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
   const handleAddToWallet = async () => {
     // For the create-l1 flow we already know the chain name + EVM id,
     // so seed the modal with what we have. The user only needs to paste
-    // an RPC URL (which the modal prompts for) — the rest is pre-filled.
+    // an RPC URL (which the modal prompts for). The rest is pre-filled.
     const isL1Step = requiredChain === 'l1';
     await addChain({
       allowLookup: !isL1Step,
@@ -134,7 +134,8 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     if (expectedChainId === null) return;
     setIsSwitching(true);
     try {
-      await switchChain(expectedChainId, isTestnet ?? false);
+      // No toast on a failed switch: the Add Chain modal below is the next step.
+      await switchChain(expectedChainId, isTestnet ?? false, { toastOnFailure: false });
 
       // useWalletSwitch writes walletChainId after a confirmed switch. Check
       // the store before reading the async provider hook so a fast click while
@@ -155,7 +156,7 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
         return;
       }
 
-      // Switch didn't move the chain — chain probably isn't in the wallet
+      // Switch didn't move the chain, so the chain probably isn't in the wallet
       // at all. Open the add-chain modal so the user can register it.
       await handleAddToWallet();
     } finally {
@@ -220,7 +221,7 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
               {/* Always offer the explicit add-to-wallet path as a
                   secondary option. This matters when the user knows they
                   need to paste a custom RPC URL (e.g., a managed-nodes
-                  endpoint we don't have in scope) — they can skip the
+                  endpoint we don't have in scope), they can skip the
                   optimistic switch attempt and go straight to the modal. */}
               {!isInWallet && (
                 <Button
@@ -237,8 +238,10 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
         </div>
       </div>
 
-      {/* Still render children below — some users may want to read the step while switching */}
-      <div className="opacity-40 pointer-events-none">{children}</div>
+      {/* Still render children below: some users may want to read the step while switching */}
+      <div inert className="opacity-40 pointer-events-none">
+        {children}
+      </div>
     </div>
   );
 }

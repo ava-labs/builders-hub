@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-06T02:50:34.629Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"C-Chain\"",
+        "target": {
+          "role": "button",
+          "name": "C-Chain"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"P-Chain\" in \"Network\"",
+        "target": {
+          "role": "link",
+          "name": "P-Chain",
+          "within": "Network"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-explorer-chain-switch.e2e.ts::visitor%20switches%20from%20the%20C-Chain%20blocks%20page%20to%20the%20P-Chain%20and%20stays%20on%20its%20blocks",
+      "targetId": "phone",
+      "instructionDigest": "c1ff8a8f99175ca57603a9f1df90a908c82d84a6093ecb56a8c86b6790e7b898",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Opened the chain switcher and chose \"P-Chain\". The explorer is now at /explorer/mainnet/p-chain/blocks. The heading reads \"P-Chain Explorer\" and the chain button shows \"P-Chain\".",
+    "startPath": "/explorer/mainnet/c-chain/blocks",
+    "endPath": "/explorer/mainnet/p-chain/blocks",
+    "endAnchors": [
+      {
+        "text": "P-Chain"
+      },
+      {
+        "role": "heading",
+        "name": "P-Chain Explorer"
+      },
+      {
+        "role": "link",
+        "name": "Staking"
+      },
+      {
+        "role": "link",
+        "name": "L1s"
+      },
+      {
+        "role": "textbox",
+        "name": "Search or ask a question",
+        "placeholder": "Search an address, tx, block, NodeID or chain, or ask a question…"
+      },
+      {
+        "text": "Filter"
+      },
+      {
+        "role": "button",
+        "name": "All types",
+        "states": [
+          "pressed"
+        ]
+      },
+      {
+        "role": "button",
+        "name": "Standard"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "C-Chain"
+      },
+      {
+        "role": "heading",
+        "name": "Avalanche C-Chain Explorer"
+      },
+      {
+        "role": "link",
+        "name": "Gas"
+      },
+      {
+        "role": "link",
+        "name": "DeFi"
+      },
+      {
+        "role": "link",
+        "name": "Accounts"
+      },
+      {
+        "role": "textbox",
+        "name": "Search the chain or ask a question about it",
+        "placeholder": "Search an address, tx, block or chain, or ask a question…"
+      },
+      {
+        "text": "Cadence"
+      },
+      {
+        "text": "Block Time"
+      }
+    ],
+    "endWaitMs": 12876
+  }
+}

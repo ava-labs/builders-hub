@@ -1,14 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import StepFlow from '@/components/console/step-flow';
 import { useCreateL1FlowStore } from '@/components/toolbox/stores/createL1FlowStore';
 import { generateCreateL1Steps } from '@/components/toolbox/console/create-l1/generateSteps';
 
+const subscribeNever = () => () => {};
+
 export default function CreateL1StepClientPage({ currentStepKey }: { currentStepKey: string }) {
   const router = useRouter();
   const answers = useCreateL1FlowStore((s) => s.answers);
+  // False in the render that hydrates the server HTML. In that render zustand gives the store's initial state (no
+  // answers), not the answers in localStorage, so a redirect then would send every reload of a step back to the
+  // questionnaire.
+  const hydrated = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
   const setCurrentStepIndex = useCreateL1FlowStore((s) => s.setCurrentStepIndex);
 
   const steps = useMemo(() => {
@@ -19,7 +29,7 @@ export default function CreateL1StepClientPage({ currentStepKey }: { currentStep
   const hasFlow = !!answers && steps.length > 0;
 
   // Keep the flow store's currentStepIndex in sync with the URL. The URL is
-  // the source of truth for "where the user is now" — every Next/Back/deep-
+  // the source of truth for "where the user is now": every Next/Back/deep-
   // link goes through this component on mount. Writing the index here makes
   // the sidebar's Resume entry deep-link to the user's actual last position.
   useEffect(() => {
@@ -35,8 +45,8 @@ export default function CreateL1StepClientPage({ currentStepKey }: { currentStep
   // Redirect to the questionnaire in an effect (not during render) when the
   // user deep-links to a step without any stored answers.
   useEffect(() => {
-    if (!hasFlow) router.replace('/console/create-l1');
-  }, [hasFlow, router]);
+    if (hydrated && !hasFlow) router.replace('/console/create-l1');
+  }, [hydrated, hasFlow, router]);
 
   // Clear the flow store when the user reaches "Finish" so the sidebar's
   // Resume entry disappears and the next run starts clean.

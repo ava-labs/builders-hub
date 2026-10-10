@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-import { useState, useEffect, type InputHTMLAttributes } from 'react';
+import { useState, useEffect, useId, type InputHTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import { Check } from 'lucide-react';
 
@@ -64,6 +64,12 @@ export function Input({
   ...props
 }: InputProps) {
   const [inputValue, setInputValue] = useState(props.value?.toString() || props.defaultValue?.toString() || '');
+  // Most callers pass no id: the label needs one to name the field
+  const autoId = useId();
+  const inputId = id ?? autoId;
+  // The error or helper text box: a screen reader reads it with the field
+  const descId = `${inputId}-desc`;
+  const hasDesc = !!error || !!helperText;
 
   // Sync inputValue with props.value when it changes
   useEffect(() => {
@@ -82,7 +88,7 @@ export function Input({
     setInputValue(suggestion.value);
     onChange?.(suggestion.value);
     // Focus the input after selection
-    const inputElement = document.getElementById(id as string);
+    const inputElement = document.getElementById(inputId);
     if (inputElement) {
       inputElement.focus();
     }
@@ -90,15 +96,17 @@ export function Input({
 
   return (
     <div className="space-y-2 mb-6">
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-        {label}
-      </label>
+      {label && (
+        <label htmlFor={inputId} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          {label}
+        </label>
+      )}
 
       <div className="relative">
         <div className="flex">
           <RawInput
             {...props}
-            id={id}
+            id={inputId}
             value={inputValue}
             onChange={handleChange}
             hasSuggestions={(suggestions && suggestions.length > 0) || !!error || !!helperText}
@@ -110,6 +118,8 @@ export function Input({
               className,
             )}
             error={error}
+            aria-describedby={hasDesc ? descId : props['aria-describedby']}
+            aria-invalid={error ? true : props['aria-invalid']}
           />
           {button}
         </div>
@@ -126,7 +136,9 @@ export function Input({
               suggestions && suggestions.length > 0 ? 'border-b-0' : 'rounded-b-lg',
             )}
           >
-            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <p id={descId} className="text-xs text-red-600 dark:text-red-400">
+              {error}
+            </p>
           </div>
         ) : helperText ? (
           <div
@@ -135,7 +147,9 @@ export function Input({
               suggestions && suggestions.length > 0 ? 'border-b-0' : 'rounded-b-lg',
             )}
           >
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">{helperText}</p>
+            <p id={descId} className="text-xs text-zinc-600 dark:text-zinc-400">
+              {helperText}
+            </p>
           </div>
         ) : null}
 
@@ -151,22 +165,26 @@ export function Input({
               {suggestions.map((suggestion, index) => {
                 const isSelected = inputValue === suggestion.value;
                 return (
-                  <div
+                  <button
                     key={index}
+                    type="button"
+                    aria-pressed={isSelected}
                     className={cn(
-                      'px-3 py-1 cursor-pointer transition-all duration-150 text-left border-l-4 flex items-center justify-between gap-2',
+                      'w-full px-3 py-1 cursor-pointer transition-all duration-150 text-left border-l-4 flex items-center justify-between gap-2',
                       isSelected
                         ? 'border-zinc-400 dark:border-zinc-500'
                         : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500',
                     )}
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{suggestion.title}</div>
-                      <div className="text-xs text-zinc-600 dark:text-zinc-400">{suggestion.description}</div>
-                    </div>
+                    <span className="block flex-1">
+                      <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        {suggestion.title}
+                      </span>
+                      <span className="block text-xs text-zinc-600 dark:text-zinc-400">{suggestion.description}</span>
+                    </span>
                     {isSelected && <Check className="w-4 h-4 text-green-600 dark:text-green-500 flex-shrink-0" />}
-                  </div>
+                  </button>
                 );
               })}
             </div>

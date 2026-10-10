@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:18:51.402Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Create L1\"",
+        "target": {
+          "role": "link",
+          "name": "Create L1"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-console.e2e.ts::visitor%20finds%20the%20tool%20to%20create%20an%20L1%20from%20the%20Console%20home",
+      "targetId": "desktop",
+      "instructionDigest": "6c20aa5ab5ebab5df49d4b229ba0172f1b48daf0885689f5ae91935be8c4225d",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Tapped \"Create L1\" in the Console sidebar. It opened /console/create-l1 (\"Create L1 | Avalanche Builder Hub\"). The page shows a wallet requirements panel: \"Wallet detected\" and \"Wallet connected\", plus a Download Core Wallet option.",
+    "startPath": "/console",
+    "endPath": "/console/create-l1",
+    "endAnchors": [
+      {
+        "role": "heading",
+        "name": "To use this tool you need:"
+      },
+      {
+        "text": "Wallet detected"
+      },
+      {
+        "text": "Wallet connected"
+      },
+      {
+        "role": "heading",
+        "name": "How to meet these requirements:"
+      },
+      {
+        "text": "Download Core Wallet"
+      },
+      {
+        "text": "Get Core — the wallet built for Avalanche"
+      },
+      {
+        "role": "button",
+        "name": "Download"
+      },
+      {
+        "role": "document",
+        "name": "Create L1 | Avalanche Builder Hub"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "role": "heading",
+        "name": "Avalanche Builder Console"
+      },
+      {
+        "role": "heading",
+        "name": "Built on Avalanche"
+      },
+      {
+        "role": "link",
+        "name": "View all →"
+      },
+      {
+        "role": "image",
+        "name": "FIFA"
+      },
+      {
+        "text": "FIFA"
+      },
+      {
+        "role": "image",
+        "name": "MapleStory"
+      },
+      {
+        "text": "MapleStory"
+      },
+      {
+        "role": "image",
+        "name": "Beam"
+      }
+    ],
+    "endWaitMs": 12452
+  }
+}

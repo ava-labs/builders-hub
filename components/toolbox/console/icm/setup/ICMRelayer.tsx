@@ -51,7 +51,13 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
     return [...new Set([selectedL1?.id, l1List[0]?.id].filter(Boolean) as string[])];
   });
 
-  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(selectedSources);
+  // The same chain on both sides is not a valid pair. So with one source chain, the destinations start with the first
+  // other chain in the list (none when the list has one chain). With two source chains, both are also destinations.
+  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(() => {
+    if (selectedSources.length !== 1) return selectedSources;
+    const other = l1List.find((l1: L1ListItem) => l1.id !== selectedSources[0]);
+    return other ? [other.id] : [];
+  });
   const [error, setError] = useState<string | null>(null);
   const [balances, setBalances] = useState<Record<string, string>>({});
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
@@ -316,18 +322,21 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
             Run this command to save your relayer configuration to your local machine:
           </p>
-          <DynamicCodeBlock
-            code={genConfigCommand(
-              getConfigSources(),
-              getConfigDestinations(),
-              isTestnet ?? false,
-              logLevel,
-              storageLocation,
-              processMissedBlocks,
-              apiPort,
-            )}
-            lang="bash"
-          />
+          {/* The command holds the relayer private key, so session replay skips it (ph-no-capture). */}
+          <div className="ph-no-capture">
+            <DynamicCodeBlock
+              code={genConfigCommand(
+                getConfigSources(),
+                getConfigDestinations(),
+                isTestnet ?? false,
+                logLevel,
+                storageLocation,
+                processMissedBlocks,
+                apiPort,
+              )}
+              lang="bash"
+            />
+          </div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
             This creates the configuration file at{' '}
             <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-xs">

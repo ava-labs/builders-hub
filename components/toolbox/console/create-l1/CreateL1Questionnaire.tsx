@@ -41,9 +41,9 @@ import { generateCreateL1Steps, getResumeStepKey, getStepLabel } from './generat
 // Constants
 // ---------------------------------------------------------------------------
 
-const MIN_P_BALANCE = 0.1; // 0.1 AVAX — pChainBalance from walletStore is in AVAX units
+const MIN_P_BALANCE = 0.1; // 0.1 AVAX. pChainBalance from walletStore is in AVAX units
 
-// Q4 (multisig) only shown for PoA + C-Chain — total is dynamic
+// Q4 (multisig) only shown for PoA + C-Chain, so the total is dynamic
 
 // ---------------------------------------------------------------------------
 // Framer variants
@@ -92,6 +92,7 @@ function OptionCard<T extends string>({
   return (
     <motion.button
       type="button"
+      aria-pressed={selected}
       onClick={() => onSelect(id)}
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
@@ -195,7 +196,7 @@ export default function CreateL1Questionnaire() {
   const savedAnswers = useCreateL1FlowStore((s) => s.answers);
   const savedStepIndex = useCreateL1FlowStore((s) => s.currentStepIndex);
 
-  // Resume hint — surfaced as an opt-in banner on Q1 when an in-progress
+  // Resume hint: surfaced as an opt-in banner on Q1 when an in-progress
   // flow exists. We intentionally *don't* auto-redirect: network/store
   // resets can leave stale `answers` in localStorage, and bouncing the user
   // past the questionnaire against their will makes those resets confusing.
@@ -211,7 +212,7 @@ export default function CreateL1Questionnaire() {
   // user wants a one-click Basic deploy or the full Advanced flow. `null`
   // means the user hasn't chosen yet; 'advanced' continues into the
   // existing Q1+ questions. `pendingSetupMode` is the transient card
-  // selection — committed to `setupMode` (or routed away) only when the
+  // selection. It is committed to `setupMode` (or routed away) only when the
   // user hits Continue, matching the typeform flow on every other Q.
   const [setupMode, setSetupMode] = useState<'basic' | 'advanced' | null>(null);
   const [pendingSetupMode, setPendingSetupMode] = useState<'basic' | 'advanced' | null>(null);
@@ -220,12 +221,12 @@ export default function CreateL1Questionnaire() {
   const [direction, setDirection] = useState(1);
 
   // Q1: Validator type, Q2: VM location, Q3: Interop, Q4: Ownership (conditional), Q5: Hosting
-  // Convert-existing flow was dropped — the questionnaire only creates new L1s now.
+  // Convert-existing flow was dropped. The questionnaire only creates new L1s now.
   const startingPoint: StartingPoint = 'new';
   const [validatorType, setValidatorTypeRaw] = useState<ValidatorType>('poa');
   const [vmLocationRaw, setVmLocationRaw] = useState<VMLocation>('l1');
   const [multisig, setMultisig] = useState(false);
-  // Advanced flow defaults to Docker — users who opted into Advanced are
+  // Advanced flow defaults to Docker: users who opted into Advanced are
   // typically running their own infra. Managed remains the Basic flow's
   // implicit choice.
   const [hosting, setHosting] = useState<HostingOption>('docker');
@@ -234,7 +235,7 @@ export default function CreateL1Questionnaire() {
   // VM-location setter that enforces the Warp-required-on-L1 invariant.
   // When the Validator Manager lives on the L1, it has to issue Warp
   // messages back to the P-Chain to register validator add/remove/weight
-  // changes — that's only possible if the Warp precompile is in genesis
+  // changes. That's only possible if the Warp precompile is in genesis
   // (i.e. interoperability=true). Auto-flipping interop on saves the
   // user a confusing "you can't do that" prompt later. The reverse
   // (l1→c-chain) deliberately doesn't change interop: the user may
@@ -263,7 +264,7 @@ export default function CreateL1Questionnaire() {
   //
   //   - PoS-Native validators stake the L1's *own* native token, so the
   //     staking manager has to live on the L1 (it needs nativeMinter
-  //     authority — only available from L1-native code). That forces
+  //     authority, only available from L1-native code). That forces
   //     vmLocation = 'l1', which in turn forces interop = true (the
   //     manager has to Warp-message the P-Chain on validator changes).
   //     Skip Q2 + Q3.
@@ -305,7 +306,7 @@ export default function CreateL1Questionnaire() {
 
   // Wallet preflight
   // Only show faucet warning when balance is loaded AND explicitly low.
-  // pChainBalance defaults to 0 before fetch — don't warn on unfetched state.
+  // pChainBalance defaults to 0 before fetch, so don't warn on unfetched state.
   // The P-Chain step has its own balance check for the truly-zero case.
   const needsFaucet =
     isTestnet && typeof pChainBalance === 'number' && pChainBalance > 0 && pChainBalance < MIN_P_BALANCE;
@@ -343,7 +344,7 @@ export default function CreateL1Questionnaire() {
   // Review page is index === totalQuestions
   const isReview = questionIndex === totalQuestions;
 
-  // Setup-mode chooser — rendered as the first question in the typeform
+  // Setup-mode chooser: rendered as the first question in the typeform
   // flow, with the same progress bar / Back / Continue chrome as every
   // other question. Card selection is pending until the user hits
   // Continue; at that point we either route to /basic or flip into the
@@ -360,7 +361,7 @@ export default function CreateL1Questionnaire() {
 
     return (
       <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col">
-        {/* Testnet suggestion — mirror the Q1 behavior so the preflight
+        {/* Testnet suggestion: mirror the Q1 behavior so the preflight
             hint surfaces on the very first screen. */}
         {!isTestnet && (
           <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
@@ -371,18 +372,16 @@ export default function CreateL1Questionnaire() {
           </div>
         )}
 
-        {/* Progress bar — chooser is step 1 of totalSteps */}
+        {/* Progress bar: chooser is step 1 of totalSteps */}
         <div className="mb-8">
           <ProgressBar current={0} total={totalSteps + 1} />
           <div className="flex items-center justify-between mt-3">
-            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-              Question 1 of {totalSteps}
-            </p>
+            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Setup</p>
             <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
           </div>
         </div>
 
-        {/* Question area — animated like the rest of the flow */}
+        {/* Question area: animated like the rest of the flow */}
         <div className="flex-1 relative">
           <AnimatePresence mode="wait">
             <motion.div
@@ -409,7 +408,7 @@ export default function CreateL1Questionnaire() {
                   onSelect={setPendingSetupMode}
                   icon={<Zap className="h-5 w-5" />}
                   title="Basic setup"
-                  description="One-click deploy with sensible defaults. Subnet, genesis, a managed validator node, and the Validator Manager — handled."
+                  description="One-click deploy with sensible defaults. Sets up the L1, its genesis, a managed validator node, and the Validator Manager. Fuji only. Needs a Builder Hub sign-in."
                   recommended
                 />
                 <OptionCard
@@ -425,7 +424,7 @@ export default function CreateL1Questionnaire() {
           </AnimatePresence>
         </div>
 
-        {/* Navigation — same shape as Q2+ */}
+        {/* Navigation: same shape as Q2+ */}
         <div className="mt-10 flex items-center justify-between">
           <button
             type="button"
@@ -466,7 +465,7 @@ export default function CreateL1Questionnaire() {
         </div>
       )}
 
-      {/* Resume banner — only on Q1, when an in-progress flow is detected.
+      {/* Resume banner: only on Q1, when an in-progress flow is detected.
           Clicking "Resume" jumps the user to the step they left off on;
           dismissing clears the flow store so the banner disappears and
           normal questionnaire flow resumes. */}
@@ -491,7 +490,7 @@ export default function CreateL1Questionnaire() {
           <button
             type="button"
             onClick={resetFlow}
-            title="Dismiss — start a new flow"
+            title="Dismiss and start a new flow"
             className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
           >
             <X className="h-4 w-4" />
@@ -500,14 +499,14 @@ export default function CreateL1Questionnaire() {
       )}
 
       {/* ── Progress ──────────────────────────────────────── */}
-      {/* The Basic vs Advanced chooser counts as Q1, so the Advanced
-          questionnaire picks up from Q2 onward. `+1` shifts both the
-          displayed index and the total. */}
+      {/* The progress bar counts the Basic vs Advanced chooser as its
+          first step. The question count does not: the chooser shows no
+          count, so the Advanced questions count from 1. */}
       <div className="mb-8">
         <ProgressBar current={questionIndex + 1} total={totalQuestions + 2} />
         <div className="flex items-center justify-between mt-3">
           <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-            {isReview ? 'Review' : `Question ${questionIndex + 2} of ${totalQuestions + 1}`}
+            {isReview ? 'Review' : `Question ${questionIndex + 1} of ${totalQuestions}`}
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
         </div>
@@ -571,7 +570,7 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q2: VM location — skipped when validatorType === 'pos-native'
+          {/* Q2: VM location. Skipped when validatorType === 'pos-native'
               because the staking manager has to live on the L1. */}
           {idxQ2 !== null && questionIndex === idxQ2 && (
             <motion.div
@@ -621,7 +620,7 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q3: Interoperability — only shown when vmLocation === 'c-chain'.
+          {/* Q3: Interoperability. Only shown when vmLocation === 'c-chain'.
               On-L1 Validator Managers force Warp on (the manager has to
               Warp-message the P-Chain on validator changes), so the
               question would have only one valid answer; we skip it. */}
@@ -752,7 +751,7 @@ export default function CreateL1Questionnaire() {
                     onSelect={setHosting}
                     icon={<CloudDeployIcon className="h-5 w-5" />}
                     title="Managed"
-                    description="One-click hosted nodes and relayer on Fuji testnet. Fastest way to get started."
+                    description="One-click hosted nodes and relayer on Fuji testnet. Fastest way to get started. Needs a Builder Hub sign-in."
                     recommended
                   />
                 )}
@@ -784,7 +783,7 @@ export default function CreateL1Questionnaire() {
                   Review your setup
                 </h2>
                 <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  Your custom deployment flow based on the choices above.
+                  The deployment steps for your answers.
                 </p>
               </div>
 

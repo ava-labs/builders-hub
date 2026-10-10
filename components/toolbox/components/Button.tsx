@@ -81,7 +81,7 @@ export function Button({
 
   return (
     <>
-      <button onClick={onClick} disabled={disabled || loading} className={buttonClasses}>
+      <button onClick={onClick} disabled={disabled || loading} aria-busy={loading} className={buttonClasses}>
         {loading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />

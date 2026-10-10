@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { AbiEvent, Address, Log } from 'viem';
 import { bytesToHex, hexToBytes, encodeFunctionData, type Abi } from 'viem';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -31,6 +31,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { INVALID_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import {
   Search,
@@ -46,6 +47,20 @@ import {
 } from 'lucide-react';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
+
+/** How far back a blank 'From Block' searches. */
+export const DEFAULT_LOOKBACK_BLOCKS = 100_000n;
+
+/**
+ * The first block of the event search. A blank field starts DEFAULT_LOOKBACK_BLOCKS before the latest block, or at
+ * block 0 on a shorter chain. 'Search All' fills in 0, which searches from genesis. Other input goes to BigInt, which
+ * throws on text that is not an integer.
+ */
+export function resolveSearchStartBlock(fromBlock: string, latest: bigint): bigint {
+  const trimmed = fromBlock.trim();
+  if (trimmed.length === 0) return latest > DEFAULT_LOOKBACK_BLOCKS ? latest - DEFAULT_LOOKBACK_BLOCKS : 0n;
+  return BigInt(trimmed);
+}
 
 type ParsedInitiatedRegistration = {
   validationId: string;
@@ -72,6 +87,7 @@ function RemoveExpiredValidatorRegistration() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fromBlock, setFromBlock] = useState<string>('');
+  const fromBlockId = useId();
   const [events, setEvents] = useState<ParsedInitiatedRegistration[]>([]);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState<boolean>(false);
   const [_isLoadingValidators, setIsLoadingValidators] = useState<boolean>(false);
@@ -179,7 +195,7 @@ function RemoveExpiredValidatorRegistration() {
 
   const fetchEvents = async () => {
     if (!validatorManagerAddress) {
-      setError('Validator Manager address not found for selected subnet');
+      setError(INVALID_L1_SELECTED);
       return;
     }
     if (!initiatedEventAbi) {
@@ -191,8 +207,8 @@ function RemoveExpiredValidatorRegistration() {
     setEvents([]);
     setFetchProgress(null);
     try {
-      const startBlock = fromBlock && fromBlock.trim().length > 0 ? BigInt(fromBlock) : 0n;
       const latest = await chainPublicClient!.getBlockNumber();
+      const startBlock = resolveSearchStartBlock(fromBlock, latest);
       if (startBlock > latest) {
         setEvents([]);
         return;
@@ -463,9 +479,9 @@ function RemoveExpiredValidatorRegistration() {
 
         {error && <Alert variant="error">Error: {error}</Alert>}
 
-        {/* Subnet Selection */}
+        {/* L1 Selection */}
         <div className="p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3">1. Select Subnet</h3>
+          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3">1. Select L1</h3>
           <SelectSubnetId
             value={subnetId}
             onChange={setSubnetId}
@@ -511,11 +527,15 @@ function RemoveExpiredValidatorRegistration() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+              <label
+                htmlFor={fromBlockId}
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+              >
                 From Block <span className="text-zinc-400">(defaults to last 100k blocks)</span>
               </label>
               <div className="flex gap-2">
                 <input
+                  id={fromBlockId}
                   type="text"
                   value={fromBlock}
                   onChange={(e) => setFromBlock(e.target.value)}

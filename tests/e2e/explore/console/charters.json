@@ -1,0 +1,47 @@
+[
+  {
+    "key": "create-l1-questionnaire",
+    "target": "desktop",
+    "goal": "Start at /console/create-l1 and answer the setup questionnaire as a first-time builder, with the options that the page recommends, until you reach the Create Subnet step; do not click Create Subnet. Judge whether each question says what the choice changes, whether the review screen matches your answers, and whether the Create Subnet step says what it does and what it needs."
+  },
+  {
+    "key": "add-validator",
+    "target": "desktop",
+    "goal": "Start at /console/my-l1 and find the Fuji L1 with subnet ID cjSGTMQymzUWxFv3abszZwCPVWu98nGqeT2Cj6UwoYj9MKpxZ, which this wallet manages (if you cannot find it, open /console/add-validator/select-subnet?subnetId=cjSGTMQymzUWxFv3abszZwCPVWu98nGqeT2Cj6UwoYj9MKpxZ), then follow Add Validator to the first button that asks the wallet to sign, and click it once if you reach it. Judge whether the page tells you where to get each value it asks for (node ID, BLS public key and proof of possession, weight, balance) and what the rejection error tells you to do next."
+  },
+  {
+    "key": "primary-stake",
+    "target": "desktop",
+    "goal": "Start at /console/primary-network/stake and look at both ways to stake, Fixed Duration and auto-renewed (ACP-236), with made-up values in the form, but do not submit a stake. Judge whether the minimum stake, the periods, the fees, the auto-compound setting and the difference between the two modes are clear and agree with each other."
+  },
+  {
+    "key": "c-p-bridge-history",
+    "target": "desktop",
+    "goal": "Start at /console/primary-network/c-p-bridge and read how to move AVAX from the C-Chain to the P-Chain and back, with an amount in each direction but no transfer, then open /console/history without signing in. Judge the instructions, the amount checks, the balances, and what the history page tells a user who has made no transfers."
+  },
+  {
+    "key": "node-setup",
+    "target": "desktop",
+    "goal": "Start at /console/layer-1/l1-node-setup and set up a Docker node for the Fuji L1 with subnet ID cjSGTMQymzUWxFv3abszZwCPVWu98nGqeT2Cj6UwoYj9MKpxZ, then compare it with /console/primary-network/node-setup. Judge whether the commands, ports, image versions and file paths agree across the steps and between the two pages, and whether each step says where to run its command."
+  },
+  {
+    "key": "icm-setup",
+    "target": "desktop",
+    "goal": "Start at /console/icm/messenger and read each ICM step through the Relayer step, without deploying anything. Judge whether each step says what it deploys, on which chain, what it needs from the step before, and how to run and fund the relayer."
+  },
+  {
+    "key": "ictt-setup",
+    "target": "desktop",
+    "goal": "Start at /console/ictt/token and read each ICTT step, without deploying anything. Judge whether each step says what it deploys, on which chain, what it needs from the step before, and which address to keep for the next step."
+  },
+  {
+    "key": "console-navigation",
+    "target": "desktop",
+    "goal": "Start at /console and use the home page, the sidebar and the command palette (Ctrl+K or Cmd+K) to find three tasks: get testnet AVAX, add a validator to an L1, and set up an ICTT token bridge. Judge whether each task is easy to find, whether its name is the same in the sidebar, the palette and the page title, and whether the keyboard alone can open the palette and a result."
+  },
+  {
+    "key": "validator-manager-setup",
+    "target": "desktop",
+    "goal": "Start at /console/permissioned-l1s/validator-manager-setup and read the Deploy Validator Manager and Proxy Setup steps on the Fuji C-Chain, then click the first deploy button once. Judge whether each step says what its contract does, which address to keep for the next step, and what the rejection error tells you to do next."
+  }
+]
