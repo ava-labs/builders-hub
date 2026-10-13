@@ -1,4 +1,4 @@
-export const pathToBreadcrumb = {
+const routes: Record<string, string[]> = {
   // Console root
   "/console": ["Console"],
 
@@ -49,3 +49,15 @@ export const pathToBreadcrumb = {
   "/console/utilities/vmcMigrateFromV1": ["Console", "Utilities", "Migrate VMC From V1 to V2"],
   "/console/utilities/data-api-keys": ["Console", "Utilities", "Data API Keys"],
 };
+
+// A Studio project page has the project id as its last segment; without this entry the trail title-cases the id.
+const STUDIO_PROJECT = /^\/console\/studio\/[^/]+$/;
+const STUDIO_PROJECT_CRUMBS = ["Console", "Studio", "Project"];
+
+/** The page trails, by pathname. Each Studio project page (/console/studio/<id>) reads "Project". */
+export const pathToBreadcrumb: Record<string, string[]> = new Proxy(routes, {
+  get: (target, key) =>
+    typeof key === "string" && !Object.hasOwn(target, key) && STUDIO_PROJECT.test(key)
+      ? STUDIO_PROJECT_CRUMBS
+      : Reflect.get(target, key),
+});
