@@ -58,12 +58,30 @@ function ValidatorNode({
   );
 }
 
+const DEFAULT_TITLE_BLOCK: [string, string][] = [
+  ["DWG", "SOVEREIGN L1"],
+  ["SCALE", "1 : 1"],
+  ["REV", "MAINNET"],
+];
+
 export default function L1Assembly({
   progress,
   staticMode = false,
+  ringLabel = ["8 VALIDATORS", "EQUAL WEIGHT"],
+  modes = true,
+  titleBlock = DEFAULT_TITLE_BLOCK,
+  coreLabel = "YOUR L1",
 }: {
   progress: MotionValue<number>;
   staticMode?: boolean;
+  /** the dimension callout's lines; the home's story names its 8 equal validators */
+  ringLabel?: string[];
+  /** the public / permissioned / private row under the drawing */
+  modes?: boolean;
+  /** the drawing's title block rows, or null for none */
+  titleBlock?: [string, string][] | null;
+  /** the label under the core, or null for none */
+  coreLabel?: string | null;
 }) {
   // Beat 1 — the chain core
   const coreOpacity = useTransform(progress, [0.04, 0.12], [0, 1]);
@@ -114,37 +132,32 @@ export default function L1Assembly({
         />
 
         {/* radial dimension callout — the drawing gets measured */}
-        <motion.g style={{ opacity: s(dimensionOpacity) }}>
-          <line
-            x1={dimStart.x}
-            y1={dimStart.y}
-            x2={dimEnd.x}
-            y2={dimEnd.y}
-            className="stroke-zinc-400 dark:stroke-zinc-500"
-            strokeWidth={1}
-          />
-          <circle cx={dimEnd.x} cy={dimEnd.y} r={2} className="fill-zinc-400 dark:fill-zinc-500" />
-          <text
-            x={dimLabel.x}
-            y={dimLabel.y}
-            textAnchor="middle"
-            className="fill-zinc-500 dark:fill-zinc-400 font-mono"
-            fontSize={9}
-            letterSpacing={1.5}
-          >
-            8 VALIDATORS
-          </text>
-          <text
-            x={dimLabel.x}
-            y={dimLabel.y + 13}
-            textAnchor="middle"
-            className="fill-zinc-400 dark:fill-zinc-500 font-mono"
-            fontSize={9}
-            letterSpacing={1.5}
-          >
-            EQUAL WEIGHT
-          </text>
-        </motion.g>
+        {ringLabel.length > 0 && (
+          <motion.g style={{ opacity: s(dimensionOpacity) }}>
+            <line
+              x1={dimStart.x}
+              y1={dimStart.y}
+              x2={dimEnd.x}
+              y2={dimEnd.y}
+              className="stroke-zinc-400 dark:stroke-zinc-500"
+              strokeWidth={1}
+            />
+            <circle cx={dimEnd.x} cy={dimEnd.y} r={2} className="fill-zinc-400 dark:fill-zinc-500" />
+            {ringLabel.map((line, i) => (
+              <text
+                key={line}
+                x={dimLabel.x}
+                y={dimLabel.y + i * 13}
+                textAnchor="middle"
+                className={i === 0 ? "fill-zinc-500 dark:fill-zinc-400 font-mono" : "fill-zinc-400 dark:fill-zinc-500 font-mono"}
+                fontSize={9}
+                letterSpacing={1.5}
+              >
+                {line}
+              </text>
+            ))}
+          </motion.g>
+        )}
 
         {/* validator set */}
         {Array.from({ length: VALIDATOR_COUNT }, (_, i) => (
@@ -182,43 +195,45 @@ export default function L1Assembly({
       </svg>
 
       {/* core label sits under the diagram in the document, over it visually */}
-      <motion.div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        style={staticMode ? undefined : { opacity: coreOpacity }}
-      >
-        <span className="mt-24 font-mono text-[10px] tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-          YOUR L1
-        </span>
-      </motion.div>
+      {coreLabel && (
+        <motion.div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={staticMode ? undefined : { opacity: coreOpacity }}
+        >
+          <span className="mt-24 font-mono text-[10px] tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+            {coreLabel}
+          </span>
+        </motion.div>
+      )}
 
       {/* boundary modes */}
-      <motion.div
-        className="mt-6 flex items-center justify-center gap-6 font-mono text-[10px] tracking-[0.18em]"
-        style={staticMode ? undefined : { opacity: boundaryLabelOpacity }}
-      >
-        <span className="text-zinc-400 dark:text-zinc-500">PUBLIC</span>
-        <span className="text-zinc-400 dark:text-zinc-500">PERMISSIONED</span>
-        <span className="text-zinc-900 dark:text-zinc-100 border-b border-[#E6212F] pb-0.5">
-          PRIVATE
-        </span>
-      </motion.div>
+      {modes && (
+        <motion.div
+          className="mt-6 flex items-center justify-center gap-6 font-mono text-[10px] tracking-[0.18em]"
+          style={staticMode ? undefined : { opacity: boundaryLabelOpacity }}
+        >
+          <span className="text-zinc-400 dark:text-zinc-500">PUBLIC</span>
+          <span className="text-zinc-400 dark:text-zinc-500">PERMISSIONED</span>
+          <span className="text-zinc-900 dark:text-zinc-100 border-b border-[#E6212F] pb-0.5">
+            PRIVATE
+          </span>
+        </motion.div>
+      )}
 
       {/* drawing title block */}
-      <motion.div
-        className="absolute bottom-10 right-0 border border-zinc-300 font-mono text-[9px] leading-none tracking-[0.14em] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-        style={staticMode ? undefined : { opacity: coreOpacity }}
-      >
-        {[
-          ["DWG", "SOVEREIGN L1"],
-          ["SCALE", "1 : 1"],
-          ["REV", "MAINNET"],
-        ].map(([k, v]) => (
-          <div key={k} className="flex divide-x divide-zinc-300 border-b border-zinc-300 last:border-b-0 dark:divide-zinc-700 dark:border-zinc-700">
-            <span className="w-14 px-2 py-1.5">{k}</span>
-            <span className="px-2 py-1.5 text-zinc-700 dark:text-zinc-300">{v}</span>
-          </div>
-        ))}
-      </motion.div>
+      {titleBlock && (
+        <motion.div
+          className="absolute bottom-10 right-0 border border-zinc-300 font-mono text-[9px] leading-none tracking-[0.14em] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+          style={staticMode ? undefined : { opacity: coreOpacity }}
+        >
+          {titleBlock.map(([k, v]) => (
+            <div key={k} className="flex divide-x divide-zinc-300 border-b border-zinc-300 last:border-b-0 dark:divide-zinc-700 dark:border-zinc-700">
+              <span className="w-14 px-2 py-1.5">{k}</span>
+              <span className="px-2 py-1.5 text-zinc-700 dark:text-zinc-300">{v}</span>
+            </div>
+          ))}
+        </motion.div>
+      )}
     </div>
   );
 }
