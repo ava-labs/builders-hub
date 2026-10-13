@@ -4,25 +4,31 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
+  ArrowDown,
   ArrowRight,
   Check,
   Coins,
   Droplets,
+  FileCode2,
   HandCoins,
   Link2,
   Link2Off,
   Lock,
   PlayCircle,
+  Server,
   Settings2,
   Shield,
+  ShieldCheck,
   User,
   Users,
   X,
-  Zap,
+  Layers,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Board, BoardHeader, Rise } from '@/components/explorer-v2/ui';
 import { AvaxLogo, LayersIcon, DockerLogo, CloudDeployIcon } from './icons';
+import { AssemblyArt } from './AssemblyArt';
 import {
   useCreateL1FlowStore,
   type StartingPoint,
@@ -52,6 +58,25 @@ const VALIDATOR_LABEL: Record<ValidatorType, string> = {
 /* ------------------------------------------------------------------------- */
 
 /** One choice in a question: a cell in a hairline grid, outlined in ink when chosen. */
+/** What the one-click L1 builds, in the order it builds it. */
+const ONE_CLICK_PARTS: { icon: LucideIcon; label: string }[] = [
+  { icon: Layers, label: 'L1 on the P-Chain' },
+  { icon: FileCode2, label: 'Genesis' },
+  { icon: Server, label: 'Managed node' },
+  { icon: ShieldCheck, label: 'Validator Manager' },
+];
+
+/** The choices the advanced path asks for. */
+const ADVANCED_CHOICES = [
+  'Proof of Authority or Stake',
+  'Validator Manager on the L1 or C-Chain',
+  'Safe multisig',
+  'Docker or managed nodes',
+];
+
+const DOOR_CTA =
+  'mt-auto inline-flex h-9 w-fit items-center gap-2 border px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors';
+
 function Option({
   selected,
   onSelect,
@@ -266,15 +291,20 @@ export default function CreateL1Questionnaire() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 pb-20 pt-2">
-      <Rise className="flex flex-col gap-3">
-        <p className={EYEBROW}>Create L1</p>
-        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl dark:text-zinc-50">
-          Launch your own Avalanche L1.
-        </h1>
-        <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Deploy one on Fuji in a click, or choose how validators join, where the Validator Manager lives, whether the
-          chain talks to others, and who hosts the nodes.
-        </p>
+      <Rise className="grid grid-cols-1 items-center gap-8 sm:grid-cols-[minmax(0,1fr)_minmax(0,12rem)] md:grid-cols-[minmax(0,1fr)_minmax(0,15rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
+        <div className="flex flex-col gap-3">
+          <p className={EYEBROW}>Create L1</p>
+          <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl dark:text-zinc-50">
+            Launch your own Avalanche L1.
+          </h1>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Start with one click on Fuji, or choose every part yourself.
+          </p>
+        </div>
+        {/* The home's L1 drawing assembles beside the headline: a core, its validators, the boundary. */}
+        <div aria-hidden className="pointer-events-none hidden sm:block">
+          <AssemblyArt />
+        </div>
       </Rise>
 
       {(!isTestnet || resumeStepKey) && (
@@ -321,22 +351,46 @@ export default function CreateL1Questionnaire() {
         delay={0.05}
         className="grid grid-cols-1 border-l border-t border-zinc-200 md:grid-cols-2 dark:border-zinc-800"
       >
+        {/* The recommended path: the red bar marks it, it shows what it builds, and its button is the page's primary. */}
         <button
           type="button"
           onClick={() => router.push('/console/create-l1/basic')}
-          className="group/door flex min-h-48 flex-col gap-3 border-b border-r border-zinc-200 bg-white/80 p-6 text-left dark:border-zinc-800 dark:bg-zinc-950/80"
+          className="group/door relative flex min-h-56 flex-col gap-5 border-b border-r border-zinc-200 bg-white/80 p-6 text-left dark:border-zinc-800 dark:bg-zinc-950/80"
         >
-          <span className="flex items-center justify-between">
-            <span className={EYEBROW}>Basic · Fuji · Recommended</span>
-            <Zap className="h-4 w-4 text-zinc-400 transition-colors group-hover/door:text-zinc-900 dark:group-hover/door:text-zinc-100" />
+          <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-[#E6212F]" />
+          <span className="flex items-center justify-between gap-3">
+            <span className={EYEBROW}>One click · Fuji</span>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+              Recommended
+            </span>
           </span>
-          <span className="mt-auto flex items-center gap-2 text-[20px] font-semibold text-zinc-900 dark:text-zinc-50">
-            <span className="underline-offset-4 group-hover/door:underline">One-click L1</span>
-            <ArrowRight className="h-4 w-4 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/door:translate-x-0 group-hover/door:opacity-100" />
+          <span className="flex flex-col gap-1.5">
+            <span className="text-[20px] font-semibold text-zinc-900 dark:text-zinc-50">One-click L1</span>
+            <span className="text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Name it and deploy. The console builds the rest.
+            </span>
           </span>
-          <span className="max-w-md text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Subnet, genesis, a managed validator node and the Validator Manager, with sensible defaults. Name it and
-            deploy.
+          {/* Numbered, not joined by arrows, so the order still reads when the row wraps on a phone. */}
+          <span className="flex flex-wrap gap-2">
+            {ONE_CLICK_PARTS.map(({ icon: Icon, label }, i) => (
+              <span
+                key={label}
+                className="flex items-center gap-1.5 border border-zinc-200 px-2 py-1 font-mono text-[11px] text-zinc-700 dark:border-zinc-800 dark:text-zinc-300"
+              >
+                <span className="tabular-nums text-zinc-400 dark:text-zinc-500">{i + 1}</span>
+                <Icon aria-hidden className="h-3.5 w-3.5 text-zinc-400" />
+                {label}
+              </span>
+            ))}
+          </span>
+          <span
+            className={cn(
+              DOOR_CTA,
+              'border-zinc-900 bg-zinc-900 text-white group-hover/door:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:group-hover/door:bg-zinc-300',
+            )}
+          >
+            Create on Fuji <ArrowRight className="h-3.5 w-3.5" />
           </span>
         </button>
         <button
@@ -344,30 +398,40 @@ export default function CreateL1Questionnaire() {
           onClick={chooseAdvanced}
           aria-expanded={advanced}
           className={cn(
-            'group/door flex min-h-48 flex-col gap-3 border-b border-r border-zinc-200 p-6 text-left transition-colors dark:border-zinc-800',
+            'group/door flex min-h-56 flex-col gap-5 border-b border-r border-zinc-200 p-6 text-left transition-colors dark:border-zinc-800',
             advanced
               ? 'bg-zinc-50 outline outline-2 -outline-offset-2 outline-zinc-900 dark:bg-zinc-900 dark:outline-zinc-100'
               : 'bg-white/80 dark:bg-zinc-950/80',
           )}
         >
-          <span className="flex items-center justify-between">
+          <span className="flex items-center justify-between gap-3">
             <span className={EYEBROW}>Advanced · Fuji or mainnet</span>
             <Settings2 className="h-4 w-4 text-zinc-400 transition-colors group-hover/door:text-zinc-900 dark:group-hover/door:text-zinc-100" />
           </span>
-          <span className="mt-auto flex items-center gap-2 text-[20px] font-semibold text-zinc-900 dark:text-zinc-50">
-            <span className="underline-offset-4 group-hover/door:underline">Configure it yourself</span>
-            <ArrowRight
-              className={cn(
-                'h-4 w-4 text-[#E6212F] transition-all',
-                advanced
-                  ? 'rotate-90 opacity-100'
-                  : '-translate-x-1 opacity-0 group-hover/door:translate-x-0 group-hover/door:opacity-100',
-              )}
-            />
+          <span className="flex flex-col gap-1.5">
+            <span className="text-[20px] font-semibold text-zinc-900 dark:text-zinc-50">Configure it yourself</span>
+            <span className="text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Pick each part, then deploy step by step with your wallet.
+            </span>
           </span>
-          <span className="max-w-md text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Proof of Authority or Proof of Stake, the Validator Manager on your L1 or the C-Chain, a Safe multisig, and
-            Docker or managed nodes. Step by step, with your wallet.
+          <span className="flex flex-wrap gap-2">
+            {ADVANCED_CHOICES.map((choice) => (
+              <span
+                key={choice}
+                className="border border-zinc-200 px-2 py-1 font-mono text-[11px] text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
+              >
+                {choice}
+              </span>
+            ))}
+          </span>
+          <span
+            className={cn(
+              DOOR_CTA,
+              'border-zinc-300 text-zinc-700 group-hover/door:border-zinc-900 group-hover/door:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:group-hover/door:border-zinc-100 dark:group-hover/door:text-zinc-50',
+            )}
+          >
+            Configure
+            <ArrowDown className={cn('h-3.5 w-3.5 transition-transform', advanced && 'rotate-180')} />
           </span>
         </button>
       </Rise>
