@@ -717,6 +717,8 @@ export function StudioWorkspace({ projectId }: { projectId: string }) {
             onSelectChat={setChatId}
             initialPrompt={initialPrompt}
             onTurnFinished={() => void load()}
+            hasFiles={overview.files.length > 0}
+            blueprints={blueprints ?? undefined}
           />
         </aside>
 
@@ -751,6 +753,7 @@ export function StudioWorkspace({ projectId }: { projectId: string }) {
                   onSelect={setDeploymentId}
                   onChanged={() => void load()}
                   onOpenPlan={() => setTab('plan')}
+                  onOpenProduction={() => setTab('production')}
                   onPlanned={planned}
                 />
               )}
@@ -761,9 +764,17 @@ export function StudioWorkspace({ projectId }: { projectId: string }) {
                   autoRunId={autoRunId}
                   onPlanned={planned}
                   onChanged={() => void load()}
+                  onOpenPlan={() => setTab('plan')}
                 />
               )}
-              {tab === 'contracts' && <ContractsPanel projectId={project.id} deploymentId={deploymentId} />}
+              {tab === 'contracts' && (
+                <ContractsPanel
+                  projectId={project.id}
+                  deploymentId={deploymentId}
+                  hasContracts={overview.files.some((f) => f.path.startsWith('contracts/') && f.path.endsWith('.sol'))}
+                  onOpenPlan={() => setTab('plan')}
+                />
+              )}
               {tab === 'preview' && <PreviewPanel overview={overview} />}
               {tab === 'files' && (
                 <FilesPanel
@@ -784,6 +795,8 @@ export function StudioWorkspace({ projectId }: { projectId: string }) {
               {tab === 'production' && (
                 <ProductionPanel
                   overview={overview}
+                  blueprints={blueprints ?? []}
+                  onOpenDeploy={() => setTab('deploy')}
                   onChanged={() => void load()}
                   onPromoted={(id) => {
                     setDeploymentId(id);
