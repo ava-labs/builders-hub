@@ -14,10 +14,20 @@ describe('login modal dismiss target', () => {
     );
   });
 
-  it('keeps an event page and falls back to the current page, then home', () => {
+  it('keeps an event page and falls back to the current page', () => {
     expect(resolveDismissTarget('/events/x?tab=prizes', null, ORIGIN)).toBe('/events/x?tab=prizes');
     expect(resolveDismissTarget('/profile', '/hackathons/y', ORIGIN)).toBe('/hackathons/y');
-    expect(resolveDismissTarget('/profile', '/stats', ORIGIN)).toBe('/');
+  });
+
+  it('sends a page that needs sign-in home', () => {
+    expect(resolveDismissTarget('/profile', '/profile', ORIGIN)).toBe('/');
+    expect(resolveDismissTarget('/console/utilities/data-api-keys', '/console/utilities/data-api-keys', ORIGIN)).toBe('/');
+  });
+
+  it('stays on a page that works without sign-in', () => {
+    expect(resolveDismissTarget('/console/studio', '/console/studio', ORIGIN)).toBeNull();
+    expect(resolveDismissTarget('/profile', '/stats', ORIGIN)).toBeNull();
+    expect(resolveDismissTarget('/', '/explorer/mainnet/query?q=x', ORIGIN)).toBeNull();
   });
 
   it.each([
@@ -31,8 +41,9 @@ describe('login modal dismiss target', () => {
     for (const page of ['/events/registration-form', '/hackathons/project-submission']) {
       for (const key of ['event', 'hackathon']) {
         const gated = `${page}?${new URLSearchParams({ [key]: eventId, ref: 'R' })}`;
-        const target = resolveDismissTarget(gated, gated, ORIGIN);
+        const target = resolveDismissTarget(gated, gated, ORIGIN) ?? '';
 
+        expect(target).not.toBe('');
         expect(new URL(target, ORIGIN).origin).toBe(ORIGIN);
         expect(target.startsWith('//')).toBe(false);
       }

@@ -1,4 +1,5 @@
 import { getAuthCallbackUrl } from '@/lib/auth/callback-url';
+import { isProtectedPath } from '@/lib/auth/protected-paths';
 
 const GATED_PATHS = [
   '/events/registration-form',
@@ -36,11 +37,24 @@ export function eventDismissTarget(rawUrl: string | null | undefined, origin: st
   return null;
 }
 
+function pathOf(rawUrl: string | null, origin: string): string {
+  if (!rawUrl) return '/';
+  try {
+    return new URL(rawUrl, origin).pathname;
+  } catch {
+    return '/';
+  }
+}
+
 // On dismiss without signing in, keep the user in the event context (their
-// current page, or the event behind a gated form) instead of the home page.
-// The result goes to router.push, so it must stay on this origin:
+// current page, or the event behind a gated form). A page that needs sign-in
+// has nothing to show without it, so it sends the user home. On any other
+// page the modal opened over something the user can keep using, so the
+// result is null: close the modal and stay.
+// A target goes to router.push, so it must stay on this origin:
 // getAuthCallbackUrl turns anything else into '/'.
-export function resolveDismissTarget(callbackUrl: string, currentUrl: string | null, origin: string): string {
-  const target = eventDismissTarget(callbackUrl, origin) ?? eventDismissTarget(currentUrl, origin) ?? '/';
-  return getAuthCallbackUrl(target, undefined, origin);
+export function resolveDismissTarget(callbackUrl: string, currentUrl: string | null, origin: string): string | null {
+  const event = eventDismissTarget(callbackUrl, origin) ?? eventDismissTarget(currentUrl, origin);
+  if (event) return getAuthCallbackUrl(event, undefined, origin);
+  return isProtectedPath(pathOf(currentUrl, origin)) ? '/' : null;
 }
