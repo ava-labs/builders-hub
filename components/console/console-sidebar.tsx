@@ -609,7 +609,7 @@ function SearchResultMenuItem({
 
 export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const pathname = usePathname();
-  const sidebarState = useSidebarState(['primary-network']);
+  const sidebarState = useSidebarState();
   const { isCollapsed, toggleSection } = sidebarState;
 
   // Rail collapse state (icon mode). When the user shrinks the sidebar to
