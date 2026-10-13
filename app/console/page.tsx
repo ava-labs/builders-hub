@@ -136,16 +136,15 @@ function ConsoleHome() {
       >
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-3">
-            <p className={EYEBROW}>Builder console</p>
+            <p className={EYEBROW}>Avalanche</p>
             <h1
               aria-label="Avalanche Builder Console"
               className="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl dark:text-zinc-50"
             >
-              Launch an L1, connect it to Avalanche, and run what keeps it live.
+              Builder Console
             </h1>
             <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Every tool for the Primary Network and your own Layer 1s: validators, tokenomics, interop, nodes and
-              monitoring, on Fuji first and then mainnet.
+              Tools for the Primary Network and your own L1s. Start on Fuji, then go to mainnet.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
