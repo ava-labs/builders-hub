@@ -36,7 +36,7 @@ const MOUNTED_VISIBLE = `${CONSOLE_TOOL_MOUNTED} >> visible=true`;
 const HEADINGS: Record<string, { name: string; level: number }> = {
   '/console': { name: 'Avalanche Builder Console', level: 1 },
   '/console/history': { name: 'What you deployed and signed.', level: 1 },
-  '/console/studio': { name: 'Describe an app. Ship it to testnet. Promote it when it works.', level: 1 },
+  '/console/studio': { name: 'What do you want to build?', level: 1 },
   '/console/toolbox': { name: 'Every console tool, in one place.', level: 1 },
   '/console/encrypted-erc/overview': { name: 'Private balances, public accountability.', level: 1 },
   '/console/primary-network/validator-alerts': { name: 'Validator alerts', level: 1 },
