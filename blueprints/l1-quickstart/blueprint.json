@@ -3,7 +3,7 @@
   "version": 1,
   "title": "Launch an L1",
   "summary": "Your own Avalanche L1 on Fuji in minutes",
-  "description": "Launches a Subnet-EVM L1 on Fuji through the Builder Hub's Quick L1 service: subnet, chain, Validator Manager on the C-Chain, a managed validator node, conversion to an L1, and optionally ICM with a managed relayer to the C-Chain. The result binds the `l1` network for every other blueprint.",
+  "description": "Launches a Subnet-EVM L1 on Fuji through the Builder Hub's Quick L1 service. It creates the network and its chain on the P-Chain, the Validator Manager on the C-Chain and a managed validator node, then converts the network to an L1. It can also add ICM with a managed relayer to the C-Chain. The result binds the `l1` network for every other blueprint.",
   "category": "infra",
   "level": "starter",
   "tags": ["l1", "subnet-evm", "validator-manager", "icm", "native-minter", "fuji"],
