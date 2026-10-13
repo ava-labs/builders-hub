@@ -8,8 +8,9 @@ import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { cn } from '@/lib/utils';
 import { api, errorText, type ProjectOverview } from './api';
 import { codeReference, referenceInChat } from './chat-reference';
+import { BONE } from './PublishSite';
 import { SelectionMenu } from './SelectionMenu';
-import { Button, INPUT, LABEL } from './ui';
+import { Bone, Button, INPUT, LABEL } from './ui';
 import { useFullScreen } from './useFullScreen';
 
 /*
@@ -46,17 +47,17 @@ const CODE_METRICS =
   'font-mono text-[12.5px] leading-[20px] tracking-normal [font-variant-ligatures:none] [tab-size:4] [font-kerning:none]';
 
 /** Above this, colours are skipped: re-highlighting on every keystroke would lag. */
-const MAX_HIGHLIGHT_CHARS = 80_000;
+export const MAX_HIGHLIGHT_CHARS = 80_000;
 
 let highlighter: Promise<HighlighterGeneric<string, string>> | null = null;
-function loadHighlighter() {
+export function loadHighlighter() {
   highlighter ??= import('shiki').then(({ createHighlighter }) =>
     createHighlighter({ themes: ['github-light', 'github-dark'], langs: [...LANGS] }),
   ) as Promise<HighlighterGeneric<string, string>>;
   return highlighter;
 }
 
-const langOf = (path: string) => LANG_BY_EXT[path.split('.').pop() ?? ''] ?? null;
+export const langOf = (path: string) => LANG_BY_EXT[path.split('.').pop() ?? ''] ?? null;
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 type TreeNode = { name: string; path: string; children: TreeNode[]; file: boolean };
@@ -82,11 +83,62 @@ function buildTree(paths: string[]): TreeNode[] {
   return sort(root.children);
 }
 
-function FileIcon({ path, className }: { path: string; className?: string }) {
+export function FileIcon({ path, className }: { path: string; className?: string }) {
   return path.endsWith('.sol') || path.endsWith('.js') || path.endsWith('.jsx') ? (
     <FileCode2 className={cn('h-3.5 w-3.5 shrink-0', className)} />
   ) : (
     <FileText className={cn('h-3.5 w-3.5 shrink-0', className)} />
+  );
+}
+
+/** Indent and width of each placeholder line, so a loading file already reads as code. */
+const SKELETON_LINES = [
+  ['ml-0', 'w-[38%]'],
+  ['ml-0', 'w-[24%]'],
+  ['ml-0', ''],
+  ['ml-0', 'w-[52%]'],
+  ['ml-4', 'w-[44%]'],
+  ['ml-8', 'w-[58%]'],
+  ['ml-8', 'w-[33%]'],
+  ['ml-4', 'w-[6%]'],
+  ['ml-0', ''],
+  ['ml-4', 'w-[48%]'],
+  ['ml-8', 'w-[64%]'],
+  ['ml-8', 'w-[40%]'],
+  ['ml-12', 'w-[27%]'],
+  ['ml-8', 'w-[6%]'],
+  ['ml-4', 'w-[6%]'],
+  ['ml-0', 'w-[4%]'],
+] as const;
+
+/**
+ * Placeholder lines at the editor's 20px pitch, with a gutter, while a file loads. A late skeleton waits 150 ms before
+ * it shows, so a file that opens quickly appears with no flash of bars.
+ */
+export function CodeSkeleton({ className, late = false }: { className?: string; late?: boolean }) {
+  const [shown, setShown] = useState(!late);
+  useEffect(() => {
+    if (shown) return;
+    const t = setTimeout(() => setShown(true), 150);
+    return () => clearTimeout(t);
+  }, [shown]);
+  return (
+    <div
+      role="status"
+      aria-label="Loading the file"
+      className={cn(
+        'flex flex-col py-3 transition-opacity duration-200 motion-reduce:transition-none',
+        !shown && 'opacity-0',
+        className,
+      )}
+    >
+      {SKELETON_LINES.map(([indent, width], i) => (
+        <div key={i} className="flex h-5 items-center gap-5 pl-4 pr-6">
+          <Bone className={cn(BONE, 'h-2 w-4 shrink-0 opacity-70')} delay={i * 0.03} />
+          {width && <Bone className={cn(BONE, 'h-2.5', indent, width)} delay={i * 0.03} />}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -143,6 +195,10 @@ export function CodeWorkbench({
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const editor = useRef<HTMLTextAreaElement>(null);
+  // iOS sets every console field to 16px, which would put the caret off the coloured text. There the textarea shows its
+  // own text over the colours instead, and scrolls the lines that grow past them.
+  const [plainEdit, setPlainEdit] = useState(false);
+  useEffect(() => setPlainEdit(CSS.supports('-webkit-touch-callout', 'none')), []);
 
   const shaOf = useCallback((path: string) => files.find((f) => f.path === path)?.sha256 ?? '', [files]);
 
@@ -318,7 +374,7 @@ export function CodeWorkbench({
           className={cn(
             'flex w-full items-center gap-1.5 py-1 pr-3 text-left font-mono text-[12px]',
             node.path === active
-              ? 'bg-zinc-200/70 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
+              ? 'bg-zinc-200/70 text-zinc-900 shadow-[inset_2px_0_0_var(--color-zinc-900)] dark:bg-zinc-800 dark:text-zinc-50 dark:shadow-[inset_2px_0_0_var(--color-zinc-100)]'
               : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100',
           )}
         >
@@ -360,7 +416,8 @@ export function CodeWorkbench({
       role="dialog"
       aria-modal
       aria-label={`${projectName} files`}
-      className="fixed inset-0 z-[100] flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100"
+      // #fff, not bg-white: the light console tints .bg-white boards grey, and this editor is a page of its own.
+      className="fixed inset-0 z-[100] flex flex-col bg-[#fff] text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100"
     >
       <div className="flex h-10 shrink-0 items-center gap-3 border-b border-zinc-200 px-4 dark:border-zinc-800">
         <AvalancheLogo width={18} height={16} aria-label="Avalanche" className="shrink-0" />
@@ -377,7 +434,7 @@ export function CodeWorkbench({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-200 bg-zinc-100/60 dark:border-zinc-800 dark:bg-zinc-900/40">
           <div className="flex h-9 items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-800">
             <span className={cn(LABEL, 'flex-1')}>Explorer</span>
             <button
@@ -419,17 +476,20 @@ export function CodeWorkbench({
               </Button>
             </form>
           )}
-          <nav className="min-h-0 flex-1 overflow-y-auto py-1">
+          {/* A div, not a nav: the site's global nav rules pad its buttons and indent its folders. */}
+          <div className="min-h-0 flex-1 overflow-y-auto py-1">
             {tree.length === 0 ? (
-              <p className="px-3 py-2 font-mono text-[11px] text-zinc-400">No files{q ? ' match' : ''}.</p>
+              <p className="px-3 py-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                No files{q ? ' match' : ''}.
+              </p>
             ) : (
               tree.map((n) => renderNode(n, 0))
             )}
-          </nav>
+          </div>
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <div className="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-zinc-200 bg-zinc-100/60 dark:border-zinc-800 dark:bg-zinc-900/40">
             {tabs.map((path) => {
               const tabDirty = drafts[path] !== undefined && drafts[path] !== saved[path]?.content;
               return (
@@ -439,7 +499,7 @@ export function CodeWorkbench({
                   className={cn(
                     'group flex shrink-0 items-center gap-1.5 border-r border-zinc-200 pl-3 pr-1.5 font-mono text-[12px] dark:border-zinc-800',
                     path === active
-                      ? 'border-t-2 border-t-[#E6212F] bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50'
+                      ? 'border-t-2 border-t-[#E6212F] bg-[#fff] text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50'
                       : 'border-t-2 border-t-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100',
                   )}
                 >
@@ -481,14 +541,18 @@ export function CodeWorkbench({
 
           <div className="relative min-h-0 flex-1 overflow-auto">
             {!active ? (
-              <p className="p-6 font-mono text-[12px] text-zinc-400">Open a file from the explorer.</p>
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-400 dark:text-zinc-500">
+                <FileCode2 className="h-5 w-5" />
+                <p className="font-mono text-[12px]">Open a file from the explorer.</p>
+              </div>
             ) : text === null ? (
-              <p className="p-6 font-mono text-[12px] text-zinc-400">Loading…</p>
+              // An editor shows the file the moment it arrives, with no fade: only a slow load gets bars.
+              <CodeSkeleton late />
             ) : (
               <div className={cn('flex min-h-full min-w-max', CODE_METRICS)}>
                 <div
                   aria-hidden
-                  className="sticky left-0 z-10 select-none border-r border-zinc-200 bg-white py-3 pl-4 pr-3 text-right text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
+                  className="sticky left-0 z-10 select-none border-r border-zinc-200 bg-[#fff] py-3 pl-4 pr-3 text-right text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
                 >
                   {Array.from({ length: lines }, (_, i) => (
                     <div key={i} className={i + 1 === cursor.line ? 'text-zinc-900 dark:text-zinc-100' : undefined}>
@@ -526,7 +590,10 @@ export function CodeWorkbench({
                     wrap="off"
                     aria-label={`Edit ${active}`}
                     className={cn(
-                      'absolute inset-0 h-full w-full resize-none overflow-hidden whitespace-pre border-0 bg-transparent px-4 py-3 text-transparent caret-zinc-900 outline-none selection:bg-[#0061E2]/25 dark:caret-zinc-100',
+                      'absolute inset-0 h-full w-full resize-none whitespace-pre border-0 px-4 py-3 outline-none selection:bg-[#0061E2]/25',
+                      plainEdit
+                        ? 'overflow-x-auto overflow-y-hidden bg-[#fff] text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100'
+                        : 'overflow-hidden bg-transparent text-transparent caret-zinc-900 dark:caret-zinc-100',
                       CODE_METRICS,
                     )}
                   />
@@ -535,13 +602,13 @@ export function CodeWorkbench({
             )}
           </div>
 
-          <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-zinc-200 bg-zinc-50/80 px-4 font-mono text-[10.5px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
+          <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-zinc-200 bg-zinc-100/60 px-4 font-mono text-[10.5px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
             {status ? (
               <span className={status.tone === 'bad' ? 'text-red-600 dark:text-red-400' : undefined}>
                 {status.text}
               </span>
             ) : (
-              <span>{dirty ? 'Unsaved changes · ⌘S to save' : active ? 'Saved' : ''}</span>
+              <span>{dirty ? 'Unsaved changes · ⌘S to save' : active && text !== null ? 'Saved' : ''}</span>
             )}
             <span className="flex-1" />
             {active && (

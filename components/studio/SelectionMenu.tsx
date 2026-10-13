@@ -55,7 +55,8 @@ export function SelectionMenu({
       role="menu"
       style={{ left: pos.x, top: pos.y }}
       onMouseDown={(e) => e.stopPropagation()}
-      className="fixed z-[200] border border-zinc-200 bg-white py-1 dark:border-zinc-700 dark:bg-zinc-950"
+      // #fff, not bg-white: the light console tints .bg-white boards grey, and a menu floats above the code.
+      className="fixed z-[200] border border-zinc-200 bg-[#fff] py-1 dark:border-zinc-700 dark:bg-zinc-950"
     >
       <button
         type="button"
