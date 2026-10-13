@@ -80,12 +80,15 @@ export function PromptComposer({
   className,
   compact = false,
   beam,
+  aside,
 }: {
   examples?: string[];
   className?: string;
   /** One line with the button inline, for a docked box. */
   compact?: boolean;
   beam?: ComposerBeamColor;
+  /** Shown at the left of the full box's footer, across from the build button, such as another way to start. */
+  aside?: React.ReactNode;
 }) {
   const router = useRouter();
   const { status } = useSession();
@@ -154,12 +157,11 @@ export function PromptComposer({
               placeholder="Describe what to build, e.g. a USDC checkout on Fuji with refunds, or bring USDC from Base to my L1"
               className="block w-full resize-none bg-transparent px-4 py-3.5 text-[15px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-50 dark:placeholder:text-zinc-500"
             />
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                Testnet first · audited before every deploy · your wallet signs
-              </span>
+            {/* A toolbar inside the box: another way to start on the left, the build button on the right. */}
+            <div className="flex items-center justify-between gap-3 px-3 pb-3">
+              <div className="min-w-0">{aside}</div>
               <Button onClick={() => void start()} busy={busy} disabled={!text.trim()}>
-                Build with Studio <ArrowRight className="h-3.5 w-3.5" />
+                Build <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
