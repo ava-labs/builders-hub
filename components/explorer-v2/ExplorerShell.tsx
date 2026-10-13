@@ -318,7 +318,7 @@ export function SearchBox({
           data-asks={askable && !askAt ? queryPage : undefined}
           aria-label={askable ? "Search or ask a question" : "Search"}
           spellCheck={false}
-          className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"
+          className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[16px] leading-relaxed md:text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"
         />
         {q ? (
           <button

@@ -1,0 +1,51 @@
+---
+title: Zerion
+category: Analytics & Data
+available: ["C-Chain"]
+description: "Zerion API gives wallet balances, DeFi positions, decoded transaction history, NFTs, PnL and token prices for Avalanche C-Chain addresses through one REST API."
+logo: /images/zerion.png
+developer: Zerion
+website: https://zerion.io/api/
+documentation: https://developers.zerion.io/introduction
+---
+
+## Overview
+
+Zerion API is a REST API for onchain wallet data. It returns token balances, DeFi positions, NFTs, decoded transaction history, PnL and prices for any address on Avalanche C-Chain, other EVM chains and Solana. Responses are priced and normalized, so one request gives the data that a wallet or portfolio screen needs.
+
+## Features
+
+- **Wallet portfolio**: Total value, broken down by chain and position type
+- **Fungible positions**: Token balances and DeFi positions (lending, liquidity, staking) across protocols on C-Chain
+- **Decoded transaction history**: Transfers, swaps, approvals and fees, with dapp context
+- **NFTs**: NFT positions and collections, with floor prices
+- **Wallet PnL**: Realized and unrealized PnL, FIFO-based
+- **Token prices**: Prices and charts for tokens
+- **Spam filtering**: Spam tokens are filtered out of responses
+- **Webhooks**: Real-time notifications for wallet activity
+
+## Getting Started
+
+1. **Get an API key**: Create a key in the [Zerion Dashboard](https://dashboard.zerion.io).
+2. **Authenticate**: Use HTTP Basic Auth, with the API key as the username.
+3. **Query a wallet on Avalanche C-Chain**: Filter by the `avalanche` chain ID.
+
+```bash
+curl -u "YOUR_API_KEY:" \
+  "https://api.zerion.io/v1/wallets/0xYourAddress/positions/?filter[chain_ids]=avalanche&currency=usd"
+```
+
+## Documentation
+
+For guides and the API reference, visit the [Zerion API Documentation](https://developers.zerion.io/introduction).
+
+- [Supported chains](https://developers.zerion.io/supported-blockchains)
+- [API reference](https://developers.zerion.io/api-reference)
+
+## Use Cases
+
+- **Wallets**: Show balances, DeFi positions and activity feeds to Avalanche users
+- **Portfolio trackers and dashboards**: Show holdings and performance across chains
+- **Exchanges and fintech apps**: Show users their self-custody holdings
+- **Tax and accounting tools**: Use decoded transaction history
+- **AI agents**: Read wallet state

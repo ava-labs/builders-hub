@@ -18,7 +18,9 @@ import {
   type ChainMatch,
   type EntityHit,
 } from "@/components/explorer-v2/chain-search";
+import { useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { classifyEvmLocally } from "@/lib/evm-explorer";
+import { isPchainNetwork } from "@/lib/pchain-explorer";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 
 // EVM search is simpler than the P-chain one: every identifier shape is
@@ -40,9 +42,11 @@ function evmEntity(query: string, base: string, chainName: string): EntityHit | 
 }
 
 export function EvmSearchBox({
+  network,
   base,
   chainName,
 }: {
+  network: string;
   /** /explorer/{network}/{chainSlug}: the current chain's route root */
   base: string;
   chainName: string;
@@ -87,7 +91,10 @@ export function EvmSearchBox({
 
   const trimmed = q.trim();
   const entity = trimmed ? evmEntity(trimmed, base, chainName) : null;
-  const chains: ChainMatch[] = trimmed.length >= 2 ? matchChains(trimmed, null) : [];
+  // a Fuji box lists Fuji chains only, so it also reads the indexed set
+  const net = isPchainNetwork(network) ? network : "mainnet";
+  const indexed = useIndexedChainIds(net === "fuji" && trimmed.length >= 2);
+  const chains: ChainMatch[] = trimmed.length >= 2 ? matchChains(trimmed, null, net, indexed) : [];
   const identifier = !!classifyEvmLocally(trimmed) || looksLikeIdentifier(trimmed);
   const question = askable && !entity && looksLikeQuestion(trimmed, { identifier, chainHit: chains.length > 0 });
   // a phrase of two words or more can always be asked, even when a chain matches

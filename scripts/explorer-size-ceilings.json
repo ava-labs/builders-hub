@@ -13,7 +13,7 @@
   "app/api/explorer/[chainId]/route.ts": 727,
   "components/explorer-v2/gas/instruments.tsx": 679,
   "components/explorer-v2/staking/PrimaryValidators.tsx": 716,
-  "lib/explorer-clickhouse.ts": 713,
+  "lib/explorer-clickhouse.ts": 681,
   "lib/explorer-query/visual.ts": 653,
   "components/explorer-v2/staking/L1Economy.tsx": 698,
   "components/explorer-v2/ui.tsx": 689,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { bidOf, priceFloor, type FeeBid } from "@/lib/evm-fee";
 
 /* Head stream: the chain tip read straight from the RPC, once a second.
    The indexer feed (stats-api) lands seconds behind the chain and the
@@ -57,6 +58,10 @@ export interface Head {
   /** ACP-194: the newest block whose execution this block settles;
    *  null on chains without Continuous Execution */
   settledHeight: number | null;
+  /** the header's baseFeePerGas: since Helicon the worst-case bound */
+  bound: bigint | null;
+  /** the validators' minimum base fee (ACP-283); null on headers without minPriceExponent */
+  floor: bigint | null;
 }
 
 /** a transaction as it executes: the block's tx merged with its receipt */
@@ -73,6 +78,9 @@ export interface StreamTx {
   input: string;
   success: boolean;
   feeWei: number;
+  bid: FeeBid;
+  /** the receipt's effectiveGasPrice */
+  paid: bigint;
 }
 
 export interface HeadStream {
@@ -96,6 +104,8 @@ interface RpcHeader {
   gasUsed: string;
   gasLimit: string;
   settledHeight?: string;
+  baseFeePerGas?: string;
+  minPriceExponent?: string;
 }
 
 interface RpcTx {
@@ -105,6 +115,9 @@ interface RpcTx {
   value: string;
   input: string;
   transactionIndex: string;
+  gasPrice?: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
 }
 
 interface RpcReceipt {
@@ -126,6 +139,8 @@ function toHead(h: RpcHeader): Head {
     gasUsed: hex(h.gasUsed) ?? 0,
     gasLimit: hex(h.gasLimit) ?? 0,
     settledHeight: hex(h.settledHeight),
+    bound: h.baseFeePerGas ? BigInt(h.baseFeePerGas) : null,
+    floor: h.minPriceExponent ? priceFloor(BigInt(h.minPriceExponent)) : null,
   };
 }
 
@@ -193,6 +208,7 @@ async function fetchExecutedTxs(rpcUrl: string, n: number, signal: AbortSignal):
   const ts = hex(block.timestamp) ?? 0;
   return txs.map((t, i) => {
     const r = receipts[i]!;
+    const paid = BigInt(r.effectiveGasPrice);
     return {
       hash: t.hash,
       blockNumber: n,
@@ -204,7 +220,9 @@ async function fetchExecutedTxs(rpcUrl: string, n: number, signal: AbortSignal):
       methodId: t.input && t.input.length >= 10 ? t.input.slice(0, 10).toLowerCase() : "",
       input: t.input ?? "0x",
       success: r.status === "0x1",
-      feeWei: Number(BigInt(r.gasUsed) * BigInt(r.effectiveGasPrice)),
+      feeWei: Number(BigInt(r.gasUsed) * paid),
+      bid: bidOf(t, paid),
+      paid,
     };
   });
 }

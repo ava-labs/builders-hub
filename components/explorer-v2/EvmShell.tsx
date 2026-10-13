@@ -79,7 +79,7 @@ export function EvmShell({
             <Rise delay={0.05}>
               <header className="flex flex-col gap-6 pb-10">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
-                  {search && <EvmSearchBox base={base} chainName={c.chainName} />}
+                  {search && <EvmSearchBox network={network} base={base} chainName={c.chainName} />}
                   {aside}
                 </div>
                 {tape}

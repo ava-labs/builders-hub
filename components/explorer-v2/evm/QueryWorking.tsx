@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { ArrowUp, ChevronsUpDown } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -77,6 +78,9 @@ export function ThreadLine({ prompts, onNew }: { prompts: string[]; onNew?: () =
   );
 }
 
+/** the prompt box's tallest height in px; a longer question scrolls inside it */
+const PROMPT_MAX_PX = 288;
+
 /** the prompt box: Enter sends, Shift+Enter breaks the line, Escape lets go. Without onChange it only shows */
 export function PromptBox({
   value,
@@ -98,10 +102,33 @@ export function PromptBox({
   onChange?: (value: string) => void;
   onSend?: () => void;
 }) {
+  const own = useRef<HTMLTextAreaElement | null>(null);
+  const ref = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      own.current = el;
+      if (typeof inputRef === "function") inputRef(el);
+      else if (inputRef) inputRef.current = el;
+    },
+    [inputRef],
+  );
+  // the box grows with the question, so a long one reads whole instead of scrolling inside one line
+  useLayoutEffect(() => {
+    const el = own.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "auto";
+      const h = el.scrollHeight;
+      el.style.height = `${Math.min(h, PROMPT_MAX_PX)}px`;
+      el.style.overflowY = h > PROMPT_MAX_PX ? "auto" : "hidden";
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [value, placeholder]);
   return (
     <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 shadow-[0_8px_24px_-16px_rgba(24,24,27,0.3)] transition-colors focus-within:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
       <textarea
-        ref={inputRef}
+        ref={ref}
         value={value}
         readOnly={!onChange && !disabled}
         onChange={(e) => onChange?.(e.target.value)}
@@ -117,7 +144,7 @@ export function PromptBox({
         autoFocus={autoFocus}
         disabled={disabled}
         placeholder={placeholder}
-        className="max-h-40 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 disabled:opacity-60 dark:text-zinc-50 dark:placeholder:text-zinc-600"
+        className="min-h-[1.75rem] min-w-0 flex-1 resize-none bg-transparent py-1 font-mono text-[16px] leading-relaxed md:text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 disabled:opacity-60 dark:text-zinc-50 dark:placeholder:text-zinc-600"
       />
       <button
         type="button"

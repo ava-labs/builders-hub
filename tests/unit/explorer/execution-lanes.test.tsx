@@ -6,8 +6,8 @@ import type { Head, StreamTx } from '@/components/explorer-v2/evm/useHeadStream'
 
 const TIP = 1030;
 // thirty heads, tip first, three transactions each
-const heads: Head[] = Array.from({ length: 30 }, (_, i) => ({ number: TIP - i, hash: `0x${i}`, timestampMs: 1_759_200_000_000 + (30 - i) * 1000, txCount: 3, gasUsed: 1, gasLimit: 2, settledHeight: TIP - 6 - i }));
-const tx = (block: number, txIndex: number, success: boolean): StreamTx => ({ hash: `0x${block}${txIndex}`, blockNumber: block, txIndex, timestamp: 0, from: '', to: '', value: '0', methodId: '', input: '', success, feeWei: 0 });
+const heads: Head[] = Array.from({ length: 30 }, (_, i) => ({ number: TIP - i, hash: `0x${i}`, timestampMs: 1_759_200_000_000 + (30 - i) * 1000, txCount: 3, gasUsed: 1, gasLimit: 2, settledHeight: TIP - 6 - i, bound: null, floor: null }));
+const tx = (block: number, txIndex: number, success: boolean): StreamTx => ({ hash: `0x${block}${txIndex}`, blockNumber: block, txIndex, timestamp: 0, from: '', to: '', value: '0', methodId: '', input: '', success, feeWei: 0, bid: { gasPrice: 0n }, paid: 0n });
 const lanes = (executedHeight: number | null, txs: StreamTx[] = []) =>
   renderToStaticMarkup(<ExecutionLanes heads={heads} executedHeight={executedHeight} txs={txs} live base="/explorer/mainnet/c-chain" />);
 

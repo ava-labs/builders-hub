@@ -114,3 +114,18 @@ test('all networks search opens an x-prefixed address on the x-chain', MULTI_PAG
   await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/address/X-${X_ONLY_ADDRESS}`, NAVIGATION);
   await expect(screen.getByText('Address not found')).toBeHidden();
 });
+
+// Rule: an EVM chain's search box suggests the chains of its own network, so a Fuji box never opens a mainnet chain
+// (EvmSearchBox in components/explorer-v2/evm/EvmSearch.tsx). Beam runs on mainnet as beam and on Fuji as beam-l1.
+
+test('a fuji chain search opens the fuji beam, not the mainnet one', MULTI_PAGE, async ({ app, screen, browser }) => {
+  await app.open('/explorer/fuji/c-chain');
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
+  const box = screen.getByRole('textbox', 'Search the chain or ask a question about it');
+  await box.fill('beam');
+  // the Fuji row is Beam L1, tagged Testnet; the mainnet row, plain Beam, is not offered
+  await expect(screen.getByRole('button', /^Beam L1.*Testnet/i)).toBeVisible(DATA);
+  await expect(screen.getByRole('button', /^Beam ?name/i)).toBeHidden();
+  await box.press('Enter');
+  await expect(browser).toHaveURL('/explorer/fuji/beam-l1', NAVIGATION);
+});

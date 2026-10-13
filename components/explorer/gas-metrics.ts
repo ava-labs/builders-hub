@@ -24,6 +24,7 @@ export const GAS_METRICS: Record<GasMetricKey, GasMetricDef> = {
     methodology: [
       "The base fee adjusts block by block with demand under the chain's fee mechanism: sustained demand pushes it up, idle blocks let it decay back toward the floor. It is burned, not paid to validators; the priority tip is the part that buys inclusion order.",
       "History is computed from every block in ClickHouse: each bucket's percentiles (p25, median, p75, p95) summarize the distribution of per-block base fees inside it, so the band shows what the fee actually was across the period, not a single sampled value. The live figure reads eth_feeHistory straight off the chain's public RPC.",
+      "Above the Floor compares each bucket's p95 base fee with the protocol's minimum base fee. On the C-Chain since Helicon that floor is voted by validators (ACP-283) and read from each block header; the base fee never goes below it, so the share of blocks priced above it says how often demand moved the price at all. The comparison is a ratio because the fee is the floor times an exponential of the gas backlog: the same backlog lifts the fee by the same percent at any floor. Buckets from before the floor was indexed are left out.",
     ],
   },
   utilization: {

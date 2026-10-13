@@ -9,6 +9,7 @@
 import l1ChainsData from '@/constants/l1-chains.json';
 import { getContractInfo, PROTOCOL_SLUGS } from '@/lib/contracts';
 import { statsApi } from '@/lib/stats-api';
+import { toDayPoint, toHourPoint, type FeeFloor, type RawGasDay, type RawGasHour } from '@/lib/gas-history-rows';
 
 export interface TransactionHistoryPoint {
   date: string;
@@ -427,6 +428,7 @@ export interface GasHourPoint {
   p95: number;
   /** total gas used in the hour */
   gas: number;
+  floor: FeeFloor | null;
 }
 
 export interface GasDayPoint {
@@ -440,6 +442,7 @@ export interface GasDayPoint {
   /** mean per-block gas_used/gas_limit, percent */
   utilPct: number;
   blocks: number;
+  floor: FeeFloor | null;
 }
 
 export interface GasConsumer {
@@ -710,8 +713,8 @@ export async function getGasMarket(
       // its own, the demand side is windowed. Fetched together.
       const [history, market] = await Promise.all([
         statsApi<{
-          hourly?: { t: string; p25: number; p50: number; p75: number; p95: number; gas: string }[];
-          daily?: { t: string; p25: number; p50: number; p75: number; p95: number; gas: string; utilPct: number; blocks: number }[];
+          hourly?: RawGasHour[];
+          daily?: RawGasDay[];
         }>(`/evm-api/${evmChainId}/gas-history`, QUERY_TIMEOUT_MS),
         statsApi<{
           consumers?: RawConsumerRow[];
@@ -726,7 +729,7 @@ export async function getGasMarket(
       if (!market) return null;
 
       const hourlyRows = history?.hourly ?? [];
-      const dailyRows = (history?.daily ?? []).map((r) => ({ ...r, d: r.t, blocks: String(r.blocks) }));
+      const dailyRows = history?.daily ?? [];
       const consumerRows = market.consumers ?? [];
       const prevConsumerRows = market.consumersPrevious ?? [];
       const heatRows = market.heatmap ?? [];
@@ -744,24 +747,8 @@ export async function getGasMarket(
       const data: GasMarket = {
         rangeDays,
         rangeTotalGas,
-        hourly: hourlyRows.map((r) => ({
-          t: r.t,
-          p25: Number(r.p25) || 0,
-          p50: Number(r.p50) || 0,
-          p75: Number(r.p75) || 0,
-          p95: Number(r.p95) || 0,
-          gas: Number(r.gas) || 0,
-        })),
-        daily: dailyRows.map((r) => ({
-          d: r.d,
-          p25: Number(r.p25) || 0,
-          p50: Number(r.p50) || 0,
-          p75: Number(r.p75) || 0,
-          p95: Number(r.p95) || 0,
-          gas: Number(r.gas) || 0,
-          utilPct: Number(r.utilPct) || 0,
-          blocks: Number(r.blocks) || 0,
-        })),
+        hourly: hourlyRows.map(toHourPoint),
+        daily: dailyRows.map(toDayPoint),
         protocols: aggregateProtocols(
           parseConsumers(consumerRows),
           parseConsumers(prevConsumerRows),
@@ -831,29 +818,10 @@ export async function getGasHistory(evmChainId: number, days: GasHistoryDays): P
   const fetchPromise = (async (): Promise<GasDayPoint[]> => {
     try {
       const body = await statsApi<{
-        daily?: { t: string; p25: number; p50: number; p75: number; p95: number; gas: string; utilPct: number; blocks: number }[];
+        daily?: RawGasDay[];
       }>(`/evm-api/${evmChainId}/gas-history`, QUERY_TIMEOUT_MS);
       if (!body?.daily) throw new Error("gas-history unavailable");
-      const rows = body.daily.slice(-days).map((r) => ({
-        d: r.t,
-        p25: r.p25,
-        p50: r.p50,
-        p75: r.p75,
-        p95: r.p95,
-        gas: r.gas,
-        utilPct: r.utilPct,
-        blocks: String(r.blocks),
-      }));
-      const data: GasDayPoint[] = rows.map((r) => ({
-        d: r.d,
-        p25: Number(r.p25) || 0,
-        p50: Number(r.p50) || 0,
-        p75: Number(r.p75) || 0,
-        p95: Number(r.p95) || 0,
-        gas: Number(r.gas) || 0,
-        utilPct: Number(r.utilPct) || 0,
-        blocks: Number(r.blocks) || 0,
-      }));
+      const data = body.daily.slice(-days).map(toDayPoint);
       gasHistoryCache.set(key, { data, fetchedAt: Date.now() });
       return data;
     } catch (err) {

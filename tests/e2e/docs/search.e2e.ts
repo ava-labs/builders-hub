@@ -11,9 +11,12 @@ test('search finds a docs page and opens it', async ({ app, screen, browser }) =
   const dialog = screen.getByRole('dialog', 'Search');
   await expect(dialog).toBeVisible();
   await dialog.getByRole('textbox', 'Search').fill('ICM Contract Addresses');
-  // The page row carries the page title. The section rows under it carry other text.
-  const result = dialog.getByRole('button', 'ICM Contract Addresses');
+  // The page row carries the page title, under a line that says where the page lives.
+  // The section rows under it carry other text.
+  const result = dialog.getByRole('button', /ICM Contract Addresses$/);
   await expect(result).toBeVisible();
+  // The query is the page title, so the page comes first, and the first page row always shows the line.
+  await expect(result).toContainText('Docs › Cross-Chain › ICM Contracts');
   await result.tap();
   // A relative URL must match on the site under test. A result that opens build.avax.network fails.
   await expect(browser).toHaveURL('/docs/cross-chain/icm-contracts/addresses', NAVIGATION);

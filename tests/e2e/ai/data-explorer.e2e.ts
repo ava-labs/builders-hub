@@ -6,7 +6,7 @@ import { desktopOnly, needsModel } from '../lib/skip';
 
 // Data tests: the agent reads facts off a page, and plain code compares them with the known truth.
 // Explorer data is live. Most tests here read facts that never change: chain identity and past blocks. The gas page
-// test reads live burn figures and checks only relations that always hold between them.
+// tests read live burn and fee market figures and check only relations that always hold between them.
 
 // The chain record at the foot of a C-Chain overview (components/explorer/EvmChainDetails.tsx).
 const CHAINS = [
@@ -165,4 +165,62 @@ test('mainnet c-chain gas page burn figures are positive and agree with each oth
   test.skip(facts.chartDays.trim() !== facts.boardDays.trim(), `the chart covers ${facts.chartDays} and the board ${facts.boardDays}`);
   const step = Math.max(compactStep(facts.burnedFigure), compactStep(facts.boardPaid));
   expect(Math.abs(paid - burned)).toBeLessThanOrEqual(step + 0.005 * burned);
+});
+
+// A gas price as the fee market writes it, in nAVAX: "5.035" with its unit "nAVAX", or "150" with "wei".
+function nano(value: number, unit: string): number {
+  return unit.trim().toLowerCase() === 'wei' ? value / 1e9 : value;
+}
+
+// The fee market now at the top of the C-Chain gas page (components/explorer-v2/gas/fee-market.tsx). Its figures are
+// live and refresh every 2 s, so the test reads them at one moment and checks the relations that always hold: the price
+// in the cost table's heading is the base fee plus the suggested priority fee, each action costs its gas times that price,
+// every dollar amount uses one AVAX price, and the three priority fee bands hold every transaction.
+test('mainnet c-chain gas page fee market figures agree with each other', async (fixtures) => {
+  needsModel();
+  const { app, agent, browser, screen } = fixtures;
+  await app.open('/explorer/mainnet/c-chain/gas');
+  await desktopOnly(browser, 'the figures are the same at both sizes');
+  const market = screen.getByRole('region', 'Fee market now');
+  await expect(market.getByText(/^[\d.,]+ (wei|nAVAX) or less$/)).toBeVisible(DATA);
+  await expect(market.getByRole('table', 'Cost of an action').getByRole('row').nth(1).getByRole('cell').nth(3)).toHaveText(/^\$0\.\d+$/, DATA);
+
+  const facts = await agent.extract(
+    'Read the "Fee Market Now" section at the top of the page. Copy the Base Fee figure and its unit, and the Priority ' +
+      'Fee figure and its unit. In the "Cost of an Action" heading, copy the price per gas after the word "at" and its ' +
+      'unit. Copy each row of that table: its gas, its AVAX amount and its USD amount, as plain numbers without ' +
+      'separators or a dollar sign. Copy the three percentages of the "Priority Fees Paid" bands as plain numbers.',
+    {
+      schema: z.object({
+        baseFee: z.number(),
+        baseFeeUnit: z.string(),
+        priorityFee: z.number(),
+        priorityFeeUnit: z.string(),
+        price: z.number(),
+        priceUnit: z.string(),
+        rows: z.array(z.object({ gas: z.number().int(), avax: z.number(), usd: z.number() })),
+        bands: z.array(z.number()),
+      }),
+    },
+  );
+  const base = nano(facts.baseFee, facts.baseFeeUnit);
+  const tip = nano(facts.priorityFee, facts.priorityFeeUnit);
+  const price = nano(facts.price, facts.priceUnit);
+  // The base fee is a validator vote plus demand, so the test checks only that it is a price at all.
+  expect(base).toBeGreaterThan(0);
+  expect(base).toBeLessThan(10_000);
+  expect(tip).toBeGreaterThanOrEqual(0);
+  // The page writes prices to three places, so the sum agrees to the rounding of each part.
+  expect(Math.abs(price - (base + tip))).toBeLessThanOrEqual(0.0015);
+  expect(facts.rows).toHaveLength(4);
+  const usdPerAvax = facts.rows[0].usd / facts.rows[0].avax;
+  expect(usdPerAvax).toBeGreaterThan(0);
+  for (const row of facts.rows) {
+    // AVAX amounts are cut to six places, and the price is rounded to three
+    expect(Math.abs(row.avax - (row.gas * price) / 1e9)).toBeLessThanOrEqual((row.gas * 0.0005) / 1e9 + 1e-6);
+    // one AVAX price for every row, to the rounding of a sub-cent dollar amount (three digits) and of the AVAX amount
+    expect(Math.abs(row.usd / row.avax - usdPerAvax) / usdPerAvax).toBeLessThan(0.03);
+  }
+  expect(facts.bands).toHaveLength(3);
+  expect(Math.abs(facts.bands.reduce((s, b) => s + b, 0) - 100)).toBeLessThanOrEqual(1.5);
 });

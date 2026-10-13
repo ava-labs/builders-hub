@@ -29,7 +29,7 @@ export function RailRow({
         {label}
       </span>
       <span className="font-mono text-[17px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{children}</span>
-      {sub != null && <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{sub}</span>}
+      {sub != null && <div className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{sub}</div>}
     </>
   );
   const cls = "flex flex-1 flex-col justify-center gap-1 border-b border-zinc-200 px-5 py-3.5 last:border-b-0 dark:border-zinc-800";

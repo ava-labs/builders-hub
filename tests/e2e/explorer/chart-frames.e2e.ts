@@ -26,7 +26,7 @@ const PAGES = [
   { path: '/explorer/mainnet/c-chain/accounts', block: 'Active Addresses' },
   { path: '/explorer/mainnet/c-chain/txs/icm', block: 'Messages' },
   { path: '/explorer/mainnet/c-chain/gas', block: 'AVAX Burned' },
-  { path: '/explorer/mainnet/c-chain/gas/base-fee', block: 'Spike Premium' },
+  { path: '/explorer/mainnet/c-chain/gas/base-fee', block: 'Above the Floor' },
   { path: '/explorer/mainnet/c-chain/gas/utilization', block: 'Block by Block' },
   { path: '/explorer/mainnet/c-chain/gas/fee-seasonality', block: 'Hour of Day' },
   { path: '/explorer/mainnet/c-chain/defi', block: 'DEX Volume' },
