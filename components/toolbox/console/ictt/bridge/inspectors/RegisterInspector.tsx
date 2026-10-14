@@ -63,7 +63,7 @@ export function RegisterInspector({ onPhaseChange, bridge, remote }: RegisterIns
   return (
     <ContractDeployViewer contracts={ICTT_HOME_PLUS_REMOTE_SOURCES}>
       <Inspector
-        label="Phase 4 · Register"
+        label="Step 4 · Register"
         banner={!remote?.address && <Alert variant="warning">Deploy a TokenRemote in the Remote step first.</Alert>}
         footer={
           <>

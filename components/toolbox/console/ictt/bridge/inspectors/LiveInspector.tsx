@@ -271,7 +271,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   return (
     <ContractDeployViewer contracts={ICTT_HOME_SEND_SOURCES}>
       <Inspector
-        label="Phase 6 · Live send"
+        label="Step 6 · Live send"
         meta={readiness.ok ? <StatusTag tone="ok">Bridge ready</StatusTag> : undefined}
         banner={
           !hasRemotes ? (

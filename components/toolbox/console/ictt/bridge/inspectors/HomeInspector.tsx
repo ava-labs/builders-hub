@@ -144,7 +144,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
   return (
     <ContractDeployViewer contracts={ICTT_HOME_SOURCES}>
       <Inspector
-        label="Phase 2 · TokenHome"
+        label="Step 2 · TokenHome"
         banner={
           !underlyingTokenAddress && <Alert variant="warning">Pick a source token in the Token step first.</Alert>
         }

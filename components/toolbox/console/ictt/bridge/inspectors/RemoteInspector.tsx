@@ -309,7 +309,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
       contracts={remoteKind === 'native-remote' ? ICTT_REMOTE_NATIVE_SOURCES : ICTT_REMOTE_ERC20_SOURCES}
     >
       <Inspector
-        label="Phase 3 · TokenRemote"
+        label="Step 3 · TokenRemote"
         banner={
           !bridge?.homeAddress ? (
             <Alert variant="warning">Deploy TokenHome in the Home step before you deploy a Remote.</Alert>

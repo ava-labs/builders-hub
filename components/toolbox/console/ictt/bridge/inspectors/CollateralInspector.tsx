@@ -110,7 +110,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
   return (
     <ContractDeployViewer contracts={ICTT_COLLATERAL_SOURCES}>
       <Inspector
-        label="Phase 5 · Collateral"
+        label="Step 5 · Collateral"
         banner={
           !remote?.registeredAt ? (
             <Alert variant="warning">Register the Remote in the Register step before you add collateral.</Alert>

@@ -79,7 +79,7 @@ export function TokenInspector({
   return (
     <ContractDeployViewer contracts={contracts}>
       <Inspector
-        label="Phase 1 · Source token"
+        label="Step 1 · Source token"
         banner={
           showExistingBridgeBanner ? (
             <Alert variant="warning">
