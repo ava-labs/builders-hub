@@ -231,11 +231,11 @@ export function failPendingSteps(error: unknown, path = BRIDGE_LEDGER): void {
 // The page
 // ---------------------------------------------------------------------------------------------------------------------
 
-// The page's own error messages (CrossChainTransfer.tsx). Its error boxes have no role (UX finding B23), so the test
-// reads them by text. 'Export failed:' shows twice (under the amount and in the box), so the test takes the first.
-// A wallet rejection shows WALLET_REJECTED (chain/lib/console.ts) with no prefix.
+// The page's own error messages (CrossChainTransfer.tsx). Each shows in an error box with role 'alert' (ErrorNotice),
+// and the test reads the message by its text. The export and the import each have their own box, so the test takes the
+// first. A wallet rejection shows WALLET_REJECTED (chain/lib/console.ts) with no prefix.
 const PAGE_ERROR =
-  /^(You rejected the request in your wallet\. |Export failed: |Import failed: |Amount exceeds available balance|Please enter a valid positive amount|Amount is below the smallest|Could not load network parameters|Network parameters are still loading|Cross-chain transfers require Core Wallet|No funds available to import yet)/;
+  /^(You rejected the request in your wallet\. |Export failed: |Import failed: |Amount exceeds available balance|Please enter a valid positive amount|Amount is below the smallest|Could not load network parameters|Network parameters are still loading|Cross-chain transfers sign on the P-Chain, which needs Core or a Console wallet|No funds available to import yet)/;
 
 // The page's own UTXO reads (pvm.PVMApi and evm.EVMApi of avalanchejs, from the browser).
 const PAGE_P_READ = /^https:\/\/api\.avax-test\.network\/ext\/bc\/P(?:[?#]|$)/;
@@ -250,9 +250,9 @@ export async function bridgeError(screen: Screen): Promise<string | undefined> {
   return (await box.textContent()) ?? '(no text)';
 }
 
-/** 'Start New Transfer': the page shows it when the import is accepted. */
+/** 'Start new transfer': the page shows it when the import is accepted. */
 export function startNewTransfer(screen: Screen): Locator {
-  return screen.getByRole('button', 'Start New Transfer');
+  return screen.getByRole('button', 'Start new transfer');
 }
 
 /**
@@ -301,15 +301,23 @@ export async function waitForExportReady(app: App, browser: Browser, screen: Scr
   }
 }
 
-/** Shows 'From <chain>-Chain'. The page starts at C-Chain to P-Chain; 'Swap chains' turns it round. */
+/**
+ * Sets the direction to `from` -> the other chain. The page starts at C-Chain to P-Chain. The swap button names the
+ * direction that it turns to ('Swap direction: transfer from <to> to <from>'), so its name tells the direction that
+ * the page shows now.
+ */
 export async function setDirection(screen: Screen, from: ImportSide): Promise<void> {
-  const label = screen.getByText(`From ${from}-Chain`, { exact: true });
-  if (await label.isVisible()) return;
-  await screen.getByRole('button', 'Swap chains').click();
-  await expect(label).toBeVisible();
+  const to = from === 'P' ? 'C' : 'P';
+  const swapButton = (a: ImportSide, b: ImportSide) =>
+    screen.getByRole('button', `Swap direction: transfer from ${a}-Chain to ${b}-Chain`);
+  // The page shows `from` -> `to` when its swap button offers `to` -> `from`.
+  const shown = swapButton(to, from);
+  if (await shown.isVisible()) return;
+  await swapButton(from, to).click();
+  await expect(shown).toBeVisible();
 }
 
-/** The amount field under 'From ...' (CrossChainTransfer.tsx: AmountInput with aria-label 'Amount'). */
+/** The amount field under the From and To cells (CrossChainTransfer.tsx: an input with the label 'Amount'). */
 function amountField(screen: Screen): Locator {
   return screen.getByRole('spinbutton', 'Amount');
 }
@@ -355,7 +363,7 @@ export async function waitForBridgeSend(
   }
 }
 
-/** Waits for 'Start New Transfer'. Fails at once on a page error. */
+/** Waits for 'Start new transfer'. Fails at once on a page error. */
 export async function waitForTransferDone(
   screen: Screen,
   browser: Browser,
@@ -369,7 +377,7 @@ export async function waitForTransferDone(
     if (failure) throw new Error(`${label}: the page shows '${failure}'`);
     if (Date.now() > deadline) {
       throw new Error(
-        `${label}: no 'Start New Transfer' in ${Math.round(timeoutMs / 1000)} s. ${await describePage(browser)}`,
+        `${label}: no 'Start new transfer' in ${Math.round(timeoutMs / 1000)} s. ${await describePage(browser)}`,
       );
     }
     await sleep(1_000);
@@ -377,9 +385,9 @@ export async function waitForTransferDone(
 }
 
 /**
- * Waits until the page has read both UTXO lists with nothing to import. 'Start New Transfer' shows before the page's
+ * Waits until the page has read both UTXO lists with nothing to import. 'Start new transfer' shows before the page's
  * UTXO lists catch up with the import. When a list still holds the imported UTXO, the button and the page's next
- * render offer a pending import of it, and hide the export button (CrossChainTransfer.tsx, the 'Start New Transfer'
+ * render offer a pending import of it, and hide the export button (CrossChainTransfer.tsx, the 'Start new transfer'
  * handler and the auto-skip effect). So the test clicks only after the page read both lists with none of the key's
  * own AVAX in them. The page ignores the other UTXOs, and the test ignores them and the dust in `left` too. The page
  * reads a list page by page (sharedMemoryImport.ts readSharedMemory): a list is clear only when each page up to a
@@ -513,11 +521,11 @@ export async function runLeg(
 }
 
 /**
- * Clicks the page's pending import ('Pending import from a previous transfer', button 'Import <amount> AVAX to
- * <chain>'), which shows when shared memory holds AVAX for this key. The page imports one selection of the key's AVAX
- * (atomic.ts importSelection at pageImportRule). Waits until the chain accepted the import, checks that it spent
- * exactly that selection, and waits until shared memory no longer holds it. Returns the side, the wallet's send and
- * the selection.
+ * Clicks the page's pending import ('Pending import', 'Exported earlier, not yet imported to <chain>', button 'Import
+ * <amount> AVAX to <chain>'), which shows when shared memory holds AVAX for this key. The page imports one selection
+ * of the key's AVAX (atomic.ts importSelection at pageImportRule). Waits until the chain accepted the import, checks
+ * that it spent exactly that selection, and waits until shared memory no longer holds it. Returns the side, the
+ * wallet's send and the selection.
  */
 export async function importPending(
   screen: Screen,
@@ -528,9 +536,10 @@ export async function importPending(
 ): Promise<{ side: ImportSide; send: WalletSend; utxos: AtomicUtxo[] }> {
   const button = screen.getByRole('button', /^Import [0-9.]+ AVAX to (P|C)-Chain$/);
   await expect(button).toBeVisible({ timeout: 90_000 });
-  await expect(screen.getByText('Pending import from a previous transfer', { exact: true })).toBeVisible();
   const name = (await button.textContent()) ?? '';
   const side = /to P-Chain/.test(name) ? 'P' : 'C';
+  await expect(screen.getByText('Pending import', { exact: true })).toBeVisible();
+  await expect(screen.getByText(`Exported earlier, not yet imported to ${side}-Chain`, { exact: true })).toBeVisible();
   const utxos = importSelection(side, await atomicUtxos(side, signer.pChainAddress), await pageImportRule(side));
   const expected = new Set(utxos.map((u) => u.utxoId));
   beginSend(
@@ -645,12 +654,17 @@ function shortId(txId: string): string {
 }
 
 /**
- * The text of one row of the history's 'Transaction History' list: the operation, the short tx ID, the status, the
- * chain badge and the network badge, run together. The badge is 'P-Chain' for a P-Chain tx and 'C-Chain' for a
- * C-Chain atomic tx of the bridge. The rows have no role (each is a clickable div, app/console/history/page.tsx), so
- * the test finds a row by its text. getByText answers with the innermost match: the row.
+ * The text of one row of the history's 'Transactions' list, run together: the status dot's label (sr-only), then each
+ * cell after its cell label (shown on phones only): Time, Action (the operation), Chain, Network, Hash (the short tx
+ * ID) and Status. The chain is 'P-Chain' for a P-Chain tx and 'C-Chain' for a C-Chain atomic tx of the bridge. The
+ * rows have no role (each is a clickable grid row, app/console/history/page.tsx), so the test finds a row by its
+ * text. getByText answers with the innermost match: the row.
  */
 export function historyRow(operation: string, txId: string, chain: 'P-Chain' | 'C-Chain' = 'P-Chain'): RegExp {
   const id = escapeRegExp(shortId(txId));
-  return new RegExp(`^${escapeRegExp(operation)}\\s*${id}\\s*Confirmed\\s*${chain}\\s*Fuji`);
+  // The time is date-fns 'MMM d HH:mm', for example 'Oct 13 21:49'.
+  return new RegExp(
+    `^Confirmed\\s*Time\\s*[A-Z][a-z]{2} \\d{1,2} \\d{2}:\\d{2}\\s*Action\\s*${escapeRegExp(operation)}\\s*` +
+      `Chain\\s*${chain}\\s*Network\\s*Fuji\\s*Hash\\s*${id}\\s*Status\\s*Confirmed$`,
+  );
 }

@@ -261,37 +261,50 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
     await openAsReturningVisitor(app, browser, CREATE);
     await connectCore(screen);
 
-    await expect(screen.getByRole('heading', 'Choose a setup')).toBeVisible();
-    await screen.getByRole('button', /^Advanced setup/).click();
-    await screen.getByRole('button', 'Continue').click();
+    // One page (CreateL1Questionnaire.tsx): the two path cards, then, after 'Advanced', every question at once.
+    await expect(screen.getByRole('heading', 'Launch your own Avalanche L1.', { level: 1 })).toBeVisible();
+    // The card's name starts with its eyebrow, then its title and description.
+    const advanced = screen.getByRole('button', /^Advanced · Fuji or mainnet Configure it yourself /);
+    await advanced.click();
+    await expect(advanced).toHaveAttribute('aria-expanded', 'true');
 
-    // A card's name is its title, its description and, on some cards, 'Recommended'. The picked card is pressed.
-    const answer = async (question: string, card: RegExp) => {
-      await expect(screen.getByRole('heading', question)).toBeVisible();
-      await screen.getByRole('button', card).click();
-      await expect(screen.getByRole('button', card)).toHaveAttribute('aria-pressed', 'true');
-      await screen.getByRole('button', 'Continue').click();
+    // Each question is a radiogroup named by its title. An option's name is 'Recommended' on a recommended option,
+    // then its title and its description. The picked option is checked.
+    const answer = async (question: string, option: RegExp) => {
+      const radio = screen.getByRole('radiogroup', question).getByRole('radio', option);
+      await radio.click();
+      await expect(radio).toHaveAttribute('aria-checked', 'true');
     };
     // Pick the validator type first: picking it resets the manager location (CreateL1Questionnaire.tsx). PoS-ERC20
-    // sets it to the C-Chain, PoA to the L1; the next answer picks the C-Chain for both.
-    await answer('Validator management', validatorType === 'poa' ? /^Proof of Authority/ : /^Proof of Stake \(ERC20\)/);
-    await answer('Validator Manager location', /^On C-Chain/);
-    await answer('Interoperability', /^Enable cross-chain messaging/);
+    // sets it to the C-Chain, PoA to the L1; the next answer picks the C-Chain for both. The C-Chain option is
+    // recommended for PoS-ERC20 only. On Fuji the Docker option is not recommended (the Managed option is).
+    await answer('Validators', validatorType === 'poa' ? /^Proof of Authority / : /^Proof of Stake, ERC20 /);
+    await answer('Validator Manager', validatorType === 'poa' ? /^On the C-Chain / : /^Recommended On the C-Chain /);
+    await answer('Interoperability', /^Recommended Cross-chain messaging /);
     // The ownership question shows for PoA on the C-Chain only.
-    if (validatorType === 'poa') await answer('Contract ownership', /^Single wallet/);
-    await answer('Infrastructure', /^Docker/);
+    if (validatorType === 'poa') await answer('Ownership', /^Recommended Single wallet /);
+    await answer('Infrastructure', /^Docker /);
 
-    await expect(screen.getByRole('heading', 'Review your setup')).toBeVisible();
-    // The banner shows when the wallet is on mainnet. The wallet is on Fuji.
-    await expect(screen.getByText('We recommend starting on Fuji testnet', { exact: false })).toBeHidden();
-    for (const step of reviewSteps(validatorType)) {
-      await expect(screen.getByText(step, { exact: true }).first()).toBeVisible();
-    }
+    // The board 'Your deployment' lists the steps of the answers, numbered, next to the questions.
+    const board = screen.getByRole('complementary');
+    await expect(board.getByText('Your deployment', { exact: true })).toBeVisible();
+    // The notice shows when the wallet is on mainnet. The wallet is on Fuji.
+    await expect(
+      screen.getByText("You're on mainnet. Start on Fuji testnet while you build: switch networks from the top bar.", {
+        exact: true,
+      }),
+    ).toBeHidden();
+    const listed = board.getByRole('listitem');
+    await expect(listed).toHaveText(
+      reviewSteps(validatorType).map(
+        (step, i) => new RegExp(`^${i + 1} ?${step.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
+      ),
+    );
     if (validatorType === 'poa') {
       // The PoS steps are not in a PoA flow.
-      await expect(screen.getByText('Deploy ERC20 Staking Manager', { exact: true })).toHaveCount(0);
+      await expect(listed.filter({ hasText: 'Deploy ERC20 Staking Manager' })).toHaveCount(0);
     }
-    await screen.getByRole('button', 'Start deployment').click();
+    await board.getByRole('button', 'Start deployment').click();
     await browser.waitForURL(/\/console\/create-l1\/create-subnet$/, { timeout: 60_000 });
   };
 
@@ -333,7 +346,7 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
 
   const deployValidatorManager = async (fixtures: ChainFixtures) => {
     const { browser, screen } = fixtures;
-    await clickNext(screen, browser, /\/console\/create-l1\/deploy-validator-manager$/);
+    await clickNext(screen, browser, /\/console\/create-l1\/deploy-validator-manager$/, 'Deploy Validator Manager');
     await expect(toolHeading(screen, 'Deploy Validator Contracts')).toBeVisible();
 
     state.validatorMessages = await deploy(fixtures, 'deploy-validator-messages', () =>
@@ -357,7 +370,7 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
     const { browser, screen } = fixtures;
     const implementation = need(state.validatorManager, 'the ValidatorManager address');
     const subnetId = need(state.subnetId, 'the subnet ID');
-    await clickNext(screen, browser, /\/console\/create-l1\/proxy-setup$/);
+    await clickNext(screen, browser, /\/console\/create-l1\/proxy-setup$/, 'Proxy Setup');
     await expect(toolHeading(screen, 'Proxy Setup')).toBeVisible();
 
     // On the C-Chain the 'Deploy New Proxy' section opens by itself once the wallet chain is known.
@@ -414,7 +427,7 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
     const { signer } = wallet;
     const proxy = need(state.proxy, 'the proxy address');
     const subnetId = need(state.subnetId, 'the subnet ID');
-    await clickNext(screen, browser, /\/console\/create-l1\/initialize-manager$/);
+    await clickNext(screen, browser, /\/console\/create-l1\/initialize-manager$/, 'Initialize Validator Manager');
     await expect(toolHeading(screen, 'Initialize Validator Manager')).toBeVisible();
 
     // Initialize binds the manager to the subnet for good: check the subnet before the click.
@@ -448,7 +461,7 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
   const createChain = async ({ browser, screen, wallet }: ChainFixtures) => {
     const { signer } = wallet;
     const subnetId = need(state.subnetId, 'the subnet ID');
-    await clickNext(screen, browser, /\/console\/create-l1\/create-chain$/);
+    await clickNext(screen, browser, /\/console\/create-l1\/create-chain$/, 'Create Chain');
     await expect(toolHeading(screen, 'Create Chain')).toBeVisible();
 
     // The button shows once the default genesis is valid.
@@ -488,7 +501,7 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
 
   const skipDockerSetup = async ({ browser, screen }: ChainFixtures) => {
     // The test runs no node: the mock validators need none. 'Next' is not gated on this step.
-    await clickNext(screen, browser, /\/console\/create-l1\/docker-setup$/);
+    await clickNext(screen, browser, /\/console\/create-l1\/docker-setup$/, 'Docker Node Setup');
     await expect(toolHeading(screen, 'L1 Node Setup with Docker')).toBeVisible();
   };
 
@@ -517,7 +530,7 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
     // The page reads the subnet from Glacier once, when it mounts (SelectSubnet.tsx): wait for Glacier first.
     const { waitedMs: glacierLagMs } = await waitForGlacierSubnet(subnetId);
     note(`Glacier listed subnet ${subnetId} after ${Math.round(glacierLagMs / 1000)} s`);
-    await clickNext(screen, browser, /\/console\/create-l1\/convert-to-l1$/);
+    await clickNext(screen, browser, /\/console\/create-l1\/convert-to-l1$/, 'Convert to L1');
     await expect(toolHeading(screen, 'Convert Subnet to L1')).toBeVisible();
 
     await expect(screen.getByRole('textbox', 'Subnet')).toHaveValue(subnetId);
@@ -597,7 +610,7 @@ export function createL1Flow(options: CreateL1Options): CreateL1Flow {
     const v0 = need(state.v0, 'mock validator V0');
     const v0ValidationId = need(state.v0ValidationId, 'the V0 validation ID');
     const conversionTxId = need(state.conversionTxId, 'the conversion tx');
-    await clickNext(screen, browser, /\/console\/create-l1\/init-validator-set$/);
+    await clickNext(screen, browser, /\/console\/create-l1\/init-validator-set$/, 'Initialize Validator Set');
     await expect(toolHeading(screen, 'Initialize Validator Set')).toBeVisible();
     const subnetField = screen.getByRole('textbox', 'L1 Subnet ID');
     const conversionField = screen.getByRole('textbox', 'Conversion Tx ID (P-Chain)');

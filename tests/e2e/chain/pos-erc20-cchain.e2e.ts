@@ -28,6 +28,7 @@ import {
   note,
   readStore,
   remountStep,
+  stepLink,
   toolHeading,
   waitForPage,
   waitForSend,
@@ -70,7 +71,7 @@ import {
   waitForPosErc20Badge,
   waitForStoreValue,
 } from './lib/pos-erc20-console.ts';
-import { aggregateThenSend, completeOnManager, registerOnPChain } from './lib/validator-steps.ts';
+import { aggregateThenSend, completeOnManager, hashChip, registerOnPChain } from './lib/validator-steps.ts';
 
 // PoS-ERC20 staking on a fresh L1 whose Validator Manager runs on the Fuji C-Chain, made and run with the Console at
 // build.avax.network. No node runs the L1: V0 and V1 are mock validators (lib/mock-validator.ts), and the Primary
@@ -172,9 +173,15 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&
 const shortAddress = (address: string) =>
   new RegExp(`^${escapeRegExp(address.slice(0, 10))}\\.\\.\\.${escapeRegExp(address.slice(-6))}$`, 'i');
 const exactAddress = (address: string) => new RegExp(`^${address}$`, 'i');
-// The approve buttons name the token by its symbol, or 'tokens' before the page has read it.
-const approveName = (symbol: string) => new RegExp(`^1\\. Approve 1 (${escapeRegExp(symbol)}|tokens)$`);
-const approvedName = (symbol: string) => new RegExp(`^Approved \\(1 (${escapeRegExp(symbol)}|tokens)\\)$`);
+// The approve buttons name the token by its symbol, or 'tokens' before the page has read it. The delegation form
+// (delegate/InitiateDelegation.tsx) numbers its two buttons: '1. Approve 1 <symbol>', then 'Approved (1 <symbol>)'.
+const tokenName = (symbol: string) => `(${escapeRegExp(symbol)}|tokens)`;
+const approveName = (symbol: string) => new RegExp(`^1\\. Approve 1 ${tokenName(symbol)}$`);
+const approvedName = (symbol: string) => new RegExp(`^Approved \\(1 ${tokenName(symbol)}\\)$`);
+// The stake form (stake/InitiateValidatorRegistration.tsx) puts its two buttons in numbered steps, so the buttons
+// carry no number: 'Approve 1 <symbol>', then 'Approved 1 <symbol>'.
+const stakeApproveName = (symbol: string) => new RegExp(`^Approve 1 ${tokenName(symbol)}$`);
+const stakeApprovedName = (symbol: string) => new RegExp(`^Approved 1 ${tokenName(symbol)}$`);
 
 const ZERO_HASH = /^0x0+$/;
 
@@ -215,7 +222,7 @@ describe(
 
     test('deploys the ERC20 token', { timeout: 6 * MIN }, async ({ browser, screen, wallet }) => {
       const { signer } = wallet;
-      await clickNext(screen, browser, createStep('deploy-erc20-token'));
+      await clickNext(screen, browser, createStep('deploy-erc20-token'), 'Deploy ERC20 Token (Optional)');
       await expect(toolHeading(screen, 'Deploy Example ERC20 (Staking)')).toBeVisible();
 
       const { address: token, result } = await deployFromButton(
@@ -245,7 +252,7 @@ describe(
     test('deploys the ERC20 staking manager', { timeout: 6 * MIN }, async ({ browser, screen, wallet }) => {
       const { signer } = wallet;
       const library = need(l1.validatorMessages, 'the ValidatorMessages library');
-      await clickNext(screen, browser, createStep('deploy-erc20-staking'));
+      await clickNext(screen, browser, createStep('deploy-erc20-staking'), 'Deploy ERC20 Staking Manager');
       await expect(toolHeading(screen, 'Deploy ERC20 Token Staking Manager')).toBeVisible();
 
       // The library of 'Deploy Validator Manager' is still in the toolbox store: its card is done and offers no
@@ -273,7 +280,7 @@ describe(
 
     test('deploys the reward calculator', { timeout: 6 * MIN }, async ({ browser, screen, wallet }) => {
       const { signer } = wallet;
-      await clickNext(screen, browser, createStep('deploy-reward-calculator'));
+      await clickNext(screen, browser, createStep('deploy-reward-calculator'), 'Deploy Reward Calculator');
       await expect(toolHeading(screen, 'Deploy Example Reward Calculator')).toBeVisible();
       // Keep the default rate of 500 basis points.
       await expect(screen.getByRole('spinbutton', 'Reward Rate (basis points)')).toHaveValue(
@@ -308,7 +315,7 @@ describe(
       const { waitedMs: glacierLagMs } = await waitForGlacierL1Chain(subnetId, blockchainId, { timeoutMs: 10 * MIN });
       note(`Glacier listed chain ${blockchainId} on the L1 after ${Math.round(glacierLagMs / 1000)} s`);
 
-      await clickNext(screen, browser, createStep('initialize-staking'));
+      await clickNext(screen, browser, createStep('initialize-staking'), 'Initialize Staking Manager');
       // This step renders the tool without its card, so there is no tool heading: check the step cards (h3).
       await expect(screen.getByRole('heading', 'Verify Contract Addresses', { level: 3 })).toBeVisible();
       await expect(screen.getByRole('heading', 'Configure Staking Parameters', { level: 3 })).toBeVisible();
@@ -383,7 +390,7 @@ describe(
       const { signer } = wallet;
       const token = need(pos.token, 'the token');
       const stakingManager = need(pos.stakingManager, 'the staking manager');
-      await clickNext(screen, browser, createStep('enable-minting'));
+      await clickNext(screen, browser, createStep('enable-minting'), 'Enable Minting');
       // This step renders the tool without its card: check the step card (h3).
       await expect(screen.getByRole('heading', 'Grant MINTER_ROLE to Staking Manager', { level: 3 })).toBeVisible();
       // Both addresses come from the toolbox store.
@@ -418,7 +425,7 @@ describe(
         const subnetId = need(l1.subnetId, 'the subnet ID');
         const proxy = need(l1.proxy, 'the proxy address');
         const stakingManager = need(pos.stakingManager, 'the staking manager');
-        await clickNext(screen, browser, createStep('transfer-to-staking'));
+        await clickNext(screen, browser, createStep('transfer-to-staking'), 'Transfer Ownership → Staking Manager');
         await expect(toolHeading(screen, 'Transfer Ownership to Staking Manager')).toBeVisible();
 
         // 'New Owner Address' comes from the toolbox store; the page checks that it is a staking manager.
@@ -475,13 +482,14 @@ describe(
       const { waitedMs: glacierLagMs } = await waitForGlacierSubnet(subnetId, { converted: true });
 
       // 1. Select L1. The query sets the L1, and the flow store keeps it for the later steps. The badge shows
-      // once the page has found the ERC20 staking manager.
+      // once the page has found the ERC20 staking manager. The step has no heading: its link in the step list is the
+      // current step.
       await app.open(`/console/add-validator/select-subnet?subnetId=${subnetId}`);
       await waitForWallet({ screen });
-      await expect(screen.getByRole('heading', 'Select L1')).toBeVisible();
+      await expect(stepLink(screen, 'Select L1')).toHaveAttribute('aria-current', 'step');
       await waitForPosErc20Badge(screen);
       await expect(stakingDetailsHeader(screen)).toBeVisible({ timeout: 60_000 });
-      await clickNext(screen, browser, ADD_STEP.initiate);
+      await clickNext(screen, browser, ADD_STEP.initiate, 'Initiate Validator Registration');
 
       // 2. Initiate Validator Registration: the ERC20 stake form.
       await waitForPosErc20Badge(screen);
@@ -498,7 +506,7 @@ describe(
       await expect(screen.getByText('Min: 0s', { exact: true })).toBeVisible();
 
       // Approve 1 token for the staking manager.
-      const approve = screen.getByRole('button', approveName(symbol));
+      const approve = screen.getByRole('button', stakeApproveName(symbol));
       await expect(approve).toBeEnabled({ timeout: 60_000 });
       let from = signer.sends.length;
       const { result: approved } = await sendOnce({
@@ -515,12 +523,12 @@ describe(
         },
       });
       if (approved === 'sent') {
-        await waitForPage(browser, 'Approve success', screen.getByRole('button', approvedName(symbol)));
+        await waitForPage(browser, 'Approve success', screen.getByRole('button', stakeApprovedName(symbol)));
       }
       await expect.poll(() => tokenAllowance(token, signer.address, stakingManager), CHAIN_POLL).toBe(ONE_TOKEN);
 
       // Initiate the registration: the staking manager takes the token and asks the manager for weight 1.
-      const initiate = screen.getByRole('button', '2. Initiate Validator Registration');
+      const initiate = screen.getByRole('button', 'Initiate validator registration');
       await expect(initiate).toBeEnabled({ timeout: 60_000 });
       from = signer.sends.length;
       const { result: initiatedResult, send: initiated } = await sendOnce({
@@ -615,7 +623,7 @@ describe(
       expect(await tokenBalance(token, stakingManager)).toBe(ONE_TOKEN);
 
       // 3. P-Chain Registration: one button aggregates and sends the RegisterL1ValidatorTx with 0.02 AVAX.
-      await clickNext(screen, browser, ADD_STEP.pchain);
+      await clickNext(screen, browser, ADD_STEP.pchain, 'P-Chain Registration');
       const registerTxId = await registerOnPChain({
         browser,
         screen,
@@ -625,10 +633,10 @@ describe(
         label: 'Register V1 on the P-Chain',
         storeKey: ADD_STORE,
         landed: async () => (await pL1Validator(v1ValidationId)) !== null,
-        // 'Sign & Submit to P-Chain' is enabled once the manager details and the signing subnet have loaded.
+        // 'Sign and submit to P-Chain' is enabled once the manager details and the signing subnet have loaded.
         ready: async () => {
           await waitForPosErc20Badge(screen);
-          await expect(screen.getByText('Initial Balance:')).toBeVisible({ timeout: 60_000 });
+          await expect(screen.getByText('Initial balance', { exact: true })).toBeVisible({ timeout: 60_000 });
           await expect(screen.getByText(`${V1_BALANCE_AVAX} AVAX`, { exact: true })).toBeVisible();
         },
       });
@@ -640,9 +648,9 @@ describe(
       expect(registered.deactivationOwner.addresses).toEqual([signer.pChainAddress]);
 
       // 4. Complete Registration (C-Chain): the staking manager completes it on the manager.
-      await clickNext(screen, browser, ADD_STEP.complete);
+      await clickNext(screen, browser, ADD_STEP.complete, 'Complete Registration');
       await waitForPosErc20Badge(screen);
-      await expect(screen.getByRole('textbox', 'P-Chain Transaction ID')).toHaveValue(registerTxId);
+      await expect(screen.getByRole('textbox', 'P-Chain transaction ID')).toHaveValue(registerTxId);
       const attempts = await completeOnManager({
         browser,
         screen,
@@ -650,7 +658,7 @@ describe(
         ledgerPath: POS_LEDGER,
         step: 'stake-v1-complete',
         label: 'Complete V1 registration',
-        button: 'Complete Validator Registration',
+        button: 'Complete validator registration',
         done: screen.getByText('Registration completed'),
         landed: async () => (await managerValidator(proxy, v1ValidationId)).status === ValidatorStatus.Active,
         ready: () => waitForPosErc20Badge(screen),
@@ -658,7 +666,7 @@ describe(
       note(`V1 registration completed in ${attempts} attempt(s)`);
       if (attempts > 0) {
         await expect(
-          screen.getByText('Your validator is now registered and active on the L1.', { exact: false }),
+          screen.getByText('Your validator is registered and active on the L1.', { exact: true }),
         ).toBeVisible();
       }
       const active = await managerValidator(proxy, v1ValidationId);
@@ -688,7 +696,7 @@ describe(
       await expect(screen.getByRole('heading', 'Select L1')).toBeVisible();
       await screen.getByRole('textbox', 'Subnet ID').fill(subnetId);
       await expect(stakingDetailsHeader(screen)).toBeVisible({ timeout: 90_000 });
-      await clickNext(screen, browser, DELEGATE_STEP.initiate);
+      await clickNext(screen, browser, DELEGATE_STEP.initiate, 'Initiate Delegation');
 
       // 2. Initiate Delegation. Each validator of the L1 is a button under 'Validation ID'; the picked one is pressed.
       const v1Choice = screen.getByRole('button', new RegExp(`^${v1.nodeID}`));
@@ -776,9 +784,10 @@ describe(
       expect(sentWeight.sentNonce > sentWeight.receivedNonce).toBe(true);
       await expect.poll(() => tokenBalance(token, signer.address), CHAIN_POLL).toBe(tokenStart - 2n * ONE_TOKEN);
 
-      // 3. P-Chain Weight Update. No badge on this step: 'Aggregate Signatures' is enabled once the manager details
-      // and the signing subnet have loaded.
-      await clickNext(screen, browser, DELEGATE_STEP.pchain);
+      // 3. P-Chain Weight Update. No badge on this step: 'Aggregate signatures' is enabled once the manager details
+      // and the signing subnet have loaded. The step shows the confirmed tx as 'P-Chain tx' with a HashChip of length
+      // 18.
+      await clickNext(screen, browser, DELEGATE_STEP.pchain, 'P-Chain Weight Update');
       await expect(screen.getByRole('textbox', 'Initiate Delegation Transaction Hash')).toHaveValue(initiated.txIds[0]);
       await aggregateThenSend({
         browser,
@@ -789,10 +798,10 @@ describe(
         chain: 'P',
         label: 'Set V1 weight 2 on the P-Chain',
         landed: async () => (await pL1Validator(v1ValidationId))?.weight === V1_WEIGHT + DELEGATION_WEIGHT,
-        beforeRetry: () => remountStep(screen, browser, DELEGATE_STEP.pchain),
+        beforeRetry: () => remountStep(screen, browser, DELEGATE_STEP.pchain, 'P-Chain Weight Update'),
         button: 'Submit to P-Chain',
         txType: 'pvm.SetL1ValidatorWeightTx',
-        done: /^P-Chain tx confirmed:/,
+        done: { txChip: 18 },
       });
       await chainShows(
         'the P-Chain holds weight 2 for V1',
@@ -804,7 +813,7 @@ describe(
       // 4. Complete Delegation. The step shows no badge and nothing that tells when the page has found the staking
       // manager: wait until 'Complete Delegation' is enabled (the manager details have loaded), then
       // STAKING_SETTLE_MS.
-      await clickNext(screen, browser, DELEGATE_STEP.complete);
+      await clickNext(screen, browser, DELEGATE_STEP.complete, 'Complete Delegation');
       // Both fields come from the store.
       await expect(screen.getByRole('textbox', 'Delegation ID')).toHaveValue(delegationId);
       await expect(screen.getByRole('textbox', 'P-Chain Transaction ID')).toHaveValue(weightTxId);
@@ -823,7 +832,7 @@ describe(
           await sleep(STAKING_SETTLE_MS);
         },
         // A try that failed in the page keeps its error: mount the step again for a clean try.
-        beforeRetry: () => remountStep(screen, browser, DELEGATE_STEP.complete),
+        beforeRetry: () => remountStep(screen, browser, DELEGATE_STEP.complete, 'Complete Delegation'),
       });
       note(`delegation completed in ${attempts} attempt(s)`);
       const activeDelegation = await delegatorInfo(stakingManager, delegationId);
@@ -917,7 +926,8 @@ describe(
         await waitForWallet({ screen });
         await expect(toolHeading(screen, 'L1 Validators')).toBeVisible();
         await screen.getByRole('textbox', 'Subnet ID').fill(subnetId);
-        await expect(screen.getByText(`Total weight: ${totalWeight}`, { exact: true })).toBeVisible({
+        // The list header: 'Total weight' and the sum (toLocaleString, so no separator below 1,000).
+        await expect(screen.getByText(`Total weight ${totalWeight}`, { exact: true })).toBeVisible({
           timeout: 90_000,
         });
         // 100 of 102 is 98.0 %, 2 of 102 is 2.0 %.
@@ -925,7 +935,10 @@ describe(
         const v1Row = screen.getByRole('button', new RegExp(`^${v1.nodeID}\\s*2\\.0%$`));
         await expect(v1Row).toBeVisible();
         await v1Row.click();
-        await expect(screen.getByText(v1ValidationId, { exact: true })).toBeVisible();
+        // The open row shows the validation ID in a HashChip of length 18, with the whole ID in its title.
+        const v1Chip = hashChip(screen, v1ValidationId, 18);
+        await expect(v1Chip).toBeVisible();
+        await expect(v1Chip).toHaveAttribute('title', v1ValidationId);
         // The manager details: the staking manager owns the manager. A row's value is a button named by the value.
         await expect(screen.getByText('StakingManager', { exact: true })).toBeVisible({ timeout: 60_000 });
         await expect(screen.getByRole('button', exactAddress(stakingManager))).toBeVisible();
@@ -965,7 +978,7 @@ describe(
       await expect(screen.getByRole('heading', 'Select L1')).toBeVisible();
       await screen.getByRole('textbox', 'Subnet ID').fill(subnetId);
       await expect(stakingDetailsHeader(screen)).toBeVisible({ timeout: 90_000 });
-      await clickNext(screen, browser, UNDELEGATE_STEP.initiate);
+      await clickNext(screen, browser, UNDELEGATE_STEP.initiate, 'Initiate Delegator Removal');
 
       // 2. Initiate Delegator Removal. The suggestions come from eth_getLogs over the whole chain, which the public
       // RPC can refuse: type the ID. The card 'Delegation Information (ERC20 Token Staking)' shows once the page has
@@ -1014,9 +1027,9 @@ describe(
       expect(sentWeight.weight).toBe(V1_WEIGHT);
       expect(sentWeight.sentNonce > sentWeight.receivedNonce).toBe(true);
 
-      // 3. P-Chain Weight Update: V1 goes back to weight 1. No badge: 'Aggregate Signatures' is enabled once the
+      // 3. P-Chain Weight Update: V1 goes back to weight 1. No badge: 'Aggregate signatures' is enabled once the
       // manager details have loaded.
-      await clickNext(screen, browser, UNDELEGATE_STEP.pchain);
+      await clickNext(screen, browser, UNDELEGATE_STEP.pchain, 'P-Chain Weight Update');
       await expect(screen.getByRole('textbox', 'Initiate Removal Transaction Hash')).toHaveValue(initiated.txIds[0]);
       await aggregateThenSend({
         browser,
@@ -1027,10 +1040,10 @@ describe(
         chain: 'P',
         label: 'Set V1 weight 1 on the P-Chain',
         landed: async () => (await pL1Validator(v1ValidationId))?.weight === V1_WEIGHT,
-        beforeRetry: () => remountStep(screen, browser, UNDELEGATE_STEP.pchain),
+        beforeRetry: () => remountStep(screen, browser, UNDELEGATE_STEP.pchain, 'P-Chain Weight Update'),
         button: 'Submit to P-Chain',
         txType: 'pvm.SetL1ValidatorWeightTx',
-        done: /^P-Chain tx confirmed:/,
+        done: { txChip: 18 },
       });
       await chainShows(
         'the P-Chain holds weight 1 for V1',
@@ -1042,7 +1055,7 @@ describe(
       // 4. Complete Delegator Removal. The card 'Complete Removal (ERC20 Token Staking)' shows once the page has the
       // staking manager. The page shows no success (its event check matches a topic by name): after the tx the
       // button stays disabled.
-      await clickNext(screen, browser, UNDELEGATE_STEP.complete);
+      await clickNext(screen, browser, UNDELEGATE_STEP.complete, 'Complete Delegator Removal');
       const completeReady = async () => {
         await expect(screen.getByRole('heading', 'Complete Removal (ERC20 Token Staking)')).toBeVisible({
           timeout: 90_000,
@@ -1064,7 +1077,7 @@ describe(
           return info.status === DelegatorStatus.Unknown && info.weight === 0n;
         },
         ready: completeReady,
-        beforeRetry: () => remountStep(screen, browser, UNDELEGATE_STEP.complete),
+        beforeRetry: () => remountStep(screen, browser, UNDELEGATE_STEP.complete, 'Complete Delegator Removal'),
       });
       note(`delegator removal completed in ${attempts} attempt(s)`);
       // The completion event: no rewards (V1 has no uptime proof), so no fee for V1.
@@ -1111,7 +1124,7 @@ describe(
         await app.open(`/console/remove-validator/select-subnet?subnetId=${subnetId}`);
         await waitForWallet({ screen });
         await waitForPosErc20Badge(screen);
-        await clickNext(screen, browser, REMOVE_STEP.initiate);
+        await clickNext(screen, browser, REMOVE_STEP.initiate, 'Initiate Removal');
 
         // 2. Initiate Removal. Each validator of the L1 is a button under 'Validation ID'; the picked one is pressed.
         await waitForPosErc20Badge(screen);
@@ -1131,7 +1144,8 @@ describe(
             'The page found an uptime endpoint for V1 and offers the uptime path, which mock validators fail.',
           );
         }
-        await expect(screen.getByText(/^Removal will forfeit staking rewards$/)).toBeVisible();
+        // The banner's title (CSS shows it in upper case; the text is mixed case).
+        await expect(screen.getByText('Forfeits staking rewards', { exact: true })).toBeVisible();
         const force = screen.getByRole('button', 'Force Remove Validator (forfeits rewards)');
         await expect(force).toBeEnabled({ timeout: 90_000 });
         const from = signer.sends.length;
@@ -1168,7 +1182,7 @@ describe(
         }
 
         // 3. P-Chain Weight Update: weight 0 removes V1 from the P-Chain and refunds its balance to the wallet.
-        await clickNext(screen, browser, REMOVE_STEP.pchain);
+        await clickNext(screen, browser, REMOVE_STEP.pchain, 'P-Chain Weight Update');
         await waitForPosErc20Badge(screen);
         const before = await chainShows('the P-Chain lists V1', () => pL1Validator(v1ValidationId));
         const pBefore = await pBalance(signer.pChainAddress);
@@ -1182,12 +1196,12 @@ describe(
           label: 'Remove V1 on the P-Chain',
           landed: async () => ((await pL1Validator(v1ValidationId))?.weight ?? 0n) === 0n,
           beforeRetry: async () => {
-            await remountStep(screen, browser, REMOVE_STEP.pchain);
+            await remountStep(screen, browser, REMOVE_STEP.pchain, 'P-Chain Weight Update');
             await waitForPosErc20Badge(screen);
           },
           button: 'Submit to P-Chain',
           txType: 'pvm.SetL1ValidatorWeightTx',
-          done: /^P-Chain tx confirmed:/,
+          done: { txChip: 18 },
         });
         const refunded = await chainShows('the wallet got the V1 balance back', async () => {
           const after = await pBalance(signer.pChainAddress);
@@ -1195,12 +1209,15 @@ describe(
         });
         note(`V1 refund: P balance ${pBefore} to ${refunded} nAVAX (V1 held ${before.balance})`);
 
-        // 4. Complete Removal: 'Aggregate Signatures' (L1ValidatorRegistration, registered=false), then the staking
-        // manager completes it, returns the stake and pays the rewards (0).
-        await clickNext(screen, browser, REMOVE_STEP.complete);
+        // 4. Complete Removal: 'Aggregate signatures' (L1ValidatorRegistration, registered=false), then the staking
+        // manager completes it, returns the stake and pays the rewards (0). Its first step shows the validation ID
+        // from the flow store under 'Validation ID', in a HashChip of length 18 with the whole ID in its title.
+        await clickNext(screen, browser, REMOVE_STEP.complete, 'Complete Removal');
         await waitForPosErc20Badge(screen);
-        await expect(screen.getByText('Validation ID present', { exact: true })).toBeVisible();
-        await expect(screen.getByText(new RegExp(`^${v1Hex}$`, 'i'))).toBeVisible();
+        await expect(screen.getByText('Validation ID', { exact: true })).toBeVisible();
+        const v1Chip = hashChip(screen, v1Hex, 18, { ignoreCase: true });
+        await expect(v1Chip).toBeVisible();
+        await expect(v1Chip).toHaveAttribute('title', new RegExp(`^${v1Hex}$`, 'i'));
         const completedAt = signer.sends.length;
         await aggregateThenSend({
           browser,
@@ -1212,12 +1229,13 @@ describe(
           label: 'Complete the V1 removal',
           landed: async () => (await managerValidator(proxy, v1ValidationId)).status === ValidatorStatus.Completed,
           beforeRetry: async () => {
-            await remountStep(screen, browser, REMOVE_STEP.complete);
+            await remountStep(screen, browser, REMOVE_STEP.complete, 'Complete Removal');
             await waitForPosErc20Badge(screen);
           },
-          button: 'Complete Removal & Distribute Rewards',
+          button: 'Complete removal and distribute rewards',
           txType: 'eth_sendTransaction',
-          done: /^Removal complete:/,
+          // 'Removal tx' with a HashChip of length 18 of the wallet's tx.
+          done: { txChip: 18 },
           failure: /^(Failed to complete validator removal|Signature aggregation failed):/,
         });
         const completeTx = signer.sends.slice(completedAt).at(-1);
@@ -1238,11 +1256,13 @@ describe(
         await expect.poll(() => tokenBalance(token, signer.address), CHAIN_POLL).toBe(tokenStart);
         upsertValidator('V1', { state: 'removed' }, POS_LEDGER);
 
-        // 5. Claim Delegation Fees. The delegation earned no rewards, so the fees are 0.
-        await clickNext(screen, browser, REMOVE_STEP.claim);
+        // 5. Claim Delegation Fees. The delegation earned no rewards, so the fees are 0. The panel 'Delegation fees'
+        // names the staking token type under 'Staking'.
+        await clickNext(screen, browser, REMOVE_STEP.claim, 'Claim Delegation Fees');
         await waitForPosErc20Badge(screen);
-        await expect(screen.getByRole('heading', 'Claim Fees (ERC20 Token Staking)')).toBeVisible();
-        const claim = screen.getByRole('button', 'Claim Delegation Fees');
+        await expect(screen.getByText('Delegation fees', { exact: true })).toBeVisible();
+        await expect(screen.getByText('ERC20 Token', { exact: true })).toBeVisible();
+        const claim = screen.getByRole('button', 'Claim delegation fees');
         const claimFrom = signer.sends.length;
         const { result: claimed, send: claimSend } = await sendOnce({
           step: 'claim-fees',
@@ -1276,7 +1296,7 @@ describe(
           await waitForPage(
             browser,
             'Claim success',
-            screen.getByText(/Delegation fees have been claimed and transferred to your address\./),
+            screen.getByText('Delegation fees were claimed and sent to your address.', { exact: true }),
           );
         }
         expect(await tokenBalance(token, signer.address)).toBe(tokenStart);
@@ -1346,13 +1366,15 @@ describe(
     test(
       'lists the P-Chain txs in the history and audits the wallet sends',
       { timeout: 5 * MIN },
-      async ({ app, browser, screen, wallet }) => {
+      async ({ app, screen, wallet }) => {
         const { signer } = wallet;
         await app.open('/console/history');
         await waitForWallet({ screen });
-        await expect(screen.getByRole('heading', 'History', { level: 1 })).toBeVisible();
-        const pTxIds = signer.sends.filter((s) => s.kind === 'p-chain').map((s) => s.hash);
-        await expectHistoryRows(browser, screen, pTxIds);
+        await expect(screen.getByRole('heading', 'What you deployed and signed.', { level: 1 })).toBeVisible();
+        await expectHistoryRows(
+          screen,
+          signer.sends.filter((s) => s.kind === 'p-chain'),
+        );
 
         // Every send of the run: the exact count per tx type, each one in the ledger and in the step table, no
         // refusal, and the caps. auditSends also turns off every capability of the signer (this file turns on none).

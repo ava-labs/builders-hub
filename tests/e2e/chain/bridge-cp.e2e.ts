@@ -235,7 +235,7 @@ describe('C/P bridge round trip of 0.01 AVAX', { serial: true, retries: 0, tags:
         const mid = need(run.afterLeg1, 'the balances after leg 1');
         const from = signer.sends.length;
 
-        // 'Start New Transfer' resets the page to its export form. Click it only after the page read both UTXO lists
+        // 'Start new transfer' resets the page to its export form. Click it only after the page read both UTXO lists
         // with nothing to import: a list that still holds the imported UTXO makes the page offer a pending import.
         await waitForPageToSeeNoUtxos(browser, signer.pChainAddress, run.left);
         await startNewTransfer(screen).click();
@@ -295,9 +295,10 @@ describe('C/P bridge round trip of 0.01 AVAX', { serial: true, retries: 0, tags:
         await app.open('/console/history');
         // The history reads the Fuji copy of its store only after the wallet connected again (isTestnet).
         await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
-        await expect(screen.getByRole('heading', 'History', { level: 1 })).toBeVisible();
-        await expect(screen.getByRole('heading', 'Transaction History')).toBeVisible();
-        // The page names the chain that issued each tx: a C-Chain atomic tx has the 'C-Chain' badge.
+        await expect(screen.getByRole('heading', 'What you deployed and signed.', { level: 1 })).toBeVisible();
+        // The label of the transactions list (a SectionHeader: text, not a heading).
+        await expect(screen.getByText('Transactions', { exact: true })).toBeVisible();
+        // The page names the chain that issued each tx: a C-Chain atomic tx shows 'C-Chain' in its Chain cell.
         await expect(screen.getByText(historyRow('Cross Chain Export', pExport))).toBeVisible();
         await expect(screen.getByText(historyRow('Cross Chain Import', pImport))).toBeVisible();
         await expect(screen.getByText(historyRow('Cross Chain Export', cExport, 'C-Chain'))).toBeVisible();

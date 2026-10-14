@@ -1,6 +1,7 @@
 import type { Browser } from '@e2e-dev/web';
 import { expect, type Locator, type Screen } from 'e2e';
 import { auditSends, revokeOnFailure } from './lib/audit.ts';
+import { historyRow } from './lib/bridge-cp.ts';
 import { NANO_AVAX, assertFuji, chainShows, formatNanoAvax, pBalance, pStaked, waitForPTx } from './lib/chain.ts';
 import {
   busyThenIdle,
@@ -38,6 +39,7 @@ import {
   type PrimaryValidator,
   type ResumableStake,
 } from './lib/primary-stake.ts';
+import { hashChip } from './lib/validator-steps.ts';
 import type { Signer } from './wallet/signer.ts';
 
 // ACP-236 continuous staking on the Fuji Primary Network, with the Console's Stake tool
@@ -120,8 +122,15 @@ function need<T>(value: T | undefined, what: string): T {
   return value;
 }
 
-// The 'Current Config' line of the manage form: '12h cycle · 0% auto-compound' (Stake.tsx, a middle dot).
-const currentConfig = (hours: string, autoCompound: string) => `${hours}h cycle · ${autoCompound}% auto-compound`;
+// The values that the 'Current config' sheet of the manage form must show (Stake.tsx, group 'Current config'): the
+// row 'Cycle period' with '<hours> hours' and the row 'Auto-compound' with '<autoCompound>%'.
+interface AutoRenewConfig {
+  hours: string;
+  autoCompound: string;
+}
+const currentConfig = (hours: string, autoCompound: string): AutoRenewConfig => ({ hours, autoCompound });
+const describeConfig = ({ hours, autoCompound }: AutoRenewConfig) =>
+  `cycle period ${hours} hours, auto-compound ${autoCompound}%`;
 
 // The validator that the add tx made, once a node of the public API shows the expected cycle and auto-compound.
 async function validatorShows(nodeId: string, addTxId: string, nextPeriod: string, shares: string) {
@@ -301,17 +310,17 @@ describe(
 
         // After the add, the page shows its success; a resumed run is still on the first step.
         if (!run.resumed) await screen.getByRole('button', 'Stake Another Validator').click();
-        await screen.getByRole('button', /^Manage Auto-Renewal/).click();
+        await screen.getByRole('radio', /^Manage auto-renewal/).click();
         // The page reads the validator from the load-balanced public API: first make sure a node has it.
         await chainShows('the P-Chain shows the 12 h cycle', () =>
           validatorShows(mock.nodeID, addTxId, String(CYCLE_SECONDS), '0'),
         );
         // A resumed run sent no add on this page, so the page shows the API's read, which can be old.
         await showAutoRenewConfig(screen, browser, mock.nodeID, currentConfig(CYCLE_HOURS, '0'), !!run.resumed);
-        await expect(screen.getByRole('heading', 'Auto-Renewal Config')).toBeVisible();
+        await expect(screen.getByRole('heading', 'Auto-renewal config')).toBeVisible();
 
-        const cycle = screen.getByRole('spinbutton', 'Cycle Period');
-        const compound = screen.getByRole('spinbutton', 'Auto-Compound Rewards');
+        const cycle = screen.getByRole('spinbutton', 'Cycle period');
+        const compound = screen.getByRole('spinbutton', 'Auto-compound rewards');
         await expect(cycle).toHaveValue(CYCLE_HOURS);
         await expect(compound).toHaveValue('0');
         await cycle.fill(NEW_CYCLE_HOURS);
@@ -432,13 +441,13 @@ describe(
           await app.open('/console/history');
           // Until the wallet connects again, the page reads the mainnet copy of the store.
           await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
-          await expect(screen.getByRole('heading', 'Transaction History')).toBeVisible();
+          // The label of the transactions list: a SectionHeader, text and not a heading.
+          await expect(screen.getByText('Transactions', { exact: true })).toBeVisible();
           for (const [txId, operation] of txs) {
-            const short = shortTxId(txId);
-            await expect(screen.getByText(short, { exact: true })).toBeVisible();
-            await expect
-              .poll(() => historyRowText(browser, short), { timeout: 30_000, interval: 1_000, message: txId })
-              .toMatch(new RegExp(`^${operation}${escapeRegExp(short)}ConfirmedP-ChainFuji`));
+            await expect(screen.getByText(shortTxId(txId), { exact: true })).toBeVisible();
+            // The tx's row has no role (a clickable grid row), so the test finds it by its whole text: the status,
+            // the operation, the chain 'P-Chain', the network 'Fuji', the short ID and 'Confirmed' (historyRow).
+            await expect(screen.getByText(historyRow(operation, txId))).toBeVisible({ timeout: 30_000 });
           }
         } catch (error) {
           historyError = error;
@@ -467,7 +476,7 @@ describe(
   },
 );
 
-// Adds the auto-renewed validator through the Stake page: 'Stake a Validator', the mock's credentials, 'Auto-Renewed'
+// Adds the auto-renewed validator through the Stake page: 'Stake a validator', the mock's credentials, 'Auto-renewed'
 // with 1 AVAX, a 2 % delegation fee, a 12 h cycle and no auto-compound, then 'Stake Fuji Validator'. Returns the tx
 // ID, and the unlocked balance and the signer's spend before the send.
 async function addThroughPage(
@@ -476,23 +485,26 @@ async function addThroughPage(
   signer: Signer,
   mock: MockValidator,
 ): Promise<{ txId: string; before: bigint; spentBefore: bigint }> {
-  await screen.getByRole('button', /^Stake a Validator/).click();
+  await screen.getByRole('radio', /^Stake a validator/).click();
   await screen.getByRole('tab', 'API Response').click();
   await screen.getByRole('textbox', /^Paste the JSON response/).fill(nodeCredentialsJson(mock));
   const add = screen.getByRole('button', 'Add Validator');
   await add.click();
-  // The page takes one validator: it disables 'Add Validator'. It then shows the NodeID twice, in the 'Node ID'
-  // summary and in the platform-cli command below it, so take the first (the summary).
+  // The page takes one validator: it disables 'Add Validator'. The 'Node' sheet of group 'Added validator' then
+  // shows the NodeID in a HashChip (len 16): a shortened text, with the whole NodeID in its title.
   await expect(add).toBeDisabled();
-  await expect(screen.getByRole('group', 'Added validator').getByText(mock.nodeID, { exact: true })).toBeVisible();
+  const nodeChip = hashChip(screen.getByRole('group', 'Added validator'), mock.nodeID, 16);
+  await expect(nodeChip).toBeVisible();
+  await expect(nodeChip).toHaveAttribute('title', mock.nodeID);
 
-  await screen.getByRole('button', /^Auto-Renewed/).click();
-  // The page's default cycle is 336 h, which would lock the stake for 14 days. The signer refuses it.
+  await screen.getByRole('radio', /^Auto-renewed/).click();
+  // The page's default cycle is 336 h, which would lock the stake for 14 days. The signer refuses it. The cycle field
+  // has a sr-only label: the 'Cycle period' eyebrow and its presets title it.
   const fields: [Locator, string][] = [
-    [screen.getByRole('spinbutton', 'Stake Amount'), STAKE_AVAX],
-    [screen.getByRole('spinbutton', 'Delegation Fee'), DELEGATION_FEE],
-    [screen.getByRole('spinbutton', 'Cycle Period'), CYCLE_HOURS],
-    [screen.getByRole('spinbutton', 'Auto-Compound Rewards'), '0'],
+    [screen.getByRole('spinbutton', 'Stake amount'), STAKE_AVAX],
+    [screen.getByRole('spinbutton', 'Delegation fee'), DELEGATION_FEE],
+    [screen.getByRole('spinbutton', 'Cycle period in hours'), CYCLE_HOURS],
+    [screen.getByRole('spinbutton', 'Auto-compound rewards'), '0'],
   ];
   for (const [input, value] of fields) await input.fill(value);
   for (const [input, value] of fields) await expect(input).toHaveValue(value);
@@ -537,7 +549,7 @@ async function addThroughPage(
   return { txId: send.txIds[0], before, spentBefore };
 }
 
-// Types the NodeID on 'Manage Auto-Renewal' and waits until the page shows `config`. Stake.tsx reads
+// Types the NodeID on 'Manage auto-renewal' and waits until the 'Current config' sheet shows `config`. Stake.tsx reads
 // platform.getCurrentValidators once per NodeID change. The public API caches that read by its params for about 3 min
 // (chain.ts pCurrentValidators). After the page's own accepted tx, the page shows what the tx set at once, with a note
 // while the API read is old, so one attempt must do. A resumed run sent no add on this page: there the page shows the
@@ -547,28 +559,37 @@ async function showAutoRenewConfig(
   screen: Screen,
   browser: Browser,
   nodeId: string,
-  config: string,
+  config: AutoRenewConfig,
   cacheWait: boolean,
 ): Promise<void> {
   const nodeField = screen.getByRole('textbox', 'Node ID');
-  const shown = screen.getByText(config, { exact: true });
+  // The sheet's rows have no role, so the test reads each row by its whole text: the label, then the value. The
+  // 'Next cycle' summary below the sheet repeats the values of the form fields, so the test reads inside the group.
+  const sheet = screen.getByRole('group', 'Current config');
+  const shown = [
+    sheet.getByText(new RegExp(`^Cycle period\\s*${config.hours} hours$`)),
+    sheet.getByText(new RegExp(`^Auto-compound\\s*${config.autoCompound}%$`)),
+  ];
   const deadline = Date.now() + (cacheWait ? PAGE_CACHE_WAIT_MS : 0);
   for (let attempt = 1; ; attempt++) {
     await nodeField.fill('');
     await nodeField.fill(nodeId);
     try {
-      await expect(shown).toBeVisible({ timeout: cacheWait ? 15_000 : 30_000 });
+      for (const row of shown) await expect(row).toBeVisible({ timeout: cacheWait ? 15_000 : 30_000 });
     } catch {
       if (Date.now() > deadline) {
         const text = await toolText(browser).catch(() => '(no tool text)');
         const when = cacheWait ? `In ${PAGE_CACHE_WAIT_MS / 60_000} min` : 'After its own accepted tx,';
-        throw new Error(`${when} the page did not show '${config}' for ${nodeId}. The tool card shows:\n${text}`);
+        const want = describeConfig(config);
+        throw new Error(`${when} the page did not show '${want}' for ${nodeId}. The tool card shows:\n${text}`);
       }
-      note(`attempt ${attempt}: the page does not show '${config}' yet; typing the NodeID again`);
+      note(`attempt ${attempt}: the page does not show '${describeConfig(config)}' yet; typing the NodeID again`);
       continue;
     }
     const fromTx = await screen.getByText(ACCEPTED_TX_NOTE, { exact: true }).isVisible();
-    note(`the page showed '${config}' on attempt ${attempt}, from ${fromTx ? 'its accepted tx' : 'the API'}`);
+    note(
+      `the page showed '${describeConfig(config)}' on attempt ${attempt}, from ${fromTx ? 'its accepted tx' : 'the API'}`,
+    );
     return;
   }
 }
@@ -645,18 +666,4 @@ async function sendConfigTx(o: {
 // The History page shortens a tx ID to its first 8 and last 6 characters (app/console/history/page.tsx).
 function shortTxId(txId: string): string {
   return `${txId.slice(0, 8)}...${txId.slice(-6)}`;
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// The text of the History row that shows this short tx ID: the operation, the ID, the status, the chain, the network
-// and the time, with no separators. The rows have no role and no name (a div per tx, app/console/history/page.tsx),
-// so the test reads the row around the ID's <code> element.
-async function historyRowText(browser: Browser, short: string): Promise<string> {
-  return browser.evaluate((id) => {
-    const code = Array.from(document.querySelectorAll('code')).find((c) => c.textContent === id);
-    return code?.parentElement?.parentElement?.textContent ?? '';
-  }, short);
 }

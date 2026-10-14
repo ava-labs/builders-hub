@@ -21,7 +21,7 @@ import type { Signer } from './wallet/signer.ts';
 // The page needs a connected wallet (toolRequirements WalletConnected), so it runs here and not in the main suite.
 // When a NodeID is entered, the page reads platform.getCurrentValidators from the browser and shows one of these:
 //   - an auto-renewed validator (ACP-236) of another wallet: a read-only view with no 'Update Config' button;
-//   - a fixed-duration validator: 'Existing Validator', which cannot be changed;
+//   - a fixed-duration validator: 'Existing validator', which cannot be changed;
 //   - a NodeID that does not validate: the stake form, which checks its values before it asks the wallet.
 // Node reads the same validators from the P-Chain, and each member compares what the page shows with that read.
 //
@@ -79,6 +79,13 @@ async function primaryValidator(nodeID: string): Promise<PrimaryValidator> {
 // The page writes each authority address with the 'P-' prefix.
 const authorityOf = (v: PrimaryValidator) =>
   (v.validatorAuthority?.addresses ?? []).map((a) => (a.startsWith('P-') ? a : `P-${a}`));
+
+// The page shows each authority address in a HashChip (components/explorer-v2/ui.tsx, len 16): the first 16
+// characters, '…' and the last 4 (truncate in components/explorer-v2/format.ts), with the whole address in its title.
+// The test keeps its own copy of the rule, so a change of the chip fails the test.
+const chipText = (value: string): string => (value.length <= 22 ? value : `${value.slice(0, 16)}…${value.slice(-4)}`);
+// The text of one shortened P-Chain address chip.
+const ADDRESS_CHIP = /^P-[^\s…]+…[^\s…]{4}$/;
 
 // The two validators of members 2 and 3, from one read of every Primary Network validator:
 //   - auto-renewed: an ACP-236 validator whose authority does not hold this wallet's address;
@@ -200,12 +207,12 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       const card = toolCard(browser);
       const before = walletMark(wallet.signer);
 
-      await screen.getByRole('button', /^Manage Auto-Renewal/).click();
+      await screen.getByRole('radio', /^Manage auto-renewal/).click();
       await screen.getByRole('textbox', 'Node ID').fill(foreign.nodeID);
       await waitForPage(
         browser,
         `the page's read-only view of ${foreign.nodeID}`,
-        screen.getByRole('heading', 'Auto-Renewed Validator'),
+        screen.getByRole('heading', 'Auto-renewed validator'),
         LOOKUP_TIMEOUT,
       );
       await expect(screen.getByText(/The connected wallet is not this validator's authority/)).toBeVisible();
@@ -227,7 +234,13 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       await expect(card.getByText(await stakeText(browser, chain))).toBeVisible();
       await expect(card.getByText(`${hours} hours`)).toBeVisible();
       await expect(card.getByText(`${percent}%`)).toBeVisible();
-      await expect(card.getByText(authority.join(', '))).toBeVisible();
+      // The 'Validator authority' row: one chip per authority address, and no other address chip in the card.
+      await expect(card.getByText(ADDRESS_CHIP)).toHaveCount(authority.length);
+      for (const address of authority) {
+        const chip = card.getByText(chipText(address));
+        await expect(chip).toBeVisible();
+        await expect(chip).toHaveAttribute('title', address);
+      }
       expectNoWalletTx(wallet.signer, before, 'on the read-only view');
     },
   );
@@ -240,7 +253,7 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       const card = toolCard(browser);
       const before = walletMark(wallet.signer);
 
-      await screen.getByRole('button', /^Stake a Validator/).click();
+      await screen.getByRole('radio', /^Stake a validator/).click();
       // The page looks up the NodeID only. A fresh mock gives the BLS key and the proof, which the form requires.
       const credentials: MockValidator = { ...createMockValidator({ label: 'fixed-lookup' }), nodeID: fixed.nodeID };
       await credentialsField(screen).fill(nodeCredentialsJson(credentials));
@@ -248,7 +261,7 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       await waitForPage(
         browser,
         `the page's view of the fixed validator ${fixed.nodeID}`,
-        screen.getByRole('heading', 'Existing Validator'),
+        screen.getByRole('heading', 'Existing validator'),
         LOOKUP_TIMEOUT,
       );
       await expect(screen.getByText(/Fixed-duration stake can't be modified/)).toBeVisible();
@@ -259,7 +272,7 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       const chain = await primaryValidator(fixed.nodeID);
       expect(isAutoRenewed(chain), `${fixed.nodeID} is auto-renewed on the P-Chain now`).toBe(false);
       note(`chain: ${chain.nodeID} weight ${chain.weight}, endTime ${chain.endTime}`);
-      // 'Validating Until' is new Date(endTime * 1000).toLocaleString() in the browser (Stake.tsx).
+      // 'Validating until' is new Date(endTime * 1000).toLocaleString() in the browser (Stake.tsx).
       const until = await browser.evaluate((s: number) => new Date(s * 1000).toLocaleString(), Number(chain.endTime));
       await expect(card.getByText(await stakeText(browser, chain))).toBeVisible();
       await expect(card.getByText(until)).toBeVisible();
@@ -283,7 +296,7 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
       await expect(toolHeading(screen, TOOL_TITLE)).toBeVisible();
 
-      await screen.getByRole('button', /^Stake a Validator/).click();
+      await screen.getByRole('radio', /^Stake a validator/).click();
       await credentialsField(screen).fill(nodeCredentialsJson(mock));
       await addCredentials(screen);
       const submit = screen.getByRole('button', 'Stake Fuji Validator');
@@ -291,8 +304,9 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       await expect(submit).toBeEnabled({ timeout: LOOKUP_TIMEOUT });
 
       // Fixed duration with an end 1 h from now. The Fuji minimum is 12 h (Stake.tsx, NETWORK_CONFIG.fuji).
-      await screen.getByRole('button', /^Fixed Duration/).click();
-      // A datetime-local input has no ARIA role, so the field is found by its visible label 'End time'.
+      await screen.getByRole('radio', /^Fixed duration/).click();
+      // A datetime-local input has no ARIA role, so the field is found by its label 'End time' (sr-only: the Duration
+      // presets title the field).
       const endTime = screen.getByLabel('End time');
       // The value is local time in the page's time zone, in the form that Stake.tsx writes for its default.
       const oneHour = await browser.evaluate((ms: number) => {
@@ -306,9 +320,9 @@ describe('Stake page: read-only checks', { serial: true, retries: 0, tags: ['cha
       expectNoWalletTx(signer, before, 'for a fixed stake that ends in 1 h');
 
       // Auto-renewed with a 6 h cycle. The Fuji minimum is 12 h.
-      await screen.getByRole('button', /^Auto-Renewed/).click();
+      await screen.getByRole('radio', /^Auto-renewed/).click();
       await expect(pageAlert(screen, 'End time must be at least 12 hours from now')).toBeHidden();
-      const cycle = screen.getByRole('spinbutton', 'Cycle Period');
+      const cycle = screen.getByRole('spinbutton', 'Cycle period in hours');
       await cycle.fill('6');
       await expect(cycle).toHaveValue('6');
       await submit.click();

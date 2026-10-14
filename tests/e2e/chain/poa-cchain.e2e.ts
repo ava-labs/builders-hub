@@ -25,6 +25,7 @@ import {
   pageAlert,
   readStore,
   remountStep,
+  stepLink,
   toolHeading,
   waitForPage,
   WALLET_REJECTED,
@@ -56,7 +57,7 @@ import { aggregateThenSend, completeOnManager, registerOnPChain } from './lib/va
 //   - a reload on the P-Chain Registration step keeps the L1 that the flow store holds;
 //   - Top up V0: the wallet answers the first request as a user who clicks Reject in Core (signer.rejectNext); the
 //     page shows the rejection, and the next click sends the tx;
-//   - the P-Chain steps show no 'Insufficient P-Chain balance' warning for the funded key.
+//   - the P-Chain steps show no 'Not enough P-Chain balance for fees' warning for the funded key.
 //
 // Each member checks the chain after its tx (Node reads, lib/chain.ts) and skips a send that already landed
 // (sendOnce, lib/ledger.ts). The group never retries: a retry would send the txs again. Only lib/warp.ts retries a
@@ -115,8 +116,8 @@ const REMOVE_STEP = {
 // The Primary Network's subnet ID signs for a manager on the C-Chain.
 const PRIMARY_NETWORK = FUJI.primaryNetworkId;
 // The warning of the add and remove P-Chain steps when the key holds less than 0.1 AVAX (PChainRegistrationStep.tsx,
-// PChainRemovalStep.tsx).
-const LOW_P_BALANCE = /^Insufficient P-Chain balance for transaction fees/;
+// PChainRemovalStep.tsx): 'Not enough P-Chain balance for fees. You need at least 0.1 AVAX.' and a faucet link.
+const LOW_P_BALANCE = /^Not enough P-Chain balance for fees\./;
 
 describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, tags: ['chain', 'tier1'] }, () => {
   for (const step of flow.steps) {
@@ -144,10 +145,10 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
     // 1. Select L1. The query sets the L1, and the flow store keeps it for the later steps.
     await app.open(`/console/add-validator/select-subnet?subnetId=${subnetId}`);
     await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
-    await expect(screen.getByRole('heading', 'Select L1')).toBeVisible();
+    await expect(stepLink(screen, 'Select L1')).toHaveAttribute('aria-current', 'step');
     await waitForPoaBadge(screen);
     await expect(screen.getByRole('button', PRIMARY_NETWORK)).toBeVisible();
-    await clickNext(screen, browser, ADD_STEP.initiate);
+    await clickNext(screen, browser, ADD_STEP.initiate, 'Initiate Validator Registration');
 
     // 2. Initiate Validator Registration (C-Chain).
     await waitForPoaBadge(screen);
@@ -156,7 +157,7 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
     const balance = screen.getByRole('spinbutton', 'Validator Balance (P-Chain AVAX)');
     await balance.fill(V1_BALANCE_AVAX);
     await expect(balance).toHaveValue(V1_BALANCE_AVAX);
-    const initiate = screen.getByRole('button', 'Initiate Validator Registration');
+    const initiate = screen.getByRole('button', 'Initiate validator registration');
 
     // A weight of 25 is 25% of the L1: the page warns under the field and refuses the click before it asks the
     // wallet. A wallet request here would register V1 with that weight, so until the check ends the wallet rejects
@@ -235,7 +236,7 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
       LEDGER,
     );
     note(`V1 initiated: ${v1ValidationId}`);
-    await waitForPage(browser, 'Initiate success', screen.getByRole('button', 'Transaction Completed'));
+    await waitForPage(browser, 'Initiate success', screen.getByRole('button', 'Transaction completed'));
     await expect.poll(async () => (await managerValidator(proxy, v1ValidationId)).weight, CHAIN_POLL).toBe(V1_WEIGHT);
     await expect
       .poll(() => managerNodeValidationId(proxy, v1.nodeID), CHAIN_POLL)
@@ -243,21 +244,21 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
 
     // 3. P-Chain Registration: one button aggregates and sends the RegisterL1ValidatorTx. The flow store keeps the
     // L1 and the initiate tx, so a reload on this step loads the same registration.
-    await clickNext(screen, browser, ADD_STEP.pchain);
+    await clickNext(screen, browser, ADD_STEP.pchain, 'P-Chain Registration');
     await browser.reload();
     await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
     expect((await readStore(browser, ADD_STORE)).subnetIdL1, 'the add-validator store keeps the L1').toBe(subnetId);
     const registerReady = async () => {
       await waitForPoaBadge(screen);
-      await expect(screen.getByText('Initial Balance:')).toBeVisible({ timeout: 60_000 });
+      await expect(screen.getByText('Initial balance', { exact: true })).toBeVisible({ timeout: 60_000 });
       await expect(screen.getByText(`${V1_BALANCE_AVAX} AVAX`, { exact: true })).toBeVisible();
     };
     await registerReady();
-    await expect(screen.getByRole('button', 'Sign & Submit to P-Chain')).toBeEnabled({ timeout: 90_000 });
-    await expect(screen.getByText(/^No transaction hash from the initiation step/)).toBeHidden();
+    await expect(screen.getByRole('button', 'Sign and submit to P-Chain')).toBeEnabled({ timeout: 90_000 });
+    await expect(screen.getByText(/^No transaction hash from the previous step\./)).toBeHidden();
     // The key holds more than 0.1 AVAX on the P-Chain and more than the validator balance.
     await expect(screen.getByText(LOW_P_BALANCE)).toBeHidden();
-    await expect(screen.getByText(/^Exceeds P-Chain balance/)).toBeHidden();
+    await expect(screen.getByText(/^More than your P-Chain balance \(/)).toBeHidden();
     const registerTxId = await registerOnPChain({
       browser,
       screen,
@@ -274,9 +275,9 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
     expect(registered.balance > 0n && registered.balance <= V1_BALANCE_NAVAX).toBe(true);
 
     // 4. Complete Registration (C-Chain): the P-Chain's signed message goes to the manager.
-    await clickNext(screen, browser, ADD_STEP.complete);
+    await clickNext(screen, browser, ADD_STEP.complete, 'Complete Registration');
     await waitForPoaBadge(screen);
-    await expect(screen.getByRole('textbox', 'P-Chain Transaction ID')).toHaveValue(registerTxId);
+    await expect(screen.getByRole('textbox', 'P-Chain transaction ID')).toHaveValue(registerTxId);
     const completeAttempts = await completeOnManager({
       browser,
       screen,
@@ -284,15 +285,13 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
       ledgerPath: LEDGER,
       step: 'add-v1-complete',
       label: 'Complete V1 registration',
-      button: 'Complete Validator Registration',
+      button: 'Complete validator registration',
       done: screen.getByText('Registration completed'),
       landed: async () => (await managerValidator(proxy, v1ValidationId)).status === ValidatorStatus.Active,
       ready: () => waitForPoaBadge(screen),
     });
     note(`V1 registration completed in ${completeAttempts} attempt(s)`);
-    await expect(
-      screen.getByText('Your validator is now registered and active on the L1.', { exact: false }),
-    ).toBeVisible();
+    await expect(screen.getByText('Your validator is registered and active on the L1.', { exact: true })).toBeVisible();
     await expect.poll(() => managerTotalWeight(proxy), CHAIN_POLL).toBe(V0_WEIGHT + V1_WEIGHT);
     upsertValidator('V1', { state: 'registered' }, LEDGER);
   });
@@ -320,7 +319,7 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
     await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
     await expect(screen.getByRole('textbox', 'Subnet ID')).toHaveValue(subnetId, { timeout: 60_000 });
     await expect(screen.getByRole('button', PRIMARY_NETWORK)).toBeVisible({ timeout: 90_000 });
-    await clickNext(screen, browser, WEIGHT_STEP.initiate);
+    await clickNext(screen, browser, WEIGHT_STEP.initiate, 'Initiate Weight Change');
 
     // 2. Initiate Weight Change. Each validator of the L1 is a button under 'Validation ID', named by its NodeID and
     // its weight; the picked one is pressed.
@@ -359,9 +358,9 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
       }, CHAIN_POLL)
       .toBe(true);
 
-    // 3. P-Chain Weight Update. 'Aggregate Signatures' is enabled once the manager details and the signing subnet
-    // have loaded.
-    await clickNext(screen, browser, WEIGHT_STEP.pchain);
+    // 3. P-Chain Weight Update. 'Aggregate signatures' is enabled once the manager details and the signing subnet
+    // have loaded. The step shows the confirmed tx as 'P-Chain tx' with a HashChip of length 18.
+    await clickNext(screen, browser, WEIGHT_STEP.pchain, 'P-Chain Weight Update');
     await aggregateThenSend({
       browser,
       screen,
@@ -371,17 +370,17 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
       chain: 'P',
       label: 'Set V1 weight on the P-Chain',
       landed: async () => (await pL1Validator(v1ValidationId))?.weight === V1_NEW_WEIGHT,
-      beforeRetry: () => remountStep(screen, browser, WEIGHT_STEP.pchain),
+      beforeRetry: () => remountStep(screen, browser, WEIGHT_STEP.pchain, 'P-Chain Weight Update'),
       button: 'Submit to P-Chain',
       txType: 'pvm.SetL1ValidatorWeightTx',
-      done: /^P-Chain tx confirmed:/,
+      done: { txChip: 18 },
     });
     await chainShows('the P-Chain holds the new weight', async () => {
       return (await pL1Validator(v1ValidationId))?.weight === V1_NEW_WEIGHT;
     });
 
     // 4. Complete Weight Change. The button is enabled once the details have loaded.
-    await clickNext(screen, browser, WEIGHT_STEP.complete);
+    await clickNext(screen, browser, WEIGHT_STEP.complete, 'Complete Weight Change');
     const attempts = await completeOnManager({
       browser,
       screen,
@@ -461,8 +460,12 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
       },
     });
     note(`V0 topped up by ${TOP_UP_AVAX} AVAX: ${send.txIds[0]}`);
-    await waitForPage(browser, 'Top-up success', screen.getByRole('heading', 'Balance Increased Successfully'));
-    await expect(screen.getByText(`Added ${TOP_UP_AVAX} AVAX to validator balance`)).toBeVisible();
+    // The success board 'Balance increased' lists the amount in its row 'Added'. The row has no role, so the test reads
+    // it by its whole text: the label 'Added', then the amount. This ties the amount to 'Added'.
+    await waitForPage(browser, 'Top-up success', screen.getByText('Balance increased', { exact: true }));
+    await expect(screen.getByText('Added', { exact: true })).toBeVisible();
+    await expect(screen.getByText(`${TOP_UP_AVAX} AVAX`, { exact: true })).toBeVisible();
+    await expect(screen.getByText(new RegExp(`^Added\\s*${TOP_UP_AVAX.replace(/\./g, '\\.')} AVAX$`))).toBeVisible();
     if (result === 'sent') {
       // The page links the tx that the wallet sent.
       await expect(screen.getByRole('link', 'View transaction in the explorer')).toHaveAttribute(
@@ -483,14 +486,14 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
     await app.open(`/console/remove-validator/select-subnet?subnetId=${subnetId}`);
     await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
     await waitForPoaBadge(screen);
-    await clickNext(screen, browser, REMOVE_STEP.initiate);
+    await clickNext(screen, browser, REMOVE_STEP.initiate, 'Initiate Removal');
 
     // 2. Initiate Removal. Each validator of the L1 is a button under 'Validation ID'.
     await waitForPoaBadge(screen);
     const v1Choice = screen.getByRole('button', new RegExp(`^${v1.nodeID}`));
     await v1Choice.click({ timeout: 90_000 });
     await expect(v1Choice).toHaveAttribute('aria-pressed', 'true');
-    const initiate = screen.getByRole('button', 'Initiate Validator Removal');
+    const initiate = screen.getByRole('button', 'Initiate validator removal');
     const from = signer.sends.length;
     await sendOnce({
       step: 'remove-v1-initiate',
@@ -511,12 +514,12 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
           async () => (await managerValidator(proxy, v1ValidationId)).status === ValidatorStatus.PendingRemoved,
         ),
     });
-    await waitForPage(browser, 'Initiate Removal success', screen.getByRole('button', 'Transaction Completed'));
+    await waitForPage(browser, 'Initiate Removal success', screen.getByRole('button', 'Transaction completed'));
 
     // 3. P-Chain Weight Update: weight 0 removes V1 from the P-Chain and refunds its balance.
-    await clickNext(screen, browser, REMOVE_STEP.pchain);
+    await clickNext(screen, browser, REMOVE_STEP.pchain, 'P-Chain Weight Update');
     await waitForPoaBadge(screen);
-    await expect(screen.getByRole('button', 'Aggregate Signatures')).toBeEnabled({ timeout: 90_000 });
+    await expect(screen.getByRole('button', 'Aggregate signatures')).toBeEnabled({ timeout: 90_000 });
     await expect(screen.getByText(LOW_P_BALANCE)).toBeHidden();
     await aggregateThenSend({
       browser,
@@ -528,16 +531,16 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
       label: 'Remove V1 on the P-Chain',
       landed: async () => ((await pL1Validator(v1ValidationId))?.weight ?? 0n) === 0n,
       beforeRetry: async () => {
-        await remountStep(screen, browser, REMOVE_STEP.pchain);
+        await remountStep(screen, browser, REMOVE_STEP.pchain, 'P-Chain Weight Update');
         await waitForPoaBadge(screen);
       },
       button: 'Submit to P-Chain',
       txType: 'pvm.SetL1ValidatorWeightTx',
-      done: /^P-Chain tx confirmed:/,
+      done: { txChip: 18 },
     });
 
     // 4. Complete Removal.
-    await clickNext(screen, browser, REMOVE_STEP.complete);
+    await clickNext(screen, browser, REMOVE_STEP.complete, 'Complete Removal');
     await waitForPoaBadge(screen);
     const attempts = await completeOnManager({
       browser,
@@ -546,7 +549,7 @@ describe('tier 1: PoA L1, manager on the C-Chain', { serial: true, retries: 0, t
       ledgerPath: LEDGER,
       step: 'remove-v1-complete',
       label: 'Complete V1 removal',
-      button: 'Sign & Complete Validator Removal',
+      button: 'Sign and complete validator removal',
       done: screen.getByText('Validator removal completed'),
       landed: async () => (await managerValidator(proxy, v1ValidationId)).status === ValidatorStatus.Completed,
       ready: () => waitForPoaBadge(screen),

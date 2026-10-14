@@ -1,6 +1,7 @@
 import type { Browser } from '@e2e-dev/web';
 import { expect, type Locator, type Screen } from 'e2e';
 import { auditSends, revokeOnFailure } from './lib/audit.ts';
+import { historyRow } from './lib/bridge-cp.ts';
 import { NANO_AVAX, assertFuji, chainShows, formatNanoAvax, pBalance, pStaked, waitForPTx } from './lib/chain.ts';
 import { note, openAsReturningVisitor, readStore, toolHeading, waitForPage, waitForSend } from './lib/console.ts';
 import { connectCore, describe, test } from './lib/fixtures.ts';
@@ -24,6 +25,7 @@ import {
   setPrimaryStake,
   type PrimaryValidator,
 } from './lib/primary-stake.ts';
+import { hashChip } from './lib/validator-steps.ts';
 
 // Weekly (Wednesday): the Console's Stake on Primary Network tool adds a fixed-duration Primary Network validator on
 // Fuji (AddPermissionlessValidatorTx). The validator is a mock (lib/mock-validator.ts): no node runs behind it.
@@ -78,8 +80,6 @@ function need<T>(value: T | undefined, what: string): T {
   return value;
 }
 
-const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 // The end time as the page reads it: Stake.tsx turns the local time into 'YYYY-MM-DDTHH:mm' for the datetime-local
 // field, and reads it back with new Date(value). Both run in the page, so the page's time zone applies.
 async function endTimeInPage(browser: Browser, offsetS: number): Promise<{ value: string; endUnix: number }> {
@@ -114,14 +114,17 @@ function gaveUp(button: Locator): () => Promise<boolean> {
   };
 }
 
-// Step 1 and step 2 of the stake page: 'Stake a Validator', then the mock's info.getNodeID response on the 'API
-// Response' tab. The page then looks the NodeID up on the P-Chain.
+// Step 1 and step 2 of the stake page: 'Stake a validator' (a radio of radiogroup 'Action'), then the mock's
+// info.getNodeID response on the 'API Response' tab. The page then looks the NodeID up on the P-Chain. The 'Added
+// validator' group shows the NodeID in a HashChip (len 16): a shortened text, with the whole NodeID in its title.
 async function enterCredentials(screen: Screen, mock: MockValidator): Promise<void> {
-  await screen.getByRole('button', /^Stake a Validator/).click();
+  await screen.getByRole('radio', /^Stake a validator/).click();
   await screen.getByRole('tab', 'API Response').click();
   await screen.getByRole('textbox', /^Paste the JSON response/).fill(nodeCredentialsJson(mock));
   await screen.getByRole('button', 'Add Validator').click();
-  await expect(screen.getByRole('group', 'Added validator').getByText(mock.nodeID, { exact: true })).toBeVisible();
+  const nodeChip = hashChip(screen.getByRole('group', 'Added validator'), mock.nodeID, 16);
+  await expect(nodeChip).toBeVisible();
+  await expect(nodeChip).toHaveAttribute('title', mock.nodeID);
 }
 
 describe(
@@ -191,19 +194,21 @@ describe(
         const stakedBefore = need(run.stakedBefore, 'the stake before the run');
 
         await enterCredentials(screen, mock);
-        // A fresh mock does not validate, so the lookup keeps the stake form.
-        await expect(screen.getByText(/^Checking current validator status/)).toBeHidden({ timeout: 60_000 });
-        await expect(screen.getByRole('heading', 'Stake Configuration')).toBeVisible();
+        // A fresh mock does not validate, so the lookup keeps the stake form. While the lookup runs, the 'Node' sheet
+        // of the 'Added validator' group shows the status 'Checking status'.
+        await expect(screen.getByText('Checking status', { exact: true })).toBeHidden({ timeout: 60_000 });
+        await expect(screen.getByRole('heading', 'Stake configuration')).toBeVisible();
 
-        await screen.getByRole('button', /^Fixed Duration/).click();
-        const amount = screen.getByRole('spinbutton', 'Stake Amount');
+        await screen.getByRole('radio', /^Fixed duration/).click();
+        const amount = screen.getByRole('spinbutton', 'Stake amount');
         await amount.fill(STAKE_AVAX);
         await expect(amount).toHaveValue(STAKE_AVAX);
-        const fee = screen.getByRole('spinbutton', 'Delegation Fee');
+        const fee = screen.getByRole('spinbutton', 'Delegation fee');
         await fee.fill(DELEGATION_FEE);
         await expect(fee).toHaveValue(DELEGATION_FEE);
 
-        // A datetime-local input has no ARIA role, so the field is found by its visible label 'End time'.
+        // A datetime-local input has no ARIA role, so the field is found by its label 'End time' (sr-only: the
+        // 'Duration' eyebrow and its presets title the field).
         const end = screen.getByLabel('End time');
         const { value, endUnix } = await endTimeInPage(browser, END_OFFSET_S);
         await end.fill(value);
@@ -329,7 +334,7 @@ describe(
         await screen.getByRole('button', 'Stake Another Validator').click();
         await expect(toolHeading(screen, 'Stake on Primary Network')).toBeVisible();
         await enterCredentials(screen, mock);
-        await expect(screen.getByRole('heading', 'Existing Validator')).toBeVisible({ timeout: 30_000 });
+        await expect(screen.getByRole('heading', 'Existing validator')).toBeVisible({ timeout: 30_000 });
         const fromTx = await screen.getByText(ACCEPTED_TX_NOTE, { exact: true }).isVisible();
         note(
           `the page shows ${mock.nodeID} from ${fromTx ? 'its accepted tx (the API read is still old)' : 'the API'}`,
@@ -367,22 +372,15 @@ describe(
         try {
           await app.open(HISTORY_PAGE);
           await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
-          await expect(screen.getByRole('heading', 'History', { level: 1 })).toBeVisible();
-          await expect(screen.getByRole('heading', 'Transaction History')).toBeVisible();
+          await expect(screen.getByRole('heading', 'What you deployed and signed.', { level: 1 })).toBeVisible();
+          // The label of the transactions list: a SectionHeader, text and not a heading.
+          await expect(screen.getByText('Transactions', { exact: true })).toBeVisible();
           // The page shows a tx ID as its first 8 and last 6 characters (app/console/history/page.tsx).
           const short = `${txId.slice(0, 8)}...${txId.slice(-6)}`;
           await expect(screen.getByText(short, { exact: true })).toBeVisible();
-          // By CSS: a tx row is a plain div with no role (app/console/history/page.tsx). The row is the innermost div
-          // that holds both the short ID and a status. Ancestors come first in document order, so it is the last.
-          const row = browser
-            .locator('div')
-            .filter({ hasText: new RegExp(escapeRegExp(short)) })
-            .filter({ hasText: /Confirmed|Pending|Failed/ })
-            .last();
-          await expect(row).toContainText('Validator Added');
-          await expect(row).toContainText('Confirmed');
-          await expect(row).toContainText('P-Chain');
-          await expect(row).toContainText('Fuji');
+          // The tx's row has no role (a clickable grid row), so the test finds it by its whole text: the status, the
+          // operation 'Validator Added', the chain 'P-Chain', the network 'Fuji', the short ID and 'Confirmed'.
+          await expect(screen.getByText(historyRow('Validator Added', txId))).toBeVisible();
           expect(await pageTxRecord(browser, txId)).toMatchObject({
             status: 'confirmed',
             operation: 'Validator Added',

@@ -99,7 +99,7 @@ export function busyThenIdle(button: Locator): () => Promise<boolean> {
 }
 
 // Clicks a button that is busy while its work runs, and waits until `done` shows. While busy, the toolbox Button
-// shows a busy label in place of its own ('Processing...', 'Aggregating signatures...', 'Creating...') and has
+// shows a busy label in place of its own ('Aggregating...', 'Aggregating signatures…', 'Working…') and has
 // aria-busy='true' (Button.tsx), so the locator by the idle name stops matching. When the idle button comes back
 // without `done`, the work failed: this throws with the tool card's text.
 export async function clickAndSettle(
@@ -108,7 +108,8 @@ export async function clickAndSettle(
   button: Locator,
   done: Locator,
   timeoutMs = 300_000,
-  // Another control that starts the same work, for example 'Re-aggregate signatures' for 'Aggregate Signatures'.
+  // Another control that starts the same work, for example 'Re-aggregate signatures' for 'Aggregate Signatures'
+  // (Initialize Validator Set).
   click: () => Promise<void> = () => button.click(),
 ): Promise<void> {
   await click();
@@ -127,13 +128,31 @@ export async function clickAndSettle(
   }
 }
 
+// The 'Next' link of a step flow (components/console/step-flow.tsx). From sm up its name also names the next step,
+// 'Next: <step title>'; below sm it is 'Next'. The chain suites run at desktop size only, so the name must be exactly
+// 'Next: <title>': a click on the wrong step's link fails.
+function nextLink(screen: Screen, nextTitle: string): Locator {
+  return screen.getByRole('link', `Next: ${nextTitle}`);
+}
+
+// The step that a step flow shows: its link in navigation 'Steps' has aria-current="step" (components/console/
+// step-flow.tsx). The flow renders no heading for the step title.
+export function stepLink(screen: Screen, title: string): Locator {
+  return screen.getByRole('navigation', 'Steps').getByRole('link', title);
+}
+
 // Mounts the current step again with client navigation: 'Back', then 'Next'. The flow stores keep their state (the
 // validator flows keep the L1), and the step's React state (a signature, an error) starts fresh, with no full page
-// load.
-export async function remountStep(screen: Screen, browser: Browser, stepPath: RegExp): Promise<void> {
+// load. `stepTitle` is the title of the step at `stepPath`: the 'Next' link of the step before names it.
+export async function remountStep(
+  screen: Screen,
+  browser: Browser,
+  stepPath: RegExp,
+  stepTitle: string,
+): Promise<void> {
   await screen.getByRole('link', 'Back').click();
   await expect.poll(async () => stepPath.test(await browser.url()), { timeout: 60_000 }).toBe(false);
-  await screen.getByRole('link', 'Next').click();
+  await nextLink(screen, stepTitle).click();
   await browser.waitForURL(stepPath, { timeout: 60_000 });
 }
 
@@ -145,9 +164,15 @@ export async function waitForPoaBadge(screen: Screen): Promise<void> {
   await expect(screen.getByText(/^PoA · EOA$/i)).toBeVisible({ timeout: 90_000 });
 }
 
-// Moves to the next step of a step flow. 'Next' is a link (components/console/step-flow.tsx).
-export async function clickNext(screen: Screen, browser: Browser, nextPath: string | RegExp): Promise<void> {
-  await screen.getByRole('link', 'Next').click();
+// Moves to the next step of a step flow. 'Next' is a link (components/console/step-flow.tsx). `nextTitle` is the
+// title of the next step: the link's name must be 'Next: <nextTitle>'.
+export async function clickNext(
+  screen: Screen,
+  browser: Browser,
+  nextPath: string | RegExp,
+  nextTitle: string,
+): Promise<void> {
+  await nextLink(screen, nextTitle).click();
   await browser.waitForURL(nextPath, { timeout: 60_000 });
 }
 

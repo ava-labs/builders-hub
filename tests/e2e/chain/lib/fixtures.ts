@@ -42,11 +42,11 @@ export const test = base.extend<{ wallet: CoreWallet }>({
 
 export { describe };
 
-// The Console's connect flow on any Console page: 'Connect Wallet' in the header opens the RainbowKit dialog, which
+// The Console's connect flow on any Console page: 'Connect wallet' in the header opens the RainbowKit dialog, which
 // offers the e2e wallet as 'Core' (EIP-6963). The flow is done when the header shows the P-Chain balance: the
 // Console shows it only for a Core wallet, after it read the P-Chain address.
 export async function connectCore(screen: Screen): Promise<void> {
-  await screen.getByRole('button', 'Connect Wallet').click();
+  await screen.getByRole('button', 'Connect wallet').click();
   await screen.getByRole('dialog', 'Connect a Wallet').getByRole('button', /Core/).click();
   await expect(screen.getByRole('button', /P-Chain.*AVAX$/)).toBeVisible({ timeout: 60_000 });
 }

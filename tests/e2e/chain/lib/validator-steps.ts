@@ -34,7 +34,7 @@ function warpStepFailure(screen: Screen): Locator {
 
 /**
  * The P-Chain Registration step of the add-validator flow (permissioned-l1s/add-validator/
- * SubmitPChainTxRegisterL1Validator.tsx). One button, 'Sign & Submit to P-Chain', aggregates and sends the
+ * SubmitPChainTxRegisterL1Validator.tsx). One button, 'Sign and submit to P-Chain', aggregates and sends the
  * RegisterL1ValidatorTx. The page enables it once the manager details and the signing subnet have loaded. After a
  * failure the button comes back, so a retry clicks it again. The success is a link named by the tx ID under the exact
  * text 'RegisterL1ValidatorTx ID' (after a failed confirmation the label ends in '(not confirmed)'). Returns the tx ID
@@ -68,7 +68,7 @@ export async function registerOnPChain(
         deliver: async () => {
           await o.ready();
           const from = signer.sends.length;
-          const button = screen.getByRole('button', 'Sign & Submit to P-Chain');
+          const button = screen.getByRole('button', 'Sign and submit to P-Chain');
           await expect(button).toBeEnabled({ timeout: 90_000 });
           await button.click();
           const idle = busyThenIdle(button);
@@ -118,7 +118,7 @@ export async function shownPChainTxId(
 
 /**
  * A completion that one button does on the C-Chain: it aggregates the P-Chain's signed message and sends the tx with
- * the Warp access list (Complete Validator Registration, Complete Weight Change, Sign & Complete Validator Removal,
+ * the Warp access list (Complete validator registration, Complete Weight Change, Sign and complete validator removal,
  * and the PoS completions). The page enables the button once the manager details and the signing subnet have
  * loaded, and again after a failed or reverted try, so a retry clicks it again. `beforeRetry` runs first on a retry,
  * for a step that needs more (a remount). Returns the attempts that clicked.
@@ -173,11 +173,22 @@ export async function completeOnManager(
 }
 
 /**
- * A Warp step in two clicks: 'Aggregate Signatures', then the deliver button. The P-Chain weight update of the
+ * The HashChip (components/explorer-v2/ui.tsx HashChip, format.ts truncate) that shows `value`: its text is the
+ * first `len` characters, '…' and the last 4 (the whole value when it is at most `len` + 6 long). Its title holds
+ * the whole value. `ignoreCase` is for a hex value that a store can keep in another case.
+ */
+export function hashChip(screen: Screen, value: string, len: number, { ignoreCase = false } = {}): Locator {
+  const text = value.length <= len + 6 ? value : `${value.slice(0, len)}…${value.slice(-4)}`;
+  if (!ignoreCase) return screen.getByText(text, { exact: true });
+  return screen.getByText(new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+}
+
+/**
+ * A Warp step in two clicks: 'Aggregate signatures', then the deliver button. The P-Chain weight update of the
  * weight, removal and delegation flows (console/shared/SubmitPChainTxWeightUpdate.tsx) sends a
  * SetL1ValidatorWeightTx with 'Submit to P-Chain'; the PoS Complete Removal (permissionless-l1s/withdraw/
  * CompleteValidatorRemoval.tsx) sends a C-Chain tx. After a failed submission the step keeps its signature and shows
- * no 'Aggregate Signatures' button, so a retry mounts the step again first (beforeRetry) and aggregates a fresh
+ * no 'Aggregate signatures' button, so a retry mounts the step again first (beforeRetry) and aggregates a fresh
  * signature. Returns the attempts.
  */
 export async function aggregateThenSend(
@@ -191,8 +202,12 @@ export async function aggregateThenSend(
     button: string;
     /** 'pvm.SetL1ValidatorWeightTx' or 'eth_sendTransaction'. */
     txType: string;
-    /** The page's text after the tx, for example /^P-Chain tx confirmed:/. */
-    done: RegExp;
+    /**
+     * What the page shows after the tx: a text, or `{ txChip: len }`, the HashChip of the wallet's tx with that
+     * length (SubmitPChainTxWeightUpdate.tsx shows 'P-Chain tx' with a chip of length 18). The chip's title must hold
+     * the whole tx ID.
+     */
+    done: RegExp | { txChip: number };
     /** The start of the page's error box, when the step has its own texts (default: warpStepFailure). */
     failure?: RegExp;
   },
@@ -212,9 +227,9 @@ export async function aggregateThenSend(
         landed: o.landed,
         aggregate: async (attempt) => {
           if (attempt > 1) await o.beforeRetry();
-          const aggregate = screen.getByRole('button', 'Aggregate Signatures');
+          const aggregate = screen.getByRole('button', 'Aggregate signatures');
           await expect(aggregate).toBeEnabled({ timeout: 90_000 });
-          await clickAndSettle(browser, 'Aggregate Signatures', aggregate, screen.getByText('Signatures aggregated'));
+          await clickAndSettle(browser, 'Aggregate signatures', aggregate, screen.getByText('Signatures aggregated'));
         },
         deliver: async () => {
           const start = signer.sends.length;
@@ -230,7 +245,13 @@ export async function aggregateThenSend(
           note(`${o.label}: tx ${tx.hash}`);
           if (o.chain === 'P') await waitForPTx(tx.hash);
           else await waitForCTx(tx.hash as Hex);
-          await waitForPage(browser, `${o.label} success`, screen.getByText(o.done));
+          if (o.done instanceof RegExp) {
+            await waitForPage(browser, `${o.label} success`, screen.getByText(o.done));
+          } else {
+            const chip = hashChip(screen, tx.hash, o.done.txChip);
+            await waitForPage(browser, `${o.label} success`, chip);
+            await expect(chip).toHaveAttribute('title', tx.hash);
+          }
         },
       });
       attempts = result.attempts;
