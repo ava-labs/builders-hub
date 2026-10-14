@@ -85,7 +85,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
     if (!recipient && walletEVMAddress) setRecipient(walletEVMAddress);
   }, [walletEVMAddress, recipient]);
 
-  // Balance read from the Home L1's RPC — independent of the wallet chain.
+  // Balance read from the Home L1's RPC, independent of the wallet chain.
   // The stage dep refreshes after a successful send so the displayed balance
   // matches the wallet's post-send state.
   useEffect(() => {
@@ -120,7 +120,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   // Keeps the error Alert in sync with the inputs the user can see.
   useEffect(() => {
     if (error) resetError();
-    // Intentional: `error` and `resetError` excluded — they're internal state
+    // Intentional: `error` and `resetError` excluded. They're internal state
     // updaters; including them would loop the effect on every error change.
   }, [amount, recipient, selectedRemoteId]);
 
@@ -133,7 +133,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   };
 
   const handleAddAnotherDestination = () => {
-    // Start the Phase 3 dropdown fresh — the user is here to pick a NEW L1,
+    // Start the Remote step dropdown fresh: the user is here to pick a NEW L1,
     // not to re-deploy the existing remote.
     setPendingDestinationL1Id(null);
     router.push(`${BRIDGE_BASE_PATH}/remote`);
@@ -153,30 +153,30 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
         id: 'bridge',
         label: 'TokenHome deployed on Home',
         ok: Boolean(bridge?.homeAddress),
-        actionLabel: 'Go to Phase 2 (Home)',
+        actionLabel: 'Go to the Home step',
         actionHref: `${BRIDGE_BASE_PATH}/home`,
       },
       {
         id: 'remote',
         label: 'TokenRemote deployed on Remote',
         ok: Boolean(selectedRemote?.address),
-        actionLabel: 'Go to Phase 3 (Remote)',
+        actionLabel: 'Go to the Remote step',
         actionHref: `${BRIDGE_BASE_PATH}/remote`,
       },
       {
         id: 'registered',
         label: 'Remote registered with Home',
         ok: Boolean(selectedRemote?.registeredAt),
-        actionLabel: 'Go to Phase 4 (Register)',
+        actionLabel: 'Go to the Register step',
         actionHref: `${BRIDGE_BASE_PATH}/register`,
       },
       {
-        // Native-home bridges don't need explicit collateral — registration alone
+        // Native-home bridges don't need explicit collateral: registration alone
         // is sufficient to send. Mark this row OK to keep the card honest.
         id: 'collateralized',
         label: isNativeHome ? 'Collateral (not required for native home)' : 'Collateral funded on Home',
         ok: isNativeHome ? Boolean(selectedRemote?.registeredAt) : Boolean(selectedRemote?.collateralizedAt),
-        actionLabel: 'Go to Phase 5 (Collateral)',
+        actionLabel: 'Go to the Collateral step',
         actionHref: `${BRIDGE_BASE_PATH}/collateral`,
       },
       {
@@ -277,7 +277,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
           !hasRemotes ? (
             <Alert variant="warning">
               <div className="flex flex-col items-start gap-2">
-                <span>Deploy a Remote in Phase 3 before sending tokens.</span>
+                <span>Deploy a Remote in the Remote step before you send tokens.</span>
                 <TextAction icon={Plus} onClick={handleAddAnotherDestination}>
                   Deploy first Remote
                 </TextAction>
@@ -303,8 +303,8 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
                 side="From"
                 l1={homeL1 ?? null}
                 name={homeL1?.name ?? 'Home'}
-                figure={balance !== null ? formatAmount(balance, decimals) : '—'}
-                unit={bridge?.symbol ?? ''}
+                figure={balance !== null ? formatAmount(balance, decimals) : 'Not loaded'}
+                unit={balance !== null ? (bridge?.symbol ?? '') : undefined}
                 caption="Your balance"
               />
               <div
@@ -318,7 +318,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
                 side="To"
                 l1={remoteL1 ?? null}
                 name={remoteL1?.name ?? 'Remote'}
-                figure={selectedRemote?.address ? truncateAddress(selectedRemote.address) : '—'}
+                figure={selectedRemote?.address ? truncateAddress(selectedRemote.address) : 'Not deployed'}
                 caption={selectedRemote?.kind === 'native-remote' ? 'NativeTokenRemote' : 'TokenRemote'}
                 mono
                 action={

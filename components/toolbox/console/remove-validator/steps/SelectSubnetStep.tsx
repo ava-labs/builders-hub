@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
@@ -8,10 +8,13 @@ import { useValidatorManagerContext } from '@/components/toolbox/contexts/Valida
 import { ManagerTypeBadge } from '@/components/toolbox/console/add-validator/ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
 import { ActionPanel, LEAD, StepLayout } from '@/components/toolbox/console/shared/validator-flow-ui';
+import { StartOverButton } from '@/components/toolbox/console/shared/StartOverButton';
 
 export default function SelectSubnetStep() {
   const store = useRemoveValidatorStore();
   const vmcCtx = useValidatorManagerContext();
+  // Start over moves the focus to this field
+  const subnetFieldId = useId();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const isDetecting =
@@ -47,15 +50,18 @@ export default function SelectSubnetStep() {
       }
     >
       <ActionPanel
-        label="L1 subnet"
+        label="L1"
         action={
-          store.subnetIdL1 ? (
-            <ManagerTypeBadge
-              ownerType={vmcCtx.ownerType}
-              stakingType={vmcCtx.staking.stakingType}
-              isDetecting={isDetecting}
-            />
-          ) : undefined
+          <div className="flex items-center gap-2">
+            {store.subnetIdL1 && (
+              <ManagerTypeBadge
+                ownerType={vmcCtx.ownerType}
+                stakingType={vmcCtx.staking.stakingType}
+                isDetecting={isDetecting}
+              />
+            )}
+            <StartOverButton show={!!store.subnetIdL1} onStartOver={store.reset} focusId={subnetFieldId} />
+          </div>
         }
       >
         <p className={LEAD}>
@@ -63,6 +69,7 @@ export default function SelectSubnetStep() {
           rewards, then falls back to force-removal if the validator isn&apos;t eligible.
         </p>
         <SelectSubnetId
+          id={subnetFieldId}
           value={store.subnetIdL1}
           onChange={store.setSubnetIdL1}
           error={vmcCtx.error}

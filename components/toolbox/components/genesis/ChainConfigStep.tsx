@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Input } from '@/components/toolbox/components/Input';
 import { Select } from '@/components/toolbox/components/Select';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
@@ -36,6 +36,7 @@ export const generateRandomChainName = () => {
 
 export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChange }: ChainConfigStepProps) {
   const [showVMIdInput, setShowVMIdInput] = useState<boolean>(vmId !== SUBNET_EVM_VM_ID);
+  const chainNameId = useId();
 
   const handleVMTypeChange = (value: string) => {
     const shouldShow = value === 'true';
@@ -57,7 +58,9 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
         {/* Chain Name */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Chain Name</label>
+            <label htmlFor={chainNameId} className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Chain Name
+            </label>
             <button
               type="button"
               onClick={handleGenerateRandomName}
@@ -68,6 +71,7 @@ export function ChainConfigStep({ chainName, onChainNameChange, vmId, onVmIdChan
             </button>
           </div>
           <Input
+            id={chainNameId}
             label=""
             value={chainName}
             onChange={onChainNameChange}

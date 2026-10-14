@@ -101,10 +101,13 @@ export function CliAlternative({ command, download }: { command: string; downloa
           onClick={copy}
           aria-label={copied ? 'Copied' : 'Copy command'}
           title={copied ? 'Copied' : 'Copy command'}
-          className="-m-1 shrink-0 p-1 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+          className="-m-1 shrink-0 p-1 text-zinc-400 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-zinc-500 dark:hover:text-zinc-100"
         >
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
+        <span className="sr-only" aria-live="polite">
+          {copied ? 'Copied' : ''}
+        </span>
       </div>
     </div>
   );

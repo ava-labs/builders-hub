@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:18:12.899Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"06 Interchain Messaging 30 lessons · 2 h\" in \"06\"",
+        "target": {
+          "role": "link",
+          "name": "06 Interchain Messaging 30 lessons · 2 h",
+          "within": "06"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/agent-smoke.e2e.ts::agent%20opens%20the%20Interchain%20Messaging%20course%20from%20the%20Academy",
+      "targetId": "desktop",
+      "instructionDigest": "934212bc7183f9b37e329bd69d94bbeb62113fb33935e0e406c6f1de647a7261",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Tapped the \"06 Interchain Messaging\" link on /academy. The course landing page opened at /academy/avalanche-l1/interchain-messaging, titled \"Welcome to the course\". It lists 6 modules, 30 lessons and a \"Start course\" link.",
+    "startPath": "/academy",
+    "endPath": "/academy/avalanche-l1/interchain-messaging",
+    "endAnchors": [
+      {
+        "text": "Fundamentals"
+      },
+      {
+        "text": "L1 Development"
+      },
+      {
+        "text": "Interoperability"
+      },
+      {
+        "text": "VM Customization"
+      },
+      {
+        "text": "Applications"
+      },
+      {
+        "role": "link",
+        "name": "Welcome to the course"
+      },
+      {
+        "role": "link",
+        "name": "Interoperability between blockchain"
+      },
+      {
+        "role": "link",
+        "name": "Source, Message and Destination"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "."
+      },
+      {
+        "text": "Guided courses, from blockchain fundamentals to launching your own L1."
+      },
+      {
+        "role": "link",
+        "name": "Overview"
+      },
+      {
+        "role": "link",
+        "name": "Tree"
+      },
+      {
+        "role": "link",
+        "name": "Stages"
+      },
+      {
+        "role": "image",
+        "name": "The Avalanche Fundamentals course banner: a grid of outlined blocks on red, with a white disc and the Avalanche mark"
+      },
+      {
+        "text": "Start here"
+      },
+      {
+        "role": "heading",
+        "name": "Avalanche Fundamentals"
+      }
+    ],
+    "endWaitMs": 12846
+  }
+}

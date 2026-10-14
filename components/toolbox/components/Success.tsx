@@ -1,4 +1,4 @@
-import { Check, Copy as CopyIcon, ExternalLink, Loader2, Send } from 'lucide-react';
+import { Check, Clock, Copy as CopyIcon, ExternalLink, Send } from 'lucide-react';
 import { useState } from 'react';
 import { isAddress } from 'viem';
 import { cn } from '../lib/utils';
@@ -8,7 +8,10 @@ interface SuccessProps {
   value: string;
   isTestnet?: boolean;
   xpChain?: 'P' | 'C';
-  /** When undefined: shows neutral "submitted" state. When true: green confirmed. When false: pending spinner. */
+  /**
+   * When undefined: neutral "submitted" state. When true: green confirmed. When false: issued but not confirmed, with a
+   * static icon. Nothing polls a "not confirmed" tx, so a spinner would never stop.
+   */
   confirmed?: boolean;
 }
 
@@ -41,13 +44,13 @@ export const Success = ({ label, value, isTestnet = true, xpChain = 'P', confirm
 
   // Visual state
   const isConfirmed = confirmed === true;
-  const isPending = confirmed === false;
+  const isUnconfirmed = confirmed === false;
   // When confirmed is undefined: neutral "submitted" state (default for backward compat)
 
   const icon = isConfirmed ? (
     <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-  ) : isPending ? (
-    <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+  ) : isUnconfirmed ? (
+    <Clock className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
   ) : (
     <Send className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
   );

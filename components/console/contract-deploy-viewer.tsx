@@ -23,6 +23,17 @@ type FontSize = typeof FONT_SIZES[number];
 const DEFAULT_FONT_SIZE: FontSize = 11;
 
 /**
+ * The GitHub page for a contract source URL. A raw.githubusercontent.com URL
+ * has no "/raw/" segment, so it maps to the "/blob/" page of the same path.
+ * A github.com "/raw/" URL maps to its "/blob/" page. Other URLs stay as they are.
+ */
+export function githubSourcePageUrl(url: string): string {
+  const raw = url.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/(.+)$/);
+  if (raw) return `https://github.com/${raw[1]}/${raw[2]}/blob/${raw[3]}`;
+  return url.replace(/^(https:\/\/github\.com\/[^/]+\/[^/]+)\/raw\//, "$1/blob/");
+}
+
+/**
  * Split-pane contract deployment viewer
  * Left: Deploy controls (children)
  * Right: Tabbed source code viewer with line numbers
@@ -189,7 +200,7 @@ export function ContractDeployViewer({
               {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
             <a
-              href={activeContract?.url.replace("/raw/", "/blob/").replace("raw.githubusercontent.com", "github.com")}
+              href={activeContract ? githubSourcePageUrl(activeContract.url) : undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"

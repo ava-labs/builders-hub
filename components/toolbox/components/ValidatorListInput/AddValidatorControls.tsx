@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { Button } from '../Button';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { cn } from '../utils';
@@ -43,6 +43,7 @@ export function AddValidatorControls({
   const [error, setError] = useState<string | null>(null);
   const [managedNodes, setManagedNodes] = useState<ManagedTestnetNodeSuggestion[]>([]);
   const [managedNodesLoaded, setManagedNodesLoaded] = useState(false);
+  const fieldId = useId();
 
   const rpcCommand = `curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' -H "content-type:application/json;" 127.0.0.1:9650/ext/info`;
 
@@ -252,7 +253,7 @@ export function AddValidatorControls({
             ) : filteredManagedNodes.length === 0 ? (
               <div className="space-y-3">
                 <div className="text-[13px] text-zinc-500 dark:text-zinc-400">
-                  No managed testnet nodes found for the selected Subnet.
+                  No managed testnet nodes found for the selected L1.
                 </div>
                 <div className="text-[13px] text-zinc-500 dark:text-zinc-400">
                   Need a managed testnet node? Visit{' '}
@@ -279,7 +280,7 @@ export function AddValidatorControls({
                         {node.node_id}
                       </div>
                       <div className="truncate text-[12px] leading-tight text-zinc-500 dark:text-zinc-400">
-                        {node.chain_name ? `${node.chain_name} — ` : ''}Subnet: {node.subnet_id || 'unknown'}
+                        {node.chain_name ? `${node.chain_name} · ` : ''}Subnet: {node.subnet_id || 'unknown'}
                       </div>
                       {node.public_key && node.proof_of_possession ? (
                         <div className="text-[12px] leading-tight text-emerald-700 dark:text-emerald-400">
@@ -312,8 +313,11 @@ export function AddValidatorControls({
             Click the copy button to copy the command and run it in your node's terminal to get the node credentials.
           </p>
           <DynamicCodeBlock code={rpcCommand} lang="zsh" />
-          <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Paste the JSON response below:</p>
+          <label htmlFor={`${fieldId}-json`} className="block text-[13px] text-zinc-500 dark:text-zinc-400">
+            Paste the JSON response below:
+          </label>
           <textarea
+            id={`${fieldId}-json`}
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
             placeholder='{"jsonrpc":"2.0","result":{"nodeID":"...","nodePOP":{"publicKey":"...",  "proofOfPossession":"..."}},"id":1}'
@@ -343,10 +347,14 @@ export function AddValidatorControls({
         <TabsContent value="manual" className="space-y-4">
           <div className="space-y-3">
             <div className="space-y-2">
-              <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              <label
+                htmlFor={`${fieldId}-node`}
+                className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
                 Node ID
               </label>
               <Input
+                id={`${fieldId}-node`}
                 type="text"
                 value={manualNodeID}
                 onChange={(e) => setManualNodeID(e.target.value)}
@@ -355,10 +363,14 @@ export function AddValidatorControls({
               />
             </div>
             <div className="space-y-2">
-              <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              <label
+                htmlFor={`${fieldId}-key`}
+                className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
                 BLS Public Key
               </label>
               <Input
+                id={`${fieldId}-key`}
                 type="text"
                 value={manualPublicKey}
                 onChange={(e) => setManualPublicKey(e.target.value)}
@@ -367,10 +379,14 @@ export function AddValidatorControls({
               />
             </div>
             <div className="space-y-2">
-              <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              <label
+                htmlFor={`${fieldId}-pop`}
+                className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
                 BLS Proof of Possession
               </label>
               <Input
+                id={`${fieldId}-pop`}
                 type="text"
                 value={manualProof}
                 onChange={(e) => setManualProof(e.target.value)}
@@ -388,7 +404,10 @@ export function AddValidatorControls({
       </Tabs>
 
       {error && (
-        <div className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300">
+        <div
+          role="alert"
+          className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300"
+        >
           {error}
         </div>
       )}

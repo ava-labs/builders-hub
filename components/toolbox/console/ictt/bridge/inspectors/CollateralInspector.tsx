@@ -43,8 +43,8 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
   const [balance, setBalance] = useState<bigint | null>(null);
 
   // Balance must target the Home L1's RPC regardless of the wallet's current
-  // chain — otherwise the read fails when the user lands on this phase straight
-  // from Phase 4 (which lives on the Remote chain).
+  // chain. Otherwise the read fails when the user lands on this step straight
+  // from the Register step (which lives on the Remote chain).
   useEffect(() => {
     if (!bridge?.underlyingTokenAddress || !homeL1?.rpcUrl || !walletEVMAddress) return;
     let cancelled = false;
@@ -113,7 +113,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
         label="Phase 5 · Collateral"
         banner={
           !remote?.registeredAt ? (
-            <Alert variant="warning">Register the Remote in Phase 4 before adding collateral.</Alert>
+            <Alert variant="warning">Register the Remote in the Register step before you add collateral.</Alert>
           ) : rpcErrorVisible ? (
             <Alert variant="error">
               <div className="flex flex-col items-start gap-2">
@@ -189,22 +189,26 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
               {bridge?.homeAddress ? (
                 <HashChip value={bridge.homeAddress} len={14} />
               ) : (
-                <span className={MONO_MUTED}>—</span>
+                <span className={MONO_MUTED}>Not deployed</span>
               )}
             </div>
             <div className="flex flex-col gap-1 bg-white px-4 py-3 dark:bg-zinc-950">
               <span className={EYEBROW}>Your balance</span>
-              <span className="font-mono text-[17px] tabular-nums text-zinc-900 dark:text-zinc-50">
-                {balance !== null ? formatAmount(balance, decimals) : '—'}{' '}
-                <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{bridge?.symbol ?? ''}</span>
-              </span>
+              {balance !== null ? (
+                <span className="font-mono text-[17px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                  {formatAmount(balance, decimals)}{' '}
+                  <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{bridge?.symbol ?? ''}</span>
+                </span>
+              ) : (
+                <span className={MONO_MUTED}>Not loaded</span>
+              )}
             </div>
           </div>
 
           {noCollateralRequired ? (
             <Alert variant="success">
               No collateral needed: decimals match and there&apos;s no reserve imbalance, so TokenHome is already fully
-              backed. Continue to Phase 6.
+              backed. Continue to the Live step.
             </Alert>
           ) : (
             <Field
@@ -313,7 +317,7 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
               </Steps>
             </div>
           ) : (
-            // Native home — single button (no approve needed).
+            // Native home: single button (no approve needed).
             <Button
               onClick={handleAddCollateral}
               loading={isDepositing}

@@ -48,16 +48,25 @@ The interactive explainer above is the narration; this table is the quick refere
 Every failure below is real: each one has occurred in production support cases.
 
 <Accordions type="single">
-<Accordion title="Aggregator cannot reach the validators (connectedWeight: 0)">
+<Accordion title="The aggregator cannot connect to the validators">
 
-**Symptom:** the aggregator reports `connectedWeight: 0` while `totalWeight` is nonzero, and aggregation fails with "failed to collect a threshold of signatures".
+**Symptom:** the aggregator logs `connectedWeight` below 67% of `totalValidatorWeight` (67% is the default quorum), and aggregation fails with "failed to connect to a threshold of stake".
 
-**Cause:** on validators-only L1s (`validatorOnly: true`), validators drop this L1's messages from nodes that are not L1 validators and are not in `allowedNodes`. The aggregator's own NodeID is not in the `allowedNodes` configuration, so no validator answers it.
+**Cause:** validators are offline, or the aggregator cannot reach their staking port (9651 by default).
 
-**Fix:** have the aggregator's NodeID added to the validators' `allowedNodes` configuration (your infrastructure provider can do this), then retry.
+**Fix:** bring the validators online, or open port 9651 to the aggregator. Then retry.
 
 </Accordion>
-<Accordion title="Validators refuse the P-Chain-sourced aggregation (accumulatedWeight 0)">
+<Accordion title="Validators ignore the aggregator on a validator-only L1" id="validator-only-l1">
+
+**Symptom:** the aggregator is connected to enough stake, but its requests to sign messages from the L1 time out. Aggregation fails with "failed to collect a threshold of signatures".
+
+**Cause:** the validators' configuration for this L1 sets `validatorOnly: true`. Each validator then drops this L1's messages from nodes that are not L1 validators and are not in `allowedNodes`. The aggregator is neither. Messages from the P-Chain (step 05) are not affected: the P-Chain is part of the Primary Network, which is never validator-only.
+
+**Fix:** run your own aggregator. Give it a fixed TLS certificate and key (`tls-cert-path` and `tls-key-path`), so that its NodeID does not change. The aggregator logs its NodeID at startup. Add that NodeID to `allowedNodes` on every L1 validator, restart the validators, then retry. The hosted aggregator that the Builder Console uses publishes no NodeID, so you cannot add it.
+
+</Accordion>
+<Accordion title="Validators refuse the P-Chain-sourced aggregation (accumulatedWeight 0)" id="pchain-sourced-refusal">
 
 **Symptom:** during step 5, `accumulatedWeight` stays at 0 out of the total weight and every validator returns an immediate timeout.
 

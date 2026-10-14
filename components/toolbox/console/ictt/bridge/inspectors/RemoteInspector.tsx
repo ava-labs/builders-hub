@@ -19,6 +19,7 @@ import { ContractDeployViewer } from '@/components/console/contract-deploy-viewe
 import { ICTT_REMOTE_ERC20_SOURCES, ICTT_REMOTE_NATIVE_SOURCES } from '@/lib/ictt/contractSources';
 import { useDeployTokenRemote } from '../hooks/useDeployTokenRemote';
 import { useBridgeContext } from '../hooks/useBridgeContext';
+import { describeTxError } from '../utils/tx-error';
 import {
   BODY,
   ChainMark,
@@ -48,7 +49,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   const l1List = useL1List();
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
   // Granular selectors so this inspector doesn't re-render on every wallet
-  // store mutation — the destructure pattern (`const { x } = useWalletStore()`)
+  // store mutation. The destructure pattern (`const { x } = useWalletStore()`)
   // subscribes to the whole store and amplified mid-switch render churn.
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const walletChainId = useWalletStore((s) => s.walletChainId);
@@ -70,7 +71,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
 
   // Read the destination L1's toolbox store as a fallback. The toolboxStore
   // is keyed by L1 id, so we look up the destination explicitly (NOT the
-  // wallet's current selectedL1 — Remote phase is about the destination).
+  // wallet's current selectedL1: the Remote step is about the destination).
   // Heals user-created destination L1s where ICM was deployed but the
   // address never propagated to l1ListStore. The fallback chain matches
   // HomeInspector: toolbox > well-known > empty.
@@ -87,7 +88,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     ? 'Defaults to the ICM Registry you deployed on this chain.'
     : wellKnownRegistry
       ? 'Defaults to the well-known address for this chain.'
-      : 'Run ICM setup on the destination L1 to get a default — or paste a known Registry address.';
+      : 'Run ICM setup on the destination L1 to get a default. You can also paste a known Registry address.';
 
   const [registry, setRegistry] = useState<string>('');
   const [manager, setManager] = useState<string>('');
@@ -96,14 +97,14 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   // Kind selector lets the user pick between ERC-20 (default) and native gas
   // token remotes. The hook accepts both, but the v2 wizard only exposed the
   // ERC-20 path until this commit. Native remote requires the Native Minter
-  // precompile on the destination L1 — see `nativeMinterStatus` below.
+  // precompile on the destination L1. See `nativeMinterStatus` below.
   const [remoteKind, setRemoteKind] = useState<RemoteKind>('erc20-remote');
   const [initialReserveImbalance, setInitialReserveImbalance] = useState<string>('1');
   const [burnedFeesReward, setBurnedFeesReward] = useState<string>('0');
 
   // Offline precompile detection so the radio is disabled-with-a-tooltip on
   // chains without `contractNativeMinterConfig`. Returns `'unknown'` for
-  // imported/older L1s where genesis was never stored — those still allow the
+  // imported/older L1s where genesis was never stored. Those still allow the
   // user to try (the deploy tx itself will revert if precompile is missing).
   const nativeMinterStatus = useMemo(
     () => detectNativeMinterPrecompile(destinationL1?.genesisData),
@@ -138,7 +139,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   }, [ctx.pendingDestinationL1Id, requestedDestination, router, pathname, searchParams]);
 
   // When the chain or kind changes, pre-fill the user-edit fields with sensible
-  // defaults so the form looks finished — user can edit any field; otherwise
+  // defaults so the form looks finished. The user can edit any field; otherwise
   // the defaults are what's sent on deploy. Fields reset to empty when
   // destination is cleared.
   useEffect(() => {
@@ -155,7 +156,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
       setTokenName(`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`);
       setTokenSymbol(bridge?.symbol ?? 'TOKEN');
     } else {
-      // NativeTokenRemote stores only the asset symbol — there is no separate
+      // NativeTokenRemote stores only the asset symbol. There is no separate
       // on-chain name. Default to the L1's existing coin name so the bridge
       // visibly mints "the L1's gas token" rather than the bridge's home
       // symbol (which would shadow the user's chosen native symbol).
@@ -164,14 +165,14 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     }
     // We intentionally re-fill on every destinationL1Id / remoteKind change.
     // If the user has typed custom values then changes the chain or kind, the
-    // new defaults take over — that's the documented behavior.
+    // new defaults take over. That's the documented behavior.
   }, [destinationL1Id, defaultRegistry, remoteKind]);
 
   // One-time backfill: if the destination's toolbox store has a registry but
   // the L1ListItem doesn't yet, propagate so the dashboard ICM signal and
   // future bridge sessions on this destination see it. Only fires when the
   // wallet is on the destination chain (the setter matches by walletChainId,
-  // which is the only safe case — writing while on a different chain would
+  // which is the only safe case: writing while on a different chain would
   // miss the right entry).
   useEffect(() => {
     if (!destinationToolboxRegistry || wellKnownRegistry) return;
@@ -191,14 +192,14 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     destinationL1Id && bridge?.homeL1Id === destinationL1Id ? 'Source and destination must differ.' : null;
 
   // Wallet is on the wrong chain for deploying to the picked destination.
-  // We only gate the deploy action — the dropdown stays interactive so the
+  // We only gate the deploy action. The dropdown stays interactive so the
   // user can change their mind without first switching chains.
   const destinationChainId = destinationL1?.evmChainId ?? null;
   const chainMismatch =
     destinationChainId != null && walletChainId != null && walletChainId !== 0 && walletChainId !== destinationChainId;
 
   // Auto-switch once per destination change. If the user manually switches back,
-  // we don't fight them — the deploy button just shows the Switch CTA again.
+  // we don't fight them: the deploy button just shows the Switch CTA again.
   // Uses `switchChainOrAdd` so picking an L1 the wallet doesn't have yet (e.g.
   // a freshly-created user L1) prompts add+switch in a single wallet popup
   // rather than silently failing.
@@ -207,7 +208,8 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     if (!chainMismatch) return;
     if (autoSwitchedFor.current === destinationChainId) return;
     autoSwitchedFor.current = destinationChainId;
-    void switchChainOrAdd(destinationL1).catch(() => {});
+    // No toast on a refusal: the user clicked nothing, and the deploy button shows the Switch action.
+    void switchChainOrAdd(destinationL1, { toastOnFailure: false }).catch(() => {});
   }, [destinationChainId, chainMismatch, walletEVMAddress, switchChainOrAdd, destinationL1]);
 
   // No reset effect needed: the `autoSwitchedFor.current === destinationChainId`
@@ -215,7 +217,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   // destination. When the user picks a different destination, the stored ref
   // no longer matches the new chain id, so the guard naturally fails and a
   // fresh switch is triggered. A previous version nulled the ref in a
-  // sibling effect that ran AFTER the auto-switch in the same commit — that
+  // sibling effect that ran AFTER the auto-switch in the same commit, and that
   // wiped the guard out and let any subsequent re-render fire a second wallet
   // popup, jamming Core.
 
@@ -310,7 +312,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
         label="Phase 3 · TokenRemote"
         banner={
           !bridge?.homeAddress ? (
-            <Alert variant="warning">Deploy TokenHome in Phase 2 before deploying a Remote.</Alert>
+            <Alert variant="warning">Deploy TokenHome in the Home step before you deploy a Remote.</Alert>
           ) : chainMismatch && destinationL1 ? (
             <Alert variant="warning">
               <div className="flex flex-col items-start gap-2">
@@ -530,7 +532,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
             candidates.length > 0 && <p className={BODY}>Pick a destination chain to set up the mirrored token.</p>
           )}
 
-          {error && <Alert variant="error">{error.message}</Alert>}
+          {error && <Alert variant="error">{describeTxError(error)}</Alert>}
 
           {remote?.address && destinationL1 && (
             <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-300 px-4 py-3 dark:border-emerald-900">

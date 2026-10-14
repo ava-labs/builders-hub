@@ -11,6 +11,7 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../hooks/useSafeAPI';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
 
 interface MultisigOptionProps {
   validatorManagerAddress: string;
@@ -348,14 +349,14 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
       // Handle specific error types
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('insufficient funds')) {
         message = 'Insufficient funds for transaction';
       } else if (message.includes('execution reverted')) {
         message = `Transaction reverted: ${message}`;
       }
 
-      onError(`Direct transaction failed: ${message}`);
+      onError(failureText('Direct transaction failed: ', message));
     } finally {
       setIsExecutingDirect(false);
     }

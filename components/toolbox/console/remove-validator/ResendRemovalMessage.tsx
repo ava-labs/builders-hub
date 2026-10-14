@@ -7,6 +7,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { HashChip } from '@/components/explorer-v2/ui';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
 
 interface ResendRemovalMessageProps {
   /** The underlying ValidatorManager contract address (NOT the StakingManager). */
@@ -18,16 +19,16 @@ interface ResendRemovalMessageProps {
 }
 
 /**
- * Validator is in PendingRemoved on chain but P-Chain hasn't confirmed — usually
+ * Validator is in PendingRemoved on chain but P-Chain hasn't confirmed, usually
  * because the SetL1ValidatorWeight warp couldn't be verified at the height
  * P-Chain landed it at (validator-set drift between aggregator snapshot and
- * verification snapshot — most common during Fuji churn).
+ * verification snapshot, most common during Fuji churn).
  *
  * The contract provides `resendValidatorRemovalMessage` for exactly this case.
  * It re-emits the same warp bytes (same nonce, same weight=0) from a fresh
  * on-chain transaction, giving the user a fresh extraction point to attempt
- * P-Chain submission again. The on-chain state doesn't advance — `sentNonce`
- * stays put — so this is safe to call repeatedly.
+ * P-Chain submission again. The on-chain state doesn't advance (`sentNonce`
+ * stays put), so this is safe to call repeatedly.
  */
 export function ResendRemovalMessage({
   validatorManagerAddress,
@@ -61,7 +62,7 @@ export function ResendRemovalMessage({
       onSuccess(hash);
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
-      if (message.includes('User rejected')) message = 'Transaction was rejected by user';
+      if (message.includes('User rejected')) message = WALLET_REJECTED_TEXT;
       setLocalError(message);
       onError(message);
     } finally {

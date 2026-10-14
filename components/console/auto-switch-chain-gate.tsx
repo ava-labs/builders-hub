@@ -25,8 +25,8 @@ interface AutoSwitchChainGateProps {
  * Per-step chain enforcement. On mount (or when the required chain changes),
  * attempts one programmatic switch so the user lands on the right chain
  * automatically. If the wallet rejects or fails, renders a clear "Switch to X"
- * banner instead of the form — physically preventing the user from signing
- * transactions on the wrong chain.
+ * banner instead of the form, which prevents the user from signing
+ * transactions on the wrong chain. The automatic attempt shows no toast.
  *
  * When `requiredL1` is provided, uses `switchChainOrAdd` so missing chains are
  * added to the wallet on the first attempt rather than silently failing.
@@ -58,15 +58,18 @@ export function AutoSwitchChainGate({
       if (!effectiveChainId) return;
       setIsSwitching(true);
       setError(null);
+      // Auto-attempts stay silent so the banner takes over. A failed click on
+      // the banner button shows the switch toast.
+      const options = { toastOnFailure: !auto };
       try {
         if (requiredL1) {
           // switch-or-add: handles "chain not in wallet" without silent failure.
-          await switchChainOrAdd(requiredL1);
+          await switchChainOrAdd(requiredL1, options);
         } else {
-          await switchChain(effectiveChainId, isTestnet);
+          await switchChain(effectiveChainId, isTestnet, options);
         }
       } catch (err) {
-        // Auto-attempts swallow errors silently so the banner takes over.
+        // The switch functions do not throw. This is a guard for an unexpected error.
         if (!auto) setError(err instanceof Error ? err.message : 'Could not switch chain.');
       } finally {
         setIsSwitching(false);

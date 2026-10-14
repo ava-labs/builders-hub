@@ -1,4 +1,5 @@
 import { classifyRpcUrlForPage } from './rpcUrl';
+import { WALLET_REJECTED_TEXT } from './walletRejection';
 
 /**
  * Classifies EVM transaction failures into the distinct problems users
@@ -67,8 +68,9 @@ export function classifyEvmTxError(
     };
   }
 
-  if (code === 4001 || /user rejected|user denied/i.test(message)) {
-    return { kind: 'user-rejected', message: 'Transaction rejected in the wallet.' };
+  // The last test: an error that parseContractError or parsePChainError already turned into the rejection text
+  if (code === 4001 || /user rejected|user denied/i.test(message) || message === WALLET_REJECTED_TEXT) {
+    return { kind: 'user-rejected', message: WALLET_REJECTED_TEXT };
   }
 
   if (/execution reverted|transaction reverted|reverted with/i.test(message)) {

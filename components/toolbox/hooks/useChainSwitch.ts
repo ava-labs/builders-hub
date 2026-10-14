@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { toast } from '@/lib/toast';
-import { useWalletSwitch } from './useWalletSwitch';
+import { toastSwitchFailure, useWalletSwitch } from './useWalletSwitch';
 import type { L1ListItem } from '../stores/l1ListStore';
 
 interface UseChainSwitchResult {
@@ -13,7 +12,7 @@ interface UseChainSwitchResult {
    *
    * On terminal failure, a single toast is shown (deduped at the
    * underlying `safelySwitchOrAdd` layer). Caller can ignore the bool
-   * and just await — the error UX is handled here.
+   * and just await: the error UX is handled here.
    */
   switchTo: (l1: L1ListItem) => Promise<boolean>;
   /**
@@ -28,9 +27,9 @@ interface UseChainSwitchResult {
  * Single entry point for wallet chain switches. Consolidates what was
  * previously split across three helpers:
  *
- *   - `useWalletSwitch.safelySwitch`           — chainId-only, no add fallback
- *   - `useWalletSwitch.safelySwitchOrAdd`      — full L1, add fallback
- *   - `useWallet.switchChain` / `switchChainOrAdd` — thin re-exports
+ *   - `useWalletSwitch.safelySwitch`: chainId-only, no add fallback
+ *   - `useWalletSwitch.safelySwitchOrAdd`: full L1, add fallback
+ *   - `useWallet.switchChain` / `switchChainOrAdd`: thin re-exports
  *
  * New code should use `useChainSwitch().switchTo(l1)` for any path where
  * the L1 may not be in the wallet yet (ICTT phase gates, dashboard "Add
@@ -45,8 +44,8 @@ export function useChainSwitch(): UseChainSwitchResult {
         return await safelySwitchOrAdd(l1);
       } catch (err) {
         // safelySwitchOrAdd toasts internally; this is the absolute
-        // fallback for unexpected exceptions outside its try/catch.
-        toast.error(`Couldn't switch to ${l1.name}`, err instanceof Error ? err.message : 'Unknown wallet error');
+        // fallback for unexpected exceptions outside its try/catch. It shows the same plain text.
+        toastSwitchFailure(err, l1.evmChainId, l1.name);
         return false;
       }
     },

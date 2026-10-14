@@ -38,7 +38,10 @@ export const Alert = ({ children, variant = 'info', className, icon = true }: Al
   const { container, Icon, icon: iconClass } = VARIANTS[variant];
 
   return (
-    <div className={cn('max-h-48 overflow-y-auto border px-4 py-3 text-[13px] leading-relaxed', container, className)}>
+    <div
+      role={variant === 'error' ? 'alert' : 'status'}
+      className={cn('max-h-48 overflow-y-auto border px-4 py-3 text-[13px] leading-relaxed', container, className)}
+    >
       <div className="flex items-start gap-3">
         {icon && <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', iconClass)} />}
         <div className="min-w-0 flex-1 break-words">{children}</div>

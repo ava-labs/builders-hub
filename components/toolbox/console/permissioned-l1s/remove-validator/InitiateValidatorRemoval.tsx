@@ -7,6 +7,8 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -69,7 +71,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     }
 
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      setErrorState(INVALID_L1_SELECTED);
       return false;
     }
 
@@ -133,15 +135,15 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
         // Only attempt resend fallback if the error suggests a pending removal
         // (e.g. InvalidValidatorStatus or generic reverts). For user rejections,
-        // insufficient funds, ownership errors, etc. — the hook already parsed these.
+        // insufficient funds, ownership errors, etc.: the hook already parsed these.
         const shouldAttemptFallback =
           primaryMessage.includes('reverted') ||
           primaryMessage.includes('Invalid validator status') ||
           primaryMessage.includes('execution');
 
         if (!shouldAttemptFallback) {
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(failureText('Transaction failed: ', primaryMessage));
           return;
         }
 
@@ -153,8 +155,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           });
 
           if (fallbackReceipt.status === 'reverted') {
-            setErrorState(`Transaction failed: ${primaryMessage}`);
-            onError(`Transaction failed: ${primaryMessage}. Resend also reverted.`);
+            setErrorState(failureText('Transaction failed: ', primaryMessage));
+            onError(`${failureText('Transaction failed: ', primaryMessage)}. Resend also reverted.`);
             return;
           }
 
@@ -166,14 +168,16 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           });
         } catch (fallbackError: any) {
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(
+            `${failureText('Transaction failed: ', primaryMessage)}. Resend fallback also failed: ${fallbackMessage}`,
+          );
         }
       }
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }
@@ -195,7 +199,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</p>;
   }
 
   // Prepare args for multisig
@@ -264,7 +268,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           loading={isProcessing}
           loadingText="Initiating…"
           icon={txSuccess ? <Check className="h-3.5 w-3.5" /> : undefined}
-          error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
+          error={!validatorManagerAddress && subnetId ? INVALID_L1_SELECTED : undefined}
         >
           {txSuccess ? 'Transaction completed' : 'Initiate validator removal'}
         </Button>

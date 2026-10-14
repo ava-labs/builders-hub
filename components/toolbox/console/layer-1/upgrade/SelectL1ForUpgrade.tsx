@@ -19,6 +19,7 @@ import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1L
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useMyL1s, type MyL1 } from '@/hooks/useMyL1s';
 import { isValidAvalancheId, validateL1UpgradeSelection } from '@/lib/console/l1-upgrade-selection';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Select L1',
@@ -336,7 +337,7 @@ function SelectL1ForUpgradeInner() {
               value: option.blockchainId,
               label: `${option.name} (${option.blockchainId.slice(0, 10)}…)`,
             }))}
-            notesUnderInput="This subnet has multiple chains. Pick the one to upgrade."
+            notesUnderInput="This L1 has more than one chain. Select the chain to upgrade."
           />
         )}
 
@@ -396,7 +397,7 @@ function SelectL1ForUpgradeInner() {
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Select a Subnet before continuing.</p>
+          <p className="text-sm text-muted-foreground">{NO_L1_SELECTED}</p>
         )}
       </aside>
     </div>

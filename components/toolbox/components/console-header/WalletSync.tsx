@@ -36,7 +36,7 @@ export function WalletSync() {
   const pathname = usePathname();
 
   /**
-   * On a *fresh* wallet connect (user just clicked Connect — not a reload
+   * On a *fresh* wallet connect (user just clicked Connect, not a reload
    * rehydration), nudge the wallet to Fuji testnet. Builder Hub tooling
    * defaults to testnet for safety: deploys, faucets, validator flows,
    * and Quick L1 are all testnet-first. `isReconnected` lets us skip
@@ -44,7 +44,7 @@ export function WalletSync() {
    * switched to mainnet in a prior session.
    *
    * If the user rejects the switch we silently let them stay on whatever
-   * chain they connected to — mainnet still works for read-only flows.
+   * chain they connected to. Mainnet still works for read-only flows.
    *
    * Skip the nudge entirely on the ICM Test Connection flow: Echo and
    * Dispatch are pre-registered destination L1s, and the user lands on
@@ -63,6 +63,7 @@ export function WalletSync() {
   const setCoreWalletClient = useWalletStore((s) => s.setCoreWalletClient);
   const setWalletEVMAddress = useWalletStore((s) => s.setWalletEVMAddress);
   const setWalletChainId = useWalletStore((s) => s.setWalletChainId);
+  const setWalletChainConfirmed = useWalletStore((s) => s.setWalletChainConfirmed);
   const setPChainAddress = useWalletStore((s) => s.setPChainAddress);
   const setCoreEthAddress = useWalletStore((s) => s.setCoreEthAddress);
   const setIsTestnet = useWalletStore((s) => s.setIsTestnet);
@@ -118,14 +119,14 @@ export function WalletSync() {
   /**
    * Determine if the connected wallet is Core.
    *
-   * Preferred signal: EIP-6963 rdns — `connector.id === 'app.core'`
+   * Preferred signal: EIP-6963 rdns, `connector.id === 'app.core'`
    * (resolved synchronously during render).
    *
    * Fallback: when wagmi attaches via the plain `injected()` connector
    * (id `'injected'`), resolve the underlying EIP-1193 provider and check
    * whether it *is* Core's provider. We compare against `window.avalanche`
    * and `provider.isAvalanche`. This is stricter than the legacy
-   * `connector.type === 'injected' && !!window.avalanche` check — that
+   * `connector.type === 'injected' && !!window.avalanche` check. That
    * version false-positived when both Core and MetaMask were installed
    * but MetaMask was active, because `window.avalanche` is defined
    * regardless of which wallet is the active injected provider. Provider
@@ -137,7 +138,7 @@ export function WalletSync() {
    * connector. Downstream effects bail on `null` so we don't commit to a
    * wallet path (and wipe `pChainAddress`) before we know the answer. We
    * track `resolvedForConnectorRef` to invalidate a stale async result
-   * when the connector swaps out — otherwise, on reconnect with Core the
+   * when the connector swaps out. Otherwise, on reconnect with Core the
    * previously-resolved `false` would leak through and gate the bootstrap.
    */
   // A Console wallet answers like Core, so P-Chain operations go through it instead of window.avalanche.
@@ -198,12 +199,13 @@ export function WalletSync() {
     if (isCoreConnector === null) return;
 
     if (!isConnected || !address) {
-      // Disconnected — clear all wallet state
+      // Disconnected: clear all wallet state
       if (prevAddressRef.current) {
         setWalletEVMAddress('');
         setPChainAddress('');
         setCoreEthAddress('');
         setWalletChainId(0);
+        setWalletChainConfirmed(false);
         setCoreWalletClient(null);
         setWalletType(null);
         setBootstrapped(false);
@@ -245,7 +247,7 @@ export function WalletSync() {
       // state. The second condition is what makes reload work: the
       // walletStore isn't persisted, so on page reload `pChainAddress` and
       // `coreWalletClient` come back empty even though wagmi rehydrates the
-      // address — `addressChanged` alone would miss that case whenever the
+      // address. `addressChanged` alone would miss that case whenever the
       // async Core detection resolves after the connection effect has
       // already set `prevAddressRef`.
       const storeSnapshot = useWalletStore.getState();
@@ -320,6 +322,7 @@ export function WalletSync() {
     setEvmChainName,
     setIsTestnet,
     setPChainAddress,
+    setWalletChainConfirmed,
     setWalletChainId,
     setWalletEVMAddress,
     setWalletType,
@@ -330,7 +333,7 @@ export function WalletSync() {
   //
   // Testnet derivation: only the primary-network chain IDs (43113 Fuji,
   // 43114 Mainnet) definitively signal a network switch.  Any other chain
-  // ID is a custom L1 — switching to an L1 should NEVER flip the
+  // ID is a custom L1. Switching to an L1 should NEVER flip the
   // mainnet/testnet flag because Core Wallet's `wallet_getEthereumChain`
   // unreliably reports `isTestnet: false` for custom L1 testnets.
   useEffect(() => {
@@ -355,7 +358,7 @@ export function WalletSync() {
           if (client) {
             setCoreWalletClient(client);
 
-            // Re-fetch P-Chain address — the bech32 HRP changes between
+            // Re-fetch P-Chain address: the bech32 HRP changes between
             // networks (P-avax1… on mainnet vs P-fuji1… on testnet).
             const [data, pAddr] = await Promise.all([
               client.getEthereumChain().catch(() => ({ chainName: '' }) as any),
@@ -373,7 +376,7 @@ export function WalletSync() {
         } catch {}
       })();
     } else {
-      // Generic EVM wallets: same logic — only C-Chain IDs toggle testnet
+      // Generic EVM wallets: same logic. Only C-Chain IDs toggle testnet
       setIsTestnet(testnet);
       setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
 
@@ -387,16 +390,26 @@ export function WalletSync() {
   //
   // wagmi's `useChainId` only surfaces chains registered in wagmiConfig
   // (avalanche + avalancheFuji). For any custom L1 the connector marks the
-  // chain "unsupported" and never propagates the change — which leaves
+  // chain "unsupported" and never propagates the change. That leaves
   // `walletChainId` stale in the store and breaks ChainGate for L1 steps.
   // A native listener catches every switch regardless of registration.
+  //
+  // The read and the events are the wallet's live chain, so they also set
+  // walletChainConfirmed. Until then, walletChainId can be wagmi's persisted
+  // chain: on a reload with the wallet on an L1, that is the last C-Chain
+  // that wagmi saw, which can be on the other network.
   useEffect(() => {
     if (isCoreConnector === null) return;
     if (!isConnected) return;
 
+    const applyLiveChainId = (next: number) => {
+      applyWalletChainId(next);
+      setWalletChainConfirmed(true);
+    };
+
     const handler = (chainIdHex: unknown) => {
       const next = parseProviderChainId(chainIdHex);
-      if (next !== null) applyWalletChainId(next);
+      if (next !== null) applyLiveChainId(next);
     };
 
     let cancelled = false;
@@ -411,7 +424,7 @@ export function WalletSync() {
 
       const liveChainId = await readWalletProviderChainId(provider);
       if (!cancelled && liveChainId !== null) {
-        applyWalletChainId(liveChainId);
+        applyLiveChainId(liveChainId);
       }
     });
 
@@ -419,7 +432,7 @@ export function WalletSync() {
       cancelled = true;
       activeProvider?.removeListener?.('chainChanged', handler);
     };
-  }, [applyWalletChainId, connector, isConnected, isCoreConnector]);
+  }, [applyWalletChainId, connector, isConnected, isCoreConnector, setWalletChainConfirmed]);
 
   return null;
 }

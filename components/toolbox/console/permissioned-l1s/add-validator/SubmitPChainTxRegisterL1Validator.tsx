@@ -9,17 +9,31 @@ import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { Field, Reveal, Status } from '@/components/toolbox/console/shared/validator-flow-ui';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { extractWarpMessageFromReceipt } from '@avalanche-sdk/interchain/warp';
 import { validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
+import {
+  AggregationRemediation,
+  parseAggregationError,
+  type RemediationLink,
+} from '@/components/toolbox/hooks/contracts/parseAggregationError';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { Success } from '@/components/toolbox/components/Success';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
+import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
   signingSubnetId: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   validatorBalance?: string;
   userPChainBalanceNavax?: bigint | null;
   blsProofOfPossession?: string;
@@ -31,6 +45,8 @@ interface SubmitPChainTxRegisterL1ValidatorProps {
 const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1ValidatorProps> = ({
   subnetIdL1,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   validatorBalance,
   userPChainBalanceNavax,
   blsProofOfPossession,
@@ -48,7 +64,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
+  const [aggRemediation, setAggRemediation] = useState<RemediationLink[] | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  // A RegisterL1ValidatorTx that was issued but not confirmed. It may still commit.
+  const [issuedTxId, setIssuedTxId] = useState<string | null>(null);
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
 
@@ -92,6 +111,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
+    setAggRemediation(null);
     setTxSuccess(null);
 
     if (isCoreWallet && !coreWalletClient) {
@@ -105,8 +125,8 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       return;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return;
     }
     if (!validatorBalance) {
@@ -129,8 +149,16 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       onError('P-Chain address is missing.');
       return;
     }
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setErrorState(signingSubnetWait);
+      onError(signingSubnetWait);
+      return;
+    }
 
     setIsProcessing(true);
+    let pChainTxId: string | null = null;
+    let aggregated = false;
     try {
       const aggregateSignaturePromise = aggregateSignature({
         message: unsignedWarpMessage,
@@ -144,6 +172,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         aggregateSignaturePromise,
       );
       const { signedMessage } = await aggregateSignaturePromise;
+      aggregated = true;
 
       setSignedWarpMessage(signedMessage);
 
@@ -152,7 +181,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         return;
       }
 
-      const pChainTxId = await submitPChainTx(async (client) => {
+      pChainTxId = await submitPChainTx(async (client) => {
         const registerL1ValidatorPromise = client.registerL1Validator({
           balance: validatorBalance!.trim(),
           blsProofOfPossession: blsProofOfPossession!.trim(),
@@ -165,13 +194,27 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       // Wait for P-Chain confirmation before declaring success
       await waitForPChainConfirmation(pChainTxId, isTestnet);
 
+      setIssuedTxId(null);
       setTxSuccess(pChainTxId);
       onSuccess(pChainTxId);
     } catch (err: any) {
-      const message = parsePChainError(err);
+      // Show 'Sign and submit to P-Chain' again, and keep an issued but unconfirmed tx ID visible so the user
+      // can check it before sending again. A dropped tx cannot commit, so its ID is not kept.
+      setSignedWarpMessage(null);
+      if (pChainTxId && !isPChainTxDropped(err)) setIssuedTxId(pChainTxId);
 
-      setErrorState(`P-Chain transaction failed: ${message}`);
-      onError(`P-Chain transaction failed: ${message}`);
+      let display: string;
+      if (aggregated) {
+        display = failureText('P-Chain transaction failed: ', parsePChainError(err));
+      } else {
+        // The L1's own validators sign the message of a manager on the L1, so the L1 causes apply. The Primary
+        // Network signs the message of a manager on the C-Chain.
+        const mapped = signingSubnetId === subnetIdL1 ? parseAggregationError(err, 'l1') : null;
+        setAggRemediation(mapped?.remediation ?? null);
+        display = mapped?.message ?? `Signature aggregation failed: ${parsePChainError(err)}`;
+      }
+      setErrorState(display);
+      onError(display);
     } finally {
       setIsProcessing(false);
     }
@@ -180,7 +223,9 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const handleTxHashChange = (value: string) => {
     setEvmTxHashState(value);
     setErrorState(null);
+    setAggRemediation(null);
     setTxSuccess(null);
+    setIssuedTxId(null);
     setSignedWarpMessage(null);
   };
 
@@ -203,12 +248,14 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   };
 
   if (!subnetIdL1) {
-    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</p>;
   }
 
   const step1Complete = !!unsignedWarpMessage;
-  const step2Complete = !!signedWarpMessage;
-  const step3Complete = !!txSuccess;
+  // Core sends the tx here, so the step is complete only when the P-Chain confirms it. Other wallets stop after
+  // the aggregation and send the tx with the CLI.
+  const step2Complete = isCoreWallet ? !!txSuccess : !!signedWarpMessage;
+  const isSending = isCoreWallet && isProcessing && !!signedWarpMessage;
   const hasInsufficientBalance = !!(
     userPChainBalanceNavax &&
     validatorBalance &&
@@ -217,7 +264,14 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
   return (
     <div className="flex flex-col gap-5">
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && (
+        <Alert variant="error">
+          <div>
+            {error}
+            {aggRemediation && <AggregationRemediation items={aggRemediation} />}
+          </div>
+        </Alert>
+      )}
 
       <Steps>
         <Step>
@@ -258,43 +312,93 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
           <div>
             <h3 className="flex items-center justify-between gap-3">
               Sign and submit to the P-Chain
-              {step2Complete && <Status tone="ok">Aggregated</Status>}
+              {step2Complete && <Status tone="ok">{txSuccess && isCoreWallet ? 'Confirmed' : 'Aggregated'}</Status>}
             </h3>
             <p>
-              Aggregates BLS signatures from the L1 validators and submits{' '}
+              Aggregates BLS signatures from the validators of the Validator Manager&apos;s chain (the Primary Network
+              for a manager on the C-Chain) and submits{' '}
               <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">RegisterL1ValidatorTx</code>.
             </p>
           </div>
           {step2Complete ? (
             <div className="flex flex-col gap-3">
-              <p className="flex items-center gap-1.5 text-[13px] text-emerald-700 dark:text-emerald-400">
-                <Check className="h-3.5 w-3.5" />
-                Signatures aggregated
-              </p>
+              {txSuccess ? (
+                <Success
+                  label="RegisterL1ValidatorTx ID"
+                  value={txSuccess}
+                  isTestnet={isTestnet}
+                  confirmed={isCoreWallet || undefined}
+                />
+              ) : (
+                <p className="flex items-center gap-1.5 text-[13px] text-emerald-700 dark:text-emerald-400">
+                  <Check className="h-3.5 w-3.5" />
+                  Signatures aggregated
+                </p>
+              )}
               <Reveal label="Signed warp message" value={signedWarpMessage || ''} />
             </div>
-          ) : step1Complete && !step3Complete ? (
-            isCoreWallet ? (
-              <CoreWalletTransactionButton
-                onClick={handleSubmitPChainTx}
-                loading={isProcessing}
-                loadingText="Submitting…"
-                disabled={isProcessing || !unsignedWarpMessage || !validatorBalance || !blsProofOfPossession}
-                className="w-full"
-              >
-                Sign and submit to P-Chain
-              </CoreWalletTransactionButton>
-            ) : (
-              <Button
-                onClick={handleSubmitPChainTx}
-                disabled={isProcessing || !unsignedWarpMessage || !validatorBalance || !blsProofOfPossession}
-                loading={isProcessing}
-                loadingText="Aggregating…"
-                className="w-full"
-              >
-                Aggregate signatures
-              </Button>
-            )
+          ) : isSending ? (
+            <p role="status" className="flex items-center gap-2 text-[13px] text-zinc-600 dark:text-zinc-400">
+              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+              Signatures aggregated. Approve RegisterL1ValidatorTx in Core. The step then waits for the P-Chain to
+              confirm it.
+            </p>
+          ) : step1Complete ? (
+            <div className="flex flex-col gap-3">
+              {issuedTxId && (
+                <div className="flex flex-col gap-1">
+                  <Success
+                    label="RegisterL1ValidatorTx ID (not confirmed)"
+                    value={issuedTxId}
+                    isTestnet={isTestnet}
+                    confirmed={false}
+                  />
+                  <IssuedTxNote
+                    txId={issuedTxId}
+                    isTestnet={isTestnet}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                  />
+                </div>
+              )}
+              <SigningSubnetStatus
+                signingSubnetId={signingSubnetId}
+                isLoading={signingSubnetLoading}
+                error={signingSubnetError}
+              />
+              {isCoreWallet ? (
+                <CoreWalletTransactionButton
+                  onClick={handleSubmitPChainTx}
+                  loading={isProcessing}
+                  loadingText="Submitting…"
+                  disabled={
+                    isProcessing ||
+                    !unsignedWarpMessage ||
+                    !validatorBalance ||
+                    !blsProofOfPossession ||
+                    !signingSubnetId
+                  }
+                  className="w-full"
+                >
+                  Sign and submit to P-Chain
+                </CoreWalletTransactionButton>
+              ) : (
+                <Button
+                  onClick={handleSubmitPChainTx}
+                  disabled={
+                    isProcessing ||
+                    !unsignedWarpMessage ||
+                    !validatorBalance ||
+                    !blsProofOfPossession ||
+                    !signingSubnetId
+                  }
+                  loading={isProcessing}
+                  loadingText="Aggregating…"
+                  className="w-full"
+                >
+                  Aggregate signatures
+                </Button>
+              )}
+            </div>
           ) : (
             <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Waiting on the warp message.</p>
           )}

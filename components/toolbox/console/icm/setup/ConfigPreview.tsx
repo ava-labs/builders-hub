@@ -87,7 +87,8 @@ export function ConfigPreview({ configJson, highlightedLines }: ConfigPreviewPro
         </button>
       </div>
 
-      <div ref={scrollRef} className="relative flex-1 overflow-auto py-3">
+      {/* The config holds the relayer private key, so session replay skips it (ph-no-capture). */}
+      <div ref={scrollRef} className="ph-no-capture relative flex-1 overflow-auto py-3">
         {configJson ? (
           <pre className="font-mono text-[11.5px] leading-5">
             {lines.map((line, i) => {

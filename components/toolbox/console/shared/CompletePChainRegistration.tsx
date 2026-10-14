@@ -39,6 +39,8 @@ import {
   parseAggregationError,
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
+import { SigningSubnetStatus, signingSubnetWaitText } from './SigningSubnetStatus';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -48,6 +50,10 @@ export interface CompletePChainRegistrationProps {
   pChainTxId?: string;
   validationID?: string;
   signingSubnetId?: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   onSuccess: (data: { txHash: string; message: string }) => void;
   onError: (message: string) => void;
 
@@ -73,6 +79,8 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
   pChainTxId,
   validationID,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   onSuccess,
   onError,
   managerType,
@@ -141,8 +149,8 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       return false;
     }
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      setErrorState(NO_L1_SELECTED);
+      onError(NO_L1_SELECTED);
       return false;
     }
     if (!managerAddress) {
@@ -153,6 +161,12 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     if (!chainPublicClient) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      return false;
+    }
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setErrorState(signingSubnetWait);
+      onError(signingSubnetWait);
       return false;
     }
 
@@ -256,14 +270,13 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       }
 
       // Step 6: Aggregate P-Chain signature.
-      // The warp here is from P-Chain (its registration acknowledgement),
-      // signed by the validators who can attest to the validator's existence
-      // on P-Chain — the canonical aggregator routes by source chain when
-      // signingSubnetId is unset/falls-through.
+      // The warp here is from P-Chain (its registration acknowledgement). The
+      // validators of the subnet that hosts the Validator Manager sign it: the
+      // L1's own subnet, or the Primary Network for a manager on the C-Chain.
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(l1ValidatorRegistrationMessage),
         justification: bytesToHex(justification),
-        signingSubnetId: signingSubnetId || subnetIdL1,
+        signingSubnetId,
       });
 
       notify(
@@ -353,13 +366,15 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
   }
 
   if (!subnetIdL1) {
-    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</p>;
   }
 
+  // A pending or completed tx is covered by isProcessing and registrationComplete. A reverted tx
+  // leaves the button enabled, so the user can try again.
   const isButtonDisabled =
     isProcessing ||
-    !!txHash ||
     !pChainTxIdState.trim() ||
+    !signingSubnetId ||
     isLoadingOwnership ||
     (isPoA && ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) ||
     (!isCoreWallet && !!pChainSignature);
@@ -442,6 +457,14 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Checking contract ownership
             </p>
+          )}
+
+          {step1Complete && !step2Complete && (
+            <SigningSubnetStatus
+              signingSubnetId={signingSubnetId}
+              isLoading={signingSubnetLoading}
+              error={signingSubnetError}
+            />
           )}
 
           {pChainSignature && !step2Complete && (

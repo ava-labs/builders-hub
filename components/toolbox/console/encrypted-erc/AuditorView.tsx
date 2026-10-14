@@ -106,7 +106,7 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
             {ev.auditorAddressOnChain ? (
               <HashChip value={ev.auditorAddressOnChain} len={12} />
             ) : (
-              <span className="font-mono text-zinc-400">—</span>
+              <span className="font-mono text-zinc-400">Not set</span>
             )}
           </SpecRow>
           {isAuditorWallet && ev.decryptionKey && (
@@ -146,7 +146,7 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
             placeholder="Paste the auditor key"
             spellCheck={false}
             autoComplete="off"
-            className="h-10 w-full border border-zinc-200 bg-white px-3 font-mono text-[12px] text-zinc-900 transition-colors placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:hover:border-zinc-600 dark:focus:border-zinc-300"
+            className="ph-no-capture h-10 w-full border border-zinc-200 bg-white px-3 font-mono text-[12px] text-zinc-900 transition-colors placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:hover:border-zinc-600 dark:focus:border-zinc-300"
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-md text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
@@ -225,10 +225,10 @@ function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; cha
                         </span>
                         <KindBadge kind={e.kind} />
                         <span className={CELL_MUTED} title={e.from ?? undefined}>
-                          {e.from ? `${e.from.slice(0, 10)}…` : '—'}
+                          {e.from ? `${e.from.slice(0, 10)}…` : 'None'}
                         </span>
                         <span className={CELL_MUTED} title={e.to ?? undefined}>
-                          {e.to ? `${e.to.slice(0, 10)}…` : '—'}
+                          {e.to ? `${e.to.slice(0, 10)}…` : 'None'}
                         </span>
                         <span className="truncate text-right font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">
                           {e.amountFormatted ??

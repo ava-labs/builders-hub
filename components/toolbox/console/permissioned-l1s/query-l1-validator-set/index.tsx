@@ -69,7 +69,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
 
   const vmcAddress = useVMCAddress(subnetId);
 
-  // Read contract state from the VMC's own chain — independent of the
+  // Read contract state from the VMC's own chain, independent of the
   // wallet's currently-selected network. Resolves well-known C-Chain
   // IDs even when the user's l1List has been customized.
   const vmcPublicClient = usePublicClientForChain(vmcAddress.blockchainId);
@@ -111,7 +111,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
         const active = all.filter((v) => v.weight > 0).sort((a, b) => b.weight - a.weight);
         setValidators(active);
 
-        // Detect L1 vs legacy subnet — L1s have validators with validationId
+        // Detect L1 vs legacy subnet: L1s have validators with validationId
       } catch (err) {
         console.error('Error fetching validators:', err);
         setError('Failed to fetch validators');
@@ -129,7 +129,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
       {/* Left: Subnet selector + VMC details */}
       <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <BoardHeader label="L1 subnet" />
+        <BoardHeader label="L1" />
         <div className="flex flex-col gap-4 px-5 py-5 md:px-6">
           <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
             Pick an L1 to see its active validators and validator manager.
@@ -163,7 +163,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
         )}
         {subnetId && !vmcAddress.isLoading && vmcAddress.error && <Alert variant="warning">{vmcAddress.error}</Alert>}
         {!subnetId ? (
-          <EmptyBoard label="No L1 selected">Pick an L1 subnet to list its active validators.</EmptyBoard>
+          <EmptyBoard label="No L1 selected">Pick an L1 to list its active validators.</EmptyBoard>
         ) : isLoading ? (
           <section
             role="status"

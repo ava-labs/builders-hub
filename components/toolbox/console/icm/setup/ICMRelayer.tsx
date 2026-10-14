@@ -53,7 +53,13 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
     return [...new Set([selectedL1?.id, l1List[0]?.id].filter(Boolean) as string[])];
   });
 
-  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(selectedSources);
+  // The same chain on both sides is not a valid pair. So with one source chain, the destinations start with the first
+  // other chain in the list (none when the list has one chain). With two source chains, both are also destinations.
+  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(() => {
+    if (selectedSources.length !== 1) return selectedSources;
+    const other = l1List.find((l1: L1ListItem) => l1.id !== selectedSources[0]);
+    return other ? [other.id] : [];
+  });
   const [error, setError] = useState<string | null>(null);
   const [balances, setBalances] = useState<Record<string, string>>({});
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
@@ -347,18 +353,21 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
             This writes the config to{' '}
             <code className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">~/.icm-relayer/config.json</code>.
           </p>
-          <CommandBlock
-            title="Save config"
-            command={genConfigCommand(
-              getConfigSources(),
-              getConfigDestinations(),
-              isTestnet ?? false,
-              logLevel,
-              storageLocation,
-              processMissedBlocks,
-              apiPort,
-            )}
-          />
+          {/* The command holds the relayer private key, so session replay skips it (ph-no-capture). */}
+          <div className="ph-no-capture">
+            <CommandBlock
+              title="Save config"
+              command={genConfigCommand(
+                getConfigSources(),
+                getConfigDestinations(),
+                isTestnet ?? false,
+                logLevel,
+                storageLocation,
+                processMissedBlocks,
+                apiPort,
+              )}
+            />
+          </div>
         </Step>
 
         <Step>

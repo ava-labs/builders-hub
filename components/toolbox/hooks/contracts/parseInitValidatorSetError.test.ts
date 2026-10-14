@@ -27,7 +27,35 @@ describe('parseInitValidatorSetError', () => {
   it('maps InvalidWarpMessage to ProposerVM guidance with the advance tool link', () => {
     const mapped = parseInitValidatorSetError(new Error('Error: InvalidWarpMessage()'), '0xfacade');
     expect(mapped!.message).toMatch(/ProposerVM/);
+    expect(mapped!.message).toMatch(/produce a block/i);
     expect(mapped!.remediation.map((r) => r.href)).toContain('/console/layer-1/advance-pchain-view');
+  });
+
+  it('keeps the ProposerVM guidance for a manager on an L1', () => {
+    const mapped = parseInitValidatorSetError(new Error('Error: InvalidWarpMessage()'), '0xfacade', false);
+    expect(mapped!.message).toMatch(/produce a block/i);
+    expect(mapped!.remediation.map((r) => r.href)).toContain('/console/layer-1/advance-pchain-view');
+  });
+
+  it('tells a C-Chain manager to aggregate again, with no block production and no advance tool link', () => {
+    const mapped = parseInitValidatorSetError(new Error('Error: InvalidWarpMessage()'), '0xfacade', true);
+    expect(mapped).not.toBeNull();
+    expect(mapped!.message).toMatch(/C-Chain/);
+    expect(mapped!.message).toContain('Re-aggregate signatures');
+    expect(mapped!.message).toContain('you do not need to produce a block');
+    expect(mapped!.message).toContain('wait 5 minutes');
+    expect(mapped!.message).not.toMatch(/zero-value transfer/i);
+    expect(mapped!.remediation.map((r) => r.href)).not.toContain('/console/layer-1/advance-pchain-view');
+  });
+
+  it('maps the other reverts the same way for a C-Chain manager', () => {
+    expect(
+      parseInitValidatorSetError(new Error(INVALID_TOTAL_WEIGHT_DUMP), '0xfacade', true)!.remediation[0].href,
+    ).toBe('/console/permissioned-l1s/validator-manager-setup');
+    expect(
+      parseInitValidatorSetError(new Error('Error: InvalidInitializationStatus()'), '0xfacade', true)!.message,
+    ).toMatch(/already initialized/i);
+    expect(parseInitValidatorSetError(new Error('fetch failed'), '0xfacade', true)).toBeNull();
   });
 
   it('maps InvalidInitializationStatus to an already-initialized message', () => {

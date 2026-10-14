@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import type { ConsoleLog } from '@/types/console-log';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -171,6 +172,7 @@ export default function ConsoleHistoryPage() {
   const getTxExplorerUrl = (tx: TxRecord): string | null => {
     if (!tx.txHash) return null;
     if (tx.type === 'pchain') return `/explorer/${tx.network}/p-chain/tx/${tx.txHash}`;
+    if (tx.type === 'cchain-atomic') return `/explorer/${tx.network}/c-chain/atomic-tx/${tx.txHash}`;
     if (tx.chainId === 43114) return `/explorer/mainnet/c-chain/tx/${tx.txHash}`;
     if (tx.chainId === 43113) return `/explorer/fuji/c-chain/tx/${tx.txHash}`;
     const base = tx.network === 'mainnet' ? 'https://explorer.avax.network' : 'https://explorer-test.avax.network';
@@ -335,6 +337,25 @@ export default function ConsoleHistoryPage() {
       )}
 
       {/* Local transaction history (from txHistoryStore, persisted in localStorage) */}
+      {txHistory.length === 0 && (
+        <Rise delay={0.08}>
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Transactions" />
+            <Board className={BOX}>
+              <EmptyRow>
+                No transactions from this browser yet. Transactions that you send in the{' '}
+                <Link
+                  href="/console"
+                  className="underline underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-300"
+                >
+                  Console
+                </Link>{' '}
+                show here.
+              </EmptyRow>
+            </Board>
+          </section>
+        </Rise>
+      )}
       {filteredTxHistory.length > 0 && (
         <Rise delay={0.08}>
           <section className="flex flex-col gap-4">
@@ -379,7 +400,7 @@ export default function ConsoleHistoryPage() {
                     </span>
                     <span className={MUTED}>
                       <CellLabel>Chain</CellLabel>
-                      {tx.type === 'pchain' ? 'P-Chain' : 'EVM'}
+                      {tx.type === 'pchain' ? 'P-Chain' : tx.type === 'cchain-atomic' ? 'C-Chain' : 'EVM'}
                     </span>
                     <span className={MUTED}>
                       <CellLabel>Network</CellLabel>
@@ -396,7 +417,7 @@ export default function ConsoleHistoryPage() {
                           onCopy={() => handleCopy(tx.txHash, tx.id)}
                         />
                       ) : (
-                        <span className="font-mono text-[12px] text-zinc-300 dark:text-zinc-700">—</span>
+                        <span className="font-mono text-[12px] text-zinc-300 dark:text-zinc-700">None</span>
                       )}
                     </span>
                     <span className="md:text-right">
@@ -484,7 +505,7 @@ export default function ConsoleHistoryPage() {
                     </span>
                     <span className={MUTED}>
                       <CellLabel>Network</CellLabel>
-                      {data.network ? (data.network === 'mainnet' ? 'Mainnet' : 'Testnet') : '—'}
+                      {data.network ? (data.network === 'mainnet' ? 'Mainnet' : 'Testnet') : 'Unknown'}
                     </span>
                     <span className="min-w-0">
                       <CellLabel>ID</CellLabel>
@@ -497,7 +518,7 @@ export default function ConsoleHistoryPage() {
                           onCopy={() => handleCopy(mainId, log.id)}
                         />
                       ) : (
-                        <span className="font-mono text-[12px] text-zinc-300 dark:text-zinc-700">—</span>
+                        <span className="font-mono text-[12px] text-zinc-300 dark:text-zinc-700">None</span>
                       )}
                     </span>
                   </div>

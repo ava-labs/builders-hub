@@ -60,7 +60,7 @@ export function BridgeRibbon() {
   // and watches for new `ReceiveCrossChainMessage` events while mounted.
   useDeliveryWatcher();
   // Show every bridge event (deploy, register, collateral, send, …) for the
-  // active bridge in the recent window — not just ICM-tagged ones. ICM-bearing
+  // active bridge in the recent window, not just ICM-tagged ones. ICM-bearing
   // rows surface a `msg 0x…` line that opens the IcmMessageSheet detail view.
   const bridgeEvents = useMemo(() => {
     const now = Date.now();
@@ -104,7 +104,7 @@ export function BridgeRibbon() {
   );
 
   function HomeSide() {
-    // The Home picker is disabled once TokenHome is deployed — `bridge.homeL1Id`
+    // The Home picker is disabled once TokenHome is deployed: `bridge.homeL1Id`
     // is the contract's chain and can't be migrated without re-deploying. The
     // user still gets the explainer + a "Start new bridge" suggestion below.
     const homeIsLocked = Boolean(ctx.bridge?.homeAddress);
@@ -158,13 +158,13 @@ export function BridgeRibbon() {
         />
       );
     }
-    // Block ribbon-driven picking until TokenHome is deployed — otherwise users
-    // can jump to Phase 3 without prerequisites.
+    // Block ribbon-driven picking until TokenHome is deployed. Otherwise users
+    // can jump to the Remote step without prerequisites.
     if (!ctx.bridge?.homeAddress) {
       return (
         <div
           className="flex min-w-0 cursor-not-allowed items-start gap-3 px-4 py-3.5"
-          aria-label="Pick destination chain (disabled — deploy TokenHome first)"
+          aria-label="Pick destination chain (disabled until you deploy TokenHome)"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-700 dark:text-zinc-600">
             <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -256,7 +256,7 @@ function RibbonSide({
  * events; an amber pulse marks anything still in flight.
  *
  * ICM-specific rows surface a `msg 0x…` line that opens the `IcmMessageSheet`
- * for deep inspection — message ID is captured from the Teleporter
+ * for deep inspection. The message ID is captured from the Teleporter
  * `SendCrossChainMessage` event in `useRegisterRemote` and `useSendTokens`.
  */
 function BridgeLog({ events }: { events: ActivityEvent[] }) {
@@ -318,7 +318,7 @@ function BridgeLog({ events }: { events: ActivityEvent[] }) {
 /**
  * Groups paired events (`send + receive`, `register-sent + register-received`)
  * into one expandable row; renders everything else as singletons. The source
- * row is what the user actually cares about — the receive row is collapsed
+ * row is what the user actually cares about. The receive row is collapsed
  * into a status tag until expanded.
  */
 function ActivityList({ events, onSelect }: { events: ActivityEvent[]; onSelect: (event: ActivityEvent) => void }) {
@@ -439,8 +439,8 @@ interface PickDestinationSheetProps {
 /**
  * Renders the empty Remote ribbon slot as a Sheet trigger. Clicking opens a
  * chain picker; selection is non-binding until the user clicks the explicit
- * "Continue" button — at which point the parent routes to Phase 3 with
- * `?destination=<l1Id>` so the inspector pre-fills.
+ * "Continue" button. At that point the parent routes to the Remote step
+ * with `?destination=<l1Id>` so the inspector pre-fills.
  */
 function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinationSheetProps) {
   const [open, setOpen] = useState(false);
@@ -502,7 +502,7 @@ function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinat
         <SheetHead eyebrow="Remote chain" title="Pick a destination" />
         <SheetBody className="flex flex-col gap-4">
           <p className={BODY}>
-            Where should bridged tokens land? Pick any L1 except the Home chain. Phase 3 opens with it selected.
+            Where should bridged tokens land? Pick any L1 except the Home chain. The Remote step opens with it selected.
           </p>
           {candidates.length === 0 ? (
             <div className="flex flex-col items-start gap-3 border border-zinc-200 px-4 py-5 dark:border-zinc-800">
@@ -572,7 +572,7 @@ function ChangeHomeL1Section({ currentHomeL1Id, locked, onStartNewBridge }: Chan
     setIsSwitching(l1.id);
     try {
       // `switchChainOrAdd` falls back to wallet_addEthereumChain if the L1
-      // isn't already in the wallet — common for fresh user-created L1s.
+      // isn't already in the wallet, which is common for fresh user-created L1s.
       // Errors are surfaced via toast inside the helper.
       await switchChainOrAdd(l1);
     } finally {

@@ -28,6 +28,9 @@ import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
+import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
+import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 type TokenType = 'native' | 'erc20';
 
@@ -40,6 +43,10 @@ interface CompleteValidatorRemovalProps {
   tokenType: TokenType;
   subnetIdL1: string;
   signingSubnetId?: string;
+  /** useVMCAddress is loading the signing subnet */
+  signingSubnetLoading: boolean;
+  /** The useVMCAddress lookup error */
+  signingSubnetError: string | null;
   pChainTxId?: string;
   onSuccess: (data: { txHash: string; message: string }) => void;
   onError: (message: string) => void;
@@ -53,7 +60,7 @@ interface CompleteValidatorRemovalProps {
  * which is the wrong primitive: once P-Chain finalizes a SetL1ValidatorWeightTx
  * with weight=0, the validator is removed from P-Chain's active set entirely
  * (s.state.GetL1Validator returns ErrNotFound). P-Chain validators then refuse
- * to sign L1ValidatorWeight messages about non-existent validators — see
+ * to sign L1ValidatorWeight messages about non-existent validators. See
  * avalanchego vms/platformvm/network/warp.go:332-340, which literally tells you
  * to use L1ValidatorRegistration(registered=false) instead. The aggregator just
  * hangs forever on signature collection.
@@ -64,7 +71,7 @@ interface CompleteValidatorRemovalProps {
  *      (GetRegistrationJustification walks the WarpMessenger event history)
  *   2. Pack L1ValidatorRegistration(validationID, registered=false) with
  *      sourceChainID = P-Chain (zero ID)
- *   3. Aggregate signatures against the L1's signing subnet
+ *   3. Aggregate signatures against the signing subnet: the subnet of the chain that hosts the Validator Manager
  *   4. Submit to StakingManager.completeValidatorRemoval with the signed warp
  */
 const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
@@ -73,6 +80,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   tokenType,
   subnetIdL1,
   signingSubnetId,
+  signingSubnetLoading,
+  signingSubnetError,
   pChainTxId: initialPChainTxId,
   onSuccess,
   onError,
@@ -97,7 +106,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   const [error, setLocalError] = useState<string | null>(null);
 
-  // We don't need to parse the P-Chain tx — the L1ValidatorRegistration message
+  // We don't need to parse the P-Chain tx: the L1ValidatorRegistration message
   // only needs the validationID. The P-Chain tx ID stays in the UI as a
   // confirmation breadcrumb that the user did the prior step.
   const step1Complete = !!validationID;
@@ -108,13 +117,13 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setLocalError(null);
 
     if (!validationID) {
-      const msg = 'Validation ID missing — go back to the Initiate Removal step.';
+      const msg = 'The validation ID is missing. Go back to the Initiate Removal step.';
       setLocalError(msg);
       onError(msg);
       return;
     }
     if (!subnetIdL1) {
-      const msg = 'L1 Subnet ID is required.';
+      const msg = NO_L1_SELECTED;
       setLocalError(msg);
       onError(msg);
       return;
@@ -125,13 +134,19 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       onError(msg);
       return;
     }
+    const signingSubnetWait = signingSubnetWaitText(signingSubnetId, signingSubnetLoading, signingSubnetError);
+    if (signingSubnetWait) {
+      setLocalError(signingSubnetWait);
+      onError(signingSubnetWait);
+      return;
+    }
 
     setIsAggregating(true);
     try {
       // Fetch the registration justification from the L1's WarpMessenger logs.
       // This is the preimage that proves the validationID corresponds to a
-      // validator that was previously registered — required by P-Chain's
-      // verifyL1ValidatorRegistration for the registered=false case.
+      // validator that was previously registered, as P-Chain's
+      // verifyL1ValidatorRegistration requires for the registered=false case.
       const justification = await findRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
       if (!justification) {
         throw new Error(
@@ -152,7 +167,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
-        signingSubnetId: signingSubnetId || subnetIdL1,
+        signingSubnetId,
       });
 
       notify({ type: 'local', name: 'Aggregate P-Chain Signatures' }, aggregateSignaturePromise);
@@ -172,7 +187,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setLocalError(null);
 
     if (!signedWarpMessage) {
-      const msg = 'No signed warp message — aggregate signatures first.';
+      const msg = 'No signed Warp message. Aggregate the signatures first.';
       setLocalError(msg);
       onError(msg);
       return;
@@ -211,7 +226,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
       if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
+        message = WALLET_REJECTED_TEXT;
       } else if (message.includes('InvalidValidationID')) {
         message = 'Invalid validation ID. The validator may not exist or removal was not initiated.';
       } else if (message.includes('ValidatorNotRemovable')) {
@@ -222,8 +237,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         message =
           "Contract rejected the warp's registration status. Make sure the SetL1ValidatorWeightTx (weight=0) has been accepted by P-Chain before completing here.";
       }
-      setLocalError(`Failed to complete validator removal: ${message}`);
-      onError(`Failed to complete validator removal: ${message}`);
+      setLocalError(failureText('Failed to complete validator removal: ', message));
+      onError(failureText('Failed to complete validator removal: ', message));
     } finally {
       setIsSubmitting(false);
     }
@@ -249,7 +264,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       {error && <Alert variant="error">{error}</Alert>}
 
       <Steps>
-        {/* Step 1 — Confirm we have what we need from the previous step */}
+        {/* Step 1: Confirm we have what we need from the previous step */}
         <Step>
           <div>
             <h3 className="flex items-center justify-between gap-3">
@@ -275,7 +290,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
           />
         </Step>
 
-        {/* Step 2 — Aggregate signatures */}
+        {/* Step 2: Aggregate signatures */}
         <Step>
           <div>
             <h3 className="flex items-center justify-between gap-3">
@@ -308,22 +323,29 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             </div>
           )}
           {!step2Complete && step1Complete && !step3Complete && (
-            <Button
-              onClick={handleAggregate}
-              disabled={isAggregating || !validationID}
-              loading={isAggregating}
-              loadingText="Aggregating signatures…"
-              className="w-full"
-            >
-              Aggregate signatures
-            </Button>
+            <>
+              <SigningSubnetStatus
+                signingSubnetId={signingSubnetId}
+                isLoading={signingSubnetLoading}
+                error={signingSubnetError}
+              />
+              <Button
+                onClick={handleAggregate}
+                disabled={isAggregating || !validationID || !signingSubnetId}
+                loading={isAggregating}
+                loadingText="Aggregating signatures…"
+                className="w-full"
+              >
+                Aggregate signatures
+              </Button>
+            </>
           )}
           {!step1Complete && (
             <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Waiting on the earlier steps.</p>
           )}
         </Step>
 
-        {/* Step 3 — Submit to L1 */}
+        {/* Step 3: Submit to L1 */}
         <Step>
           <div>
             <h3 className="flex items-center justify-between gap-3">

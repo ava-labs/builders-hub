@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { getPChainRpcUrl, getGlacierNetwork } from '@/components/toolbox/utils/avalancheEndpoints';
@@ -43,6 +43,7 @@ import {
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
 import { parseInitValidatorSetError } from '@/components/toolbox/hooks/contracts/parseInitValidatorSetError';
+import { C_CHAIN_IDS } from '@/components/toolbox/console/layer-1/create/conversionChecks';
 
 type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId: string };
 
@@ -94,6 +95,9 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [isCheckingInit, setIsCheckingInit] = useState(false);
   const [managerBlockchainId, setManagerBlockchainId] = useState('');
   const managerChain = useL1ByChainId(managerBlockchainId);
+  // The Primary Network signs for a manager on the C-Chain, and the C-Chain produces blocks all the time.
+  const managerOnCChain = managerBlockchainId === C_CHAIN_IDS.testnet || managerBlockchainId === C_CHAIN_IDS.mainnet;
+  const conversionTxInputId = useId();
 
   // The L1 whose validator set this step initializes. A wallet on the L1
   // names it. A wallet on the C-Chain (a manager hosted there) names only
@@ -167,6 +171,12 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     } finally {
       setIsAggregating(false);
     }
+  }
+
+  // A new signature for the same conversion, for when the chain rejected the last one.
+  function reaggregate() {
+    setL1ConversionSignature('');
+    void aggSigs();
   }
 
   useEffect(() => {
@@ -317,7 +327,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         })),
         // The signature was already aggregated in step 1; the SDK rebuilds the
         // unsigned message internally and asks us to sign it. Return the
-        // signature we already have — it must match because both paths derive
+        // signature we already have. It must match because both paths derive
         // from the same ConversionData.
         aggregateSignatures: async () => add0x(L1ConversionSignature),
       });
@@ -345,7 +355,11 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       // The SDK simulates before sending and throws the raw viem revert
       // dump; map the unambiguous reverts to actionable guidance instead
       // of showing the dump (issue #4464).
-      const mapped = parseInitValidatorSetError(err, conversionResult?.managerAddress ?? managerAddress ?? null);
+      const mapped = parseInitValidatorSetError(
+        err,
+        conversionResult?.managerAddress ?? managerAddress ?? null,
+        managerOnCChain,
+      );
       setAggRemediation(mapped?.remediation?.length ? mapped.remediation : null);
       setError(mapped?.message ?? (err as Error).message);
     } finally {
@@ -428,9 +442,18 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                   >
                     ConvertSubnetToL1Tx
                   </Link>
-                  . Ensure port{' '}
-                  <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-[10px]">9651</code>{' '}
-                  is open on all validators.
+                  .
+                  {/* Hide the hint only for a known C-Chain manager: managerBlockchainId stays empty while Glacier lags */}
+                  {!managerOnCChain && (
+                    <>
+                      {' '}
+                      Ensure port{' '}
+                      <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-[10px]">
+                        9651
+                      </code>{' '}
+                      is open on all validators.
+                    </>
+                  )}
                 </p>
 
                 <div className="mt-2 space-y-2">
@@ -441,10 +464,14 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                     label="L1 Subnet ID"
                   />
                   <div>
-                    <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                    <label
+                      htmlFor={conversionTxInputId}
+                      className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1"
+                    >
                       Conversion Tx ID (P-Chain)
                     </label>
                     <input
+                      id={conversionTxInputId}
                       type="text"
                       value={conversionTxID}
                       onChange={(e) => setConversionTxID(e.target.value)}
@@ -482,16 +509,27 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                           <DynamicCodeBlock lang="text" code={L1ConversionSignature} />
                         </div>
                       </details>
+                      {!step2Complete && (
+                        <button
+                          type="button"
+                          onClick={reaggregate}
+                          disabled={isAggregating || isInitializing}
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+                        >
+                          Re-aggregate signatures
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <Button
                       variant="primary"
                       onClick={aggSigs}
                       loading={isAggregating}
+                      loadingText="Aggregating..."
                       disabled={!conversionTxID.trim() || isAggregating}
                       className="w-full"
                     >
-                      {isAggregating ? 'Aggregating...' : 'Aggregate Signatures'}
+                      Aggregate Signatures
                     </Button>
                   )}
                 </div>
@@ -578,7 +616,10 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
           {/* Error Display */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div
+              role="alert"
+              className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+            >
               <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
               {aggRemediation && <AggregationRemediation items={aggRemediation} />}
             </div>
@@ -681,7 +722,7 @@ const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string | undefin
       }
     }
 
-    // No output — include what we do know from the trace
+    // No output: include what we do know from the trace
     const revertReason = trace.result?.revertReason;
     if (revertReason) return `Revert: ${revertReason}`;
 

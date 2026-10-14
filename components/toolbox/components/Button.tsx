@@ -60,6 +60,7 @@ export function Button({
       <button
         onClick={onClick}
         disabled={disabled || loading}
+        aria-busy={loading}
         className={cn(
           stickLeft ? 'whitespace-nowrap -ml-px' : 'w-full',
           'inline-flex cursor-pointer items-center justify-center gap-2 border font-mono font-bold uppercase tracking-[0.14em] transition-colors',

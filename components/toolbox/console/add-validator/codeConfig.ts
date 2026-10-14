@@ -60,7 +60,7 @@ const SOURCE_BY_FLAVOR: Record<ManagerCodeFlavor, { filename: string; raw: strin
 export function buildStepConfig(flavor: ManagerCodeFlavor): StepConfig[] {
   const src = SOURCE_BY_FLAVOR[flavor];
   return [
-    { id: 'select-subnet', title: 'Select L1', description: 'Choose your L1 subnet' },
+    { id: 'select-subnet', title: 'Select L1', description: 'Choose your L1' },
     {
       id: 'initiate-registration',
       title: 'Initiate Validator Registration',

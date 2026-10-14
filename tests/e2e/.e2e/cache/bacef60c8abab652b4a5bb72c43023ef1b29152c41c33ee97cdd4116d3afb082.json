@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:19:45.453Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "hover",
+        "summary": "hover over listitem \"Ecosystem\"",
+        "target": {
+          "role": "listitem",
+          "name": "Ecosystem"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Integrations Browse wallet SDKs, block …\"",
+        "target": {
+          "role": "link",
+          "name": "Integrations Browse wallet SDKs, block explorers, indexers, data feeds, and more."
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-site.e2e.ts::visitor%20goes%20from%20the%20home%20page%20to%20Grants%20and%20then%20to%20Integrations",
+      "targetId": "desktop",
+      "instructionDigest": "10c7ff28fd9c7285b6c673892b8edbfb699a5a6c9c40a6c124f5208d9091b3d9",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Hovered Ecosystem nav item and tapped \"Integrations\" in its menu. App navigated to /integrations, titled \"Integrations | Avalanche Builder Hub\", showing \"Every tool, listed.\" heading and integration categories.",
+    "startPath": "/grants",
+    "endPath": "/integrations",
+    "endAnchors": [
+      {
+        "text": "Ecosystem · 234 integrations · 33 categories"
+      },
+      {
+        "text": "."
+      },
+      {
+        "text": "Wallets, data, custody, audits and infrastructure that already run on Avalanche. Filter by what your chain needs."
+      },
+      {
+        "role": "textbox",
+        "name": "Search integrations by name, category, or description...",
+        "placeholder": "Search integrations by name, category, or description..."
+      },
+      {
+        "role": "heading",
+        "name": "Categories"
+      },
+      {
+        "text": "Featured"
+      },
+      {
+        "text": "Analytics & Data"
+      },
+      {
+        "text": "Assets"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "Grants"
+      },
+      {
+        "text": "Fund Your Vision"
+      },
+      {
+        "text": "Empowering innovators to build the future of blockchain technology with scalable and sustainable solutions."
+      },
+      {
+        "role": "link",
+        "name": "View Programs"
+      },
+      {
+        "role": "link",
+        "name": "Bug Bounty"
+      },
+      {
+        "role": "heading",
+        "name": "Grant Programs"
+      },
+      {
+        "role": "image",
+        "name": "Call for Research Proposals"
+      },
+      {
+        "role": "heading",
+        "name": "Call for Research Proposals"
+      }
+    ],
+    "endWaitMs": 15309
+  }
+}

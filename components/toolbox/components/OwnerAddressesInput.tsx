@@ -1,4 +1,5 @@
 'use client';
+import { useId } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from './utils';
 import { Button } from './Button';
@@ -25,6 +26,7 @@ export function ownerWithAddresses(owner: PChainOwner, addresses: string[]): PCh
 }
 
 export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesInputProps) {
+  const thresholdId = useId();
   const updateAddresses = (addresses: string[]) => onChange(ownerWithAddresses(owner, addresses));
 
   const updateThreshold = (threshold: number) => {
@@ -35,15 +37,16 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
   };
 
   return (
-    <div className="space-y-2">
-      <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+    <fieldset className="min-w-0">
+      <legend className="mb-2 block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
         {label}
-      </label>
+      </legend>
       <div className="space-y-2">
         {owner.addresses.map((address, addrIndex) => (
           <div key={addrIndex} className="flex gap-2">
             <input
               type="text"
+              aria-label={`Address ${addrIndex + 1}`}
               value={address}
               onChange={(e) => {
                 const newAddresses = [...owner.addresses];
@@ -67,6 +70,7 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
               }}
               className="flex h-10 w-10 shrink-0 items-center justify-center border border-zinc-200 text-zinc-400 transition-colors hover:border-red-300 hover:text-red-600 dark:border-zinc-800 dark:hover:border-red-900 dark:hover:text-red-400"
               title="Remove address"
+              aria-label={`Remove address ${addrIndex + 1}`}
               type="button"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -77,10 +81,14 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
         {owner.addresses.length > 1 && (
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="whitespace-nowrap font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              <label
+                htmlFor={thresholdId}
+                className="whitespace-nowrap font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
                 Threshold:
-              </span>
+              </label>
               <input
+                id={thresholdId}
                 type="number"
                 min="1"
                 max={owner.addresses.length}
@@ -116,6 +124,6 @@ export function OwnerAddressesInput({ label, owner, onChange }: OwnerAddressesIn
           Add Address
         </Button>
       </div>
-    </div>
+    </fieldset>
   );
 }

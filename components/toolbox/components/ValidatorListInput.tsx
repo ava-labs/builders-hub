@@ -52,9 +52,11 @@ export function ValidatorListInput({
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-          {label}
-        </h2>
+        {label && (
+          <h2 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            {label}
+          </h2>
+        )}
         {description && <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400">{description}</p>}
       </div>
 
@@ -79,7 +81,10 @@ export function ValidatorListInput({
         )}
 
         {error && (
-          <div className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300">
+          <div
+            role="alert"
+            className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300"
+          >
             {error}
           </div>
         )}

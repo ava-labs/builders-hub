@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 import { cn } from '../lib/utils';
 import { useWalletStore } from '../stores/walletStore';
 import { ArrowRight, Loader2, Terminal } from 'lucide-react';
@@ -43,6 +43,7 @@ export function CoreWalletTransactionButton({
 }: CoreWalletTransactionButtonProps) {
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
   const walletName = useConnectedWalletName();
+  const descriptionId = useId();
 
   if (coreWalletClient) {
     return (
@@ -51,6 +52,8 @@ export function CoreWalletTransactionButton({
           type="button"
           onClick={onClick}
           disabled={disabled || loading}
+          aria-busy={loading}
+          aria-describedby={descriptionId}
           className="group flex w-full items-center gap-4 border border-zinc-900 bg-zinc-900 px-5 py-4 text-left text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 dark:disabled:border-zinc-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-500"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-current/20 bg-white/10 group-disabled:bg-transparent dark:bg-zinc-900/10">
@@ -60,7 +63,8 @@ export function CoreWalletTransactionButton({
             <span className="block font-mono text-[12px] font-bold uppercase tracking-[0.14em]">
               {loading ? loadingText || 'Working…' : children}
             </span>
-            <span className="mt-0.5 block text-[12px] opacity-70">
+            {/* A description, not part of the name: the button's name is the plain action ('Convert to L1'). */}
+            <span id={descriptionId} aria-hidden="true" className="mt-0.5 block text-[12px] opacity-70">
               {loading ? 'Waiting on the P-Chain' : `Signs with ${walletName}`}
             </span>
           </span>

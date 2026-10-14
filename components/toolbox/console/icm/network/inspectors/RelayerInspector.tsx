@@ -113,7 +113,7 @@ export function RelayerInspector() {
           icon={<Cloud className="h-4 w-4" aria-hidden />}
           eyebrow="Fuji only"
           title="Managed testnet relayer"
-          description="Avalanche hosts a relayer for your Fuji L1. No Docker, no funding."
+          description="Avalanche hosts a relayer for your Fuji L1. You do not need Docker. You fund the relayer address with gas on each chain."
         />
         <ModeOption
           selected={localMode === 'self-hosted'}

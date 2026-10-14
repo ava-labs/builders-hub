@@ -7,6 +7,11 @@ interface RemoveValidatorState {
   validationId: string;
   evmTxHash: string;
   pChainTxId: string;
+  /**
+   * True after Complete Removal (completeValidatorRemoval) succeeds. Only then does the ?subnetId= query start a new
+   * flow on the same L1 (useSubnetIdQuery). pChainTxId is set one step earlier, so it does not mark the end.
+   */
+  flowCompleted: boolean;
   globalError: string | null;
   globalSuccess: string | null;
 
@@ -15,6 +20,7 @@ interface RemoveValidatorState {
   setValidationId: (validationId: string) => void;
   setEvmTxHash: (evmTxHash: string) => void;
   setPChainTxId: (pChainTxId: string) => void;
+  setFlowCompleted: (flowCompleted: boolean) => void;
   setGlobalError: (globalError: string | null) => void;
   setGlobalSuccess: (globalSuccess: string | null) => void;
   reset: () => void;
@@ -26,6 +32,7 @@ const initialValues = {
   validationId: '',
   evmTxHash: '',
   pChainTxId: '',
+  flowCompleted: false,
   globalError: null as string | null,
   globalSuccess: null as string | null,
 };
@@ -42,6 +49,7 @@ const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
         validationId: '',
         evmTxHash: '',
         pChainTxId: '',
+        flowCompleted: false,
         globalError: null,
         globalSuccess: null,
       }),
@@ -49,11 +57,20 @@ const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
     setNodeId: (nodeId: string) => set({ nodeId }),
 
     setValidationId: (validationId: string) =>
-      set({ validationId, evmTxHash: '', pChainTxId: '', globalError: null, globalSuccess: null }),
+      set({
+        validationId,
+        evmTxHash: '',
+        pChainTxId: '',
+        flowCompleted: false,
+        globalError: null,
+        globalSuccess: null,
+      }),
 
-    setEvmTxHash: (evmTxHash: string) => set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
+    setEvmTxHash: (evmTxHash: string) =>
+      set({ evmTxHash, pChainTxId: '', flowCompleted: false, globalError: null, globalSuccess: null }),
 
     setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
+    setFlowCompleted: (flowCompleted: boolean) => set({ flowCompleted }),
 
     setGlobalError: (globalError: string | null) => set({ globalError }),
     setGlobalSuccess: (globalSuccess: string | null) => set({ globalSuccess }),
@@ -64,7 +81,7 @@ const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
     },
   }),
   partialize: (state) => {
-    const { globalError, globalSuccess, subnetIdL1: _, ...rest } = state;
+    const { globalError, globalSuccess, ...rest } = state;
     return rest;
   },
 });

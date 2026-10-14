@@ -49,7 +49,7 @@ export function RegisterInspector({ onPhaseChange, bridge, remote }: RegisterIns
     : isPolling
       ? `Waiting for delivery (${pollAttempts}/${pollMaxAttempts}). The relayer usually takes ~30 seconds on Fuji.`
       : isTimeout
-        ? 'Timed out — re-send the registration below.'
+        ? 'Timed out. Click Re-send registration below.'
         : 'The ICM relayer carries the message.';
 
   const rowThreeDetail = isDelivered
@@ -57,14 +57,14 @@ export function RegisterInspector({ onPhaseChange, bridge, remote }: RegisterIns
       ? `Registered at ${new Date(remote.registeredAt).toLocaleTimeString()}.`
       : 'Home contract confirmed registration.'
     : isTimeout
-      ? 'No on-chain confirmation yet — re-send to retry.'
+      ? 'No on-chain confirmation yet. Click Re-send registration to try again.'
       : 'Status flips once the Home contract receives the message.';
 
   return (
     <ContractDeployViewer contracts={ICTT_HOME_PLUS_REMOTE_SOURCES}>
       <Inspector
         label="Phase 4 · Register"
-        banner={!remote?.address && <Alert variant="warning">Deploy a TokenRemote in Phase 3 first.</Alert>}
+        banner={!remote?.address && <Alert variant="warning">Deploy a TokenRemote in the Remote step first.</Alert>}
         footer={
           <>
             <Button

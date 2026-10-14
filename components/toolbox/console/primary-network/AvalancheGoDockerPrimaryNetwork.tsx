@@ -50,6 +50,7 @@ import {
   generateChainConfig,
   generatePrimaryNetworkNodeConfig,
   generatePrimaryNetworkDockerCommand,
+  primaryValidatorStorageNote,
 } from '@/components/toolbox/console/layer-1/nodeConfig';
 import { useNodeConfigHighlighting } from '@/components/toolbox/console/layer-1/useNodeConfigHighlighting';
 import { C_CHAIN_ID } from '@/components/toolbox/console/layer-1/create/config';
@@ -115,7 +116,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
   // Wallet integration for RPC nodes
   const { addToWallet, isAdding: isAddingToWallet } = useAddToWallet();
 
-  // Network selection — syncs with wallet when connected
+  // Network selection: syncs with wallet when connected
   const [selectedNetwork, setSelectedNetwork] = useState<'mainnet' | 'fuji'>('mainnet');
 
   const { isTestnet: walletIsTestnet } = useWalletStore();
@@ -806,13 +807,17 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             <Spec
               icon={<HardDrive className="h-3.5 w-3.5" />}
               label="Storage"
-              value={`${nodeType === 'archival' ? '20 TB' : '1 TB'}${nodeType === 'validator' ? ' NVMe' : ''}`}
+              value={nodeType === 'validator' ? '1 TB+ NVMe' : nodeType === 'archival' ? '20 TB' : '1 TB'}
             />
           </div>
 
+          {/* Storage note. The validator numbers are the storage chart's figures for the validator settings. */}
           <p className={NOTE}>
             {nodeType === 'validator' ? (
-              <>Use local NVMe, not cloud block storage (EBS, Persistent Disk). </>
+              <>
+                Use local NVMe, not cloud block storage (EBS, Persistent Disk).{' '}
+                {primaryValidatorStorageNote(selectedNetwork === 'fuji')}{' '}
+              </>
             ) : nodeType === 'archival' ? (
               <>Full historical state needs a lot of storage. </>
             ) : (
@@ -947,13 +952,16 @@ sudo ufw status`
 
         <Step>
           <h3>Run Docker</h3>
-          <p>Start the node. Config is read from the mounted volume, so no env vars are needed.</p>
+          <p>
+            Start the node. The command gives the node the path of its config file. The node reads all other settings
+            from the mounted volume.
+          </p>
 
           <CodeBlock code={getDockerCommand()} />
 
           <p className={NOTE}>
-            Restart anytime with <code className={INLINE_CODE}>docker restart avago</code>. Config changes are picked up
-            automatically.
+            To apply a config change, run <code className={INLINE_CODE}>docker restart avago</code>. The node reads its
+            config files when it starts.
           </p>
 
           <Accordions type="single" className={ACCORDIONS}>
@@ -1131,9 +1139,11 @@ sudo ufw status`
               </div>
 
               <CodeBlock
-                code={`# Backup your validator credentials
+                code={`# Back up your validator credentials
+# The node runs as root in Docker, so the key files belong to root
 mkdir -p ~/avalanche-backup
-cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo cp -r ~/.avalanchego/staking ~/avalanche-backup/
+sudo chown -R "$(id -u):$(id -g)" ~/avalanche-backup
 
 # Verify backup
 ls -la ~/avalanche-backup/staking/`}

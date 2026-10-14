@@ -1,0 +1,386 @@
+name: E2E chain
+
+# The Console chain tests in tests/e2e/chain. Each night they drive build.avax.network/console on Fuji with real
+# transactions, one suite per job, one job after the other (e2e-chain-suite.yml):
+#
+#   tier1        a fresh PoA L1 with the Validator Manager on the C-Chain: Create Subnet, the manager, Create Chain,
+#                Convert to L1 with a mock validator, Initialize Validator Set, then add, change weight, top up,
+#                remove and Disable
+#   pos          a fresh PoS L1 with an ERC20 staking manager on the C-Chain: stake and delegate test tokens, then
+#                remove the delegation and the validators
+#   bridge       0.01 AVAX from the P-Chain to the C-Chain and back, between the key's own addresses
+#   stake-reads  the Stake page's read-only views of live Fuji validators; no transaction
+#
+# One weekly suite runs last, because it locks 1 AVAX for about 12 h: stake-acp236 (an auto-renewed Primary Network
+# validator, then its config update and stop) on Sunday, stake-fixed (a fixed-duration Primary Network validator) on
+# Wednesday. Each weekly validator is a mock with no node, so the P-Chain returns the stake with no reward.
+#
+# The wallet signs in Node with a dedicated Fuji key; the page never holds the key. The signer refuses mainnet, any
+# native AVAX value on an EVM tx, and each stake or atomic tx type that the running file did not turn on
+# (allowPrimaryStake, allowBridge). It does not limit contract calls: it signs a zero-value call to any address with
+# any data, so a page can move the key's ERC20 tokens. PRs do not run these tests (the main config excludes chain/,
+# and the PR selection ignores it). The target is production only: the workflow takes no URL, so no run can send the
+# wallet to another site. The plan job waits for the Vercel Production deployment of the run's commit, so the suites
+# test the Console of that commit, also when a dispatch starts right after a merge.
+#
+# Secret: E2E_CHAIN_FUJI_KEY, a repository secret holding the private key of the Fuji test wallet. Each suite's
+# preflight has its own minimums (below); the weekly suite needs 1.05 unlocked P-Chain AVAX. The master guards (the
+# plan job here and the suite job in e2e-chain-suite.yml) stop the nightly and a dispatch from running these jobs off
+# master. They do not protect the key: a workflow that runs from any branch of this repository (a same-repo
+# pull_request included) can read a repository secret, and a branch can edit these guards. The real boundary is a
+# GitHub Environment with a master-only deployment branch policy, which needs a repo admin (tests/e2e/README.md, "The
+# key"). Until then, keep only a small Fuji balance on the key: about 1.2 AVAX on the P-Chain and 0.02 AVAX on the
+# C-Chain.
+#
+# A suite job writes the key to a file that only the runner user can read, after npm ci and the Chromium install, and
+# the later steps get only its path (E2E_CHAIN_FUJI_KEY_FILE). So no later process environment holds the key: the
+# test workers, Chromium and npx inherit the environment. After the tests, with `if: always()`,
+# chain/lib/teardown.ts reads the job's ledgers. It disables each L1 validator that is still active, so a failed or
+# cancelled suite does not leave balances to burn. It also stops an auto-renewed Primary Network stake that still
+# renews, and imports the key's AVAX that a bridge run left in shared memory.
+
+on:
+  schedule:
+    # 08:23 UTC, after the nightly E2E run (06:43) and the explore hunt (07:17). GitHub can start a scheduled run late.
+    - cron: '23 8 * * *'
+  workflow_dispatch:
+    inputs:
+      weekly:
+        description: 'Weekly suite: auto (stake-acp236 on Sunday, stake-fixed on Wednesday), none, or one of them'
+        type: choice
+        options:
+          - auto
+          - none
+          - stake-acp236
+          - stake-fixed
+        default: auto
+
+permissions:
+  contents: read
+
+# One key signs every transaction, so two runs must never overlap. A new run waits. A running one is never cancelled
+# by a new one: a cancel in the middle of a transaction leaves work for the teardown.
+concurrency:
+  group: e2e-chain
+  cancel-in-progress: false
+
+# The suites run one after the other for the same reason: each job `needs` the job before it. A failed suite does
+# not skip the next one (`!cancelled()`). The cap of each test step is the sum of the suite's member caps plus 5
+# minutes, so a member's own cap stops a slow member first. The cap of each job adds 30 minutes for the setup, the
+# teardown and the uploads. The measured wall times (October 2026) are much shorter: tier1 3 to 7 min (Glacier can
+# take more than 3 min to list a new validator), pos 5.5 min, bridge 34 s, stake-reads 8 s, stake-acp236 25 s,
+# stake-fixed 13 s. The Stake page shows its own accepted txs at once, so a stake run waits for the public API's cache
+# (about 3 min) only when the config tx right after the add finds the validator list old. A night takes about 25 to
+# 35 min, with about 2 min of npm ci and Chromium per job. Right after a merge, add about 5 min for the deployment.
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    # The cron runs on master. A dispatch from another branch skips every job. This guard does not protect the key: it
+    # lives in the workflow file of the ref that runs, so a branch can delete it. See the secret note at the top.
+    if: github.ref == 'refs/heads/master'
+    # The job's permissions replace the workflow's, so they repeat contents: read. The wait step reads the deployments
+    # and the commit statuses.
+    permissions:
+      contents: read
+      deployments: read
+      statuses: read
+    timeout-minutes: 30
+    outputs:
+      weekday: ${{ steps.day.outputs.weekday }}
+      weekly: ${{ steps.day.outputs.weekly }}
+    steps:
+      # date +%u: 1 is Monday, 7 is Sunday. The 1 AVAX stake of each weekly suite is locked for about 12 h, so the two
+      # locks never overlap, and each one ends before the next night's run. A scheduled run has no inputs (auto).
+      - name: Pick the weekly suite
+        id: day
+        env:
+          WEEKLY_INPUT: ${{ inputs.weekly }}
+        run: |
+          d=$(date -u +%u)
+          case "${WEEKLY_INPUT:-auto}" in
+            auto)
+              case "$d" in
+                7) weekly=stake-acp236 ;;
+                3) weekly=stake-fixed ;;
+                *) weekly= ;;
+              esac
+              ;;
+            none) weekly= ;;
+            stake-acp236 | stake-fixed) weekly=$WEEKLY_INPUT ;;
+            *)
+              echo "::error title=E2E chain::Unknown weekly suite '$WEEKLY_INPUT'."
+              exit 1
+              ;;
+          esac
+          {
+            echo "weekday=$d"
+            echo "weekly=$weekly"
+          } >> "$GITHUB_OUTPUT"
+          echo "Weekly suite: ${weekly:-none} (UTC weekday $d)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The suites test build.avax.network. Right after a merge, production runs the commit before for about 5 min, so
+      # wait until a Vercel Production deployment of this commit succeeds (the preview wait of e2e.yml does the same).
+      # Vercel makes the GitHub deployment only when its build ends. While it builds, its commit status 'Vercel' on the
+      # commit is pending, so the step waits, for 25 min at most. The step reads up to 10 deployments of the commit: a
+      # redeploy adds one, and a failed redeploy leaves the earlier build on production, so one success is enough. When
+      # no deployment succeeded, a failed newest deployment or a failed Vercel status stops the run. With no Vercel
+      # status after 10 min, Vercel may have skipped the commit. vercel.json has no ignoreCommand, and each master
+      # commit from 2 to 5 October 2026 has a Production deployment. But the nightly run must not stop for a skipped
+      # commit: it goes on, with a warning when the newest successful Production deployment does not contain this
+      # commit. A successful Vercel status with no Production deployment (a Preview build) goes on the same way. The
+      # step checks only that a build succeeded: after a Vercel rollback, the suites test the rolled-back deployment.
+      - name: Wait for the production deployment
+        timeout-minutes: 26
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # Each helper writes one line to the log and to the job summary.
+          note() {
+            echo "$*"
+            echo "- $*" >> "$GITHUB_STEP_SUMMARY"
+          }
+          warn() {
+            echo "::warning title=E2E chain::$*"
+            echo "- Warning: $*" >> "$GITHUB_STEP_SUMMARY"
+          }
+          fail() {
+            echo "::error title=E2E chain::$1"
+            echo "- Error: $1" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+          # Each read prints '<state> <url>'. The state is 'none' when the read finds nothing or fails. On an HTTP
+          # error, gh api writes the error body to stdout, so a failed read discards its output.
+          # The latest status of deployment $1.
+          deployment_status() {
+            local out
+            out=$(gh api "repos/$REPO/deployments/$1/statuses?per_page=1" \
+              --jq '.[0] | "\(.state // "none") \(.environment_url // "")"' < /dev/null) || out='none '
+            echo "$out"
+          }
+          # The newest commit status that Vercel set on $SHA (context 'Vercel', for a Production or a Preview build).
+          vercel_status() {
+            local out
+            out=$(gh api "repos/$REPO/commits/$SHA/statuses?per_page=100" \
+              --jq 'map(select(.context == "Vercel"))[0] | "\(.state // "none") \(.target_url // "")"' < /dev/null) ||
+              out='none '
+            echo "$out"
+          }
+
+          start=$(date +%s)
+          said=
+          built=
+          # Set once Vercel has set a status on $SHA. After that, a status read that finds nothing is a failed read,
+          # not a skipped commit, so the step waits until the 25 min cap.
+          seen=
+          while :; do
+            waited=$(($(date +%s) - start))
+            # The Production deployments of $SHA, newest first.
+            ids=$(gh api "repos/$REPO/deployments?sha=$SHA&environment=Production&per_page=10" --jq '.[].id' \
+              < /dev/null) || ids=
+            if [ -n "$ids" ]; then
+              newest=
+              for id in $ids; do
+                status=$(deployment_status "$id")
+                if [ "${status%% *}" = success ]; then
+                  note "The Vercel Production deployment of $SHA succeeded after $waited s: ${status#* }"
+                  exit 0
+                fi
+                newest=${newest:-$status}
+              done
+              state=${newest%% *}
+              url=${newest#* }
+              case "$state" in
+                failure | error) fail "The Vercel Production deployment of $SHA failed ($state): $url" ;;
+              esac
+              msg="The Vercel Production deployment of $SHA is in the state '$state'. Wait up to 25 min for it."
+            else
+              status=$(vercel_status)
+              state=${status%% *}
+              url=${status#* }
+              case "$state" in
+                pending)
+                  seen=1
+                  msg="Vercel builds $SHA: $url. Wait up to 25 min for its Production deployment."
+                  ;;
+                failure | error) fail "The Vercel build of $SHA failed ($state): $url" ;;
+                success)
+                  seen=1
+                  # Vercel sets this status and makes the deployment at the same time. Read the deployments once more.
+                  if [ -n "$built" ]; then
+                    skip="The Vercel build of $SHA succeeded ($url), but Vercel made no Production deployment of it."
+                    break
+                  fi
+                  built=1
+                  msg="The Vercel build of $SHA succeeded. Read its Production deployment again."
+                  ;;
+                *)
+                  if [ -n "$seen" ]; then
+                    msg="Could not read the Vercel status of $SHA. Read it again, up to the 25 min cap."
+                  elif [ "$waited" -ge 600 ]; then
+                    skip="Vercel set no status on $SHA in 10 min. Vercel may have skipped this commit."
+                    break
+                  else
+                    msg="Vercel set no status on $SHA yet. Wait up to 10 min for it."
+                  fi
+                  ;;
+              esac
+            fi
+            if [ "$waited" -ge 1500 ]; then
+              fail "The Vercel Production deployment of $SHA did not end in 25 min (state '$state'): $url"
+            fi
+            if [ "$msg" != "$said" ]; then
+              note "$msg"
+              said=$msg
+            fi
+            sleep 20
+          done
+
+          note "$skip"
+          # Usually build.avax.network runs the newest Production deployment whose latest status is success. After a
+          # Vercel rollback, it runs an older one.
+          live_sha=
+          live_url=
+          list=$(gh api "repos/$REPO/deployments?environment=Production&per_page=10" --jq '.[] | "\(.id) \(.sha)"' \
+            < /dev/null) || list=
+          while read -r dep_id dep_sha; do
+            if [ -z "$dep_id" ]; then continue; fi
+            status=$(deployment_status "$dep_id")
+            if [ "${status%% *}" = success ]; then
+              live_sha=$dep_sha
+              live_url=${status#* }
+              break
+            fi
+          done <<< "$list"
+          if [ -z "$live_sha" ]; then
+            warn "Found no successful Vercel Production deployment. The suites test build.avax.network as it is."
+            exit 0
+          fi
+          # The status of the deployed commit against this commit: 'ahead' (a descendant), 'identical', 'behind' or
+          # 'diverged'.
+          relation=$(gh api "repos/$REPO/compare/$SHA...$live_sha" --jq .status < /dev/null) || relation=unknown
+          case "$relation" in
+            ahead | identical)
+              note "The newest successful Production deployment is $live_sha ($live_url), which contains $SHA" \
+                "($relation). The suites start."
+              ;;
+            *)
+              warn "The newest successful Production deployment is $live_sha ($live_url), which does not contain" \
+                "$SHA ($relation). The suites test $live_sha."
+              ;;
+          esac
+
+  # Member caps: 203 min (the last member, the sends audit, has 3 min).
+  tier1:
+    name: Tier 1 (PoA L1, manager on the C-Chain)
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: tier1
+      min_p_avax: '0.3'
+      min_c_avax: '0.002'
+      test_minutes: 208
+      job_minutes: 238
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # Member caps: 285 min.
+  pos:
+    name: PoS ERC20 L1 (manager on the C-Chain)
+    needs: [plan, tier1]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: pos
+      min_p_avax: '0.1'
+      min_c_avax: '0.002'
+      test_minutes: 290
+      job_minutes: 320
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # Member caps: 30 min.
+  bridge:
+    name: C/P bridge round trip
+    needs: [plan, pos]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: bridge
+      min_p_avax: '0.02'
+      min_c_avax: '0.002'
+      test_minutes: 35
+      job_minutes: 65
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # Member caps: 15 min.
+  stake-reads:
+    name: Stake page reads
+    needs: [plan, bridge]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: stake-reads
+      min_p_avax: '0'
+      test_minutes: 20
+      job_minutes: 50
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # Member caps: 40 min (stake-acp236) and 21 min (stake-fixed). It runs last, so the nightly suites have their L1
+  # balances back before the stake, and a failed stake never blocks them.
+  stake-weekly:
+    name: Weekly stake
+    needs: [plan, stake-reads]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.weekly != '' }}
+    uses: ./.github/workflows/e2e-chain-suite.yml
+    with:
+      tag: ${{ needs.plan.outputs.weekly }}
+      min_p_avax: '1.05'
+      test_minutes: 45
+      job_minutes: 75
+    secrets:
+      E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+
+  # The alert: one table of the night's suites in the job summary, and an error annotation that names each suite that
+  # did not pass. The repository has no Slack secret, so nothing is sent.
+  result:
+    name: Result
+    needs: [plan, tier1, pos, bridge, stake-reads, stake-weekly]
+    if: ${{ always() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Summarize the suites
+        env:
+          WEEKLY: ${{ needs.plan.outputs.weekly }}
+          TIER1: ${{ needs.tier1.result }}
+          POS: ${{ needs.pos.result }}
+          BRIDGE: ${{ needs.bridge.result }}
+          STAKE_READS: ${{ needs.stake-reads.result }}
+          STAKE_WEEKLY: ${{ needs.stake-weekly.result }}
+        run: |
+          failed=
+          {
+            echo '### Chain suites'
+            echo
+            echo '| Suite | Result |'
+            echo '|---|---|'
+          } >> "$GITHUB_STEP_SUMMARY"
+          row() {
+            echo "| $1 | $2 |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$2" != success ]; then failed="$failed $1"; fi
+          }
+          row tier1 "$TIER1"
+          row pos "$POS"
+          row bridge "$BRIDGE"
+          row stake-reads "$STAKE_READS"
+          if [ -n "$WEEKLY" ]; then row "$WEEKLY" "$STAKE_WEEKLY"; fi
+          if [ -n "$failed" ]; then
+            echo "::error title=E2E chain::These suites did not pass:$failed. Read each suite's job summary and artifacts."
+            exit 1
+          fi

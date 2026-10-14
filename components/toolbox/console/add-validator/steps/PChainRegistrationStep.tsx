@@ -79,7 +79,9 @@ export default function PChainRegistrationStep() {
       >
         <SubmitPChainTxRegisterL1Validator
           subnetIdL1={store.subnetIdL1}
-          signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
+          signingSubnetId={vmcCtx.signingSubnetId}
+          signingSubnetLoading={vmcCtx.isLoading}
+          signingSubnetError={vmcCtx.error}
           validatorBalance={validatorBalance}
           userPChainBalanceNavax={userPChainBalanceNavax}
           blsProofOfPossession={blsProofOfPossession}

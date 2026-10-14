@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-import { useState, useEffect, type InputHTMLAttributes } from 'react';
+import { useState, useEffect, useId, type InputHTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import { Check } from 'lucide-react';
 
@@ -66,6 +66,12 @@ export function Input({
   ...props
 }: InputProps) {
   const [inputValue, setInputValue] = useState(props.value?.toString() || props.defaultValue?.toString() || '');
+  // Most callers pass no id: the label needs one to name the field
+  const autoId = useId();
+  const inputId = id ?? autoId;
+  // The error or helper text box: a screen reader reads it with the field
+  const descId = `${inputId}-desc`;
+  const hasDesc = !!error || !!helperText;
 
   // Sync inputValue with props.value when it changes
   useEffect(() => {
@@ -84,7 +90,7 @@ export function Input({
     setInputValue(suggestion.value);
     onChange?.(suggestion.value);
     // Focus the input after selection
-    const inputElement = document.getElementById(id as string);
+    const inputElement = document.getElementById(inputId);
     if (inputElement) {
       inputElement.focus();
     }
@@ -92,23 +98,27 @@ export function Input({
 
   return (
     <div className="mb-6 space-y-2">
-      <label
-        htmlFor={id}
-        className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
-      >
-        {label}
-      </label>
+      {label && (
+        <label
+          htmlFor={inputId}
+          className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+        >
+          {label}
+        </label>
+      )}
 
       <div className="relative">
         <div className="flex">
           <RawInput
             {...props}
-            id={id}
+            id={inputId}
             value={inputValue}
             onChange={handleChange}
             hasSuggestions={(suggestions && suggestions.length > 0) || !!error || !!helperText}
             className={cn('flex-1', unit ? 'pr-12' : '', className)}
             error={error}
+            aria-describedby={hasDesc ? descId : props['aria-describedby']}
+            aria-invalid={error ? true : props['aria-invalid']}
           />
           {button}
         </div>
@@ -127,7 +137,9 @@ export function Input({
               suggestions && suggestions.length > 0 && 'border-b-0',
             )}
           >
-            <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>
+            <p id={descId} className="text-[12px] text-red-700 dark:text-red-400">
+              {error}
+            </p>
           </div>
         ) : helperText ? (
           <div
@@ -136,7 +148,9 @@ export function Input({
               suggestions && suggestions.length > 0 && 'border-b-0',
             )}
           >
-            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{helperText}</p>
+            <p id={descId} className="text-[12px] text-zinc-500 dark:text-zinc-400">
+              {helperText}
+            </p>
           </div>
         ) : null}
 
@@ -154,10 +168,12 @@ export function Input({
               {suggestions.map((suggestion, index) => {
                 const isSelected = inputValue === suggestion.value;
                 return (
-                  <div
+                  <button
                     key={index}
+                    type="button"
+                    aria-pressed={isSelected}
                     className={cn(
-                      'group/sug relative flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left transition-colors',
+                      'group/sug relative flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left transition-colors',
                       'before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:transition-colors',
                       isSelected
                         ? 'before:bg-zinc-900 dark:before:bg-zinc-100'
@@ -165,14 +181,16 @@ export function Input({
                     )}
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
-                    <div className="flex-1">
-                      <div className="text-[13px] font-medium text-zinc-900 group-hover/sug:underline group-hover/sug:underline-offset-4 dark:text-zinc-100">
+                    <span className="block flex-1">
+                      <span className="block text-[13px] font-medium text-zinc-900 group-hover/sug:underline group-hover/sug:underline-offset-4 dark:text-zinc-100">
                         {suggestion.title}
-                      </div>
-                      <div className="text-[12px] text-zinc-500 dark:text-zinc-400">{suggestion.description}</div>
-                    </div>
+                      </span>
+                      <span className="block text-[12px] text-zinc-500 dark:text-zinc-400">
+                        {suggestion.description}
+                      </span>
+                    </span>
                     {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-zinc-900 dark:text-zinc-100" />}
-                  </div>
+                  </button>
                 );
               })}
             </div>

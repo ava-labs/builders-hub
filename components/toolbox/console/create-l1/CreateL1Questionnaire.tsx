@@ -384,13 +384,16 @@ export default function CreateL1Questionnaire() {
               </span>
             ))}
           </span>
-          <span
-            className={cn(
-              DOOR_CTA,
-              'border-zinc-900 bg-zinc-900 text-white group-hover/door:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:group-hover/door:bg-zinc-300',
-            )}
-          >
-            Create on Fuji <ArrowRight className="h-3.5 w-3.5" />
+          <span className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span
+              className={cn(
+                DOOR_CTA,
+                'mt-0 border-zinc-900 bg-zinc-900 text-white group-hover/door:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:group-hover/door:bg-zinc-300',
+              )}
+            >
+              Create on Fuji <ArrowRight className="h-3.5 w-3.5" />
+            </span>
+            <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">Needs a Builder Hub sign-in.</span>
           </span>
         </button>
         <button
@@ -592,7 +595,7 @@ export default function CreateL1Questionnaire() {
                   onSelect={() => setHosting('managed')}
                   icon={<CloudDeployIcon className="h-4 w-4" />}
                   title="Managed"
-                  description="Hosted nodes and a relayer on Fuji, set up for you. The fastest start."
+                  description="Hosted nodes and a relayer on Fuji, set up for you. The fastest start. Needs a Builder Hub sign-in."
                   recommended
                 />
               )}

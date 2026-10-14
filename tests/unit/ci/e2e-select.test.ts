@@ -67,6 +67,9 @@ describe('select', () => {
       'app/api/explorer/EXTERNAL_APIS.md',
       'tests/unit/ci/e2e-select.test.ts',
       '.github/workflows/unit.yml',
+      '.github/workflows/e2e-chain.yml',
+      'tests/e2e/chain/poa-cchain.e2e.ts',
+      'tests/e2e/chain/lib/chain.ts',
     ];
     for (const file of files) {
       expect(unitsFor(file).units, file).toEqual([]);

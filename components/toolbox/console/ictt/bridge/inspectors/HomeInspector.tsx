@@ -14,6 +14,7 @@ import { ContractDeployViewer } from '@/components/console/contract-deploy-viewe
 import { ICTT_HOME_SOURCES } from '@/lib/ictt/contractSources';
 import { useDeployTokenHome } from '../hooks/useDeployTokenHome';
 import { truncateAddress } from '../utils/explorer-url';
+import { describeTokenReadError, describeTxError } from '../utils/tx-error';
 import { BODY, FIELD, Field, Inspector, MONO_FIELD, ReadOnlyValue, StatusTag } from '../ui';
 import type { Address, BridgePhase, Bridge } from '../types';
 
@@ -31,11 +32,11 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
 
   // Priority chain mirrors the legacy `TeleporterRegistryAddressInput`:
   //   1. user-typed value wins (handled inside `setRegistry`)
-  //   2. toolboxStore — the per-chain address written by the ICM setup flow
+  //   2. toolboxStore: the per-chain address written by the ICM setup flow
   //      after a successful registry deploy. Catches the race window before
   //      l1ListStore propagates (and legacy users who deployed before the
   //      l1ListStore propagation existed).
-  //   3. wellKnownTeleporterRegistryAddress on the L1ListItem — seeded for
+  //   3. wellKnownTeleporterRegistryAddress on the L1ListItem: seeded for
   //      well-known chains (Fuji C-Chain, Echo, etc.) and now also written
   //      by the ICM setup flow for user-created L1s.
   const toolboxRegistry = useToolboxStore().teleporterRegistryAddress;
@@ -55,7 +56,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
   // One-time backfill: if the toolboxStore has a registry that the L1ListItem
   // doesn't yet know about, propagate it now. Heals legacy state where the
   // user ran ICM setup before the propagation in `TeleporterRegistry.tsx`
-  // existed. Skip when wallet isn't on this L1 — `useSetTeleporterRegistryAddress`
+  // existed. Skip when wallet isn't on this L1: `useSetTeleporterRegistryAddress`
   // matches by `walletChainId`, so writing while on the wrong chain would
   // silently miss.
   useEffect(() => {
@@ -68,7 +69,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
     ? 'Defaults to your deployed ICM Registry on this chain.'
     : wellKnownRegistry
       ? 'Defaults to the well-known address for this chain.'
-      : 'Run ICM setup on this L1 to get a default — or paste a known Registry address.';
+      : 'Run ICM setup on this L1 to get a default. You can also paste a known Registry address.';
 
   useEffect(() => {
     setManager((prev) => prev || walletEVMAddress);
@@ -101,7 +102,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
       })
       .catch((err) => {
         if (cancelled) return;
-        setDecimalsError(`Could not read token decimals: ${(err as Error).message}`);
+        setDecimalsError(describeTokenReadError(err, viemChain.name));
       });
     return () => {
       cancelled = true;
@@ -119,7 +120,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
     // (`migrations/ictt-v1-to-v2.ts`); the rest of the pipeline (send,
     // collateral) supports them so nothing breaks, but the new-bridge UX
     // assumes erc20-home. Adding native-home back into the wizard is a
-    // follow-up — see plan §"Native-home decision".
+    // follow-up. See plan §"Native-home decision".
     const result = await deployHome({
       kind: 'erc20-home',
       teleporterRegistryAddress: registry as Address,
@@ -144,7 +145,9 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
     <ContractDeployViewer contracts={ICTT_HOME_SOURCES}>
       <Inspector
         label="Phase 2 · TokenHome"
-        banner={!underlyingTokenAddress && <Alert variant="warning">Pick a source token in Phase 1 first.</Alert>}
+        banner={
+          !underlyingTokenAddress && <Alert variant="warning">Pick a source token in the Token step first.</Alert>
+        }
         footer={
           <Button
             onClick={handleDeploy}
@@ -167,11 +170,11 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
           </p>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_10rem]">
-            <Field label="Source token" hint="Filled in from Phase 1.">
+            <Field label="Source token" hint="Filled in from the Token step.">
               <ReadOnlyValue>
                 {underlyingTokenAddress
                   ? `${truncateAddress(underlyingTokenAddress, 10, 6)}${symbol ? ` · ${symbol}` : ''}`
-                  : '—'}
+                  : 'Not selected'}
               </ReadOnlyValue>
             </Field>
 
@@ -218,7 +221,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
             />
           </Field>
 
-          {error && <Alert variant="error">{error.message}</Alert>}
+          {error && <Alert variant="error">{describeTxError(error)}</Alert>}
 
           {bridge?.homeAddress && (
             <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-300 px-4 py-3 dark:border-emerald-900">

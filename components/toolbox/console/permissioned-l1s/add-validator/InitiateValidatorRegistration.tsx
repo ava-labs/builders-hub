@@ -12,6 +12,8 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
+import { failureText } from '@/components/toolbox/lib/walletRejection';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -97,7 +99,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
       if (exceedsMaximum) {
         setErrorState(
-          `The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This must be less than 20%.`,
+          `The new validator's proposed weight (${validator.validatorWeight}) represents ${percentageChange.toFixed(2)}% of the current total L1 weight (${contractTotalWeight}). This must be less than 20%.`,
         );
         return false;
       }
@@ -120,7 +122,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
 
     if (!validatorManagerAddress) {
-      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      setErrorState(INVALID_L1_SELECTED);
       return;
     }
 
@@ -170,7 +172,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           return;
         }
 
-        // Filter by emitter address rather than position — any intermediate
+        // Filter by emitter address rather than position: any intermediate
         // contract emitting a log would shift indices and cause us to read
         // wrong data (or throw on undefined).
         const warpLog = receipt.logs.find((l) => l.address.toLowerCase() === WARP_PRECOMPILE_ADDRESS.toLowerCase());
@@ -202,15 +204,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
         // Only attempt the resend fallback if the error suggests the node might already
         // have a pending registration (e.g. InvalidValidatorStatus or generic reverts).
-        // For user rejections, insufficient funds, bad BLS keys, etc. — surface directly.
+        // For user rejections, insufficient funds, bad BLS keys, etc., surface directly.
         const shouldAttemptFallback =
           primaryMessage.includes('reverted') ||
           primaryMessage.includes('Invalid validator status') ||
           primaryMessage.includes('execution');
 
         if (!shouldAttemptFallback) {
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(failureText('Transaction failed: ', primaryMessage));
           return;
         }
 
@@ -223,14 +225,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             nodeIdBytes,
           );
 
-          // No existing validation ID — the node was never registered, so the primary error is the real problem
+          // No existing validation ID: the node was never registered, so the primary error is the real problem
           if (validationId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-            setErrorState(`Transaction failed: ${primaryMessage}`);
-            onError(`Transaction failed: ${primaryMessage}`);
+            setErrorState(failureText('Transaction failed: ', primaryMessage));
+            onError(failureText('Transaction failed: ', primaryMessage));
             return;
           }
 
-          // Existing validation ID found — attempt to resend the registration message
+          // Existing validation ID found: attempt to resend the registration message
           const fallbackHash = await validatorManager.resendRegisterValidatorMessage(validationId);
 
           const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({
@@ -259,15 +261,17 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           });
         } catch (fallbackError: any) {
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          setErrorState(`Transaction failed: ${primaryMessage}`);
-          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
+          setErrorState(failureText('Transaction failed: ', primaryMessage));
+          onError(
+            `${failureText('Transaction failed: ', primaryMessage)}. Resend fallback also failed: ${fallbackMessage}`,
+          );
         }
       }
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
 
-      setErrorState(`Transaction failed: ${message}`);
-      onError(`Transaction failed: ${message}`);
+      setErrorState(failureText('Transaction failed: ', message));
+      onError(failureText('Transaction failed: ', message));
     } finally {
       setIsProcessing(false);
     }
@@ -295,7 +299,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Select an L1 subnet first.</p>;
+    return <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{NO_L1_SELECTED}</p>;
   }
 
   // Don't render if no validators are added
@@ -361,10 +365,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           loading={isProcessing}
           loadingText="Initiating…"
           icon={txSuccess ? <Check className="h-3.5 w-3.5" /> : undefined}
-          error={
-            ownerProblem ??
-            (!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined)
-          }
+          error={ownerProblem ?? (!validatorManagerAddress && subnetId ? INVALID_L1_SELECTED : undefined)}
         >
           {txSuccess ? 'Transaction completed' : 'Initiate validator registration'}
         </Button>

@@ -114,7 +114,7 @@ function CrossChainBoard() {
       <LinkRow
         href="/console/ictt/setup"
         icon={ArrowUpDown}
-        label="ICTT bridge"
+        label="ICTT setup"
         hint="Bridge tokens between Avalanche chains"
       />
       <LinkRow

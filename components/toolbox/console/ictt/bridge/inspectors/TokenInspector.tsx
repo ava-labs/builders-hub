@@ -15,6 +15,7 @@ import { ICTT_EXAMPLE_ERC20_SOURCES, ICTT_WRAPPED_NATIVE_SOURCES } from '@/lib/i
 import { useDeploySourceToken } from '../hooks/useDeploySourceToken';
 import { useDeployWrappedNative } from '../hooks/useDeployWrappedNative';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';
+import { describeTokenReadError, describeTxError } from '../utils/tx-error';
 import {
   BODY,
   EYEBROW,
@@ -37,11 +38,11 @@ interface TokenInspectorProps {
   onPhaseChange: (next: BridgePhase) => void;
   /** Address selected so far (from prior deploy, paste, or migration). */
   underlyingTokenAddress: Address | null;
-  /** Lift the chosen address to the parent so Phase 2 can read it. */
+  /** Lift the chosen address to the parent so the Home step can read it. */
   onTokenSelected: (address: Address | null) => void;
-  /** Active bridge, if any — used to detect "editing an existing bridge". */
+  /** Active bridge, if any. Used to detect "editing an existing bridge". */
   bridge: Bridge | null;
-  /** Reset the active bridge association so Phase 1 starts fresh. */
+  /** Reset the active bridge association so the Token step starts fresh. */
   onStartNewBridge: () => void;
   /** True when the user has explicitly chosen to start fresh. Suppresses the
    *  "editing existing bridge" banner even if `bridge` momentarily appears
@@ -84,8 +85,8 @@ export function TokenInspector({
             <Alert variant="warning">
               <div className="flex flex-col items-start gap-2">
                 <span>
-                  This bridge already has a TokenHome. A new token here <strong>replaces</strong> it for the next
-                  phases. Start a new bridge to keep this one as it is.
+                  This bridge already has a TokenHome. A new token here <strong>replaces</strong> it for the next steps.
+                  Start a new bridge to keep this one as it is.
                 </span>
                 <TextAction icon={RotateCcw} onClick={onStartNewBridge}>
                   Start new bridge
@@ -117,7 +118,7 @@ export function TokenInspector({
               onSelect={() => setMode('deploy-test')}
               icon={<OptionIcon icon={FlaskConical} />}
               title="Test ERC-20"
-              description="Deploy a fresh token with 1,000,000 minted to you."
+              description="Deploy a fresh token with 10,000,000,000 minted to you."
             />
             <Option
               selected={mode === 'wrap-native'}
@@ -186,7 +187,7 @@ function DeployTestPanel({ chainName, existingAddress, onTokenSelected }: Deploy
       <SpecPlate className={`${FRAME} px-4`}>
         <SpecRow label="Contract">ExampleERC20</SpecRow>
         <SpecRow label="Supply">
-          <span className={MONO}>1,000,000</span>
+          <span className={MONO}>10,000,000,000</span>
         </SpecRow>
         <SpecRow label="Minted to">{walletEVMAddress ? <HashChip value={walletEVMAddress} /> : 'Your wallet'}</SpecRow>
         <SpecRow label="Chain">{chainName}</SpecRow>
@@ -202,7 +203,7 @@ function DeployTestPanel({ chainName, existingAddress, onTokenSelected }: Deploy
       </Button>
 
       {existingAddress && <SelectedTokenChip address={existingAddress} chainName={chainName} />}
-      {error && <Alert variant="error">{error.message}</Alert>}
+      {error && <Alert variant="error">{describeTxError(error)}</Alert>}
     </div>
   );
 }
@@ -256,7 +257,7 @@ function ExistingTokenPanel({ chainName, existingAddress, onTokenSelected }: Exi
       setMeta({ name, symbol, decimals: Number(decimals) });
       onTokenSelected(pasted as Address);
     } catch (err) {
-      setVerifyError(`Could not read ERC-20 metadata: ${(err as Error).message}`);
+      setVerifyError(describeTokenReadError(err, chainName ?? viemChain.name));
       setMeta(null);
     } finally {
       setVerifying(false);
@@ -390,7 +391,7 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Balance summary always visible — even when no Wtest is deployed yet
+      {/* Balance summary always visible. Even when no Wtest is deployed yet,
           users can see how much native they hold to decide whether to wrap. */}
       <BalanceSummary
         coinName={coinName}
@@ -452,7 +453,7 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
       )}
 
       {existingAddress && <SelectedTokenChip address={existingAddress} chainName={selectedL1?.name} />}
-      {error && <Alert variant="error">{error.message}</Alert>}
+      {error && <Alert variant="error">{describeTxError(error)}</Alert>}
     </div>
   );
 }
@@ -485,7 +486,7 @@ function WrapUnwrapControls({
     setErr(null);
     try {
       const hash = await wrapped.deposit(wrapAmount);
-      // deposit() resolves on broadcast — wait for the receipt before refreshing
+      // deposit() resolves on broadcast. Wait for the receipt before refreshing
       // balances so the readContract call sees the mined state.
       if (selectedL1?.rpcUrl && hash) {
         try {
@@ -498,7 +499,7 @@ function WrapUnwrapControls({
       setWrapAmount('');
       onRefresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(describeTxError(e));
     } finally {
       setBusy(null);
     }
@@ -521,7 +522,7 @@ function WrapUnwrapControls({
       setUnwrapAmount('');
       onRefresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(describeTxError(e));
     } finally {
       setBusy(null);
     }
@@ -561,7 +562,7 @@ function WrapUnwrapControls({
 /**
  * Renders the native (and optionally wrapped) balance row at the top of
  * the Wrap-native panel. Always shown for connected wallets so the user
- * can size their wrap intent against actual holdings — even before any
+ * can size their wrap intent against actual holdings, even before any
  * Wtest contract is deployed.
  */
 function BalanceSummary({
@@ -579,18 +580,25 @@ function BalanceSummary({
     <div
       className={`grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800 ${showWrapped ? 'sm:grid-cols-2' : ''}`}
     >
-      <BalanceCell label="Native balance" value={formatBalance(native, 18)} unit={coinName} />
-      {showWrapped && <BalanceCell label="Wrapped balance" value={formatBalance(wrapped, 18)} unit={`W${coinName}`} />}
+      <BalanceCell label="Native balance" value={native} unit={coinName} />
+      {showWrapped && <BalanceCell label="Wrapped balance" value={wrapped} unit={`W${coinName}`} />}
     </div>
   );
 }
 
-function BalanceCell({ label, value, unit }: { label: string; value: string; unit: string }) {
+/** A balance with its unit, or 'Not loaded' while the read runs or after it fails. */
+function BalanceCell({ label, value, unit }: { label: string; value: bigint | null; unit: string }) {
   return (
     <div className="flex flex-col gap-1 bg-white px-4 py-3 dark:bg-zinc-950">
       <span className={EYEBROW}>{label}</span>
       <span className="font-mono text-[17px] tabular-nums text-zinc-900 dark:text-zinc-50">
-        {value} <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{unit}</span>
+        {value === null ? (
+          'Not loaded'
+        ) : (
+          <>
+            {formatBalance(value, 18)} <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{unit}</span>
+          </>
+        )}
       </span>
     </div>
   );
@@ -639,8 +647,7 @@ function WrapField({ id, label, unit, amount, onChange, onMax, onSubmit, isBusy,
   );
 }
 
-function formatBalance(value: bigint | null, decimals: number): string {
-  if (value === null) return '—';
+function formatBalance(value: bigint, decimals: number): string {
   const factor = 10n ** BigInt(decimals);
   const whole = value / factor;
   const fraction = value % factor;

@@ -3,3 +3,14 @@
 !**/.e2e/cache/
 # The root ignores package-lock.json because the site uses yarn. This package uses npm, and CI installs from its lockfile.
 !package-lock.json
+# Replay entries that end on a page with live chain data. Their end anchors (Fuji blocks per minute, a validator
+# uptime count) change between runs, so --strict-cache would fail them at random. These steps call the model in CI.
+.e2e/cache/c3b8aacfff21ca1d699bf7806c7f79a86261b50ff5fe6c027b1a5fe48cb9f969.json
+.e2e/cache/d0ab4e1eaa95866af6fe0b7426590d0f3a804ee1dfcd649d72dceecf00557b09.json
+# Replay entry that ends on the integrations directory, whose count ('234 integrations') changes with each listing.
+.e2e/cache/ea5fcc41fbfea7242264a6166130971cf3b803d3729586bd7a176e357eda12d3.json
+# Replay entry of the docs search step: two results share the name 'Add Validator', and their order changes
+# between deployments, so the recorded tap opens a different page.
+.e2e/cache/b4c9f0d3f8dd8470add72ba709f87b6a724f7a1d200345ce956f81c2adbf4d3e.json
+# The output of the Console explore runs (explore/console/e2e.config.ts), the cache folder too: those runs commit nothing.
+explore/console/.e2e/
