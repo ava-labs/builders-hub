@@ -9,6 +9,7 @@ import type { DeploymentJob } from '@/lib/quick-l1/types';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { usePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Button } from '@/components/toolbox/components/Button';
+import { LiveDot, idInk } from '@/components/explorer-v2/ui';
 import { cn } from '@/lib/utils';
 
 /**
@@ -287,14 +288,14 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
         className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4"
       >
         <div className="min-w-0">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400">
+            <LiveDot />
             Deployed
           </div>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 break-words">
+          <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl dark:text-zinc-50">
             {job.request.chainName} is live
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1.5 text-[14px] text-zinc-500 dark:text-zinc-400">
             Running on {stats.network}. Add it to your wallet to start building.
           </p>
         </div>
@@ -316,7 +317,7 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.18 }}
-        className="mb-5 grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden divide-x divide-zinc-100 dark:divide-zinc-900"
+        className="mb-5 grid grid-cols-2 divide-x divide-zinc-200 border border-zinc-200 bg-white sm:grid-cols-4 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950"
       >
         <StatCell label="Duration" value={elapsedLabel} mono />
         <StatCell label="Transactions" value={String(stats.totalTxs)} />
@@ -490,11 +491,11 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm"
+        className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2"
       >
         <a
           href="/console/testnet-infra/nodes"
-          className="inline-flex items-center gap-1.5 text-primary hover:underline"
+          className="group/link inline-flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
         >
           <Server className="h-3.5 w-3.5" />
           My managed nodes
@@ -506,7 +507,7 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
                cross-chain bridging after the fact. */}
         <a
           href="/console/testnet-infra/icm-relayer"
-          className="inline-flex items-center gap-1.5 text-primary hover:underline"
+          className="group/link inline-flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
         >
           <Link2 className="h-3.5 w-3.5" />
           {result.interop ? 'My managed relayer' : 'Need cross-chain? Spin up a relayer'}
@@ -520,11 +521,13 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
 
 function StatCell({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="px-4 py-2.5 text-center sm:text-left">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</div>
+    <div className="px-4 py-3 text-center sm:text-left">
+      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+        {label}
+      </div>
       <div
         className={cn(
-          'mt-0.5 text-lg font-semibold leading-none text-zinc-900 dark:text-zinc-100 tabular-nums',
+          'mt-1.5 font-mono text-lg leading-none tracking-tight text-zinc-900 tabular-nums dark:text-zinc-50',
           mono && 'font-mono',
         )}
       >
@@ -564,29 +567,31 @@ function RecapCard({
           transition: { type: 'spring', stiffness: 260, damping: 26 },
         },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit"
+      className="h-fit border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <div className="flex items-start gap-2 px-4 py-3 border-b border-zinc-100 dark:border-zinc-900">
+      <div className="flex items-start gap-2.5 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
         {icon && (
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 shrink-0">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-zinc-200 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
             {icon}
           </span>
         )}
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">{title}</h3>
-          {subtitle && <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">{subtitle}</p>}
+          <h3 className="font-mono text-[10.5px] font-bold uppercase leading-tight tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
+            {title}
+          </h3>
+          {subtitle && <p className="mt-1 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">{subtitle}</p>}
         </div>
       </div>
 
-      <div className="divide-y divide-zinc-100 dark:divide-zinc-900">{primaryRows}</div>
+      <div className="divide-y divide-zinc-200 dark:divide-zinc-800">{primaryRows}</div>
 
       {secondaryRows && (
-        <details className="group border-t border-zinc-100 dark:border-zinc-900">
-          <summary className="flex items-center justify-between gap-2 cursor-pointer list-none px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors select-none">
-            <span>More details</span>
+        <details className="group border-t border-zinc-200 dark:border-zinc-800">
+          <summary className="flex cursor-pointer select-none list-none items-center justify-between gap-2 px-4 py-2.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+            <span className="underline-offset-4 group-hover:underline">More details</span>
             <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
           </summary>
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-900 border-t border-zinc-100 dark:border-zinc-900">
+          <div className="divide-y divide-zinc-200 border-t border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             {secondaryRows}
           </div>
         </details>
@@ -641,13 +646,13 @@ function BalanceStrip({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="mb-5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 flex items-center gap-3"
+      className="mb-5 flex items-center gap-3 border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
-        <Wallet className="h-4.5 w-4.5" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-300">
+        <Wallet className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
           Your balance on {chainName}
         </div>
         <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-base leading-tight">
@@ -691,12 +696,12 @@ function BalanceUnit({
   return (
     <div className="flex items-baseline gap-1.5">
       {loading || amount === null ? (
-        <span className="inline-block h-4 w-10 rounded bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+        <span className="inline-block h-4 w-10 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
       ) : (
-        <span className="text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{amount}</span>
+        <span className="font-mono text-lg tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{amount}</span>
       )}
-      <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">{symbol}</span>
-      <span className="hidden sm:inline text-[10px] text-zinc-400 dark:text-zinc-500 ml-0.5">{subtitle}</span>
+      <span className="text-sm text-zinc-500 dark:text-zinc-400">{symbol}</span>
+      <span className="ml-0.5 hidden font-mono text-[10px] text-zinc-400 sm:inline dark:text-zinc-500">{subtitle}</span>
     </div>
   );
 }
@@ -759,13 +764,11 @@ function DetailRow({
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
           {chain && <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', chainDotClass(chain))} />}
-          <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+          <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
             {chain ? `${label} · ${chainName(chain)}` : label}
           </span>
           {subtitle && (
-            <span className="text-[10px] font-medium normal-case tracking-normal text-emerald-600 dark:text-emerald-400 shrink-0">
-              · {subtitle}
-            </span>
+            <span className="shrink-0 font-mono text-[10px] text-emerald-700 dark:text-emerald-400">· {subtitle}</span>
           )}
         </div>
         <div className="shrink-0 flex items-center gap-0.5">
@@ -776,7 +779,7 @@ function DetailRow({
               rel={isExternal ? 'noreferrer' : undefined}
               title={isExternal ? 'Open in explorer' : 'View in console explorer'}
               aria-label={`Open ${label} in explorer`}
-              className="inline-flex items-center rounded p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors opacity-60 group-hover:opacity-100 focus-visible:opacity-100"
+              className="inline-flex items-center p-1 text-zinc-400 opacity-60 transition-colors hover:text-zinc-900 focus-visible:opacity-100 group-hover:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-100"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -786,7 +789,7 @@ function DetailRow({
             onClick={onCopy}
             title="Copy"
             aria-label={`Copy ${label}`}
-            className="inline-flex items-center rounded p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors opacity-60 group-hover:opacity-100 focus-visible:opacity-100"
+            className="inline-flex items-center p-1 text-zinc-400 opacity-60 transition-colors hover:text-zinc-900 focus-visible:opacity-100 group-hover:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
           </button>
@@ -797,7 +800,10 @@ function DetailRow({
           href={href}
           target={isExternal ? '_blank' : undefined}
           rel={isExternal ? 'noreferrer' : undefined}
-          className="block font-mono text-[12.5px] text-zinc-900 dark:text-zinc-100 break-all leading-snug hover:text-primary hover:underline underline-offset-2 decoration-primary/40"
+          className={cn(
+            'block break-all font-mono text-[12.5px] leading-snug underline-offset-4 hover:text-[#E6212F] hover:underline',
+            idInk,
+          )}
         >
           {value}
         </a>
@@ -847,12 +853,12 @@ function AmountRow({
   return (
     <div className="group px-4 py-2.5">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
           {label}
         </span>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{human}</span>
+        <span className="font-mono text-lg tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{human}</span>
         <span className="text-[12px] font-medium text-zinc-500 dark:text-zinc-400">{symbol}</span>
         <code
           className="ml-auto font-mono text-[10px] text-zinc-400 dark:text-zinc-500 select-all cursor-help"

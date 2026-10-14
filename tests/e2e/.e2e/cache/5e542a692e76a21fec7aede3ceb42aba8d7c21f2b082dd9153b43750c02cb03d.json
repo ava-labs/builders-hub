@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:20:20.108Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "hover",
+        "summary": "hover over button \"Developers\"",
+        "target": {
+          "role": "button",
+          "name": "Developers"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Documentation Reference for the network…\"",
+        "target": {
+          "role": "link",
+          "name": "Documentation Reference for the network, nodes, APIs, tools, and ACPs."
+        }
+      },
+      {
+        "name": "hover",
+        "summary": "hover over button \"Solutions\"",
+        "target": {
+          "role": "button",
+          "name": "Solutions"
+        }
+      },
+      {
+        "name": "pressKey",
+        "summary": "press \"Escape\" on the focused field",
+        "key": "Escape"
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Tools\"",
+        "target": {
+          "role": "link",
+          "name": "Tools"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Network\"",
+        "target": {
+          "role": "link",
+          "name": "Network"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap link \"Interchain Messaging Interchain messagi…\"",
+        "target": {
+          "role": "link",
+          "name": "Interchain Messaging Interchain messaging protocol"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/site-navigation.e2e.ts::site%20navigation%20leads%20from%20the%20home%20page%20to%20the%20Interchain%20Messaging%20docs",
+      "targetId": "desktop",
+      "instructionDigest": "0fa9648d840eec10e7e892c5b2266924398f5d6250cf8c70eb81aa9801cdb3b7",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Used site navigation (Developers > Documentation, then the docs section switcher \"Interchain Messaging\") to reach /docs/cross-chain, the Interchain Messaging documentation (title \"Introduction | Avalanche Builder Hub\", sidebar \"Avalanche Interchain Messaging\").",
+    "startPath": "/",
+    "endPath": "/docs/cross-chain",
+    "endAnchors": [
+      {
+        "text": "Network"
+      },
+      {
+        "text": "Nodes"
+      },
+      {
+        "text": "APIs"
+      },
+      {
+        "text": "Tools"
+      },
+      {
+        "text": "ACPs"
+      },
+      {
+        "role": "link",
+        "name": "Introduction"
+      },
+      {
+        "text": "Avalanche Interchain Messaging"
+      },
+      {
+        "role": "link",
+        "name": "What is ICM?"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "network"
+      },
+      {
+        "text": "."
+      },
+      {
+        "text": "Build an L1"
+      },
+      {
+        "text": "Build on C-Chain"
+      },
+      {
+        "role": "link",
+        "name": "READ THE ARCHITECTURE →"
+      },
+      {
+        "text": "JPMorgan"
+      },
+      {
+        "text": "Franklin Templeton"
+      },
+      {
+        "text": "T. Rowe Price"
+      }
+    ],
+    "endWaitMs": 12516
+  }
+}

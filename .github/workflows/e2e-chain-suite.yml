@@ -1,0 +1,165 @@
+name: E2E chain suite
+
+# One suite of the Console chain tests (tests/e2e/chain), selected by its tag. Only e2e-chain.yml calls this workflow,
+# once per suite, one job after the other. Read the header of e2e-chain.yml first.
+#
+# The job installs the dependencies and Chromium, and only then writes the key to a file that only the runner user can
+# read. It checks the key's balances against the suite's minimums, self-tests the wallet, runs the suite on
+# build.avax.network, and then always runs the teardown. The ledger, the report and the screenshots are artifacts
+# with the tag in their names. No traces: a trace records the requests and their headers, and the artifacts of a
+# public repo are public.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'The suite tag: tier1, pos, bridge, stake-reads, stake-acp236 or stake-fixed'
+        required: true
+        type: string
+      min_p_avax:
+        description: 'The preflight fails below this unlocked P-Chain balance, in AVAX'
+        required: true
+        type: string
+      min_c_avax:
+        description: 'The preflight fails below this C-Chain balance, in AVAX'
+        required: false
+        type: string
+        default: '0'
+      test_minutes:
+        description: 'The cap of the test step: the sum of the member caps of the suite, plus a margin'
+        required: true
+        type: number
+      job_minutes:
+        description: 'The cap of the job: the test step plus the setup, the teardown and the uploads'
+        required: true
+        type: number
+    secrets:
+      E2E_CHAIN_FUJI_KEY:
+        description: 'The private key of the Fuji test wallet'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    name: Suite ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    # The caller gates on master too. This guard stops the nightly and a dispatch from running a suite off master. It
+    # does not protect the key: it lives in the workflow file of the ref that runs, so a branch can delete it, and any
+    # workflow of a same-repo branch can read a repository secret. Read the secret note in e2e-chain.yml.
+    if: github.ref == 'refs/heads/master'
+    timeout-minutes: ${{ inputs.job_minutes }}
+    defaults:
+      run:
+        working-directory: tests/e2e
+    env:
+      E2E_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install dependencies
+        id: install
+        run: npm ci
+
+      # The engine's own installer gets the Chromium of the Playwright version that @e2e-dev/web pins. The ubuntu image
+      # has the Chromium system libraries; --with-deps can hang on apt.
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: npx @e2e-dev/web install chromium
+
+      # After the installs, so setup-node, npm ci, the lifecycle scripts of the dependencies and the Chromium installer
+      # never run while the key file exists. umask 077 gives the file mode 0600; chain/lib/chain.ts refuses a key file
+      # that others can read. printf is a shell builtin, so the key is in no process argument list. An if: expression
+      # cannot read a secret, so the step checks it in the shell.
+      - name: Write the key file
+        id: key
+        env:
+          E2E_CHAIN_FUJI_KEY: ${{ secrets.E2E_CHAIN_FUJI_KEY }}
+        run: |
+          if [ -z "$E2E_CHAIN_FUJI_KEY" ]; then
+            echo "::error title=E2E chain::The repository has no E2E_CHAIN_FUJI_KEY secret."
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/e2e-chain"
+          printf '%s' "$E2E_CHAIN_FUJI_KEY" > "$RUNNER_TEMP/e2e-chain/fuji.key"
+          echo "E2E_CHAIN_FUJI_KEY_FILE=$RUNNER_TEMP/e2e-chain/fuji.key" >> "$GITHUB_ENV"
+
+      # Prints the key's addresses, balances and stakes, with the unlock time of each ledger stake. Fails below the
+      # suite's minimums: the P minimum counts unlocked AVAX only, so a stake that is still locked does not count.
+      - name: Check the balances
+        timeout-minutes: 5
+        env:
+          MIN_P_AVAX: ${{ inputs.min_p_avax }}
+          MIN_C_AVAX: ${{ inputs.min_c_avax }}
+        run: node chain/lib/preflight.ts --min-p-avax "$MIN_P_AVAX" --min-c-avax "$MIN_C_AVAX"
+
+      # The wallet's refusals and the route's origin checks, with no transaction and no browser. A failure here stops
+      # the job before the key signs anything.
+      - name: Self-test the wallet
+        timeout-minutes: 5
+        run: node chain/wallet/selftest.ts
+
+      # Only the files with this tag run. The files share one signer per process, and the sends audit of each file
+      # counts every send of that signer, so one process runs one suite. A weekly file skips unless
+      # E2E_CHAIN_WEEKLY names it. The variable gets the tag, so only the weekly job runs a weekly file.
+      - name: Run the suite
+        timeout-minutes: ${{ inputs.test_minutes }}
+        env:
+          E2E_BASE_URL: https://build.avax.network
+          E2E_CHAIN_WEEKLY: ${{ inputs.tag }}
+          TAG: ${{ inputs.tag }}
+        run: npm run test:chain -- --tag "$TAG"
+
+      # Also after a failure or a cancel. It reads every ledger of the job and makes 3 passes: it disables each L1
+      # validator that the P-Chain shows active, stops an auto-renewed Primary Network stake that still renews, and
+      # imports the key's AVAX that waits in shared memory. It writes the result to the ledger and the job summary.
+      - name: Teardown
+        if: always() && steps.install.outcome == 'success' && steps.key.outcome == 'success'
+        timeout-minutes: 20
+        run: node chain/lib/teardown.ts
+
+      - name: Remove the key file
+        if: always() && steps.key.outcome != 'skipped'
+        run: rm -rf "$RUNNER_TEMP/e2e-chain"
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f chain/.e2e/summary.md ]; then cat chain/.e2e/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      # The ledger names the L1, the stake or the bridge legs, and every tx of the suite. Kept 30 days: no later run
+      # reads it, but a person can download it and pass its folder to chain/lib/teardown.ts.
+      - name: Upload the ledger
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-chain-ledger-${{ inputs.tag }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tests/e2e/chain/.run/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-chain-report-${{ inputs.tag }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            tests/e2e/chain/.e2e/report.json
+            tests/e2e/chain/.e2e/junit.xml
+            tests/e2e/chain/.e2e/summary.md
+            tests/e2e/chain/.e2e/failures
+            tests/e2e/chain/.e2e/artifacts/**/*.png
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore

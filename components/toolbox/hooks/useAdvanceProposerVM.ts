@@ -8,6 +8,7 @@ import { useResolvedWalletClient } from './useResolvedWalletClient';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { decideAdvanceAction } from '../utils/proposervm';
 import type { ProposerVMStatusResult } from './useProposerVMStatus';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
 
 /** Hard cap on block-producing transactions per run. A long-idle chain needs
  *  2 (seal the old epoch, start the new one); more than 4 means something
@@ -38,7 +39,7 @@ function classifySendError(err: unknown): AdvanceError {
     );
   }
   if (/user rejected|denied|cancelled|canceled/i.test(message)) {
-    return new AdvanceError('wallet', 'Transaction rejected in the wallet.');
+    return new AdvanceError('wallet', WALLET_REJECTED_TEXT);
   }
   return new AdvanceError('rpc', message);
 }

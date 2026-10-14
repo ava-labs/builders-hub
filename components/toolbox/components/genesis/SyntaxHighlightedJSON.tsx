@@ -108,7 +108,7 @@ export function SyntaxHighlightedJSON({ code, highlightedLine, highlightedLines 
                   highlightedLineRefs.current.set(lineNumber, el);
                 }
               }}
-              className={`relative ${isHighlighted ? 'bg-blue-200/30 dark:bg-blue-800/30' : ''}`}
+              className={`relative ${isHighlighted ? 'bg-amber-100/70 dark:bg-amber-900/30' : ''}`}
               style={{
                 paddingTop: '1px',
                 paddingBottom: '1px',

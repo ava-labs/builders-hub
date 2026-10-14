@@ -16,7 +16,10 @@ import {
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { StepCodeViewer, StepConfig } from '@/components/console/step-code-viewer';
-import { Check, Rocket, AlertCircle, ExternalLink, ArrowRight, Radio } from 'lucide-react';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import { Success } from '@/components/toolbox/components/Success';
+import { DocsLink, Fact, Facts, HoverArrow, Panel, StatusLine } from '@/components/toolbox/console/icm/ui';
 
 const SENDER_C_CHAIN_ADDRESS = '0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289';
 
@@ -276,173 +279,94 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   });
 
   const deployForm = (
-    <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy ICM Demo</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Test cross-chain messaging with a simple sender/receiver contract
-        </p>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* Info callout */}
-        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-            ICMDemo is a combined sender/receiver contract that demonstrates Avalanche's Inter-Chain Messaging protocol.
-            It can both send and receive cross-chain messages.
-          </p>
-        </div>
-
-        {/* Target Network */}
-        <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-          <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-            Target Network
+    <Panel
+      eyebrow="Demo contract"
+      title="Deploy ICMDemo"
+      description="One contract that both sends and receives cross-chain messages, for testing delivery between L1s."
+      footer={
+        <>
+          <DocsLink href="https://build.avax.network/academy/avalanche-l1/interchain-messaging/03-icm-protocol/04-receiving-a-message">
+            ICM basics tutorial
+          </DocsLink>
+          <span className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">ICM demo</span>
+        </>
+      }
+    >
+      <Facts>
+        <Fact label="Target network">
+          <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span>{selectedL1?.name || 'Unknown'}</span>
+            <span className="font-mono text-[11.5px] text-zinc-500 dark:text-zinc-400">
+              Chain ID {selectedL1?.evmChainId}
+            </span>
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {selectedL1?.name || 'Unknown'}
+        </Fact>
+        <Fact label="Messenger">
+          {isTeleporterDeployed ? (
+            <span className="flex flex-col gap-1">
+              <StatusLine tone="done">Found on this chain</StatusLine>
+              <span className="font-mono text-[11.5px] text-zinc-500 dark:text-zinc-400">
+                {TeleporterMessengerAddress.content}
+              </span>
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 font-mono">
-              Chain ID: {selectedL1?.evmChainId}
-            </span>
-          </div>
-        </div>
-
-        {/* Teleporter Status */}
-        <div
-          className={`p-3 rounded-xl border ${
-            isTeleporterDeployed
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {isTeleporterDeployed ? (
-              <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-            )}
-            <span
-              className={`text-sm font-medium ${
-                isTeleporterDeployed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-              }`}
-            >
-              {isTeleporterDeployed ? 'TeleporterMessenger Detected' : 'TeleporterMessenger Not Found'}
-            </span>
-          </div>
-          <p
-            className={`text-xs mt-1 ${
-              isTeleporterDeployed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            }`}
-          >
-            {isTeleporterDeployed
-              ? `Found at ${TeleporterMessengerAddress.content.slice(0, 10)}...`
-              : 'Deploy TeleporterMessenger first to enable cross-chain messaging.'}
-          </p>
-        </div>
-
-        {/* C-Chain Sender Info */}
-        <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-          <div className="flex items-center gap-2 mb-2">
-            <Radio className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-medium text-amber-700 dark:text-amber-300">C-Chain Pre-deployed Sender</span>
-          </div>
-          <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed mb-2">
-            Use the pre-deployed sender contract on C-Chain to send test messages to your L1.
-          </p>
-          <div className="flex items-center gap-2">
-            <code className="text-[10px] font-mono text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded">
-              {SENDER_C_CHAIN_ADDRESS}
-            </code>
+          ) : (
+            <StatusLine tone="error">Not found on this chain</StatusLine>
+          )}
+        </Fact>
+        <Fact label="C-Chain sender">
+          <span className="flex flex-col gap-1">
             <a
               href={`/explorer/fuji/c-chain/address/${SENDER_C_CHAIN_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+              className="group/link inline-flex max-w-full items-center gap-1.5 font-mono text-[12.5px] text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
             >
-              <ExternalLink className="w-3 h-3" />
+              <span className="min-w-0 break-all">{SENDER_C_CHAIN_ADDRESS}</span>
+              <HoverArrow />
             </a>
-          </div>
-        </div>
+            <span className="text-[12px] font-normal text-zinc-500 dark:text-zinc-400">
+              Pre-deployed on the C-Chain. Use it to send test messages to your L1.
+            </span>
+          </span>
+        </Fact>
+      </Facts>
 
-        {/* Local error (e.g. user rejected wallet chain switch) */}
-        {localError && (
-          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-              <span className="text-xs text-red-700 dark:text-red-300">{localError}</span>
-            </div>
-          </div>
-        )}
+      {!isTeleporterDeployed && (
+        <Alert variant="error">Deploy TeleporterMessenger on this chain first to enable cross-chain messages.</Alert>
+      )}
 
-        {/* Deploy Button / Success */}
-        {icmReceiverAddress ? (
-          <div className="space-y-3">
-            <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  ICMDemo Deployed Successfully
-                </span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wider block">
-                  Contract Address
-                </span>
-                <code className="text-[11px] font-mono text-green-700 dark:text-green-300 break-all">
-                  {icmReceiverAddress}
-                </code>
-              </div>
-            </div>
+      {localError && <Alert variant="error">{localError}</Alert>}
 
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
-              <ArrowRight className="w-4 h-4" />
-              Ready to send cross-chain messages. Proceed to the next step.
-            </div>
-
-            <button
-              onClick={handleDeploy}
-              disabled={isDeploying || !isTeleporterDeployed}
-              className="w-full py-2.5 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <Rocket className="w-4 h-4" />
-              {isDeploying ? 'Deploying...' : 'Re-Deploy ICMDemo'}
-            </button>
-          </div>
-        ) : (
-          <button
+      {icmReceiverAddress ? (
+        <>
+          <Success label="ICMDemo address" value={icmReceiverAddress} confirmed />
+          <StatusLine tone="done">Ready to send messages. Continue to the next step.</StatusLine>
+          <Button
+            variant="outline"
             onClick={handleDeploy}
-            disabled={isDeploying || !isTeleporterDeployed}
-            className="w-full py-2.5 text-sm font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            loading={isDeploying}
+            loadingText="Deploying"
+            disabled={!isTeleporterDeployed}
           >
-            <Rocket className="w-4 h-4" />
-            {isDeploying ? 'Deploying...' : 'Deploy ICMDemo'}
-          </button>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
-        <a
-          href="https://build.avax.network/academy/avalanche-l1/interchain-messaging/03-icm-protocol/04-receiving-a-message"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"
-        >
-          <ExternalLink className="w-3 h-3" />
-          ICM Basics Tutorial
-        </a>
-        <span className="text-[11px] text-zinc-400">ICM Demo</span>
-      </div>
-    </div>
+            Redeploy ICMDemo
+          </Button>
+        </>
+      ) : (
+        <Button onClick={handleDeploy} loading={isDeploying} loadingText="Deploying" disabled={!isTeleporterDeployed}>
+          Deploy ICMDemo
+        </Button>
+      )}
+    </Panel>
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
       {deployForm}
-      <StepCodeViewer activeStep={activeStep} steps={codeSteps} className="h-[600px]" />
+      <StepCodeViewer
+        activeStep={activeStep}
+        steps={codeSteps}
+        className="h-[600px] rounded-none border-zinc-200 dark:bg-zinc-950"
+      />
     </div>
   );
 }

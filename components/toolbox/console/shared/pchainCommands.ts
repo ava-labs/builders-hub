@@ -1,3 +1,6 @@
+import { hexToBytes } from 'viem';
+import { packWarpIntoAccessList, WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
+
 /**
  * Mapping of P-Chain transactions to platform-cli commands.
  * Source: https://github.com/ava-labs/platform-cli/blob/main/docs/pchain-operations.md
@@ -12,24 +15,28 @@
 // ---------------------------------------------------------------------------
 
 export const PCHAIN_COMMANDS = {
-  /** IssueRegisterL1ValidatorTx — register a new validator on an L1 */
+  /**
+   * IssueRegisterL1ValidatorTx: register a new validator on an L1. platform-cli requires --pop (cmd/l1.go), the
+   * validator's BLS proof of possession (hex).
+   */
   registerL1Validator: (opts: {
     signedWarpMessage: string;
+    pop: string;
     balance: string;
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform-cli l1 register-validator --message ${opts.signedWarpMessage} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli l1 register-validator --message ${opts.signedWarpMessage} --pop ${opts.pop} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueSetL1ValidatorWeightTx — update validator weight (used for removal, delegation, weight change) */
+  /** IssueSetL1ValidatorWeightTx: update validator weight (used for removal, delegation, weight change) */
   setL1ValidatorWeight: (opts: { signedWarpMessage: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli l1 set-validator-weight --message ${opts.signedWarpMessage} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueIncreaseL1ValidatorBalanceTx — top up validator balance */
+  /** IssueIncreaseL1ValidatorBalanceTx: top up validator balance */
   addBalance: (opts: { validationId: string; balance: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli l1 increase-validator-balance --validation-id ${opts.validationId} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueDisableL1ValidatorTx — disable a validator */
+  /** IssueDisableL1ValidatorTx: disable a validator */
   disableValidator: (opts: { validationId: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli l1 disable-validator --validation-id ${opts.validationId} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
@@ -65,16 +72,21 @@ export const PCHAIN_COMMANDS = {
   }) =>
     `platform-cli subnet convert-to-l1 --subnet-id ${opts.subnetId} --chain-id ${opts.chainId} --manager ${opts.contractAddress} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
-  /** IssueAddPermissionlessValidatorTx (Primary Network) */
+  /**
+   * IssueAddPermissionlessValidatorTx (Primary Network). platform-cli refuses the add without the node's BLS public
+   * key and proof of possession (cmd/validator.go: --bls-public-key and --bls-pop, both hex).
+   */
   addValidator: (opts: {
     nodeId: string;
+    blsPublicKey: string;
+    blsPop: string;
     stake: string;
     duration: string;
     delegationFee: string;
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform-cli validator add-permissionless --node-id ${opts.nodeId} --stake ${opts.stake} --duration ${opts.duration} --delegation-fee ${opts.delegationFee} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli validator add-permissionless --node-id ${opts.nodeId} --bls-public-key ${opts.blsPublicKey} --bls-pop ${opts.blsPop} --stake ${opts.stake} --duration ${opts.duration} --delegation-fee ${opts.delegationFee} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueAddPermissionlessDelegatorTx (Primary Network) */
   addDelegator: (opts: {
@@ -91,8 +103,20 @@ export const PCHAIN_COMMANDS = {
 // Cast command helpers for EVM transactions with warp access lists
 // ---------------------------------------------------------------------------
 
-/** Warp precompile address used in access lists */
-const WARP_PRECOMPILE = '0x0200000000000000000000000000000000000005';
+/**
+ * The --access-list JSON for a signed warp message. The Warp precompile reads
+ * the message from 32-byte storage keys: the message bytes, a 0xff terminator,
+ * then zero padding. The message can have a 0x prefix or not. A placeholder
+ * such as `<signed-hex>` stays a placeholder that says how to pack it.
+ */
+function warpAccessListJson(signedWarpMessage: string): string {
+  const hex = signedWarpMessage.startsWith('0x') ? signedWarpMessage : `0x${signedWarpMessage}`;
+  if (!/^0x(?:[0-9a-fA-F]{2})+$/.test(hex)) {
+    const name = signedWarpMessage.replace(/^<|>$/g, '');
+    return JSON.stringify([{ address: WARP_PRECOMPILE_ADDRESS, storageKeys: [`<${name} packed into 32-byte keys>`] }]);
+  }
+  return JSON.stringify(packWarpIntoAccessList(hexToBytes(hex as `0x${string}`)));
+}
 
 /**
  * Build a cast send command for an EVM transaction that includes a warp
@@ -107,9 +131,7 @@ export function buildCastCommand(opts: {
   signedWarpMessage?: string;
 }): string {
   const args = opts.args.join(' ');
-  const accessList = opts.signedWarpMessage
-    ? ` --access-list '[{"address":"${WARP_PRECOMPILE}","storageKeys":["${opts.signedWarpMessage}"]}]'`
-    : '';
+  const accessList = opts.signedWarpMessage ? ` --access-list '${warpAccessListJson(opts.signedWarpMessage)}'` : '';
 
   return `cast send ${opts.contractAddress} "${opts.functionSig}" ${args}${accessList} --rpc-url ${opts.rpcUrl} --private-key <your-private-key>`;
 }

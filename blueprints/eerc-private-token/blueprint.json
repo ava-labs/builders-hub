@@ -1,0 +1,279 @@
+{
+  "id": "eerc-private-token",
+  "version": 1,
+  "title": "Private Token",
+  "summary": "A new token with encrypted balances",
+  "description": "Launches a brand-new Encrypted ERC in standalone mode: supply is created by private mints from the owner, balances and transfer amounts stay encrypted, and an auditor can decrypt. Total supply stays private too.",
+  "category": "privacy",
+  "level": "advanced",
+  "tags": ["eerc", "encrypted-erc", "privacy", "zk", "token", "c-chain"],
+  "prompts": [
+    "Launch a token where balances are private",
+    "Create a confidential points or rewards token",
+    "Issue a private security token with an auditor"
+  ],
+  "networks": {
+    "main": {
+      "description": "Fuji C-Chain, which has the shared eERC registrar, verifiers and library",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "name",
+      "type": "string",
+      "description": "Token name",
+      "example": "Private Points"
+    },
+    {
+      "name": "symbol",
+      "type": "string",
+      "description": "Token symbol",
+      "example": "PPT"
+    },
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns the token and performs private mints",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "auditor",
+      "type": "address",
+      "description": "Can decrypt every amount; must be registered with the registrar",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "mintAmount",
+      "type": "uint",
+      "description": "Smoke-test mint to the builder, in 2-decimal units; the default is 100.00",
+      "default": "10000"
+    }
+  ],
+  "prerequisites": [
+    "A browser wallet that can sign messages: eERC keys and proofs are made on the builder's device",
+    "Fuji AVAX for gas"
+  ],
+  "contracts": [
+    {
+      "name": "EncryptedERC",
+      "artifact": "contracts/encrypted-erc/compiled/EncryptedERC.json",
+      "description": "The eERC contract, deployed in standalone mode"
+    },
+    {
+      "name": "Registrar",
+      "artifact": "contracts/encrypted-erc/compiled/Registrar.json",
+      "description": "Shared registry of users' BabyJubJub public keys"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-token",
+      "title": "Deploy the private token",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "EncryptedERC",
+      "args": [
+        {
+          "registrar": "$net.main.eerc.registrar",
+          "isConverter": false,
+          "name": "$param.name",
+          "symbol": "$param.symbol",
+          "decimals": 2,
+          "mintVerifier": "$net.main.eerc.verifiers.mint",
+          "withdrawVerifier": "$net.main.eerc.verifiers.withdraw",
+          "transferVerifier": "$net.main.eerc.verifiers.transfer",
+          "burnVerifier": "$net.main.eerc.verifiers.burn"
+        }
+      ],
+      "libraries": {
+        "contracts/libraries/BabyJubJub.sol:BabyJubJub": "$net.main.eerc.babyJubJubLibrary"
+      }
+    },
+    {
+      "id": "register-auditor",
+      "title": "Register the auditor's eERC key",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.register",
+      "inputs": {
+        "registrar": "$net.main.eerc.registrar",
+        "account": "$param.auditor",
+        "chainId": "$net.main.evmChainId"
+      },
+      "notes": "Skipped when Registrar.isUserRegistered(auditor) is already true."
+    },
+    {
+      "id": "set-auditor",
+      "title": "Set the auditor",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-token.address",
+      "function": "setAuditorPublicKey",
+      "args": ["$param.auditor"]
+    },
+    {
+      "id": "offer-ownership",
+      "title": "Offer ownership to the builder",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-token.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "accept-ownership",
+      "title": "Accept ownership",
+      "kind": "call",
+      "network": "main",
+      "signer": "builder",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-token.address",
+      "function": "acceptOwnership",
+      "args": []
+    },
+    {
+      "id": "register-builder",
+      "title": "Register the builder's eERC key",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.register",
+      "inputs": {
+        "registrar": "$net.main.eerc.registrar",
+        "account": "$ctx.builder",
+        "chainId": "$net.main.evmChainId"
+      },
+      "notes": "A no-op when the builder is the auditor or has registered before."
+    },
+    {
+      "id": "first-mint",
+      "title": "Privately mint to the builder",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.private-mint",
+      "inputs": {
+        "encryptedERC": "$out.deploy-token.address",
+        "recipient": "$ctx.builder",
+        "amount": "$param.mintAmount"
+      },
+      "notes": "The owner generates the mint proof in the browser with the mint circuit at /eerc/circuits/mint (lib/eerc/operations/mint.ts). Studio's runner does it when the deployment signs as the owner, with no popup from a Console wallet.",
+      "optional": true
+    },
+    {
+      "id": "decrypt-balance",
+      "title": "Decrypt the builder's private balance",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.decrypt-balance",
+      "inputs": {
+        "encryptedERC": "$out.deploy-token.address",
+        "account": "$ctx.builder"
+      },
+      "outputs": {
+        "balance": "result.balance"
+      },
+      "optional": true
+    }
+  ],
+  "checks": [
+    {
+      "description": "The token is in standalone mode",
+      "after": "deploy-token",
+      "network": "main",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-token.address",
+      "function": "isConverter",
+      "expect": {
+        "equals": false
+      }
+    },
+    {
+      "description": "An auditor key is set",
+      "after": "set-auditor",
+      "network": "main",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-token.address",
+      "function": "isAuditorKeySet",
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The builder owns the token",
+      "after": "accept-ownership",
+      "network": "main",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-token.address",
+      "function": "owner",
+      "expect": {
+        "equals": "$param.owner"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-token",
+      "read": [
+        "name",
+        "symbol",
+        "decimals",
+        "isConverter",
+        "isAuditorKeySet",
+        "auditor",
+        "auditorPublicKey",
+        "balanceOfStandalone",
+        "owner",
+        "pendingOwner",
+        "registrar"
+      ],
+      "write": ["setAuditorPublicKey", "transferOwnership", "acceptOwnership"]
+    }
+  ],
+  "review": [
+    "The token reuses the shared Fuji registrar, verifiers and BabyJubJub library from the registry.",
+    "Only the owner can mint, and each mint is a proof encrypted to the recipient's and the auditor's keys.",
+    "Ownership is two-step: the builder calls acceptOwnership, so the deployer never keeps control.",
+    "Every proof and every key stays in the owner's or user's browser."
+  ],
+  "frontend": {
+    "summary": "A private token: holders see and send balances only they can read, and the issuer mints privately to members.",
+    "audience": ["Holders who receive and send the token privately", "The issuer, who mints to registered members"],
+    "journeys": [
+      "Set up once: 'Create your private account' with one wallet signature, explained as the key that unlocks your balance.",
+      "See your balance, decrypted in the browser, with a note on who else can see it (nobody, or the auditor if the token has one).",
+      "Send privately to a member, with a check that they have a private account and a progress line while the privacy proof is generated.",
+      "Issuer area, shown only to the owner: pick a member, enter an amount, mint privately."
+    ],
+    "flows": [
+      "Load the eerc skill and start from its templates; every screen uses useEERC('EncryptedERC') from @studio/react.",
+      "Everything happens in the app: never link holders or the issuer to Builder Hub's eERC console to register, send, mint or see a balance.",
+      "Issuer: mint(recipient, amount) from the owner-only Mint screen, after isRegistered(recipient).",
+      "Holder: register() once, then show balance.formatted (unlock() on a new device); transfer(to, amount) after isRegistered(to)."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Encrypted ERC",
+      "url": "/integrations/encrypted-erc"
+    },
+    {
+      "title": "Deploy eERC infrastructure on another chain",
+      "url": "/console/encrypted-erc/deploy"
+    },
+    {
+      "title": "EncryptedERC repository",
+      "url": "https://github.com/ava-labs/EncryptedERC"
+    }
+  ],
+  "related": ["eerc-private-usdc", "erc20-token"]
+}

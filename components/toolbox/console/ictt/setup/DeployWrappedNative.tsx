@@ -25,6 +25,8 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
+import { HashChip } from '@/components/explorer-v2/ui';
+import { BODY, Loading, StatusTag } from '../bridge/ui';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 
@@ -204,7 +206,7 @@ function DeployWrappedNative({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
 
   async function handleDeploy() {
     if (!walletClient) {
-      setCriticalError(new Error('Core wallet not found'));
+      setCriticalError(new Error('Connect a wallet first.'));
       return;
     }
 
@@ -225,12 +227,12 @@ function DeployWrappedNative({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
 
   // Don't render anything until we've finished checking (or during SSR/initial mount)
   if (!isMounted || isCheckingToken) {
-    return <div className="text-center py-8 text-zinc-500">Checking for wrapped native token...</div>;
+    return <Loading className="py-8">Checking for a wrapped native token</Loading>;
   }
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-      <div className="space-y-6">
+      <div className="not-prose flex flex-col gap-6">
         {/* Token Address Display */}
         {wrappedNativeTokenAddress && (
           <Success label={`Wrapped Native Token Address (${wrappedTokenSymbol})`} value={wrappedNativeTokenAddress} />
@@ -238,23 +240,18 @@ function DeployWrappedNative({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
 
         {/* Deploy Section - Only show if no wrapped token exists */}
         {!wrappedNativeTokenAddress && (
-          <div className="space-y-4">
-            <div>
-              {hasPredeployedToken ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-green-600 dark:text-green-400">
-                    ✓ Pre-deployed wrapped native token detected at {PREDEPLOYED_WRAPPED_NATIVE_ADDRESS}
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    This token wraps your L1's native token ({nativeTokenSymbol} → {wrappedTokenSymbol})
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  No wrapped native token found. Deploy one to enable wrapping functionality.
+          <div className="flex flex-col gap-4">
+            {hasPredeployedToken ? (
+              <div className="flex flex-col gap-2 border border-emerald-300 px-4 py-3 dark:border-emerald-900">
+                <StatusTag tone="ok">Pre-deployed wrapped token found</StatusTag>
+                <HashChip value={PREDEPLOYED_WRAPPED_NATIVE_ADDRESS} len={16} />
+                <p className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                  Wraps your L1&apos;s native token: {nativeTokenSymbol} → {wrappedTokenSymbol}
                 </p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <p className={BODY}>No wrapped native token yet. Deploy one to enable wrapping.</p>
+            )}
 
             <Button variant="primary" onClick={handleDeploy} loading={isDeploying} disabled={isDeploying}>
               Deploy Wrapped Native Token
@@ -266,13 +263,13 @@ function DeployWrappedNative({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         {wrappedNativeTokenAddress && (
           <div className="space-y-6">
             {/* Balance Display Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 md:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800">
               <DisplayNativeBalance onError={setCriticalError} />
               <DisplayWrappedBalance wrappedNativeTokenAddress={wrappedNativeTokenAddress} onError={setCriticalError} />
             </div>
 
             {/* Wrap/Unwrap Tools Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <WrapNativeToken wrappedNativeTokenAddress={wrappedNativeTokenAddress} onError={setCriticalError} />
               <UnwrapNativeToken wrappedNativeTokenAddress={wrappedNativeTokenAddress} onError={setCriticalError} />
             </div>

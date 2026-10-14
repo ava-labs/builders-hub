@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, Check, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Copy, Check, ChevronDown, ChevronRight, AlertTriangle, Loader2 } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import type { BlockchainInfo } from './SelectBlockchain';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
@@ -27,18 +27,18 @@ function CopyableValue({ value }: { value: string | number | undefined | null })
     setTimeout(() => setCopied(false), 2000);
   }, [value]);
 
-  if (!value) return <span className="text-xs text-zinc-400">—</span>;
+  if (!value) return <span className="text-[12px] text-zinc-400">—</span>;
 
   return (
     <button
       onClick={handleCopy}
-      className="group/copy flex items-center gap-1.5 font-mono text-xs text-zinc-800 dark:text-zinc-200 hover:text-foreground transition-colors text-right"
+      className="group/copy flex items-center gap-1.5 text-right font-mono text-[12px] text-zinc-900 underline-offset-4 transition-colors hover:underline dark:text-zinc-100"
     >
       <span className="break-all">{value}</span>
       {copied ? (
-        <Check className="h-3 w-3 text-green-500 flex-shrink-0" />
+        <Check className="h-3 w-3 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
       ) : (
-        <Copy className="h-3 w-3 text-zinc-400 opacity-0 group-hover/copy:opacity-100 flex-shrink-0 transition-opacity" />
+        <Copy className="h-3 w-3 flex-shrink-0 text-zinc-400 opacity-0 transition-opacity group-hover/copy:opacity-100" />
       )}
     </button>
   );
@@ -47,7 +47,9 @@ function CopyableValue({ value }: { value: string | number | undefined | null })
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2">
-      <span className="text-xs text-zinc-500 dark:text-zinc-400 flex-shrink-0">{label}</span>
+      <span className="flex-shrink-0 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+        {label}
+      </span>
       {children}
     </div>
   );
@@ -70,10 +72,10 @@ export default function BlockchainDetailsDisplay({
 
   if (isLoading) {
     return (
-      <div className="mt-3 rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="mt-3 border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="p-3 flex items-center justify-center gap-2">
-          <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-600 dark:border-t-zinc-300"></div>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">Loading details...</span>
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+          <span className="text-[12px] text-zinc-500 dark:text-zinc-400">Loading details...</span>
         </div>
       </div>
     );
@@ -81,9 +83,9 @@ export default function BlockchainDetailsDisplay({
 
   if (error) {
     return (
-      <div className="mt-3 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 flex items-center gap-2">
-        <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
-        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+      <div className="mt-3 flex items-center gap-2 border border-red-200 bg-red-50/60 p-3 dark:border-red-900/60 dark:bg-red-950/20">
+        <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-red-600 dark:text-red-400" />
+        <span className="text-[12px] text-red-700 dark:text-red-400">{error}</span>
       </div>
     );
   }
@@ -117,20 +119,22 @@ export default function BlockchainDetailsDisplay({
         : 'Blockchain Details');
 
   return (
-    <div className="mt-3 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+    <div className="mt-3 overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       {/* Header */}
       <button
         onClick={handleToggleExpanded}
-        className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+        className="group/hdr flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{title}</span>
+          <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 transition-colors group-hover/hdr:text-zinc-900 dark:text-zinc-400 dark:group-hover/hdr:text-zinc-100">
+            {title}
+          </span>
           {blockchainData?.isTestnet !== undefined && (
             <span
-              className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+              className={`border px-1.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.12em] ${
                 blockchainData.isTestnet
-                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  ? 'border-amber-200 bg-amber-50/60 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300'
+                  : 'border-emerald-200 bg-emerald-50/60 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300'
               }`}
             >
               {blockchainData.isTestnet ? 'Fuji' : 'Mainnet'}
@@ -138,25 +142,25 @@ export default function BlockchainDetailsDisplay({
           )}
         </div>
         {currentIsExpanded ? (
-          <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+          <ChevronDown className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/hdr:text-[#E6212F]" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
+          <ChevronRight className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/hdr:text-[#E6212F]" />
         )}
       </button>
 
       {/* Content */}
       {currentIsExpanded && (
-        <div className="border-t border-zinc-200 dark:border-zinc-800 px-3 pb-3 divide-y divide-zinc-100 dark:divide-zinc-800">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 px-3 pb-3 divide-y divide-zinc-200 dark:divide-zinc-800">
           {/* Subnet info */}
           {isSubnetView && subnet && (
             <>
               <DetailRow label="Created">
-                <span className="text-xs text-zinc-800 dark:text-zinc-200">
+                <span className="text-[13px] text-zinc-900 dark:text-zinc-100">
                   {formatTimestamp(subnet.createBlockTimestamp)}
                 </span>
               </DetailRow>
               <DetailRow label="Blockchains">
-                <span className="text-xs text-zinc-800 dark:text-zinc-200">{subnet.blockchains?.length || 0}</span>
+                <span className="text-[13px] text-zinc-900 dark:text-zinc-100">{subnet.blockchains?.length || 0}</span>
               </DetailRow>
 
               {/* Owner */}
@@ -186,12 +190,12 @@ export default function BlockchainDetailsDisplay({
               {!isSubnetView && (
                 <>
                   <DetailRow label="Name">
-                    <span className="text-xs text-zinc-800 dark:text-zinc-200">
+                    <span className="text-[13px] text-zinc-900 dark:text-zinc-100">
                       {blockchainData.blockchainName || 'Unknown'}
                     </span>
                   </DetailRow>
                   <DetailRow label="Created">
-                    <span className="text-xs text-zinc-800 dark:text-zinc-200">
+                    <span className="text-[13px] text-zinc-900 dark:text-zinc-100">
                       {formatTimestamp(blockchainData.createBlockTimestamp)}
                     </span>
                   </DetailRow>
@@ -214,7 +218,7 @@ export default function BlockchainDetailsDisplay({
                   <CopyableValue value={blockchainData.vmId} />
                   {blockchainData.vmId && blockchainData.vmId !== SUBNET_EVM_VM_ID && (
                     <div className="flex items-center gap-1 mt-1 justify-end">
-                      <AlertTriangle className="h-3 w-3 text-amber-500" />
+                      <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                       <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Non-standard VM</span>
                     </div>
                   )}

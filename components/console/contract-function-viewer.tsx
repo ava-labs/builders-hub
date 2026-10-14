@@ -291,21 +291,21 @@ export function ContractFunctionViewer({
   const currentGithubUrl = isMultiSource ? currentTab?.githubUrl : githubUrl;
 
   return (
-    <div className={cn("lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden", className)}>
+    <div className={cn("lg:sticky lg:top-4 flex flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden", className)}>
       {/* Tab Bar */}
-      <div className="shrink-0 flex items-center gap-1 px-2 pt-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
+      <div className="shrink-0 flex items-center gap-1 px-4 border-b border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/40">
         {/* File Tabs (multi-source mode) */}
         {isMultiSource ? (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-5">
             {tabs.map((tab, idx) => (
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
                 className={cn(
-                  "px-3 py-2 text-xs font-medium rounded-t-lg transition-colors",
+                  "-mb-px border-b-2 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors",
                   activeTab === idx
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 -mb-px"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                    : "border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                 )}
               >
                 {tab.filename}
@@ -313,7 +313,7 @@ export function ContractFunctionViewer({
             ))}
           </div>
         ) : (
-          <div className="px-3 py-2 text-xs font-medium bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 rounded-t-lg -mb-px">
+          <div className="-mb-px border-b-2 border-zinc-900 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-900 dark:border-zinc-100 dark:text-zinc-100">
             {filename}
           </div>
         )}
@@ -321,35 +321,35 @@ export function ContractFunctionViewer({
         <div className="flex-1" />
 
         {/* Controls */}
-        <div className="flex items-center gap-0.5 mr-1 px-1 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+        <div className="mr-1 flex items-center border border-zinc-200 dark:border-zinc-800">
           <button
             onClick={() => adjustFontSize(-1)}
             disabled={fontSize === FONT_SIZES[0]}
-            className="p-1.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-30 transition-colors"
+            className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             <Minus className="w-3 h-3" />
           </button>
-          <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 w-6 text-center">{fontSize}</span>
+          <span className="w-6 border-x border-zinc-200 text-center font-mono text-[10px] tabular-nums text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">{fontSize}</span>
           <button
             onClick={() => adjustFontSize(1)}
             disabled={fontSize === FONT_SIZES[FONT_SIZES.length - 1]}
-            className="p-1.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-30 transition-colors"
+            className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             <Plus className="w-3 h-3" />
           </button>
         </div>
         <button
           onClick={handleCopy}
-          className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+          className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
         >
-          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+          {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
         </button>
         {currentGithubUrl && (
           <a
             href={currentGithubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+            className="p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             <ExternalLink className="w-4 h-4" />
           </a>
@@ -361,8 +361,8 @@ export function ContractFunctionViewer({
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-              <div className="w-4 h-4 border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-600 dark:border-t-zinc-300 rounded-full animate-spin" />
-              <span className="text-sm">Loading source...</span>
+              <div className="h-3.5 w-3.5 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin dark:border-zinc-700 dark:border-t-zinc-300" />
+              <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]">Loading source…</span>
             </div>
           </div>
         ) : isMultiSource ? (
@@ -388,10 +388,10 @@ export function ContractFunctionViewer({
                 {codeBlocks.length > 1 && (
                   <div className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
                     <span className={cn(
-                      "text-[10px] font-mono px-1.5 py-0.5 rounded",
+                      "border px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]",
                       idx === 0
-                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                        : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                        ? "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                        : "border-amber-200 text-amber-700 dark:border-amber-900/60 dark:text-amber-400"
                     )}>
                       {block.label}
                     </span>
@@ -416,7 +416,7 @@ export function ContractFunctionViewer({
 
       {/* Footer */}
       {description && (
-        <div className="shrink-0 px-4 py-2 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200/80 dark:border-zinc-800">
+        <div className="shrink-0 px-4 py-2 border-t border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/40">
           <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{description}</p>
         </div>
       )}

@@ -91,7 +91,7 @@ export const PredeploysSection = ({
           </div>
         </div>
 
-        <div className="divide-y divide-zinc-200 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
+        <div className="divide-y divide-zinc-200 overflow-hidden border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
           {items.map((item) => (
             <div
               key={item.id}
@@ -122,7 +122,7 @@ export const PredeploysSection = ({
                             href={predeployInfo[item.id as keyof typeof predeployInfo].githubUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                            className="inline-flex items-center gap-1 text-xs underline underline-offset-4 hover:decoration-[#E6212F]"
                           >
                             View contract source
                             <ExternalLink className="h-3 w-3" />

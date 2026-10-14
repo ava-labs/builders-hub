@@ -159,18 +159,25 @@ export default function TokenAllocationList({ allocations, onAllocationsChange, 
 
   return (
     <div className="space-y-3">
-      <div className="bg-white dark:bg-zinc-950 rounded-md border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <div className="overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div
-          className={`flex items-center justify-between ${compact ? 'px-3 py-2' : 'px-4 py-3'} border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/40`}
+          className={`flex items-center justify-between ${compact ? 'px-3 py-2' : 'px-4 py-3'} border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40`}
         >
-          <div className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">Token Allocations</div>
+          <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            Token Allocations
+          </div>
           <div className="flex items-center gap-3 text-[12px] text-zinc-600 dark:text-zinc-400">
             <span>
               Total:{' '}
-              <span className="font-medium text-zinc-800 dark:text-zinc-200">{totalSupply.toLocaleString()}</span>
+              <span className="font-mono font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+                {totalSupply.toLocaleString()}
+              </span>
             </span>
             {allocations.length > 0 && (
-              <button className="underline hover:no-underline" onClick={() => onAllocationsChange([])}>
+              <button
+                className="underline underline-offset-4 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
+                onClick={() => onAllocationsChange([])}
+              >
                 Clear all
               </button>
             )}
@@ -179,17 +186,14 @@ export default function TokenAllocationList({ allocations, onAllocationsChange, 
 
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {allocations.map((entry, index) => (
-            <div
-              key={index}
-              className={`flex items-center gap-3 ${compact ? 'p-3' : 'p-4'} hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors`}
-            >
+            <div key={index} className={`flex items-center gap-3 ${compact ? 'p-3' : 'p-4'} transition-colors`}>
               <div className="flex-1 min-w-0">
                 <div
-                  className={`font-mono ${compact ? 'text-[12px]' : 'text-sm'} break-all ${validationErrors[index] ? 'text-red-500' : 'text-zinc-700 dark:text-zinc-300'}`}
+                  className={`font-mono ${compact ? 'text-[12px]' : 'text-sm'} break-all ${validationErrors[index] ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100'}`}
                 >
                   {entry.address}
                   {validationErrors[index] && (
-                    <p className="text-xs text-red-500 dark:text-red-400 mt-1">{validationErrors[index]}</p>
+                    <p className="mt-1 text-[12px] text-red-700 dark:text-red-400">{validationErrors[index]}</p>
                   )}
                 </div>
               </div>
@@ -207,15 +211,15 @@ export default function TokenAllocationList({ allocations, onAllocationsChange, 
               />
               <button
                 onClick={() => handleDeleteAllocation(index)}
-                className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors`}
+                className={`group/del ${compact ? 'p-1.5' : 'p-2'} transition-colors`}
                 aria-label="Delete allocation"
               >
-                <Trash2 className="h-4 w-4 text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition-colors" />
+                <Trash2 className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/del:text-red-600 dark:group-hover/del:text-red-400" />
               </button>
             </div>
           ))}
 
-          <div className={`${compact ? 'p-3' : 'p-4'} bg-zinc-50/80 dark:bg-zinc-900/40`}>
+          <div className={`${compact ? 'p-3' : 'p-4'} bg-zinc-50/60 dark:bg-zinc-900/40`}>
             <div className={`flex items-center gap-3`}>
               <div className="flex-1 min-w-0 relative">
                 <RawInput
@@ -247,11 +251,11 @@ export default function TokenAllocationList({ allocations, onAllocationsChange, 
                 <button
                   onClick={handleAddAddress}
                   disabled={!isValidInput(newAddress)}
-                  className={`${compact ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'} bg-blue-500 hover:bg-blue-600 text-white rounded-md disabled:opacity-50 transition-colors font-medium flex items-center gap-1.5`}
+                  className={`${compact ? 'h-8 px-3 text-[10.5px]' : 'h-10 px-4 text-[11px]'} flex items-center gap-1.5 border border-zinc-900 bg-zinc-900 font-mono font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300`}
                 >
                   Add
                 </button>
-                <div className="h-6 w-px bg-zinc-300 dark:bg-zinc-600" />
+                <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800" />
                 <AddConnectedWalletButtonSimple
                   onAddAddress={(address) =>
                     handleAddAllocations([
@@ -270,7 +274,7 @@ export default function TokenAllocationList({ allocations, onAllocationsChange, 
       </div>
 
       {allocations.length < 1 && (
-        <p className="text-sm text-red-500 dark:text-red-400 font-medium">
+        <p className="text-[12px] font-medium text-red-700 dark:text-red-400">
           Please add at least one address that holds some tokens.
         </p>
       )}

@@ -1,604 +1,499 @@
 'use client';
 
-import { useState, useMemo, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ChevronRight, ExternalLink, Layers, Link as LinkIcon, Search, Star, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Layers, Search, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFavoriteTools } from '@/hooks/useFavoriteTools';
 import { useSubStepSearchToggle } from '@/hooks/useSubStepSearchToggle';
-import { boardContainer, boardItem } from '@/components/console/motion';
+import { Board, BoardHeader, Rise, SectionHeader } from '@/components/explorer-v2/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TOOLS, CATEGORY_ORDER, categoryAnchor, type ToolCard } from './tools';
 
-// Star control rendered absolutely in the top-right of every toolbox tile.
-// Click toggles pin state in localStorage; mandatory paths render the star
-// filled-but-disabled because they're permanent fixtures of the sidebar.
-// `e.preventDefault()` + `e.stopPropagation()` so clicking the star never
-// navigates to the tile's destination.
-function StarButton({
-  path,
+const EYEBROW = 'font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400';
+const COUNT = 'font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-zinc-400 dark:text-zinc-500';
+/** Cells draw their right and bottom edges; the grid draws the top and left, so neighbours share one hairline. */
+const GRID = 'grid border-l border-t border-zinc-200 dark:border-zinc-800';
+const CELL = 'border-b border-r border-zinc-200 dark:border-zinc-800';
+
+/* Star in a cell's corner: pins the tool to the sidebar. Sidebar fixtures show it filled and can't be unpinned. */
+function PinButton({
   name,
   starred,
   mandatory,
   onToggle,
-  /** Surface style — featured tile is dark, regular tile is light/dark-adapt. */
-  variant,
 }: {
-  path: string;
   name: string;
   starred: boolean;
   mandatory: boolean;
   onToggle: () => void;
-  variant: 'regular' | 'featured';
 }) {
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!mandatory) onToggle();
-  };
-
   const label = mandatory
-    ? `${name} is pinned to the sidebar`
+    ? `${name} is always in the sidebar`
     : starred
-      ? `Unpin ${name} from sidebar`
-      : `Pin ${name} to sidebar`;
-
-  // Color logic:
-  // - starred (any reason) → amber-500 fill, always visible
-  // - unstarred → muted outline that brightens on hover/focus, fades in on
-  //   parent group-hover so the star doesn't crowd the tile at rest
-  const idleColor =
-    variant === 'featured'
-      ? 'text-zinc-500 hover:text-amber-400'
-      : 'text-zinc-300 dark:text-zinc-600 hover:text-amber-500';
-
+      ? `Unpin ${name} from the sidebar`
+      : `Pin ${name} to the sidebar`;
   return (
     <button
       type="button"
-      onClick={handleClick}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!mandatory) onToggle();
+      }}
       disabled={mandatory}
       title={label}
       aria-label={label}
       aria-pressed={starred}
-      data-path={path}
       className={cn(
-        'absolute top-2 right-2 inline-flex items-center justify-center h-7 w-7 rounded-md',
-        'transition-all duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40',
+        'relative z-10 -m-1.5 inline-flex h-7 w-7 items-center justify-center transition-opacity focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-amber-400',
         starred
-          ? 'text-amber-500 opacity-100'
-          : `${idleColor} opacity-0 group-hover:opacity-100 focus-visible:opacity-100`,
+          ? 'text-amber-500'
+          : 'text-zinc-300 opacity-0 hover:text-amber-500 focus-visible:opacity-100 group-hover/tool:opacity-100 dark:text-zinc-600',
         mandatory && 'cursor-default',
       )}
     >
-      <Star className="h-4 w-4" fill={starred ? 'currentColor' : 'none'} strokeWidth={starred ? 1.5 : 2} />
+      <Star className="h-3.5 w-3.5" fill={starred ? 'currentColor' : 'none'} />
     </button>
   );
 }
 
-const STARRED_TILE_PATTERN: CSSProperties = {
-  backgroundImage:
-    'repeating-linear-gradient(135deg, rgba(113, 113, 122, 0.14) 0px, rgba(113, 113, 122, 0.14) 1px, transparent 1px, transparent 8px)',
-};
+function ToolLink({ tool, className, children }: { tool: ToolCard; className: string; children: React.ReactNode }) {
+  return tool.external ? (
+    <a href={tool.path} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  ) : (
+    <Link href={tool.path} className={className}>
+      {children}
+    </Link>
+  );
+}
 
-const STARRED_FEATURED_PATTERN: CSSProperties = {
-  backgroundImage:
-    'repeating-linear-gradient(135deg, rgba(212, 212, 216, 0.08) 0px, rgba(212, 212, 216, 0.08) 1px, transparent 1px, transparent 9px)',
-};
-
-// ---------------------------------------------------------------------------
-// ToolTile — matches homepage BentoCard geometry: rounded-2xl, soft shadow,
-// icon tile in the top-left, name + description, chevron on hover.
-// ---------------------------------------------------------------------------
-
-function ToolTile({
-  tool,
-  starred,
-  mandatory,
-  onToggleStar,
-}: {
-  tool: ToolCard;
-  starred: boolean;
-  mandatory: boolean;
-  onToggleStar: () => void;
-}) {
+/** One tool as a grid cell. The category's lead tool spans two columns and reads a size up. */
+function ToolCell({ tool, lead = false }: { tool: ToolCard; lead?: boolean }) {
+  const { isStarred, isMandatory, toggle } = useFavoriteTools();
   const Icon = tool.icon;
-
-  const card = (
-    <motion.div variants={boardItem} className="h-full">
-      <motion.div
-        whileHover={{ y: -2 }}
-        transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
-        className={cn(
-          'group relative h-full rounded-2xl border p-4 cursor-pointer transition-all duration-200',
-          // Starred tiles get an amber-tinted border + subtle bg wash so
-          // the user can spot what they've pinned at a glance. The gray
-          // hatch stays subtle but gives mandatory/sidebar-pinned tools a
-          // second visual cue beyond the yellow star.
-          starred
-            ? 'border-amber-300/70 dark:border-amber-500/35 bg-zinc-50/90 dark:bg-zinc-900/90 backdrop-blur-sm'
-            : 'border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm hover:border-zinc-300 dark:hover:border-zinc-700',
-        )}
-        style={{
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)',
-          ...(starred ? STARRED_TILE_PATTERN : {}),
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)';
-        }}
-      >
-        <StarButton
-          path={tool.path}
-          name={tool.name}
-          starred={starred}
-          mandatory={mandatory}
-          onToggle={onToggleStar}
-          variant="regular"
-        />
-        <div className="flex items-start gap-3 pr-7">
-          <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-            <Icon className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{tool.name}</h3>
-              {tool.external && <ExternalLink className="h-3 w-3 shrink-0 text-zinc-400 dark:text-zinc-500" />}
-            </div>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">{tool.description}</p>
-          </div>
-          {!tool.external && (
-            <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
+  const Arrow = tool.external ? ArrowUpRight : ArrowRight;
+  return (
+    <ToolLink
+      tool={tool}
+      className={cn(
+        CELL,
+        'group/tool flex flex-col gap-3 bg-white/80 p-5 dark:bg-zinc-950/80',
+        lead ? 'min-h-44 @xl:col-span-2' : 'min-h-36',
+      )}
+    >
+      <span className="flex items-start justify-between gap-3">
+        <span
+          className={cn(
+            'flex items-center justify-center border border-zinc-200 text-zinc-500 transition-colors group-hover/tool:border-zinc-400 group-hover/tool:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:group-hover/tool:border-zinc-600 dark:group-hover/tool:text-zinc-100',
+            lead ? 'h-9 w-9' : 'h-8 w-8',
           )}
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-
-  if (tool.external) {
-    return (
-      <a href={tool.path} target="_blank" rel="noopener noreferrer" className="h-full block">
-        {card}
-      </a>
-    );
-  }
-  return (
-    <Link href={tool.path} className="h-full block">
-      {card}
-    </Link>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// FeaturedTile — larger headline card for the one "lead" tool per category.
-// Single monochrome scheme that adapts to light/dark theme — mirrors the
-// neutral palette used by the eERC Overview's TileShells. Per-category
-// gradients (red / indigo / emerald / fuchsia) were tried and rejected:
-// they made the toolbox feel like a paint sample shop and clashed with the
-// rest of the console's restrained look.
-// ---------------------------------------------------------------------------
-
-type FeaturedScheme = {
-  background: string;
-  border: string;
-  borderHover: string;
-  iconWrap: string;
-  iconWrapHover: string;
-  iconColor: string;
-  title: string;
-  description: string;
-  chevron: string;
-  chevronHover: string;
-  shadow: string;
-  shadowHover: string;
-};
-
-// Always-dark hero card. The featured tile is the "premium" element on the
-// toolbox — it stays dark in both light and dark mode so it pops against
-// any page bg. White-on-dark gives the strongest visual contrast and
-// matches the eERC Overview aesthetic that worked for the user.
-const DEFAULT_SCHEME: FeaturedScheme = {
-  background: 'bg-zinc-800',
-  border: 'border-zinc-700/80',
-  borderHover: 'hover:border-zinc-600',
-  iconWrap: 'bg-white/[0.08]',
-  iconWrapHover: 'group-hover:bg-white/[0.14]',
-  iconColor: 'text-zinc-200 group-hover:text-white',
-  title: 'text-white',
-  description: 'text-zinc-400',
-  chevron: 'text-zinc-500',
-  chevronHover: 'group-hover:text-zinc-300',
-  shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
-  shadowHover: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)',
-};
-
-function FeaturedTile({
-  tool,
-  starred,
-  mandatory,
-  onToggleStar,
-}: {
-  tool: ToolCard;
-  starred: boolean;
-  mandatory: boolean;
-  onToggleStar: () => void;
-}) {
-  const Icon = tool.icon;
-  const scheme = DEFAULT_SCHEME;
-
-  const content = (
-    <motion.div variants={boardItem} className="h-full">
-      <motion.div
-        whileHover={{ y: -2 }}
-        transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
-        className={cn(
-          'group relative h-full rounded-2xl border p-5 cursor-pointer transition-all duration-200 overflow-hidden',
-          scheme.background,
-          scheme.border,
-          starred ? 'border-amber-400/45 hover:border-amber-400/60' : scheme.borderHover,
-        )}
-        style={{
-          boxShadow: scheme.shadow,
-          ...(starred ? STARRED_FEATURED_PATTERN : {}),
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = scheme.shadowHover;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = scheme.shadow;
-        }}
-      >
-        <StarButton
-          path={tool.path}
-          name={tool.name}
-          starred={starred}
-          mandatory={mandatory}
-          onToggle={onToggleStar}
-          variant="featured"
-        />
-        <div className="flex items-start justify-between h-full gap-4 relative pr-7">
-          <div className="min-w-0">
-            <div
-              className={cn(
-                'w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors',
-                scheme.iconWrap,
-                scheme.iconWrapHover,
-              )}
-            >
-              <Icon className={cn('w-5 h-5 transition-colors', scheme.iconColor)} />
-            </div>
-            <h3 className={cn('text-base font-semibold mb-1', scheme.title)}>{tool.name}</h3>
-            <p className={cn('text-sm leading-relaxed', scheme.description)}>{tool.description}</p>
-          </div>
-          <ChevronRight
-            className={cn(
-              'w-5 h-5 shrink-0 self-center transition-all duration-200 group-hover:translate-x-0.5',
-              scheme.chevron,
-              scheme.chevronHover,
-            )}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="flex items-center gap-3">
+          {lead && <span className={EYEBROW}>Start here</span>}
+          <PinButton
+            name={tool.name}
+            starred={isStarred(tool.path)}
+            mandatory={isMandatory(tool.path)}
+            onToggle={() => toggle(tool.path)}
           />
-        </div>
-      </motion.div>
-    </motion.div>
+        </span>
+      </span>
+      <span
+        className={cn(
+          'mt-auto flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50',
+          lead ? 'text-[18px]' : 'text-[15px]',
+        )}
+      >
+        <span className="underline-offset-4 group-hover/tool:underline">{tool.name}</span>
+        <Arrow className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/tool:translate-x-0 group-hover/tool:opacity-100" />
+      </span>
+      <span
+        className={cn(
+          'leading-relaxed text-zinc-500 dark:text-zinc-400',
+          lead ? 'max-w-md text-[14px]' : 'line-clamp-2 text-[13px]',
+        )}
+      >
+        {tool.description}
+      </span>
+    </ToolLink>
   );
+}
 
-  if (tool.external) {
-    return (
-      <a href={tool.path} target="_blank" rel="noopener noreferrer" className="h-full block">
-        {content}
-      </a>
-    );
-  }
+type SubStepResult = { parent: ToolCard; name: string; path: string; description?: string };
+
+function SubStepRow({ step }: { step: SubStepResult }) {
+  const Icon = step.parent.icon;
   return (
-    <Link href={tool.path} className="h-full block">
-      {content}
+    <Link href={step.path} className="group/row flex items-center gap-3 px-5 py-2.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-medium text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-50">
+          {step.name}
+        </span>
+        <span className="block truncate text-[12px] text-zinc-500 dark:text-zinc-400">in {step.parent.name}</span>
+      </span>
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100" />
     </Link>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-type SubStepResult = {
-  parent: ToolCard;
-  name: string;
-  path: string;
-  description?: string;
-};
+type RailItem = { id: string; label: string; count: number };
+
+/* The console scrolls inside its own panel, where a smooth scrollIntoView often stops short; scroll that panel. */
+function scrollToSection(id: string) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  let scroller: HTMLElement | null = target.parentElement;
+  while (scroller) {
+    const { overflowY } = getComputedStyle(scroller);
+    if (/(auto|scroll)/.test(overflowY) && scroller.scrollHeight > scroller.clientHeight) break;
+    scroller = scroller.parentElement;
+  }
+  const box = scroller ?? (document.scrollingElement as HTMLElement);
+  const offset = scroller ? scroller.getBoundingClientRect().top : 0;
+  const from = box.scrollTop;
+  const to = Math.min(from + target.getBoundingClientRect().top - offset - 24, box.scrollHeight - box.clientHeight);
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    box.scrollTop = to;
+    return;
+  }
+  // Stepped by hand: the browser's own smooth scroll gets cancelled by other scroll writes on this page.
+  const start = performance.now();
+  const step = (now: number) => {
+    const t = Math.min((now - start) / 450, 1);
+    box.scrollTop = from + (to - from) * (1 - (1 - t) ** 3);
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/** The page's sections beside the grid: the one in view is marked, and a click scrolls to it. */
+function SectionRail({ items }: { items: RailItem[] }) {
+  const [active, setActive] = useState<string | null>(items[0]?.id ?? null);
+  const ids = items.map((i) => i.id).join('|');
+
+  useEffect(() => {
+    const sections = ids
+      .split('|')
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => !!el);
+    if (sections.length === 0) return;
+    // The last sections can't scroll up to the marker line, so once the last one ends on screen it is current.
+    const last = sections[sections.length - 1];
+    const lastInView = () => last.getBoundingClientRect().bottom <= window.innerHeight;
+    // A section counts as current while it crosses a line a fifth of the way down the viewport.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (lastInView()) return setActive(last.id);
+        const hit = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (hit) setActive(hit.target.id);
+      },
+      { rootMargin: '-20% 0px -70% 0px' },
+    );
+    sections.forEach((s) => observer.observe(s));
+    const onScroll = () => lastInView() && setActive(last.id);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, [ids]);
+
+  if (items.length < 2) return null;
+
+  return (
+    <nav
+      aria-label="Toolbox sections"
+      className="sticky top-8 hidden max-h-[calc(100vh-12rem)] w-44 shrink-0 self-start overflow-y-auto xl:block"
+    >
+      <p className={cn(EYEBROW, 'mb-3')}>On this page</p>
+      <ul className="border-l border-zinc-200 dark:border-zinc-800">
+        {items.map((item) => {
+          const on = item.id === active;
+          return (
+            <li key={item.id}>
+              <a
+                href={`#${item.id}`}
+                aria-current={on ? 'location' : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection(item.id);
+                  setActive(item.id);
+                }}
+                className={cn(
+                  '-ml-px flex items-baseline justify-between gap-3 border-l py-1.5 pl-3 text-[13px] transition-colors',
+                  on
+                    ? 'border-[#E6212F] font-medium text-zinc-900 dark:text-zinc-50'
+                    : 'border-transparent text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100',
+                )}
+              >
+                <span className="truncate">{item.label}</span>
+                <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                  {item.count}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
 
 export default function ToolboxBoard() {
   const [search, setSearch] = useState('');
-  const { isStarred, isMandatory, toggle } = useFavoriteTools();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { userStarred, isHydrated } = useFavoriteTools();
   const { includeSubSteps, toggle: toggleSubSteps } = useSubStepSearchToggle();
+  const query = search.trim().toLowerCase();
 
-  // Match on the visible name only. Searching "convert" should return
-  // Convert to L1 / Format Converter / Unit Converter — not every tool
-  // whose description happens to contain "encrypted" or "deploy". Tight
-  // matches > broad matches for a tool catalog.
-  const filtered = useMemo(() => {
-    if (!search.trim()) return TOOLS;
-    const q = search.toLowerCase();
-    return TOOLS.filter((t) => t.name.toLowerCase().includes(q));
-  }, [search]);
+  // "/" jumps to search from anywhere on the page, unless the reader is already typing somewhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (e.key !== '/' || target?.closest('input, textarea, [contenteditable="true"]')) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
-  const filteredSubSteps = useMemo<SubStepResult[]>(() => {
-    if (!includeSubSteps || !search.trim()) return [];
-    const q = search.toLowerCase();
-    return TOOLS.flatMap((tool) => (tool.subSteps ?? []).map((step) => ({ parent: tool, ...step }))).filter((step) =>
-      step.name.toLowerCase().includes(q),
+  // Names only: "convert" should find the converters, not every tool whose description mentions a conversion.
+  const filtered = useMemo(() => (query ? TOOLS.filter((t) => t.name.toLowerCase().includes(query)) : TOOLS), [query]);
+
+  const grouped = useMemo(
+    () =>
+      CATEGORY_ORDER.map((category) => ({ category, tools: filtered.filter((t) => t.category === category) })).filter(
+        (g) => g.tools.length > 0,
+      ),
+    [filtered],
+  );
+
+  const subSteps = useMemo<SubStepResult[]>(() => {
+    if (!includeSubSteps || !query) return [];
+    return TOOLS.flatMap((tool) => (tool.subSteps ?? []).map((step) => ({ parent: tool, ...step }))).filter((s) =>
+      s.name.toLowerCase().includes(query),
     );
-  }, [includeSubSteps, search]);
+  }, [includeSubSteps, query]);
 
-  // Bucket sub-step results by their parent's category so the Sub-steps
-  // section reads with the same Permissioned / Permissionless / etc.
-  // structure as the top-level grid above. Without this, sub-steps from
-  // unrelated flows pile into a single grid and the user has to read
-  // every "Add Validator › …" / "Stake › …" prefix to find their category.
-  const groupedSubSteps = useMemo(() => {
-    if (filteredSubSteps.length === 0) return [];
-    const map = new Map<string, SubStepResult[]>();
-    for (const step of filteredSubSteps) {
-      const cat = step.parent.category;
-      const existing = map.get(cat) ?? [];
-      existing.push(step);
-      map.set(cat, existing);
-    }
-    return CATEGORY_ORDER.filter((c) => map.has(c)).map((c) => ({
-      category: c,
-      steps: map.get(c)!,
-    }));
-  }, [filteredSubSteps]);
+  // Several tiles share a path (the staking variants open Add Validator), so pins list each path once.
+  const pinned = useMemo(() => {
+    if (!isHydrated || query) return [];
+    const seen = new Set<string>();
+    return userStarred.flatMap((path) => {
+      const tool = TOOLS.find((t) => t.path === path);
+      if (!tool || seen.has(path)) return [];
+      seen.add(path);
+      return [tool];
+    });
+  }, [isHydrated, query, userStarred]);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, ToolCard[]>();
-    for (const tool of filtered) {
-      const existing = map.get(tool.category) ?? [];
-      existing.push(tool);
-      map.set(tool.category, existing);
-    }
-    return CATEGORY_ORDER.filter((c) => map.has(c)).map((c) => ({
-      category: c,
-      tools: map.get(c)!,
-    }));
-  }, [filtered]);
+  const nothing = grouped.length === 0 && subSteps.length === 0;
+
+  const railItems = useMemo<RailItem[]>(
+    () => [
+      ...(pinned.length > 0 ? [{ id: 'pinned', label: 'Pinned', count: pinned.length }] : []),
+      ...grouped.map((g) => ({ id: categoryAnchor(g.category), label: g.category, count: g.tools.length })),
+      ...(subSteps.length > 0 ? [{ id: 'sub-steps', label: 'Sub-steps', count: subSteps.length }] : []),
+    ],
+    [grouped, pinned.length, subSteps.length],
+  );
 
   return (
-    <div className="relative -m-4 md:-m-8 p-4 md:p-8" style={{ minHeight: 'calc(100vh - var(--header-height, 3rem))' }}>
-      {/* Grid background — matches the console homepage */}
-      <div
-        className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15] pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgb(148 163 184 / 0.3) 1px, transparent 1px),
-            linear-gradient(to bottom, rgb(148 163 184 / 0.3) 1px, transparent 1px)
-          `,
-          backgroundSize: '24px 24px',
-        }}
-      />
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 pb-20 pt-2">
+      <Rise className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          <p className={EYEBROW}>Toolbox</p>
+          <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl dark:text-zinc-50">
+            Every console tool, in one place.
+          </h1>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            {plural(TOOLS.length, 'tool')} across {plural(CATEGORY_ORDER.length, 'area')}. Star one to pin it to the
+            sidebar.
+          </p>
+        </div>
 
-      <div className="relative max-w-6xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-        >
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Toolbox</h1>
-            <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">Every Console tool in one place.</p>
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label className="group/search relative flex flex-1 items-center border border-zinc-300 bg-white/80 transition-colors focus-within:border-zinc-900 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950/80 dark:focus-within:border-zinc-100 dark:hover:border-zinc-600">
+            <Search className="pointer-events-none ml-3.5 h-4 w-4 shrink-0 text-zinc-400" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search tools by name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setSearch('')}
+              aria-label="Search tools"
+              className="h-11 w-full bg-transparent px-3 text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-500"
+            />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  inputRef.current?.focus();
+                }}
+                className="mr-2 p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : (
+              <kbd className="mr-3 border border-zinc-200 px-1.5 font-mono text-[11px] text-zinc-400 dark:border-zinc-800">
+                /
+              </kbd>
+            )}
+          </label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={toggleSubSteps}
+                aria-pressed={includeSubSteps}
+                className={cn(
+                  'inline-flex h-11 shrink-0 items-center justify-center gap-2 border px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors',
+                  includeSubSteps
+                    ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                    : 'border-zinc-300 text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-50',
+                )}
+              >
+                <Layers className="h-3.5 w-3.5" aria-hidden />
+                Sub-steps
+              </button>
+            </TooltipTrigger>
+            <TooltipContent
+              sideOffset={6}
+              className="max-w-xs rounded-none border border-zinc-900 bg-zinc-900 px-2.5 py-1.5 font-mono text-[11px] text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 [&>span>svg]:hidden"
+            >
+              {includeSubSteps
+                ? 'Search also finds single steps inside multi-step flows. Click to search tools only.'
+                : 'Also search single steps inside multi-step flows, like “Initialize Validator Set”.'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
-          <div className="flex w-full items-center gap-2 sm:w-auto">
-            <div className="relative flex-1 sm:w-80">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search tools..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm pl-9 pr-9 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-zinc-600/40 focus:border-zinc-500 dark:focus:border-zinc-500 transition-colors"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            {/* Inline filter chip — sits on the same row as the search input
-                so it reads as a search refinement, not a separate control.
-                Full label on desktop so the affordance is self-explanatory;
-                icon-only on narrow screens to keep the row compact. Radix
-                tooltip carries a fuller explanation on hover. */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={toggleSubSteps}
-                  aria-pressed={includeSubSteps}
-                  aria-label={
-                    includeSubSteps ? 'Hide sub-steps from search results' : 'Include sub-steps in search results'
-                  }
-                  className={cn(
-                    'inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-colors',
-                    includeSubSteps
-                      ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                      : 'border-zinc-300 bg-white/80 text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:border-zinc-600',
-                  )}
-                >
-                  <Layers className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="hidden sm:inline">Include sub-steps</span>
-                  <span className="sm:hidden">Sub-steps</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                {includeSubSteps
-                  ? 'Sub-steps are included. Search will surface individual steps inside multi-step flows (e.g. “Convert to L1” step inside Create L1).'
-                  : 'Search inside multi-step flows. Lets you find a single step (e.g. “Initialize Validator Set”) without going through the parent flow.'}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </motion.div>
+        {!query && (
+          <nav aria-label="Toolbox areas" className="flex flex-wrap gap-x-5 gap-y-2 xl:hidden">
+            {CATEGORY_ORDER.map((category) => (
+              <a
+                key={category}
+                href={`#${categoryAnchor(category)}`}
+                className="group/area inline-flex items-baseline gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                {category}
+                <span className="text-zinc-300 group-hover/area:text-[#E6212F] dark:text-zinc-600">
+                  {TOOLS.filter((t) => t.category === category).length}
+                </span>
+              </a>
+            ))}
+          </nav>
+        )}
+      </Rise>
 
-        {/* Results */}
-        {grouped.length === 0 && filteredSubSteps.length === 0 ? (
-          <div className="py-24 text-center">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800 mb-4">
-              <Search className="h-5 w-5 text-zinc-400" />
-            </div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">No tools match &ldquo;{search}&rdquo;</p>
-          </div>
-        ) : (
-          // `initial={false}` skips the hidden→visible transform on first
-          // mount. Without this, a hydration mismatch under React 18 strict
-          // mode left tiles stuck at the `hidden` opacity:0 state and the
-          // toolbox rendered empty even though grouping produced rows.
-          <motion.div className="space-y-10" variants={boardContainer} initial={false} animate="visible">
-            {grouped.map(({ category, tools }) => {
-              // Keep the same hierarchy during search. If the category's
-              // featured tool is part of the filtered result, it stays large
-              // instead of switching into a separate "search mode" layout.
-              const featured = tools.find((t) => t.featured);
-              const rest = featured ? tools.filter((t) => t !== featured) : tools;
-
-              return (
-                // id + scroll-mt make every section deep-linkable
-                // (/console/toolbox#create-deploy); scroll-mt clears the
-                // sticky console header when the browser jumps to the hash.
-                <section key={category} id={categoryAnchor(category)} className="scroll-mt-24">
-                  {/* Section header — mimics the homepage's "Built on Avalanche" bar.
-                      The heading is a self-anchor: clicking it puts the section's
-                      deep link in the address bar for copying. */}
-                  <div className="mb-4 flex items-center gap-3">
-                    <Link
-                      href={`#${categoryAnchor(category)}`}
-                      className="group/anchor inline-flex items-center gap-1.5"
-                    >
-                      <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{category}</h2>
-                      <LinkIcon className="h-3 w-3 text-zinc-400 opacity-0 transition-opacity group-hover/anchor:opacity-100 dark:text-zinc-500" />
-                    </Link>
-                    <div className="h-px flex-1 bg-zinc-200/80 dark:bg-zinc-800" />
-                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
-                      {tools.length} {tools.length === 1 ? 'tool' : 'tools'}
-                    </span>
-                  </div>
-
-                  {featured ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="md:col-span-2 md:row-span-2">
-                        <FeaturedTile
-                          tool={featured}
-                          starred={isStarred(featured.path)}
-                          mandatory={isMandatory(featured.path)}
-                          onToggleStar={() => toggle(featured.path)}
-                        />
-                      </div>
-                      {rest.map((tool) => (
-                        <ToolTile
-                          key={tool.path + tool.name}
-                          tool={tool}
-                          starred={isStarred(tool.path)}
-                          mandatory={isMandatory(tool.path)}
-                          onToggleStar={() => toggle(tool.path)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {rest.map((tool) => (
-                        <ToolTile
-                          key={tool.path + tool.name}
-                          tool={tool}
-                          starred={isStarred(tool.path)}
-                          mandatory={isMandatory(tool.path)}
-                          onToggleStar={() => toggle(tool.path)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-            {groupedSubSteps.length > 0 && (
-              <section>
-                {/* Top-level Sub-steps banner — total count, plus a bold
-                    visual break from the Tools sections above. */}
-                <div className="mb-5 flex items-center gap-3">
-                  <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">Sub-steps</h2>
-                  <div className="h-px flex-1 bg-zinc-200/80 dark:bg-zinc-800" />
-                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
-                    {filteredSubSteps.length} {filteredSubSteps.length === 1 ? 'step' : 'steps'}
-                  </span>
-                </div>
-                {/* One nested block per category — same hierarchy as the
-                    top-level grid so users can pattern-match between the
-                    two halves of the page. */}
-                <div className="space-y-7">
-                  {groupedSubSteps.map(({ category, steps }) => (
-                    <div key={category}>
-                      <div className="mb-3 flex items-center gap-3 pl-3">
-                        <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          {category}
-                        </h3>
-                        <div className="h-px flex-1 bg-zinc-200/60 dark:bg-zinc-800/70" />
-                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 tabular-nums">
-                          {steps.length} {steps.length === 1 ? 'step' : 'steps'}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {steps.map((step) => (
-                          <SubStepTile key={step.path} step={step} />
-                        ))}
-                      </div>
-                    </div>
+      {/* Below the search, the sections and the rail that follows them share the page width. */}
+      <div className="flex gap-8">
+        <div className="@container flex min-w-0 flex-1 flex-col gap-10">
+          {pinned.length > 0 && (
+            <Rise delay={0.04}>
+              <section id="pinned" className="flex scroll-mt-24 flex-col gap-4">
+                <SectionHeader label="Pinned" action={<span className={COUNT}>{plural(pinned.length, 'tool')}</span>} />
+                <div className={cn(GRID, 'grid-cols-1 @xl:grid-cols-2 @4xl:grid-cols-3')}>
+                  {pinned.map((tool) => (
+                    <ToolCell key={tool.path} tool={tool} />
                   ))}
                 </div>
               </section>
-            )}
-          </motion.div>
-        )}
+            </Rise>
+          )}
 
-        {/* Footer count */}
-        {grouped.length > 0 || filteredSubSteps.length > 0 ? (
-          <div className="mt-12 text-center text-xs text-zinc-400 dark:text-zinc-500">
-            {filtered.length + filteredSubSteps.length}{' '}
-            {filtered.length + filteredSubSteps.length === 1 ? 'result' : 'results'} across {grouped.length}{' '}
-            {grouped.length === 1 ? 'category' : 'categories'}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function SubStepTile({ step }: { step: SubStepResult }) {
-  const Icon = step.parent.icon;
-  return (
-    <Link href={step.path} className="group block h-full">
-      <motion.div variants={boardItem} className="h-full">
-        <div className="h-full rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm px-3 py-2.5 hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-px hover:shadow-sm transition-all duration-150">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-              <Icon className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">{step.parent.name} ›</p>
-              <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{step.name}</h3>
-              {step.description && (
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">{step.description}</p>
+          {nothing ? (
+            <div className="flex flex-col items-start gap-3 border border-zinc-200 bg-white/80 px-5 py-8 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/80">
+              <p className={cn(EYEBROW, 'flex items-center gap-2')}>
+                <Search className="h-3.5 w-3.5" />
+                No matches
+              </p>
+              <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+                No tool is called &ldquo;{search.trim()}&rdquo;.
+              </p>
+              {!includeSubSteps && (
+                <button
+                  type="button"
+                  onClick={toggleSubSteps}
+                  className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
+                >
+                  Search sub-steps too
+                </button>
               )}
             </div>
-          </div>
+          ) : (
+            <>
+              {grouped.map(({ category, tools }, i) => {
+                const lead = tools.find((t) => t.featured);
+                const rest = lead ? tools.filter((t) => t !== lead) : tools;
+                return (
+                  <Rise key={category} delay={Math.min(0.06 + i * 0.03, 0.2)}>
+                    <section id={categoryAnchor(category)} className="flex scroll-mt-24 flex-col gap-4">
+                      <SectionHeader
+                        label={category}
+                        action={<span className={COUNT}>{plural(tools.length, 'tool')}</span>}
+                      />
+                      <div className={cn(GRID, 'grid-cols-1 @xl:grid-cols-2 @4xl:grid-cols-3')}>
+                        {lead && <ToolCell tool={lead} lead />}
+                        {rest.map((tool) => (
+                          <ToolCell key={tool.path + tool.name} tool={tool} />
+                        ))}
+                      </div>
+                    </section>
+                  </Rise>
+                );
+              })}
+
+              {subSteps.length > 0 && (
+                <Rise>
+                  <section id="sub-steps" className="flex scroll-mt-24 flex-col gap-4">
+                    <SectionHeader
+                      label="Sub-steps"
+                      action={<span className={COUNT}>{plural(subSteps.length, 'step')}</span>}
+                    />
+                    <div className="grid grid-cols-1 gap-6 @3xl:grid-cols-2">
+                      {CATEGORY_ORDER.map((category) => {
+                        const steps = subSteps.filter((s) => s.parent.category === category);
+                        if (steps.length === 0) return null;
+                        return (
+                          <Board key={category} className="border-x border-t">
+                            <BoardHeader label={category} />
+                            {steps.map((step) => (
+                              <SubStepRow key={step.path} step={step} />
+                            ))}
+                          </Board>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </Rise>
+              )}
+
+              {query && (
+                <p className={cn(COUNT, 'text-center')}>
+                  {plural(filtered.length + subSteps.length, 'result')} in{' '}
+                  {plural(new Set([...filtered, ...subSteps.map((s) => s.parent)].map((t) => t.category)).size, 'area')}
+                </p>
+              )}
+            </>
+          )}
         </div>
-      </motion.div>
-    </Link>
+        <SectionRail items={railItems} />
+      </div>
+    </div>
   );
 }

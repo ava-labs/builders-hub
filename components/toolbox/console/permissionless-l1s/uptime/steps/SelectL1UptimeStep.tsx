@@ -15,8 +15,8 @@ export default function SelectL1UptimeStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
-        <p className="text-sm text-zinc-500 mb-4">Choose the L1 subnet to view validator uptimes and submit proofs.</p>
+        <h2 className="text-lg font-semibold">Select L1</h2>
+        <p className="text-sm text-zinc-500 mb-4">Choose the L1 to view validator uptimes and submit proofs.</p>
         <SelectSubnetId
           value={store.subnetIdL1}
           onChange={(value) => store.setSubnetIdL1(value)}

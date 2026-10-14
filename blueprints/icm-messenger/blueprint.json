@@ -1,0 +1,243 @@
+{
+  "id": "icm-messenger",
+  "version": 1,
+  "title": "ICM Messenger",
+  "summary": "Two-way messages between Avalanche chains",
+  "description": "A messenger deployed on two Avalanche chains that trust each other over Interchain Messaging (Teleporter). Messages carry their author, the receiver authenticates the counterpart, and relayer fees are optional.",
+  "category": "interop",
+  "level": "intermediate",
+  "tags": ["icm", "teleporter", "warp", "l1", "c-chain", "cross-chain"],
+  "prompts": [
+    "Send a message from the C-Chain to my L1",
+    "Build cross-chain messaging between two Avalanche chains",
+    "How do I make my L1 contract react to something on the C-Chain?"
+  ],
+  "networks": {
+    "source": {
+      "description": "Chain the first message is sent from",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "echo-fuji", "dispatch-fuji", "l1"]
+    },
+    "destination": {
+      "description": "Chain that receives it; must differ from source",
+      "default": "l1",
+      "allowed": ["l1", "echo-fuji", "dispatch-fuji", "fuji-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns both messengers and manages trusted remotes",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Text of the smoke-test message, at most 280 bytes",
+      "default": "Hello over ICM"
+    }
+  ],
+  "prerequisites": [
+    "Both chains have the TeleporterMessenger: true on Fuji C-Chain, Echo and Dispatch, and on an L1 launched with interoperability enabled",
+    "A relayer serving both chains: l1-quickstart with enableManagedRelayer sets one up, otherwise use the console's managed relayer",
+    "Native gas on both chains for the signer"
+  ],
+  "contracts": [
+    {
+      "name": "ICMMessenger",
+      "source": "contracts/ICMMessenger.sol",
+      "description": "Sends and receives authenticated text messages over Teleporter"
+    },
+    {
+      "name": "TeleporterMessenger",
+      "artifact": "contracts/icm-contracts/compiled/TeleporterMessenger.json",
+      "description": "Used to decode sent messages and to confirm delivery with messageReceived"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ensure-relayer",
+      "title": "Make sure a relayer serves both chains",
+      "kind": "offchain",
+      "network": "source",
+      "action": "icm.ensure-relayer",
+      "inputs": {
+        "chains": ["$net.source", "$net.destination"]
+      }
+    },
+    {
+      "id": "deploy-source",
+      "title": "Deploy the messenger on the source chain",
+      "kind": "deploy",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "ICMMessenger",
+      "args": ["$net.source.teleporter.messenger", "$ctx.deployer"]
+    },
+    {
+      "id": "deploy-destination",
+      "title": "Deploy the messenger on the destination chain",
+      "kind": "deploy",
+      "network": "destination",
+      "signer": "deployer",
+      "contract": "ICMMessenger",
+      "args": ["$net.destination.teleporter.messenger", "$ctx.deployer"]
+    },
+    {
+      "id": "trust-destination",
+      "title": "Source trusts the destination messenger",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "ICMMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "setTrustedRemote",
+      "args": ["$net.destination.blockchainIdHex", "$out.deploy-destination.address", true]
+    },
+    {
+      "id": "trust-source",
+      "title": "Destination trusts the source messenger",
+      "kind": "call",
+      "network": "destination",
+      "signer": "deployer",
+      "contract": "ICMMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "setTrustedRemote",
+      "args": ["$net.source.blockchainIdHex", "$out.deploy-source.address", true]
+    },
+    {
+      "id": "hand-over-source",
+      "title": "Transfer the source messenger to its owner",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "ICMMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "hand-over-destination",
+      "title": "Transfer the destination messenger to its owner",
+      "kind": "call",
+      "network": "destination",
+      "signer": "deployer",
+      "contract": "ICMMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "send-hello",
+      "title": "Send a message across",
+      "kind": "call",
+      "network": "source",
+      "signer": "builder",
+      "contract": "ICMMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "sendMessage",
+      "args": [
+        "$net.destination.blockchainIdHex",
+        "$out.deploy-destination.address",
+        "$param.message",
+        "0x0000000000000000000000000000000000000000",
+        0,
+        0
+      ],
+      "outputs": {
+        "messageId": "event:ICMMessenger.MessageSent.messageId"
+      },
+      "optional": true
+    },
+    {
+      "id": "wait-hello",
+      "title": "Wait for the relayer to deliver it",
+      "kind": "wait",
+      "network": "destination",
+      "wait": {
+        "for": "icm-delivery",
+        "id": "$out.send-hello.messageId",
+        "timeoutMinutes": 5
+      },
+      "optional": true
+    }
+  ],
+  "checks": [
+    {
+      "description": "The source trusts the destination",
+      "after": "trust-destination",
+      "network": "source",
+      "contract": "ICMMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "trustedRemote",
+      "args": ["$net.destination.blockchainIdHex", "$out.deploy-destination.address"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The destination received the message",
+      "after": "wait-hello",
+      "network": "destination",
+      "contract": "ICMMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "receivedCount",
+      "expect": {
+        "equals": 1
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-source",
+      "read": ["lastMessage", "receivedCount", "trustedRemote", "teleporterMessenger", "DEFAULT_GAS_LIMIT", "owner"],
+      "write": ["sendMessage", "setTrustedRemote"]
+    },
+    {
+      "step": "deploy-destination",
+      "read": ["lastMessage", "receivedCount", "trustedRemote", "teleporterMessenger", "DEFAULT_GAS_LIMIT", "owner"],
+      "write": ["sendMessage", "setTrustedRemote"]
+    }
+  ],
+  "review": [
+    "receiveTeleporterMessage rejects callers other than the TeleporterMessenger and origins that are not trusted remotes.",
+    "Both sides trust exactly one counterpart, identified by blockchain ID in hex and contract address.",
+    "DEFAULT_GAS_LIMIT (300,000) is about twice the measured cost of a first delivery of a 280-byte message; raise it if the receiver does more work.",
+    "Blockchain IDs are passed as 32-byte hex, not the CB58 strings the console shows."
+  ],
+  "frontend": {
+    "summary": "Chat between two chains: write on one, see it arrive on the other.",
+    "audience": ["People sending messages or commands between the C-Chain and an L1"],
+    "journeys": [
+      "Two columns, one per chain, each with its received messages and a message box.",
+      "Send and watch the message go from Sent to Delivered, usually within seconds while a relayer runs, with a link to the ICM explorer.",
+      "When delivery is slow, explain that a relayer carries messages and link its status, instead of showing an error."
+    ],
+    "flows": [
+      "Send with sendMessage(destinationBlockchainID, destination, text, 0x0, 0, 0) on the source chain; read messageId from MessageSent.",
+      "Show delivery status by polling messageReceived(messageId) on the destination TeleporterMessenger, and link the message page on the Builder Hub explorer.",
+      "Render the destination feed from MessageReceived events; lastMessage() gives the newest one without an indexer.",
+      "Let the owner manage trusted remotes from an admin tab; never auto-trust addresses typed by users."
+    ]
+  },
+  "docs": [
+    {
+      "title": "ICM contracts overview",
+      "url": "/docs/cross-chain/icm-contracts/overview"
+    },
+    {
+      "title": "Send a message (Academy)",
+      "url": "/academy/avalanche-l1/interchain-messaging/05-testing-icm/02-send-a-message"
+    },
+    {
+      "title": "Managed ICM relayer",
+      "url": "/console/testnet-infra/icm-relayer"
+    },
+    {
+      "title": "ICM contract addresses",
+      "url": "/docs/cross-chain/icm-contracts/addresses"
+    }
+  ],
+  "related": ["icm-price-oracle", "ictt-token-bridge", "l1-quickstart"]
+}

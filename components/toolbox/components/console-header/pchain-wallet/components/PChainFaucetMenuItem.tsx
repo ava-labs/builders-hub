@@ -122,7 +122,7 @@ export function PChainFaucetMenuItem() {
     if (isRequestingPTokens) return 'Requesting...';
     if (isCheckingRateLimit) return 'Checking...';
     if (!allowed && timeUntilReset) return `Faucet available in ${timeUntilReset}`;
-    return 'Get AVAX from Faucet';
+    return 'Get test AVAX';
   };
 
   return (
@@ -151,10 +151,10 @@ export function PChainFaucetMenuItem() {
       <DropdownMenuItem
         onClick={handlePChainTokenRequest}
         disabled={isDisabled}
-        className="cursor-pointer"
+        className="cursor-pointer gap-2.5 px-2"
         title={!allowed ? getRateLimitMessage() : undefined}
       >
-        <Droplet className="mr-2 h-3 w-3" />
+        <Droplet className="h-3.5 w-3.5" />
         {getMenuItemText()}
       </DropdownMenuItem>
     </>

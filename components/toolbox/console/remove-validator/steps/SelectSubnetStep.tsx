@@ -1,16 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { ManagerTypeBadge } from '@/components/toolbox/console/add-validator/ManagerTypeBadge';
 import { VmcChainSwitchBanner } from '@/components/toolbox/console/add-validator/VmcChainSwitchBanner';
+import { ActionPanel, LEAD, StepLayout } from '@/components/toolbox/console/shared/validator-flow-ui';
+import { StartOverButton } from '@/components/toolbox/console/shared/StartOverButton';
 
 export default function SelectSubnetStep() {
   const store = useRemoveValidatorStore();
   const vmcCtx = useValidatorManagerContext();
+  // Start over moves the focus to this field
+  const subnetFieldId = useId();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const isDetecting =
@@ -20,34 +24,9 @@ export default function SelectSubnetStep() {
     (vmcCtx.ownerType === 'StakingManager' && vmcCtx.staking.isLoading);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
-          {store.subnetIdL1 && (
-            <ManagerTypeBadge
-              ownerType={vmcCtx.ownerType}
-              stakingType={vmcCtx.staking.stakingType}
-              isDetecting={isDetecting}
-            />
-          )}
-        </div>
-        <p className="text-sm text-zinc-500 mb-4">
-          Choose the L1 with the validator you want to remove. We'll detect the validator manager type — PoS attempts
-          uptime-proof removal first (preserves staking rewards) and falls back to force-removal if the validator is
-          ineligible for rewards.
-        </p>
-        <SelectSubnetId
-          value={store.subnetIdL1}
-          onChange={store.setSubnetIdL1}
-          error={vmcCtx.error}
-          hidePrimaryNetwork={true}
-        />
-
-        {store.subnetIdL1 && vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
-      </div>
-      {store.subnetIdL1 && (
-        <div className="lg:sticky lg:top-4 lg:self-start">
+    <StepLayout
+      aside={
+        store.subnetIdL1 ? (
           <ValidatorManagerDetails
             validatorManagerAddress={vmcCtx.validatorManagerAddress}
             blockchainId={vmcCtx.blockchainId}
@@ -67,8 +46,38 @@ export default function SelectSubnetStep() {
             onToggleExpanded={() => setIsExpanded((prev) => !prev)}
             staking={vmcCtx.staking}
           />
-        </div>
-      )}
-    </div>
+        ) : undefined
+      }
+    >
+      <ActionPanel
+        label="L1"
+        action={
+          <div className="flex items-center gap-2">
+            {store.subnetIdL1 && (
+              <ManagerTypeBadge
+                ownerType={vmcCtx.ownerType}
+                stakingType={vmcCtx.staking.stakingType}
+                isDetecting={isDetecting}
+              />
+            )}
+            <StartOverButton show={!!store.subnetIdL1} onStartOver={store.reset} focusId={subnetFieldId} />
+          </div>
+        }
+      >
+        <p className={LEAD}>
+          Pick the L1 with the validator you want to remove. On PoS, removal tries an uptime proof first to keep staking
+          rewards, then falls back to force-removal if the validator isn&apos;t eligible.
+        </p>
+        <SelectSubnetId
+          id={subnetFieldId}
+          value={store.subnetIdL1}
+          onChange={store.setSubnetIdL1}
+          error={vmcCtx.error}
+          hidePrimaryNetwork={true}
+        />
+      </ActionPanel>
+
+      {store.subnetIdL1 && vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
+    </StepLayout>
   );
 }

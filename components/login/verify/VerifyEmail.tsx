@@ -234,6 +234,7 @@ export function VerifyEmail({
           >
             <div className="flex flex-col items-center space-y-2">
               <InputOTP
+                aria-label="Verification code"
                 className="w-[350px] h-10 flex justify-between text-white"
                 maxLength={6}
                 onChange={(val) => formMethods.setValue("code", val)}

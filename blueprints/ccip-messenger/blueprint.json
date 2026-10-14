@@ -1,0 +1,304 @@
+{
+  "id": "ccip-messenger",
+  "version": 1,
+  "title": "CCIP Messenger",
+  "summary": "Messages between Avalanche and other EVMs",
+  "description": "A messenger on the C-Chain and on an Ethereum, Arbitrum, Base or OP testnet, talking over Chainlink CCIP 2.0. Senders allowlist destinations, receivers allowlist the counterpart in both _ccipReceive and getCCVsAndFinalityConfig.",
+  "category": "interop",
+  "level": "advanced",
+  "tags": ["ccip", "chainlink", "cross-chain", "messaging", "c-chain", "ethereum", "base"],
+  "prompts": [
+    "Send a message from Avalanche to a contract on Ethereum",
+    "Trigger a contract on Base from the C-Chain",
+    "Cross-chain messaging between Avalanche and other EVM chains"
+  ],
+  "networks": {
+    "source": {
+      "description": "Avalanche side",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    },
+    "destination": {
+      "description": "Other EVM chain; deploying there is signed by the builder's wallet",
+      "default": "base-sepolia",
+      "allowed": ["base-sepolia", "ethereum-sepolia", "arbitrum-sepolia", "op-sepolia"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns both messengers",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Smoke-test text, at most 280 bytes",
+      "default": "Hello from Avalanche over CCIP"
+    },
+    {
+      "name": "receiverGasLimit",
+      "type": "uint",
+      "description": "Gas for _ccipReceive on the destination; storing a 280-byte message first costs about 150,000",
+      "default": 300000
+    }
+  ],
+  "prerequisites": [
+    "Fuji AVAX for gas and CCIP fees",
+    "Testnet ETH on the destination chain in the builder's wallet, to deploy and configure the receiver there"
+  ],
+  "contracts": [
+    {
+      "name": "CCIPMessenger",
+      "source": "contracts/CCIPMessenger.sol",
+      "description": "Sends and receives authenticated text over CCIP"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-source",
+      "title": "Deploy the messenger on the C-Chain",
+      "kind": "deploy",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "args": ["$net.source.ccip.router", "$ctx.deployer"]
+    },
+    {
+      "id": "deploy-destination",
+      "title": "Deploy the messenger on the destination chain",
+      "kind": "deploy",
+      "network": "destination",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "args": ["$net.destination.ccip.router", "$ctx.deployer"]
+    },
+    {
+      "id": "source-allows-destination",
+      "title": "C-Chain side may send to the destination chain",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "allowlistDestinationChain",
+      "args": ["$net.destination.ccip.chainSelector", true]
+    },
+    {
+      "id": "destination-allows-source",
+      "title": "Destination accepts the C-Chain messenger",
+      "kind": "call",
+      "network": "destination",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "allowlistSender",
+      "args": ["$net.source.ccip.chainSelector", "$out.deploy-source.address", true]
+    },
+    {
+      "id": "destination-allows-reply",
+      "title": "Destination may reply to the C-Chain",
+      "kind": "call",
+      "network": "destination",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "allowlistDestinationChain",
+      "args": ["$net.source.ccip.chainSelector", true]
+    },
+    {
+      "id": "source-allows-reply",
+      "title": "C-Chain accepts replies from the destination messenger",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "allowlistSender",
+      "args": ["$net.destination.ccip.chainSelector", "$out.deploy-destination.address", true]
+    },
+    {
+      "id": "hand-over-source",
+      "title": "Transfer the C-Chain messenger to its owner",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "hand-over-destination",
+      "title": "Transfer the destination messenger to its owner",
+      "kind": "call",
+      "network": "destination",
+      "signer": "deployer",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "encode-extra-args",
+      "title": "Encode extraArgs with the receiver's gas limit",
+      "kind": "offchain",
+      "network": "source",
+      "action": "ccip.encode-extra-args",
+      "inputs": {
+        "source": "$net.source",
+        "destination": "$net.destination",
+        "gasLimit": "$param.receiverGasLimit"
+      },
+      "outputs": {
+        "extraArgs": "result.extraArgs"
+      }
+    },
+    {
+      "id": "quote-fee",
+      "title": "Quote the CCIP fee in native AVAX",
+      "kind": "read",
+      "network": "source",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "getFee",
+      "args": [
+        "$net.destination.ccip.chainSelector",
+        "$out.deploy-destination.address",
+        "$param.message",
+        "0x0000000000000000000000000000000000000000",
+        "$out.encode-extra-args.extraArgs"
+      ],
+      "outputs": {
+        "fee": "return"
+      }
+    },
+    {
+      "id": "send",
+      "title": "Send the message",
+      "kind": "call",
+      "network": "source",
+      "signer": "builder",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-source.address",
+      "function": "sendMessage",
+      "args": [
+        "$net.destination.ccip.chainSelector",
+        "$out.deploy-destination.address",
+        "$param.message",
+        "0x0000000000000000000000000000000000000000",
+        "$out.encode-extra-args.extraArgs"
+      ],
+      "value": "$out.quote-fee.fee",
+      "outputs": {
+        "messageId": "event:CCIPMessenger.MessageSent.messageId"
+      }
+    },
+    {
+      "id": "wait-delivery",
+      "title": "Wait for CCIP to deliver",
+      "kind": "wait",
+      "network": "destination",
+      "wait": {
+        "for": "ccip-delivery",
+        "id": "$out.send.messageId",
+        "timeoutMinutes": 60
+      }
+    }
+  ],
+  "checks": [
+    {
+      "description": "The destination accepts the C-Chain messenger",
+      "after": "destination-allows-source",
+      "network": "destination",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "allowlistedSenders",
+      "args": ["$net.source.ccip.chainSelector", "$out.deploy-source.address"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The destination received the message",
+      "after": "wait-delivery",
+      "network": "destination",
+      "contract": "CCIPMessenger",
+      "target": "$out.deploy-destination.address",
+      "function": "receivedCount",
+      "expect": {
+        "equals": 1
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-source",
+      "read": [
+        "lastMessage",
+        "receivedCount",
+        "getFee",
+        "allowlistedDestinationChains",
+        "allowlistedSenders",
+        "getRouter",
+        "owner"
+      ],
+      "write": ["sendMessage", "allowlistDestinationChain", "allowlistSender", "setAllowedFinalityConfig"]
+    },
+    {
+      "step": "deploy-destination",
+      "read": [
+        "lastMessage",
+        "receivedCount",
+        "getFee",
+        "allowlistedDestinationChains",
+        "allowlistedSenders",
+        "getRouter",
+        "owner"
+      ],
+      "write": ["sendMessage", "allowlistDestinationChain", "allowlistSender", "setAllowedFinalityConfig"]
+    }
+  ],
+  "review": [
+    "The receiver checks the (sourceChainSelector, sender) allowlist in _ccipReceive and in getCCVsAndFinalityConfig.",
+    "ccipReceive is only callable by the router, enforced by CCIPReceiver's onlyRouter.",
+    "extraArgs carries a gas limit that covers _ccipReceive for the longest allowed message.",
+    "The allowed finality stays at bytes4(0), full finality only, unless the builder explicitly accepts faster-than-finality risk.",
+    "The destination deployment and its configuration are signed by the builder's wallet, because the destination is a user-signed network."
+  ],
+  "frontend": {
+    "summary": "Send a message from Avalanche to another chain and watch it arrive, with a feed of what each side has received.",
+    "audience": [
+      "People sending a message or instruction to an app on another chain",
+      "Readers following the destination chain's feed"
+    ],
+    "journeys": [
+      "Write and send: a message box, the destination named in words, and the fee in AVAX before signing ('Send to Ethereum Sepolia for 0.02 AVAX').",
+      "Follow it: one status line through Sent, In transit and Delivered, with the expected wait for that lane and a link to track it on the CCIP explorer.",
+      "Read the feed: the newest messages received on the destination, with sender and time, readable without a wallet.",
+      "Reply: the same message box on the destination, sending back to Avalanche."
+    ],
+    "flows": [
+      "Encode extraArgs with @chainlink/ccip-sdk using the receiver gas limit, quote getFee, then sendMessage with the fee as value.",
+      "Show the messageId from MessageSent with a link to https://ccip.chain.link, and poll receivedCount or MessageReceived on the destination.",
+      "Switch the wallet to the destination chain for the owner's setup transactions there.",
+      "Reply from the destination the same way, with the C-Chain selector and messenger address."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Chainlink CCIP on Avalanche",
+      "url": "/integrations/chainlink-ccip"
+    },
+    {
+      "title": "Message configuration (extraArgs)",
+      "url": "https://docs.chain.link/ccip/concepts/architecture/message-configuration-extraargs"
+    },
+    {
+      "title": "CCIP directory: Avalanche Fuji",
+      "url": "https://docs.chain.link/ccip/directory/testnet/chain/avalanche-fuji-testnet"
+    }
+  ],
+  "related": ["ccip-usdc-bridge", "icm-messenger"]
+}

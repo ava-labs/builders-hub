@@ -14,16 +14,18 @@ export function ResultField({ label, value, showCheck = false }: ResultFieldProp
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
-        {showCheck && <Check className="w-4 h-4 text-green-500" />}
+        <label className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          {label}
+        </label>
+        {showCheck && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
       </div>
       <div
         className={cn(
-          'w-full rounded-lg p-3.5 font-mono text-sm shadow-sm whitespace-pre-wrap break-words',
+          'w-full whitespace-pre-wrap break-words border px-3 py-2.5 font-mono text-[12px]',
           'text-zinc-900 dark:text-zinc-100',
           showCheck
-            ? 'bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30'
-            : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30',
+            ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/60 dark:bg-emerald-950/20'
+            : 'border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20',
         )}
       >
         {value}

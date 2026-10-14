@@ -17,13 +17,15 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from '@/components/toolbox/components/Steps';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { Success } from '@/components/toolbox/components/Success';
+import { IssuedTxNote } from '@/components/toolbox/components/IssuedTxNote';
+import { isPChainTxDropped, waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 import { usePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { C_CHAIN_IDS, conversionProblems, isCB58Id, readCChainManager, type CChainManager } from './conversionChecks';
 
@@ -52,7 +54,6 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     chainID: storeChainID,
     managerAddress: validatorManagerAddress,
     setManagerAddress: setValidatorManagerAddress,
-    convertToL1TxId: _convertToL1TxId,
     setConvertToL1TxId,
     genesisData: storeGenesisData,
   } = useCreateChainStore()();
@@ -71,6 +72,11 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
   const [isConverting, setIsConverting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [convertError, setConvertError] = useState<string | null>(null);
+  // This mount's ConvertSubnetToL1Tx. It is confirmed once the P-Chain commits it.
+  const [convertTx, setConvertTx] = useState<{ subnetId: string; txId: string; confirmed: boolean } | null>(null);
+  // The tx rows show only for the selected subnet. Another subnet must not look converted.
+  const txForSelection = convertTx && convertTx.subnetId === selection.subnetId ? convertTx : null;
+  const converted = !!txForSelection?.confirmed;
 
   const { notify } = useConsoleNotifications();
   const { submitPChainTx } = useSubmitPChainTx();
@@ -153,7 +159,9 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
   async function handleConvertToL1() {
     if (!coreWalletClient || blocked) return;
 
+    const subnetId = selection.subnetId;
     setConvertToL1TxId('');
+    setConvertTx(null);
     setConvertError(null);
     setIsConverting(true);
 
@@ -180,11 +188,16 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
       await waitForPChainConfirmation(txID, isTestnet);
 
       setConvertToL1TxId(txID);
+      setConvertTx({ subnetId, txId: txID, confirmed: true });
       onSuccess?.();
     } catch (err) {
       // Keep an issued-but-unconfirmed txID visible so the user can track
-      // it and paste it into the initialize step once it commits.
-      if (txID) setConvertToL1TxId(txID);
+      // it and paste it into the initialize step once it commits. A dropped
+      // tx cannot commit, so its ID is not kept.
+      if (txID && !isPChainTxDropped(err)) {
+        setConvertToL1TxId(txID);
+        setConvertTx({ subnetId, txId: txID, confirmed: false });
+      }
       setConvertError((err as Error).message);
     } finally {
       setIsConfirming(false);
@@ -211,10 +224,12 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
           <p className="text-sm text-muted-foreground mb-4">
             The validator manager contract controls your L1's validator set. If you used{' '}
             <strong>Console defaults</strong> for your L1 genesis, a proxy is pre-deployed at{' '}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">0xfacade...</code>
+            <code className="border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-[12px] text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+              0xfacade...
+            </code>
           </p>
 
-          <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
+          <p className="mb-4 flex items-center gap-1.5 text-[12px] text-zinc-500 dark:text-zinc-400">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
             <span>
               These values are <strong>permanent</strong> and cannot be changed after conversion.
@@ -298,15 +313,39 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
           <CoreWalletTransactionButton
             variant="primary"
             onClick={handleConvertToL1}
-            disabled={!selection.subnetId || validators.length === 0 || selection.subnet?.isL1 || blocked}
+            // The subnet is an L1 now: it cannot convert again
+            disabled={!selection.subnetId || validators.length === 0 || selection.subnet?.isL1 || blocked || converted}
             loading={isConverting}
             loadingText={isConfirming ? 'Waiting for P-Chain confirmation...' : 'Converting...'}
             className="w-full"
             cliCommand={buildConvertCliCommand()}
           >
-            {selection.subnet?.isL1 ? 'Already Converted' : 'Convert to L1'}
+            {converted ? 'Converted to L1' : selection.subnet?.isL1 ? 'Already Converted' : 'Convert to L1'}
           </CoreWalletTransactionButton>
-          {convertError && <Alert variant="error">{convertError}</Alert>}
+          {txForSelection?.confirmed && (
+            <Success
+              label="ConvertSubnetToL1Tx ID"
+              value={txForSelection.txId}
+              isTestnet={Boolean(isTestnet)}
+              confirmed
+            />
+          )}
+          {txForSelection && !txForSelection.confirmed && (
+            <Success
+              label="ConvertSubnetToL1Tx ID (not confirmed)"
+              value={txForSelection.txId}
+              isTestnet={Boolean(isTestnet)}
+              confirmed={false}
+            />
+          )}
+          {convertError && (
+            <Alert variant="error">
+              {convertError}
+              {txForSelection && !txForSelection.confirmed && (
+                <IssuedTxNote txId={txForSelection.txId} isTestnet={Boolean(isTestnet)} className="mt-2" />
+              )}
+            </Alert>
+          )}
         </Step>
       </Steps>
     </div>

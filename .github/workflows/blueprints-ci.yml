@@ -1,0 +1,61 @@
+name: Blueprints CI
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'blueprints/**'
+      - 'lib/blueprints/**'
+      - 'lib/studio/**'
+      - 'lib/verification/solc.ts'
+      - 'scripts/blueprints/**'
+      - 'scripts/studio/**'
+      - 'tests/unit/blueprints/**'
+      - 'tests/unit/studio/**'
+      - 'contracts/icm-contracts/compiled/**'
+      - '.github/workflows/blueprints-ci.yml'
+
+concurrency:
+  group: blueprints-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Test and audit blueprints
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          version: v1.5.1
+
+      - name: Solidity dependencies (pinned, checksum-verified)
+        run: yarn blueprints:deps
+
+      - name: Blueprint validation and Studio unit tests
+        run: npx vitest run tests/unit/blueprints tests/unit/studio
+
+      - name: Foundry tests (1024 fuzz runs)
+        working-directory: blueprints
+        env:
+          FOUNDRY_PROFILE: ci
+        run: forge test
+
+      - name: Audit gate
+        run: yarn blueprints:audit

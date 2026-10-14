@@ -1,0 +1,99 @@
+{
+  "id": "usdc-escrow",
+  "version": 1,
+  "title": "USDC Escrow",
+  "summary": "Buyer and seller escrow with an arbiter",
+  "description": "A buyer locks USDC for a seller; the buyer releases on delivery or the seller refunds. Either party can dispute before the deadline for a named arbiter to split, and undisputed deals return to the buyer after the deadline.",
+  "category": "payments",
+  "level": "intermediate",
+  "tags": ["c-chain", "usdc", "payments", "escrow", "marketplace"],
+  "prompts": [
+    "Hold USDC in escrow until the freelancer delivers",
+    "Build a marketplace where payment is released after delivery",
+    "Escrow with a dispute resolver for peer-to-peer trades"
+  ],
+  "networks": {
+    "main": {
+      "description": "C-Chain where USDC is native",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "mainnet-c-chain"]
+    }
+  },
+  "params": [],
+  "prerequisites": [
+    "Native gas on the C-Chain for the signer",
+    "Three distinct wallets to exercise a deal end to end: buyer, seller, and arbiter"
+  ],
+  "contracts": [
+    {
+      "name": "USDCEscrow",
+      "source": "contracts/USDCEscrow.sol",
+      "description": "Deals with release, refund, dispute, settlement, and deadline reclaim"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-escrow",
+      "title": "Deploy the escrow",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "USDCEscrow",
+      "args": ["$net.main.tokens.USDC.address"]
+    }
+  ],
+  "checks": [
+    {
+      "description": "Deals are denominated in USDC",
+      "after": "deploy-escrow",
+      "network": "main",
+      "contract": "USDCEscrow",
+      "target": "$out.deploy-escrow.address",
+      "function": "token",
+      "expect": {
+        "equals": "$net.main.tokens.USDC.address"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-escrow",
+      "read": ["getDeal", "nextDealId", "token", "MAX_TERMS_BYTES"],
+      "write": ["createDeal", "release", "refund", "dispute", "settle", "reclaim"]
+    }
+  ],
+  "review": [
+    "Each state-changing function checks both the caller's role and the deal's status before moving funds.",
+    "Status changes are written before tokens move, and every transfer path is nonReentrant.",
+    "The arbiter is chosen per deal and can only split a disputed deal; it can never redirect funds to itself.",
+    "Deadlines are unix seconds; the UI shows them in the user's timezone and warns before the dispute window closes."
+  ],
+  "frontend": {
+    "summary": "Hold USDC safely between a buyer and a seller until the deal is done, with a neutral arbiter for disputes.",
+    "audience": ["Buyers paying for work or goods", "Sellers delivering them", "Arbiters resolving disputes"],
+    "journeys": [
+      "Start a deal: seller, amount, deadline and terms in plain words; the buyer funds it in two visible steps.",
+      "A deal page that says what's happening and whose turn it is ('Waiting for the buyer to release 500 USDC'), with only the actions that person can take.",
+      "My deals: every deal where I'm buyer, seller or arbiter, with the ones needing my action first.",
+      "Dispute: either side opens one; the arbiter splits the amount with a slider that shows both shares before signing.",
+      "After the deadline, a clear reclaim button for the buyer."
+    ],
+    "flows": [
+      "Create: the buyer enters seller, arbiter, amount, deadline and terms, approves exactly the amount, then calls createDeal. Read the id from DealCreated.",
+      "Show actions by role and status: buyer may release or dispute; seller may refund or dispute; the arbiter may settle a disputed deal with a split; anyone may reclaim after the deadline.",
+      "List a wallet's deals from DealCreated events filtered by the indexed buyer or seller.",
+      "For settle, collect the seller's share as an amount and show the buyer's remainder before signing."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Circle testnet faucet",
+      "url": "https://faucet.circle.com"
+    },
+    {
+      "title": "Contract verification",
+      "url": "/docs/tooling/contract-verification"
+    }
+  ],
+  "related": ["usdc-checkout", "creator-tips"]
+}

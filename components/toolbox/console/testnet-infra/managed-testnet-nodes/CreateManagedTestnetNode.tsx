@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/toolbox/components/Button';
 import { useManagedTestnetNodes } from '@/hooks/useManagedTestnetNodes';
 import { NodeRegistration, RegisterSubnetResponse } from './types';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
-import { Wallet } from 'lucide-react';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { ArrowUpRight, Loader2, Wallet, XCircle } from 'lucide-react';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import Link from 'next/link';
-import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
+import { HashChip } from '@/components/explorer-v2/ui';
+import { EYEBROW, HoverArrow, PRIMARY_BTN, SECONDARY_BTN } from './ui';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import SelectSubnet from '@/components/toolbox/components/SelectSubnet';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
@@ -133,10 +133,8 @@ function CreateManagedTestnetNodeBase() {
   return (
     <Steps>
       <Step>
-        <h2 className="text-sm font-semibold">Step 1: Select Subnet</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Enter the Subnet ID of the blockchain you want to create a node for.
-        </p>
+        <h2>Select a Subnet</h2>
+        <p>Enter the Subnet ID of the L1 you want a node for.</p>
         <SelectSubnet
           value={subnetId}
           onChange={(selection) => {
@@ -150,52 +148,76 @@ function CreateManagedTestnetNodeBase() {
       </Step>
 
       <Step>
-        <h2 className="text-sm font-semibold">Step 2: Create Node</h2>
-        <p className="text-sm text-muted-foreground mb-4">Review the details and create your managed testnet node.</p>
+        <h2>Create the node</h2>
+        <p>Review the details, then create your managed testnet node.</p>
         {isUnsupportedVm && (
-          <p className="text-sm text-red-600 dark:text-red-400 mb-4">
-            Managed testnet nodes currently support Subnet-EVM L1s only.{' '}
-            {selectedChainName ? `"${selectedChainName}" uses` : 'This L1 uses'} a different virtual machine and cannot
-            be hosted here. Select a Subnet-EVM L1, or run a self-hosted node instead.
-          </p>
+          <div
+            role="alert"
+            className="flex items-start gap-3 border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/30"
+          >
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+            <p className="text-[13px] leading-relaxed text-red-800 dark:text-red-200">
+              Managed testnet nodes support Subnet-EVM L1s only.{' '}
+              {selectedChainName ? `"${selectedChainName}" uses` : 'This L1 uses'} a different virtual machine. Pick a
+              Subnet-EVM L1, or run a self-hosted node instead.
+            </p>
+          </div>
         )}
-        <Button
-          onClick={handleCreate}
-          loading={isCreatingNode}
-          disabled={!subnetId || !selectedBlockchainId || isCreatingNode || isUnsupportedVm}
-        >
-          Create Node
-        </Button>
+        <div>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!subnetId || !selectedBlockchainId || isCreatingNode || isUnsupportedVm}
+            className={PRIMARY_BTN}
+          >
+            {isCreatingNode && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Create node
+            <HoverArrow />
+          </button>
+        </div>
       </Step>
 
       <Step>
-        <h2 className="text-sm font-semibold">Step 3: Add to Wallet</h2>
-        <p className="text-sm text-muted-foreground mb-4">Add the new node's RPC to your wallet.</p>
+        <h2>Add to wallet</h2>
+        <p>Add the new node&apos;s RPC to your wallet.</p>
         {createdNode && (
-          <div className="mb-6">
-            <p className="mb-2">RPC URL:</p>
-            <CodeBlock allowCopy>
-              <Pre>{createdNode.rpc_url}</Pre>
-            </CodeBlock>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <p className={EYEBROW}>RPC URL</p>
+            <HashChip value={createdNode.rpc_url} len={200} />
           </div>
         )}
-        <Button
-          onClick={handleAddToWallet}
-          disabled={!createdNode || secondsUntilWalletEnabled > 0 || isConnectingWallet}
-          loading={isConnectingWallet}
-        >
-          <Wallet className="mr-2 h-4 w-4" />
-          {secondsUntilWalletEnabled > 0 ? `Wait ${secondsUntilWalletEnabled}s` : 'Add to Wallet'}
-        </Button>
+        <div>
+          <button
+            type="button"
+            onClick={handleAddToWallet}
+            disabled={!createdNode || secondsUntilWalletEnabled > 0 || isConnectingWallet}
+            className={SECONDARY_BTN}
+          >
+            {isConnectingWallet ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
+            {secondsUntilWalletEnabled > 0 ? (
+              <span className="tabular-nums">Wait {secondsUntilWalletEnabled}s</span>
+            ) : (
+              'Add to wallet'
+            )}
+          </button>
+        </div>
       </Step>
       <Step>
-        <h2 className="text-sm font-semibold">Step 4: Open Testnet Node Manager</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          To view this node and other that you have created, open the Testnet Node Manager.
-        </p>
-        <Link href="/console/testnet-infra/nodes" target="_blank">
-          <Button disabled={!createdNode}>Open Testnet Node Manager</Button>
-        </Link>
+        <h2>Open the node manager</h2>
+        <p>See this node and the others you created in the Testnet Node Manager.</p>
+        <div>
+          {createdNode ? (
+            <Link href="/console/testnet-infra/nodes" target="_blank" className={SECONDARY_BTN}>
+              Open node manager
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : (
+            <button type="button" disabled className={SECONDARY_BTN}>
+              Open node manager
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </Step>
     </Steps>
   );

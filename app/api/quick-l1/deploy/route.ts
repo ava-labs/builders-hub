@@ -38,8 +38,8 @@ async function handlePost(
   request: NextRequest,
 ): Promise<NextResponse<DeployResponse | { error: string }>> {
   // Gate the whole endpoint behind builders-hub auth — no deploys for
-  // anonymous callers. In development mode `getUserId` returns a fixed
-  // `'dev-user-id'` so local flows keep working.
+  // anonymous callers. In development `getUserId` falls back to a fixed
+  // `'dev-user-id'` when signed out, so local flows keep working.
   const { userId, error } = await getUserId();
   if (error) return error as NextResponse<{ error: string }>;
   if (!userId) {

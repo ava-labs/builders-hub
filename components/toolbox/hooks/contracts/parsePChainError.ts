@@ -1,3 +1,5 @@
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
+
 /**
  * Maps common P-Chain operation errors to human-readable messages.
  * Used by components that submit transactions directly to the P-Chain
@@ -6,14 +8,14 @@
 export function parsePChainError(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
 
-  if (raw.includes('User rejected')) return 'Transaction was rejected by user';
+  if (raw.includes('User rejected') || raw.includes('user rejected')) return WALLET_REJECTED_TEXT;
   if (raw.includes('insufficient funds')) return 'Insufficient P-Chain balance for transaction';
 
   // P-Chain rejects with: "signature weight is insufficient: 67*<total> > 100*<signed>".
   // The aggregator returned a partial signature that doesn't meet 67% quorum
   // of the signing subnet. Almost always a transient aggregator/validator
   // availability gap on smaller networks (especially Fuji's Primary Network
-  // with its ~9 validators) — a fresh aggregation attempt usually clears it.
+  // with its ~9 validators). A fresh aggregation attempt usually clears it.
   if (raw.includes('signature weight is insufficient')) {
     const match = raw.match(/67\*(\d+) > 100\*(\d+)/);
     if (match) {
@@ -22,14 +24,14 @@ export function parsePChainError(err: unknown): string {
       const percent = total > 0n ? Number((signed * 10000n) / total) / 100 : 0;
       return (
         `Signature aggregator only collected ${percent.toFixed(1)}% of the signing subnet's ` +
-        `stake (need 67%). This is a transient aggregator/validator availability gap — retry the ` +
-        `P-Chain submission, the next aggregation usually pulls a different set of responders. ` +
+        `stake (need 67%). This is a transient aggregator/validator availability gap. Retry the ` +
+        `P-Chain submission: the next aggregation usually pulls a different set of responders. ` +
         `Common on Fuji, where the Primary Network signing set is small.`
       );
     }
     return (
       'Aggregator returned a partial signature below the 67% quorum P-Chain requires. ' +
-      'Retry the P-Chain submission — usually a transient availability gap.'
+      'Retry the P-Chain submission. This is usually a transient availability gap.'
     );
   }
 
@@ -46,13 +48,13 @@ export function parsePChainError(err: unknown): string {
   if (raw.includes('execution reverted')) return `Transaction reverted: ${raw}`;
 
   // viem InternalRpcError (-32603) wrapping a P-Chain RPC failure. viem's default
-  // "mistyped URL / resource doesn't exist" boilerplate is NOT the real cause —
+  // "mistyped URL / resource doesn't exist" boilerplate is NOT the real cause:
   // the node returned an internal error without a specific reason. Surface an
   // honest message rather than the boilerplate (the raw text is still logged for
   // diagnosis), and don't blame the user's input, which is usually fine here.
   if (raw.includes('An internal error was received') || raw.includes('Unable to create transaction')) {
     return (
-      'The P-Chain RPC returned an internal error without a specific reason — this points to an ' +
+      'The P-Chain RPC returned an internal error without a specific reason. This points to an ' +
       'RPC/endpoint problem rather than your input. Wait a moment and try again; if it keeps failing, ' +
       'the P-Chain endpoint is likely degraded.'
     );

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { Input } from '@/components/toolbox/components/Input';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from '@/components/toolbox/components/Steps';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,

@@ -1,22 +1,17 @@
 'use client';
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import type { ChartThemeStyles } from '@/hooks/useChartTheme';
+import { ChartBoard } from '@/components/explorer-v2/ui';
 
-export function ChartsSkeleton({ themeStyles }: { themeStyles: ChartThemeStyles }) {
+const LABELS = ['Block time', 'Transactions per block', 'Gas utilization', 'Base fee'];
+
+export function ChartsSkeleton() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Card key={i} className={themeStyles.cardClass}>
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-48 mt-1" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-48" />
-          </CardContent>
-        </Card>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-label="Loading charts">
+      {LABELS.map((label) => (
+        <ChartBoard key={label} label={label}>
+          <div className="mb-3 h-7 w-28 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+          <div className="h-44 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+        </ChartBoard>
       ))}
     </div>
   );

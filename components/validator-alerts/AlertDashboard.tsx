@@ -2,41 +2,45 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
-import { boardContainer, boardItem } from '@/components/console/motion';
+import { format } from 'date-fns';
+import { Loader2, LogIn, Server, Settings, Trash2 } from 'lucide-react';
 import {
-  AlertTriangle,
-  Bell,
-  BellOff,
-  Trash2,
-  Settings,
-  History,
-  Loader2,
-  Server,
-  Activity,
-  Clock,
-  GitBranch,
-  Wallet,
-  Shield,
-} from 'lucide-react';
+  Board,
+  CellLabel,
+  FIG,
+  HEAD,
+  HashChip,
+  MUTED,
+  Rise,
+  RowSkeleton,
+  SectionHeader,
+  StatCell,
+  StatDash,
+  StatFigure,
+  StatStrip,
+  Tabs,
+  TxTypePill,
+} from '@/components/explorer-v2/ui';
+import { cn } from '@/lib/utils';
 import l1Chains from '@/constants/l1-chains.json';
 import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
 import { toast } from '@/lib/toast';
-import { AddValidatorDialog } from './AddValidatorDialog';
+import { AddValidatorForm } from './AddValidatorForm';
 import { BulkImportDialog } from './BulkImportDialog';
 import { AlertPreferences } from './AlertPreferences';
 import { AlertHistory } from './AlertHistory';
-import type {
-  ValidatorAlertResponse,
-  CreateAlertRequest,
-  UpdateAlertRequest,
-} from '@/types/validator-alerts';
+import {
+  COUNT,
+  EYEBROW,
+  ICON_DANGER,
+  ICON_SECONDARY,
+  PRIMARY_BTN,
+  SquareSwitch,
+  StatusDot,
+  TEXT_TONE,
+  type Tone,
+} from './ui';
+import type { ValidatorAlertResponse, CreateAlertRequest, UpdateAlertRequest } from '@/types/validator-alerts';
 
 interface ValidatorP2P {
   node_id: string;
@@ -52,6 +56,109 @@ function getL1ChainName(subnetId: string): string {
   const chain = (l1Chains as { subnetId: string; chainName: string }[]).find((c) => c.subnetId === subnetId);
   return chain?.chainName ?? `L1 (${subnetId.slice(0, 8)}...)`;
 }
+
+const COLS = 'md:grid-cols-[0.75rem_minmax(0,1.25fr)_minmax(0,10rem)_minmax(0,1.35fr)_6.75rem]';
+/** Full outline, so a board standing alone under a section header reads as one box. */
+const BOX = 'border-x border-t';
+
+/** The row's dot: what the live data says about this validator against its own thresholds. */
+function subscriptionStatus(
+  alert: ValidatorAlertResponse,
+  validator: ValidatorP2P | undefined,
+  dataLoaded: boolean,
+): { tone: Tone; label: string } {
+  if (!alert.active) return { tone: 'idle', label: 'Paused' };
+  if (alert.subnet_id !== 'primary') return { tone: 'healthy', label: 'Watching' };
+  if (validator) {
+    if (alert.uptime_alert && validator.p50_uptime < alert.uptime_threshold)
+      return { tone: 'alerting', label: 'Uptime below threshold' };
+    if (alert.expiry_alert && validator.days_left <= alert.expiry_days)
+      return { tone: 'warning', label: 'Stake expiring soon' };
+    return { tone: 'healthy', label: 'Healthy' };
+  }
+  if (dataLoaded) return { tone: 'warning', label: 'Not in active set' };
+  return { tone: 'healthy', label: 'Watching' };
+}
+
+const uptimeTone = (u: number): Tone => (u >= 99 ? 'healthy' : u >= 80 ? 'warning' : 'alerting');
+const expiryTone = (d: number): Tone | null => (d <= 7 ? 'alerting' : d <= 30 ? 'warning' : null);
+
+/** One alert type in the row: a filled square when on, hollow and gray when off. */
+function AlertToken({ on, children }: { on: boolean; children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.1em]',
+        on ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-400 dark:text-zinc-600',
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn('size-1.5 shrink-0 border', on ? 'border-current bg-current' : 'border-current')}
+      />
+      {children}
+    </span>
+  );
+}
+
+function Reading({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{label}</span>
+      <span className={cn('font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50', className)}>
+        {children}
+      </span>
+    </span>
+  );
+}
+
+/** The opened row: its preferences and the alerts it has sent. */
+function SubscriptionDetails({
+  alert,
+  onSave,
+}: {
+  alert: ValidatorAlertResponse;
+  onSave: (id: string, data: UpdateAlertRequest) => Promise<void>;
+}) {
+  const [tab, setTab] = useState<'preferences' | 'history'>('preferences');
+  return (
+    <div
+      id={`alert-details-${alert.id}`}
+      className="flex flex-col gap-5 border-t border-zinc-200 bg-zinc-50/60 px-5 py-5 md:px-6 dark:border-zinc-800 dark:bg-zinc-900/30"
+    >
+      <Tabs
+        tabs={['preferences', 'history']}
+        active={tab}
+        onChange={setTab}
+        labels={{
+          preferences: 'Preferences',
+          history: `Alert history · ${alert.alert_logs.length}`,
+        }}
+      />
+      {tab === 'preferences' ? (
+        <AlertPreferences alert={alert} onSave={onSave} />
+      ) : (
+        <AlertHistory logs={alert.alert_logs} />
+      )}
+    </div>
+  );
+}
+
+function PageHeader() {
+  return (
+    <Rise className="flex flex-col gap-3">
+      <p className={EYEBROW}>Primary Network</p>
+      <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl dark:text-zinc-50">
+        Validator alerts
+      </h1>
+      <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        Watch your validators and get an email when uptime drops, an AvalancheGo upgrade lands, or stake nears expiry.
+      </p>
+    </Rise>
+  );
+}
+
+const PAGE = 'mx-auto flex w-full max-w-6xl flex-col gap-10 pb-20 pt-2';
 
 export function AlertDashboard() {
   const { data: session, status } = useSession();
@@ -183,270 +290,310 @@ export function AlertDashboard() {
   // Unauthenticated state
   if (status === 'unauthenticated') {
     return (
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="flex flex-col items-center gap-4 py-12">
-          <Bell className="h-12 w-12 text-muted-foreground" />
-          <h1 className="text-xl font-semibold">Sign in to manage validator alerts</h1>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
-            Get email notifications when your validators experience uptime drops, version mismatches, or approaching stake expiry.
-          </p>
-          <Button onClick={() => openLoginModal('/validator-alerts')}>
-            Sign In
-          </Button>
-        </CardContent>
-      </Card>
+      <div className={PAGE}>
+        <PageHeader />
+        <Rise delay={0.04}>
+          <div className="flex flex-col gap-4 border border-zinc-200 bg-white/80 px-5 py-5 sm:flex-row sm:items-center sm:justify-between md:px-6 dark:border-zinc-800 dark:bg-zinc-950/80">
+            <div className="flex flex-col gap-1.5">
+              <p className={EYEBROW}>Signed out</p>
+              <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">
+                Sign in to manage validator alerts
+              </h2>
+              <p className="max-w-xl text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                Get email notifications when your validators experience uptime drops, version mismatches, or approaching
+                stake expiry.
+              </p>
+            </div>
+            <button type="button" onClick={() => openLoginModal('/validator-alerts')} className={PRIMARY_BTN}>
+              <LogIn className="h-3.5 w-3.5" aria-hidden />
+              Sign in
+            </button>
+          </div>
+        </Rise>
+      </div>
     );
   }
 
   // Loading state
   if (loading) {
     return (
-      <div className="space-y-4 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-36" />
-        </div>
-        {[1, 2].map((i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-lg" />
-        ))}
+      <div className={PAGE} role="status" aria-label="Loading validator alerts">
+        <PageHeader />
+        <StatStrip cols={4}>
+          {['Watched', 'Active', 'Recent alerts', 'Last triggered'].map((label) => (
+            <StatCell key={label} label={label} even>
+              <StatDash />
+            </StatCell>
+          ))}
+        </StatStrip>
+        <section className="flex flex-col gap-4">
+          <SectionHeader label="Subscriptions" />
+          <Board className={BOX}>
+            <RowSkeleton n={3} />
+          </Board>
+        </section>
       </div>
     );
   }
 
   const userEmail = session?.user?.email ?? '';
 
+  const activeCount = alerts.filter((a) => a.active).length;
+  const l1Count = alerts.filter((a) => a.subnet_id !== 'primary').length;
+  const triggered = alerts
+    .flatMap((a) => a.alert_logs.filter((l) => l.alert_type !== 'welcome').map((l) => ({ alert: a, log: l })))
+    .sort((x, y) => new Date(y.log.sent_at).getTime() - new Date(x.log.sent_at).getTime());
+  const lastTriggered = triggered[0];
+
   return (
-    <motion.div
-      className="space-y-6 max-w-4xl mx-auto"
-      variants={boardContainer}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Header */}
-      <motion.div
-        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-        variants={boardItem}
-      >
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Validator Alerts</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Monitor your validators and get notified of issues
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <BulkImportDialog onAdd={handleAdd} />
-          <AddValidatorDialog userEmail={userEmail} onAdd={handleAdd} />
-        </div>
-      </motion.div>
+    <div className={PAGE}>
+      <PageHeader />
 
-      {/* Empty state */}
-      {alerts.length === 0 && (
-        <motion.div variants={boardItem}>
-          <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-12">
-              <Server className="h-12 w-12 text-muted-foreground" />
-              <h3 className="text-lg font-medium">No validators registered</h3>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
-                Add your first validator to start receiving uptime, version, and stake expiry alerts.
+      <Rise delay={0.04}>
+        <StatStrip cols={4}>
+          <StatCell
+            label="Watched"
+            sub={alerts.length > 0 ? `${alerts.length - l1Count} primary · ${l1Count} L1` : 'No validators yet'}
+          >
+            <StatFigure value={alerts.length} />
+          </StatCell>
+          <StatCell
+            label="Active"
+            live={activeCount > 0}
+            sub={alerts.length - activeCount > 0 ? `${alerts.length - activeCount} paused` : 'None paused'}
+          >
+            <StatFigure value={activeCount} />
+          </StatCell>
+          <StatCell label="Recent alerts" sub="Latest per validator">
+            <StatFigure value={triggered.length} />
+          </StatCell>
+          <StatCell
+            label="Last triggered"
+            sub={
+              lastTriggered ? (
+                <span className="block truncate">{lastTriggered.alert.label ?? lastTriggered.alert.node_id}</span>
+              ) : (
+                'Nothing sent yet'
+              )
+            }
+          >
+            {lastTriggered ? (
+              <span className={FIG}>{format(new Date(lastTriggered.log.sent_at), 'MMM d, HH:mm')}</span>
+            ) : (
+              <StatDash />
+            )}
+          </StatCell>
+        </StatStrip>
+      </Rise>
+
+      <Rise delay={0.08}>
+        <AddValidatorForm userEmail={userEmail} onAdd={handleAdd} action={<BulkImportDialog onAdd={handleAdd} />} />
+      </Rise>
+
+      <Rise delay={0.12}>
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            label="Subscriptions"
+            action={
+              <span className={COUNT}>
+                {alerts.length} validator{alerts.length !== 1 ? 's' : ''}
+              </span>
+            }
+          />
+
+          {alerts.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 border border-zinc-200 bg-white/80 px-5 py-8 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/80">
+              <p className={cn(EYEBROW, 'flex items-center gap-2')}>
+                <Server className="h-3.5 w-3.5" aria-hidden />
+                No validators registered
               </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+              <p className="max-w-xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                Add your first validator above to start receiving uptime, version, and stake expiry alerts.
+              </p>
+            </div>
+          ) : (
+            <Board className={BOX}>
+              <div className={cn(HEAD, COLS)}>
+                <span />
+                <span>Validator</span>
+                <span>Live status</span>
+                <span>Alerts</span>
+                <span className="text-right">
+                  <span className="sr-only">Actions</span>
+                </span>
+              </div>
+              {alerts.map((alert) => {
+                const isExpanded = expandedId === alert.id;
+                const recentAlerts = alert.alert_logs.length;
+                const validator = validatorData.get(alert.node_id);
+                const isL1 = alert.subnet_id !== 'primary';
+                const state = subscriptionStatus(alert, validator, validatorData.size > 0);
+                const name = alert.label ?? alert.node_id;
+                return (
+                  <div key={alert.id}>
+                    <div
+                      className={cn(
+                        'grid grid-cols-[0.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 px-5 py-4 transition-colors md:items-center md:px-6 md:py-3',
+                        COLS,
+                        !alert.active && 'bg-zinc-50/60 dark:bg-zinc-900/30',
+                        isExpanded && 'bg-zinc-50 dark:bg-zinc-900/60',
+                      )}
+                    >
+                      <span className="flex h-5 items-center md:h-auto">
+                        <StatusDot tone={state.tone} label={state.label} />
+                      </span>
 
-      {/* Alert cards */}
-      {alerts.map((alert) => {
-        const isExpanded = expandedId === alert.id;
-        const recentAlerts = alert.alert_logs.length;
-        const validator = validatorData.get(alert.node_id);
-        const isL1 = alert.subnet_id !== 'primary';
-        return (
-          <motion.div key={alert.id} variants={boardItem}>
-          <Card className="overflow-hidden">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-mono truncate">
-                      {alert.label ?? alert.node_id}
-                    </CardTitle>
-                    {isL1 && (
-                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800">
-                        {getL1ChainName(alert.subnet_id)}
-                      </Badge>
-                    )}
-                    {!alert.active && (
-                      <Badge variant="secondary" className="text-xs">
-                        Paused
-                      </Badge>
-                    )}
+                      <div className="flex min-w-0 flex-col gap-1">
+                        {alert.label && (
+                          <span className="truncate text-[13.5px] font-medium text-zinc-900 dark:text-zinc-50">
+                            {alert.label}
+                          </span>
+                        )}
+                        <HashChip value={alert.node_id} len={14} />
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <TxTypePill
+                            type={isL1 ? 'l1' : 'primary'}
+                            label={isL1 ? getL1ChainName(alert.subnet_id) : 'Primary Network'}
+                          />
+                          <span
+                            className={cn(
+                              'font-mono text-[10px] font-bold uppercase tracking-[0.14em]',
+                              TEXT_TONE[state.tone],
+                            )}
+                          >
+                            {state.label}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="col-start-2 min-w-0 md:col-start-auto">
+                        <CellLabel>Live status</CellLabel>
+                        {!isL1 && validator ? (
+                          <span className="flex flex-wrap gap-x-3 gap-y-1 md:flex-col md:gap-y-0.5">
+                            <Reading label="Uptime" className={TEXT_TONE[uptimeTone(validator.p50_uptime)]}>
+                              {validator.p50_uptime.toFixed(1)}%
+                            </Reading>
+                            <Reading label="Version">{validator.version || 'N/A'}</Reading>
+                            <Reading
+                              label="Expires"
+                              className={cn(
+                                expiryTone(validator.days_left) && TEXT_TONE[expiryTone(validator.days_left)!],
+                              )}
+                            >
+                              {validator.days_left}d
+                            </Reading>
+                          </span>
+                        ) : !isL1 && validatorData.size > 0 ? (
+                          <span className={MUTED}>Not in active set</span>
+                        ) : (
+                          <span className={MUTED}>—</span>
+                        )}
+                      </div>
+
+                      <div className="col-start-2 flex min-w-0 flex-col gap-1.5 md:col-start-auto">
+                        <CellLabel>Alerts</CellLabel>
+                        <span className="flex flex-wrap gap-x-3 gap-y-1">
+                          {!isL1 && (
+                            <AlertToken on={alert.uptime_alert}>
+                              {alert.uptime_alert ? (
+                                <span className="tabular-nums">Uptime &lt; {alert.uptime_threshold}%</span>
+                              ) : (
+                                'Uptime off'
+                              )}
+                            </AlertToken>
+                          )}
+                          <AlertToken on={alert.version_alert}>
+                            {alert.version_alert ? 'Upgrade' : 'Upgrade off'}
+                          </AlertToken>
+                          {!isL1 && (
+                            <AlertToken on={alert.expiry_alert}>
+                              {alert.expiry_alert ? (
+                                <span className="tabular-nums">Expiry &lt; {alert.expiry_days}d</span>
+                              ) : (
+                                'Expiry off'
+                              )}
+                            </AlertToken>
+                          )}
+                          {isL1 && (
+                            <AlertToken on={alert.balance_alert}>
+                              {alert.balance_alert ? (
+                                <span className="tabular-nums">
+                                  Balance &lt; {alert.balance_threshold_days}d runway
+                                </span>
+                              ) : (
+                                'Balance off'
+                              )}
+                            </AlertToken>
+                          )}
+                          {!isL1 && (
+                            <AlertToken on={alert.security_alert}>
+                              {alert.security_alert ? 'Security' : 'Security off'}
+                            </AlertToken>
+                          )}
+                        </span>
+                        <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+                          <span className="min-w-0 truncate" title={alert.email}>
+                            Email · {alert.email}
+                          </span>
+                          {recentAlerts > 0 && (
+                            <span className="shrink-0 tabular-nums text-amber-700 dark:text-amber-400">
+                              {recentAlerts} recent
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="col-start-2 flex items-center gap-2 md:col-start-auto md:justify-end">
+                        <span className="flex h-8 w-10 items-center justify-center">
+                          {togglingId === alert.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-zinc-400" aria-label="Updating" />
+                          ) : (
+                            <SquareSwitch
+                              checked={alert.active}
+                              onCheckedChange={(checked) => handleToggleActive(alert.id, checked)}
+                              aria-label={alert.active ? `Pause alerts for ${name}` : `Resume alerts for ${name}`}
+                            />
+                          )}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(isExpanded ? null : alert.id)}
+                          aria-expanded={isExpanded}
+                          aria-controls={isExpanded ? `alert-details-${alert.id}` : undefined}
+                          aria-label={`Preferences and history for ${name}`}
+                          title="Preferences and history"
+                          className={cn(
+                            ICON_SECONDARY,
+                            isExpanded && 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-50',
+                          )}
+                        >
+                          <Settings className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(alert.id)}
+                          disabled={deletingId === alert.id}
+                          aria-label={`Remove alerts for ${name}`}
+                          title="Remove"
+                          className={ICON_DANGER}
+                        >
+                          {deletingId === alert.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isExpanded && <SubscriptionDetails alert={alert} onSave={handleUpdate} />}
                   </div>
-                  {alert.label && (
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">
-                      {alert.node_id}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {togglingId === alert.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <Switch
-                      checked={alert.active}
-                      onCheckedChange={(checked) => handleToggleActive(alert.id, checked)}
-                      aria-label={alert.active ? 'Pause alerts' : 'Resume alerts'}
-                    />
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setExpandedId(isExpanded ? null : alert.id)}
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(alert.id)}
-                    disabled={deletingId === alert.id}
-                  >
-                    {deletingId === alert.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              {/* Live validator status (Primary Network only) */}
-              {!isL1 && validator ? (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-border bg-muted/40 px-3 py-2 mb-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Activity className="h-3 w-3" />
-                    Uptime:{' '}
-                    <span className={
-                      validator.p50_uptime >= 99
-                        ? 'text-emerald-600 dark:text-emerald-400 font-medium'
-                        : validator.p50_uptime >= 80
-                          ? 'text-amber-600 dark:text-amber-400 font-medium'
-                          : 'text-red-600 dark:text-red-400 font-medium'
-                    }>
-                      {validator.p50_uptime.toFixed(1)}%
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <GitBranch className="h-3 w-3" />
-                    Version: <span className="font-medium text-foreground">{validator.version || 'N/A'}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Expires:{' '}
-                    <span className={
-                      validator.days_left <= 7
-                        ? 'text-red-600 dark:text-red-400 font-medium'
-                        : validator.days_left <= 30
-                          ? 'text-amber-600 dark:text-amber-400 font-medium'
-                          : 'text-foreground font-medium'
-                    }>
-                      {validator.days_left}d
-                    </span>
-                  </span>
-                </div>
-              ) : !isL1 && validatorData.size > 0 ? (
-                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 mb-3 text-xs text-muted-foreground">
-                  Not in active set
-                </div>
-              ) : null}
-
-              {/* Status badges */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                {!isL1 && (alert.uptime_alert ? (
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <Bell className="h-3 w-3" /> Uptime &lt; {alert.uptime_threshold}%
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs gap-1 opacity-50">
-                    <BellOff className="h-3 w-3" /> Uptime off
-                  </Badge>
-                ))}
-                {alert.version_alert ? (
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <Bell className="h-3 w-3" /> AvalancheGo Upgrade
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs gap-1 opacity-50">
-                    <BellOff className="h-3 w-3" /> Upgrade off
-                  </Badge>
-                )}
-                {!isL1 && (alert.expiry_alert ? (
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <Bell className="h-3 w-3" /> Expiry &lt; {alert.expiry_days}d
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs gap-1 opacity-50">
-                    <BellOff className="h-3 w-3" /> Expiry off
-                  </Badge>
-                ))}
-                {isL1 && (alert.balance_alert ? (
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <Wallet className="h-3 w-3" /> Balance &lt; {alert.balance_threshold_days}d runway
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs gap-1 opacity-50">
-                    <BellOff className="h-3 w-3" /> Balance off
-                  </Badge>
-                ))}
-                {!isL1 && (alert.security_alert ? (
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <Shield className="h-3 w-3" /> Security checks on
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs gap-1 opacity-50">
-                    <Shield className="h-3 w-3" /> Security checks off
-                  </Badge>
-                ))}
-                {recentAlerts > 0 && (
-                  <Badge variant="secondary" className="text-xs gap-1">
-                    <AlertTriangle className="h-3 w-3" /> {recentAlerts} recent
-                  </Badge>
-                )}
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                Notifications to {alert.email}
-              </p>
-
-              {/* Expanded section */}
-              {isExpanded && (
-                <div className="mt-4 border-t border-border pt-4">
-                  <Tabs defaultValue="preferences">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="preferences" className="gap-1.5 text-xs">
-                        <Settings className="h-3.5 w-3.5" /> Preferences
-                      </TabsTrigger>
-                      <TabsTrigger value="history" className="gap-1.5 text-xs">
-                        <History className="h-3.5 w-3.5" /> Alert History
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="preferences" className="mt-4">
-                      <AlertPreferences alert={alert} onSave={handleUpdate} />
-                    </TabsContent>
-                    <TabsContent value="history" className="mt-4">
-                      <AlertHistory logs={alert.alert_logs} />
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          </motion.div>
-        );
-      })}
-    </motion.div>
+                );
+              })}
+            </Board>
+          )}
+        </section>
+      </Rise>
+    </div>
   );
 }

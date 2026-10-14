@@ -38,7 +38,7 @@ export interface PrecompileCardProps {
  * PrecompileCard
  *
  * Shared shell for precompile UIs in /console — matches the validator-manager
- * `ReadContract` layout: rounded-2xl panel, header with icon + title + role badge
+ * `ReadContract` layout: square hairline panel, header with icon + title + role badge
  * + copyable contract address, optional tab strip, scrollable body, and footer.
  */
 export function PrecompileCard({
@@ -69,19 +69,19 @@ export function PrecompileCard({
   return (
     <div
       className={cn(
-        'flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden',
+        'flex flex-col overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950',
         className,
       )}
     >
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+      <div className="shrink-0 border-b border-zinc-200 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
         <div className="flex items-start gap-3">
-          <div className={cn('shrink-0 p-2 rounded-lg', iconWrapperClass)}>
-            <Icon className={cn('w-5 h-5', iconClass)} />
+          <div className={cn('shrink-0 rounded-none p-2', iconWrapperClass)}>
+            <Icon className={cn('h-4 w-4', iconClass)} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{title}</h3>
+              <h3 className="truncate text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
               <PrecompileRoleBadge
                 precompileAddress={precompileAddress}
                 minimumRole={minimumRole}
@@ -90,14 +90,18 @@ export function PrecompileCard({
                 compact
               />
             </div>
-            {subtitle && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-[12px] text-zinc-500 dark:text-zinc-400">{subtitle}</p>}
             <button
               type="button"
               onClick={copyAddress}
-              className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-700 text-[11px] font-mono text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              className="mt-2 inline-flex items-center gap-1.5 border border-zinc-200 bg-white px-2 py-0.5 font-mono text-[11px] text-zinc-600 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
               title="Copy address"
             >
-              {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-zinc-400" />}
+              {copied ? (
+                <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Copy className="w-3 h-3 text-zinc-400" />
+              )}
               {precompileAddress}
             </button>
           </div>
@@ -106,7 +110,7 @@ export function PrecompileCard({
 
       {/* Optional tab strip */}
       {tabs && tabs.length > 0 && (
-        <div className="shrink-0 flex border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 overflow-x-auto">
+        <div className="flex shrink-0 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -115,10 +119,10 @@ export function PrecompileCard({
                 key={tab.id}
                 onClick={() => onTabChange?.(tab.id)}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
+                  '-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] transition-colors',
                   isActive
-                    ? 'border-amber-500 text-amber-700 dark:text-amber-300 bg-white dark:bg-zinc-900'
-                    : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300',
+                    ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100',
                 )}
               >
                 {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
@@ -133,7 +137,7 @@ export function PrecompileCard({
       <div className="flex-1 p-4 space-y-4">{children}</div>
 
       {footer && (
-        <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+        <div className="shrink-0 border-t border-zinc-200 bg-zinc-50/60 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/40">
           {footer}
         </div>
       )}
@@ -161,17 +165,17 @@ export function StateRow({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60',
+        'flex items-center justify-between gap-3 border border-zinc-200 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40',
         className,
       )}
     >
       <div className="min-w-0 flex-1">
-        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
-        {hint && <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">{hint}</p>}
+        <span className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
+        {hint && <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{hint}</p>}
       </div>
       <span
         className={cn(
-          'shrink-0 text-xs font-mono truncate max-w-[60%]',
+          'max-w-[60%] shrink-0 truncate font-mono text-[12px]',
           status === 'active' && 'text-emerald-600 dark:text-emerald-400',
           status === 'inactive' && 'text-zinc-500 dark:text-zinc-400',
           status === 'warning' && 'text-amber-600 dark:text-amber-400',
@@ -202,29 +206,33 @@ export function StateGroup({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-lg border border-zinc-200/80 dark:border-zinc-800 overflow-hidden">
+    <div className="overflow-hidden border border-zinc-200 dark:border-zinc-800">
       {collapsible ? (
         <button
           onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="group/grp flex w-full items-center justify-between bg-zinc-50/60 px-3 py-2 transition-colors dark:bg-zinc-900/40"
         >
           <div className="text-left">
-            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{title}</span>
-            {description && <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{description}</p>}
+            <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              {title}
+            </span>
+            {description && <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">{description}</p>}
           </div>
           {open ? (
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+            <ChevronDown className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/grp:text-[#E6212F]" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+            <ChevronRight className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/grp:text-[#E6212F]" />
           )}
         </button>
       ) : (
-        <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
-          <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{title}</span>
-          {description && <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{description}</p>}
+        <div className="border-b border-zinc-200 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            {title}
+          </span>
+          {description && <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">{description}</p>}
         </div>
       )}
-      {(!collapsible || open) && <div className="p-3 space-y-2">{children}</div>}
+      {(!collapsible || open) && <div className="space-y-2 p-3">{children}</div>}
     </div>
   );
 }

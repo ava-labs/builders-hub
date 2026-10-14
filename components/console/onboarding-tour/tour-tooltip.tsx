@@ -149,7 +149,7 @@ export function TourTooltip({
           {isWaitingForWallet
             ? "Waiting for wallet connection..."
             : step.isWalletPrompt && !isCoreWalletAvailable
-              ? "Download Core wallet to get started."
+              ? "Connect a wallet extension, or use a Console wallet from the top bar."
               : step.description}
         </p>
       </div>

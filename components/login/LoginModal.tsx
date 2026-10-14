@@ -36,13 +36,12 @@ export function LoginModal() {
   const handleClose = (open: boolean) => {
     if (!open) {
       closeLoginModal();
-      router.push(
-        resolveDismissTarget(
-          callbackUrl,
-          `${window.location.pathname}${window.location.search}`,
-          window.location.origin,
-        ),
+      const target = resolveDismissTarget(
+        callbackUrl,
+        `${window.location.pathname}${window.location.search}`,
+        window.location.origin,
       );
+      if (target) router.push(target);
     }
   };
 

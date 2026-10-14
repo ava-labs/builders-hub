@@ -2,8 +2,10 @@
 
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/toolbox/components/Button';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
+import { SectionHeader } from '@/components/explorer-v2/ui';
+import { cn } from '@/lib/utils';
+import { BTN_PRIMARY, BTN_SECONDARY, COUNT, HoverArrow } from './ui';
 
 import { Relayer, RelayerConfig } from './types';
 import CreateRelayerForm from './CreateRelayerForm';
@@ -17,7 +19,8 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 
 const metadata: ConsoleToolMetadata = {
   title: 'Managed Testnet Relayers',
-  description: 'Manage your hosted testnet ICM relayers for cross-chain message delivery.',
+  description:
+    'Hosted ICM relayers that carry messages between your Fuji chains. Fund them, restart them, or delete them here.',
   toolRequirements: [WalletRequirementsConfigKey.TestnetRequired, WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -129,28 +132,41 @@ function ManagedTestnetRelayersBase() {
   };
 
   return (
-    <>
-      {/* Stats Section */}
-      <div className="mb-8 not-prose">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              <span className="font-semibold">{relayers.length}</span> active relayers
-            </p>
-          </div>
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto"
-            size="sm"
-            disabled={relayers.length >= 100}
+    <div className="not-prose flex flex-col gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <SectionHeader
+          label="Your relayers"
+          className="flex-1"
+          action={
+            <span className={COUNT}>
+              {relayers.length} {relayers.length === 1 ? 'relayer' : 'relayers'}
+            </span>
+          }
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchRelayers}
+            disabled={isLoadingRelayers}
+            className={BTN_SECONDARY}
+            aria-label="Refresh relayers"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add a new relayer
-          </Button>
+            <RefreshCw className={cn('h-3.5 w-3.5', isLoadingRelayers && 'animate-spin')} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            disabled={relayers.length >= 100}
+            className={BTN_PRIMARY}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New relayer
+            <HoverArrow />
+          </button>
         </div>
       </div>
 
-      {/* Create Relayer Form */}
       {showCreateForm && (
         <CreateRelayerForm
           onClose={() => setShowCreateForm(false)}
@@ -160,21 +176,18 @@ function ManagedTestnetRelayersBase() {
         />
       )}
 
-      {/* Relayers List */}
-      <div className="not-prose">
-        <RelayersList
-          relayers={relayers}
-          isLoadingRelayers={isLoadingRelayers}
-          relayersError={relayersError}
-          onRefresh={fetchRelayers}
-          onShowCreateForm={() => setShowCreateForm(true)}
-          onDeleteRelayer={handleDeleteRelayer}
-          onRestartRelayer={handleRestartRelayer}
-          deletingRelayers={deletingRelayers}
-          restartingRelayers={restartingRelayers}
-        />
-      </div>
-    </>
+      <RelayersList
+        relayers={relayers}
+        isLoadingRelayers={isLoadingRelayers}
+        relayersError={relayersError}
+        onRefresh={fetchRelayers}
+        onShowCreateForm={() => setShowCreateForm(true)}
+        onDeleteRelayer={handleDeleteRelayer}
+        onRestartRelayer={handleRestartRelayer}
+        deletingRelayers={deletingRelayers}
+        restartingRelayers={restartingRelayers}
+      />
+    </div>
   );
 }
 

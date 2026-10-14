@@ -10,6 +10,13 @@ import { DEFAULT_PRECOMPILES, type PrecompileConfig, type ValidatorMode } from '
 import { cn } from '@/lib/utils';
 import StakingPreviewCard from './StakingPreviewCard';
 
+const CARD = 'flex h-fit flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950';
+const CARD_HEAD = 'border-b border-zinc-200 bg-zinc-50/80 px-5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/40';
+const CARD_TITLE = 'font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100';
+const CARD_SUB = 'mt-1 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400';
+const FIELD_LABEL =
+  'block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400';
+
 /**
  * Basic Setup intake form.
  *
@@ -20,7 +27,7 @@ import StakingPreviewCard from './StakingPreviewCard';
  *
  * Design goals:
  *   - Generous vertical breathing room, not cramped
- *   - Inputs feel substantial — rounded-xl, soft bg, large text
+ *   - Inputs feel substantial: square hairline fields, large text
  *   - Only one primary CTA; everything else is muted link-level
  *   - Staggered entrance animation to establish "this is a moment"
  */
@@ -86,7 +93,7 @@ function generateChainName(): string {
 }
 export default function BasicSetupForm() {
   const router = useRouter();
-  // walletEVMAddress only — connection + testnet + login are now gated
+  // walletEVMAddress only. Connection + testnet + login are now gated
   // at the page level by <CheckRequirements>, so we can assume the
   // wallet is connected on Fuji and the user is logged in by the time
   // this component mounts.
@@ -98,17 +105,17 @@ export default function BasicSetupForm() {
   const [symbolTouched, setSymbolTouched] = useState(false);
   const [ownerAddress, setOwnerAddress] = useState<string>('');
   const [ownerTouched, setOwnerTouched] = useState(false);
-  // Validator management — `poa` by default. PoS in Quick L1 is
+  // Validator management: `poa` by default. PoS in Quick L1 is
   // ERC20-only on Fuji C-Chain. Users *can* now bring their own
-  // staking token (see `stakingTokenAddress` below) — when unset, the
+  // staking token (see `stakingTokenAddress` below). When unset, the
   // orchestrator deploys a fresh ExampleERC20 as before. Staking
   // economics (reward bp, min/max stake, etc.) still default
   // server-side to the icm-contracts test values for the one-click
   // flow.
   const [validatorMode, setValidatorMode] = useState<ValidatorMode>({ type: 'poa' });
   const [precompiles, setPrecompiles] = useState<Required<PrecompileConfig>>(DEFAULT_PRECOMPILES);
-  // Managed ICM relayer + MockUSDC bridge — opt-in, off by default so
-  // the common path (baseline L1 deploy) stays ~30s. Enabling it costs
+  // Managed ICM relayer + MockUSDC bridge: opt-in, off by default so
+  // the common path (baseline L1 deploy) stays faster. Enabling it costs
   // ~60-120s for relayer boot + ICTT deploys. Requires Warp/ICM to be
   // on in genesis; we enforce that dependency on submit and visually
   // in the UI below.
@@ -117,7 +124,7 @@ export default function BasicSetupForm() {
   const togglePrecompile = (key: keyof PrecompileConfig) => {
     setPrecompiles((p) => {
       const next = { ...p, [key]: !p[key] };
-      // Relayer can't run without Warp — auto-untick relayer if the
+      // Relayer can't run without Warp: auto-untick relayer if the
       // user flips interop off. (The reverse is fine: Warp alone is
       // a valid standalone capability.)
       if (key === 'interoperability' && !next.interoperability) {
@@ -136,7 +143,7 @@ export default function BasicSetupForm() {
     const next = !enableManagedRelayer;
     setEnableManagedRelayer(next);
     // Turning the relayer ON implies Warp/Interop must be ON. Auto-
-    // enable rather than blocking the click — fewer clicks to a valid
+    // enable rather than blocking the click: fewer clicks to a valid
     // config. The linkage is bidirectional: turning Interop OFF while
     // relayer is on auto-disables the relayer (see togglePrecompile).
     if (next && !precompiles.interoperability) {
@@ -154,12 +161,12 @@ export default function BasicSetupForm() {
   }, [walletEVMAddress, ownerAddress, ownerTouched]);
 
   // Pre-fill chain name with a generated "Alpine Ridge" style default
-  // on mount so the Create Chain button is active immediately — user
+  // on mount so the Create Chain button is active immediately. The user
   // can still override. Generated client-side only (not in useState
   // initializer) to avoid server/client hydration mismatches from
   // randomness running twice.
   // Run exactly once on mount. `setChainName` is stable (React setter)
-  // so no deps needed — the empty array is correct for a mount-only
+  // so no deps needed: the empty array is correct for a mount-only
   // side effect that seeds a default name.
   useEffect(() => {
     setChainName((prev) => (prev ? prev : generateChainName()));
@@ -167,7 +174,7 @@ export default function BasicSetupForm() {
 
   // Chain name validation mirrors avalanchego's CreateChainTx rule
   // (vms/platformvm/txs/create_chain_tx.go): ASCII letters, digits, and
-  // spaces only — no `_`, `-`, `.`, emoji, accents. Reject up front so
+  // spaces only: no `_`, `-`, `.`, emoji, accents. Reject up front so
   // the user sees the issue immediately instead of failing mid-deploy
   // with a confusing P-Chain error. Returns null when the value is
   // acceptable, otherwise a one-line message for the field.
@@ -188,7 +195,7 @@ export default function BasicSetupForm() {
     if (chainNameTrimmed.length < 2) return 'At least 2 characters';
     if (chainNameTrimmed.length > 32) return 'At most 32 characters';
     if (!/^[a-zA-Z0-9 ]+$/.test(chainNameTrimmed)) {
-      return 'Only letters, digits, and spaces — no _, -, ., or emoji';
+      return 'Use only letters, digits, and spaces. Do not use _, -, ., or emoji.';
     }
     return null;
   })();
@@ -234,7 +241,7 @@ export default function BasicSetupForm() {
 
   return (
     <div className="mx-auto max-w-5xl py-6 px-4">
-      {/* Back link — subtle, top-left */}
+      {/* Back link: subtle, top-left */}
       <motion.button
         type="button"
         onClick={() => router.push('/console/create-l1')}
@@ -242,32 +249,32 @@ export default function BasicSetupForm() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
         whileHover={{ x: -2 }}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+        className="mb-4 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-3.5 w-3.5" />
         Back to setup choice
       </motion.button>
 
-      {/* Hero — tighter so the form below fits without scroll */}
+      {/* Hero: tighter so the form below fits without scroll */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.05 }}
         className="mb-6"
       >
-        <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
-          <Sparkles className="h-3 w-3" />
+        <div className="mb-3 inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          <Sparkles className="h-3 w-3 text-[#E6212F]" />
           Basic setup
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Create your L1</h1>
-        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 max-w-2xl">
-          Name your chain and pick an owner. We&apos;ll configure the subnet, genesis, a managed validator node, and the
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Create your L1</h1>
+        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Name your chain and pick an owner. We&apos;ll configure the L1, its genesis, a managed validator node, and the
           Validator Manager for you.
         </p>
       </motion.div>
 
       {/* Testnet + wallet + login preflight is handled upstream by
-          <CheckRequirements> in the page wrapper — no inline banner
+          <CheckRequirements> in the page wrapper, so no inline banner is
           needed here. By the time this form renders, we're guaranteed
           on Fuji with a connected wallet and an authenticated session. */}
 
@@ -287,7 +294,7 @@ export default function BasicSetupForm() {
           {/* Left: chain identity (with inline staking preview when
               PoS) + Included. Keeping the wallet token preview *inside*
               ChainDetailsCard puts it directly under the toggle that
-              triggered it — zero scroll required to see balances. */}
+              triggered it. Zero scroll required to see balances. */}
           <div className="space-y-4">
             <ChainDetailsCard
               chainName={chainName}
@@ -313,7 +320,7 @@ export default function BasicSetupForm() {
           {/* Right: precompile toggles + managed-relayer opt-in + CTA.
               Placing the Create Chain button inside this column (rather
               than as a full-width footer) closes the 2-column grid into
-              a clean rectangle — no orphan element below. Error message
+              a clean rectangle with no orphan element below. Error message
               sits just above the button so it's never far from the
               action it blocks. */}
           <div className="space-y-4">
@@ -328,7 +335,7 @@ export default function BasicSetupForm() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-300"
+                className="border border-red-300 bg-red-50 px-4 py-3 font-mono text-[12px] text-red-700 [overflow-wrap:anywhere] dark:border-red-900/70 dark:bg-red-950/20 dark:text-red-300"
               >
                 {error}
               </motion.div>
@@ -339,40 +346,37 @@ export default function BasicSetupForm() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.45 }}
             >
-              <motion.button
+              <button
                 type="submit"
                 disabled={!canSubmit || submitting}
-                whileHover={canSubmit && !submitting ? { y: -2 } : {}}
-                whileTap={canSubmit && !submitting ? { scale: 0.99 } : {}}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 className={cn(
-                  'group relative w-full inline-flex items-center justify-center gap-3 rounded-xl px-6 py-3.5 text-base font-semibold transition-colors',
+                  'group/btn relative inline-flex h-12 w-full items-center justify-center gap-2 border px-6 font-mono text-[12px] font-bold uppercase tracking-[0.14em] transition-colors',
                   canSubmit && !submitting
-                    ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed',
+                    ? 'border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300'
+                    : 'cursor-not-allowed border-zinc-200 bg-zinc-50 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500',
                 )}
-                style={
-                  canSubmit && !submitting
-                    ? { boxShadow: '0 4px 14px rgba(37,99,235,0.25), 0 1px 3px rgba(37,99,235,0.15)' }
-                    : undefined
-                }
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Starting deployment…
                   </>
                 ) : (
                   <>
                     Create Chain
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform',
+                        canSubmit && 'text-[#E6212F] group-hover/btn:translate-x-0.5',
+                      )}
+                    />
                   </>
                 )}
-              </motion.button>
+              </button>
 
-              {/* Reassurance line — small, muted */}
-              <p className="mt-2 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
-                Usually takes 1–2 minutes. You can leave the tab open.
+              {/* Reassurance line: small, muted */}
+              <p className="mt-2 text-center font-mono text-[10.5px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
+                This usually takes 1 to 2 minutes. You can leave the tab open.
               </p>
             </motion.div>
           </div>
@@ -383,7 +387,7 @@ export default function BasicSetupForm() {
 }
 
 /**
- * Identity section — chain name + owner, wrapped in a card with the
+ * Identity section: chain name + owner, wrapped in a card with the
  * same chrome as PrecompileCard / ManagedRelayerCard on the right. The
  * card wrapper is the whole reason this page suddenly feels balanced:
  * before, the left column was two floating inputs next to two bordered
@@ -415,7 +419,7 @@ function ChainDetailsCard({
   onValidatorModeChange: (v: ValidatorMode) => void;
   walletAddress: string;
 }) {
-  // Owner field hint shifts with the validator mode — under PoA the
+  // Owner field hint shifts with the validator mode. Under PoA the
   // owner literally controls the membership allowlist, while under
   // erc20-pos they retain emergency pause/upgrade authority over the
   // staking manager but day-to-day membership is permissionless.
@@ -431,19 +435,17 @@ function ChainDetailsCard({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit flex flex-col"
+      className={CARD}
     >
-      <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-900">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Chain details</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Name your L1, pick how validators join, and choose the owner.
-        </p>
+      <div className={CARD_HEAD}>
+        <h3 className={CARD_TITLE}>Chain details</h3>
+        <p className={CARD_SUB}>Name your L1, pick how validators join, and choose the owner.</p>
       </div>
 
       <div className="px-5 py-5 space-y-5 flex-1">
         <BigField
           label="Chain name"
-          hint="Registered on the Avalanche P-Chain. 2–32 characters. Letters, digits, and spaces only."
+          hint="Registered on the Avalanche P-Chain. 2 to 32 characters. Letters, digits, and spaces only."
           value={chainName}
           onChange={setChainName}
           placeholder="My Awesome L1"
@@ -452,7 +454,7 @@ function ChainDetailsCard({
         />
         <BigField
           label="Coin symbol"
-          hint="Ticker for the native gas token. 2–5 letters. Auto-derived from chain name."
+          hint="Ticker for the native gas token. 2 to 5 letters. Auto-derived from chain name."
           value={tokenSymbol}
           onChange={setTokenSymbol}
           placeholder="COIN"
@@ -462,7 +464,7 @@ function ChainDetailsCard({
         <ValidatorTypeToggle value={validatorMode} onChange={onValidatorModeChange} />
         {/* Inline wallet preview, surfaced right below the PoS toggle so
             the user sees their Fuji C-Chain ERC20 balances at the
-            moment of decision — not buried in a sibling card below the
+            moment of decision, not buried in a sibling card below the
             scroll fold. The card is fully self-contained (its own
             fetch + states) so wiring is a single component drop. */}
         {validatorMode.type === 'erc20-pos' && <StakingPreviewCard walletAddress={walletAddress} />}
@@ -486,7 +488,7 @@ function ChainDetailsCard({
  * card's behaviour.
  *
  * Locked to two options because Quick L1 only supports ERC20-PoS on
- * Fuji C-Chain — Native PoS lives in the Advanced flow.
+ * Fuji C-Chain. Native PoS lives in the Advanced flow.
  *
  * Picking PoS resets the mode object to a bare `{ type: 'erc20-pos' }`
  * so the orchestrator falls back to the icm-contracts test defaults
@@ -497,15 +499,15 @@ function ValidatorTypeToggle({ value, onChange }: { value: ValidatorMode; onChan
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator management</label>
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+        <label className={FIELD_LABEL}>Validator management</label>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
           Switch later
         </span>
       </div>
       <div
         role="tablist"
         aria-label="Validator management type"
-        className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/60"
+        className="grid grid-cols-2 gap-px border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800"
       >
         <ValidatorTypeOption
           active={value.type === 'poa'}
@@ -546,17 +548,19 @@ function ValidatorTypeOption({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        'relative flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg text-left transition-all duration-200',
+        'relative flex flex-col items-start gap-0.5 bg-white px-3 py-2.5 text-left transition-colors dark:bg-zinc-950',
         active
-          ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-zinc-100'
-          : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100',
+          ? 'z-10 text-zinc-900 outline outline-2 -outline-offset-2 outline-zinc-900 dark:text-zinc-100 dark:outline-zinc-100'
+          : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100',
       )}
     >
       <span className="flex items-center gap-1.5">
         <span
           className={cn(
-            'flex h-5 w-5 items-center justify-center rounded-md',
-            active ? 'bg-primary/10 text-primary' : 'bg-zinc-200/60 dark:bg-zinc-700/60',
+            'flex h-5 w-5 items-center justify-center border',
+            active
+              ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
+              : 'border-zinc-200 dark:border-zinc-800',
           )}
         >
           {icon}
@@ -570,7 +574,7 @@ function ValidatorTypeOption({
 
 /**
  * Substantial, airy input field. Custom design (not shared Input) to
- * keep the onboarding surface feeling intentional — large label,
+ * keep the onboarding surface feeling intentional: large label,
  * generous padding, subtle focus ring, hint below in muted text.
  */
 function BigField({
@@ -605,7 +609,7 @@ function BigField({
       }}
       className="space-y-2"
     >
-      <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">{label}</label>
+      <label className={FIELD_LABEL}>{label}</label>
       <input
         type="text"
         value={value}
@@ -614,21 +618,20 @@ function BigField({
         maxLength={maxLength}
         aria-invalid={error ? true : undefined}
         className={cn(
-          'w-full rounded-xl border bg-white dark:bg-zinc-900',
-          'px-4 py-3.5 text-[15px] text-zinc-900 dark:text-zinc-100',
+          'h-12 w-full border bg-white px-4 dark:bg-zinc-950',
+          'text-[15px] text-zinc-900 dark:text-zinc-100',
           'placeholder:text-zinc-400 dark:placeholder:text-zinc-600',
-          'transition-all duration-200',
-          'focus:outline-none focus:ring-4',
+          'transition-colors focus:outline-none',
           mono && 'font-mono',
           error
-            ? 'border-red-400 dark:border-red-500 focus:border-red-500 focus:ring-red-500/10'
-            : 'border-zinc-200 dark:border-zinc-800 focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-zinc-900/5 dark:focus:ring-white/5 hover:border-zinc-300 dark:hover:border-zinc-700',
+            ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+            : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
         )}
       />
       {error ? (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>
       ) : (
-        hint && <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
+        hint && <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{hint}</p>
       )}
     </motion.div>
   );
@@ -690,15 +693,13 @@ function PrecompileCard({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit"
+      className={CARD}
     >
-      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompiles</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Baked into genesis. Admin list seeded with your owner address.
-        </p>
+      <div className={CARD_HEAD}>
+        <h3 className={CARD_TITLE}>Precompiles</h3>
+        <p className={CARD_SUB}>Baked into genesis. Admin list seeded with your owner address.</p>
       </div>
-      <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+      <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
         {PRECOMPILE_META.map((p) => (
           <PrecompileRow
             key={p.key}
@@ -725,13 +726,11 @@ function PrecompileRow({
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="w-full flex items-center gap-3 px-3.5 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
-    >
+    <button type="button" onClick={onToggle} className="group/row flex w-full items-center gap-3 px-5 py-2.5 text-left">
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">{title}</div>
+        <div className="text-[13px] font-medium leading-tight text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-100">
+          {title}
+        </div>
         <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">{description}</div>
       </div>
       <Toggle checked={enabled} />
@@ -745,7 +744,7 @@ function PrecompileRow({
  *
  * Disabled state (when Warp is off) uses a muted look + helper text
  * so the requirement is legible before the user clicks. Clicking
- * anyway auto-enables Warp in the parent state — fewer clicks to a
+ * anyway auto-enables Warp in the parent state: fewer clicks to a
  * valid config than a blocked/disabled click.
  */
 function ManagedRelayerCard({
@@ -763,29 +762,27 @@ function ManagedRelayerCard({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit"
+      className={CARD}
     >
-      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Managed ICM Relayer</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Optional. Spins up a dedicated relayer + bridges 10 MockUSDC to your owner address.
-        </p>
+      <div className={CARD_HEAD}>
+        <h3 className={CARD_TITLE}>Managed ICM Relayer</h3>
+        <p className={CARD_SUB}>Optional. Spins up a dedicated relayer + bridges 10 MockUSDC to your owner address.</p>
       </div>
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+        className="group/row flex w-full items-center gap-3 px-5 py-2.5 text-left"
       >
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
+          <div className="text-[13px] font-medium leading-tight text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-100">
             Run a relayer for me
           </div>
           <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
             {enabled
               ? 'Adds ~60-120s to setup. Ready-to-use cross-chain bridge when done.'
               : warpEnabled
-                ? 'Leave off for a ~30s deploy. Enable anytime later from the relayer page.'
-                : 'Requires Warp/Interoperability — clicking will auto-enable it.'}
+                ? 'Leave it off for a faster deploy. You can turn it on later on the relayer page.'
+                : 'Needs Warp/Interoperability. Turning it on also turns on Warp.'}
           </div>
         </div>
         <Toggle checked={enabled} />
@@ -794,22 +791,22 @@ function ManagedRelayerCard({
   );
 }
 
-/** Small switch-style toggle. Controlled — parent handles state. */
+/** Small switch-style toggle. Controlled: parent handles state. */
 function Toggle({ checked }: { checked: boolean }) {
   return (
     <span
       aria-hidden
       className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 mt-0.5 rounded-full border transition-colors',
+        'relative mt-0.5 inline-flex h-5 w-9 shrink-0 border transition-colors',
         checked
-          ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white'
-          : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
+          ? 'border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100'
+          : 'border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950',
       )}
     >
       <span
         className={cn(
-          'absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-200',
-          checked ? 'left-[18px] bg-white dark:bg-zinc-900' : 'left-0.5 bg-white dark:bg-zinc-600',
+          'absolute top-[3px] h-3 w-3 transition-all duration-200',
+          checked ? 'left-[19px] bg-white dark:bg-zinc-900' : 'left-[3px] bg-zinc-300 dark:bg-zinc-600',
         )}
       />
     </span>

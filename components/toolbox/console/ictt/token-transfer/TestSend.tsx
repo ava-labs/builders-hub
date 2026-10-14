@@ -22,11 +22,12 @@ import { Token, TokenInput } from '@/components/toolbox/components/TokenInputToo
 import SelectBlockchain, { type BlockchainSelection } from '@/components/toolbox/components/SelectBlockchain';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { Toggle } from '@/components/toolbox/components/Toggle';
-import { Ellipsis } from 'lucide-react';
 import { NO_CHAIN_SELECTED } from '@/components/toolbox/stores/toolboxStore';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { EYEBROW, MONO_FIELD, TextAction, Timeline, TimelineStep } from '../bridge/ui';
 
 const DEFAULT_GAS_LIMIT = 250000n;
 
@@ -637,7 +638,7 @@ function TokenBridge() {
   const [isGasLimitEditing, setIsGasLimitEditing] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="not-prose flex flex-col gap-6">
       <SelectBlockchain
         label="Destination Blockchain"
         value={destinationSelection.blockchainId}
@@ -695,76 +696,60 @@ function TokenBridge() {
         }
       />
 
-      <hr />
-
-      <div className="flex flex-col gap-2">
+      <div className="divide-y divide-zinc-200 border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
         {/* Recipient Address Row */}
-        <div className="w-full">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-zinc-500">Recipient Address</div>
-            <div>
-              <Toggle
-                label="Use My Address"
-                checked={useMyAddress}
-                onChange={(checked) => setUseMyAddress(checked ? true : false)}
-              />
-            </div>
+        <div className="flex flex-col gap-3 px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <span className={EYEBROW}>Recipient address</span>
+            <Toggle
+              label="Use my address"
+              checked={useMyAddress}
+              onChange={(checked) => setUseMyAddress(checked ? true : false)}
+            />
           </div>
           {!useMyAddress && (
-            <div className="mt-2">
-              <EVMAddressInput
-                label={''}
-                value={recipientAddress}
-                onChange={(value) => setRecipientAddress(value as Address)}
-                disabled={isProcessingSend || isProcessingApproval}
-              />
-            </div>
+            <EVMAddressInput
+              label={''}
+              value={recipientAddress}
+              onChange={(value) => setRecipientAddress(value as Address)}
+              disabled={isProcessingSend || isProcessingApproval}
+            />
           )}
         </div>
 
         {/* Gas Limit Row */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-zinc-500">Gas Limit</div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-4 px-4 py-3">
+          <span className={EYEBROW}>Gas limit</span>
+          <div className="flex items-center gap-3">
             {isGasLimitEditing ? (
               <>
                 <input
                   type="number"
                   value={requiredGasLimit}
                   onChange={(e) => setRequiredGasLimit(e.target.value)}
-                  className="font-mono text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-transparent min-w-0 w-auto focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className={`${MONO_FIELD} h-8 w-32`}
                   min="0"
-                  style={{ width: 'fit-content' }}
+                  aria-label="Gas limit"
                 />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="text-zinc-500 px-0.5 py-0 text-xs h-6 min-h-0"
-                  onClick={() => setIsGasLimitEditing(false)}
-                >
-                  Done
-                </Button>
+                <TextAction onClick={() => setIsGasLimitEditing(false)}>Done</TextAction>
               </>
             ) : (
               <>
-                <span className="font-mono text-xs text-zinc-700 dark:text-zinc-200">{requiredGasLimit}</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="text-blue-500 px-1"
-                  onClick={() => setIsGasLimitEditing(true)}
-                >
+                <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                  {requiredGasLimit}
+                </span>
+                <TextAction tone="muted" onClick={() => setIsGasLimitEditing(true)}>
                   Modify
-                </Button>
+                </TextAction>
               </>
             )}
           </div>
         </div>
       </div>
 
-      {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+      {localError && <Alert variant="error">{localError}</Alert>}
 
-      <div className="flex gap-2 pt-2 mt-4 flex-wrap">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           onClick={handleApprove}
           loading={isProcessingApproval}
@@ -787,51 +772,53 @@ function TokenBridge() {
           loading={isProcessingSend}
           disabled={isProcessingApproval || isProcessingSend || !isReadyToSend || isFetchingSourceInfo}
         >
-          2. Send Tokens to {destL1?.name || 'Destination'}
+          2. Send tokens to {destL1?.name || 'destination'}
         </Button>
       </div>
 
       {lastSendTxId && lastSendTxDetails && (
-        <div className="w-full border rounded-md bg-zinc-50 dark:bg-zinc-800">
-          <div className="flex w-full items-center justify-evenly p-6">
-            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <span className="text-zinc-500 text-sm">UI</span>
-              <span className="font-mono text-base">
-                {lastSendTxDetails.source?.initiatedAt ? (
-                  new Date(lastSendTxDetails.source.initiatedAt).toLocaleTimeString()
-                ) : (
-                  <Ellipsis className="animate-pulse" size={32} />
-                )}
-              </span>
-            </div>
-            {selectedL1?.logoUrl && (
-              <img src={selectedL1.logoUrl} alt={selectedL1.name} className="w-8 h-8 rounded-full mx-4" />
-            )}
-            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <span className="text-zinc-500 text-sm">{selectedL1!.name}</span>
-              <span className="font-mono text-base">
-                {lastSendTxDetails.source?.confirmedAt ? (
-                  new Date(lastSendTxDetails.source.confirmedAt).toLocaleTimeString()
-                ) : (
-                  <Ellipsis className="animate-pulse" size={32} />
-                )}
-              </span>
-            </div>
-            {destL1?.logoUrl && <img src={destL1.logoUrl} alt={destL1.name} className="w-8 h-8 rounded-full mx-4" />}
-            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <span className="text-zinc-500 text-sm">{destL1!.name}</span>
-              <span className="font-mono text-base">
-                {lastSendTxDetails.destination?.confirmedAt ? (
-                  new Date(lastSendTxDetails.destination.confirmedAt).toLocaleTimeString()
-                ) : (
-                  <Ellipsis className="animate-pulse" size={32} />
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
+        <Timeline label="Transfer status">
+          <TimelineStep
+            index={1}
+            state={lastSendTxDetails.source?.initiatedAt ? 'complete' : 'active'}
+            label="Submitted from the console"
+            detail={formatTime(lastSendTxDetails.source?.initiatedAt)}
+          />
+          <TimelineStep
+            index={2}
+            state={
+              lastSendTxDetails.source?.confirmedAt
+                ? 'complete'
+                : lastSendTxDetails.source?.initiatedAt
+                  ? 'active'
+                  : 'idle'
+            }
+            label={`Confirmed on ${selectedL1?.name ?? 'source'}`}
+            detail={formatTime(lastSendTxDetails.source?.confirmedAt)}
+          />
+          <TimelineStep
+            index={3}
+            state={
+              lastSendTxDetails.destination?.confirmedAt
+                ? 'complete'
+                : lastSendTxDetails.source?.confirmedAt
+                  ? 'active'
+                  : 'idle'
+            }
+            label={`Delivered on ${destL1?.name ?? 'destination'}`}
+            detail={formatTime(lastSendTxDetails.destination?.confirmedAt)}
+          />
+        </Timeline>
       )}
     </div>
+  );
+}
+
+function formatTime(value: string | number | Date | null | undefined) {
+  return value ? (
+    <span className="font-mono tabular-nums">{new Date(value).toLocaleTimeString()}</span>
+  ) : (
+    <span className="font-mono">—</span>
   );
 }
 

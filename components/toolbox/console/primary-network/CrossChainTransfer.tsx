@@ -1,15 +1,16 @@
 'use client';
+
+import { CliAlternative } from '@/components/console/cli-alternative';
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { ArrowDownUp, Clock } from 'lucide-react';
-import { Button } from '@/components/toolbox/components/Button';
+import { AlertTriangle, ArrowDownUp, ArrowLeftRight, ArrowRight, Check, Copy, Loader2 } from 'lucide-react';
+import { codeToHtml } from 'shiki';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs';
 import { toNanoAvax } from '@/components/toolbox/coreViem/utils/units';
 import { getRPCEndpoint } from '@/components/toolbox/coreViem/utils/rpc';
 import { useAvalancheContext } from '@/components/toolbox/hooks/useAvalancheContext';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
-import { AmountInput } from '@/components/toolbox/components/AmountInput';
-import { StepIndicator } from '@/components/toolbox/components/StepCard';
+import { ConnectedWalletIcon } from '@/components/toolbox/components/ConnectedWalletIcon';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import {
   BaseConsoleToolProps,
@@ -17,11 +18,26 @@ import {
   withConsoleToolMetadata,
 } from '../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
+import type { SDKCodeSource } from '@/components/console/sdk-code-viewer';
 import { AutoSwitchChainGate } from '@/components/console/auto-switch-chain-gate';
-import { CliAlternative } from '@/components/console/cli-alternative';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { classifyEvmTxError } from '@/components/toolbox/lib/evmErrors';
+import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
+import {
+  baseFeeNanoAvax,
+  blockedUtxosText,
+  maxSpendableNanoAvax,
+  MORE_UTXOS_TEXT,
+  nanoAvaxText,
+  newImportFeeCache,
+  readImportableShare,
+  readSharedMemory,
+  toSdkUtxos,
+  UTXO_PAGE_SIZE,
+} from '@/components/toolbox/utils/sharedMemoryImport';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { Board, FIG, HashChip, Rise, SectionHeader, SpecPlate, SpecRow, UNIT } from '@/components/explorer-v2/ui';
 
 // Extended props for this specific tool
 interface CrossChainTransferProps extends BaseConsoleToolProps {
@@ -31,7 +47,31 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
 
 // Atomic export fee buffer: ~0.001 AVAX on both C-Chain (base-fee burn) and
 // P-Chain (flat tx fee). MAX subtracts this so the user always has gas left.
-const EXPORT_FEE_BUFFER_NAVAX = 1_000_000;
+const EXPORT_FEE_BUFFER_NAVAX = 1_000_000n;
+
+const INVALID_AMOUNT_TEXT = 'Please enter a valid positive amount.';
+
+/**
+ * The error of the typed export amount, or null when the page can export it. maxSpendable: the balance less the fee
+ * buffer, in nAVAX (maxSpendableNanoAvax).
+ */
+export function exportAmountError(amount: string, maxSpendable: bigint): string | null {
+  const numericAmount = Number(amount);
+  if (isNaN(numericAmount) || numericAmount <= 0) return INVALID_AMOUNT_TEXT;
+
+  let amountNAvax: bigint;
+  try {
+    amountNAvax = toNanoAvax(amount);
+  } catch {
+    return INVALID_AMOUNT_TEXT;
+  }
+  // toNanoAvax rounds the 10th decimal, so an amount below 0.5 nAVAX becomes 0
+  if (amountNAvax <= 0n) return 'Amount is below the smallest exportable unit (1 nAVAX).';
+  if (amountNAvax > maxSpendable) {
+    return `Amount exceeds available balance of ${nanoAvaxText(maxSpendable)} AVAX (your balance less 0.001 AVAX for the fees).`;
+  }
+  return null;
+}
 
 // Public API nodes no longer serve avax.getAtomicTxStatus after Helicon, so the
 // SDK's waitForTxn fails for C-Chain atomic txs. Poll avax.getAtomicTx instead:
@@ -57,20 +97,290 @@ async function waitForCChainAtomicTx(isTestnet: boolean, txID: string, sleepTime
   throw new Error(`Transaction ${txID} was not accepted on C-Chain after ${maxRetries} attempts`);
 }
 
+const EYEBROW = 'font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400';
+const COUNT = 'font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-zinc-400 dark:text-zinc-500';
+const LINK =
+  'text-zinc-600 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-zinc-100';
+const CELL = 'border-zinc-200 bg-white/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/80';
+const BUTTON =
+  'group/btn inline-flex h-10 w-full items-center justify-center gap-2 border px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+const PRIMARY_BUTTON = cn(
+  BUTTON,
+  'border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 disabled:hover:bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 dark:disabled:hover:bg-zinc-100',
+);
+const SECONDARY_BUTTON = cn(
+  BUTTON,
+  'border-zinc-300 text-zinc-700 hover:border-zinc-900 hover:text-zinc-900 disabled:hover:border-zinc-300 disabled:hover:text-zinc-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50 dark:disabled:hover:border-zinc-700 dark:disabled:hover:text-zinc-200',
+);
+/** Shiki emits its own <pre> with an inline background; the board supplies the surface. */
+const SHIKI =
+  'min-w-0 flex-1 overflow-x-auto px-4 py-4 [&_.line]:block [&_.line]:min-h-[1.5em] [&_code]:flex [&_code]:flex-col [&_pre]:m-0! [&_pre]:bg-transparent! [&_pre]:p-0!';
+
+type ChainKey = 'c-chain' | 'p-chain';
+const CHAINS: Record<ChainKey, { name: string; role: string; logo: string }> = {
+  'c-chain': {
+    name: 'C-Chain',
+    role: 'Contract chain · EVM',
+    logo: 'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg',
+  },
+  'p-chain': {
+    name: 'P-Chain',
+    role: 'Platform chain · staking and L1s',
+    logo: 'https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg',
+  },
+};
+
+type StepStatus = 'pending' | 'active' | 'waiting' | 'completed' | 'error';
+
+function ButtonLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <span className="truncate">{children}</span>
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100 group-disabled/btn:hidden" />
+    </>
+  );
+}
+
+function ChainCell({
+  side,
+  chain,
+  balance,
+  network,
+  note,
+  className,
+}: {
+  side: 'From' | 'To';
+  chain: ChainKey;
+  balance: number;
+  network?: string;
+  note?: React.ReactNode;
+  className?: string;
+}) {
+  const { name, role, logo } = CHAINS[chain];
+  return (
+    <div className={cn(CELL, 'flex flex-col gap-5 border-b border-r md:px-7', className)}>
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-zinc-200 bg-white p-1.5 dark:border-zinc-800 dark:bg-zinc-900">
+          <img src={logo} alt="" className="h-full w-full object-contain" />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex items-center justify-between gap-3">
+            <span className={EYEBROW}>{side}</span>
+            {network && <span className={COUNT}>{network}</span>}
+          </div>
+          <h3 className="truncate text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{name}</h3>
+          <p className="truncate text-[13px] text-zinc-500 dark:text-zinc-400">{role}</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className={EYEBROW}>Balance</span>
+        <span className={FIG}>
+          {balance.toFixed(4)}
+          <span className={cn(UNIT, 'ml-1.5')}>AVAX</span>
+        </span>
+        {note}
+      </div>
+    </div>
+  );
+}
+
+/** Export then Import as a two-segment track: done in ink, current in red, upcoming in grey. */
+function TransferTrack({ steps }: { steps: { title: string; status: StepStatus; label: string }[] }) {
+  return (
+    <ol aria-label="Transfer progress" className="grid grid-cols-2 gap-1">
+      {steps.map((step, i) => {
+        const done = step.status === 'completed';
+        const current = step.status === 'active' || step.status === 'waiting' || step.status === 'error';
+        return (
+          <li key={step.title} aria-current={current ? 'step' : undefined} className="flex min-w-0 flex-col gap-2">
+            <span
+              aria-hidden
+              className={cn(
+                'block h-1 transition-colors',
+                done ? 'bg-zinc-900 dark:bg-zinc-100' : current ? 'bg-[#E6212F]' : 'bg-zinc-200 dark:bg-zinc-800',
+              )}
+            />
+            <span className="flex min-w-0 items-baseline justify-between gap-2">
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                <span
+                  className={cn(
+                    'font-mono text-[10px] font-bold tabular-nums',
+                    done
+                      ? 'text-zinc-900 dark:text-zinc-100'
+                      : current
+                        ? 'text-[#E6212F]'
+                        : 'text-zinc-400 dark:text-zinc-600',
+                  )}
+                >
+                  {done ? (
+                    <Check className="inline h-3 w-3 -translate-y-px" aria-label="Completed" />
+                  ) : (
+                    String(i + 1).padStart(2, '0')
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'truncate text-[12.5px]',
+                    current || done
+                      ? 'font-medium text-zinc-900 dark:text-zinc-50'
+                      : 'text-zinc-400 dark:text-zinc-500',
+                  )}
+                >
+                  {step.title}
+                </span>
+              </span>
+              <span
+                className={cn(
+                  'shrink-0 font-mono text-[10px] uppercase tracking-[0.14em]',
+                  step.status === 'error' ? 'text-red-600 dark:text-red-400' : 'text-zinc-400 dark:text-zinc-500',
+                )}
+              >
+                {step.label}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function ErrorNotice({ id, children }: { id?: string; children: React.ReactNode }) {
+  return (
+    <div
+      id={id}
+      role="alert"
+      className="flex items-start gap-3 border border-red-300 bg-red-50 px-4 py-3 text-[13px] leading-relaxed text-red-800 dark:border-red-900/70 dark:bg-red-950/20 dark:text-red-300"
+    >
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">{children}</div>
+    </div>
+  );
+}
+
+function useCopy(text: string) {
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [text]);
+  return { copied, copy };
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const { copied, copy } = useCopy(text);
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={label}
+      className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+    >
+      {copied ? <Check className="h-3 w-3 text-[#E6212F]" /> : <Copy className="h-3 w-3" />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
+/** The SDK calls behind each step, as a quiet board with one tab per file. */
+function CodeBoard({ sources }: { sources: SDKCodeSource[] }) {
+  const [active, setActive] = useState(0);
+  const [highlighted, setHighlighted] = useState<Record<string, { light: string; dark: string }>>({});
+  const source = sources[active] ?? sources[0];
+
+  useEffect(() => {
+    if (!source) return;
+    let cancelled = false;
+    Promise.all([
+      codeToHtml(source.code, { lang: 'typescript', theme: 'github-light' }),
+      codeToHtml(source.code, { lang: 'typescript', theme: 'github-dark' }),
+    ]).then(([light, dark]) => {
+      if (!cancelled) setHighlighted((prev) => ({ ...prev, [source.code]: { light, dark } }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [source]);
+
+  if (!source) return null;
+  const html = highlighted[source.code];
+  const lineCount = source.code.split('\n').length;
+
+  return (
+    <Board className="border-x border-t" divide={false}>
+      <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-5 md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <div role="tablist" aria-label="SDK code" className="flex items-center gap-5 self-stretch">
+          {sources.map((s, i) => (
+            <button
+              key={s.filename}
+              type="button"
+              role="tab"
+              id={`cross-chain-sdk-tab-${i}`}
+              aria-selected={i === active}
+              aria-controls="cross-chain-sdk-panel"
+              onClick={() => setActive(i)}
+              className={cn(
+                '-mb-px h-full border-b-2 pt-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] transition-colors',
+                i === active
+                  ? 'border-[#E6212F] text-zinc-900 dark:text-zinc-50'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100',
+              )}
+            >
+              {s.filename}
+            </button>
+          ))}
+        </div>
+        <CopyButton text={source.code} label="Copy code" />
+      </div>
+      <div
+        id="cross-chain-sdk-panel"
+        role="tabpanel"
+        aria-labelledby={`cross-chain-sdk-tab-${active}`}
+        className="flex font-mono text-[12px] leading-[1.5]"
+      >
+        <div
+          aria-hidden
+          className="shrink-0 select-none border-r border-zinc-200 bg-zinc-50/60 py-4 pl-5 pr-3 text-right tabular-nums text-zinc-400 md:pl-6 dark:border-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-600"
+        >
+          {Array.from({ length: lineCount }, (_, i) => (
+            <div key={i}>{i + 1}</div>
+          ))}
+        </div>
+        {html ? (
+          <>
+            <div className={cn(SHIKI, 'dark:hidden')} dangerouslySetInnerHTML={{ __html: html.light }} />
+            <div className={cn(SHIKI, 'hidden dark:block')} dangerouslySetInnerHTML={{ __html: html.dark }} />
+          </>
+        ) : (
+          <pre className="min-w-0 flex-1 overflow-x-auto whitespace-pre px-4 py-4 text-zinc-800 dark:text-zinc-200">
+            {source.code}
+          </pre>
+        )}
+      </div>
+      {source.description && (
+        <p className="border-t border-zinc-200 px-5 py-3 text-[12px] text-zinc-500 md:px-6 dark:border-zinc-800 dark:text-zinc-400">
+          {source.description}
+        </p>
+      )}
+    </Board>
+  );
+}
+
 const metadata: ConsoleToolMetadata = {
   title: 'Cross-Chain Transfer',
   description: (
     <>
       Transfer AVAX between the{' '}
-      <Link href="/docs/rpcs/c-chain" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/c-chain" className={LINK}>
         C-Chain
       </Link>{' '}
       and{' '}
-      <Link href="/docs/rpcs/p-chain" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain" className={LINK}>
         P-Chain
       </Link>
       . Requires two{' '}
-      <Link href="/docs/rpcs/p-chain/txn-format" className="text-primary hover:underline">
+      <Link href="/docs/rpcs/p-chain/txn-format" className={LINK}>
         transactions
       </Link>
       : export from the source, then import to the destination.
@@ -91,10 +401,21 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   const [_completedExportXPChain, setCompletedExportXPChain] = useState<'P' | 'C'>('P');
   const [_completedImportXPChain, setCompletedImportXPChain] = useState<'P' | 'C'>('P');
   const [importTxId, setImportTxId] = useState<string | null>(null);
+  // The error of the export: the wallet, the network parameters, or the tx. The next Export click or a swap clears it.
   const [error, setError] = useState<string | null>(null);
+  // The error of the typed amount (exportAmountError). A new amount or a new direction clears it.
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  // The UTXOs of the next import: the wallet's own unlocked AVAX that one import takes, when the total is above the
+  // import fee (sharedMemoryImport.ts). handleImport gives the SDK exactly these UTXOs.
   const [cToP_UTXOs, setC_To_P_UTXOs] = useState<Utxo<TransferOutput>[]>([]);
   const [pToC_UTXOs, setP_To_C_UTXOs] = useState<Utxo<TransferOutput>[]>([]);
+  // The UTXOs in shared memory that this wallet cannot import, by the chain that would import them
+  const [blockedUtxos, setBlockedUtxos] = useState<Record<'P' | 'C', number>>({ P: 0, C: 0 });
+  // True for a side when shared memory holds more UTXOs than the page reads (readSharedMemory)
+  const [moreUtxos, setMoreUtxos] = useState<Record<'P' | 'C', boolean>>({ P: false, C: false });
+  // The fee price by side and set of UTXOs, so the 5 s poll reads the price once per set
+  const importFeeCacheRef = useRef(newImportFeeCache());
   const isFetchingRef = useRef(false);
   const autoImportTriggeredRef = useRef(false);
   const handleImportRef = useRef<() => Promise<void>>(undefined);
@@ -129,6 +450,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   // (which bypasses the wallet transport and fails from non-production origins).
   const { context: avalancheContext, error: contextError } = useAvalancheContext(Boolean(isTestnet));
 
+  const sourceBalance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
+  // The most that the page exports: the balance less the fee buffer. The Max line, MAX and exportAmountError use it.
+  const maxSpendable = maxSpendableNanoAvax(sourceBalance, EXPORT_FEE_BUFFER_NAVAX);
+  const maxSpendableText = nanoAvaxText(maxSpendable);
+
   // Calculate total AVAX in UTXOs
   const totalCToPUtxoAmount = cToP_UTXOs.reduce((sum, utxo) => {
     return sum + Number(utxo.output.amt.value()) / 1_000_000_000;
@@ -147,9 +473,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     }
   }, [updateCChainBalance, updatePChainBalance]);
 
-  // Fetch UTXOs from both chains
+  // Fetch UTXOs from both chains, page by page (readSharedMemory). Anyone can export a UTXO to the wallet's address, so
+  // the page keeps only the wallet's own unlocked AVAX that one import takes when its total is above the import fee,
+  // and counts the others (readImportableShare).
   const fetchUTXOs = useCallback(async () => {
-    if (!pChainAddress || !walletEVMAddress || isFetchingRef.current) return false;
+    if (!pChainAddress || !walletEVMAddress || !avalancheContext || isFetchingRef.current) return false;
 
     isFetchingRef.current = true;
 
@@ -160,35 +488,59 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     try {
       const platformEndpoint = getRPCEndpoint(Boolean(isTestnet));
       const pvmApi = new pvm.PVMApi(platformEndpoint);
-
-      const cChainUTXOs = await pvmApi.getUTXOs({
-        addresses: [pChainAddress],
-        sourceChain: 'C',
-      });
-      setC_To_P_UTXOs(cChainUTXOs.utxos as Utxo<TransferOutput>[]);
-
       const evmApi = new evm.EVMApi(platformEndpoint);
+      const feeCache = importFeeCacheRef.current;
+
+      // Get C-chain UTXOs (for C->P transfers)
+      const cChainUTXOs = await readSharedMemory((startIndex) =>
+        pvmApi.getUTXOs({ addresses: [pChainAddress], sourceChain: 'C', limit: UTXO_PAGE_SIZE, startIndex }),
+      );
+      const toP = await readImportableShare({
+        side: 'P',
+        utxos: cChainUTXOs.utxos,
+        address: pChainAddress,
+        context: avalancheContext,
+        readPrice: async () => (await pvmApi.getFeeState()).price,
+        feeCache,
+      });
+      setC_To_P_UTXOs(toP.utxos);
 
       // Get P-chain UTXOs (for P->C transfers)
-      const pChainUTXOs = await evmApi.getUTXOs({
-        addresses: [coreEthAddress],
-        sourceChain: 'P',
+      const pChainUTXOs = await readSharedMemory((startIndex) =>
+        evmApi.getUTXOs({ addresses: [coreEthAddress], sourceChain: 'P', limit: UTXO_PAGE_SIZE, startIndex }),
+      );
+      const toC = await readImportableShare({
+        side: 'C',
+        utxos: pChainUTXOs.utxos,
+        address: coreEthAddress,
+        context: avalancheContext,
+        readPrice: async () => baseFeeNanoAvax(await evmApi.getBaseFee()),
+        feeCache,
       });
-      setP_To_C_UTXOs(pChainUTXOs.utxos as Utxo<TransferOutput>[]);
+      setP_To_C_UTXOs(toC.utxos);
+      setBlockedUtxos((prev) =>
+        prev.P === toP.blocked && prev.C === toC.blocked ? prev : { P: toP.blocked, C: toC.blocked },
+      );
+      const more = { P: !cChainUTXOs.complete, C: !pChainUTXOs.complete };
+      setMoreUtxos((prev) => (prev.P === more.P && prev.C === more.C ? prev : more));
 
-      // Check if the number of UTXOs has changed
-      const newCToPCount = cChainUTXOs.utxos.length;
-      const newPToCCount = pChainUTXOs.utxos.length;
-
-      // Return true if UTXOs count changed
-      return prevCToPCount !== newCToPCount || prevPToCCount !== newPToCCount;
+      // Return true if the number of importable UTXOs changed
+      return prevCToPCount !== toP.utxos.length || prevPToCCount !== toC.utxos.length;
     } catch (e) {
       console.error('Error fetching UTXOs:', e);
       return false;
     } finally {
       isFetchingRef.current = false;
     }
-  }, [pChainAddress, walletEVMAddress, coreEthAddress, isTestnet, cToP_UTXOs.length, pToC_UTXOs.length]);
+  }, [
+    pChainAddress,
+    walletEVMAddress,
+    coreEthAddress,
+    isTestnet,
+    avalancheContext,
+    cToP_UTXOs.length,
+    pToC_UTXOs.length,
+  ]);
 
   const pollForUTXOChanges = useCallback(async () => {
     try {
@@ -227,19 +579,14 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     };
   }, [walletEVMAddress, pChainAddress, fetchUTXOs]);
 
+  // A new amount clears the error of the old amount. It keeps the error of the export.
+  const changeAmount = (value: string) => {
+    setAmount(value);
+    setAmountError(null);
+  };
+
   const handleMaxAmount = () => {
-    const balance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
-    if (!Number.isFinite(balance) || balance <= 0) {
-      setAmount('0');
-      return;
-    }
-    const balanceNAvax = Math.floor(balance * 1e9);
-    const spendableNAvax = balanceNAvax - EXPORT_FEE_BUFFER_NAVAX;
-    if (spendableNAvax <= 0) {
-      setAmount('0');
-      return;
-    }
-    setAmount((spendableNAvax / 1e9).toString());
+    changeAmount(maxSpendableText);
   };
 
   // Handler to swap source and destination chains
@@ -248,32 +595,20 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setSourceChain(destinationChain);
     setDestinationChain(tempChain);
     setError(null);
+    setAmountError(null);
     setImportError(null);
-  };
-
-  const validateAmount = (): boolean => {
-    const numericAmount = Number(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      setError('Please enter a valid positive amount.');
-      return false;
-    }
-
-    const currentBalance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
-    if (numericAmount > currentBalance) {
-      setError(`Amount exceeds available balance of ${currentBalance.toFixed(4)} AVAX.`);
-      return false;
-    }
-
-    setError(null);
-    return true;
   };
 
   // Add handlers for buttons
   const handleExport = async () => {
-    if (!validateAmount()) return;
+    // A click starts a new attempt, so the error of the last attempt goes
+    setError(null);
+    const invalidAmount = exportAmountError(amount, maxSpendable);
+    setAmountError(invalidAmount);
+    if (invalidAmount) return;
     if (!coreWalletClient) {
       setError(
-        'Cross-chain transfers require Core Wallet for P-Chain signing. Please connect with Core Wallet or use the CLI alternative below.',
+        'Cross-chain transfers sign on the P-Chain, which needs Core or a Console wallet. Connect one from the top bar, or use the CLI alternative below.',
       );
       return;
     }
@@ -281,25 +616,20 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       setError(
         contextError
           ? `Could not load network parameters: ${contextError}`
-          : 'Network parameters are still loading — please try again in a moment.',
+          : 'Network parameters are still loading. Try again in a moment.',
       );
       return;
     }
 
     setExportLoading(true);
-    setError(null);
     autoImportTriggeredRef.current = false;
 
     // P-Chain/X-Chain transfer amounts are nAVAX (1 AVAX = 1e9 nAVAX). Parse
     // the typed decimal: `BigInt(0.5)` and the float drift from `amount * 1e9`
     // (e.g. 1.005 * 1e9 = 1004999999.9999999) both throw, and the SDK's
-    // avaxToNanoAvax does exactly that multiplication.
+    // avaxToNanoAvax does exactly that multiplication. exportAmountError
+    // checked above that the amount parses to at least 1 nAVAX.
     const amountNAvax = toNanoAvax(amount);
-    if (amountNAvax <= 0n) {
-      setError('Amount is below the smallest exportable unit (1 nAVAX).');
-      setExportLoading(false);
-      return;
-    }
 
     const exportPromise = (async () => {
       if (sourceChain === 'c-chain') {
@@ -332,10 +662,8 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       }
     })();
 
-    notify(
-      'exportCross',
-      exportPromise.then((r) => r.txHash),
-    );
+    // The result names the chain of the tx, so the history lists a C-Chain export as a C-Chain tx
+    notify('exportCross', exportPromise);
 
     try {
       const { txHash, xpChain } = await exportPromise;
@@ -347,7 +675,9 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       onBalanceChanged();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      if (/invalid nonce/i.test(msg)) {
+      if (classifyEvmTxError(error).kind === 'user-rejected') {
+        setError(WALLET_REJECTED_TEXT);
+      } else if (/invalid nonce/i.test(msg)) {
         setError(
           'Export failed: another C-Chain transaction from this wallet is still pending. Wait for it to confirm (or reset the account in Core: Settings → Advanced → Reset Account) and try again.',
         );
@@ -361,18 +691,18 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
 
   const handleImport = async () => {
     if (!coreWalletClient) {
-      setImportError('Cross-chain transfers require Core Wallet for P-Chain signing.');
+      setImportError('Cross-chain transfers sign on the P-Chain, which needs Core or a Console wallet.');
       return;
     }
     if (!avalancheContext) {
       setImportError(
         contextError
           ? `Could not load network parameters: ${contextError}`
-          : 'Network parameters are still loading — please try again in a moment.',
+          : 'Network parameters are still loading. Try again in a moment.',
       );
       return;
     }
-    // Guard against importing before the exported UTXOs have arrived — otherwise
+    // Guard against importing before the exported UTXOs have arrived. Otherwise
     // the SDK rejects with a raw "insufficient funds" (the bulk of importCross errors).
     const utxosReady = destinationChain === 'p-chain' ? cToP_UTXOs : pToC_UTXOs;
     if (utxosReady.length === 0) {
@@ -384,6 +714,9 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setImportLoading(true);
     setImportError(null);
 
+    // Give the SDK exactly the page's selection. Without `utxos`, the SDK reads every UTXO at the address again. Then
+    // a UTXO that the wallet cannot spend can lower the fee of a C-Chain import below what coreth takes, and too many
+    // inputs can put the import above coreth's gas limit or the P-Chain's gas capacity (sharedMemoryImport.ts).
     const importPromise = (async () => {
       if (destinationChain === 'p-chain') {
         const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
@@ -391,6 +724,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           importedOutput: {
             addresses: [pChainAddress],
           },
+          utxos: toSdkUtxos('P', cToP_UTXOs),
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
@@ -400,6 +734,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
         const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
           sourceChain: 'P',
           toAddress: walletEVMAddress as `0x${string}`,
+          utxos: toSdkUtxos('C', pToC_UTXOs),
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
@@ -408,10 +743,8 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       }
     })();
 
-    notify(
-      'importCross',
-      importPromise.then((r) => r.txHash),
-    );
+    // The result names the chain of the tx, so the history lists a C-Chain import as a C-Chain tx
+    notify('importCross', importPromise);
 
     try {
       const { txHash, xpChain } = await importPromise;
@@ -424,7 +757,9 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       onSuccess?.();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      setImportError(`Import failed: ${msg}`);
+      setImportError(
+        classifyEvmTxError(error).kind === 'user-rejected' ? WALLET_REJECTED_TEXT : `Import failed: ${msg}`,
+      );
     } finally {
       setImportLoading(false);
       setExportTxId('');
@@ -437,10 +772,15 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   // Get the available UTXOs based on current direction
   const availableUTXOs = destinationChain === 'p-chain' ? cToP_UTXOs : pToC_UTXOs;
   const totalUtxoAmount = destinationChain === 'p-chain' ? totalCToPUtxoAmount : totalPToCUtxoAmount;
+  const importSide = destinationChain === 'p-chain' ? 'P' : 'C';
+  const blockedText = blockedUtxosText(blockedUtxos[importSide]);
+  const moreText = moreUtxos[importSide] ? MORE_UTXOS_TEXT : null;
+  // One Export click sets at most one of the two: an amount error stops the click before the export starts
+  const exportError = amountError ?? error;
 
   // Step status logic with auto-collapse flow
   const getStep1Status = (): 'pending' | 'active' | 'waiting' | 'completed' | 'error' => {
-    if (error) return 'error';
+    if (exportError) return 'error';
     if (step1AutoCollapse) return 'completed';
     if (completedExportTxId) return 'waiting'; // Show as waiting after success, before auto-collapse
     if (exportLoading) return 'active';
@@ -500,13 +840,16 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   useEffect(() => {
     if (hasAutoSwitchedRef.current) return;
     if (!exportTxId && !completedExportTxId && !importTxId) {
+      // The page now offers the pending import, so an amount error of an earlier Export click goes
       if (cToP_UTXOs.length > 0 && pToC_UTXOs.length === 0) {
         setSourceChain('c-chain');
         setDestinationChain('p-chain');
+        setAmountError(null);
         hasAutoSwitchedRef.current = true;
       } else if (pToC_UTXOs.length > 0 && cToP_UTXOs.length === 0) {
         setSourceChain('p-chain');
         setDestinationChain('c-chain');
+        setAmountError(null);
         hasAutoSwitchedRef.current = true;
       }
     }
@@ -549,8 +892,8 @@ const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
 await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
 console.log("Export tx:", txnResponse.txHash);`,
         description: isCtoP
-          ? 'Export AVAX from C-Chain to P-Chain using Core Wallet SDK'
-          : 'Export AVAX from P-Chain to C-Chain using Core Wallet SDK',
+          ? 'Export AVAX from C-Chain to P-Chain with the Avalanche SDK'
+          : 'Export AVAX from P-Chain to C-Chain with the Avalanche SDK',
       },
       {
         name: 'Import',
@@ -559,6 +902,7 @@ console.log("Export tx:", txnResponse.txHash);`,
           ? `import { CoreWalletClient } from "@core-wallet/sdk";
 
 // Import AVAX to P-Chain from C-Chain
+// Set \`utxos\` to the wallet's own spendable AVAX UTXOs only. Without it, the SDK uses every UTXO at the address.
 const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
   sourceChain: "C",
   importedOutput: {
@@ -572,6 +916,7 @@ console.log("Import tx:", txnResponse.txHash);`
           : `import { CoreWalletClient } from "@core-wallet/sdk";
 
 // Import AVAX to C-Chain from P-Chain
+// Set \`utxos\` to the wallet's own spendable AVAX UTXOs only. Without it, the SDK uses every UTXO at the address.
 const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
   sourceChain: "P",
   toAddress: "${walletEVMAddress || '<your-evm-address>'}",
@@ -592,13 +937,34 @@ console.log("Import tx:", txnResponse.txHash);`,
 
   const sourceChainName = sourceChain === 'c-chain' ? 'C-Chain' : 'P-Chain';
   const destChainName = destinationChain === 'c-chain' ? 'C-Chain' : 'P-Chain';
-  const sourceBalance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
   const destBalance = destinationChain === 'c-chain' ? cChainBalance : pChainBalance;
 
-  const chainLogo = (chain: string) =>
-    chain === 'c-chain'
-      ? 'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg'
-      : 'https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg';
+  const network = isTestnet === undefined ? undefined : isTestnet ? 'Fuji' : 'Mainnet';
+  const busy = exportLoading || importLoading;
+  const step1Status = getStep1Status();
+  const step2Status = getStep2Status();
+  const exportedTxId = completedExportTxId && completedExportTxId !== 'utxo-available' ? completedExportTxId : '';
+
+  const step1Label =
+    step1Status === 'error'
+      ? 'Error'
+      : step1Status === 'completed'
+        ? 'Done'
+        : step1Status === 'waiting'
+          ? 'Confirming'
+          : exportLoading
+            ? 'Signing'
+            : 'Ready';
+  const step2Label =
+    step2Status === 'error'
+      ? 'Error'
+      : step2Status === 'completed' || step2Status === 'waiting'
+        ? 'Done'
+        : importLoading
+          ? 'Importing'
+          : step2Status === 'active'
+            ? 'Ready'
+            : 'Up next';
 
   // The SDK's cChain.prepareExportTxn/prepareImportTxn fetch the nonce and
   // base fee via plain eth_* calls through the wallet transport, which Core
@@ -610,199 +976,273 @@ console.log("Import tx:", txnResponse.txHash);`,
   const requiredCChainId = isTestnet === undefined ? null : isTestnet ? 43113 : 43114;
 
   return (
-    <SDKCodeViewer sources={sdkSources} height="auto">
+    <div className="not-prose flex flex-col gap-10">
       <AutoSwitchChainGate
         requiredChainId={requiredCChainId}
         requiredChainName={isTestnet ? 'Fuji C-Chain' : 'C-Chain'}
       >
-        <div className="space-y-4">
-          {/* Transfer Widget */}
-          <div className="rounded-lg border border-border overflow-hidden">
-            {/* From */}
-            <div className="p-4 bg-card">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <img src={chainLogo(sourceChain)} alt="" className="h-5 w-5" />
-                  <span className="text-sm font-medium text-foreground">From {sourceChainName}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Balance: {sourceBalance.toFixed(4)} AVAX</span>
-              </div>
-              <AmountInput
-                label=""
-                value={amount}
-                onChange={setAmount}
-                type="number"
-                min="0"
-                max={sourceBalance.toString()}
-                step="0.000001"
-                required
-                disabled={exportLoading || importLoading}
-                error={error ?? undefined}
-                button={
-                  <Button onClick={handleMaxAmount} disabled={exportLoading || sourceBalance <= 0} stickLeft>
-                    MAX
-                  </Button>
-                }
-              />
-            </div>
+        <Rise className="flex flex-col gap-10">
+          <section className="flex flex-col gap-4">
+            <SectionHeader
+              label="Transfer"
+              action={
+                <span className={COUNT}>
+                  {sourceChainName} → {destChainName}
+                </span>
+              }
+            />
 
-            {/* Swap Divider */}
-            <div className="relative flex justify-center">
-              <div className="absolute inset-x-0 top-1/2 border-t border-border" />
-              <button
-                type="button"
-                onClick={handleSwapChains}
-                disabled={exportLoading || importLoading}
-                className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted border border-border hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Swap chains"
-              >
-                <ArrowDownUp className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </div>
-
-            {/* To */}
-            <div className="p-4 bg-card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <img src={chainLogo(destinationChain)} alt="" className="h-5 w-5" />
-                  <span className="text-sm font-medium text-foreground">To {destChainName}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Balance: {destBalance.toFixed(4)} AVAX</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Step Progress */}
-          <div className="flex items-center justify-center gap-3">
-            <StepIndicator stepNumber={1} title="Export" status={getStep1Status()} />
-            <StepIndicator stepNumber={2} title="Import" status={getStep2Status()} isLast />
-          </div>
-
-          {/* Action Area */}
-          <div className="space-y-3">
-            {/* Export phase */}
-            {!completedExportTxId && !exportLoading && availableUTXOs.length === 0 && (
-              <Button
-                variant="primary"
-                onClick={handleExport}
-                disabled={Number(amount) <= 0 || !!error}
-                icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
-                className="w-full"
-              >
-                Export {amount || '0'} AVAX from {sourceChainName}
-              </Button>
-            )}
-
-            {/* Export loading */}
-            {exportLoading && (
-              <Button
-                variant="primary"
-                disabled
-                loading
-                loadingText={`Exporting from ${sourceChainName}...`}
-                className="w-full"
-              >
-                Exporting...
-              </Button>
-            )}
-
-            {/* Export error */}
-            {error && (
-              <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
-            {/* Waiting for UTXOs after export */}
-            {completedExportTxId && availableUTXOs.length === 0 && !exportLoading && (
-              <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4 animate-pulse" />
-                Waiting for UTXOs to arrive...
-              </div>
-            )}
-
-            {/* Import phase - auto-importing after export */}
-            {importLoading && (
-              <Button
-                variant="primary"
-                disabled
-                loading
-                loadingText={`Importing to ${destChainName}...`}
-                className="w-full"
-              >
-                Importing...
-              </Button>
-            )}
-
-            {/* Import phase - manual button for pre-existing UTXOs only */}
-            {availableUTXOs.length > 0 && !importTxId && !importLoading && completedExportTxId === 'utxo-available' && (
-              <>
-                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm">
-                  <span className="text-muted-foreground">Pending import from a previous transfer</span>
-                  <span className="font-mono font-medium text-foreground">{totalUtxoAmount.toFixed(6)} AVAX</span>
-                </div>
-
-                <Button
-                  variant="primary"
-                  onClick={handleImport}
-                  icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
-                  className="w-full"
+            <div>
+              {/* From and To share one hairline; the swap control sits on it. */}
+              <div className="relative grid grid-cols-1 border-l border-t border-zinc-200 md:grid-cols-2 dark:border-zinc-800">
+                <ChainCell side="From" chain={sourceChain as ChainKey} balance={sourceBalance} network={network} />
+                <ChainCell
+                  side="To"
+                  chain={destinationChain as ChainKey}
+                  balance={destBalance}
+                  network={network}
+                  note={
+                    availableUTXOs.length > 0 && !importTxId ? (
+                      <span className="font-mono text-[11px] tabular-nums text-amber-700 dark:text-amber-400">
+                        +{totalUtxoAmount.toFixed(6)} AVAX pending import
+                      </span>
+                    ) : undefined
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={handleSwapChains}
+                  disabled={busy}
+                  aria-label={`Swap direction: transfer from ${destChainName} to ${sourceChainName}`}
+                  title="Swap direction"
+                  className="absolute left-1/2 top-1/2 z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center border border-zinc-300 bg-white text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-300 disabled:hover:text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
                 >
-                  Import {totalUtxoAmount.toFixed(6)} AVAX to {destChainName}
-                </Button>
-              </>
-            )}
-
-            {/* Import error */}
-            {importError && (
-              <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                <p className="text-sm text-destructive">{importError}</p>
-                <Button variant="secondary" onClick={handleImport} disabled={importLoading} className="w-full mt-2">
-                  Retry Import
-                </Button>
+                  <ArrowDownUp className="h-3.5 w-3.5 md:hidden" />
+                  <ArrowLeftRight className="hidden h-3.5 w-3.5 md:block" />
+                </button>
               </div>
-            )}
 
-            {/* Transfer complete */}
-            {importTxId && (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setExportTxId('');
-                    setCompletedExportTxId('');
-                    setImportTxId(null);
-                    setAmount('');
-                    setError(null);
-                    setImportError(null);
-                    setStep1AutoCollapse(false);
-                    setStep2AutoCollapse(false);
-                    autoImportTriggeredRef.current = false;
-                    setTimeout(() => {
-                      if (availableUTXOs.length > 0) {
-                        setCompletedExportTxId('utxo-available');
-                        setStep1AutoCollapse(true);
-                      }
-                    }, 100);
-                  }}
-                  className="w-full"
+              {/* Amount */}
+              <div className={cn(CELL, 'flex flex-col gap-2 border-x border-b md:px-7')}>
+                <label htmlFor="cross-chain-amount" className={EYEBROW}>
+                  Amount
+                </label>
+                <div className="flex">
+                  <div className="relative min-w-0 flex-1">
+                    <input
+                      id="cross-chain-amount"
+                      value={amount}
+                      onChange={(e) => changeAmount(e.target.value)}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      max={maxSpendableText}
+                      step="0.000001"
+                      required
+                      disabled={busy}
+                      aria-invalid={!!exportError}
+                      aria-describedby={exportError ? 'cross-chain-error' : 'cross-chain-amount-hint'}
+                      placeholder="0.0"
+                      className={cn(
+                        'h-12 w-full border bg-white pl-3 pr-16 font-mono text-lg tabular-nums text-zinc-900 transition-colors placeholder:text-zinc-300 focus:outline-none disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500 dark:bg-zinc-950 dark:text-zinc-50 dark:placeholder:text-zinc-700 dark:disabled:bg-zinc-900',
+                        '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                        exportError
+                          ? 'border-red-400 focus:border-red-600 dark:border-red-800 dark:focus:border-red-500'
+                          : 'border-zinc-300 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-100',
+                      )}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                      AVAX
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleMaxAmount}
+                    disabled={exportLoading || maxSpendable <= 0n}
+                    className="-ml-px h-12 shrink-0 border border-zinc-300 bg-white px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-700 transition-colors hover:z-10 hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-300 disabled:hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
+                  >
+                    Max
+                  </button>
+                </div>
+                <p
+                  id="cross-chain-amount-hint"
+                  className="flex flex-wrap justify-between gap-x-4 gap-y-1 font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500"
                 >
-                  Start New Transfer
-                </Button>
-              </>
-            )}
-          </div>
+                  {/* The balance less the fee buffer: the value that Max fills and that the amount check uses */}
+                  <span>
+                    Available {maxSpendableText} AVAX on {sourceChainName}
+                  </span>
+                  <span>Est. fee ~0.001 AVAX</span>
+                </p>
+              </div>
 
-          {/* Fee */}
-          <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
-            <span>Estimated fee</span>
-            <span>~0.001 AVAX</span>
-          </div>
+              {/* Progress and actions */}
+              <div className={cn(CELL, 'flex flex-col gap-5 border-x border-b md:px-7')}>
+                <TransferTrack
+                  steps={[
+                    { title: `Export from ${sourceChainName}`, status: step1Status, label: step1Label },
+                    { title: `Import to ${destChainName}`, status: step2Status, label: step2Label },
+                  ]}
+                />
+
+                {(exportedTxId || importTxId) && (
+                  <SpecPlate className="border-y border-zinc-200 dark:border-zinc-800">
+                    {exportedTxId && (
+                      <SpecRow label="Export tx">
+                        <HashChip value={exportedTxId} len={14} />
+                      </SpecRow>
+                    )}
+                    {importTxId && (
+                      <SpecRow label="Import tx">
+                        <HashChip value={importTxId} len={14} />
+                      </SpecRow>
+                    )}
+                  </SpecPlate>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  {/* Export phase */}
+                  {!completedExportTxId && !exportLoading && availableUTXOs.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={handleExport}
+                      disabled={Number(amount) <= 0 || !!amountError}
+                      className={PRIMARY_BUTTON}
+                    >
+                      <ConnectedWalletIcon className="h-3.5 w-3.5 shrink-0" />
+                      <ButtonLabel>
+                        Export {amount || '0'} AVAX from {sourceChainName}
+                      </ButtonLabel>
+                    </button>
+                  )}
+
+                  {/* Export loading */}
+                  {exportLoading && (
+                    <button type="button" disabled aria-busy className={PRIMARY_BUTTON}>
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                      <span className="truncate">Exporting from {sourceChainName}…</span>
+                    </button>
+                  )}
+
+                  {/* Export error */}
+                  {exportError && <ErrorNotice id="cross-chain-error">{exportError}</ErrorNotice>}
+
+                  {/* Waiting for UTXOs after export */}
+                  {completedExportTxId && availableUTXOs.length === 0 && !exportLoading && (
+                    <p
+                      role="status"
+                      className="flex items-center justify-center gap-2 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                    >
+                      <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                      Waiting for UTXOs on {destChainName}
+                    </p>
+                  )}
+
+                  {/* Import phase - auto-importing after export */}
+                  {importLoading && (
+                    <button type="button" disabled aria-busy className={PRIMARY_BUTTON}>
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                      <span className="truncate">Importing to {destChainName}…</span>
+                    </button>
+                  )}
+
+                  {/* Import phase - manual button for pre-existing UTXOs only */}
+                  {availableUTXOs.length > 0 &&
+                    !importTxId &&
+                    !importLoading &&
+                    completedExportTxId === 'utxo-available' && (
+                      <>
+                        <div className="flex items-center justify-between gap-4 border border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                          <span className="flex min-w-0 flex-col gap-0.5">
+                            <span className={EYEBROW}>Pending import</span>
+                            <span className="text-[13px] text-zinc-600 dark:text-zinc-300">
+                              Exported earlier, not yet imported to {destChainName}
+                            </span>
+                          </span>
+                          <span className="shrink-0 font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                            {totalUtxoAmount.toFixed(6)} <span className="text-zinc-400 dark:text-zinc-500">AVAX</span>
+                          </span>
+                        </div>
+
+                        <button type="button" onClick={handleImport} className={PRIMARY_BUTTON}>
+                          <ConnectedWalletIcon className="h-3.5 w-3.5 shrink-0" />
+                          <ButtonLabel>
+                            Import {totalUtxoAmount.toFixed(6)} AVAX to {destChainName}
+                          </ButtonLabel>
+                        </button>
+                      </>
+                    )}
+
+                  {/* Import error */}
+                  {importError && (
+                    <>
+                      <ErrorNotice>{importError}</ErrorNotice>
+                      <button
+                        type="button"
+                        onClick={handleImport}
+                        disabled={importLoading}
+                        className={SECONDARY_BUTTON}
+                      >
+                        <ButtonLabel>Retry import</ButtonLabel>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Transfer complete */}
+                  {importTxId && (
+                    <>
+                      <p
+                        role="status"
+                        className="flex items-center justify-center gap-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400"
+                      >
+                        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                        Transfer complete
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExportTxId('');
+                          setCompletedExportTxId('');
+                          setImportTxId(null);
+                          setAmount('');
+                          setError(null);
+                          setAmountError(null);
+                          setImportError(null);
+                          setStep1AutoCollapse(false);
+                          setStep2AutoCollapse(false);
+                          autoImportTriggeredRef.current = false;
+                          setTimeout(() => {
+                            if (availableUTXOs.length > 0) {
+                              setCompletedExportTxId('utxo-available');
+                              setStep1AutoCollapse(true);
+                            }
+                          }, 100);
+                        }}
+                        className={SECONDARY_BUTTON}
+                      >
+                        <ButtonLabel>Start new transfer</ButtonLabel>
+                      </button>
+                    </>
+                  )}
+
+                  {/* UTXOs that the wallet cannot import now: locked, other owners, another asset, not above the fee of
+                      their own input, above the gas limit of one import, or below the fee of the import */}
+                  {blockedText && <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{blockedText}</p>}
+                  {moreText && <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{moreText}</p>}
+                </div>
+              </div>
+            </div>
+          </section>
 
           <CliAlternative command={cliCommand} />
-        </div>
+        </Rise>
       </AutoSwitchChainGate>
-    </SDKCodeViewer>
+
+      <Rise delay={0.06} className="flex flex-col gap-4">
+        <SectionHeader label="SDK code" action={<span className={COUNT}>{sdkSources.length} files</span>} />
+        <CodeBoard sources={sdkSources} />
+      </Rise>
+    </div>
   );
 }
 

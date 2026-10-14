@@ -1,0 +1,629 @@
+/*
+ * Builder Hub design system for Studio frontends.
+ *
+ * The explorer's voice in plain CSS: Geist and Geist Mono, square hairline
+ * boards, a zinc scale, mono uppercase labels with wide tracking, Avalanche
+ * red for the active state and blue for addresses and hashes. Mirrors
+ * components/explorer-v2/ui.tsx and components/studio/ui.tsx; change them
+ * together.
+ *
+ * Link it as <link rel="stylesheet" href="builder-hub.css">. The Studio
+ * Preview serves it, and an export writes it next to index.html.
+ * Theme: <html data-theme="light|dark">, falling back to the OS preference.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bh-font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bh-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --bh-bg: #ffffff;
+  --bh-surface: rgba(250, 250, 250, 0.8); /* zinc-50/80: board headers, hovered rows */
+  --bh-subtle: #f4f4f5; /* zinc-100: selected items, skeletons */
+  --bh-border: #e4e4e7; /* zinc-200: hairlines */
+  --bh-border-strong: #d4d4d8; /* zinc-300: inputs, secondary buttons */
+  --bh-ink: #18181b; /* zinc-900 */
+  --bh-ink-2: #3f3f46; /* zinc-700: body copy */
+  --bh-muted: #71717a; /* zinc-500: labels */
+  --bh-faint: #a1a1aa; /* zinc-400: figures' units, placeholders, empty rows */
+  --bh-accent: #e6212f; /* Avalanche red: active tab, link hover */
+  --bh-id: #0061e2; /* addresses, hashes, ids */
+  --bh-fn: #6d28d9; /* function names */
+  --bh-good: #047857;
+  --bh-good-bg: #ecfdf5;
+  --bh-warn: #b45309;
+  --bh-warn-bg: #fffbeb;
+  --bh-bad: #b91c1c;
+  --bh-bad-bg: #fef2f2;
+  --bh-primary-bg: #18181b;
+  --bh-primary-fg: #ffffff;
+  --bh-primary-hover: #3f3f46;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bh-bg: #09090b;
+    --bh-surface: rgba(24, 24, 27, 0.4);
+    --bh-subtle: #18181b;
+    --bh-border: #27272a;
+    --bh-border-strong: #3f3f46;
+    --bh-ink: #fafafa;
+    --bh-ink-2: #d4d4d8;
+    --bh-muted: #a1a1aa;
+    --bh-faint: #71717a;
+    --bh-id: #5f9dff;
+    --bh-fn: #c4b5fd;
+    --bh-good: #6ee7b7;
+    --bh-good-bg: rgba(2, 44, 34, 0.3);
+    --bh-warn: #fcd34d;
+    --bh-warn-bg: rgba(69, 26, 3, 0.3);
+    --bh-bad: #fca5a5;
+    --bh-bad-bg: rgba(69, 10, 10, 0.3);
+    --bh-primary-bg: #f4f4f5;
+    --bh-primary-fg: #18181b;
+    --bh-primary-hover: #d4d4d8;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bh-bg: #09090b;
+  --bh-surface: rgba(24, 24, 27, 0.4);
+  --bh-subtle: #18181b;
+  --bh-border: #27272a;
+  --bh-border-strong: #3f3f46;
+  --bh-ink: #fafafa;
+  --bh-ink-2: #d4d4d8;
+  --bh-muted: #a1a1aa;
+  --bh-faint: #71717a;
+  --bh-id: #5f9dff;
+  --bh-fn: #c4b5fd;
+  --bh-good: #6ee7b7;
+  --bh-good-bg: rgba(2, 44, 34, 0.3);
+  --bh-warn: #fcd34d;
+  --bh-warn-bg: rgba(69, 26, 3, 0.3);
+  --bh-bad: #fca5a5;
+  --bh-bad-bg: rgba(69, 10, 10, 0.3);
+  --bh-primary-bg: #f4f4f5;
+  --bh-primary-fg: #18181b;
+  --bh-primary-hover: #d4d4d8;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* A full-height column, so the Studio footer rests at the bottom of a short page. */
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bh-bg);
+  color: var(--bh-ink-2);
+  font-family: var(--bh-font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* An exported app's wallet provider (RainbowKit) wraps the page in one div; it carries the column on. */
+body > [data-rk] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+}
+
+a {
+  color: var(--bh-id);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--bh-accent);
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--bh-id);
+  outline-offset: 2px;
+}
+
+/* ---------- layout ---------- */
+
+.bh-page {
+  /* Full width up to the max: auto margins alone would shrink it to its content inside the body's flex column. */
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.bh-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bh-border);
+}
+
+.bh-title {
+  margin: 0;
+  color: var(--bh-ink);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.bh-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bh-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.bh-spacer {
+  flex: 1;
+}
+
+/* ---------- type ---------- */
+
+/* Section header: bold mono label followed by a hairline. */
+.bh-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--bh-ink);
+  font-family: var(--bh-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+.bh-section-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--bh-border);
+}
+
+.bh-label {
+  color: var(--bh-muted);
+  font-family: var(--bh-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.bh-ink {
+  color: var(--bh-ink);
+  font-family: var(--bh-font-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bh-muted {
+  color: var(--bh-faint);
+  font-family: var(--bh-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bh-body {
+  color: var(--bh-ink-2);
+  font-size: 13.5px;
+}
+
+.bh-fig {
+  color: var(--bh-ink);
+  font-family: var(--bh-font-mono);
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.bh-unit {
+  margin-left: 4px;
+  color: var(--bh-faint);
+  font-family: var(--bh-font-sans);
+  font-size: 14px;
+}
+
+.bh-id {
+  color: var(--bh-id);
+}
+.bh-fn {
+  color: var(--bh-fn);
+}
+
+/* An address or hash: mono blue, truncated in the middle by the caller (0x1234…abcd). */
+.bh-hash {
+  color: var(--bh-id);
+  font-family: var(--bh-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+a.bh-hash:hover {
+  color: var(--bh-accent);
+}
+
+/* ---------- boards ---------- */
+
+/* A board: square hairline container whose rows are separated by hairlines. */
+.bh-board {
+  border: 1px solid var(--bh-border);
+  background: var(--bh-bg);
+}
+.bh-board > * + * {
+  border-top: 1px solid var(--bh-border);
+}
+
+.bh-board-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 8px 20px;
+  background: var(--bh-surface);
+  color: var(--bh-muted);
+  font-family: var(--bh-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.bh-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+  padding: 10px 20px;
+  transition: background-color 120ms;
+}
+.bh-row:hover {
+  background: var(--bh-surface);
+}
+.bh-row > .bh-label {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.bh-empty {
+  padding: 20px;
+  color: var(--bh-faint);
+  font-family: var(--bh-font-mono);
+  font-size: 11px;
+}
+
+/* Stat strip: label over a figure, cells separated by hairlines. */
+.bh-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  border: 1px solid var(--bh-border);
+}
+.bh-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  border-right: 1px solid var(--bh-border);
+}
+.bh-stat:last-child {
+  border-right: 0;
+}
+
+/* ---------- controls ---------- */
+
+.bh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--bh-primary-bg);
+  border-radius: 0;
+  background: var(--bh-primary-bg);
+  color: var(--bh-primary-fg);
+  font-family: var(--bh-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition:
+    background-color 120ms,
+    border-color 120ms,
+    color 120ms;
+}
+.bh-btn:hover {
+  background: var(--bh-primary-hover);
+  border-color: var(--bh-primary-hover);
+}
+.bh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.bh-btn--secondary {
+  border-color: var(--bh-border-strong);
+  background: var(--bh-bg);
+  color: var(--bh-ink-2);
+}
+.bh-btn--secondary:hover {
+  border-color: var(--bh-ink);
+  background: var(--bh-bg);
+  color: var(--bh-ink);
+}
+.bh-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--bh-muted);
+}
+.bh-btn--ghost:hover {
+  border-color: transparent;
+  background: transparent;
+  color: var(--bh-ink);
+}
+.bh-btn--danger {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+.bh-btn--danger:hover {
+  border-color: #b91c1c;
+  background: #b91c1c;
+}
+
+.bh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.bh-hint {
+  color: var(--bh-faint);
+  font-family: var(--bh-font-mono);
+  font-size: 10px;
+}
+
+.bh-input,
+.bh-select,
+.bh-textarea {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--bh-border-strong);
+  border-radius: 0;
+  background: var(--bh-bg);
+  color: var(--bh-ink);
+  font-family: var(--bh-font-mono);
+  font-size: 12px;
+  outline: none;
+}
+.bh-textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 8px 10px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.bh-input::placeholder,
+.bh-textarea::placeholder {
+  color: var(--bh-faint);
+}
+.bh-input:focus,
+.bh-select:focus,
+.bh-textarea:focus {
+  border-color: var(--bh-ink);
+}
+.bh-input[aria-invalid='true'] {
+  border-color: var(--bh-bad);
+}
+
+.bh-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: end;
+}
+
+/* Tabs: mono uppercase, active one underlined in red. */
+.bh-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--bh-border);
+  overflow-x: auto;
+}
+.bh-tab {
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--bh-faint);
+  font-family: var(--bh-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bh-tab:hover {
+  color: var(--bh-ink);
+}
+.bh-tab[aria-selected='true'] {
+  border-bottom-color: var(--bh-accent);
+  color: var(--bh-ink);
+}
+
+/* ---------- status ---------- */
+
+.bh-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--bh-border-strong);
+  color: var(--bh-muted);
+  font-family: var(--bh-font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+.bh-pill--good {
+  border-color: color-mix(in srgb, var(--bh-good) 40%, transparent);
+  color: var(--bh-good);
+}
+.bh-pill--warn {
+  border-color: color-mix(in srgb, var(--bh-warn) 40%, transparent);
+  color: var(--bh-warn);
+}
+.bh-pill--bad {
+  border-color: color-mix(in srgb, var(--bh-bad) 40%, transparent);
+  color: var(--bh-bad);
+}
+.bh-pill--info {
+  border-color: color-mix(in srgb, var(--bh-id) 40%, transparent);
+  color: var(--bh-id);
+}
+
+/* Notice: a left rule and a tinted background; the message, not a modal. */
+.bh-notice {
+  padding: 10px 16px;
+  border-left: 2px solid var(--bh-border-strong);
+  background: var(--bh-surface);
+  color: var(--bh-ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.bh-notice--good {
+  border-left-color: var(--bh-good);
+  background: var(--bh-good-bg);
+  color: var(--bh-good);
+}
+.bh-notice--warn {
+  border-left-color: var(--bh-warn);
+  background: var(--bh-warn-bg);
+  color: var(--bh-warn);
+}
+.bh-notice--bad {
+  border-left-color: var(--bh-bad);
+  background: var(--bh-bad-bg);
+  color: var(--bh-bad);
+}
+
+.bh-live {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+}
+
+.bh-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: bh-spin 0.8s linear infinite;
+}
+
+.bh-skeleton {
+  display: inline-block;
+  min-width: 64px;
+  height: 12px;
+  background: var(--bh-subtle);
+  animation: bh-pulse 1.4s ease-in-out infinite;
+}
+
+/* ---------- footer ---------- */
+
+/* Every Studio-built app ends with this line; the Preview and exports add it when a page doesn't.
+   margin-top: auto takes the free space of the body column, so it sits at the bottom of the window
+   on a short page and right after the content on a long one (.bh-page's bottom padding keeps the gap). */
+.bh-built {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid var(--bh-border);
+  color: var(--bh-faint);
+  font-family: var(--bh-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.bh-built a {
+  color: var(--bh-muted);
+  text-decoration: none;
+}
+.bh-built a:hover {
+  color: var(--bh-accent);
+  text-decoration: underline;
+}
+.bh-built svg {
+  flex-shrink: 0;
+}
+
+@keyframes bh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes bh-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bh-spinner,
+  .bh-skeleton {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .bh-page {
+    padding: 16px 12px 32px;
+  }
+  .bh-row {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+  .bh-row > .bh-label {
+    width: 100%;
+  }
+  .bh-board-header {
+    padding: 8px 12px;
+  }
+  .bh-stat {
+    border-right: 0;
+    border-bottom: 1px solid var(--bh-border);
+  }
+}

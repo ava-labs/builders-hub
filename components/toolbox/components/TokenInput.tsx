@@ -2,38 +2,13 @@
 
 import type React from 'react';
 
-import { useEffect, useState, type InputHTMLAttributes } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '../lib/utils';
 import { RefreshCcw } from 'lucide-react';
 import { formatEther } from 'viem';
+import { RawInput } from './Input';
 
-interface RawInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  error?: string | null | React.ReactNode;
-}
-
-function RawInput({ className, error, ...props }: RawInputProps) {
-  return (
-    <input
-      className={cn(
-        'w-full rounded-md px-3 py-2.5',
-        'bg-white dark:bg-zinc-900',
-        'border-1',
-        error
-          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30'
-          : 'border-zinc-300 dark:border-zinc-700 focus:border-primary focus:ring-primary/30',
-        'text-zinc-900 dark:text-zinc-100',
-        'placeholder:text-zinc-400 dark:placeholder:text-zinc-500',
-        'shadow-sm',
-        'transition-colors duration-200',
-        'focus:outline-none focus:ring-2',
-        '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-        props.disabled ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed' : '',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
+type RawInputProps = Omit<React.ComponentProps<typeof RawInput>, 'hasSuggestions'>;
 
 export interface Suggestion {
   title: string;
@@ -61,6 +36,23 @@ interface TokenInputProps extends Omit<RawInputProps, 'onChange'> {
   error?: string | null | React.ReactNode;
   suggestions?: Suggestion[];
   selected?: any;
+}
+
+function TokenAvatar({ symbol, chain }: { symbol: string; chain?: { name?: string; logoUrl?: string } }) {
+  return (
+    <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 font-mono text-[12px] font-bold text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+      {symbol[0]}
+      {chain?.logoUrl && (
+        <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center overflow-hidden rounded-full border border-white bg-white dark:border-zinc-950 dark:bg-zinc-950">
+          <img
+            src={chain.logoUrl}
+            alt={chain.name || 'Chain logo'}
+            className="block h-full w-full rounded-full object-contain p-0.5"
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function TokenInput({
@@ -101,23 +93,26 @@ export function TokenInput({
   }, [selected]);
 
   return (
-    <div className="space-y-2 mb-6">
+    <div className="mb-6 space-y-2">
       <div className="flex items-center justify-between gap-1">
-        <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label
+          htmlFor={id}
+          className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+        >
           {label}
         </label>
         {selected && (
-          <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center gap-1 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
             Balance: {Number(formatEther(selected?.balance || 0n)).toFixed(2)}
             <button
               type="button"
-              className="p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
+              className="cursor-pointer p-1 text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
               aria-label="Refresh balance"
               onClick={() => {
                 /* your refresh logic here */
               }}
             >
-              <RefreshCcw className="w-3 h-3" />
+              <RefreshCcw className="h-3 w-3" />
             </button>
           </div>
         )}
@@ -129,85 +124,63 @@ export function TokenInput({
             id={id}
             value={inputValue}
             onChange={handleChange}
-            className={cn('flex-1', unit ? 'pr-12' : '', selected ? 'rounded-r-none' : '', className)}
+            className={cn('flex-1', unit ? 'pr-12' : '', className)}
             error={error}
             {...props}
           />
 
           {selected && (
-            <div className="flex items-center gap-2 border px-4 p-2 border-1 border-zinc-300 dark:border-zinc-700 border-l-0 rounded-r-md">
-              {selected.symbol && (
-                <div className="relative w-7 h-7 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-700 text-blue-700 dark:text-blue-100 font-bold text-base">
-                  {selected.symbol[0]}
-                  {selected.chain?.logoUrl && (
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full overflow-hidden border border-white bg-white/80 dark:border-zinc-800 dark:bg-zinc-800/80 flex items-center justify-center">
-                      <img
-                        src={selected.chain.logoUrl}
-                        alt={selected.chain.name || 'Chain logo'}
-                        className="w-full h-full object-contain p-0.5 block rounded-full"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{selected.name}</div>
+            <div className="flex h-10 items-center gap-2 border border-l-0 border-zinc-200 bg-zinc-50/60 px-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+              {selected.symbol && <TokenAvatar symbol={selected.symbol} chain={selected.chain} />}
+              <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{selected.name}</div>
             </div>
           )}
         </div>
         {unit && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 pointer-events-none">{unit}</span>
+            <span className="pointer-events-none font-mono text-[11px] uppercase tracking-[0.1em] text-zinc-400">
+              {unit}
+            </span>
           </div>
         )}
 
         {suggestions && suggestions.length > 0 && showSuggestions && (
-          <>
-            <div className="text-xs mt-2">Suggestions:</div>
-            <div className="z-50 mt-1 w-full bg-white dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-auto">
-              <div className="py-1">
-                {suggestions.map((suggestion, index) => (
-                  <div
-                    key={index}
-                    className="px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition-colors text-left"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        {suggestion.token?.symbol && (
-                          <div className="relative w-7 h-7 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-700 text-blue-700 dark:text-blue-100 font-bold text-base">
-                            {suggestion.token.symbol[0]}
-                            {suggestion.token.chain?.logoUrl && (
-                              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full overflow-hidden border border-white bg-white/80 dark:border-zinc-800 dark:bg-zinc-800/80 flex items-center justify-center">
-                                <img
-                                  src={suggestion.token.chain.logoUrl}
-                                  alt={suggestion.token.chain.name || 'Chain logo'}
-                                  className="w-full h-full object-contain p-0.5 block rounded-full"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {suggestion.token?.name}
-                        </div>
-                        <div className="text-sm font-medium bg-blue-100 dark:bg-blue-700 px-1.5 py-0.5 rounded-md text-zinc-900 dark:text-zinc-100">
-                          {suggestion.token?.symbol}
-                        </div>
-                      </div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{suggestion.description}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className="border border-t-0 border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
+              Suggestions
             </div>
-          </>
+            <div className="max-h-60 divide-y divide-zinc-200 overflow-auto border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  className="group/sug relative cursor-pointer px-3 py-2 text-left transition-colors before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:transition-colors hover:before:bg-zinc-300 dark:hover:before:bg-zinc-600"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      {suggestion.token?.symbol && (
+                        <TokenAvatar symbol={suggestion.token.symbol} chain={suggestion.token.chain} />
+                      )}
+                      <div className="text-[13px] font-medium text-zinc-900 underline-offset-4 group-hover/sug:underline dark:text-zinc-100">
+                        {suggestion.token?.name}
+                      </div>
+                      <div className="border border-zinc-200 px-1.5 py-0.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.1em] text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">
+                        {suggestion.token?.symbol}
+                      </div>
+                    </div>
+                    <div className="text-[12px] text-zinc-500 dark:text-zinc-400">{suggestion.description}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
       {error ? (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
+        <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>
       ) : helperText ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{helperText}</p>
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{helperText}</p>
       ) : null}
     </div>
   );

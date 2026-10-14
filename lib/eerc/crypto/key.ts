@@ -9,6 +9,7 @@ import createBlakeHash from 'blake-hash';
 import { sha256 } from 'js-sha256';
 import { SHA_256_MAX_DIGEST, SUB_GROUP_ORDER } from './constants';
 import { Scalar } from './scalar';
+import { Buffer } from 'buffer';
 
 /** Convert a hex-encoded secret into a scalar suitable for BabyJubJub. */
 export function formatKeyForCurve(keyHex: string): bigint {

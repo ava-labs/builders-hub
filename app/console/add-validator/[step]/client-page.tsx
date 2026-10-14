@@ -1,24 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import StepFlow from "@/components/console/step-flow";
 import { steps } from "../steps";
 import { useAddValidatorStore } from "@/components/toolbox/stores/addValidatorStore";
 import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManagerLayout";
+import { useSubnetIdQuery } from "@/components/toolbox/hooks/useSubnetIdQuery";
 
 export default function AddValidatorClientPage({ currentStepKey }: { currentStepKey: string }) {
   const basePath = "/console/add-validator";
-  const searchParams = useSearchParams();
-  const { subnetIdL1, globalError, pChainTxId, setSubnetIdL1 } = useAddValidatorStore();
-
-  useEffect(() => {
-    const subnetId = searchParams.get("subnetId");
-    if (subnetId && subnetId !== subnetIdL1) setSubnetIdL1(subnetId);
-  }, [searchParams, setSubnetIdL1, subnetIdL1]);
+  const { subnetIdL1, pChainTxId, flowCompleted, setSubnetIdL1 } = useAddValidatorStore();
+  useSubnetIdQuery(subnetIdL1, flowCompleted, setSubnetIdL1);
 
   return (
-    <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError}>
+    <ValidatorManagerLayout subnetIdL1={subnetIdL1}>
       <StepFlow
         steps={steps}
         basePath={basePath}

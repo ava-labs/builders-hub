@@ -1,12 +1,11 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight, Copy, ExternalLink } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { buildAddressUrl, truncateAddress } from './utils/explorer-url';
+import { ChainMark, Dot, EYEBROW, FRAME, StatusTag, type Tone } from './ui';
 import type { Address } from './types';
 
 export type ChainCardRole = 'home' | 'remote';
@@ -14,7 +13,7 @@ export type ChainCardRole = 'home' | 'remote';
 interface ChainCardProps {
   role: ChainCardRole;
   l1: L1ListItem | null;
-  /** Pill in the upper-right showing wallet connection. */
+  /** Shows a "Connected" tag when the wallet is on this chain. */
   isWalletOnChain: boolean;
   onSwitchChain?: () => void;
   /** Active row label (highlights one row in the body). */
@@ -28,128 +27,58 @@ interface ChainCardProps {
   className?: string;
 }
 
-const ROLE_TOP_ACCENT: Record<ChainCardRole, string> = {
-  home: 'bg-red-300 dark:bg-red-500/60',
-  remote: 'bg-emerald-300 dark:bg-emerald-500/60',
+const ROLE_EYEBROW: Record<ChainCardRole, string> = {
+  home: 'Home · Origin',
+  remote: 'Remote · Destination',
 };
 
-const ROLE_EYEBROW: Record<ChainCardRole, { text: string; tone: string }> = {
-  home: {
-    text: 'Home · Origin',
-    tone: 'text-red-600 dark:text-red-400',
-  },
-  remote: {
-    text: 'Remote · Destination',
-    tone: 'text-emerald-600 dark:text-emerald-400',
-  },
-};
-
-export function ChainCard({
-  role,
-  l1,
-  isWalletOnChain,
-  onSwitchChain,
-  children,
-  details,
-  banner,
-  className,
-}: ChainCardProps) {
+export function ChainCard({ role, l1, isWalletOnChain, children, details, banner, className }: ChainCardProps) {
   const [showDetails, setShowDetails] = useState(false);
-  const eyebrow = ROLE_EYEBROW[role];
 
   return (
-    <article
-      className={cn(
-        'relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900',
-        className,
-      )}
-    >
-      <span aria-hidden className={cn('absolute inset-x-0 top-0 h-1', ROLE_TOP_ACCENT[role])} />
-      <header className="flex items-start justify-between gap-3 px-4 pb-3 pt-4">
-        <div className="flex items-start gap-3">
-          <ChainAvatar l1={l1} />
-          <div className="flex flex-col gap-0.5">
-            <span className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', eyebrow.tone)}>
-              {eyebrow.text}
-            </span>
-            <h2 className="text-base font-semibold leading-tight text-zinc-900 dark:text-zinc-100">
+    <article className={cn(FRAME, className)}>
+      <header className="flex items-start justify-between gap-3 px-4 py-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <ChainMark l1={l1} />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className={EYEBROW}>{ROLE_EYEBROW[role]}</span>
+            <h2 className="truncate text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">
               {l1?.name ?? 'Select a chain'}
             </h2>
-            {l1?.description && (
-              <p className="line-clamp-1 max-w-[28ch] text-xs text-zinc-500 dark:text-zinc-400">{l1.description}</p>
+            {l1?.evmChainId !== undefined && (
+              <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                Chain ID {l1.evmChainId}
+              </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ConnectionPill isWalletOnChain={isWalletOnChain} onSwitchChain={onSwitchChain} disabled={!l1} />
-        </div>
+        {isWalletOnChain && <StatusTag tone="ok">Connected</StatusTag>}
       </header>
 
-      {banner && <div className="px-4 pb-3">{banner}</div>}
+      {banner && <div className="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">{banner}</div>}
 
-      <div className="border-t border-zinc-100 dark:border-zinc-800/80">
-        <div className="px-2 py-2">{children}</div>
-      </div>
+      <div className="border-t border-zinc-200 dark:border-zinc-800">{children}</div>
 
       {details && (
-        <div className="border-t border-zinc-100 dark:border-zinc-800/80">
+        <div className="border-t border-zinc-200 dark:border-zinc-800">
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
-            className="flex w-full items-center justify-between px-4 py-2 text-xs text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/40 dark:hover:text-zinc-200"
+            className="flex w-full items-center justify-between px-4 py-2.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
             aria-expanded={showDetails}
           >
-            <span>{showDetails ? 'Hide details' : '+ details'}</span>
+            <span>{showDetails ? 'Hide details' : 'Details'}</span>
             {showDetails ? (
               <ChevronDown className="h-3.5 w-3.5" aria-hidden />
             ) : (
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             )}
           </button>
-          {showDetails && <div className="border-t border-zinc-100 px-4 py-3 dark:border-zinc-800/80">{details}</div>}
+          {showDetails && <div className="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">{details}</div>}
         </div>
       )}
     </article>
   );
-}
-
-function ChainAvatar({ l1 }: { l1: L1ListItem | null }) {
-  if (!l1?.logoUrl) {
-    return (
-      <div
-        aria-hidden
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold uppercase text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-      >
-        {l1?.name?.slice(0, 1) ?? '?'}
-      </div>
-    );
-  }
-  return (
-    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-700/80">
-      <Image src={l1.logoUrl} alt="" width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
-    </div>
-  );
-}
-
-interface ConnectionPillProps {
-  isWalletOnChain: boolean;
-  onSwitchChain?: () => void;
-  disabled?: boolean;
-}
-
-function ConnectionPill({ isWalletOnChain }: ConnectionPillProps) {
-  if (isWalletOnChain) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-        connected
-      </span>
-    );
-  }
-  // Per-step chain enforcement lives in AutoSwitchChainGate now — the inline button
-  // was always disabled (no consumer ever passed `onSwitchChain`) and read as
-  // a dead control. Render nothing when off-chain instead.
-  return null;
 }
 
 interface ChainCardRowProps {
@@ -160,16 +89,19 @@ interface ChainCardRowProps {
   l1?: L1ListItem | null;
   isActive?: boolean;
   rightSlot?: ReactNode;
-  /** Overrides the default "— not deployed —" copy when address is null. */
+  /** Overrides the default "Not deployed" copy when address is null. */
   statusText?: string;
 }
 
-const STATUS_DOT: Record<ChainCardRowProps['status'], { color: string; label: string }> = {
-  deployed: { color: 'bg-emerald-500', label: 'deployed' },
-  pending: { color: 'bg-amber-400', label: 'pending' },
-  missing: { color: 'bg-zinc-300 dark:bg-zinc-700', label: 'not deployed' },
-  error: { color: 'bg-red-500', label: 'error' },
+const STATUS: Record<ChainCardRowProps['status'], { tone: Tone; label: string }> = {
+  deployed: { tone: 'ok', label: 'deployed' },
+  pending: { tone: 'pending', label: 'pending' },
+  missing: { tone: 'idle', label: 'not deployed' },
+  error: { tone: 'error', label: 'error' },
 };
+
+const ICON_BUTTON =
+  '-m-1 p-1 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100';
 
 export function ChainCardRow({
   label,
@@ -181,55 +113,52 @@ export function ChainCardRow({
   rightSlot,
   statusText,
 }: ChainCardRowProps) {
-  const dot = STATUS_DOT[status];
+  const { tone, label: srLabel } = STATUS[status];
   const url = buildAddressUrl(l1, address ?? undefined);
-  const STATUS_TONE: Record<ChainCardRowProps['status'], string> = {
-    deployed: 'text-emerald-700 dark:text-emerald-400',
-    pending: 'text-amber-700 dark:text-amber-400',
-    missing: 'text-zinc-500 dark:text-zinc-400',
-    error: 'text-red-600 dark:text-red-400',
-  };
 
   return (
-    <div
+    <li
+      aria-current={isActive ? 'step' : undefined}
       className={cn(
-        'grid grid-cols-[14px_1fr_auto] items-center gap-3 rounded-lg px-3 py-2 transition-colors',
-        isActive
-          ? 'bg-zinc-900/5 ring-1 ring-inset ring-zinc-900/10 dark:bg-zinc-100/5 dark:ring-zinc-100/10'
-          : 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40',
+        'relative grid grid-cols-[6px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3',
+        isActive && 'before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[#E6212F]',
       )}
     >
-      <span aria-hidden className={cn('h-2.5 w-2.5 rounded-full', dot.color)} />
+      <Dot tone={tone} />
       <div className="flex min-w-0 flex-col">
-        <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{label}</span>
-        {sublabel && <span className="text-[10px] uppercase tracking-wider text-zinc-500">{sublabel}</span>}
-        <span className="sr-only">{dot.label}</span>
+        <span className="truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
+        {sublabel && (
+          <span className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+            {sublabel}
+          </span>
+        )}
+        <span className="sr-only">{srLabel}</span>
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2.5">
         {address ? (
           <>
-            <code className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300">{truncateAddress(address)}</code>
+            <code className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300" title={address}>
+              {truncateAddress(address)}
+            </code>
             <CopyButton value={address} />
             {url && (
-              <Link
+              <a
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                className={ICON_BUTTON}
                 aria-label="View address on explorer"
               >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
+                <ExternalLink className="h-3 w-3" />
+              </a>
             )}
           </>
-        ) : statusText ? (
-          <span className={cn('text-xs font-medium', STATUS_TONE[status])}>{statusText}</span>
         ) : (
-          <span className="text-xs italic text-zinc-400">— not deployed —</span>
+          <StatusTag tone={statusText ? tone : 'idle'}>{statusText ?? 'Not deployed'}</StatusTag>
         )}
         {rightSlot}
       </div>
-    </div>
+    </li>
   );
 }
 
@@ -244,17 +173,12 @@ function CopyButton({ value }: { value: string }) {
     } catch {}
   };
   return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      aria-label={copied ? 'Copied' : 'Copy address'}
-      className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-    >
-      <Copy className="h-3.5 w-3.5" />
+    <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy address'} className={ICON_BUTTON}>
+      {copied ? <Check className="h-3 w-3 text-[#E6212F]" /> : <Copy className="h-3 w-3" />}
     </button>
   );
 }
 
 export function ChainCardRowList({ children }: { children: ReactNode }) {
-  return <ul className="flex flex-col gap-0.5">{children}</ul>;
+  return <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">{children}</ul>;
 }

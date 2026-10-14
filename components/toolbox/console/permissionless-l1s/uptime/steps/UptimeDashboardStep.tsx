@@ -16,7 +16,7 @@ export default function UptimeDashboardStep() {
 
   return (
     <div className="space-y-4">
-      {!store.subnetIdL1 && <Alert variant="warning">No L1 subnet selected. Go back to the previous step.</Alert>}
+      {!store.subnetIdL1 && <Alert variant="warning">No L1 selected. Go back to the previous step.</Alert>}
 
       {store.subnetIdL1 && stakingManagerAddress && (
         <ValidatorUptimeDashboard

@@ -1,0 +1,332 @@
+{
+  "id": "ccip-usdc-to-l1",
+  "version": 1,
+  "title": "USDC from Any Chain to Your L1",
+  "summary": "CCIP to the C-Chain, then ICTT to your L1",
+  "description": "One transaction on Base, Ethereum, Arbitrum or OP moves USDC to your Avalanche L1: CCIP carries it to a gateway on the C-Chain, which forwards it through your ICTT bridge in the same execution. If the L1 leg cannot run, the gateway holds the USDC for a retry or a refund instead of losing it.",
+  "category": "interop",
+  "level": "advanced",
+  "tags": ["ccip", "ictt", "icm", "usdc", "bridge", "onboarding", "l1"],
+  "prompts": [
+    "Let users bring USDC from Base straight to my L1",
+    "Onboard stablecoins from any chain into my Avalanche L1",
+    "One-click USDC top-up from Ethereum to my L1's gas token"
+  ],
+  "networks": {
+    "source": {
+      "description": "Chain the USDC starts on",
+      "default": "base-sepolia",
+      "allowed": ["base-sepolia", "ethereum-sepolia", "arbitrum-sepolia", "op-sepolia"]
+    },
+    "hub": {
+      "description": "C-Chain, where the gateway meets CCIP and ICTT",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    },
+    "l1": {
+      "description": "Your L1, with a USDC ICTT bridge to the C-Chain",
+      "default": "l1",
+      "allowed": ["l1"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns the gateway and the sender",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "tokenHome",
+      "type": "address",
+      "description": "USDC ERC20TokenHome on the C-Chain, from usdc-gas-l1 or ictt-token-bridge",
+      "example": "$out.deploy-home.address from usdc-gas-l1"
+    },
+    {
+      "name": "tokenRemote",
+      "type": "address",
+      "description": "Matching TokenRemote on the L1 (ERC20TokenRemote or NativeTokenRemote)",
+      "example": "$out.deploy-remote.address from usdc-gas-l1"
+    },
+    {
+      "name": "recipient",
+      "type": "address",
+      "description": "Receives the USDC on the L1",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "amount",
+      "type": "uint",
+      "description": "USDC to move, 6-decimal base units; the default is 0.5 USDC",
+      "default": "500000"
+    },
+    {
+      "name": "l1GasLimit",
+      "type": "uint",
+      "description": "Gas for the L1 TokenRemote to credit the recipient; measured about 77,000",
+      "default": 250000
+    },
+    {
+      "name": "gatewayGasLimit",
+      "type": "uint",
+      "description": "CCIP receiver gas for the gateway's forwarding; measured about 307,000",
+      "default": 500000
+    }
+  ],
+  "prerequisites": [
+    "A USDC ICTT bridge between Fuji C-Chain and the L1, registered and collateralized: run usdc-gas-l1 (native gas) or ictt-token-bridge with USDC",
+    "USDC on the source chain from the Circle faucet, and testnet ETH there for gas and the CCIP fee",
+    "Deploying the sender on the source chain is signed by the builder's wallet"
+  ],
+  "contracts": [
+    {
+      "name": "L1Gateway",
+      "source": "contracts/L1Gateway.sol",
+      "description": "CCIP receiver on the C-Chain that forwards USDC through ICTT"
+    },
+    {
+      "name": "USDCToL1Sender",
+      "source": "contracts/USDCToL1Sender.sol",
+      "description": "Entry point on the source chain"
+    },
+    {
+      "name": "ERC20",
+      "artifact": "contracts/icm-contracts/compiled/ExampleERC20.json",
+      "description": "Standard ERC-20 ABI, for approvals and balances"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-gateway",
+      "title": "Deploy the gateway on the C-Chain",
+      "kind": "deploy",
+      "network": "hub",
+      "signer": "deployer",
+      "contract": "L1Gateway",
+      "args": [
+        "$net.hub.ccip.router",
+        "$net.hub.tokens.USDC.address",
+        "$param.tokenHome",
+        "$net.l1.blockchainIdHex",
+        "$param.tokenRemote",
+        "$param.l1GasLimit",
+        "$ctx.deployer"
+      ]
+    },
+    {
+      "id": "deploy-sender",
+      "title": "Deploy the sender on the source chain",
+      "kind": "deploy",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "USDCToL1Sender",
+      "args": [
+        "$net.source.ccip.router",
+        "$net.source.tokens.USDC.address",
+        "$net.hub.ccip.chainSelector",
+        "$out.deploy-gateway.address",
+        "$ctx.deployer"
+      ]
+    },
+    {
+      "id": "allow-sender",
+      "title": "Gateway accepts the sender",
+      "kind": "call",
+      "network": "hub",
+      "signer": "deployer",
+      "contract": "L1Gateway",
+      "target": "$out.deploy-gateway.address",
+      "function": "allowlistSender",
+      "args": ["$net.source.ccip.chainSelector", "$out.deploy-sender.address", true]
+    },
+    {
+      "id": "hand-over-gateway",
+      "title": "Transfer the gateway to its owner",
+      "kind": "call",
+      "network": "hub",
+      "signer": "deployer",
+      "contract": "L1Gateway",
+      "target": "$out.deploy-gateway.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "hand-over-sender",
+      "title": "Transfer the sender to its owner",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "USDCToL1Sender",
+      "target": "$out.deploy-sender.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "encode-extra-args",
+      "title": "Encode extraArgs with the gateway's gas",
+      "kind": "offchain",
+      "network": "source",
+      "action": "ccip.encode-extra-args",
+      "inputs": {
+        "source": "$net.source",
+        "destination": "$net.hub",
+        "gasLimit": "$param.gatewayGasLimit"
+      },
+      "outputs": {
+        "extraArgs": "result.extraArgs"
+      }
+    },
+    {
+      "id": "quote-fee",
+      "title": "Quote the CCIP fee in native ETH",
+      "kind": "read",
+      "network": "source",
+      "contract": "USDCToL1Sender",
+      "target": "$out.deploy-sender.address",
+      "function": "getFee",
+      "args": [
+        "$param.recipient",
+        "$param.amount",
+        "0x0000000000000000000000000000000000000000",
+        "$out.encode-extra-args.extraArgs"
+      ],
+      "outputs": {
+        "fee": "return"
+      }
+    },
+    {
+      "id": "approve",
+      "title": "Approve the USDC amount",
+      "kind": "call",
+      "network": "source",
+      "signer": "builder",
+      "contract": "ERC20",
+      "target": "$net.source.tokens.USDC.address",
+      "function": "approve",
+      "args": ["$out.deploy-sender.address", "$param.amount"]
+    },
+    {
+      "id": "send",
+      "title": "Send USDC toward the L1",
+      "kind": "call",
+      "network": "source",
+      "signer": "builder",
+      "contract": "USDCToL1Sender",
+      "target": "$out.deploy-sender.address",
+      "function": "sendToL1",
+      "args": [
+        "$param.recipient",
+        "$param.amount",
+        "0x0000000000000000000000000000000000000000",
+        "$out.encode-extra-args.extraArgs"
+      ],
+      "value": "$out.quote-fee.fee",
+      "outputs": {
+        "messageId": "event:USDCToL1Sender.SentToL1.messageId"
+      }
+    },
+    {
+      "id": "wait-ccip",
+      "title": "Wait for CCIP to reach the gateway",
+      "kind": "wait",
+      "network": "hub",
+      "wait": {
+        "for": "ccip-delivery",
+        "id": "$out.send.messageId",
+        "timeoutMinutes": 60
+      }
+    }
+  ],
+  "checks": [
+    {
+      "description": "The gateway accepts the sender",
+      "after": "allow-sender",
+      "network": "hub",
+      "contract": "L1Gateway",
+      "target": "$out.deploy-gateway.address",
+      "function": "allowlistedSenders",
+      "args": ["$net.source.ccip.chainSelector", "$out.deploy-sender.address"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The recipient holds the USDC on the L1 (ERC20TokenRemote bridges)",
+      "after": "wait-ccip",
+      "network": "l1",
+      "contract": "ERC20",
+      "target": "$param.tokenRemote",
+      "function": "balanceOf",
+      "args": ["$param.recipient"],
+      "expect": {
+        "gte": "$param.amount"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-gateway",
+      "read": [
+        "transferOf",
+        "allowlistedSenders",
+        "l1GasLimit",
+        "usdc",
+        "tokenHome",
+        "tokenRemote",
+        "l1BlockchainID",
+        "owner"
+      ],
+      "write": ["retry", "refundHeld", "allowlistSender", "setL1GasLimit", "setAllowedFinalityConfig"]
+    },
+    {
+      "step": "deploy-sender",
+      "read": ["getFee", "gateway", "hubChainSelector", "usdc", "router", "owner"],
+      "write": ["sendToL1", "withdraw", "withdrawToken"]
+    }
+  ],
+  "review": [
+    "The gateway checks the (source selector, sender) allowlist in _ccipReceive and in getCCVsAndFinalityConfig, and accepts exactly one token: the hub's USDC.",
+    "A failed ICTT leg never reverts the CCIP execution: the transfer is held, anyone can retry it, and the recipient or owner can refund it on the C-Chain.",
+    "Each CCIP message id is processed once; the gateway rejects duplicates.",
+    "gatewayGasLimit in extraArgs covers the forwarding (measured about 307,000); too little makes the whole CCIP execution fail and need a manual retry.",
+    "The recipient controls the same address on the C-Chain, which is where a refund goes if the L1 leg keeps failing."
+  ],
+  "frontend": {
+    "summary": "Deposit USDC from another chain straight onto the L1 in one transaction, and see it land in the L1 wallet.",
+    "audience": [
+      "Users arriving with USDC on Base, Ethereum or another chain who want to use the L1",
+      "Support staff helping someone whose deposit was held"
+    ],
+    "journeys": [
+      "Deposit: pick the source chain, enter an amount against the balance there, and see the fee and the L1 address it lands in (their own by default).",
+      "Follow one timeline: sent on the source chain, crossing to Avalanche, forwarded to the L1, arrived, with a wait estimate at each stage.",
+      "Recover a held deposit in plain words ('Your USDC is safe on Avalanche. Try again, or get it back on the C-Chain.') with Retry and Refund buttons.",
+      "Finish on the L1 balance, the thing they came for, with a link into the L1 app."
+    ],
+    "flows": [
+      "On the source chain: encode extraArgs with the gateway gas limit, quote getFee, approve USDC for the sender, then sendToL1(recipient, amount, 0x0, extraArgs) with the fee as value.",
+      "Track the CCIP message on https://ccip.chain.link, then watch ForwardedToL1 or ForwardHeld on the gateway for that message id.",
+      "On a held transfer, offer Retry (anyone) and Refund on the C-Chain (recipient).",
+      "Show the L1 balance of the recipient; for a NativeTokenRemote bridge that is the native balance."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Chainlink CCIP on Avalanche",
+      "url": "/integrations/chainlink-ccip"
+    },
+    {
+      "title": "Transfer tokens with data (CCIP)",
+      "url": "https://docs.chain.link/ccip/evm/tutorials/application-developers/programmable-token-transfers"
+    },
+    {
+      "title": "ICTT in the Avalanche SDK",
+      "url": "/docs/tooling/avalanche-sdk/interchain/ictt"
+    },
+    {
+      "title": "ERC-20 to native bridge (Academy)",
+      "url": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/01-overview"
+    }
+  ],
+  "related": ["usdc-gas-l1", "ictt-token-bridge", "ccip-usdc-bridge"]
+}

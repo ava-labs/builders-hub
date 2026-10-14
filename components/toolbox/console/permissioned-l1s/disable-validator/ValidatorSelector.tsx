@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useId } from 'react';
 import { Loader2, Search, Users, Coins, Calendar, ChevronDown, Check, RefreshCw } from 'lucide-react';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { ValidatorData } from './DisableL1ValidatorContext';
@@ -22,6 +22,7 @@ export default function ValidatorSelector({ subnetId, onSelect, selectedValidato
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const titleId = useId();
 
   const fetchValidators = useCallback(async () => {
     if (!subnetId) return;
@@ -94,11 +95,11 @@ export default function ValidatorSelector({ subnetId, onSelect, selectedValidato
   };
 
   return (
-    <div className="space-y-3">
+    <div role="group" aria-labelledby={titleId} className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <span id={titleId} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Select Validator to Disable
-        </label>
+        </span>
         <button
           onClick={fetchValidators}
           disabled={isLoading || !subnetId}
@@ -142,6 +143,7 @@ export default function ValidatorSelector({ subnetId, onSelect, selectedValidato
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by Node ID or Validation ID..."
+                aria-label="Search validators"
                 className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -218,7 +220,7 @@ export default function ValidatorSelector({ subnetId, onSelect, selectedValidato
           {!isLoading && !error && validators.length === 0 && (
             <div className="py-6 text-center space-y-2">
               <Users className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto" />
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">No active validators found for this subnet.</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">This L1 has no active validators.</p>
               <Button variant="secondary" onClick={fetchValidators} className="text-xs">
                 Try Again
               </Button>

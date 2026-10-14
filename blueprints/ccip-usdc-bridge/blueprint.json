@@ -1,0 +1,251 @@
+{
+  "id": "ccip-usdc-bridge",
+  "version": 1,
+  "title": "CCIP USDC Bridge",
+  "summary": "Cross-chain USDC moves",
+  "description": "Moves USDC from the Avalanche C-Chain to Ethereum, Arbitrum, Base or OP testnets over Chainlink CCIP. A small transferor contract adds a destination allowlist, fee quoting, and native-fee refunds on top of the CCIP router.",
+  "category": "interop",
+  "level": "intermediate",
+  "tags": ["ccip", "chainlink", "usdc", "bridge", "c-chain", "ethereum", "base", "arbitrum", "optimism"],
+  "prompts": [
+    "Send USDC from Avalanche to Base",
+    "Bridge USDC from the C-Chain to Ethereum with Chainlink CCIP",
+    "Let users move stablecoins from Avalanche to other EVM chains"
+  ],
+  "networks": {
+    "source": {
+      "description": "Avalanche chain the USDC leaves from",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    },
+    "destination": {
+      "description": "EVM chain the USDC arrives on",
+      "default": "base-sepolia",
+      "allowed": ["base-sepolia", "ethereum-sepolia", "arbitrum-sepolia", "op-sepolia"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Manages allowed destinations and recovers stuck funds",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "receiver",
+      "type": "address",
+      "description": "Receives the USDC on the destination chain",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "amount",
+      "type": "uint",
+      "description": "USDC to send, in 6-decimal base units; the default is 0.5 USDC",
+      "default": "500000"
+    }
+  ],
+  "prerequisites": [
+    "USDC on Fuji from the Circle faucet listed in the registry",
+    "Fuji AVAX for gas and the CCIP fee (fees are paid in native AVAX by default)",
+    "Nothing is deployed on the destination: USDC arrives straight in the receiver's wallet"
+  ],
+  "contracts": [
+    {
+      "name": "CCIPTokenTransferor",
+      "source": "contracts/CCIPTokenTransferor.sol",
+      "description": "Allowlisted, fee-quoting CCIP token sender"
+    },
+    {
+      "name": "ERC20",
+      "artifact": "contracts/icm-contracts/compiled/ExampleERC20.json",
+      "description": "Standard ERC-20 ABI, for USDC approvals and balances"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-transferor",
+      "title": "Deploy the transferor on the C-Chain",
+      "kind": "deploy",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "CCIPTokenTransferor",
+      "args": ["$net.source.ccip.router", "$ctx.deployer"]
+    },
+    {
+      "id": "allow-destination",
+      "title": "Allow the destination chain",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "CCIPTokenTransferor",
+      "target": "$out.deploy-transferor.address",
+      "function": "allowlistDestinationChain",
+      "args": ["$net.destination.ccip.chainSelector", true]
+    },
+    {
+      "id": "hand-over",
+      "title": "Transfer the transferor to its owner",
+      "kind": "call",
+      "network": "source",
+      "signer": "deployer",
+      "contract": "CCIPTokenTransferor",
+      "target": "$out.deploy-transferor.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "encode-extra-args",
+      "title": "Encode extraArgs for this lane",
+      "kind": "offchain",
+      "network": "source",
+      "action": "ccip.encode-extra-args",
+      "inputs": {
+        "source": "$net.source",
+        "destination": "$net.destination",
+        "gasLimit": 0
+      },
+      "outputs": {
+        "extraArgs": "result.extraArgs"
+      }
+    },
+    {
+      "id": "quote-fee",
+      "title": "Quote the CCIP fee in native AVAX",
+      "kind": "read",
+      "network": "source",
+      "contract": "CCIPTokenTransferor",
+      "target": "$out.deploy-transferor.address",
+      "function": "getFee",
+      "args": [
+        "$net.destination.ccip.chainSelector",
+        "$param.receiver",
+        "$net.source.tokens.USDC.address",
+        "$param.amount",
+        "0x0000000000000000000000000000000000000000",
+        "$out.encode-extra-args.extraArgs"
+      ],
+      "outputs": {
+        "fee": "return"
+      }
+    },
+    {
+      "id": "approve",
+      "title": "Approve the USDC amount",
+      "kind": "call",
+      "network": "source",
+      "signer": "builder",
+      "contract": "ERC20",
+      "target": "$net.source.tokens.USDC.address",
+      "function": "approve",
+      "args": ["$out.deploy-transferor.address", "$param.amount"]
+    },
+    {
+      "id": "transfer",
+      "title": "Send the USDC over CCIP",
+      "kind": "call",
+      "network": "source",
+      "signer": "builder",
+      "contract": "CCIPTokenTransferor",
+      "target": "$out.deploy-transferor.address",
+      "function": "transferTokens",
+      "args": [
+        "$net.destination.ccip.chainSelector",
+        "$param.receiver",
+        "$net.source.tokens.USDC.address",
+        "$param.amount",
+        "0x0000000000000000000000000000000000000000",
+        "$out.encode-extra-args.extraArgs"
+      ],
+      "value": "$out.quote-fee.fee",
+      "outputs": {
+        "messageId": "event:CCIPTokenTransferor.TokensTransferred.messageId"
+      }
+    },
+    {
+      "id": "wait-delivery",
+      "title": "Wait for CCIP to deliver",
+      "kind": "wait",
+      "network": "destination",
+      "wait": {
+        "for": "ccip-delivery",
+        "id": "$out.transfer.messageId",
+        "timeoutMinutes": 60
+      }
+    }
+  ],
+  "checks": [
+    {
+      "description": "The destination chain is allowed",
+      "after": "allow-destination",
+      "network": "source",
+      "contract": "CCIPTokenTransferor",
+      "target": "$out.deploy-transferor.address",
+      "function": "allowlistedDestinationChains",
+      "args": ["$net.destination.ccip.chainSelector"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The receiver holds USDC on the destination chain",
+      "after": "wait-delivery",
+      "network": "destination",
+      "contract": "ERC20",
+      "target": "$net.destination.tokens.USDC.address",
+      "function": "balanceOf",
+      "args": ["$param.receiver"],
+      "expect": {
+        "gte": "$param.amount"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-transferor",
+      "read": ["getFee", "allowlistedDestinationChains", "router", "owner"],
+      "write": ["transferTokens", "allowlistDestinationChain", "withdraw", "withdrawToken"]
+    }
+  ],
+  "review": [
+    "The router and chain selectors come from the registry; USDC is in the lane's transferableTokens for both chains.",
+    "extraArgs is a call argument encoded off-chain for the lane (V3 on CCIP 2.0 lanes), never a constant in the contract.",
+    "The native fee is quoted with getFee right before sending; any excess msg.value is refunded to the caller.",
+    "Only allowlisted destination chains can be used, and the owner is the builder."
+  ],
+  "frontend": {
+    "summary": "Move USDC from Avalanche to another chain: choose where, enter an amount, see the fee, send, and see it arrive.",
+    "audience": ["USDC holders moving funds between Avalanche and other chains"],
+    "journeys": [
+      "Choose the destination by chain name; only destinations this bridge supports appear.",
+      "Enter an amount next to 'You have 120.00 USDC' with a Max button, and see the fee in AVAX and what arrives before signing.",
+      "Send in two visible steps (1 of 2: allow USDC, 2 of 2: bridge), skipping the first when the allowance already covers it.",
+      "Track arrival with an honest estimate (minutes between most lanes, 20 minutes or more from Ethereum testnets), and confirm with the new balance on the destination.",
+      "When the wallet has no USDC or AVAX, say so and link the Builder Hub faucet (https://build.avax.network/console/primary-network/faucet)."
+    ],
+    "flows": [
+      "Check router.isChainSupported(selector) and show only destinations that are allowlisted on the transferor.",
+      "Encode extraArgs with @chainlink/ccip-sdk for the chosen lane, quote getFee(...), and show the fee in AVAX before the user signs.",
+      "Approve exactly the USDC amount, then call transferTokens with the quoted fee as value; read messageId from TokensTransferred.",
+      "Track the message on https://ccip.chain.link and poll the receiver's USDC balance on the destination; Ethereum-based testnets can take 20 minutes or more."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Chainlink CCIP on Avalanche",
+      "url": "/integrations/chainlink-ccip"
+    },
+    {
+      "title": "CCIP directory: Avalanche Fuji",
+      "url": "https://docs.chain.link/ccip/directory/testnet/chain/avalanche-fuji-testnet"
+    },
+    {
+      "title": "Transfer tokens from a contract",
+      "url": "https://docs.chain.link/ccip/evm/tutorials/application-developers/transfer-tokens-from-contract"
+    },
+    {
+      "title": "Circle testnet faucet",
+      "url": "https://faucet.circle.com"
+    }
+  ],
+  "related": ["ccip-messenger", "usdc-checkout", "ictt-token-bridge"]
+}

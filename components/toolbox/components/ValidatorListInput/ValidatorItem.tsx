@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { cn } from '../utils';
 import { OwnerAddressesInput, type PChainOwner } from '../OwnerAddressesInput';
@@ -15,6 +16,27 @@ interface Props {
   l1TotalInitializedWeight?: bigint | null;
   userPChainBalanceNavax?: bigint | null;
   hideConsensusWeight?: boolean;
+}
+
+/**
+ * The highest weight of a new validator that is less than 20% of the current total L1 weight: the largest w with
+ * 5w < total. validateStakePercentage accepts it and refuses w + 1. Zero: no weight above 0 is valid.
+ */
+export function maxNewValidatorWeight(l1TotalWeight: bigint): bigint {
+  return l1TotalWeight > 0n ? (l1TotalWeight - 1n) / 5n : 0n;
+}
+
+/**
+ * The warning for a validator weight of 20% or more of the current total L1 weight, or null.
+ * The submit refuses the same weights (validateStakePercentage).
+ */
+export function weightShareWarning(weight: bigint, l1TotalWeight: bigint | null): string | null {
+  if (!l1TotalWeight || l1TotalWeight <= 0n || weight <= 0n) return null;
+  const percent = Number((weight * 10000n) / l1TotalWeight) / 100;
+  if (percent < 20) return null;
+  const max = maxNewValidatorWeight(l1TotalWeight);
+  const action = max > 0n ? `Enter ${max} or less.` : 'The total L1 weight is too low for a new validator.';
+  return `This validator's weight is ${percent.toFixed(2)}% of the current total L1 weight. It must be less than 20%. ${action}`;
 }
 
 export function ValidatorItem({
@@ -33,64 +55,76 @@ export function ValidatorItem({
     insufficientBalanceError = `Validator balance (${(Number(validator.validatorBalance) / 1e9).toFixed(2)} AVAX) exceeds your P-Chain balance (${(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).`;
   }
 
-  const hasWeightError =
-    l1TotalInitializedWeight &&
-    l1TotalInitializedWeight > 0n &&
-    validator.validatorWeight > 0n &&
-    (validator.validatorWeight * 100n) / l1TotalInitializedWeight >= 20n;
+  const weightWarning = weightShareWarning(validator.validatorWeight, l1TotalInitializedWeight);
 
-  const hasError = !!insufficientBalanceError || !!hasWeightError;
+  const hasError = !!insufficientBalanceError || !!weightWarning;
+  const fieldId = useId();
+  // One name per card: a page with two validators has two remove buttons
+  const removeLabel = `Remove validator ${validator.nodeID || index + 1}`;
 
   return (
     <div
       className={cn(
-        'bg-white dark:bg-zinc-900 rounded-lg border overflow-hidden shadow-sm hover:shadow transition-shadow duration-200',
-        hasError ? 'border-red-500 dark:border-red-500' : 'border-zinc-200 dark:border-zinc-700',
+        'overflow-hidden border bg-white transition-colors dark:bg-zinc-950',
+        hasError
+          ? 'border-red-300 dark:border-red-900'
+          : 'border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600',
       )}
     >
       <div
         className={cn(
-          'flex items-center justify-between p-3 cursor-pointer transition-colors',
-          hasError
-            ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20'
-            : 'hover:bg-zinc-50 dark:hover:bg-zinc-700',
+          'group/row flex items-center gap-2 pr-3 transition-colors',
+          hasError && 'bg-red-50/60 dark:bg-red-950/20',
         )}
-        onClick={() => onToggle(index)}
       >
-        <div className="flex-1 font-mono text-sm truncate">{validator.nodeID}</div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(index);
-            }}
-            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors text-red-500"
-            title="Remove validator"
-            type="button"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </div>
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          onClick={() => onToggle(index)}
+          className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 p-3 text-left"
+        >
+          {/* The fallback names the toggle when the Node ID field is empty */}
+          <span className="flex-1 truncate font-mono text-[12px] text-zinc-900 underline-offset-4 group-hover/row:underline dark:text-zinc-100">
+            {validator.nodeID || `Validator ${index + 1}`}
+          </span>
+          {isExpanded ? (
+            <ChevronUp className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/row:text-[#E6212F]" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-zinc-400 transition-colors group-hover/row:text-[#E6212F]" />
+          )}
+        </button>
+        <button
+          onClick={() => onRemove(index)}
+          className="cursor-pointer p-1 text-zinc-400 transition-colors hover:text-red-600 dark:hover:text-red-400"
+          title={removeLabel}
+          aria-label={removeLabel}
+          type="button"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {isExpanded && (
-        <div className="p-3 border-t border-zinc-200 dark:border-zinc-700 space-y-3">
+        <div className="space-y-3 border-t border-zinc-200 p-3 dark:border-zinc-800">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label
+              htmlFor={`${fieldId}-node`}
+              className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+            >
               Node ID (must be unique)
             </label>
             <input
+              id={`${fieldId}-node`}
               type="text"
               value={validator.nodeID}
               onChange={(e) => onUpdate(index, { nodeID: e.target.value })}
               className={cn(
-                'w-full rounded p-2',
-                'bg-zinc-50 dark:bg-zinc-900',
-                'border border-zinc-200 dark:border-zinc-700',
+                'h-10 w-full rounded-none px-3',
+                'bg-white dark:bg-zinc-950',
+                'border border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
                 'text-zinc-900 dark:text-zinc-100',
-                'shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50',
-                'font-mono text-sm',
+                'transition-colors focus:outline-none',
+                'font-mono text-[12px]',
               )}
             />
           </div>
@@ -98,33 +132,37 @@ export function ValidatorItem({
           <div className={cn('grid gap-3', hideConsensusWeight ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
             {!hideConsensusWeight && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Consensus Weight</label>
+                <label
+                  htmlFor={`${fieldId}-weight`}
+                  className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                >
+                  Consensus Weight
+                </label>
                 <input
+                  id={`${fieldId}-weight`}
                   type="number"
                   value={validator.validatorWeight.toString()}
                   onChange={(e) => onUpdate(index, { validatorWeight: BigInt(e.target.value || 0) })}
                   className={cn(
-                    'w-full rounded p-2',
-                    'bg-zinc-50 dark:bg-zinc-900',
-                    'border border-zinc-200 dark:border-zinc-700',
+                    'h-10 w-full rounded-none px-3 text-[13px]',
+                    'bg-white dark:bg-zinc-950',
+                    'border border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
                     'text-zinc-900 dark:text-zinc-100',
-                    'shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50',
+                    'transition-colors focus:outline-none',
                   )}
                 />
-                {hasWeightError && (
-                  <p className="text-xs mt-1 text-red-500 dark:text-red-400">
-                    Warning: This validator's weight is 20% or more of the current L1 total stake (
-                    {Number((validator.validatorWeight * 10000n) / l1TotalInitializedWeight / 100n).toFixed(2)}%).
-                    Recommended to be less than 20%.
-                  </p>
-                )}
+                {weightWarning && <p className="text-[12px] text-red-700 dark:text-red-400">{weightWarning}</p>}
               </div>
             )}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label
+                htmlFor={`${fieldId}-balance`}
+                className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
                 Validator Balance (P-Chain AVAX)
               </label>
               <input
+                id={`${fieldId}-balance`}
                 type="number"
                 step="0.000001"
                 min="0"
@@ -135,22 +173,20 @@ export function ValidatorItem({
                   })
                 }
                 className={cn(
-                  'w-full rounded p-2',
-                  'bg-zinc-50 dark:bg-zinc-900',
-                  'border border-zinc-200 dark:border-zinc-700',
+                  'h-10 w-full rounded-none border bg-white px-3 text-[13px] dark:bg-zinc-950',
                   insufficientBalanceError
-                    ? 'border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500/30'
-                    : 'focus:ring-primary/30 focus:border-primary',
+                    ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+                    : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
                   'text-zinc-900 dark:text-zinc-100',
-                  'shadow-sm focus:ring focus:ring-opacity-50',
+                  'transition-colors focus:outline-none',
                 )}
               />
-              <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">
-                Will last for {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} with a fee
-                of 1.33 AVAX per month.
+              <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
+                Will last for {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} at the
+                minimum fee of 1.33 AVAX per month.
               </p>
               {insufficientBalanceError && (
-                <p className="text-xs mt-1 text-red-500 dark:text-red-400">{insufficientBalanceError}</p>
+                <p className="text-[12px] text-red-700 dark:text-red-400">{insufficientBalanceError}</p>
               )}
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useWalletType } from "@/components/toolbox/stores/walletStore";
 import { toast } from "@/lib/toast";
 import { rpcUrlsEquivalent } from "@/components/toolbox/lib/rpcUrl";
+import { WALLET_REJECTED_TEXT } from "@/components/toolbox/lib/walletRejection";
 
 interface AddToWalletOptions {
   rpcUrl: string;
@@ -24,7 +25,7 @@ export interface AddToWalletResult {
   alreadyAdded: boolean;
   /** Core only: the chain exists in the wallet with a DIFFERENT RPC URL
    *  than the one we tried to register. Wallets dedupe
-   *  wallet_addEthereumChain, so the correction was NOT applied — the user
+   *  wallet_addEthereumChain, so the correction was NOT applied: the user
    *  must update it manually in the wallet's network settings. */
   rpcUrlMismatch?: boolean;
   walletRpcUrl?: string;
@@ -54,14 +55,15 @@ export function useAddToWallet(): UseAddToWalletReturn {
     setIsAdding(true);
 
     try {
-      // Request account access first — required before any wallet_ method.
+      // Request account access first: required before any wallet_ method.
       // Some wallets (MetaMask) return 4100 "not authorized" if this is
       // skipped and the site hasn't been connected in this session yet.
       try {
         await window.ethereum.request({ method: "eth_requestAccounts" });
       } catch (authError: any) {
+        // The user refused to connect the wallet to the site.
         if (authError.code === 4001) {
-          toast.error("Request rejected", "Please connect your wallet first");
+          toast.error("Connect your wallet first.");
           return { ok: false, alreadyAdded: false };
         }
         // Non-4001 errors (e.g. already connected) are safe to ignore.
@@ -129,13 +131,13 @@ export function useAddToWallet(): UseAddToWalletReturn {
               }
             }
           } catch {
-            // Advisory only — never fail the flow over the read.
+            // Advisory only: never fail the flow over the read.
           }
         }
 
         if (rpcUrlMismatch) {
           toast.warning(
-            "Already in your wallet — with a different RPC URL",
+            "Already in your wallet, with a different RPC URL",
             "Wallets don't let sites update it. Open your wallet's network settings (Core: Settings > Networks) and update the RPC URL manually.",
           );
         } else {
@@ -176,7 +178,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
       console.error("Failed to add chain to wallet:", error);
 
       if (error.code === 4001) {
-        toast.error("Request rejected", "You rejected the request");
+        toast.error(WALLET_REJECTED_TEXT);
       } else {
         toast.error("Failed to add chain", error.message || "An error occurred");
       }

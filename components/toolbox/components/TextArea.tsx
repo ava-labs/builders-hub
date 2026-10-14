@@ -25,7 +25,10 @@ export function Textarea({
 }: TextareaProps) {
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+      <label
+        htmlFor={id}
+        className="block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+      >
         {label}
       </label>
 
@@ -36,20 +39,20 @@ export function Textarea({
             rows={rows}
             onChange={(e) => onChange?.(e.target.value)}
             className={cn(
-              'w-full rounded-md px-3 py-2.5',
-              'bg-white dark:bg-zinc-900',
+              'w-full rounded-none px-3 py-2.5 text-[13px]',
+              'bg-white dark:bg-zinc-950',
               'border',
               error
-                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30'
-                : 'border-zinc-300 dark:border-zinc-700 focus:border-primary focus:ring-primary/30',
+                ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+                : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
               'text-zinc-900 dark:text-zinc-100',
-              'placeholder:text-zinc-400 dark:placeholder:text-zinc-500',
-              'shadow-sm',
-              'transition-colors duration-200',
-              'focus:outline-none focus:ring-2',
+              'placeholder:text-zinc-400 dark:placeholder:text-zinc-600',
+              'transition-colors',
+              'focus:outline-none',
               'resize-y',
-              props.disabled ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed' : '',
-              button ? 'rounded-r-none' : '',
+              props.disabled
+                ? 'cursor-not-allowed bg-zinc-50 text-zinc-500 hover:border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-800'
+                : '',
               className,
             )}
             {...props}
@@ -59,9 +62,9 @@ export function Textarea({
       </div>
 
       {error ? (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
+        <p className="text-[12px] text-red-700 dark:text-red-400">{error}</p>
       ) : helperText ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{helperText}</p>
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{helperText}</p>
       ) : null}
     </div>
   );

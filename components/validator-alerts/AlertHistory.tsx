@@ -1,28 +1,29 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import type { AlertLogResponse } from '@/types/validator-alerts';
+import { StatusDot, TEXT_TONE, type Tone } from './ui';
 
-const TYPE_CONFIG: Record<string, { label: string; className: string }> = {
-  uptime: { label: 'Uptime', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  version_mandatory: { label: 'Upgrade Required', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
-  version_mandatory_urgent: { label: 'Upgrade Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  version_mandatory_critical: { label: 'Upgrade Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  version_optional: { label: 'Update Available', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
-  expiry: { label: 'Expiry', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
-  expiry_urgent: { label: 'Expiry Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  expiry_critical: { label: 'Expiry Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  check_failed: { label: 'Check Failed', className: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-400' },
-  balance_low: { label: 'Low Balance', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
-  balance_low_urgent: { label: 'Balance Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  balance_critical: { label: 'Balance Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  balance_low_critical: { label: 'Balance Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  security_port_exposed: { label: 'Security: Port Exposed', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  security_ip_changed: { label: 'Security: IP Changed', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
-  welcome: { label: 'Welcome', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
+const TYPE_CONFIG: Record<string, { label: string; tone: Tone }> = {
+  uptime: { label: 'Uptime', tone: 'alerting' },
+  version_mandatory: { label: 'Upgrade Required', tone: 'warning' },
+  version_mandatory_urgent: { label: 'Upgrade Urgent', tone: 'alerting' },
+  version_mandatory_critical: { label: 'Upgrade Critical', tone: 'alerting' },
+  version_optional: { label: 'Update Available', tone: 'idle' },
+  expiry: { label: 'Expiry', tone: 'warning' },
+  expiry_urgent: { label: 'Expiry Urgent', tone: 'alerting' },
+  expiry_critical: { label: 'Expiry Critical', tone: 'alerting' },
+  check_failed: { label: 'Check Failed', tone: 'idle' },
+  balance_low: { label: 'Low Balance', tone: 'warning' },
+  balance_low_urgent: { label: 'Balance Urgent', tone: 'alerting' },
+  balance_critical: { label: 'Balance Critical', tone: 'alerting' },
+  balance_low_critical: { label: 'Balance Critical', tone: 'alerting' },
+  security_port_exposed: { label: 'Security: Port Exposed', tone: 'alerting' },
+  security_ip_changed: { label: 'Security: IP Changed', tone: 'warning' },
+  welcome: { label: 'Welcome', tone: 'healthy' },
 };
 
-function formatDate(dateStr: string): string {
+export function formatAlertDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -33,6 +34,8 @@ function formatDate(dateStr: string): string {
   });
 }
 
+const COLS = 'md:grid-cols-[0.75rem_minmax(0,11rem)_minmax(0,1fr)_minmax(0,11rem)]';
+
 interface AlertHistoryProps {
   logs: AlertLogResponse[];
 }
@@ -40,30 +43,41 @@ interface AlertHistoryProps {
 export function AlertHistory({ logs }: AlertHistoryProps) {
   if (logs.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-6">
+      <p className="border border-zinc-200 px-4 py-4 font-mono text-[11px] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
         No alerts have been sent yet.
       </p>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-zinc-200 border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
       {logs.map((log) => {
-        const config = TYPE_CONFIG[log.alert_type] ?? { label: log.alert_type, className: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' };
+        const config = TYPE_CONFIG[log.alert_type] ?? { label: log.alert_type, tone: 'idle' as Tone };
         return (
           <div
             key={log.id}
-            className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
+            className={cn(
+              'grid grid-cols-[0.75rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 px-4 py-3 md:gap-x-4',
+              COLS,
+            )}
           >
-            <Badge variant="secondary" className={config.className}>
+            <span className="flex h-4 items-center">
+              <StatusDot tone={config.tone} label={config.label} />
+            </span>
+            <span
+              className={cn(
+                'font-mono text-[10px] font-bold uppercase leading-4 tracking-[0.14em]',
+                TEXT_TONE[config.tone],
+              )}
+            >
               {config.label}
-            </Badge>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-foreground">{log.message}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {formatDate(log.sent_at)}
-              </p>
-            </div>
+            </span>
+            <p className="col-start-2 text-[13px] leading-relaxed text-zinc-700 md:col-start-auto dark:text-zinc-300">
+              {log.message}
+            </p>
+            <span className="col-start-2 font-mono text-[11.5px] leading-4 tabular-nums text-zinc-400 md:col-start-auto md:text-right dark:text-zinc-500">
+              {formatAlertDate(log.sent_at)}
+            </span>
           </div>
         );
       })}

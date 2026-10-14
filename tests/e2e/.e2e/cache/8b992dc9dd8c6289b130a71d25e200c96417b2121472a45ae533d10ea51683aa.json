@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-05T03:04:17.003Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "type",
+        "summary": "type \"2500000000\" into textbox \"nAVAX amount\"",
+        "target": {
+          "role": "textbox",
+          "name": "nAVAX amount",
+          "placeholder": "0"
+        },
+        "value": "2500000000"
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/data-console.e2e.ts::agent%20converts%202500000000%20nAVAX%20to%202.5%20AVAX%20with%20the%20unit%20converter",
+      "targetId": "desktop",
+      "instructionDigest": "eaa930403df0ad93e57a5c753902d3e691670dfcbee8ba950788aabae81ff603",
+      "paramsDigest": "744de4f91071f7f79781ab0d300ccd22b09b6f980e0212cfbca4f7c6c3056f39",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "Entered 2500000000 in the nAVAX field. The AVAX field updated to 2.5 and the Wei field to 2500000000000000000.",
+    "startPath": "/console/primary-network/unit-converter",
+    "endPath": "/console/primary-network/unit-converter",
+    "endAnchors": [
+      {
+        "role": "textbox",
+        "name": "AVAX amount",
+        "placeholder": "0",
+        "value": "2.5"
+      },
+      {
+        "role": "textbox",
+        "name": "nAVAX amount",
+        "placeholder": "0",
+        "value": "2500000000"
+      },
+      {
+        "role": "textbox",
+        "name": "Wei amount",
+        "placeholder": "0",
+        "value": "2500000000000000000"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "role": "textbox",
+        "name": "AVAX amount",
+        "placeholder": "0",
+        "value": "1"
+      },
+      {
+        "role": "textbox",
+        "name": "nAVAX amount",
+        "placeholder": "0",
+        "value": "1000000000"
+      },
+      {
+        "role": "textbox",
+        "name": "Wei amount",
+        "placeholder": "0",
+        "value": "1000000000000000000"
+      }
+    ],
+    "endWaitMs": 11753
+  }
+}

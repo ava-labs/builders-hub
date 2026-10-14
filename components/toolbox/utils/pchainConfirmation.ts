@@ -1,6 +1,11 @@
 import { createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 
+/** True when waitForPChainConfirmation failed because the P-Chain dropped the tx. A dropped tx cannot commit. */
+export function isPChainTxDropped(err: unknown): boolean {
+  return err instanceof Error && err.message.includes('transaction was dropped');
+}
+
 /**
  * Polls the P-Chain for a transaction's status until it is Committed or Dropped.
  * Replicates the pattern from usePChainNotifications.waitForTransaction

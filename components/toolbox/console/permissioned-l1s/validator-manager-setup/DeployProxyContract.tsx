@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 import TransparentUpgradeableProxyABI from '@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from '@/components/toolbox/components/Steps';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {

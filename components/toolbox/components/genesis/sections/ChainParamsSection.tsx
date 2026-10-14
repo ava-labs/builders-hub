@@ -64,7 +64,7 @@ export const ChainParamsSection = ({
                   href="https://chainlist.org"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                  className="inline-flex items-center gap-1 text-xs underline underline-offset-4 hover:decoration-[#E6212F]"
                 >
                   Check registered IDs on chainlist.org
                   <ExternalLink className="h-3 w-3" />

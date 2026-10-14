@@ -1,0 +1,301 @@
+{
+  "id": "eerc-private-usdc",
+  "version": 1,
+  "title": "Private USDC Payments",
+  "summary": "Confidential USDC balances with an auditor",
+  "description": "Wraps USDC into an Encrypted ERC (eERC) converter: deposits turn public USDC into encrypted balances, transfers hide amounts on-chain, withdrawals turn it back, and a designated auditor can decrypt for compliance.",
+  "category": "privacy",
+  "level": "advanced",
+  "tags": ["eerc", "encrypted-erc", "privacy", "zk", "usdc", "payroll", "c-chain"],
+  "prompts": [
+    "Pay salaries in USDC without showing amounts on-chain",
+    "Private USDC transfers with a compliance auditor",
+    "Make token balances confidential on Avalanche"
+  ],
+  "networks": {
+    "main": {
+      "description": "Fuji C-Chain, which has the shared eERC registrar, verifiers and library",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns the converter: rotates the auditor and blacklists tokens",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "auditor",
+      "type": "address",
+      "description": "Can decrypt every amount; must be registered with the registrar",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "depositAmount",
+      "type": "uint",
+      "description": "USDC to make private in the smoke test, 6-decimal base units; the default is 1 USDC",
+      "default": "1000000"
+    }
+  ],
+  "prerequisites": [
+    "USDC on Fuji from the Circle faucet listed in the registry",
+    "A browser wallet that can sign messages: eERC keys and proofs are made on the builder's device",
+    "Fuji AVAX for gas"
+  ],
+  "contracts": [
+    {
+      "name": "EncryptedERC",
+      "artifact": "contracts/encrypted-erc/compiled/EncryptedERC.json",
+      "description": "The eERC contract, deployed in converter mode"
+    },
+    {
+      "name": "Registrar",
+      "artifact": "contracts/encrypted-erc/compiled/Registrar.json",
+      "description": "Shared registry of users' BabyJubJub public keys"
+    },
+    {
+      "name": "ERC20",
+      "artifact": "contracts/icm-contracts/compiled/ExampleERC20.json",
+      "description": "Standard ERC-20 ABI, for approving USDC"
+    }
+  ],
+  "steps": [
+    {
+      "id": "deploy-converter",
+      "title": "Deploy an eERC converter",
+      "kind": "deploy",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "EncryptedERC",
+      "args": [
+        {
+          "registrar": "$net.main.eerc.registrar",
+          "isConverter": true,
+          "name": "",
+          "symbol": "",
+          "decimals": 2,
+          "mintVerifier": "$net.main.eerc.verifiers.mint",
+          "withdrawVerifier": "$net.main.eerc.verifiers.withdraw",
+          "transferVerifier": "$net.main.eerc.verifiers.transfer",
+          "burnVerifier": "$net.main.eerc.verifiers.burn"
+        }
+      ],
+      "libraries": {
+        "contracts/libraries/BabyJubJub.sol:BabyJubJub": "$net.main.eerc.babyJubJubLibrary"
+      }
+    },
+    {
+      "id": "register-auditor",
+      "title": "Register the auditor's eERC key",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.register",
+      "inputs": {
+        "registrar": "$net.main.eerc.registrar",
+        "account": "$param.auditor",
+        "chainId": "$net.main.evmChainId"
+      },
+      "notes": "Skipped when Registrar.isUserRegistered(auditor) is already true, for example after using the console's eERC tools."
+    },
+    {
+      "id": "set-auditor",
+      "title": "Set the auditor",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-converter.address",
+      "function": "setAuditorPublicKey",
+      "args": ["$param.auditor"]
+    },
+    {
+      "id": "offer-ownership",
+      "title": "Offer ownership to the builder",
+      "kind": "call",
+      "network": "main",
+      "signer": "deployer",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-converter.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "accept-ownership",
+      "title": "Accept ownership",
+      "kind": "call",
+      "network": "main",
+      "signer": "builder",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-converter.address",
+      "function": "acceptOwnership",
+      "args": []
+    },
+    {
+      "id": "register-builder",
+      "title": "Register the builder's eERC key",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.register",
+      "inputs": {
+        "registrar": "$net.main.eerc.registrar",
+        "account": "$ctx.builder",
+        "chainId": "$net.main.evmChainId"
+      },
+      "notes": "A no-op when the builder is the auditor or has registered before."
+    },
+    {
+      "id": "approve-deposit",
+      "title": "Approve USDC for the deposit",
+      "kind": "call",
+      "network": "main",
+      "signer": "builder",
+      "contract": "ERC20",
+      "target": "$net.main.tokens.USDC.address",
+      "function": "approve",
+      "args": ["$out.deploy-converter.address", "$param.depositAmount"],
+      "optional": true
+    },
+    {
+      "id": "deposit",
+      "title": "Deposit USDC as an encrypted balance",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.deposit",
+      "inputs": {
+        "encryptedERC": "$out.deploy-converter.address",
+        "token": "$net.main.tokens.USDC.address",
+        "amount": "$param.depositAmount"
+      },
+      "optional": true
+    },
+    {
+      "id": "decrypt-balance",
+      "title": "Decrypt the builder's private balance",
+      "kind": "offchain",
+      "network": "main",
+      "signer": "builder",
+      "action": "eerc.decrypt-balance",
+      "inputs": {
+        "encryptedERC": "$out.deploy-converter.address",
+        "token": "$net.main.tokens.USDC.address",
+        "account": "$ctx.builder"
+      },
+      "outputs": {
+        "balance": "result.balance"
+      },
+      "optional": true
+    }
+  ],
+  "checks": [
+    {
+      "description": "The converter is in converter mode",
+      "after": "deploy-converter",
+      "network": "main",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-converter.address",
+      "function": "isConverter",
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "An auditor key is set",
+      "after": "set-auditor",
+      "network": "main",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-converter.address",
+      "function": "isAuditorKeySet",
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The builder owns the converter",
+      "after": "accept-ownership",
+      "network": "main",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-converter.address",
+      "function": "owner",
+      "expect": {
+        "equals": "$param.owner"
+      }
+    },
+    {
+      "description": "USDC is registered in the converter after the first deposit",
+      "after": "deposit",
+      "network": "main",
+      "contract": "EncryptedERC",
+      "target": "$out.deploy-converter.address",
+      "function": "tokenIds",
+      "args": ["$net.main.tokens.USDC.address"],
+      "expect": {
+        "gt": "0"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-converter",
+      "read": [
+        "isConverter",
+        "isAuditorKeySet",
+        "auditor",
+        "auditorPublicKey",
+        "getTokens",
+        "tokenIds",
+        "balanceOf",
+        "getBalanceFromTokenAddress",
+        "owner",
+        "pendingOwner",
+        "registrar"
+      ],
+      "write": ["setAuditorPublicKey", "setTokenBlacklist", "transferOwnership", "acceptOwnership"]
+    }
+  ],
+  "review": [
+    "The converter reuses the shared Fuji registrar, verifiers and BabyJubJub library from the registry; the verifiers match the circuits served at /eerc/circuits.",
+    "The auditor is registered before setAuditorPublicKey, and the builder knows the auditor can see every amount.",
+    "Ownership is two-step: the builder calls acceptOwnership, so the deployer never keeps control.",
+    "Key derivation and every proof run in the builder's browser through lib/eerc or @avalabs/ac-eerc-sdk; nothing secret reaches the server.",
+    "Deposits and withdrawals are public by nature; only balances and transfer amounts are hidden."
+  ],
+  "frontend": {
+    "summary": "A private USDC wallet: deposit USDC, pay other members without amounts showing on-chain, and withdraw back.",
+    "audience": [
+      "People paying or getting paid in USDC without showing amounts publicly",
+      "An auditor who must be able to see amounts"
+    ],
+    "journeys": [
+      "Set up once with a wallet signature, framed as creating your private account.",
+      "Deposit USDC into your private balance; amounts are in cents, and any dust that can't be made private is shown and returned.",
+      "Pay a member privately: recipient, amount, a clear 'creating a privacy proof' step with its expected time, then done.",
+      "Withdraw back to regular USDC.",
+      "Say plainly what stays private (amounts and balances) and what doesn't (who deposits and withdraws, and that the auditor sees amounts).",
+      "Auditor view, only with the auditor key: payments with their decrypted amounts."
+    ],
+    "flows": [
+      "Load the eerc skill and start from its templates; every screen uses useEERC('EncryptedERC', { token: USDC address from useTokens }).",
+      "Everything happens in the app: never link users to Builder Hub's eERC console to register, deposit, pay, withdraw or see a balance.",
+      "Deposit: deposit(amount) approves USDC when needed and makes it private; show the wallet's USDC balance beside the form and say dust below 0.01 is returned.",
+      "Pay: isRegistered(to), then transfer(to, amount) with stageText while the proof is generated.",
+      "Withdraw: withdraw(amount) back to public USDC, saying the withdrawn amount becomes public.",
+      "Auditor tab: decrypt the auditor ciphertexts from PrivateTransfer events with the auditor's key, as components/toolbox/console/encrypted-erc/AuditorView.tsx does."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Encrypted ERC",
+      "url": "/integrations/encrypted-erc"
+    },
+    {
+      "title": "EncryptedERC repository",
+      "url": "https://github.com/ava-labs/EncryptedERC"
+    }
+  ],
+  "related": ["eerc-private-token", "usdc-checkout"]
+}

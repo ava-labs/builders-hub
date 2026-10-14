@@ -1,0 +1,341 @@
+{
+  "id": "icm-identity-layer",
+  "version": 1,
+  "title": "Private Identity over ICM",
+  "summary": "KYC once on the C-Chain, prove it on any L1",
+  "description": "A cross-chain identity layer: issuers attest yes/no claims on the C-Chain without personal data, users share chosen claims with chosen L1s under chosen accounts over ICM, and revocations follow every share. An example compliant token on the L1 only moves between verified accounts.",
+  "category": "interop",
+  "level": "advanced",
+  "tags": ["icm", "identity", "kyc", "privacy", "compliance", "rwa", "l1"],
+  "prompts": [
+    "Let users do KYC once and use it on my L1 without sharing their data",
+    "Only verified accounts should be able to hold my tokenized fund on my L1",
+    "Cross-chain identity attestations that respect privacy"
+  ],
+  "networks": {
+    "hub": {
+      "description": "C-Chain, where issuers attest and users share",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "mainnet-c-chain"]
+    },
+    "l1": {
+      "description": "L1 whose apps check claims",
+      "default": "l1",
+      "allowed": ["l1", "echo-fuji", "dispatch-fuji"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns the hub (issuers, trusted gates) and the example token",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "issuer",
+      "type": "address",
+      "description": "First allowlisted issuer; the builder by default so the smoke test can attest",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "claimType",
+      "type": "bytes32",
+      "description": "Claim the example token requires, keccak256 of a name. The default is keccak256(\"KYC_VERIFIED\").",
+      "default": "0xfe61b4d82542c9af53021e45cfdb4bc0b40b2f293957106d3572541400a5b17b"
+    },
+    {
+      "name": "claimExpiry",
+      "type": "uint",
+      "description": "Unix time the smoke-test attestation expires",
+      "default": "4102444800"
+    },
+    {
+      "name": "evidenceCommitment",
+      "type": "bytes32",
+      "description": "keccak256 of the issuer's off-chain record plus a salt; zero for the smoke test",
+      "default": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "deliveryGasLimit",
+      "type": "uint",
+      "description": "Gas for a gate to apply a message; a share measured about 26,000",
+      "default": 150000
+    },
+    {
+      "name": "tokenName",
+      "type": "string",
+      "description": "Name of the example compliant token",
+      "default": "Fund Share"
+    },
+    {
+      "name": "tokenSymbol",
+      "type": "string",
+      "description": "Symbol of the example compliant token",
+      "default": "FUND"
+    }
+  ],
+  "prerequisites": [
+    "An L1 with interoperability and a relayer to the C-Chain: l1-quickstart with enableManagedRelayer",
+    "Native gas on both chains for the signer"
+  ],
+  "contracts": [
+    {
+      "name": "IdentityHub",
+      "source": "contracts/IdentityHub.sol",
+      "description": "Issuers, attestations, consented shares, revocation fan-out"
+    },
+    {
+      "name": "IdentityGate",
+      "source": "contracts/IdentityGate.sol",
+      "description": "The L1's claim registry, fed only by the hub"
+    },
+    {
+      "name": "CompliantToken",
+      "source": "contracts/CompliantToken.sol",
+      "description": "Example ERC-20 that moves only between verified accounts"
+    },
+    {
+      "name": "TeleporterMessenger",
+      "artifact": "contracts/icm-contracts/compiled/TeleporterMessenger.json",
+      "description": "Used to confirm delivery with messageReceived"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ensure-relayer",
+      "title": "Make sure a relayer serves both chains",
+      "kind": "offchain",
+      "network": "hub",
+      "action": "icm.ensure-relayer",
+      "inputs": {
+        "chains": ["$net.hub", "$net.l1"]
+      }
+    },
+    {
+      "id": "deploy-hub",
+      "title": "Deploy the identity hub on the C-Chain",
+      "kind": "deploy",
+      "network": "hub",
+      "signer": "deployer",
+      "contract": "IdentityHub",
+      "args": ["$net.hub.teleporter.messenger", "$param.deliveryGasLimit", "$ctx.deployer"]
+    },
+    {
+      "id": "deploy-gate",
+      "title": "Deploy the identity gate on the L1",
+      "kind": "deploy",
+      "network": "l1",
+      "signer": "deployer",
+      "contract": "IdentityGate",
+      "args": ["$net.l1.teleporter.messenger", "$net.hub.blockchainIdHex", "$out.deploy-hub.address"]
+    },
+    {
+      "id": "trust-gate",
+      "title": "Hub trusts the L1 gate",
+      "kind": "call",
+      "network": "hub",
+      "signer": "deployer",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "setTrustedGate",
+      "args": ["$net.l1.blockchainIdHex", "$out.deploy-gate.address", true]
+    },
+    {
+      "id": "add-issuer",
+      "title": "Allowlist the first issuer",
+      "kind": "call",
+      "network": "hub",
+      "signer": "deployer",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "setIssuer",
+      "args": ["$param.issuer", true]
+    },
+    {
+      "id": "deploy-token",
+      "title": "Deploy the example compliant token on the L1",
+      "kind": "deploy",
+      "network": "l1",
+      "signer": "deployer",
+      "contract": "CompliantToken",
+      "args": ["$param.tokenName", "$param.tokenSymbol", "$out.deploy-gate.address", "$param.claimType", "$param.owner"]
+    },
+    {
+      "id": "offer-hub",
+      "title": "Offer the hub to its owner",
+      "kind": "call",
+      "network": "hub",
+      "signer": "deployer",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "accept-hub",
+      "title": "Accept the hub",
+      "kind": "call",
+      "network": "hub",
+      "signer": "builder",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "acceptOwnership",
+      "args": []
+    },
+    {
+      "id": "attest-builder",
+      "title": "Attest the claim for the builder",
+      "kind": "call",
+      "network": "hub",
+      "signer": "builder",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "attest",
+      "args": ["$ctx.builder", "$param.claimType", "$param.claimExpiry", "$param.evidenceCommitment"],
+      "optional": true
+    },
+    {
+      "id": "share-builder",
+      "title": "Share the claim with the L1",
+      "kind": "call",
+      "network": "hub",
+      "signer": "builder",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "share",
+      "args": ["$param.claimType", "$net.l1.blockchainIdHex", "$out.deploy-gate.address", "$ctx.builder"],
+      "outputs": {
+        "messageId": "event:IdentityHub.Shared.messageId"
+      },
+      "optional": true
+    },
+    {
+      "id": "wait-share",
+      "title": "Wait for the gate to record it",
+      "kind": "wait",
+      "network": "l1",
+      "wait": {
+        "for": "icm-delivery",
+        "id": "$out.share-builder.messageId",
+        "timeoutMinutes": 5
+      },
+      "optional": true
+    }
+  ],
+  "checks": [
+    {
+      "description": "The hub trusts the gate",
+      "after": "trust-gate",
+      "network": "hub",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "trustedGate",
+      "args": ["$net.l1.blockchainIdHex", "$out.deploy-gate.address"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The builder owns the hub",
+      "after": "accept-hub",
+      "network": "hub",
+      "contract": "IdentityHub",
+      "target": "$out.deploy-hub.address",
+      "function": "owner",
+      "expect": {
+        "equals": "$param.owner"
+      }
+    },
+    {
+      "description": "The L1 sees the builder's claim",
+      "after": "wait-share",
+      "network": "l1",
+      "contract": "IdentityGate",
+      "target": "$out.deploy-gate.address",
+      "function": "hasClaim",
+      "args": ["$ctx.builder", "$param.claimType"],
+      "expect": {
+        "equals": true
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-hub",
+      "read": [
+        "attestationOf",
+        "hasValidClaim",
+        "sharesOf",
+        "isIssuer",
+        "trustedGate",
+        "deliveryGasLimit",
+        "sequence",
+        "owner",
+        "pendingOwner"
+      ],
+      "write": [
+        "attest",
+        "revoke",
+        "share",
+        "unshare",
+        "setIssuer",
+        "setTrustedGate",
+        "setDeliveryGasLimit",
+        "acceptOwnership"
+      ]
+    },
+    {
+      "step": "deploy-gate",
+      "read": ["hasClaim", "claimExpiry", "requireClaim", "hub", "hubBlockchainID"],
+      "write": ["forget"]
+    },
+    {
+      "step": "deploy-token",
+      "read": ["name", "symbol", "totalSupply", "balanceOf", "requiredClaim", "identityGate", "owner"],
+      "write": ["mint", "transfer"]
+    }
+  ],
+  "review": [
+    "No personal data is stored or sent anywhere: attestations hold a claim type, an expiry and a commitment; messages hold account, claim type, expiry and a sequence number.",
+    "The gate accepts messages only from the TeleporterMessenger and only from the hub fixed at deployment.",
+    "Every message carries the hub's sequence number and the gate ignores older ones, so a late share never undoes a revocation.",
+    "Revocation fan-out is bounded by MAX_SHARES_PER_CLAIM (8), keeping revoke within block gas.",
+    "The builder understands the privacy limit: share transactions on the C-Chain are public, so an observer can link a C-Chain address to the L1 account it shared with."
+  ],
+  "frontend": {
+    "summary": "Prove a verified claim, such as being KYC'd or over 18, to apps on an L1 without sharing personal data.",
+    "audience": [
+      "Verified users who want to use gated apps on L1s",
+      "Apps on the L1 that need a claim before letting someone in",
+      "The issuer that verifies people"
+    ],
+    "journeys": [
+      "My identity: the claims I hold, when each expires, and which chains I've shared each with.",
+      "Share a claim with an app's chain in one step, suggesting a fresh account on that chain for privacy, and see it arrive.",
+      "Withdraw consent from a chain at any time.",
+      "On a gated app: 'This app needs proof you're verified' with a link to share the claim, instead of a failed transaction.",
+      "Issuer area, only for the issuer: attest a claim after verifying someone off-chain, and revoke it."
+    ],
+    "flows": [
+      "Issuer: attest(subject, claimType, expiresAt, commitment) after an off-chain check; keep the evidence off-chain and store only its salted hash.",
+      "User: list claims with attestationOf and sharesOf; share(claimType, l1BlockchainIdHex, gate, account) per chain, suggesting a fresh account on the L1; unshare to withdraw consent.",
+      "L1 app: gate the UI with hasClaim(account, claimType) and handle ClaimRequired reverts from gated contracts.",
+      "Show expiry and a revoke state everywhere a claim appears; a claim can disappear at any time."
+    ]
+  },
+  "docs": [
+    {
+      "title": "ICM contracts overview",
+      "url": "/docs/cross-chain/icm-contracts/overview"
+    },
+    {
+      "title": "Send a message (Academy)",
+      "url": "/academy/avalanche-l1/interchain-messaging/05-testing-icm/02-send-a-message"
+    },
+    {
+      "title": "Managed ICM relayer",
+      "url": "/console/testnet-infra/icm-relayer"
+    }
+  ],
+  "related": ["icm-messenger", "eerc-private-token", "l1-quickstart"]
+}

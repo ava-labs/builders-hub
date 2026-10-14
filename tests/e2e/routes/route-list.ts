@@ -135,6 +135,7 @@ const SKIP_REASONS: Record<string, string> = {
   '/audits/[id]': 'the id is a database row',
   '/audits/admin/requests/[id]': 'the id is a database row, and the page needs an admin session',
   '/audits/portal/requests/[id]': 'the id is a database row, and the page needs an auditor session',
+  '/builder/[owner]/[site]': 'the owner and site are database rows, and CI does not seed a published Studio site',
   '/chat/share/[token]': 'the token is a database row',
   '/events/[id]': 'the id is a database row',
   '/events/[id]/admin-panel': 'the id is a database row, and the page needs an organizer session',

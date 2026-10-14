@@ -273,7 +273,8 @@ export function checkSuite({ repo, graph }: Context): string[] {
   const problems: string[] = [];
   const files = testFiles(repo);
 
-  for (const file of files.filter((f) => f.endsWith('.e2e.ts'))) {
+  // chain/ has its own config and workflow (e2e-chain.yml): no PR unit runs it.
+  for (const file of files.filter((f) => f.endsWith('.e2e.ts') && !f.startsWith('chain/'))) {
     if (!unitsOfTestFile(file).length) {
       problems.push(
         `tests/e2e/${file}: no unit runs it. Add its folder to UNITS, or the file to AI_FILES (select/rules.ts).`,

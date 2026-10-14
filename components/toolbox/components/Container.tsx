@@ -24,13 +24,15 @@ export function Container({ title, children, description, githubUrl }: Container
   return (
     <motion.div variants={sectionContainer} initial="hidden" animate="visible" data-console-tool={title}>
       <motion.div variants={sectionItem}>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="flex flex-col gap-1.5 min-w-0">
-            <h1 className="text-2xl font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100">
+        <div className="flex flex-col gap-3 border-b border-zinc-200 pb-6 sm:flex-row sm:items-start sm:justify-between dark:border-zinc-800">
+          <div className="flex min-w-0 flex-col gap-2">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">
               {title}
             </h1>
             {description && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-2xl">{description}</p>
+              <p className="max-w-2xl text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400 [&_a]:text-zinc-700 [&_a]:underline [&_a]:decoration-zinc-300 [&_a]:underline-offset-2 hover:[&_a]:text-zinc-900 dark:[&_a]:text-zinc-300 dark:[&_a]:decoration-zinc-600 dark:hover:[&_a]:text-zinc-100">
+                {description}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -46,7 +48,7 @@ export function Container({ title, children, description, githubUrl }: Container
           </div>
         </div>
       </motion.div>
-      <motion.div className="space-y-6 mt-6" variants={sectionItem}>
+      <motion.div className="mt-8 space-y-6" variants={sectionItem}>
         {children}
       </motion.div>
     </motion.div>

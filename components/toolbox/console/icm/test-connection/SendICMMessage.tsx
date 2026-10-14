@@ -18,7 +18,20 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { StepCodeViewer, StepConfig } from '@/components/console/step-code-viewer';
-import { Check, Send, Search, ArrowRight, AlertCircle, ExternalLink, Radio } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import { RawInput } from '@/components/toolbox/components/Input';
+import { Success } from '@/components/toolbox/components/Success';
+import {
+  DocsLink,
+  EYEBROW,
+  Field,
+  Panel,
+  StatusDot,
+  StatusLine,
+  type DotTone,
+} from '@/components/toolbox/console/icm/ui';
 
 const predeployedDemos: Record<string, string> = {
   //fuji
@@ -350,213 +363,182 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
     message: message,
   });
 
-  const messageForm = (
-    <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Send ICM Message</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Test cross-chain message delivery between L1s</p>
-      </div>
+  const delivered = lastReceivedMessage !== undefined && lastReceivedMessage === message;
+  const sourceName = selectedL1?.name || 'Source';
+  const destName = targetL1?.name || 'Destination';
+  const timeline: { label: string; tone: DotTone; detail?: string }[] = [
+    {
+      label: `Sent on ${sourceName}`,
+      tone: isSending ? 'live' : lastTxId ? 'done' : 'idle',
+      detail: isSending ? 'Waiting for your wallet' : lastTxId ? 'Transaction submitted' : undefined,
+    },
+    {
+      label: 'Relayer delivers',
+      tone: delivered ? 'done' : lastTxId ? 'live' : 'idle',
+      detail: delivered ? 'Delivered' : lastTxId ? 'Usually 5 to 30 seconds' : undefined,
+    },
+    {
+      label: `Received on ${destName}`,
+      tone: delivered ? 'done' : lastReceivedMessage !== undefined ? 'warn' : 'idle',
+      detail: delivered
+        ? `lastMessage = ${lastReceivedMessage}`
+        : lastReceivedMessage !== undefined
+          ? `lastMessage = ${lastReceivedMessage}, not ${message} yet`
+          : undefined,
+    },
+  ];
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* Message Flow Visualization */}
-        <div className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center justify-between text-xs">
-            <div className="text-center">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mx-auto mb-1">
-                <Radio className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span className="text-blue-700 dark:text-blue-300 font-medium">{selectedL1?.name || 'Source'}</span>
-            </div>
-            <div className="flex-1 flex items-center justify-center">
-              <ArrowRight className="w-5 h-5 text-zinc-400" />
-            </div>
-            <div className="text-center">
-              <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center mx-auto mb-1">
-                <Radio className="w-4 h-4 text-green-600 dark:text-green-400" />
-              </div>
-              <span className="text-green-700 dark:text-green-300 font-medium">{targetL1?.name || 'Destination'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Source Contract */}
-        <div>
-          <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wider">
-            Source Contract ({selectedL1?.name})
-          </label>
-          <div
-            className={`px-3 py-2 rounded-lg border text-sm font-mono ${
-              sourceContractError
-                ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
-            }`}
-          >
-            {icmReceiverAddress || sourceContractError}
-          </div>
-        </div>
-
-        {/* Message Input */}
-        <div>
-          <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wider">
-            Message (Number)
-          </label>
-          <input
-            type="number"
-            value={message}
-            onChange={(e) => setMessage(Number(e.target.value) || 0)}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
-            placeholder="Enter a number..."
-          />
-        </div>
-
-        {/* Destination Chain */}
-        <div>
-          <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wider">
-            Destination Chain
-          </label>
-          <SelectBlockchainId
-            value={destinationChainId}
-            onChange={(value) => setDestinationChainId(value)}
-            error={destinationChainError}
-          />
-        </div>
-
-        {/* Destination Contract */}
-        {targetL1 && (
-          <div>
-            <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wider">
-              Destination Contract ({targetL1?.name})
-            </label>
-            <div
-              className={`px-3 py-2 rounded-lg border text-sm font-mono ${
-                targetContractError
-                  ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                  : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
-              }`}
-            >
-              {targetToolboxStore.icmReceiverAddress || targetContractError}
-            </div>
-          </div>
-        )}
-
-        {/* Local error (e.g. user rejected wallet chain switch) */}
-        {localError && (
-          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-              <span className="text-xs text-red-700 dark:text-red-300">{localError}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Send Button */}
-        <button
-          onClick={handleSendMessage}
-          disabled={isButtonDisabled}
-          className="w-full py-2.5 text-sm font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-        >
-          <Send className="w-4 h-4" />
-          {isSending ? 'Sending...' : `Send Message to ${targetL1?.name || 'Destination'}`}
-        </button>
-
-        {/* Transaction Hash */}
-        {lastTxId && (
-          <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-            <div className="flex items-center gap-2 mb-1">
-              <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-              <span className="text-sm font-medium text-green-700 dark:text-green-300">Message Sent</span>
-            </div>
-            <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wider block mb-1">
-              Transaction Hash
-            </span>
-            <code className="text-[11px] font-mono text-green-700 dark:text-green-300 break-all">{lastTxId}</code>
-          </div>
-        )}
-
-        {/* Divider */}
-        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
-          <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3 flex items-center gap-2">
-            <Search className="w-4 h-4 text-zinc-400" />
-            Query Received Message
-          </h4>
-
-          <button
-            onClick={queryLastMessage}
-            disabled={isQueryButtonDisabled}
-            className="w-full py-2.5 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-          >
-            <Search className="w-4 h-4" />
-            {isQuerying ? 'Querying...' : `Query ${targetL1?.name || 'Destination'}`}
-          </button>
-
-          {lastReceivedMessage !== undefined && (
-            <div
-              className={`mt-3 p-3 rounded-xl border ${
-                lastReceivedMessage === message
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                  : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                {lastReceivedMessage === message ? (
-                  <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                )}
-                <span
-                  className={`text-sm font-medium ${
-                    lastReceivedMessage === message
-                      ? 'text-green-700 dark:text-green-300'
-                      : 'text-amber-700 dark:text-amber-300'
-                  }`}
-                >
-                  {lastReceivedMessage === message ? 'Message Delivered!' : 'Different Message'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs mt-2">
-                <span className="text-zinc-500 dark:text-zinc-400">Received:</span>
-                <code
-                  className={`font-mono ${
-                    lastReceivedMessage === message
-                      ? 'text-green-700 dark:text-green-300'
-                      : 'text-amber-700 dark:text-amber-300'
-                  }`}
-                >
-                  {lastReceivedMessage}
-                </code>
-              </div>
-              {lastReceivedMessage !== message && (
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-2">
-                  Message may still be in transit. Wait a few seconds and query again.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
-        <a
-          href="https://build.avax.network/academy/interchain-messaging"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"
-        >
-          <ExternalLink className="w-3 h-3" />
-          ICM Academy
-        </a>
-        <span className="text-[11px] text-zinc-400">Inter-Chain Messaging</span>
-      </div>
+  const routeCell = (
+    side: string,
+    name: string,
+    address: string | undefined,
+    error: string | undefined,
+    placeholder?: string,
+  ) => (
+    <div className="flex min-w-0 flex-col gap-1.5 bg-white px-4 py-3.5 dark:bg-zinc-950">
+      <p className={EYEBROW}>{side}</p>
+      <p className="truncate text-[14px] font-semibold text-zinc-900 dark:text-zinc-50">{name}</p>
+      {placeholder ? (
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{placeholder}</p>
+      ) : address ? (
+        <span className="font-mono text-[11.5px] text-zinc-600 [overflow-wrap:anywhere] dark:text-zinc-300">
+          {address}
+        </span>
+      ) : (
+        <StatusLine tone="error">{error}</StatusLine>
+      )}
     </div>
   );
 
+  const messageForm = (
+    <Panel
+      eyebrow="Live test"
+      title="Send an ICM message"
+      description="Send a number from this L1 and read it back on the destination once the relayer delivers it."
+      footer={
+        <>
+          <DocsLink href="https://build.avax.network/academy/interchain-messaging">ICM academy</DocsLink>
+          <span className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">Inter-Chain Messaging</span>
+        </>
+      }
+    >
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800">
+        {routeCell('From', sourceName, icmReceiverAddress || undefined, sourceContractError)}
+        <span
+          aria-hidden
+          className="flex items-center bg-white px-3 font-mono text-[13px] text-zinc-400 dark:bg-zinc-950 dark:text-zinc-500"
+        >
+          →
+        </span>
+        {routeCell(
+          'To',
+          destName,
+          targetToolboxStore.icmReceiverAddress || undefined,
+          targetContractError,
+          targetL1 ? undefined : 'Pick a destination below.',
+        )}
+      </div>
+
+      <Field label="Destination chain">
+        <SelectBlockchainId
+          value={destinationChainId}
+          onChange={(value) => setDestinationChainId(value)}
+          error={destinationChainError}
+        />
+      </Field>
+
+      <Field label="Message (number)" htmlFor="icm-message">
+        <RawInput
+          id="icm-message"
+          type="number"
+          value={message}
+          onChange={(e) => setMessage(Number(e.target.value) || 0)}
+          className="font-mono tabular-nums"
+          placeholder="Enter a number"
+        />
+      </Field>
+
+      {localError && <Alert variant="error">{localError}</Alert>}
+
+      <Button onClick={handleSendMessage} loading={isSending} loadingText="Sending" disabled={isButtonDisabled}>
+        Send message to {destName}
+      </Button>
+
+      {lastTxId && <Success label="Message transaction" value={lastTxId} />}
+
+      <div className="flex flex-col gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+        <p className={EYEBROW}>Message status</p>
+        <ol className="flex flex-col">
+          {timeline.map((s, i) => (
+            <li key={s.label} className="relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-x-3 pb-4 last:pb-0">
+              <span className="relative flex justify-center pt-[7px]">
+                <StatusDot tone={s.tone} />
+                {i < timeline.length - 1 && (
+                  <span aria-hidden className="absolute bottom-[-3px] top-[17px] w-px bg-zinc-200 dark:bg-zinc-800" />
+                )}
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span
+                  className={cn(
+                    'font-mono text-[12px]',
+                    s.tone === 'idle' ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-900 dark:text-zinc-50',
+                  )}
+                >
+                  <span className="mr-2 tabular-nums text-zinc-400 dark:text-zinc-500">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  {s.label}
+                </span>
+                {s.detail && (
+                  <span
+                    className={cn(
+                      'font-mono text-[11px]',
+                      s.tone === 'warn' ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-500 dark:text-zinc-400',
+                    )}
+                  >
+                    {s.detail}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+        <p className={EYEBROW}>Check delivery</p>
+        <Button
+          variant="outline"
+          onClick={queryLastMessage}
+          loading={isQuerying}
+          loadingText="Querying"
+          disabled={isQueryButtonDisabled}
+        >
+          Query {destName}
+        </Button>
+        {lastReceivedMessage !== undefined &&
+          (delivered ? (
+            <Alert variant="success">
+              Delivered. {destName} received <span className="font-mono">{lastReceivedMessage}</span>.
+            </Alert>
+          ) : (
+            <Alert variant="warning">
+              {destName} last received <span className="font-mono">{lastReceivedMessage}</span>. The message may still
+              be in transit: wait a few seconds and query again.
+            </Alert>
+          ))}
+      </div>
+    </Panel>
+  );
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
       {messageForm}
-      <StepCodeViewer activeStep={activeStep} steps={codeSteps} className="h-[700px]" />
+      <StepCodeViewer
+        activeStep={activeStep}
+        steps={codeSteps}
+        className="h-[700px] rounded-none border-zinc-200 dark:bg-zinc-950"
+      />
     </div>
   );
 }

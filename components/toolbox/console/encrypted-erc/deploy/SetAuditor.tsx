@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { isAddress } from 'viem';
-import { BookOpen, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import {
   withConsoleToolMetadata,
   type ConsoleToolMetadata,
@@ -18,6 +18,10 @@ import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCNotifiedWrite } from '@/hooks/eerc/useEERCNotifiedWrite';
 import { EERCToolShell } from '../shared/EERCToolShell';
 import { EERCTxLink } from '../shared/EERCTxLink';
+import { Disclosure, EmptyBoard, EYEBROW } from '../shared/ui';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
+import { WorkingCaption } from './ui';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { EERCDeployment, Hex } from '@/lib/eerc/types';
 
@@ -45,10 +49,12 @@ function SetAuditor() {
 
   if (deployments.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm">
-        <p className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">No Encrypted ERC deployment on this chain.</p>
-        <p className="text-zinc-600 dark:text-zinc-400">Switch to Avalanche Fuji or deploy your own.</p>
-      </div>
+      <EmptyBoard
+        eyebrow="No deployment"
+        action={{ href: '/console/encrypted-erc/deploy/configure', label: 'Deploy your own' }}
+      >
+        There is no Encrypted ERC deployment on this chain. Switch to Avalanche Fuji or deploy your own.
+      </EmptyBoard>
     );
   }
 
@@ -60,30 +66,24 @@ function SetAuditor() {
         {
           label: 'setAuditorPublicKey() source',
           href: `https://github.com/ava-labs/EncryptedERC/blob/${EERC_COMMIT}/contracts/EncryptedERC.sol`,
-          icon: <BookOpen className="w-3.5 h-3.5" />,
         },
       ]}
     >
       {deployments.map(({ mode, deployment, chainId }) => (
         <DeploymentCard key={deployment.encryptedERC} mode={mode} deployment={deployment} chainId={chainId} />
       ))}
-      <details className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-3 text-xs">
-        <summary className="cursor-pointer font-medium text-zinc-800 dark:text-zinc-200">
-          Why is setting an auditor required?
-        </summary>
-        <div className="space-y-2 pt-2 text-zinc-600 dark:text-zinc-400 leading-relaxed">
-          <p>
-            Every state-changing op ships with a Poseidon ciphertext encrypted to the auditor&apos;s public key. The
-            contract refuses to process any op before an auditor is set, because otherwise the audit trail would be
-            missing from day-one transactions.
-          </p>
-          <p>
-            The auditor is chosen by address, but the decryption key comes from that address&apos;s Registrar entry — so
-            the candidate must register first. The owner can rotate the auditor at any time; pre-rotation txs remain
-            decryptable only by the old auditor&apos;s key.
-          </p>
-        </div>
-      </details>
+      <Disclosure summary="Why is an auditor required?">
+        <p>
+          Every state-changing operation carries a Poseidon ciphertext encrypted to the auditor&apos;s public key. The
+          contract rejects operations until an auditor is set, so the audit trail is complete from the first
+          transaction.
+        </p>
+        <p>
+          You pick the auditor by address, but the decryption key comes from that address&apos;s Registrar entry, so the
+          candidate must register first. The owner can rotate the auditor at any time. Transactions from before a
+          rotation stay decryptable only with the old auditor&apos;s key.
+        </p>
+      </Disclosure>
     </EERCToolShell>
   );
 }
@@ -180,69 +180,84 @@ function DeploymentCard({ mode, deployment, chainId }: { mode: Mode; deployment:
     }
   };
 
+  const candidateError =
+    candidate && !candidateValid
+      ? 'Invalid address.'
+      : candidateValid && candidateRegistered === false
+        ? 'This address is not registered on the Registrar. It must register first.'
+        : null;
+
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          {mode === 'standalone' ? 'Standalone deployment' : 'Converter deployment'}
-        </h3>
-        <code className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">{deployment.encryptedERC}</code>
+    <section className="border border-zinc-200 dark:border-zinc-800">
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+        <p className={EYEBROW}>{mode === 'standalone' ? 'Standalone deployment' : 'Converter deployment'}</p>
+        <HashChip value={deployment.encryptedERC} len={10} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
-        <Field label="Current auditor">
-          <span className="flex items-center gap-1.5">
-            <code className="font-mono break-all">{currentAuditor ?? '—'}</code>
-            {isZeroAuditor && <span className="text-amber-600 dark:text-amber-400">(not set)</span>}
-          </span>
-        </Field>
-        <Field label="You">
-          <code className="font-mono break-all">{myAddress ?? '—'}</code>
-        </Field>
+      <div className="border-b border-zinc-200 px-4 dark:border-zinc-800">
+        <SpecPlate>
+          <SpecRow label="Current auditor">
+            {currentAuditor === null ? (
+              <span className="font-mono text-zinc-400 dark:text-zinc-500">—</span>
+            ) : isZeroAuditor ? (
+              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400">
+                Not set
+              </span>
+            ) : (
+              <HashChip value={currentAuditor} len={18} />
+            )}
+          </SpecRow>
+          <SpecRow label="You">
+            {myAddress ? (
+              <HashChip value={myAddress} len={18} />
+            ) : (
+              <span className="font-mono text-zinc-400 dark:text-zinc-500">—</span>
+            )}
+          </SpecRow>
+        </SpecPlate>
       </div>
 
-      <Input label="Auditor candidate" value={candidate} onChange={setCandidate} placeholder="0x..." />
-      {candidate && !candidateValid && (
-        <div className="text-[11px] text-red-600 dark:text-red-400">Invalid address</div>
-      )}
-      {candidateValid && candidateRegistered === false && (
-        <div className="text-[11px] text-red-600 dark:text-red-400">
-          Candidate is not registered on the Registrar — they must register first.
-        </div>
-      )}
-      {isMatchingCandidate && (
-        <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
-          <Check className="w-3 h-3" />
-          Already set to this candidate.
-        </div>
-      )}
-      {error && <div className="text-[11px] text-red-600 dark:text-red-400">{error}</div>}
-      {txHash && (
-        <div className="text-[11px]">
-          <EERCTxLink chainId={chainId} txHash={txHash}>
-            Auditor set — {txHash.slice(0, 10)}...
-          </EERCTxLink>
-        </div>
-      )}
+      <div className="flex flex-col gap-3 p-4">
+        <Input
+          label="Auditor candidate"
+          value={candidate}
+          onChange={setCandidate}
+          placeholder="0x..."
+          className="font-mono"
+          error={candidateError}
+        />
+        {isMatchingCandidate && (
+          <p className="-mt-3 flex items-center gap-1.5 font-mono text-[11px] text-emerald-700 dark:text-emerald-400">
+            <Check className="h-3 w-3" />
+            The auditor is already this address.
+          </p>
+        )}
+        {error && <Alert variant="error">{error}</Alert>}
+        {txHash && (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-zinc-600 dark:text-zinc-400">
+            <span className={EYEBROW}>Auditor set</span>
+            <EERCTxLink
+              chainId={chainId}
+              txHash={txHash}
+              className="font-mono text-[12.5px] text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-600 dark:hover:decoration-zinc-100"
+            >
+              {txHash.slice(0, 10)}…{txHash.slice(-4)}
+            </EERCTxLink>
+          </p>
+        )}
 
-      <Button
-        variant="primary"
-        disabled={!candidateValid || candidateRegistered !== true || !!isMatchingCandidate}
-        loading={submitting}
-        onClick={onSubmit}
-      >
-        Set Auditor
-      </Button>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</div>
-      <div className="text-zinc-700 dark:text-zinc-300">{children}</div>
-    </div>
+        <Button
+          variant="primary"
+          disabled={!candidateValid || candidateRegistered !== true || !!isMatchingCandidate}
+          loading={submitting}
+          loadingText="Setting auditor…"
+          onClick={onSubmit}
+        >
+          Set auditor
+        </Button>
+        {submitting && <WorkingCaption>Confirm in your wallet, then wait for the receipt.</WorkingCaption>}
+      </div>
+    </section>
   );
 }
 

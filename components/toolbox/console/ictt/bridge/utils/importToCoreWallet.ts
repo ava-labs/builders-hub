@@ -9,11 +9,11 @@ export interface ImportTokenOptions {
 }
 
 /**
- * Prompts the user's wallet (Core Wallet) to import an ERC-20 token via the
- * EIP-747 `wallet_watchAsset` JSON-RPC method.
+ * Prompts the connected wallet (Core, a Console wallet, or any EIP-747 wallet)
+ * to import an ERC-20 token via the `wallet_watchAsset` JSON-RPC method.
  *
  * The caller MUST switch the wallet to the destination chain before calling —
- * Core Wallet stages the new token on whichever network is currently active.
+ * wallets stage the new token on whichever network is currently active.
  *
  * Returns `true` if the user accepted the prompt, `false` if they rejected it
  * or the underlying wallet does not implement the method.

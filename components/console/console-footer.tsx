@@ -1,10 +1,10 @@
-import { Github } from "lucide-react";
+import { Github } from 'lucide-react';
 
 export function ConsoleFooter() {
   return (
     <footer className="mt-auto pt-6 pb-2 px-1 border-t border-zinc-200 dark:border-zinc-800">
-      <div className="flex flex-col gap-2 text-xs text-zinc-500 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1 text-left">
+      <div className="flex flex-col items-center gap-2 text-center text-xs text-zinc-500 dark:text-zinc-400 sm:flex-row sm:justify-between">
+        <div className="flex-1 sm:text-left">
           Crafted with <span aria-hidden>❤️</span> by Ava Labs DevRel team.
         </div>
         <div className="flex-1 flex justify-center">
@@ -19,7 +19,7 @@ export function ConsoleFooter() {
             <Github className="size-3.5" />
           </a>
         </div>
-        <div className="flex-1 text-right">© 2026 Ava Labs, Inc.</div>
+        <div className="flex-1 sm:text-right">© 2026 Ava Labs, Inc.</div>
       </div>
     </footer>
   );

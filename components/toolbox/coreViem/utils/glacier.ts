@@ -5,6 +5,20 @@ import { networkIDs } from '@avalabs/avalanchejs';
 
 const endpoint = 'https://glacier-api.avax.network';
 
+/**
+ * A Glacier (Data API) response that is not OK. `status` is its HTTP status, so a caller can tell a miss from an
+ * outage.
+ */
+export class GlacierHttpError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'GlacierHttpError';
+    this.status = status;
+  }
+}
+
 interface BlockchainInfo {
   createBlockTimestamp: number;
   createBlockNumber: string;
@@ -59,7 +73,7 @@ export async function getBlockchainInfoForNetwork(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch blockchain info: ${response.statusText}`);
+    throw new GlacierHttpError(`Failed to fetch blockchain info: ${response.statusText}`, response.status);
   }
 
   const data: BlockchainInfo = await response.json();
@@ -137,7 +151,7 @@ export async function getSubnetInfoForNetwork(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch subnet info: ${response.statusText}`);
+    throw new GlacierHttpError(`Failed to fetch subnet info: ${response.statusText}`, response.status);
   }
 
   const data: SubnetInfo = await response.json();

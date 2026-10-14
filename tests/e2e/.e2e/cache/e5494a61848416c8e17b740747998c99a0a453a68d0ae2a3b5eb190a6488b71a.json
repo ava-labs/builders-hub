@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-14T01:56:02.707Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap link \"Testnet Faucet\"",
+        "target": {
+          "role": "link",
+          "name": "Testnet Faucet"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "ai/journey-console.e2e.ts::visitor%20finds%20where%20to%20get%20test%20AVAX%20from%20the%20Console%20home",
+      "targetId": "desktop",
+      "instructionDigest": "161a3b7fe24ee4886e31ac30e2362d5e73393c3728fd825741deaccf66e5676d",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "summary": "The Testnet Faucet tool is open at /console/primary-network/faucet. The page title and breadcrumb both read \"Testnet Faucet\". The page shows a requirements panel (wallet, Builder Hub account), which is expected before use.",
+    "startPath": "/console",
+    "endPath": "/console/primary-network/faucet",
+    "endAnchors": [
+      {
+        "text": "Requirements"
+      },
+      {
+        "role": "heading",
+        "name": "To use this tool you need:"
+      },
+      {
+        "text": "Wallet detected"
+      },
+      {
+        "text": "Wallet connected"
+      },
+      {
+        "text": "Builder Hub Account"
+      },
+      {
+        "role": "heading",
+        "name": "How to meet these requirements"
+      },
+      {
+        "text": "Install a wallet extension"
+      },
+      {
+        "text": "Any EVM wallet works; Core is built for Avalanche and signs P-Chain transactions too"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "Avalanche"
+      },
+      {
+        "role": "heading",
+        "name": "Avalanche Builder Console",
+        "text": "Builder Console"
+      },
+      {
+        "text": "Tools for the Primary Network and your own L1s. Start on Fuji, then go to mainnet."
+      },
+      {
+        "role": "link",
+        "name": "Create an L1"
+      },
+      {
+        "role": "link",
+        "name": "Get test AVAX"
+      },
+      {
+        "text": "Start"
+      },
+      {
+        "text": "Layer 1"
+      },
+      {
+        "text": "Create an L1"
+      }
+    ],
+    "endWaitMs": 27184
+  }
+}

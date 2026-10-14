@@ -3,7 +3,7 @@
 import SendICMMessage from '@/components/toolbox/console/icm/test-connection/SendICMMessage';
 import { useIcmSetupStore } from '@/components/toolbox/stores/icmSetupStore';
 import { useSelectedL1, useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
-import { Note } from '@/components/toolbox/components/Note';
+import { Alert } from '@/components/toolbox/components/Alert';
 
 /**
  * Live phase inspector. Wraps the existing `SendICMMessage` tool. Surfaces
@@ -24,13 +24,11 @@ export function LiveInspector() {
   return (
     <section className="flex flex-col gap-4">
       {showPrereqWarning && (
-        <Note variant="warning">
-          <span className="text-xs">
-            {sourceReady
-              ? `Deploy the demo on ${counterpart?.name ?? 'the destination chain'} before sending — the receiver address comes from there.`
-              : `Deploy the demo on ${selectedL1?.name ?? 'this chain'} first, then on a counterpart, before sending a message.`}
-          </span>
-        </Note>
+        <Alert variant="warning">
+          {sourceReady
+            ? `Deploy the demo on ${counterpart?.name ?? 'the destination chain'} before sending. The receiver address comes from there.`
+            : `Deploy the demo on ${selectedL1?.name ?? 'this chain'} first, then on a second L1, before sending a message.`}
+        </Alert>
       )}
       <SendICMMessage />
     </section>

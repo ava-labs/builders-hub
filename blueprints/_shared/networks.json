@@ -1,0 +1,257 @@
+{
+  "$comment": "Every address, chain ID, selector and endpoint a blueprint may use. Blueprints reference these through $net./$reg. paths; models copy values from here and never from memory. Each entry was checked on-chain on verifiedAt. A null value means the value is only known at runtime (for example the Teleporter registry on a freshly launched L1).",
+  "verifiedAt": "2026-09-29",
+  "precompiles": {
+    "deployerAllowList": "0x0200000000000000000000000000000000000000",
+    "nativeMinter": "0x0200000000000000000000000000000000000001",
+    "txAllowList": "0x0200000000000000000000000000000000000002",
+    "feeManager": "0x0200000000000000000000000000000000000003",
+    "rewardManager": "0x0200000000000000000000000000000000000004",
+    "warp": "0x0200000000000000000000000000000000000005"
+  },
+  "networks": {
+    "fuji-c-chain": {
+      "name": "Avalanche Fuji C-Chain",
+      "family": "avalanche",
+      "testnet": true,
+      "deploy": "one-click",
+      "evmChainId": 43113,
+      "blockchainId": "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
+      "blockchainIdHex": "0x7fc93d85c6d62c5b2ac0b519c87010ea5294012d1e407030d6acd0021cac10d5",
+      "subnetId": "11111111111111111111111111111111LpoYY",
+      "rpcUrl": "https://api.avax-test.network/ext/bc/C/rpc",
+      "wsUrl": "wss://api.avax-test.network/ext/bc/C/ws",
+      "explorerUrl": "https://build.avax.network/explorer/fuji/c-chain",
+      "verifyApiUrl": "https://build.avax.network/api/verify/43113/api",
+      "nativeCurrency": { "symbol": "AVAX", "decimals": 18 },
+      "faucets": {
+        "AVAX": "https://build.avax.network/console/primary-network/faucet",
+        "USDC": "https://faucet.circle.com",
+        "LINK": "https://faucets.chain.link"
+      },
+      "tokens": {
+        "USDC": { "address": "0x5425890298aed601595a70AB815c96711a31Bc65", "decimals": 6 },
+        "WAVAX": { "address": "0xd00ae08403B9bbb9124bB305C09058E32C39A48c", "decimals": 18 },
+        "LINK": { "address": "0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846", "decimals": 18 },
+        "CCIP-BnM": { "address": "0xD21341536c5cF5EB1bcb58f6723cE26e8D8E90e4", "decimals": 18 }
+      },
+      "teleporter": {
+        "messenger": "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf",
+        "registry": "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228"
+      },
+      "chainlink": {
+        "feeds": {
+          "AVAX/USD": { "address": "0x5498BB86BC934c8D34FDA08E81D444153d0D06aD", "decimals": 8 },
+          "ETH/USD": { "address": "0x86d67c3D38D2bCeE722E601025C25a575021c6EA", "decimals": 8 },
+          "BTC/USD": { "address": "0x31CF013A08c6Ac228C94551d535d5BAfE19c602a", "decimals": 8 }
+        }
+      },
+      "ccip": {
+        "router": "0xF694E193200268f9a4868e4Aa017A0118C9a8177",
+        "chainSelector": "14767482510784806043",
+        "feeTokens": ["native", "LINK", "WAVAX"],
+        "transferableTokens": ["USDC", "CCIP-BnM"]
+      },
+      "eerc": {
+        "registrar": "0x7830a1c35da4fded5a2d2e1cb3432ac28a5bb2de",
+        "babyJubJubLibrary": "0x386be94190c91a599852827ef2211676774990fc",
+        "verifiers": {
+          "registration": "0x8c35338fb4eeccf838db93f78d5998168371bcd5",
+          "mint": "0x5dc346acc1cd80dcfafefe4951d74b848a6464ed",
+          "transfer": "0x7e84c9d21eb23d533385a13c07127e7ad1e077ab",
+          "withdraw": "0x87329ec6f2ffa8123c5f7f3bd03edf4634dd8ad7",
+          "burn": "0xe6b66eac11e7a96c5acce4c51d7ff306d235d3ab"
+        },
+        "standalone": "0x991c87ea50c7c0647a44890988df928d63cfd677",
+        "converter": "0xaa1e09ff9ea69128574293340bed9c4e906f24b0"
+      }
+    },
+    "mainnet-c-chain": {
+      "name": "Avalanche C-Chain",
+      "family": "avalanche",
+      "testnet": false,
+      "deploy": "user-signed",
+      "evmChainId": 43114,
+      "blockchainId": "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5",
+      "blockchainIdHex": "0x0427d4b22a2a78bcddd456742caf91b56badbff985ee19aef14573e7343fd652",
+      "subnetId": "11111111111111111111111111111111LpoYY",
+      "rpcUrl": "https://api.avax.network/ext/bc/C/rpc",
+      "wsUrl": "wss://api.avax.network/ext/bc/C/ws",
+      "explorerUrl": "https://build.avax.network/explorer/mainnet/c-chain",
+      "verifyApiUrl": "https://build.avax.network/api/verify/43114/api",
+      "nativeCurrency": { "symbol": "AVAX", "decimals": 18 },
+      "faucets": {},
+      "tokens": {
+        "USDC": { "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", "decimals": 6 },
+        "WAVAX": { "address": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", "decimals": 18 }
+      },
+      "teleporter": {
+        "messenger": "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf",
+        "registry": "0x7C43605E14F391720e1b37E49C78C4b03A488d98"
+      },
+      "chainlink": {
+        "feeds": {
+          "AVAX/USD": { "address": "0x0A77230d17318075983913bC2145DB16C7366156", "decimals": 8 }
+        }
+      },
+      "ccip": {
+        "router": "0xF4c7E640EdA248ef95972845a62bdC74237805dB",
+        "chainSelector": "6433500567565415381",
+        "feeTokens": ["native", "WAVAX"],
+        "transferableTokens": []
+      }
+    },
+    "echo-fuji": {
+      "name": "Echo L1 (Fuji)",
+      "family": "avalanche",
+      "testnet": true,
+      "deploy": "one-click",
+      "evmChainId": 173750,
+      "blockchainId": "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
+      "blockchainIdHex": "0x1278d1be4b987e847be3465940eb5066c4604a7fbd6e086900823597d81af4c1",
+      "subnetId": "i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK",
+      "rpcUrl": "https://subnets.avax.network/echo/testnet/rpc",
+      "wsUrl": "wss://subnets.avax.network/echo/testnet/ws",
+      "explorerUrl": "https://build.avax.network/explorer/fuji/echo-l1",
+      "verifyApiUrl": "https://build.avax.network/api/verify/173750/api",
+      "nativeCurrency": { "symbol": "ECH", "decimals": 18 },
+      "faucets": { "ECH": "https://build.avax.network/console/primary-network/faucet" },
+      "tokens": {},
+      "teleporter": {
+        "messenger": "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf",
+        "registry": "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228"
+      }
+    },
+    "dispatch-fuji": {
+      "name": "Dispatch L1 (Fuji)",
+      "family": "avalanche",
+      "testnet": true,
+      "deploy": "one-click",
+      "evmChainId": 779672,
+      "blockchainId": "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
+      "blockchainIdHex": "0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7",
+      "subnetId": "7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5",
+      "rpcUrl": "https://subnets.avax.network/dispatch/testnet/rpc",
+      "wsUrl": "wss://subnets.avax.network/dispatch/testnet/ws",
+      "explorerUrl": "https://build.avax.network/explorer/fuji/dispatch-l1",
+      "verifyApiUrl": "https://build.avax.network/api/verify/779672/api",
+      "nativeCurrency": { "symbol": "DIS", "decimals": 18 },
+      "faucets": { "DIS": "https://build.avax.network/console/primary-network/faucet" },
+      "tokens": {},
+      "teleporter": {
+        "messenger": "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf",
+        "registry": "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228"
+      }
+    },
+    "l1": {
+      "name": "Your Avalanche L1",
+      "family": "avalanche",
+      "testnet": true,
+      "deploy": "one-click",
+      "evmChainId": null,
+      "blockchainId": null,
+      "blockchainIdHex": null,
+      "subnetId": null,
+      "rpcUrl": null,
+      "wsUrl": null,
+      "explorerUrl": null,
+      "verifyApiUrl": null,
+      "nativeCurrency": null,
+      "faucets": {},
+      "tokens": {},
+      "teleporter": {
+        "messenger": "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf",
+        "registry": null
+      },
+      "$runtime": "Bind this entry to a real chain before use: evmChainId, blockchainId(Hex) and rpcUrl come from the l1-quickstart result or the console's L1 list, the Teleporter registry from interop.icmRegistryAddress or the console's ICM setup. The messenger address holds only when ICM was enabled at genesis or set up through the console; confirm with eth_getCode before relying on it."
+    },
+    "ethereum-sepolia": {
+      "name": "Ethereum Sepolia",
+      "family": "ethereum",
+      "testnet": true,
+      "deploy": "user-signed",
+      "evmChainId": 11155111,
+      "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+      "explorerUrl": "https://sepolia.etherscan.io",
+      "verifyApiUrl": null,
+      "nativeCurrency": { "symbol": "ETH", "decimals": 18 },
+      "faucets": { "ETH": "https://cloud.google.com/application/web3/faucet/ethereum/sepolia", "LINK": "https://faucets.chain.link" },
+      "tokens": {
+        "USDC": { "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", "decimals": 6 },
+        "CCIP-BnM": { "address": "0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05", "decimals": 18 }
+      },
+      "ccip": {
+        "router": "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59",
+        "chainSelector": "16015286601757825753",
+        "feeTokens": ["native"],
+        "transferableTokens": ["USDC", "CCIP-BnM"]
+      }
+    },
+    "arbitrum-sepolia": {
+      "name": "Arbitrum Sepolia",
+      "family": "arbitrum",
+      "testnet": true,
+      "deploy": "user-signed",
+      "evmChainId": 421614,
+      "rpcUrl": "https://sepolia-rollup.arbitrum.io/rpc",
+      "explorerUrl": "https://sepolia.arbiscan.io",
+      "verifyApiUrl": null,
+      "nativeCurrency": { "symbol": "ETH", "decimals": 18 },
+      "faucets": { "ETH": "https://faucet.quicknode.com/arbitrum/sepolia", "LINK": "https://faucets.chain.link" },
+      "tokens": {
+        "USDC": { "address": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d", "decimals": 6 },
+        "CCIP-BnM": { "address": "0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D", "decimals": 18 }
+      },
+      "ccip": {
+        "router": "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165",
+        "chainSelector": "3478487238524512106",
+        "feeTokens": ["native"],
+        "transferableTokens": ["USDC", "CCIP-BnM"]
+      }
+    },
+    "base-sepolia": {
+      "name": "Base Sepolia",
+      "family": "base",
+      "testnet": true,
+      "deploy": "user-signed",
+      "evmChainId": 84532,
+      "rpcUrl": "https://sepolia.base.org",
+      "explorerUrl": "https://sepolia.basescan.org",
+      "verifyApiUrl": null,
+      "nativeCurrency": { "symbol": "ETH", "decimals": 18 },
+      "faucets": { "ETH": "https://portal.cdp.coinbase.com/products/faucet", "LINK": "https://faucets.chain.link" },
+      "tokens": {
+        "USDC": { "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e", "decimals": 6 },
+        "CCIP-BnM": { "address": "0x88A2d74F47a237a62e7A51cdDa67270CE381555e", "decimals": 18 }
+      },
+      "ccip": {
+        "router": "0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93",
+        "chainSelector": "10344971235874465080",
+        "feeTokens": ["native"],
+        "transferableTokens": ["USDC", "CCIP-BnM"]
+      }
+    },
+    "op-sepolia": {
+      "name": "OP Sepolia",
+      "family": "optimism",
+      "testnet": true,
+      "deploy": "user-signed",
+      "evmChainId": 11155420,
+      "rpcUrl": "https://sepolia.optimism.io",
+      "explorerUrl": "https://sepolia-optimism.etherscan.io",
+      "verifyApiUrl": null,
+      "nativeCurrency": { "symbol": "ETH", "decimals": 18 },
+      "faucets": { "ETH": "https://console.optimism.io/faucet", "LINK": "https://faucets.chain.link" },
+      "tokens": {
+        "USDC": { "address": "0x5fd84259d66Cd46123540766Be93DFE6D43130D7", "decimals": 6 },
+        "CCIP-BnM": { "address": "0x8aF4204e30565DF93352fE8E1De78925F6664dA7", "decimals": 18 }
+      },
+      "ccip": {
+        "router": "0x114A20A10b43D4115e5aeef7345a1A71d2a60C57",
+        "chainSelector": "5224473277236331295",
+        "feeTokens": ["native"],
+        "transferableTokens": ["USDC", "CCIP-BnM"]
+      }
+    }
+  }
+}

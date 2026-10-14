@@ -2,10 +2,12 @@
 
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/toolbox/components/Button';
 import { Plus } from 'lucide-react';
+import { Board, SectionHeader, StatCell, StatDash, StatFigure } from '@/components/explorer-v2/ui';
 
 import { NodeRegistration } from './types';
+import { calculateTimeRemaining, getStatusData } from './useTimeRemaining';
+import { HoverArrow, PRIMARY_BTN } from './ui';
 import CreateNodeForm from './CreateNodeForm';
 import NodesList from './NodesList';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -89,28 +91,44 @@ function ManagedTestnetNodesBase() {
     }
   };
 
-  return (
-    <>
-      {/* Stats Section */}
-      <div className="mb-8 not-prose">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              <span className="font-semibold">{nodes.length}</span> / 3 active nodes
-            </p>
-          </div>
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto"
-            size="sm"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add a node for a new L1
-          </Button>
-        </div>
-      </div>
+  const expiringSoon = nodes.filter(
+    (node) => getStatusData(calculateTimeRemaining(node.expires_at)).iconType === 'warning',
+  ).length;
+  const l1sCovered = new Set(nodes.map((node) => node.subnet_id)).size;
 
-      {/* Create Node Form */}
+  return (
+    <div className="not-prose flex flex-col gap-8">
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          label="Overview"
+          action={
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(true)}
+              aria-expanded={showCreateForm}
+              className={PRIMARY_BTN}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add a node
+              <HoverArrow />
+            </button>
+          }
+        />
+        <Board divide={false} className="border-x border-t">
+          <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
+            <StatCell label="Active nodes" live={nodes.length > 0} sub="Free, 3 per account">
+              {isLoadingNodes ? <StatDash /> : <StatFigure value={nodes.length} suffix="/ 3" />}
+            </StatCell>
+            <StatCell label="Expiring soon" sub="Within a day">
+              {isLoadingNodes ? <StatDash /> : <StatFigure value={expiringSoon} />}
+            </StatCell>
+            <StatCell label="L1s covered" sub="Each node lasts 3 days">
+              {isLoadingNodes ? <StatDash /> : <StatFigure value={l1sCovered} />}
+            </StatCell>
+          </div>
+        </Board>
+      </section>
+
       {showCreateForm && (
         <CreateNodeForm
           onClose={() => setShowCreateForm(false)}
@@ -121,19 +139,16 @@ function ManagedTestnetNodesBase() {
         />
       )}
 
-      {/* Nodes List */}
-      <div className="not-prose">
-        <NodesList
-          nodes={nodes}
-          isLoadingNodes={isLoadingNodes}
-          nodesError={nodesError}
-          onRefresh={fetchNodes}
-          onShowCreateForm={() => setShowCreateForm(true)}
-          onDeleteNode={handleDeleteNode}
-          deletingNodes={deletingNodes}
-        />
-      </div>
-    </>
+      <NodesList
+        nodes={nodes}
+        isLoadingNodes={isLoadingNodes}
+        nodesError={nodesError}
+        onRefresh={fetchNodes}
+        onShowCreateForm={() => setShowCreateForm(true)}
+        onDeleteNode={handleDeleteNode}
+        deletingNodes={deletingNodes}
+      />
+    </div>
   );
 }
 

@@ -78,25 +78,31 @@ export function ListContractEvents({
 
   return (
     <div className="mt-6 space-y-4">
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <h3 className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+        {title}
+      </h3>
 
       {latestBlock && (
-        <div className="text-sm text-gray-500">
+        <div className="text-[12px] text-zinc-500 dark:text-zinc-400">
           Showing events from the last {blockLimit.toLocaleString()} blocks (current block: {latestBlock.toString()})
         </div>
       )}
 
-      {loading && <div className="text-gray-500">Loading events...</div>}
+      {loading && <div className="text-[13px] text-zinc-500 dark:text-zinc-400">Loading events...</div>}
 
-      {error && <div className="p-3 bg-red-50 border border-red-200 rounded text-red-600">{error}</div>}
+      {error && (
+        <div className="border border-red-200 bg-red-50/60 p-3 text-[13px] text-red-800 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300">
+          {error}
+        </div>
+      )}
 
       {!loading && events.length === 0 && !error && (
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+        <div className="border border-zinc-200 bg-zinc-50/60 p-3 text-[13px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
           No events found in recent blocks. The contract may have no events or they occurred before the query range.
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="divide-y divide-zinc-200 border border-zinc-200 empty:border-0 dark:divide-zinc-800 dark:border-zinc-800">
         {events.map((log) => {
           let decodedEvent;
           try {
@@ -106,19 +112,20 @@ export function ListContractEvents({
           }
 
           return (
-            <div
-              key={`${log.transactionHash}-${log.logIndex}`}
-              className="bg-white p-4 rounded-md border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"
-            >
+            <div key={`${log.transactionHash}-${log.logIndex}`} className="bg-white p-4 dark:bg-zinc-950">
               <div className="flex flex-col md:flex-row justify-between">
                 <div className="flex-grow">
-                  <h4 className="text-md font-semibold text-gray-800">{decodedEvent.name || 'Unknown Event'}</h4>
+                  <h4 className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">
+                    {decodedEvent.name || 'Unknown Event'}
+                  </h4>
 
                   <div className="mt-3 grid grid-cols-1 gap-2">
                     {Object.entries(decodedEvent.args || {}).map(([key, value]) => (
                       <div key={key} className="flex flex-col">
-                        <span className="text-sm text-gray-500 font-medium">{key}</span>
-                        <span className="font-mono text-sm break-all">
+                        <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                          {key}
+                        </span>
+                        <span className="break-all font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
                           {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                         </span>
                       </div>
@@ -126,7 +133,7 @@ export function ListContractEvents({
                   </div>
                 </div>
 
-                <div className="flex flex-col items-start md:items-end text-sm text-gray-500 mt-3 md:mt-0 space-y-1">
+                <div className="mt-3 flex flex-col items-start space-y-1 font-mono text-[11px] text-zinc-500 md:mt-0 md:items-end dark:text-zinc-400">
                   <div>
                     <span className="font-medium">Block: </span>
                     <span>{log.blockNumber?.toString() || 'Pending'}</span>
@@ -135,7 +142,7 @@ export function ListContractEvents({
                   <div>
                     <span className="font-medium">TX: </span>
                     <button
-                      className="text-blue-600 hover:text-blue-900 font-mono"
+                      className="font-mono text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
                       onClick={() => navigator.clipboard.writeText(log.transactionHash || '')}
                       title="Click to copy transaction hash"
                     >

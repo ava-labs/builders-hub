@@ -1,0 +1,312 @@
+{
+  "id": "ictt-token-bridge",
+  "version": 1,
+  "title": "ICTT Token Bridge",
+  "summary": "Bridge an ERC-20 between Avalanche chains",
+  "description": "Moves an existing ERC-20 from a home chain to a remote chain with Interchain Token Transfer: the audited TokenHome locks it, the TokenRemote mints a 1:1 ERC-20, and ICM carries every transfer.",
+  "category": "interop",
+  "level": "intermediate",
+  "tags": ["ictt", "icm", "bridge", "erc20", "l1", "c-chain"],
+  "prompts": [
+    "Bridge my token from the C-Chain to my L1",
+    "Make my ERC-20 usable on another Avalanche chain",
+    "Set up a token bridge between my L1 and Fuji"
+  ],
+  "networks": {
+    "home": {
+      "description": "Chain where the token already lives and is locked",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "echo-fuji", "dispatch-fuji", "l1"]
+    },
+    "remote": {
+      "description": "Chain that gets the bridged ERC-20; must differ from home",
+      "default": "l1",
+      "allowed": ["l1", "echo-fuji", "dispatch-fuji", "fuji-c-chain"]
+    }
+  },
+  "params": [
+    {
+      "name": "token",
+      "type": "address",
+      "description": "ERC-20 on the home chain, for example the address erc20-token deployed",
+      "example": "$out.deploy-token.address from erc20-token"
+    },
+    {
+      "name": "tokenDecimals",
+      "type": "uint",
+      "description": "Decimals of the home token, read with decimals()",
+      "default": 18
+    },
+    {
+      "name": "remoteName",
+      "type": "string",
+      "description": "Name of the bridged token on the remote chain",
+      "example": "Moon Token (Bridged)"
+    },
+    {
+      "name": "remoteSymbol",
+      "type": "string",
+      "description": "Symbol of the bridged token on the remote chain",
+      "example": "MOON.b"
+    },
+    {
+      "name": "remoteDecimals",
+      "type": "uint",
+      "description": "Decimals of the bridged token; keep equal to tokenDecimals unless you need scaling",
+      "default": 18
+    },
+    {
+      "name": "teleporterManager",
+      "type": "address",
+      "description": "May pause Teleporter versions and set the minimum version on both contracts",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "amount",
+      "type": "uint",
+      "description": "Test transfer, in home-token base units",
+      "default": "1000000000000000000"
+    },
+    {
+      "name": "recipient",
+      "type": "address",
+      "description": "Receives the test transfer on the remote chain",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "requiredGasLimit",
+      "type": "uint",
+      "description": "Gas for the remote to mint on delivery",
+      "default": 250000
+    }
+  ],
+  "prerequisites": [
+    "The token exists on the home chain and the builder holds at least the test amount",
+    "Both chains have a Teleporter registry: registry addresses for Fuji C-Chain, Echo and Dispatch are in the registry; an L1 gets one from l1-quickstart or the console's ICM setup",
+    "A relayer serving both chains",
+    "Native gas on both chains for the signer"
+  ],
+  "contracts": [
+    {
+      "name": "ERC20TokenHome",
+      "artifact": "contracts/icm-contracts/compiled/ERC20TokenHome.json",
+      "description": "Locks the token on the home chain and sends transfers"
+    },
+    {
+      "name": "ERC20TokenRemote",
+      "artifact": "contracts/icm-contracts/compiled/ERC20TokenRemote.json",
+      "description": "Bridged ERC-20 on the remote chain"
+    },
+    {
+      "name": "ERC20",
+      "artifact": "contracts/icm-contracts/compiled/ExampleERC20.json",
+      "description": "Standard ERC-20 ABI, for approving the home token"
+    },
+    {
+      "name": "TeleporterMessenger",
+      "artifact": "contracts/icm-contracts/compiled/TeleporterMessenger.json",
+      "description": "Decodes the registration message id"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ensure-relayer",
+      "title": "Make sure a relayer serves both chains",
+      "kind": "offchain",
+      "network": "home",
+      "action": "icm.ensure-relayer",
+      "inputs": {
+        "chains": ["$net.home", "$net.remote"]
+      }
+    },
+    {
+      "id": "deploy-home",
+      "title": "Deploy TokenHome on the home chain",
+      "kind": "deploy",
+      "network": "home",
+      "signer": "deployer",
+      "contract": "ERC20TokenHome",
+      "args": ["$net.home.teleporter.registry", "$param.teleporterManager", 1, "$param.token", "$param.tokenDecimals"]
+    },
+    {
+      "id": "deploy-remote",
+      "title": "Deploy TokenRemote on the remote chain",
+      "kind": "deploy",
+      "network": "remote",
+      "signer": "deployer",
+      "contract": "ERC20TokenRemote",
+      "args": [
+        {
+          "teleporterRegistryAddress": "$net.remote.teleporter.registry",
+          "teleporterManager": "$param.teleporterManager",
+          "minTeleporterVersion": 1,
+          "tokenHomeBlockchainID": "$net.home.blockchainIdHex",
+          "tokenHomeAddress": "$out.deploy-home.address",
+          "tokenHomeDecimals": "$param.tokenDecimals"
+        },
+        "$param.remoteName",
+        "$param.remoteSymbol",
+        "$param.remoteDecimals"
+      ]
+    },
+    {
+      "id": "register",
+      "title": "Register the remote with its home",
+      "kind": "call",
+      "network": "remote",
+      "signer": "deployer",
+      "contract": "ERC20TokenRemote",
+      "target": "$out.deploy-remote.address",
+      "function": "registerWithHome",
+      "args": [
+        {
+          "feeTokenAddress": "0x0000000000000000000000000000000000000000",
+          "amount": 0
+        }
+      ],
+      "outputs": {
+        "messageId": "event:TeleporterMessenger.SendCrossChainMessage.messageID"
+      }
+    },
+    {
+      "id": "wait-register",
+      "title": "Wait for the home to learn about the remote",
+      "kind": "wait",
+      "network": "home",
+      "wait": {
+        "for": "icm-delivery",
+        "id": "$out.register.messageId",
+        "timeoutMinutes": 5
+      }
+    },
+    {
+      "id": "approve",
+      "title": "Approve the test amount",
+      "kind": "call",
+      "network": "home",
+      "signer": "builder",
+      "contract": "ERC20",
+      "target": "$param.token",
+      "function": "approve",
+      "args": ["$out.deploy-home.address", "$param.amount"]
+    },
+    {
+      "id": "send",
+      "title": "Send the test amount to the remote chain",
+      "kind": "call",
+      "network": "home",
+      "signer": "builder",
+      "contract": "ERC20TokenHome",
+      "target": "$out.deploy-home.address",
+      "function": "send",
+      "args": [
+        {
+          "destinationBlockchainID": "$net.remote.blockchainIdHex",
+          "destinationTokenTransferrerAddress": "$out.deploy-remote.address",
+          "recipient": "$param.recipient",
+          "primaryFeeTokenAddress": "0x0000000000000000000000000000000000000000",
+          "primaryFee": 0,
+          "secondaryFee": 0,
+          "requiredGasLimit": "$param.requiredGasLimit",
+          "multiHopFallback": "0x0000000000000000000000000000000000000000"
+        },
+        "$param.amount"
+      ],
+      "outputs": {
+        "messageId": "event:ERC20TokenHome.TokensSent.teleporterMessageID"
+      }
+    },
+    {
+      "id": "wait-send",
+      "title": "Wait for the tokens to arrive",
+      "kind": "wait",
+      "network": "remote",
+      "wait": {
+        "for": "icm-delivery",
+        "id": "$out.send.messageId",
+        "timeoutMinutes": 5
+      }
+    }
+  ],
+  "checks": [
+    {
+      "description": "The home knows the remote",
+      "after": "wait-register",
+      "network": "home",
+      "contract": "ERC20TokenHome",
+      "target": "$out.deploy-home.address",
+      "function": "getRemoteTokenTransferrerSettings",
+      "args": ["$net.remote.blockchainIdHex", "$out.deploy-remote.address"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The recipient holds the bridged tokens",
+      "after": "wait-send",
+      "network": "remote",
+      "contract": "ERC20TokenRemote",
+      "target": "$out.deploy-remote.address",
+      "function": "balanceOf",
+      "args": ["$param.recipient"],
+      "expect": {
+        "gte": "$param.amount"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-home",
+      "read": [
+        "getTokenAddress",
+        "getRemoteTokenTransferrerSettings",
+        "getTransferredBalance",
+        "getBlockchainID",
+        "owner"
+      ],
+      "write": ["send", "sendAndCall", "addCollateral"]
+    },
+    {
+      "step": "deploy-remote",
+      "read": ["name", "symbol", "decimals", "totalSupply", "balanceOf", "getTokenHomeAddress", "getIsCollateralized"],
+      "write": ["send", "transfer", "approve", "registerWithHome"]
+    }
+  ],
+  "review": [
+    "TokenHome and TokenRemote are the audited ICTT contracts from contracts/icm-contracts/compiled; do not rewrite them.",
+    "tokenHomeDecimals equals the home token's decimals(); a mismatch mis-scales every transfer.",
+    "The home chain's registry and the remote chain's registry are each that chain's own TeleporterRegistry.",
+    "Transfers wait for registration to be delivered to the home; sending earlier reverts on the home."
+  ],
+  "frontend": {
+    "summary": "Move a token between the C-Chain and the L1 and back, with both balances side by side.",
+    "audience": ["Holders moving the token to use it on the L1, or bringing it back"],
+    "journeys": [
+      "Both balances side by side, one per chain.",
+      "Pick a direction with a swap arrow, enter an amount with Max, and send; allowing the token is step 1 of 2 only when needed.",
+      "Follow the transfer to arrival, then both balances refresh.",
+      "Name the chains and the token in words everywhere ('Bridge 25 USDC to Moon Chain')."
+    ],
+    "flows": [
+      "Home to remote: approve TokenHome for the amount, then call send(input, amount) on TokenHome with destinationBlockchainID and destinationTokenTransferrerAddress set to the remote.",
+      "Remote to home: approve the TokenRemote for the amount on the TokenRemote itself, then call send(input, amount) on it with the home's blockchain ID and TokenHome address.",
+      "Read the message id from TokensSent and poll messageReceived on the destination TeleporterMessenger; link the ICM message page on the Builder Hub explorer.",
+      "Show balances on both chains side by side and refresh when delivery completes."
+    ]
+  },
+  "docs": [
+    {
+      "title": "ICTT in the Avalanche SDK",
+      "url": "/docs/tooling/avalanche-sdk/interchain/ictt"
+    },
+    {
+      "title": "ERC-20 to ERC-20 bridge (Academy)",
+      "url": "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/01-erc-20-to-erc-20-bridge"
+    },
+    {
+      "title": "ICTT setup in the console",
+      "url": "/console/ictt/setup"
+    }
+  ],
+  "related": ["erc20-token", "usdc-gas-l1", "icm-messenger", "l1-quickstart"]
+}

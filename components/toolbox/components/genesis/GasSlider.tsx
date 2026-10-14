@@ -105,11 +105,13 @@ export function GasSlider({
     <div className="space-y-3">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <label className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+          <label className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            {label}
+          </label>
           {description && (
             <div className="group relative">
               <Info className="h-3 w-3 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 cursor-help" />
-              <div className="absolute left-0 top-6 z-50 hidden group-hover:block w-64 p-2 bg-zinc-950 text-zinc-100 text-[11px] rounded-md shadow-lg border border-zinc-800">
+              <div className="absolute left-0 top-6 z-50 hidden w-64 border border-zinc-800 bg-zinc-950 p-2 text-[11px] text-zinc-100 group-hover:block">
                 {description}
               </div>
             </div>
@@ -124,11 +126,12 @@ export function GasSlider({
               onFocus={onFocus}
               onBlur={handleInputBlur}
               className={cn(
-                'w-24 px-2 py-1 text-[12px] text-right rounded-md font-mono',
-                'bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800',
-                'focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600',
-                'text-zinc-700 dark:text-zinc-300',
-                error && 'border-red-500 focus:ring-red-500',
+                'w-24 px-2 py-1 text-right font-mono text-[12px]',
+                'border bg-white transition-colors focus:outline-none dark:bg-zinc-950',
+                error
+                  ? 'border-red-500 focus:border-red-600 dark:border-red-700'
+                  : 'border-zinc-200 hover:border-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-600 dark:focus:border-zinc-300',
+                'text-zinc-900 dark:text-zinc-100',
               )}
             />
           ) : (
@@ -140,10 +143,10 @@ export function GasSlider({
 
       {/* Slider Track */}
       <div className="relative">
-        <div className="relative h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+        <div className="relative h-1 overflow-hidden bg-zinc-200 dark:bg-zinc-800">
           {/* Progress Fill */}
           <div
-            className="absolute h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-150"
+            className="absolute h-full bg-zinc-900 transition-all duration-150 dark:bg-zinc-100"
             style={{ width: `${percentage}%` }}
           />
 
@@ -171,8 +174,8 @@ export function GasSlider({
         {/* Thumb */}
         <div
           className={cn(
-            'absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full',
-            'bg-white dark:bg-zinc-950 border-2 border-blue-500 dark:border-blue-400 shadow-sm',
+            'absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2',
+            'border-2 border-zinc-900 bg-white dark:border-zinc-100 dark:bg-zinc-950',
             'pointer-events-none transition-transform',
             isDragging && 'scale-110',
           )}
@@ -188,11 +191,10 @@ export function GasSlider({
               key={preset.value}
               onClick={() => onChange(preset.value)}
               className={cn(
-                'px-2.5 py-1 text-[11px] rounded-md transition-colors font-medium',
-                'border border-zinc-200 dark:border-zinc-800',
+                'border px-2.5 py-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.1em] transition-colors',
                 value === preset.value
-                  ? 'bg-blue-500 dark:bg-blue-500 text-white dark:text-white border-blue-500 dark:border-blue-500'
-                  : 'bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:bg-blue-50 dark:hover:bg-blue-950/30',
+                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100',
               )}
               title={preset.description}
             >
@@ -203,9 +205,9 @@ export function GasSlider({
       )}
 
       {/* Error/Warning Messages */}
-      {error && <div className="text-[11px] text-red-500 dark:text-red-400 flex items-center gap-1">{error}</div>}
+      {error && <div className="flex items-center gap-1 text-[12px] text-red-700 dark:text-red-400">{error}</div>}
       {!error && warning && (
-        <div className="text-[11px] text-amber-600 dark:text-amber-500 flex items-center gap-1">⚠️ {warning}</div>
+        <div className="flex items-center gap-1 text-[12px] text-amber-700 dark:text-amber-400">⚠️ {warning}</div>
       )}
     </div>
   );

@@ -12,9 +12,10 @@ interface DeployExampleERC20Result {
 }
 
 /**
- * Deploys the ExampleERC20 mock token (1M supply, 18 decimals) and emits an
- * activity event. Does NOT touch the bridge graph — Token phase only seeds
- * an underlying token; the Bridge entry is created in Phase 2 (Home).
+ * Deploys the ExampleERC20 mock token and emits an activity event. Its
+ * constructor mints 1e28 base units to the deployer: 10,000,000,000 tokens at
+ * 18 decimals. Does NOT touch the bridge graph: the Token step only seeds an
+ * underlying token, and the Home step creates the Bridge entry.
  */
 export function useDeploySourceToken() {
   const { deploy, isDeploying } = useContractDeployer();
@@ -36,7 +37,7 @@ export function useDeploySourceToken() {
           bridgeId: placeholderBridgeId,
           kind: 'deploy',
           label: 'Source token deployed',
-          sublabel: 'ExampleERC20 · 1,000,000 supply',
+          sublabel: 'ExampleERC20 · 10,000,000,000 supply',
           chainId: walletChainId,
           txHash: undefined,
           status: 'confirmed',

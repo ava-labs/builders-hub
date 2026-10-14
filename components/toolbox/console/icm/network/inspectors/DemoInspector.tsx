@@ -5,7 +5,7 @@ import DeployICMDemo from '@/components/toolbox/console/icm/test-connection/Depl
 import { useIcmSetupStore } from '@/components/toolbox/stores/icmSetupStore';
 import { useL1List, useSelectedL1, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { getToolboxStore, NO_CHAIN_SELECTED } from '@/components/toolbox/stores/toolboxStore';
-import { Note } from '@/components/toolbox/components/Note';
+import { Alert } from '@/components/toolbox/components/Alert';
 import type { Address } from '@/components/toolbox/console/icm/network/types';
 
 /**
@@ -57,12 +57,10 @@ export function DemoInspector() {
 
   return (
     <section className="flex flex-col gap-4">
-      <Note variant="default">
-        <span className="text-xs">
-          The demo contract is a minimal sender/receiver — perfect for verifying the relayer is delivering messages.
-          Deploy it on both the active L1 and at least one counterpart L1 so you can send a message back and forth.
-        </span>
-      </Note>
+      <Alert variant="info">
+        The demo contract is a small sender and receiver for checking that the relayer delivers messages. Deploy it on
+        this L1 and on at least one other L1 so you can send a message between them.
+      </Alert>
       <DeployICMDemo />
     </section>
   );

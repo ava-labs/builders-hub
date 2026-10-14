@@ -1,0 +1,243 @@
+{
+  "id": "icm-price-oracle",
+  "version": 1,
+  "title": "ICM Price Oracle",
+  "summary": "Chainlink prices on your L1 over ICM",
+  "description": "Brings Chainlink Data Feeds from the C-Chain to an Avalanche L1 that has no oracle. A publisher on the C-Chain pushes prices, or answers requests, over ICM; a consumer on the L1 stores them and refuses stale or out-of-order rounds.",
+  "category": "interop",
+  "level": "advanced",
+  "tags": ["icm", "teleporter", "chainlink", "oracle", "l1", "request-response"],
+  "prompts": [
+    "My L1 needs the AVAX price but Chainlink isn't deployed there",
+    "Bridge oracle prices from the C-Chain to my L1",
+    "Cross-chain request and response between C-Chain and an L1"
+  ],
+  "networks": {
+    "home": {
+      "description": "C-Chain with Chainlink Data Feeds, where the publisher lives",
+      "default": "fuji-c-chain",
+      "allowed": ["fuji-c-chain", "mainnet-c-chain"]
+    },
+    "remote": {
+      "description": "L1 that receives prices",
+      "default": "l1",
+      "allowed": ["l1", "echo-fuji", "dispatch-fuji"]
+    }
+  },
+  "params": [
+    {
+      "name": "owner",
+      "type": "address",
+      "description": "Owns the publisher and the consumer",
+      "default": "$ctx.builder"
+    },
+    {
+      "name": "updateGasLimit",
+      "type": "uint",
+      "description": "Gas for the consumer to store an update. A first update measured about 75,000.",
+      "default": 200000
+    },
+    {
+      "name": "requestGasLimit",
+      "type": "uint",
+      "description": "Gas for the publisher to read the feed and send the answer. Measured about 155,000 including the Teleporter send.",
+      "default": 400000
+    },
+    {
+      "name": "maxAge",
+      "type": "uint",
+      "description": "Seconds after the source round at which the L1 treats a price as stale",
+      "default": 86400
+    }
+  ],
+  "prerequisites": [
+    "An L1 with interoperability enabled and a relayer to the C-Chain: l1-quickstart with enableManagedRelayer does both",
+    "Native gas on both chains for the signer"
+  ],
+  "contracts": [
+    {
+      "name": "PriceFeedPublisher",
+      "source": "contracts/PriceFeedPublisher.sol",
+      "description": "Reads Chainlink on the C-Chain and sends prices over ICM"
+    },
+    {
+      "name": "PriceFeedConsumer",
+      "source": "contracts/PriceFeedConsumer.sol",
+      "description": "Stores prices on the L1 and requests fresh ones"
+    },
+    {
+      "name": "TeleporterMessenger",
+      "artifact": "contracts/icm-contracts/compiled/TeleporterMessenger.json",
+      "description": "Used to confirm delivery with messageReceived"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ensure-relayer",
+      "title": "Make sure a relayer serves both chains",
+      "kind": "offchain",
+      "network": "home",
+      "action": "icm.ensure-relayer",
+      "inputs": {
+        "chains": ["$net.home", "$net.remote"]
+      }
+    },
+    {
+      "id": "deploy-publisher",
+      "title": "Deploy the publisher on the C-Chain",
+      "kind": "deploy",
+      "network": "home",
+      "signer": "deployer",
+      "contract": "PriceFeedPublisher",
+      "args": ["$net.home.teleporter.messenger", "$param.updateGasLimit", "$ctx.deployer"]
+    },
+    {
+      "id": "add-avax-feed",
+      "title": "Register the AVAX/USD feed",
+      "kind": "call",
+      "network": "home",
+      "signer": "deployer",
+      "contract": "PriceFeedPublisher",
+      "target": "$out.deploy-publisher.address",
+      "function": "setFeed",
+      "args": ["AVAX/USD", "$net.home.chainlink.feeds.AVAX/USD.address"]
+    },
+    {
+      "id": "deploy-consumer",
+      "title": "Deploy the consumer on the L1",
+      "kind": "deploy",
+      "network": "remote",
+      "signer": "deployer",
+      "contract": "PriceFeedConsumer",
+      "args": [
+        "$net.remote.teleporter.messenger",
+        "$net.home.blockchainIdHex",
+        "$out.deploy-publisher.address",
+        "$param.requestGasLimit",
+        "$param.maxAge",
+        "$param.owner"
+      ]
+    },
+    {
+      "id": "trust-consumer",
+      "title": "Publisher trusts the consumer",
+      "kind": "call",
+      "network": "home",
+      "signer": "deployer",
+      "contract": "PriceFeedPublisher",
+      "target": "$out.deploy-publisher.address",
+      "function": "setTrustedConsumer",
+      "args": ["$net.remote.blockchainIdHex", "$out.deploy-consumer.address", true]
+    },
+    {
+      "id": "hand-over",
+      "title": "Transfer the publisher to its owner",
+      "kind": "call",
+      "network": "home",
+      "signer": "deployer",
+      "contract": "PriceFeedPublisher",
+      "target": "$out.deploy-publisher.address",
+      "function": "transferOwnership",
+      "args": ["$param.owner"]
+    },
+    {
+      "id": "first-push",
+      "title": "Push the first AVAX/USD price",
+      "kind": "call",
+      "network": "home",
+      "signer": "builder",
+      "contract": "PriceFeedPublisher",
+      "target": "$out.deploy-publisher.address",
+      "function": "publish",
+      "args": ["AVAX/USD", "$net.remote.blockchainIdHex", "$out.deploy-consumer.address"],
+      "outputs": {
+        "messageId": "event:PriceFeedPublisher.PricePublished.messageId"
+      }
+    },
+    {
+      "id": "wait-push",
+      "title": "Wait for the price to reach the L1",
+      "kind": "wait",
+      "network": "remote",
+      "wait": {
+        "for": "icm-delivery",
+        "id": "$out.first-push.messageId",
+        "timeoutMinutes": 5
+      }
+    }
+  ],
+  "checks": [
+    {
+      "description": "The publisher trusts the consumer",
+      "after": "trust-consumer",
+      "network": "home",
+      "contract": "PriceFeedPublisher",
+      "target": "$out.deploy-publisher.address",
+      "function": "trustedConsumer",
+      "args": ["$net.remote.blockchainIdHex", "$out.deploy-consumer.address"],
+      "expect": {
+        "equals": true
+      }
+    },
+    {
+      "description": "The L1 holds a fresh AVAX/USD price",
+      "after": "wait-push",
+      "network": "remote",
+      "contract": "PriceFeedConsumer",
+      "target": "$out.deploy-consumer.address",
+      "function": "latestPrice",
+      "args": ["AVAX/USD"],
+      "expect": {
+        "gt": "0"
+      }
+    }
+  ],
+  "panel": [
+    {
+      "step": "deploy-publisher",
+      "read": ["feedOf", "trustedConsumer", "updateGasLimit", "owner"],
+      "write": ["publish", "setFeed", "setTrustedConsumer", "setUpdateGasLimit"]
+    },
+    {
+      "step": "deploy-consumer",
+      "read": ["latestPrice", "publisher", "publisherBlockchainID", "requestGasLimit", "maxAge", "owner"],
+      "write": ["requestPrice", "setSettings"]
+    }
+  ],
+  "review": [
+    "The consumer accepts messages only from the TeleporterMessenger, and only from the publisher fixed at deployment.",
+    "The publisher answers only trusted consumers and only REQUEST messages.",
+    "Updates with an updatedAt at or before the stored one are ignored, so retries and reordering cannot roll prices back.",
+    "maxAge on the L1 is at least the feed's heartbeat plus relay time; Fuji feeds can go hours between rounds."
+  ],
+  "frontend": {
+    "summary": "Live prices on the L1, brought over from Chainlink on the C-Chain, with how fresh each one is.",
+    "audience": ["Users of apps on the L1 who need prices", "Operators who keep prices fresh"],
+    "journeys": [
+      "A price board: pair, price and 'updated 2 minutes ago', readable without a wallet.",
+      "Refresh a price with one button and a status through Requested and Updated; it crosses chains twice, so say it takes about a minute.",
+      "A stale price shows as 'refreshing', never as an error page."
+    ],
+    "flows": [
+      "Read latestPrice(pair) on the L1; format with the stored decimals and show the age from updatedAt.",
+      "Refresh by calling requestPrice(pair) on the L1, then wait for PriceUpdated on the L1; the answer takes two relayer hops.",
+      "For always-fresh prices, run a keeper that calls publish(pair, l1BlockchainIdHex, consumer) on the C-Chain on a schedule.",
+      "Treat a StalePrice revert as 'refreshing', not as an error page."
+    ]
+  },
+  "docs": [
+    {
+      "title": "Chainlink Data Feeds on Avalanche",
+      "url": "/integrations/chainlink-data-feeds"
+    },
+    {
+      "title": "ICM contracts overview",
+      "url": "/docs/cross-chain/icm-contracts/overview"
+    },
+    {
+      "title": "Send a message (Academy)",
+      "url": "/academy/avalanche-l1/interchain-messaging/05-testing-icm/02-send-a-message"
+    }
+  ],
+  "related": ["price-tracker", "icm-messenger", "l1-quickstart"]
+}

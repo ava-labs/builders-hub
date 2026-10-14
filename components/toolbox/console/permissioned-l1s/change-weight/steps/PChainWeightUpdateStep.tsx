@@ -27,6 +27,8 @@ export default function PChainWeightUpdateStep() {
               subnetIdL1={store.subnetIdL1}
               initialEvmTxHash={store.evmTxHash}
               signingSubnetId={vmcCtx.signingSubnetId}
+              signingSubnetLoading={vmcCtx.isLoading}
+              signingSubnetError={vmcCtx.error}
               txHashLabel="initiateValidatorWeightUpdate Transaction Hash"
               txHashPlaceholder="Enter the transaction hash from step 2 (0x...)"
               onSuccess={(pChainTxId) => {

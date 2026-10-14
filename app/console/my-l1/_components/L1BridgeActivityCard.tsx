@@ -2,21 +2,12 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import {
-  AlertTriangle,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Check,
-  Loader2,
-  MessageSquare,
-  Network,
-  Send,
-} from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Check, Loader2, MessageSquare, Network, Send } from 'lucide-react';
 import { useL1CrossChainStats } from '@/hooks/useL1CrossChainStats';
 import { useUserActivityForL1 } from '@/hooks/useUserActivityForL1';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { cn } from '@/lib/utils';
+import { BONE, EYEBROW, HAIRLINE, NOTICE_ERROR } from './chrome';
 
 /**
  * Per-L1 cross-chain metrics card. Three sections:
@@ -28,33 +19,35 @@ import { cn } from '@/lib/utils';
  *
  * Each ecosystem section carries a one-line attribution so users can tell
  * which numbers move on their own actions vs. external indexer state.
+ *
+ * Renders frameless: CrossChainSection supplies the board around it.
  */
 export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
   const { data, isLoading, error } = useL1CrossChainStats(l1.blockchainId, l1.evmChainId);
   const userActivity = useUserActivityForL1(l1.blockchainId);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold">Activity on {l1.chainName}</CardTitle>
-        <CardDescription className="text-xs">
-          Aggregate bridge transfers and ICM traffic crossing this L1. Your own activity is tracked separately below.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="flex min-w-0 flex-col">
+      <div className="flex min-h-9 items-center gap-4 border-b border-zinc-200 px-5 py-2 md:px-6 dark:border-zinc-800">
+        <p className={cn(EYEBROW, 'truncate')}>Activity on {l1.chainName}</p>
+      </div>
+      <p className="px-5 pt-4 text-[13px] leading-relaxed text-zinc-500 md:px-6 dark:text-zinc-400">
+        Aggregate bridge transfers and ICM traffic crossing this L1. Your own activity is tracked separately below.
+      </p>
+      <div className="flex flex-col gap-5 px-5 py-4 md:px-6">
         {error && (
-          <p className="rounded-md border border-rose-200 bg-rose-50/40 px-2.5 py-1.5 text-[11px] text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-300">
+          <p className={cn(NOTICE_ERROR, 'px-3 py-2 font-mono text-[11px] [overflow-wrap:anywhere]')}>
             Couldn&apos;t load cross-chain stats. {error}
           </p>
         )}
 
-        <section className="space-y-2">
+        <section className="flex flex-col gap-2">
           <SectionTitle>Bridges (ICTT)</SectionTitle>
           <SourceHint>Ecosystem-wide, indexed externally — refreshes every 30 min.</SourceHint>
           {isLoading ? (
             <Skeleton rows={2} />
           ) : data?.ictt ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 border-l border-t border-zinc-200 dark:border-zinc-800">
               <StatCell
                 icon={<ArrowUpRight className="h-3.5 w-3.5" aria-hidden />}
                 label="Outbound transfers"
@@ -73,7 +66,9 @@ export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
               <StatCell
                 icon={<span className="text-[10px] font-semibold">{data.ictt.topToken?.symbol?.[0] ?? '·'}</span>}
                 label="Top token"
-                value={data.ictt.topToken ? `${data.ictt.topToken.symbol} · ${formatCount(data.ictt.topToken.count)}` : '—'}
+                value={
+                  data.ictt.topToken ? `${data.ictt.topToken.symbol} · ${formatCount(data.ictt.topToken.count)}` : '—'
+                }
               />
             </div>
           ) : (
@@ -81,19 +76,22 @@ export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
           )}
         </section>
 
-        <section className="space-y-2">
+        <section className="flex flex-col gap-2">
           <SectionTitle>Your activity</SectionTitle>
           <SourceHint>Live from your local bridge log — no indexer lag.</SourceHint>
           {userActivity.total === 0 ? (
             <EmptyLine>
               No transfers yet. Send via{' '}
-              <Link href="/console/ictt/live" className="font-medium underline underline-offset-2">
+              <Link
+                href="/console/ictt/live"
+                className="font-mono text-zinc-900 underline underline-offset-4 hover:text-[#E6212F] dark:text-zinc-100"
+              >
                 /console/ictt/live
               </Link>{' '}
               to test.
             </EmptyLine>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 border-l border-t border-zinc-200 dark:border-zinc-800">
               <StatCell
                 icon={<Send className="h-3.5 w-3.5" aria-hidden />}
                 label="Sends"
@@ -105,7 +103,9 @@ export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
                 value={formatCount(userActivity.delivered)}
               />
               <StatCell
-                icon={<Loader2 className={cn('h-3.5 w-3.5', userActivity.inFlight > 0 && 'animate-spin')} aria-hidden />}
+                icon={
+                  <Loader2 className={cn('h-3.5 w-3.5', userActivity.inFlight > 0 && 'animate-spin')} aria-hidden />
+                }
                 label="In flight"
                 value={formatCount(userActivity.inFlight)}
               />
@@ -118,13 +118,13 @@ export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
           )}
         </section>
 
-        <section className="space-y-2">
+        <section className="flex flex-col gap-2">
           <SectionTitle>ICM messages</SectionTitle>
           <SourceHint>Ecosystem-wide, indexed via ClickHouse.</SourceHint>
           {isLoading ? (
             <Skeleton rows={1} />
           ) : data?.icm ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 border-l border-t border-zinc-200 dark:border-zinc-800">
               <StatCell
                 icon={<MessageSquare className="h-3.5 w-3.5" aria-hidden />}
                 label="Last 24h"
@@ -147,19 +147,25 @@ export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
             <EmptyLine>No ICM activity recorded for this L1.</EmptyLine>
           )}
         </section>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
 function SectionTitle({ children }: { children: string }) {
   return (
-    <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{children}</h3>
+    <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
+      {children}
+    </h3>
   );
 }
 
 function SourceHint({ children }: { children: string }) {
-  return <p className="text-[10px] leading-tight text-zinc-500/80 dark:text-zinc-500">{children}</p>;
+  return (
+    <p className="-mt-1 font-mono text-[10px] leading-4 tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
+      {children}
+    </p>
+  );
 }
 
 function StatCell({
@@ -178,38 +184,37 @@ function StatCell({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-2.5 py-2 dark:border-zinc-800 dark:bg-zinc-950/40',
+        'flex min-w-0 flex-col gap-1 border-b border-r border-zinc-200 bg-white/80 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/80',
         wide && 'col-span-2',
       )}
     >
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-        {icon}
+      <span className="flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 [&_svg]:h-3 [&_svg]:w-3">
+        <span className="flex shrink-0 items-center text-zinc-400">{icon}</span>
+        <span className="truncate">{label}</span>
       </span>
-      <div className="flex min-w-0 flex-1 flex-col leading-tight">
-        <span className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</span>
-        <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{value}</span>
-        {helper && <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{helper}</span>}
-      </div>
+      <span className="truncate font-mono text-[15px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+        {value}
+      </span>
+      {helper && <span className="truncate font-mono text-[10px] tabular-nums text-zinc-400">{helper}</span>}
     </div>
   );
 }
 
 function Skeleton({ rows }: { rows: number }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 border-l border-t border-zinc-200 dark:border-zinc-800">
       {Array.from({ length: rows * 2 }).map((_, i) => (
-        <div key={i} className="h-12 animate-pulse rounded-md bg-zinc-100 dark:bg-zinc-800" />
+        <div key={i} className="flex flex-col gap-2 border-b border-r border-zinc-200 px-3 py-2.5 dark:border-zinc-800">
+          <span className={cn(BONE, 'h-2 w-16')} />
+          <span className={cn(BONE, 'h-4 w-10')} />
+        </div>
       ))}
     </div>
   );
 }
 
 function EmptyLine({ children }: { children: ReactNode }) {
-  return (
-    <p className="rounded-md border border-dashed border-zinc-200 bg-zinc-50/40 px-2.5 py-2 text-[11px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
-      {children}
-    </p>
-  );
+  return <p className={cn(HAIRLINE, 'px-3 py-2.5 text-[12px] text-zinc-500 dark:text-zinc-400')}>{children}</p>;
 }
 
 function formatCount(n: number): string {

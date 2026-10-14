@@ -10,11 +10,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { balanceService } from '@/components/toolbox/services/balanceService';
 import { useLoadedOnce } from '@/components/console/loaded-once';
 import { useL1Health } from '@/hooks/useL1Health';
-import {
-  metadataFromWalletItem,
-  walletItemToCombined,
-  type CombinedL1,
-} from '@/lib/console/my-l1/types';
+import { metadataFromWalletItem, walletItemToCombined, type CombinedL1 } from '@/lib/console/my-l1/types';
 import { chainKey, useChainOrder, useHiddenL1s } from '@/lib/console/my-l1/chainOrderStore';
 import { HeroCard } from './HeroCard';
 import { SwitchChainRail } from './SwitchChainRail';
@@ -56,9 +52,7 @@ export function DashboardBody() {
     if (existingGenesis.length > 0) return;
     const store = getL1ListStore(Boolean(isWalletTestnet));
     store.setState((state: { l1List: L1ListItem[] }) => ({
-      l1List: state.l1List.map((w) =>
-        w.id === matching.id ? { ...w, genesisData: genesis } : w,
-      ),
+      l1List: state.l1List.map((w) => (w.id === matching.id ? { ...w, genesisData: genesis } : w)),
     }));
   }, [createChainEvmChainId, createChainGenesisData, walletL1s, isWalletTestnet]);
 
@@ -67,11 +61,7 @@ export function DashboardBody() {
   // is computed locally from the existing useMyL1s payload so we don't
   // need a separate /api/managed-testnet-nodes fetch.
   const userActiveNodeTotal = useMemo(
-    () =>
-      managedL1s.reduce(
-        (acc, l) => acc + (l.nodes?.filter((n) => n.status === 'active').length ?? 0),
-        0,
-      ),
+    () => managedL1s.reduce((acc, l) => acc + (l.nodes?.filter((n) => n.status === 'active').length ?? 0), 0),
     [managedL1s],
   );
 
@@ -115,9 +105,7 @@ export function DashboardBody() {
     });
 
     const userL1s = Array.from(byChainId.values());
-    const filtered = walletChainId === 0
-      ? userL1s
-      : userL1s.filter((l1) => l1.isTestnet === isWalletTestnet);
+    const filtered = walletChainId === 0 ? userL1s : userL1s.filter((l1) => l1.isTestnet === isWalletTestnet);
 
     // Drop user-hidden entries before the order pass so the rail reflects
     // the cleanup the user just did. Hide is purely visual — managed L1s
@@ -125,9 +113,7 @@ export function DashboardBody() {
     // l1ListStore.removeL1). The hidden list lives in chainOrderStore so
     // it persists across reloads.
     const hiddenSet = new Set(hiddenL1s);
-    const visible = hiddenSet.size > 0
-      ? filtered.filter((l1) => !hiddenSet.has(chainKey(l1)))
-      : filtered;
+    const visible = hiddenSet.size > 0 ? filtered.filter((l1) => !hiddenSet.has(chainKey(l1))) : filtered;
 
     // Apply user-saved ordering (set by drag-and-drop in the rail). Items
     // missing from the order list fall through to their natural position
@@ -181,9 +167,7 @@ export function DashboardBody() {
     // the switcher. walletChainId === 0 means the wallet store hasn't
     // hydrated yet — fall through to the first-active default.
     if (walletChainId !== 0) {
-      const walletMatch = combinedL1s.find(
-        (l) => l.evmChainId === walletChainId && l.status === 'active',
-      );
+      const walletMatch = combinedL1s.find((l) => l.evmChainId === walletChainId && l.status === 'active');
       if (walletMatch) return walletMatch;
     }
     // Priority 3 — first ACTIVE L1. Falling back to the very first entry
@@ -231,11 +215,7 @@ export function DashboardBody() {
   const health = useL1Health(selectedL1?.rpcUrl, selectedL1?.evmChainId ?? null);
 
   if (isLoading && combinedL1s.length === 0) {
-    return (
-      <div className="space-y-6">
-        <HeaderSkeleton />
-      </div>
-    );
+    return <HeaderSkeleton />;
   }
 
   if (error && combinedL1s.length === 0) {
@@ -248,7 +228,7 @@ export function DashboardBody() {
 
   return (
     <motion.div
-      className="space-y-6"
+      className="flex flex-col gap-10"
       initial={sawLoading ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -263,39 +243,23 @@ export function DashboardBody() {
       <AnimatePresence mode="wait" initial={false}>
         {selectedL1 && selectedL1.status === 'active' && (
           <motion.div
-            key={
-              selectedL1.evmChainId !== null
-                ? `chain:${selectedL1.evmChainId}`
-                : `subnet:${selectedL1.subnetId}`
-            }
+            key={selectedL1.evmChainId !== null ? `chain:${selectedL1.evmChainId}` : `subnet:${selectedL1.subnetId}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="space-y-5"
+            className="flex flex-col gap-10"
           >
-            {/* Switch Chain rail moved ABOVE the hero card: it's a
+            {/* Switch Chain rail sits ABOVE the hero card: it's a
                 navigator (which L1 am I looking at?), not detail
                 content. Putting it on top primes selection context
                 before the user reads details, and matches the standard
-                "tabs-above-pane" idiom. */}
-            <SwitchChainRail
-              l1s={activeL1s}
-              selected={selectedL1}
-              onSelect={onSelect}
-            />
-            <HeroCard
-              l1={selectedL1}
-              health={health}
-              onRefresh={refetch}
-              isRefreshing={isLoading}
-            />
-            <L1Details
-              l1={selectedL1}
-              health={health}
-              userActiveNodeTotal={userActiveNodeTotal}
-              onRefetch={refetch}
-            />
+                "tabs-above-pane" idiom. Rail + hero read as one section. */}
+            <section className="flex flex-col gap-4">
+              <SwitchChainRail l1s={activeL1s} selected={selectedL1} onSelect={onSelect} />
+              <HeroCard l1={selectedL1} health={health} onRefresh={refetch} isRefreshing={isLoading} />
+            </section>
+            <L1Details l1={selectedL1} health={health} userActiveNodeTotal={userActiveNodeTotal} onRefetch={refetch} />
           </motion.div>
         )}
       </AnimatePresence>
