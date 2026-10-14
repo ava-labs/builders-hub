@@ -6,6 +6,8 @@ import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { HEADER_CHIP, HEADER_FIGURE, HEADER_PRIMARY } from '../chip';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { Wallet } from 'lucide-react';
+import { useAccount, useDisconnect } from 'wagmi';
+import { CONSOLE_WALLET_CONNECTOR_ID, setActiveConsoleWallet } from '@/lib/console-wallets/core-provider';
 
 import { useNetworkData } from './hooks/useNetworkData';
 import { useNetworkActions } from './hooks/useNetworkActions';
@@ -26,9 +28,18 @@ export function EvmNetworkWallet() {
   const { handleNetworkChange, updateAllBalances } = useNetworkActions();
 
   const { openConnectModal } = useConnectModal();
+  const { connector } = useAccount();
+  const { disconnect } = useDisconnect();
 
   const handlePrimaryButtonClick = (): void => {
     openConnectModal?.();
+  };
+
+  // A Console wallet turns off the way its switch does: ConsoleWalletSwitch then disconnects it, and a plain
+  // disconnect would race the switch, which reconnects the active Console wallet. WalletSync clears the store.
+  const handleDisconnect = (): void => {
+    if (connector?.id === CONSOLE_WALLET_CONNECTOR_ID) setActiveConsoleWallet(null);
+    else disconnect();
   };
 
   const handleRemoveNetwork = (network: any) => {
@@ -83,6 +94,7 @@ export function EvmNetworkWallet() {
             currentNetworkExplorerUrl={(currentNetwork as any)?.explorerUrl}
             currentNetwork={currentNetwork as any}
             onRefreshBalances={updateAllBalances}
+            onDisconnect={handleDisconnect}
           />
         </DropdownMenuContent>
       </DropdownMenu>

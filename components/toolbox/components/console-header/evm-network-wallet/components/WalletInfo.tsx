@@ -1,5 +1,5 @@
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Droplets, SquareArrowOutUpRight } from 'lucide-react';
+import { Droplets, LogOut, SquareArrowOutUpRight } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { AddressPanel } from '../../AddressPanel';
 
@@ -17,14 +17,16 @@ interface WalletInfoProps {
   currentNetworkExplorerUrl?: string;
   currentNetwork?: L1ListItem;
   onRefreshBalances: () => unknown;
+  onDisconnect: () => void;
 }
 
-/** The connected address and, on testnet, where to get the current network's token. */
+/** The connected address, on testnet where to get the current network's token, and a way to disconnect. */
 export function WalletInfo({
   walletAddress,
   currentNetworkExplorerUrl,
   currentNetwork,
   onRefreshBalances,
+  onDisconnect,
 }: WalletInfoProps) {
   const isTestnet = useWalletStore((s) => s.isTestnet);
   const builderHubFaucet = isTestnet && currentNetwork?.hasBuilderHubFaucet;
@@ -62,6 +64,11 @@ export function WalletInfo({
           )}
         </>
       )}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onSelect={onDisconnect} className="cursor-pointer gap-2.5 px-2">
+        <LogOut className="h-3.5 w-3.5" />
+        Disconnect
+      </DropdownMenuItem>
     </>
   );
 }
