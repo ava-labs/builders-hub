@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { motion, useReducedMotion } from 'framer-motion';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -23,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { api, errorText, type BlueprintCard } from './api';
 import { ComposerBeam } from './Beam';
 import { CHAT_REFERENCE_EVENT } from './chat-reference';
-import { Appear, Bone, Button, EmptyState, Notice } from './ui';
+import { Appear, Bone, Button, EmptyState, Notice, WorkingMark } from './ui';
 
 /** Each tool's line in the work log once it is done, and while it runs (or when it was stopped or failed). */
 const TOOL_LABELS: Record<string, { done: string; doing: string }> = {
@@ -133,28 +132,6 @@ const MARKDOWN: Components = {
 
 /** The builder's turn: a quiet tinted block, so it reads apart from Studio's plain prose. */
 const USER_BLOCK = 'bg-zinc-100 px-4 py-3 dark:bg-zinc-800/60';
-
-/** Three square marks in a slow wave, sized to the 12 px icon slot of a log row. Under reduced motion they hold still. */
-function WorkingMark() {
-  const reduced = useReducedMotion();
-  return (
-    <span aria-hidden className="flex h-3 w-3 shrink-0 items-center justify-between">
-      {[0, 1, 2].map((i) =>
-        reduced ? (
-          <span key={i} className="h-[3px] w-[3px] bg-zinc-500 dark:bg-zinc-400" />
-        ) : (
-          <motion.span
-            key={i}
-            className="h-[3px] w-[3px] bg-zinc-900 dark:bg-zinc-100"
-            initial={{ opacity: 0.15 }}
-            animate={{ opacity: [0.15, 1, 0.15] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
-          />
-        ),
-      )}
-    </span>
-  );
-}
 
 const clock = (s: number) => (s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`);
 

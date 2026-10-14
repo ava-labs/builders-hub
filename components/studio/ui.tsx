@@ -218,6 +218,32 @@ export function Bone({ className, delay = 0 }: { className?: string; delay?: num
   );
 }
 
+/** Three square marks in a slow wave: something is working. sm fits the 12 px icon slot of a log row. Under reduced motion they hold still. */
+export function WorkingMark({ size = 'sm' }: { size?: 'sm' | 'md' }) {
+  const reduced = useReducedMotion();
+  const dot = size === 'md' ? 'h-1 w-1' : 'h-[3px] w-[3px]';
+  return (
+    <span
+      aria-hidden
+      className={cn('flex shrink-0 items-center justify-between', size === 'md' ? 'h-4 w-4' : 'h-3 w-3')}
+    >
+      {[0, 1, 2].map((i) =>
+        reduced ? (
+          <span key={i} className={cn(dot, 'bg-zinc-500 dark:bg-zinc-400')} />
+        ) : (
+          <motion.span
+            key={i}
+            className={cn(dot, 'bg-zinc-900 dark:bg-zinc-100')}
+            initial={{ opacity: 0.15 }}
+            animate={{ opacity: [0.15, 1, 0.15] }}
+            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+          />
+        ),
+      )}
+    </span>
+  );
+}
+
 /** Fades content in as it mounts, quickly enough for a tab switch. Key it on what changed to replay it. */
 export function Appear({
   children,
