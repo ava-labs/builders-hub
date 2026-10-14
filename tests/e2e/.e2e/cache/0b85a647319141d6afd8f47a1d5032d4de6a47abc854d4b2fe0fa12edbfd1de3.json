@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-05T03:19:48.041Z",
+  "createdAt": "2026-10-14T02:01:39.253Z",
   "payload": {
     "actions": [
       {
@@ -24,10 +24,13 @@
       "callIndex": 0,
       "agent": "default"
     },
-    "summary": "Tapped the City tab. The page is now /explorer/mainnet/chains, titled \"Chains | Avalanche Explorer\". It shows the 3D city region (\"Avalanche L1s as a city in 3D\"), the Explorer/City toggle, and stats for 69 chains in 7 districts.",
+    "summary": "The City view is open at /explorer/mainnet/chains. \"City\" is the active, non-link entry in the Explorer view toggle. The 3D city region (\"Avalanche L1s as a city in 3D\") shows the seven districts and a 69-chain count.",
     "startPath": "/explorer/mainnet",
     "endPath": "/explorer/mainnet/chains",
     "endAnchors": [
+      {
+        "text": "Mainnet"
+      },
       {
         "role": "textbox",
         "name": "Search or ask a question about Avalanche",
@@ -56,9 +59,6 @@
       },
       {
         "text": "Windows"
-      },
-      {
-        "text": "Districts"
       }
     ],
     "goneAnchors": [
@@ -86,7 +86,8 @@
         "name": "ALL"
       },
       {
-        "text": "Mainnet"
+        "role": "link",
+        "name": "Mainnet"
       },
       {
         "role": "textbox",
@@ -94,6 +95,6 @@
         "placeholder": "Search an address, tx, block, NodeID or chain, or ask a question…"
       }
     ],
-    "endWaitMs": 17084
+    "endWaitMs": 30275
   }
 }

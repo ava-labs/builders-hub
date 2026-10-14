@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-05T03:18:56.582Z",
+  "createdAt": "2026-10-14T01:56:02.707Z",
   "payload": {
     "actions": [
       {
@@ -24,10 +24,13 @@
       "callIndex": 0,
       "agent": "default"
     },
-    "summary": "Opened the \"Testnet Faucet\" tool (Get test AVAX) from the console sidebar. The page /console/primary-network/faucet loaded and shows the requirements: wallet, wallet connected, Builder Hub account.",
+    "summary": "The Testnet Faucet tool is open at /console/primary-network/faucet. The page title and breadcrumb both read \"Testnet Faucet\". The page shows a requirements panel (wallet, Builder Hub account), which is expected before use.",
     "startPath": "/console",
     "endPath": "/console/primary-network/faucet",
     "endAnchors": [
+      {
+        "text": "Requirements"
+      },
       {
         "role": "heading",
         "name": "To use this tool you need:"
@@ -43,51 +46,45 @@
       },
       {
         "role": "heading",
-        "name": "How to meet these requirements:"
+        "name": "How to meet these requirements"
       },
       {
-        "text": "Download Core Wallet"
+        "text": "Install a wallet extension"
       },
       {
-        "text": "Get Core — the wallet built for Avalanche"
-      },
-      {
-        "role": "button",
-        "name": "Download"
+        "text": "Any EVM wallet works; Core is built for Avalanche and signs P-Chain transactions too"
       }
     ],
     "goneAnchors": [
       {
-        "role": "heading",
-        "name": "Avalanche Builder Console"
+        "text": "Avalanche"
       },
       {
         "role": "heading",
-        "name": "Built on Avalanche"
+        "name": "Avalanche Builder Console",
+        "text": "Builder Console"
+      },
+      {
+        "text": "Tools for the Primary Network and your own L1s. Start on Fuji, then go to mainnet."
       },
       {
         "role": "link",
-        "name": "View all →"
+        "name": "Create an L1"
       },
       {
-        "role": "image",
-        "name": "FIFA"
+        "role": "link",
+        "name": "Get test AVAX"
       },
       {
-        "text": "FIFA"
+        "text": "Start"
       },
       {
-        "role": "image",
-        "name": "MapleStory"
+        "text": "Layer 1"
       },
       {
-        "text": "MapleStory"
-      },
-      {
-        "role": "image",
-        "name": "Beam"
+        "text": "Create an L1"
       }
     ],
-    "endWaitMs": 12211
+    "endWaitMs": 27184
   }
 }

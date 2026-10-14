@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-05T03:19:25.461Z",
+  "createdAt": "2026-10-14T02:01:10.095Z",
   "payload": {
     "actions": [
       {
@@ -25,10 +25,10 @@
       },
       {
         "name": "tap",
-        "summary": "tap button \"What is Interchain Messaging?\" in \"ESC\"",
+        "summary": "tap button \"Docs › Cross-Chain › ICM Contracts What…\" in \"ESC\"",
         "target": {
           "role": "button",
-          "name": "What is Interchain Messaging?",
+          "name": "Docs › Cross-Chain › ICM Contracts What is ICM Contracts?",
           "within": "ESC"
         }
       }
@@ -45,54 +45,42 @@
       "callIndex": 0,
       "agent": "default"
     },
-    "summary": "Searched \"teleporter\" in docs search and opened the result \"What is Interchain Messaging?\" (/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm). It says ICM is also known as Teleporter and explains TeleporterMessenger and the protocol layer.",
+    "summary": "Searched \"teleporter\" in docs search and opened the result \"Docs › Cross-Chain › ICM Contracts: What is ICM Contracts?\". The page /docs/cross-chain/icm-contracts/overview loaded and explains Teleporter / TeleporterMessenger.",
     "startPath": "/docs/primary-network",
-    "endPath": "/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm",
+    "endPath": "/docs/cross-chain/icm-contracts/overview",
     "endAnchors": [
       {
-        "text": "Fundamentals"
+        "role": "link",
+        "name": "Introduction"
       },
       {
-        "text": "L1 Development"
-      },
-      {
-        "text": "Interoperability"
-      },
-      {
-        "text": "VM Customization"
-      },
-      {
-        "text": "Applications"
+        "text": "Avalanche Interchain Messaging"
       },
       {
         "role": "link",
-        "name": "Welcome to the course"
+        "name": "What is ICM?"
       },
       {
         "role": "link",
-        "name": "Interoperability between blockchain"
+        "name": "Deep Dive into ICM"
       },
       {
         "role": "link",
-        "name": "Source, Message and Destination"
+        "name": "Integration with EVM"
+      },
+      {
+        "role": "link",
+        "name": "Run a Relayer"
+      },
+      {
+        "role": "link",
+        "name": "ICM Services Releases"
+      },
+      {
+        "text": "ICM Contracts"
       }
     ],
     "goneAnchors": [
-      {
-        "text": "Network"
-      },
-      {
-        "text": "Nodes"
-      },
-      {
-        "text": "APIs"
-      },
-      {
-        "text": "Tools"
-      },
-      {
-        "text": "ACPs"
-      },
       {
         "role": "link",
         "name": "Primary Network"
@@ -104,8 +92,27 @@
       {
         "role": "link",
         "name": "AVAX Token"
+      },
+      {
+        "role": "link",
+        "name": "Virtual Machines"
+      },
+      {
+        "role": "link",
+        "name": "Helicon Upgrade"
+      },
+      {
+        "text": "C-Chain"
+      },
+      {
+        "role": "link",
+        "name": "Coreth Architecture"
+      },
+      {
+        "role": "link",
+        "name": "Continuous Execution"
       }
     ],
-    "endWaitMs": 14753
+    "endWaitMs": 12863
   }
 }

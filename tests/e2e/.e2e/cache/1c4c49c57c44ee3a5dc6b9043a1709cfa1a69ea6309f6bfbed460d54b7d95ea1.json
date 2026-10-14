@@ -1,6 +1,6 @@
 {
   "schemaVersion": "trace-1",
-  "createdAt": "2026-10-05T03:18:51.402Z",
+  "createdAt": "2026-10-14T01:55:44.294Z",
   "payload": {
     "actions": [
       {
@@ -24,10 +24,13 @@
       "callIndex": 0,
       "agent": "default"
     },
-    "summary": "Tapped \"Create L1\" in the Console sidebar. It opened /console/create-l1 (\"Create L1 | Avalanche Builder Hub\"). The page shows a wallet requirements panel: \"Wallet detected\" and \"Wallet connected\", plus a Download Core Wallet option.",
+    "summary": "Tapped \"Create L1\" in the Console sidebar; the page now at /console/create-l1 (title \"Create L1 | Avalanche Builder Hub\", breadcrumb Console > Create L1). It shows a requirements panel (wallet detected/connected) before use.",
     "startPath": "/console",
     "endPath": "/console/create-l1",
     "endAnchors": [
+      {
+        "text": "Requirements"
+      },
       {
         "role": "heading",
         "name": "To use this tool you need:"
@@ -40,55 +43,49 @@
       },
       {
         "role": "heading",
-        "name": "How to meet these requirements:"
+        "name": "How to meet these requirements"
       },
       {
-        "text": "Download Core Wallet"
+        "text": "Install a wallet extension"
       },
       {
-        "text": "Get Core — the wallet built for Avalanche"
+        "text": "Any EVM wallet works; Core is built for Avalanche and signs P-Chain transactions too"
       },
       {
         "role": "button",
-        "name": "Download"
-      },
-      {
-        "role": "document",
-        "name": "Create L1 | Avalanche Builder Hub"
+        "name": "Get Core"
       }
     ],
     "goneAnchors": [
       {
-        "role": "heading",
-        "name": "Avalanche Builder Console"
+        "text": "Avalanche"
       },
       {
         "role": "heading",
-        "name": "Built on Avalanche"
+        "name": "Avalanche Builder Console",
+        "text": "Builder Console"
+      },
+      {
+        "text": "Tools for the Primary Network and your own L1s. Start on Fuji, then go to mainnet."
       },
       {
         "role": "link",
-        "name": "View all →"
+        "name": "Create an L1"
       },
       {
-        "role": "image",
-        "name": "FIFA"
+        "role": "link",
+        "name": "Get test AVAX"
       },
       {
-        "text": "FIFA"
+        "text": "Start"
       },
       {
-        "role": "image",
-        "name": "MapleStory"
+        "text": "Layer 1"
       },
       {
-        "text": "MapleStory"
-      },
-      {
-        "role": "image",
-        "name": "Beam"
+        "text": "Create an L1"
       }
     ],
-    "endWaitMs": 12452
+    "endWaitMs": 27556
   }
 }

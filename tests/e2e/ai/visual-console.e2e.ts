@@ -1,6 +1,6 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
-import { needsModel } from '../lib/skip';
+import { isPhoneLayout, needsModel } from '../lib/skip';
 import { openAsReturningVisitor } from '../site/helpers';
 import { SCREENSHOT_ONLY, VISUAL, layoutIsIntact, waitForStillScreen } from './visual';
 
@@ -14,10 +14,12 @@ test('faucet without a wallet is laid out without clipped or overlapping content
   // The header wallet button renders on the client only, so it shows that React has hydrated the page.
   await expect(screen.getByRole('button', 'Connect wallet')).toBeVisible();
   await waitForStillScreen(browser);
+  // Below 640 px the header shows the button as a wallet icon only (its accessible name stays 'Connect wallet').
+  const wallet = (await isPhoneLayout(browser))
+    ? 'its wallet button (an icon-only square with a wallet icon)'
+    : 'its "Connect wallet" button';
   await agent.assert(
-    layoutIsIntact(
-      'the console header with its "Connect wallet" button and the box listing what the tool needs, all fully visible',
-    ),
+    layoutIsIntact(`the console header with ${wallet} and the box listing what the tool needs, all fully visible`),
     SCREENSHOT_ONLY,
   );
 });
