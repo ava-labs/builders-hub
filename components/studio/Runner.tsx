@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowRight,
   Check,
@@ -21,7 +21,7 @@ import { L1_BLUEPRINT, api, errorText, type DeploymentView, type NextAction } fr
 import { syncDeployedRegistry, syncLaunchedL1 } from './console-sync';
 import { WalletPicker } from '@/components/console-wallets/WalletPicker';
 import { studioSignerScope, useDeployRunner } from './useDeployRunner';
-import { Appear, Bone, Button, LABEL, Notice, Pill, shortId, timeAgo } from './ui';
+import { Appear, Bone, Button, LABEL, Notice, Pill, WorkingMark, shortId, timeAgo } from './ui';
 
 /* ------------------------------------------------------------------ */
 /* Shared marks for the Deploy, Networks and Production tabs.          */
@@ -144,6 +144,13 @@ type JobStep = { label: string; status: 'done' | 'current' | 'pending' | 'failed
 
 const CHAIN_TAG: Record<string, string> = { 'p-chain': 'P', 'c-chain': 'C', l1: 'L1' };
 
+/** Quick L1 names two of its steps by the P-Chain's Subnet object; builders read them as L1 steps. */
+const JOB_LABEL: Record<string, string> = {
+  'Creating Subnet': 'Creating the L1',
+  'Converting Subnet to L1': 'Converting to an L1',
+};
+const jobLabel = (label: string) => JOB_LABEL[label] ?? label;
+
 function TxLine({ tx }: { tx: JobTx }) {
   return (
     <span className="flex min-w-0 items-center gap-2 font-mono text-[10.5px] text-zinc-500 dark:text-zinc-400">
@@ -185,7 +192,7 @@ function JobSteps({ steps }: { steps: JobStep[] }) {
                 <StepMarker status={s.status} current={false} />
               )}
             </span>
-            {s.label}
+            {jobLabel(s.label)}
           </span>
           {s.txs && s.txs.length > 0 && (
             <span className="flex flex-col gap-0.5 pl-6">
@@ -218,6 +225,73 @@ function JobStepsSummary({ steps }: { steps: JobStep[] }) {
         <JobSteps steps={steps} />
       </div>
     </details>
+  );
+}
+
+/**
+ * A running platform job at a glance: the step it is on, in motion, and where that sits in the whole. The status
+ * text and every step with its transactions fold under Show steps. A step that failed while another still runs
+ * (the node wait) is left for Studio to finish, so the bar shows it as not done, not as an alarm.
+ */
+function JobProgress({ steps, detail, link }: { steps: JobStep[]; detail: string; link?: string }) {
+  const reduced = useReducedMotion();
+  const working = steps.some((s) => s.status === 'current');
+  const at = (['current', 'failed', 'pending'] as const)
+    .map((status) => steps.findIndex((s) => s.status === status))
+    .find((i) => i >= 0);
+  const index = at ?? steps.length - 1;
+  const step = steps[index];
+  const done = steps.filter((s) => s.status === 'done').length;
+  if (!step) return null;
+  return (
+    <span className="flex flex-col gap-3">
+      <span role="status" aria-live="polite" className="flex items-center gap-3">
+        {working ? <WorkingMark size="md" /> : <StepMarker status={step.status} current={false} />}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={step.label}
+            initial={reduced ? false : { opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? undefined : { opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              'text-[14px] font-medium',
+              step.status === 'failed' ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100',
+            )}
+          >
+            {jobLabel(step.label)}
+          </motion.span>
+        </AnimatePresence>
+      </span>
+      <Progress
+        steps={steps.map((s, i) => ({
+          id: String(i),
+          state: { status: s.status === 'failed' && working ? 'pending' : s.status },
+        }))}
+        currentId={String(index)}
+        finished={false}
+        busy={working}
+      />
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+        {done} of {steps.length} done
+        {link && <ActionLink href={link}>Track it</ActionLink>}
+      </span>
+      <details className="group">
+        <summary
+          className={cn(
+            LABEL,
+            'flex w-fit cursor-pointer select-none list-none items-center gap-1 [&::-webkit-details-marker]:hidden',
+          )}
+        >
+          <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+          Show steps
+        </summary>
+        <span className="mt-3 flex flex-col gap-3">
+          <span className="text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">{detail}</span>
+          <JobSteps steps={steps} />
+        </span>
+      </details>
+    </span>
   );
 }
 
@@ -257,14 +331,13 @@ function StepAction({
     case 'pending':
       return <LiveLine>Waiting for the transaction to be mined.</LiveLine>;
     case 'wait':
-      return (
-        <span className="flex flex-col gap-3">
-          <LiveLine>
-            <span>{action.detail}</span>
-            {action.link && <ActionLink href={action.link}>Track it</ActionLink>}
-          </LiveLine>
-          {action.progress && <JobSteps steps={action.progress} />}
-        </span>
+      return action.progress?.length ? (
+        <JobProgress steps={action.progress} detail={action.detail} link={action.link} />
+      ) : (
+        <LiveLine>
+          <span>{action.detail}</span>
+          {action.link && <ActionLink href={action.link}>Track it</ActionLink>}
+        </LiveLine>
       );
     case 'manual':
       return (
