@@ -15,5 +15,9 @@
 # Replay entry of the docs search step: two results share the name 'Add Validator', and their order changes
 # between deployments, so the recorded tap opens a different page.
 .e2e/cache/b4c9f0d3f8dd8470add72ba709f87b6a724f7a1d200345ce956f81c2adbf4d3e.json
+# Replay entry of the City view search step (ai/journey-explorer.e2e.ts). In CI the replay reads no start route on
+# that page: the step waits about 30 s, then fails as wrong-context while the URL is right. Re-recording does not
+# help, so this step calls the model in CI.
+.e2e/cache/2c4d5cec1995f39bb3f1ad25eb1041c29a79adf45c129b4db3f512fca4939e23.json
 # The output of the Console explore runs (explore/console/e2e.config.ts), the cache folder too: those runs commit nothing.
 explore/console/.e2e/
