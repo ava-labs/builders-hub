@@ -1189,19 +1189,22 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                   <p>Update the next cycle&apos;s period and auto-compounding for this validator.</p>
                   {existingValidator.pending && !configBlocked && <AcceptedTxNote />}
 
-                  <Sheet label="Current config" action={<Status tone="ok">Auto-renewed</Status>}>
-                    <SpecRow label="Stake">
-                      <Avax value={existingValidator.stakeAvax} />
-                    </SpecRow>
-                    <SpecRow label="Cycle period">
-                      <span className={VALUE}>
-                        {existingValidator.periodHours} <span className={UNIT}>hours</span>
-                      </span>
-                    </SpecRow>
-                    <SpecRow label="Auto-compound">
-                      <span className={VALUE}>{existingValidator.autoCompoundPct}%</span>
-                    </SpecRow>
-                  </Sheet>
+                  {/* Named, so the current values read apart from the 'Next cycle' summary below */}
+                  <div role="group" aria-label="Current config">
+                    <Sheet label="Current config" action={<Status tone="ok">Auto-renewed</Status>}>
+                      <SpecRow label="Stake">
+                        <Avax value={existingValidator.stakeAvax} />
+                      </SpecRow>
+                      <SpecRow label="Cycle period">
+                        <span className={VALUE}>
+                          {existingValidator.periodHours} <span className={UNIT}>hours</span>
+                        </span>
+                      </SpecRow>
+                      <SpecRow label="Auto-compound">
+                        <span className={VALUE}>{existingValidator.autoCompoundPct}%</span>
+                      </SpecRow>
+                    </Sheet>
+                  </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field
