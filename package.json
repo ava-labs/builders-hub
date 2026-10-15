@@ -12,7 +12,7 @@
     "axios": "^1.18.0",
     "effect": "^3.20.0",
     "fast-xml-parser": ">=5.5.9",
-    "katex": "0.16.35",
+    "katex": "0.18.2",
     "next": "^16.3.3",
     "underscore": "^1.13.8",
     "yaml": "^2.9.1"
@@ -146,7 +146,7 @@
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.0",
     "jszip": "^3.10.1",
-    "katex": "0.16.35",
+    "katex": "0.18.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.553.0",
     "marked": "^17.0.1",
