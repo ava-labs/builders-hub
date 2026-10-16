@@ -6,6 +6,7 @@ import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual, writeReading } from "@/lib/explorer-query/visual";
+import { markUpgrades, upgradeLines } from "@/lib/explorer-query/upgrades";
 import type { ChartSpec, Names, QueryAnswer, Totals } from "@/lib/explorer-query/types";
 import { monitorNote } from "@/lib/explorer-query/monitor";
 import { monitorFor } from "@/lib/explorer-query/monitor-feed";
@@ -64,6 +65,11 @@ function keepRead(key: string, read: Read) {
   reads.set(key, { ...read, at: Date.now() });
   while (reads.size > READS_MAX) reads.delete(reads.keys().next().value as string);
 }
+
+/** the note as the layout and the reading models read it: with the comparison before and since an upgrade the
+    question names (upgrades.ts), so a reading drawn from two days does not contradict the page's own line */
+const compared = (note: string, recipe: { question: string; chart: ChartSpec }, rows: Record<string, unknown>[], chainId: number) =>
+  [note, ...upgradeLines(recipe.question, recipe.chart, rows, chainId).map((l) => l.text)].filter(Boolean).join(" ");
 
 /** reads with no model in front of them (an edited query, a board's tile, a drill), per address an hour, counted only
     when no kept run answers them: a cold board takes one per tile, and its next readers take none. By address alone,
@@ -181,7 +187,7 @@ export async function POST(req: Request) {
         const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
         // the reading is written from the words the page shows, not the ones the recipe kept
         const said = keptWords(recipe, recipe.sql, result.rows, anchor, chainId);
-        const callouts = await writeReading({ question: recipe.question, title: said.title, note: said.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor, spent });
+        const callouts = await writeReading({ question: recipe.question, title: said.title, note: compared(said.note, recipe, result.rows, chainId), symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor, spent });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
         return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
@@ -192,7 +198,8 @@ export async function POST(req: Request) {
     try {
       const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
       const said = keptWords(recipe, recipe.sql, result.rows, anchor, chainId);
-      const out = await designVisual({ question: recipe.question, title: said.title, note: said.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor, spent });
+      const out = await designVisual({ question: recipe.question, title: said.title, note: compared(said.note, recipe, result.rows, chainId), symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor, spent });
+      out.visual = markUpgrades(out.visual, recipe.question, result.rows, chainId);
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       // the design's own time, its model steps and each visual its tool turned back: a slow layout shows whether it retried
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, steps: out.steps, refused: out.refused?.length ? out.refused : undefined, error: out.fromDesigner ? undefined : out.error });

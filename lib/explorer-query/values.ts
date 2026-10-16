@@ -14,6 +14,9 @@ export const isTime = (v: unknown): v is string => typeof v === "string" && /^\d
     format.ts keeps a short one whole) */
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
+/** words as a sentence lists them: a, b and c */
+export const andList = (words: readonly string[]) => (words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words.at(-1)}` : (words[0] ?? ""));
+
 /** the units of time, in ms */
 export const MINUTE = 60_000;
 export const HOUR = 3_600_000;

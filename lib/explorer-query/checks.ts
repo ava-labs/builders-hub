@@ -12,7 +12,7 @@ import { AAVE_SLUG, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS } from "./l
 import { DEX_CHAIN_ID, DEX_PROTOCOLS, DEX_TOKENS } from "./protocols";
 import { icttNamed } from "./names";
 import { FOUND_BY } from "./registry-turn";
-import { isFuji } from "./target";
+import { isFuji, targetOf } from "./target";
 
 /* A question that names a protocol our contract registry lists (Aave,
    Benqi, a DEX, a bridge) is answered from that protocol's contracts. A
@@ -207,11 +207,28 @@ const IN_USD = /\busd\b|_usd\b|\bprice\b|\bpx\s*\[/i;
 /** a column that is a count, a ratio or a rate, even when made from amounts */
 const NOT_AN_AMOUNT = /(pct|percent|share|ratio|rate|apy|apr|utili[sz]ation|count|loans|events|txs?)$/i;
 
+/* the P-Chain's nAVAX columns are UInt64, and a whole number times their sum stays UInt64: 100 * sum(weight) wraps past
+   UInt64's limit (about 18.4 billion AVAX in nAVAX) once the stake passes 184M AVAX, as the Primary Network's does, and
+   ClickHouse returns a wrong figure with no error (2026-10-16: "share of primary network stake on each avalanchego
+   version" gave 1.15 a share of 7.37% for 199.5M of 204.6M AVAX) */
+const NANO = String.raw`(?:sum|sumIf|max|min|any|argMax|anyLast)\s*\(\s*(?:\w+\.)?(?:weight|delegator_weight|stake_amount|balance|l1_balance|supply|potential_reward|accrued_delegatee_reward|amount)\b`;
+const WRAPS = new RegExp(String.raw`(?<![\d.])\b\d+(?![\d.e])\s*\*\s*${NANO}|${NANO}[^()]*(?:\([^()]*\)[^()]*)*\)\s*\*\s*\d+(?![\d.e])`, "i");
+
+/** the multiply WRAPS finds, as the query writes it, its sum's parentheses closed */
+function wrapOf(sql: string): string | undefined {
+  const m = WRAPS.exec(sql);
+  if (!m) return undefined;
+  let end = m.index + m[0].length;
+  for (let depth = (m[0].match(/\(/g) ?? []).length - (m[0].match(/\)/g) ?? []).length; depth > 0 && end < sql.length; end++) depth += sql[end] === "(" ? 1 : sql[end] === ")" ? -1 : 0;
+  return sql.slice(m.index, end).replace(/\s+/g, " ");
+}
+
 /** why a value column misstates what it holds, or null. A column named for AVAX made from a USD value or a price in
     dollars (D16's fees_avax held dollars, and the table read it as AVAX), every chain but Fuji; on the mainnet C-Chain,
     whose tables carry token amounts and USD values that may be NULL, a token amount rounded to whole units, which shows a
     small one as 0 (L05n showed Aave's net borrow of -0.13 BTC.b as 0), and a net of two sumIfs of usd, NULL when one
-    side has no rows (a replay of L05n showed a net borrow of 3,000 USDt with no USD) */
+    side has no rows (a replay of L05n showed a net borrow of 3,000 USDt with no USD); on the P-Chain, a sum of nAVAX
+    times a whole number, which wraps (WRAPS) */
 export function unitName(sql: string, chainId: number): string | null {
   if (isFuji(chainId)) return null;
   const columns = outerColumns(sql);
@@ -226,11 +243,15 @@ export function unitName(sql: string, chainId: number): string | null {
   const rounded = whole
     ? `${whole.name} rounds a token amount to whole units, so a small one reads 0 (-0.13 BTC.b showed as 0). Leave a token amount unrounded, since the page shows its significant digits; only a value in dollars rounds, to cents: round(x, 2).`
     : "";
+  const wrap = targetOf(chainId).kind === "pchain" ? wrapOf(sql) : undefined;
+  const wrapped = wrap
+    ? `${wrap} multiplies a sum of nAVAX as a whole number, which wraps past the UInt64 limit at the Primary Network's stake and gives a wrong figure with no error. Make the sum a decimal before the multiply: 100 * (sum(weight) / 1e9), or 100 * toFloat64(sum(weight)).`
+    : "";
   const net = chainId === DEX_CHAIN_ID ? columns.find((c) => nullNet(c.expr)) : undefined;
   const netted = net
     ? `${net.name} is one sumIf of usd less another, and a sumIf over no rows is NULL, so it is NULL for an asset with only one of the two actions. Write it as one sum with a sign that is 0 where neither action happened: if(countIf(action IN ('borrow', 'repay')) = 0, 0, sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay'))).`
     : "";
-  return named || rounded || netted ? `${[named, rounded, netted].filter(Boolean).join(" ")} Then call render_chart again.` : null;
+  return named || rounded || wrapped || netted ? `${[named, rounded, wrapped, netted].filter(Boolean).join(" ")} Then call render_chart again.` : null;
 }
 
 /* ------------------------------------------------------------------ */

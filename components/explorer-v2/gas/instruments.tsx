@@ -395,7 +395,7 @@ export function ColumnsBlock({
         )}
         {mIdx > 0 && (
           <span className="pointer-events-none absolute inset-y-0 border-l border-dashed border-[#E6212F]/70" style={{ left: mIdx * slot }}>
-            <span className="absolute bottom-1 right-1.5 whitespace-nowrap bg-white/85 px-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[#E6212F] dark:bg-zinc-950/85">{marker!.label}</span>
+            <span className={cn("absolute bottom-1 whitespace-nowrap bg-white/85 px-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[#E6212F] dark:bg-zinc-950/85", mIdx / n > 0.6 ? "right-1.5" : "left-1.5")}>{marker!.label}</span>
           </span>
         )}
         {avg && <Level top={height - hOf(avg.v)} label={avg.label} tone="ink" />}

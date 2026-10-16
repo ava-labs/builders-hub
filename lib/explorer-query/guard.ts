@@ -13,6 +13,7 @@ import { LENDING_EVENTS, strayHex, typedLending } from "./lending";
 import { expandMacros } from "./macros";
 import { DEX_TOPICS } from "./protocols";
 import { NETWORK_ID, isFuji, targetOf } from "./target";
+import { namesUpgrade } from "./upgrades";
 import { DAY } from "./values";
 
 export type AllowedTable = string;
@@ -427,12 +428,13 @@ export function negativeFigure(result: { columns: readonly { name: string }[]; r
    same days on every later run of a kept answer. A date the question
    names stays a date. */
 
-/** a question that names a date, a month or a year, whose days the query may write out */
+/** a question that names a date, a month or a year, whose days the query may write out. A network upgrade names its
+    activation (upgrades.ts) */
 const NAMED_DATE = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|20\d{2}|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i;
 
 /** why a query that writes out a date of the last five weeks must use now(), when its question (and the turns before it) name no date; or null */
 export function literalWindow(sql: string, question: string, chainId: number, now = new Date()): string | null {
-  if (isFuji(chainId) || NAMED_DATE.test(question)) return null;
+  if (isFuji(chainId) || NAMED_DATE.test(question) || namesUpgrade(question)) return null;
   const recent = [...sql.matchAll(/'(\d{4}-\d{2}-\d{2})(?:[ T][\d:.]*)?'/g)].map((m) => m[1]).find((d) => Math.abs(now.getTime() - Date.parse(`${d}T00:00:00Z`)) < 35 * DAY);
   return recent
     ? `the query writes the date ${recent} out, and the question names no date. Write its window with now(): today is toStartOfDay(now()), this week toMonday(now()), this month toStartOfMonth(now()), the last 7 days now() - INTERVAL 7 DAY. A kept answer runs again on later days, and a date written out would read the same days. Then call render_chart again.`

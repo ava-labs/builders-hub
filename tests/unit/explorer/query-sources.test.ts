@@ -90,7 +90,7 @@ function route(url: string): Response {
   }
   if (u.pathname === '/api/validator-stats') return Response.json(nets[net].stats ?? []);
   if (/^\/v1\/networks\/(mainnet|fuji)\/subnets$/.test(u.pathname)) return Response.json({ subnets: nets[net].subnets ?? [] });
-  if (u.pathname === '/api/avax-supply') {
+  if (u.pathname === '/v1/avax/supply') {
     return Response.json({ totalSupply: '467980000.5', circulatingSupply: '420000000', totalStaked: '221000000', totalLocked: '1000', totalRewards: '9000', totalPBurned: '1', totalCBurned: '4500000', totalXBurned: '2', l1ValidatorFees: '18151.28', genesisUnlock: '3', lastUpdated: '2026-09-27T04:30:17.000Z' });
   }
   return new Response('not found', { status: 404 });
@@ -150,7 +150,8 @@ describe('guard', () => {
     const sql = 'SELECT total_supply_avax FROM p_avax_supply WHERE chain_id = ';
     expect(guardSql(`${sql}1`, 1).ok).toBe(true);
     expect(guardSql(`${sql}5`, 5).ok).toBe(false);
-    expect(refSchema(1).map((l) => l.split('(')[0])).toEqual(['p_validator_versions', 'p_avax_supply']);
+    // mainnet also has the supply per day, the stake on the days the snapshots miss and the upgrade times
+    expect(refSchema(1).map((l) => l.split('(')[0])).toEqual(['p_validator_versions', 'p_avax_supply', 'p_avax_supply_daily', 'p_stake_fill', 'network_upgrades']);
     expect(refSchema(5).map((l) => l.split('(')[0])).toEqual(['p_validator_versions']);
   });
 });

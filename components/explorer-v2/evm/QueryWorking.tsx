@@ -8,7 +8,9 @@ import { networkAsked } from "@/components/explorer-v2/network/ask-route";
 import { NETWORK_SLUG } from "@/lib/explorer-query/target";
 import { cn } from "@/lib/utils";
 import { FILTER_MARK, WRITING } from "./query-client";
+import { useAskedPath } from "./query-asking";
 import { QueryLoader } from "./QueryLoader";
+import { TabsFrame } from "./query-tab-strip";
 
 /* The Query page's question area, and the page's first frame while it
    asks. The page draws that frame from ?q before its first answer event;
@@ -57,10 +59,10 @@ export function PickFace({ label, logo, all }: { label: string; logo?: string; a
   );
 }
 
-/** the thread: one crumb per question, the newest darkest; New question once an answer stands */
-export function ThreadLine({ prompts, onNew }: { prompts: string[]; onNew?: () => void }) {
+/** the thread: one crumb per question, the newest darkest */
+export function ThreadLine({ prompts }: { prompts: string[] }) {
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 font-mono text-[11px]">
+    <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 font-mono text-[11px]">
       <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-zinc-400 dark:text-zinc-500">
         {prompts.map((p, i) => (
           <span key={i} className="flex items-baseline gap-2">
@@ -69,11 +71,6 @@ export function ThreadLine({ prompts, onNew }: { prompts: string[]; onNew?: () =
           </span>
         ))}
       </span>
-      {onNew && (
-        <button type="button" onClick={onNew} className="shrink-0 uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500">
-          New question
-        </button>
-      )}
     </div>
   );
 }
@@ -159,11 +156,14 @@ export function PromptBox({
   );
 }
 
-/** a Query page's first frame while it asks: the question, the box held while the answer is written, the loader */
+/** a Query page's first frame while it asks: its tabs, the question, the box held while the answer is written, the loader */
 export function QueryWorking({ question, kind, chainName, scope }: { question: string; kind: "evm" | "pchain"; chainName: string; scope?: "network" }) {
   const all = scope === "network" && networkAsked(question);
+  // the page the question is on its way to, whose tabs it lands in: a chain's, or the network's
+  const path = useAskedPath() ?? "";
+  const chain = /^\/explorer\/[^/]+\/([^/]+)\/query$/.exec(path)?.[1] ?? (all ? NETWORK_SLUG : "c-chain");
   return (
-    <>
+    <TabsFrame path={path} chain={chain} question={question}>
       {/* the network page's picker: All chains for a question about every chain, else the C-Chain until the page reads which chain the question names */}
       {scope === "network" && (
         <div className="mb-6">
@@ -177,6 +177,6 @@ export function QueryWorking({ question, kind, chainName, scope }: { question: s
           <QueryLoader status={`${WRITING} · 0 s`} />
         </section>
       </div>
-    </>
+    </TabsFrame>
   );
 }

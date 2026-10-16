@@ -8,6 +8,7 @@ import { NETWORK_SLUG } from "@/lib/explorer-query/target";
 import { networkAsked } from "@/components/explorer-v2/network/ask-route";
 import { type IndexState, type QueryChain, QueryPage, useStreamed } from "./EvmQuery";
 import { ChainMark, PICK, PickFace } from "./QueryWorking";
+import { QueryTabs } from "./query-tabs";
 
 /* Query at the network scope (/explorer/mainnet/query): the picker of
    chains, All chains first, and the routing of a question to the chain it
@@ -74,7 +75,7 @@ const NETWORK_PAGE_EXAMPLES: typeof EXAMPLES = [
    the chain it names, to the P-Chain when it is about staking (the model
    routes those), and to the C-Chain otherwise; the chip shows which chain
    answers and can change the default. The page remounts on a new chain,
-   so no answer carries across. */
+   so no answer carries across; each tab keeps the chain it asked. */
 export function NetworkQuery({ network, chains, index }: { network: string; chains: NetworkQueryChain[]; index: Promise<IndexState[]> }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -128,22 +129,27 @@ export function NetworkQuery({ network, chains, index }: { network: string; chai
   );
 
   return (
-    <QueryPage
-      key={c.chainSlug}
-      scope="network"
-      network={network}
-      c={c}
-      examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : c.chainSlug === "c-chain" ? NETWORK_PAGE_EXAMPLES : examplesFor(c.chainId)}
-      index={states ? states[chains.indexOf(c)] : null}
-      picker={picker}
-      resolve={resolve}
-      // a question about another chain's data moves the picker, not the page
-      // no "asked on" note here: the chip already says which chain answers
-      onRoute={(route, q) =>
-        listed.some((x) => x.chainSlug === route)
-          ? pick(route, q)
-          : router.push(`/explorer/${network}/${route}/query?q=${encodeURIComponent(q)}&from=${c.chainSlug}`)
-      }
-    />
+    <QueryTabs network={network} kind="evm" scope="network" path={`/explorer/${network}/query`} chain={c.chainSlug} onChain={setSlug}>
+      {(t) => (
+        <QueryPage
+          key={`${t.key}:${c.chainSlug}`}
+          // a tab opens on its answer only on the chain that answered it
+          tab={t.chain === c.chainSlug ? t.link : { ...t.link, initial: undefined }}
+          network={network}
+          c={c}
+          examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : c.chainSlug === "c-chain" ? NETWORK_PAGE_EXAMPLES : examplesFor(c.chainId)}
+          index={states ? states[chains.indexOf(c)] : null}
+          picker={picker}
+          resolve={resolve}
+          // a question about another chain's data moves the picker, not the page
+          // no "asked on" note here: the chip already says which chain answers
+          onRoute={(route, q) =>
+            listed.some((x) => x.chainSlug === route)
+              ? pick(route, q)
+              : router.push(`/explorer/${network}/${route}/query?q=${encodeURIComponent(q)}&from=${c.chainSlug}`)
+          }
+        />
+      )}
+    </QueryTabs>
   );
 }

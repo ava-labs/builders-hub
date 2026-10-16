@@ -27,15 +27,18 @@ export const PCHAIN_TABLES = [
 
 /** tables our server builds and sends with the query (sources.ts); the
     ClickHouse box does not hold them. The Data API counts the AVAX
-    supply on mainnet only, so Fuji has no p_avax_supply */
-export const PCHAIN_REFS = ["p_validator_versions", "p_avax_supply"] as const;
-const FUJI_REFS = PCHAIN_REFS.filter((r) => r !== "p_avax_supply");
+    supply on mainnet only, and the supply per day, the stake on the days
+    the snapshots miss and the upgrade times are mainnet's, so Fuji keeps
+    p_validator_versions alone, as it was */
+export const PCHAIN_REFS = ["p_validator_versions", "p_avax_supply", "p_avax_supply_daily", "p_stake_fill", "network_upgrades"] as const;
+const FUJI_REFS = ["p_validator_versions"] as const;
 
 /** tables our server builds for the C-Chain's DEXs (protocols.ts): its
     pool factories and token decimals; and for its lending protocols
     (lending.ts): Benqi's markets and the lent tokens' decimals and price
-    kinds. Mainnet only, so Fuji has none */
-export const CCHAIN_REFS = ["dex_factories", "dex_tokens", "lending_markets", "lending_tokens"] as const;
+    kinds; and the network upgrades' activation times. Mainnet only, so
+    Fuji has none */
+export const CCHAIN_REFS = ["dex_factories", "dex_tokens", "lending_markets", "lending_tokens", "network_upgrades"] as const;
 
 /** the network: the C-Chain and every mainnet L1 the database indexes, asked as one target. No chain uses id 0, and
     the server reads each table as those chains' rows alone (sources.ts), so a network query reads no Fuji, testnet

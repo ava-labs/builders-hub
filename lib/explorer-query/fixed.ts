@@ -102,7 +102,7 @@ const PCHAIN: Fixed[] = [
   {
     q: "AVAX staked on the Primary Network per day this month",
     title: "AVAX staked on the Primary Network this month",
-    note: "Each day shows the stake from the most recent snapshot taken after 15 minutes past the hour. The current day's stake may change as the latest snapshot completes. Days with no snapshots stay empty.",
+    note: "Each day shows the stake at its last snapshot. Today shows the newest snapshot that is at least 15 minutes old, so it changes until the day ends. Days with no snapshots stay empty.",
     sql: "WITH snaps AS (SELECT snapshot_time, sum(weight + delegator_weight) / 1e9 AS staked FROM p_validator_snapshots WHERE chain_id = 1 AND subnet_id = unhex(repeat('00', 32)) AND snapshot_time >= toStartOfMonth(now()) AND snapshot_time <= now() - INTERVAL 15 MINUTE GROUP BY snapshot_time) SELECT toDate(snapshot_time) AS t, toNullable(argMax(staked, snapshot_time)) AS staked_avax FROM snaps GROUP BY t ORDER BY t WITH FILL FROM toStartOfMonth(now()) TO toDate(now()) + INTERVAL 1 DAY STEP INTERVAL 1 DAY\nLIMIT 2000",
     chart: { kind: "line", x: "t", series: [{ column: "staked_avax", label: "AVAX staked", unit: "AVAX" }] },
     drill: null,

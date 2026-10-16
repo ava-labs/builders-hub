@@ -16,6 +16,7 @@ import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type T
 import { fillDrill, nameRows } from "./enrich";
 import { networkPrompt } from "./network-prompt";
 import { dexQuestion, pchainPrompt, systemPrompt, userTurn } from "./prompt";
+import { markUpgrades, upgradeLines } from "./upgrades";
 import { NETWORK_ID, isCChain, isFuji, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey, type Recipe } from "./cache";
 import { fixedRecipe, fixedRoute } from "./fixed";
@@ -162,7 +163,8 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     const span = said.span ?? (isFuji(a.chainId) ? null : await snapshotSpan(run.sql, a.chainId));
     return {
       anchor: run.anchor,
-      sources: run.sources,
+      // an upgrade the question names is compared before and since, on these rows
+      sources: [...(run.sources ?? []), ...upgradeLines([a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n"), recipe.chart, result.rows, a.chainId)],
       title: said.title,
       note: said.note,
       span,
@@ -172,7 +174,8 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
       result,
       totals,
       names,
-      visual: visual ?? basicVisual(recipe.chart, result.columns),
+      // a kept layout holds no marks (cache.ts layoutOnly): an upgrade the question names is marked again on these rows
+      visual: markUpgrades(visual ?? basicVisual(recipe.chart, result.columns), [a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n"), result.rows, a.chainId),
       draftVisual: !visual,
       coverage: cover,
       key: key ?? undefined,
@@ -630,7 +633,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   done.key = key;
   // draw something at once; the page asks the designer for the real layout
   if (done.result) {
-    done.visual = basicVisual(done.chart, done.result.columns);
+    const asked = [a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n");
+    done.visual = markUpgrades(basicVisual(done.chart, done.result.columns), asked, done.result.rows, a.chainId);
+    done.sources = [...(done.sources ?? []), ...upgradeLines(asked, done.chart, done.result.rows, a.chainId)];
     done.draftVisual = true;
   }
   done.model = { steps, ms: Date.now() - t0, tries, writer: writers[writer].label, cached: false, timings, cacheRead, inputTokens };

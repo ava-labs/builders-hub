@@ -16,6 +16,10 @@ import { toHexBlockchainId } from "@/lib/icm-message";
 import { NETWORK_ID, PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
 import { DAY, WEEK } from "./values";
+import { MAINNET_UPGRADES } from "@/constants/network-upgrades";
+import { STAKE_FILL, gapNotes } from "./gaps";
+import { sqlWindow } from "./scope";
+import { upgradeTime } from "./upgrades";
 
 /* What the server puts in front of a question's SQL. Two kinds of table:
 
@@ -297,7 +301,7 @@ const versions: Source = {
 /* ------------------------------------------------------------------ */
 /* p_avax_supply                                                       */
 
-/* The AVAX supply as the Avalanche Data API counts it (/api/avax-supply):
+/* The AVAX supply as the Avalanche Data API counts it, the source /api/avax-supply passes on:
    the total net of what every chain burned, the burns per chain, staked,
    locked and rewards, and the continuous fees L1 validators have paid.
    The P-Chain's own supply (p_exec_state_history) is gross of the C-Chain
@@ -323,9 +327,12 @@ const SUPPLY_FIELDS = [
   ["genesis_unlock_avax", "genesisUnlock"],
 ] as const;
 
+const DATA_API_SUPPLY = "https://data-api.avax.network/v1/avax/supply";
+
 async function readSupply(network: Network): Promise<Supply> {
   if (network !== "mainnet") throw new Error("the Data API publishes the AVAX supply for mainnet only");
-  const body = await getJson<Record<string, unknown>>(`${siteBaseUrl()}/api/avax-supply`, "the AVAX supply");
+  // read at the source, not through our own route: a preview's own host is behind Vercel's login (lib/chat/site-url.ts)
+  const body = await getJson<Record<string, unknown>>(DATA_API_SUPPLY, "the AVAX supply");
   const values = SUPPLY_FIELDS.map(([, f]) => Number(body[f]));
   if (values.some((v) => !Number.isFinite(v) || v < 0)) throw new Error("the AVAX supply is incomplete");
   const updated = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.exec(String(body.lastUpdated ?? ""))?.[0].replace("T", " ") ?? "";
@@ -343,6 +350,60 @@ const supply: Source = {
     const sql = `SELECT toUInt8(${chainId}) AS chain_id, ${cols}, ${s.updated ? `toDateTime('${s.updated}', 'UTC')` : "toDateTime(0, 'UTC')"} AS updated_at`;
     const text = `Supply figures come from the Avalanche Data API${s.updated ? `, updated ${s.updated.slice(0, 16)} UTC` : ""}.`;
     return { sql, note: { table: "p_avax_supply", label: "AVAX supply", at: s.at, total: 1, known: 1, text } };
+  },
+};
+
+/* The supply at the end of each day, which the Data API does not
+   publish: its total now, less the staking rewards paid after the day
+   (raw_p_reward_utxos, up to when the Data API counted). Burns since the
+   day are not added back: about 78k AVAX from 2026-07-01 to 2026-10-15,
+   under 0.02% of the supply. The Data API counts circulating as total.
+   Rows from the query's own window when the SQL states one, else from the
+   first day it can rebuild: the P-Chain's blocks carry a time only since
+   Banff (2022-10-18 16:00 UTC), so 534,442 reward outputs before it have
+   none and a day before it would miss them. Mainnet only. */
+const FIRST_SUPPLY_DAY = "2022-10-18";
+/** a window that starts this close to now has burned under 0.02% of the supply since (78k AVAX in 107 days) */
+const RECENT_MS = 100 * DAY;
+
+const supplyDaily: Source = {
+  columns: [["chain_id", "UInt8"], ["t", "Date"], ["total_supply_avax", "Float64"], ["circulating_supply_avax", "Float64"]],
+  async build(chainId, sql) {
+    const s = await supplyFeed.get(networkOf(chainId));
+    const w = sqlWindow(sql, Date.now());
+    const asked = w && w !== "unknown" ? new Date(w.start - DAY).toISOString().slice(0, 10) : FIRST_SUPPLY_DAY;
+    const from = asked < FIRST_SUPPLY_DAY ? FIRST_SUPPLY_DAY : asked;
+    const until = s.updated ? `toDateTime('${s.updated}', 'UTC')` : "now()";
+    const paid = `SELECT toDate(block_time) AS t, sum(reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8)))) / 1e9 AS paid FROM raw_p_reward_utxos WHERE chain_id = ${chainId} AND block_time >= toDateTime('${from} 00:00:00', 'UTC') AND block_time <= ${until} GROUP BY t ORDER BY t WITH FILL FROM toDate('${from}') TO toDate(now()) + INTERVAL 1 DAY STEP INTERVAL 1 DAY`;
+    const total = `toFloat64(${s.values[0]}) - ifNull(sum(paid) OVER (ORDER BY t DESC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)`;
+    const out = `SELECT toUInt8(${chainId}) AS chain_id, t, ${total} AS total_supply_avax, total_supply_avax AS circulating_supply_avax FROM (${paid})`;
+    // the burns not added back: under 0.02% for a recent window, else at most what every chain has burned
+    const burned = s.values[5] + s.values[6] + s.values[7];
+    const bound = w && w !== "unknown" && w.start >= Date.now() - RECENT_MS ? "less than 0.02% of the supply" : `at most ${((100 * burned) / s.values[0]).toFixed(1)}% of the supply on the first days, as every chain has burned ${Math.round(burned / 1e6 * 10) / 10}M AVAX in all`;
+    const text = `The supply on each day is rebuilt: the Avalanche Data API's total supply${s.updated ? ` at ${s.updated.slice(0, 16)} UTC` : ""}, less the staking rewards paid after that day. Burns after that day are not added back, a difference of ${bound}. The rebuilt supply starts at ${FIRST_SUPPLY_DAY}, the Banff upgrade, as P-Chain blocks before it carry no time. The Data API counts the circulating supply as equal to the total supply.`;
+    return { sql: out, note: { table: "p_avax_supply_daily", label: "daily AVAX supply", at: s.at, total: 1, known: 1, text } };
+  },
+};
+
+/** the Primary Network stake on the days the snapshot tables miss (gaps.ts), as rows like a snapshot's total */
+const stakeFill: Source = {
+  columns: [["chain_id", "UInt8"], ["snapshot_time", "DateTime64(3, 'UTC')"], ["block_height", "UInt64"], ["validators", "UInt32"], ["staked_avax", "Float64"]],
+  async build(chainId) {
+    const tuples = STAKE_FILL.map((r) => `('${r.at}',${r.height},${r.validators},${r.weight})`).join(",");
+    const sql = `SELECT toUInt8(${chainId}) AS chain_id, toDateTime64(tupleElement(r, 1), 3, 'UTC') AS snapshot_time, toUInt64(tupleElement(r, 2)) AS block_height, toUInt32(tupleElement(r, 3)) AS validators, toUInt64(tupleElement(r, 4)) / 1e9 AS staked_avax FROM (SELECT arrayJoin([${tuples}]) AS r)`;
+    const text = `The stake from ${STAKE_FILL[0].at.slice(0, 10)} to ${STAKE_FILL.at(-1)?.at.slice(0, 10)} comes from the P-Chain's validator sets (platform.getValidatorsAt at each day's last block), because no validator snapshots exist for those days. Where both exist, the two are equal to the nAVAX.`;
+    return { sql, note: { table: "p_stake_fill", label: "P-Chain validator sets", at: Date.now(), total: STAKE_FILL.length, known: STAKE_FILL.length, text } };
+  },
+};
+
+/** each network upgrade's mainnet activation (constants/network-upgrades.ts), on the mainnet P-Chain and C-Chain */
+const upgrades: Source = {
+  columns: [["chain_id", "UInt64"], ["upgrade", "String"], ["activated_at", "DateTime('UTC')"], ["acps", "String"]],
+  async build(chainId) {
+    const rows = MAINNET_UPGRADES.map((u) => `('${u.name}','${upgradeTime(u)}','${u.acps.map((a) => `ACP-${a}`).join(", ")}')`);
+    const sql = `SELECT toUInt64(${chainId}) AS chain_id, tupleElement(r, 1) AS upgrade, toDateTime(tupleElement(r, 2), 'UTC') AS activated_at, tupleElement(r, 3) AS acps FROM (SELECT arrayJoin([${rows.join(",")}]) AS r)`;
+    const text = "Upgrade times come from AvalancheGo's mainnet config (upgrade/upgrade.go).";
+    return { sql, note: { table: "network_upgrades", label: "network upgrade times", at: Date.now(), total: rows.length, known: rows.length, text } };
   },
 };
 
@@ -570,6 +631,9 @@ const SOURCES: Record<string, Source> = {
   chain_names: chainNames,
   p_validator_versions: versions,
   p_avax_supply: supply,
+  p_avax_supply_daily: supplyDaily,
+  p_stake_fill: stakeFill,
+  network_upgrades: upgrades,
   dex_factories: factories,
   dex_tokens: tokens,
   lending_markets: markets,
@@ -608,7 +672,7 @@ export async function withSources(sql: string, chainId: number): Promise<{ sql: 
   const scoped = scopeDefs(sql, chainId, ids);
   // the lending and family names the query reads (lending.ts, families.ts), on the C-Chain the registry describes
   const names = chainId === LENDING_CHAIN_ID ? namesIn(sql, SERVER_NAMES) : [];
-  if (used.length === 0 && scoped.length === 0 && names.length === 0) return { sql, sources: [] };
+  if (used.length === 0 && scoped.length === 0 && names.length === 0) return { sql, sources: gapNotes(sql, chainId) };
   const built = await Promise.all(used.map((r) => SOURCES[r].build(chainId, sql)));
   // the inner name is the table itself: a WITH does not see its own names. The chain tables come first, so the
   // names and reference tables after them read the same chain's rows as the query
@@ -621,14 +685,14 @@ export async function withSources(sql: string, chainId: number): Promise<{ sql: 
     const what = [...used, ...(names.length ? ["the names our server defines"] : []), ...(scoped.length ? ["its chain's tables"] : [])].join(" and ");
     throw new Error(`the query is too long to send with ${what}: the definitions take ${bytes - own} of the ${SQL_BUDGET} bytes the query service accepts, so the query may use ${SQL_BUDGET - (bytes - own)} and it uses ${own}. Write a shorter query.`);
   }
-  return { sql: out, sources: built.map((b) => b.note) };
+  return { sql: out, sources: [...built.map((b) => b.note), ...gapNotes(sql, chainId)] };
 }
 
 /** what the reference tables a query reads cover, for an answer made without anchored() */
 export async function sourceNotes(sql: string, chainId: number): Promise<SourceNote[]> {
   const used = refsIn(sql, chainId);
-  if (used.length === 0) return [];
-  return within(Promise.all(used.map(async (r) => (await SOURCES[r].build(chainId, sql)).note)), 4000, []);
+  const built = used.length ? await within(Promise.all(used.map(async (r) => (await SOURCES[r].build(chainId, sql)).note)), 4000, []) : [];
+  return [...built, ...gapNotes(sql, chainId)];
 }
 
 /** the version lines in the set, newest first, as last read; null before the first read. Reads nothing */

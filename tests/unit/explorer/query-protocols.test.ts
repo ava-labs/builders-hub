@@ -91,8 +91,8 @@ describe('DEX tables', () => {
     expect(guardSql(POOLS.replaceAll('43114', '432204'), 432204).ok).toBe(false);
     expect(guardSql('SELECT count() FROM dex_tokens WHERE chain_id = 1', 1).ok).toBe(false);
     expect(guardSql('WITH dex_tokens AS (SELECT 1 AS x) SELECT x FROM dex_tokens WHERE chain_id = 43114', 43114).ok).toBe(false);
-    // the DEX chapter describes the two tables, so the schema card of every other question stays as it was
-    expect(refSchema(43114)).toEqual([]);
+    // the DEX chapter describes the two tables, so the schema card of every other question lists only the upgrade times
+    expect(refSchema(43114).map((l) => l.split('(')[0])).toEqual(['network_upgrades']);
     expect(refSchema(43113)).toEqual([]);
   });
 

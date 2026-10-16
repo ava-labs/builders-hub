@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Check, ChevronRight, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
+import { MessageSquarePlus, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import { setSelection as setDigSelection, askAbout } from "@/components/explorer-v2/dig/selection";
+import { setSelection as setDigSelection } from "@/components/explorer-v2/dig/selection";
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, SourceNote, Turn } from "@/lib/explorer-query/types";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
@@ -18,22 +16,25 @@ import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 import { CARD, QueryVisual, fmt, nameFor, tipX, zoneOf } from "./QueryVisual";
-import { type Row, NoteText, PanelRows, doorFor, downloadCsv, duration, fillTitle, formatOf, header, isTxList, rowDoor, toUnix } from "./QueryRows";
+import { type Row, NoteText, PanelRows, doorFor, fillTitle, formatOf, header, isTxList, rowDoor } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { bucketOf } from "./drill-plot";
 import { QueryLoader } from "./QueryLoader";
-import { PCHAIN_COLUMN, PromptBox, ThreadLine, placeholderOf, sqlScopeOf } from "./QueryWorking";
+import { PromptBox, ThreadLine, placeholderOf } from "./QueryWorking";
 import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
 import { QueryMonitor } from "./QueryMonitor";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
-import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
 import { askHref } from "@/lib/explorer-query/board-links";
 import { NETWORK_SLUG, rowBase } from "@/lib/explorer-query/target";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { type Kept, threadOf } from "@/lib/explorer-query/threads";
+import { QueryHow } from "./QueryHow";
+import { type TabLink, QueryTabs } from "./query-tabs";
+import { runTileSql } from "./query-board-bits";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -47,19 +48,6 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 /* the thread rides in the URL: ?q= the question, one &then= per
    follow-up, so a copied link opens the refined answer and not the first */
 const threadKey = (p: URLSearchParams) => JSON.stringify([p.get("q"), ...p.getAll("then")]);
-
-
-
-function useCopy() {
-  const [done, setDone] = useState<string | null>(null);
-  const copy = (key: string, text: string) => {
-    void navigator.clipboard.writeText(text).then(() => {
-      setDone(key);
-      setTimeout(() => setDone(null), 1400);
-    });
-  };
-  return { done, copy };
-}
 
 
 
@@ -96,66 +84,56 @@ export function useStreamed<T>(p: Promise<T> | null): T | null {
     never waits on that read */
 export function EvmQuery({ network, index = null }: { network: string; index?: Promise<IndexState> | null }) {
   const c = useChainContext();
+  const state = useStreamed(index);
   return (
-    <QueryPage
-      network={network}
-      c={{ chainId: c.chainId, chainSlug: c.chainSlug, chainName: c.chainName, nativeToken: c.nativeToken, kind: "evm" }}
-      examples={examplesFor(c.chainId)}
-      index={useStreamed(index)}
-    />
+    <QueryTabs network={network} kind="evm" path={askHref(network, c.chainSlug)} chain={c.chainSlug} off={state === "empty"}>
+      {(t) => (
+        <QueryPage
+          key={t.key}
+          tab={t.link}
+          network={network}
+          c={{ chainId: c.chainId, chainSlug: c.chainSlug, chainName: c.chainName, nativeToken: c.nativeToken, kind: "evm" }}
+          examples={examplesFor(c.chainId)}
+          index={state}
+        />
+      )}
+    </QueryTabs>
   );
 }
 
 /** the P-Chain's Query page: its rows carry chain_id 1 (mainnet) or 5 (Fuji) */
 export function PchainQuery({ network }: { network: string }) {
   return (
-    <QueryPage
-      network={network}
-      c={{ chainId: network === "fuji" ? 5 : 1, chainSlug: "p-chain", chainName: "the P-Chain", nativeToken: "AVAX", kind: "pchain" }}
-      examples={PCHAIN_EXAMPLES}
-    />
-  );
-}
-
-/* each chain family's own chrome; stable components, so a re-render of
-   the wrapper never remounts the page and loses its answer */
-function QueryShell({ kind, scope, network, heading, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; heading: boolean; children: React.ReactNode }) {
-  // no rise: the page paints its first frame with the HTML, and a box's shell has drawn that frame already
-  if (scope === "network")
-    return (
-      <NetworkShell network={network} search={false} heading={heading} rise={false}>
-        {children}
-      </NetworkShell>
-    );
-  if (kind === "pchain")
-    return (
-      <ExplorerShell chain="p-chain" network={network} hideHeader heading={heading} rise={false}>
-        <div className={PCHAIN_COLUMN}>{children}</div>
-      </ExplorerShell>
-    );
-  return (
-    <EvmShell network={network} search={false} heading={heading} rise={false}>
-      {children}
-    </EvmShell>
+    <QueryTabs network={network} kind="pchain" path={askHref(network, "p-chain")} chain="p-chain">
+      {(t) => (
+        <QueryPage
+          key={t.key}
+          tab={t.link}
+          network={network}
+          c={{ chainId: network === "fuji" ? 5 : 1, chainSlug: "p-chain", chainName: "the P-Chain", nativeToken: "AVAX", kind: "pchain" }}
+          examples={PCHAIN_EXAMPLES}
+        />
+      )}
+    </QueryTabs>
   );
 }
 
 export function QueryPage({
+  tab,
   network,
   c,
   examples,
   index = null,
-  scope,
   picker,
   onRoute,
   resolve,
 }: {
+  /** the tab the page is in: what it opens on, and where it reports (query-tabs.tsx) */
+  tab: TabLink;
   network: string;
   c: QueryChain;
   examples: typeof EXAMPLES;
   index?: IndexState;
-  /** "network": the All Networks chrome in place of the chain's */
-  scope?: "network";
   /** the network scope's chain picker, above the question */
   picker?: React.ReactNode;
   /** where a question about another chain goes; the default navigates to that chain's page */
@@ -168,13 +146,19 @@ export function QueryPage({
   // a board's SQL is bound to one chain: All chains pins nothing
   const pinnable = !!c.chainSlug && c.chainSlug !== NETWORK_SLUG;
   const params = useSearchParams();
+  const tabNow = useRef(tab);
+  tabNow.current = tab;
+  // a tab opens on the answer it keeps; rows it could not keep are read again first (restore)
+  const seed = tab.initial && !tab.initial.cut ? tab.initial : null;
+  // else a link's question is asked on load, so the first frame is already the working one. Read from
+  // the address bar: params trail a tab's own replaceState by a render
+  const linkQ = () => (tab.initial === undefined ? (typeof window === "undefined" ? params : new URL(window.location.href).searchParams).get("q") : null);
 
   const [prompt, setPrompt] = useState("");
-  // a link's question is asked on load, so the first frame is already the working one
-  const [phase, setPhase] = useState<"idle" | "query" | "running">(() => (params.get("q")?.trim() ? "query" : "idle"));
+  const [phase, setPhase] = useState<"idle" | "query" | "running">(() => (linkQ()?.trim() ? "query" : "idle"));
   // the question on its way and the thread it follows, shown on the thread line until its answer stands
   const [asking, setAsking] = useState<{ text: string; prior: string[] } | null>(() => {
-    const q = params.get("q");
+    const q = linkQ();
     return q ? { text: q, prior: [] } : null;
   });
   const [designing, setDesigning] = useState(false);
@@ -183,15 +167,17 @@ export function QueryPage({
   // a kept answer's reading, being written again
   const [reading, setReading] = useState(false);
   // the SQL the model handed back, so an edit is not laid out as if it were kept
-  const answerSql = useRef("");
+  const answerSql = useRef(seed?.answer.sql ?? "");
   const [error, setError] = useState<string | null>(null);
   // the anonymous limit was hit: the error offers sign-in, which lifts it
   const [gated, setGated] = useState(false);
   const { openLoginModal } = useLoginModalTrigger();
-  const [answer, setAnswer] = useState<QueryAnswer | null>(null);
-  const [history, setHistory] = useState<Turn[]>([]);
+  const [answer, setAnswer] = useState<QueryAnswer | null>(seed?.answer ?? null);
+  const [history, setHistory] = useState<Turn[]>(seed?.turns ?? []);
+  // what the tab gave the page: drawn again, not reported back as new
+  const seeded = useRef<QueryAnswer | null>(seed?.answer ?? null);
   const [sqlOpen, setSqlOpen] = useState(false);
-  const [sqlDraft, setSqlDraft] = useState("");
+  const [sqlDraft, setSqlDraft] = useState(seed?.answer.sql ?? "");
   const [range, setRange] = useState<[number, number] | null>(null);
   const [drill, setDrill] = useState<OpenDrill | null>(null);
   const drillNow = useRef(drill);
@@ -201,7 +187,6 @@ export function QueryPage({
   // the next question is about the selection
   const [about, setAbout] = useState(false);
   const [inspect, setInspect] = useState(false);
-  const [how, setHow] = useState(false);
   const still = useReducedMotion();
   const [started, setStarted] = useState<number | null>(null);
   // one pointer for the whole sheet: a bar and its row, a dot and its row
@@ -211,7 +196,9 @@ export function QueryPage({
   const [, tick] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const token = useRef(0);
-  const { done: copied, copy } = useCopy();
+  // a page leaves with its tab; a question it asked must not write the URL of the tab now in view
+  const live = useRef(true);
+  const gone = (my: number) => my !== token.current || !live.current;
 
   // the elapsed clock while a stage runs
   useEffect(() => {
@@ -281,6 +268,44 @@ export function QueryPage({
     window.history.replaceState(null, "", url.toString());
   };
 
+  /* a kept answer, drawn again with no model. Rows the store left out are
+     read again first: the SQL runs alone, and the layout stands without
+     its reading, which was about the old rows */
+  const restore = async (k: Kept) => {
+    const my = ++token.current;
+    const thread = threadOf(k);
+    answerSql.current = k.answer.sql;
+    setSqlDraft(k.answer.sql);
+    setHistory(k.turns);
+    if (!k.cut) {
+      seeded.current = k.answer;
+      setAnswer(k.answer);
+      setPhase("idle");
+      return;
+    }
+    setAsking({ text: thread[thread.length - 1], prior: thread.slice(0, -1) });
+    setEvents([{ type: "stage", stage: "cached" }]);
+    setPhase("query");
+    setStarted(Date.now());
+    try {
+      const run = await runTileSql(`tab:${c.chainId}:${k.answer.sql}`, c.chainId, k.answer.sql);
+      if (my !== token.current) return;
+      const a = { ...k.answer, result: run.result, names: run.names, anchor: run.anchor ?? k.answer.anchor, visual: k.answer.visual && { ...k.answer.visual, callouts: [] } };
+      seeded.current = a;
+      setAnswer(a);
+    } catch (e) {
+      if (my === token.current) setError(e instanceof Error ? readerError(e.message) : "The query failed.");
+    } finally {
+      if (my === token.current) {
+        setPhase("idle");
+        setStarted(null);
+      }
+    }
+  };
+  useLayoutEffect(() => {
+    if (tab.initial?.cut) void restore(tab.initial);
+  }, []);
+
   /* a question, or a follow-up on the answer in view. A replay (a link
      with its thread) passes each step's history along and leaves the URL
      as it came. Resolves to the thread so far, or null when it stopped. */
@@ -306,14 +331,14 @@ export function QueryPage({
       setSqlOpen(false);
       // a new question that names another chain is asked there, and this page works until that one opens; a follow-up stays on this chain
       const named = !refine && resolve && onRoute ? await resolve(text) : null;
-      if (my !== token.current) return null;
+      if (gone(my)) return null;
       if (named && named !== c.chainSlug) {
         onRoute!(named, text);
         return null;
       }
       try {
         const a = await stream({ prompt: text, history: hist }, my);
-        if (my !== token.current) return null;
+        if (gone(my)) return null;
         // a question about the other chain's data is asked on that chain's page
         if (a.route && a.route !== c.chainSlug) {
           if (onRoute) onRoute(a.route, text);
@@ -334,6 +359,7 @@ export function QueryPage({
         else if (a.model?.cached && a.key && a.result?.rowCount) void reread(a);
         return next;
       } catch (e) {
+        if (gone(my)) return null;
         setError(e instanceof Error ? readerError(e.message) : "The query failed.");
         if (e instanceof QueryError && e.signIn) {
           // after sign-in the page reloads on its thread and asks it again
@@ -420,15 +446,20 @@ export function QueryPage({
   const thread = threadKey(params);
   // sent here from the other chain's Query page
   const cameFrom = params.get("from");
-  const asked = useRef<string | null>(null);
+  const asked = useRef<string | null>(tab.initial ? JSON.stringify(threadOf(tab.initial)) : null);
   // the latest ask, read by the effect below without making it a trigger:
-  // only a new thread in the URL may ask, never a re-render (New question changes ask)
+  // only a new thread in the URL may ask, never a re-render (each answer changes ask)
   const askRef = useRef(ask);
   askRef.current = ask;
   useEffect(() => {
-    if (!qParam || thread === asked.current) return;
+    // params trail a replaceState by a render: ask only the thread the address bar holds
+    if (!qParam || thread === asked.current || thread !== threadKey(new URL(window.location.href).searchParams)) return;
     asked.current = thread;
     const [first, ...then] = JSON.parse(thread) as string[];
+    // a thread a tab keeps opens with no model (a reload, a link to a question asked before); another tab's opens in its own page
+    const k = tabNow.current.land([first, ...then]);
+    if (!k) return;
+    if (k !== "ask") return void restore(k);
     void (async () => {
       let h = await askRef.current(first, false, { replay: true });
       for (const t of then) {
@@ -437,30 +468,13 @@ export function QueryPage({
       }
     })();
   }, [thread, qParam]);
-  useEffect(() => () => setDigSelection(null), []);
-
-  const reset = () => {
-    token.current++;
-    setAnswer(null);
-    setHistory([]);
-    setError(null);
-    setGated(false);
-    setPrompt("");
-    setRange(null);
-    setDrill(null);
-    setSel([]);
-    setAbout(false);
-    setInspect(false);
-    setDesigning(false);
-    setDigSelection(null);
-    asked.current = null;
-    const url = new URL(window.location.href);
-    url.searchParams.delete("q");
-    url.searchParams.delete("then");
-    window.history.replaceState(null, "", url.toString());
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+      setDigSelection(null);
+    };
+  }, []);
 
   const allRows: Row[] = answer?.result?.rows ?? [];
   const names = answer?.names ?? {};
@@ -472,14 +486,18 @@ export function QueryPage({
   // the basic layout is never drawn while the real one is on its way
   const laying = designing || (!!answer?.draftVisual && !!answer.result?.rowCount);
   const recordRows = !!answer?.result && isTxList(answer.result.columns);
-  const tables = answer?.sql ? [...new Set([...answer.sql.matchAll(/\b(?:FROM|JOIN)\s+((?:raw|decoded|p)_\w+)/gi)].map((m) => m[1]))] : [];
-  const cov = answer?.coverage;
-  const covSecs = cov ? toUnix(cov.until) - toUnix(cov.since) : 0;
   const busy = phase !== "idle";
   const working = phase === "query" && asking !== null;
   const crumbs = working ? [...asking.prior, asking.text] : answer ? history.map((t) => t.prompt) : [];
   const stale = index && index !== "empty" && Date.now() / 1000 - index.untilUnix > STALE_S ? index : null;
   const elapsed = started ? Math.floor((Date.now() - started) / 1000) : 0;
+
+  // the tab keeps the thread on the line, and the answer once it stands
+  const line = JSON.stringify(crumbs);
+  useEffect(() => {
+    if (answer && answer === seeded.current) return;
+    tabNow.current.onChange(JSON.parse(line) as string[], history, answer);
+  }, [line, history, answer]);
 
   // every surface below the chart reads the rows through the selection
   const picked = useMemo(() => applySelection(allRows, sel), [allRows, sel]);
@@ -602,11 +620,9 @@ export function QueryPage({
     />
   );
 
-  const quiet = "flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50";
-
   return (
-    // the prompt box below is this page's search bar; the shell's would repeat it. An answer's title is the h1
-    <QueryShell kind={c.kind} scope={scope} network={network} heading={!answer}>
+    // the prompt box below is this page's search bar, so its shell (query-tabs.tsx) draws none. An answer's title is the h1
+    <>
       {picker && <div className="mb-6">{picker}</div>}
       {index === "empty" ? (
         <p className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-[13.5px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
@@ -619,8 +635,8 @@ export function QueryPage({
       <div className="flex flex-col gap-8">
         {/* the question */}
         <section className="flex flex-col gap-3">
-          {/* the thread, and the question on its way; New question once its answer stands */}
-          {crumbs.length > 0 && <ThreadLine prompts={crumbs} onNew={working ? undefined : reset} />}
+          {/* the thread, and the question on its way */}
+          {crumbs.length > 0 && <ThreadLine prompts={crumbs} />}
           {/* the selection, offered as the subject of the next question */}
           <AnimatePresence initial={false}>
             {answer && !drill && sel.length > 0 && !busy && (
@@ -818,145 +834,22 @@ export function QueryPage({
             {/* where the figures came from, folded away until asked */}
             {/* a monitor ran no SQL: its card says where its moves come from */}
             {!answer.monitor && (
-              <div className="flex flex-col">
-                <button
-                  type="button"
-                  onClick={() => setHow((v) => !v)}
-                  aria-expanded={how}
-                  aria-controls="query-how"
-                  className="flex items-center gap-1.5 self-start rounded-full py-1 pr-2 text-[13px] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-                >
-                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none", how && "rotate-90")} />
-                  How this was answered
-                </button>
-                <AnimatePresence initial={false}>
-                  {how && (
-                    <motion.div
-                      id="query-how"
-                      key="how"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: still ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <div className="flex flex-col gap-5 pb-2 pl-5 pt-4">
-                        {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>}
-                        <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
-                          <Fact label="Source" sub={answer.sources?.length ? `Indexed ClickHouse tables, read-only, with ${answer.sources.map((s) => s.label).join(" and ")} from our API` : "Indexed ClickHouse tables, read-only"}>
-                            {tables.length ? tables.join(", ") : "none"}
-                          </Fact>
-                          {cov && (
-                            <Fact
-                              label="Data window"
-                              sub={
-                                <>
-                                  <Link href={`${base}/block/${cov.lo}`} className="hover:text-[#E6212F]">
-                                    #{formatNumber(cov.lo)}
-                                  </Link>
-                                  {" to "}
-                                  <Link href={`${base}/block/${cov.hi}`} className="hover:text-[#E6212F]">
-                                    #{formatNumber(cov.hi)}
-                                  </Link>
-                                  {` · ${formatNumber(cov.blocks)} blocks`}
-                                  {answer.anchor && (
-                                    <span className="mt-1 block text-amber-700 dark:text-amber-400">
-                                      The index ends {duration(Math.max(0, Math.floor(Date.now() / 1000) - toUnix(answer.anchor)))} before now, so &ldquo;now&rdquo; is its last block, {answer.anchor.slice(11, 16)} UTC.
-                                    </span>
-                                  )}
-                                </>
-                              }
-                            >
-                              {duration(covSecs)}
-                            </Fact>
-                          )}
-                          {answer.result && (
-                            <Fact label="Result" sub={`${answer.result.rowsRead > 0 ? `${formatNumber(answer.result.rowsRead)} rows scanned in` : "Ran in"} ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
-                              {cutLine(answer) ?? rowCount(answer.result.rowCount)}
-                            </Fact>
-                          )}
-                        </dl>
-
-                        <div className={cn("flex flex-col gap-2", !answer.result && "hidden")}>
-                          <span className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px]">
-                            <button type="button" onClick={() => setSqlOpen((v) => !v)} className="text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-50">
-                              {sqlOpen ? "Hide SQL" : "Edit SQL"}
-                            </button>
-                            <button type="button" onClick={() => copy("sql", answer.sql)} className={quiet}>
-                              {copied === "sql" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} SQL
-                            </button>
-                            {answer.result && answer.result.rowCount > 0 && (
-                              <button type="button" onClick={() => downloadCsv({ title: answer.title, columns: answer.result!.columns, rows: answer.result!.rows, names })} className={quiet}>
-                                <Download className="h-3 w-3" /> All rows as CSV
-                              </button>
-                            )}
-                            {history.length > 0 && (
-                              <button type="button" onClick={() => copy("link", window.location.href)} className={quiet}>
-                                {copied === "link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Link
-                              </button>
-                            )}
-                            {drill?.answer && (
-                              <button type="button" onClick={() => copy("drill", drill.answer!.sql)} className={quiet}>
-                                {copied === "drill" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Records SQL
-                              </button>
-                            )}
-                            {drill?.answer && (
-                              <button type="button" onClick={() => askAbout(`Explain these transactions: ${drill.title}.`)} className={quiet}>
-                                Ask the assistant
-                              </button>
-                            )}
-                          </span>
-                          <span className="font-mono text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                            {answer.model?.cached
-                              ? `Kept answer; rows fresh in ${Math.round((answer.model.ms ?? 0) / 100) / 10} s.`
-                              : `SQL written in ${Math.round((answer.model?.ms ?? 0) / 1000)} s${answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.`}
-                            {designing ? " Laying out the chart." : answer.model?.designMs ? ` Chart laid out in ${Math.round(answer.model.designMs / 1000)} s.` : ""}
-                          </span>
-                          {!!answer.model?.timings?.length && (
-                            <ol className="flex flex-col gap-1 font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                              {answer.model.timings.map((t) => (
-                                <li key={t.n} className="flex items-baseline gap-2" title={t.detail}>
-                                  <span className={cn("w-1.5 shrink-0", t.ok ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]")}>{t.ok ? "✓" : "×"}</span>
-                                  <span className="w-10 shrink-0">{t.kind === "test" ? "test" : "final"}</span>
-                                  <span className="shrink-0">model {(t.modelMs / 1000).toFixed(1)} s</span>
-                                  <span className="shrink-0">sql {(t.sqlMs / 1000).toFixed(2)} s</span>
-                                  {!t.ok && <span className="min-w-0 truncate text-[#E6212F]">{t.detail}</span>}
-                                </li>
-                              ))}
-                            </ol>
-                          )}
-                        </div>
-
-                        {sqlOpen && (
-                          <div className="flex flex-col gap-3">
-                            <textarea
-                              value={sqlDraft}
-                              onChange={(e) => setSqlDraft(e.target.value)}
-                              spellCheck={false}
-                              rows={Math.min(18, Math.max(5, sqlDraft.split("\n").length + 1))}
-                              className="w-full resize-y rounded-xl bg-zinc-50 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-900 outline-none ring-1 ring-zinc-200/70 focus:ring-zinc-400 dark:bg-zinc-900/50 dark:text-zinc-100 dark:ring-zinc-800"
-                            />
-                            <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
-                              <span className="text-zinc-400 dark:text-zinc-500">
-                                {sqlScopeOf(c)}
-                              </span>
-                              <button type="button" onClick={() => void runSql()} disabled={busy || sqlDraft.trim() === answer.sql.trim()} className="rounded-full bg-zinc-900 px-3.5 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">
-                                Run
-                              </button>
-                            </div>
-                            {answer.drill && (
-                              <details className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                                <summary className="cursor-pointer select-none">How a group opens into its transactions</summary>
-                                <pre className="mt-2 overflow-x-auto rounded-xl bg-zinc-50 px-3 py-2 leading-relaxed dark:bg-zinc-900/50">{answer.drill.sql}</pre>
-                              </details>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              <QueryHow
+                answer={answer}
+                visual={visual}
+                names={names}
+                base={base}
+                c={c}
+                drill={drill}
+                designing={designing}
+                busy={busy}
+                linked={history.length > 0}
+                sqlOpen={sqlOpen}
+                onSqlOpen={setSqlOpen}
+                sqlDraft={sqlDraft}
+                onSqlDraft={setSqlDraft}
+                onRun={() => void runSql()}
+              />
             )}
             {answer.result && <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>}
           </section>
@@ -988,19 +881,6 @@ export function QueryPage({
           }
         />
       )}
-    </QueryShell>
-  );
-}
-
-/** one line of provenance: what, how much, and the fine print under it */
-function Fact({ label, sub, children }: { label: string; sub?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">{label}</dt>
-      <dd className="flex flex-col gap-1">
-        <span className="font-mono text-[15px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{children}</span>
-        {sub != null && <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{sub}</span>}
-      </dd>
-    </div>
+    </>
   );
 }

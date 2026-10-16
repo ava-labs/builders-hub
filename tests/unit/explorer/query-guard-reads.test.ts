@@ -14,7 +14,7 @@ const error = (sql: string, chainId = 43114) => {
 
 describe('a table read past the FROM and JOIN names', () => {
   it('is refused after a comma when it is not a table here, and bounded like any table when it is', () => {
-    expect(error(`SELECT count() AS n FROM raw_blocks AS b, evm_txs AS e WHERE b.chain_id = 43114 AND b.${W}`)).toBe('table evm_txs is not readable here; use raw_blocks, raw_txs, raw_logs, raw_traces, dex_factories, dex_tokens, lending_markets, lending_tokens');
+    expect(error(`SELECT count() AS n FROM raw_blocks AS b, evm_txs AS e WHERE b.chain_id = 43114 AND b.${W}`)).toBe('table evm_txs is not readable here; use raw_blocks, raw_txs, raw_logs, raw_traces, dex_factories, dex_tokens, lending_markets, lending_tokens, network_upgrades');
     expect(error(`SELECT count() AS n FROM raw_blocks AS b, raw_traces AS r WHERE b.chain_id = 43114 AND b.number = r.block_number`)).toMatch(/^bound raw_traces on block_time or block_number/);
     expect(error(`SELECT count() AS n FROM raw_blocks AS b, default.raw_traces AS r WHERE b.chain_id = 43114 AND b.${W}`)).toBe('write raw_traces without a database name');
   });

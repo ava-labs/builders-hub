@@ -4,6 +4,7 @@
    range, never from the question's words. */
 
 import { msOf, STALE_MS } from "./edges";
+import { namesUpgrade } from "./upgrades";
 import { DAY, HOUR, MINUTE, MONTHS, WEEK } from "./values";
 
 /** the day after the C-Chain's first: a bound this early reads the whole history, as the DEX pools do beside the window */
@@ -367,8 +368,9 @@ export function scoped(text: { title: string; note: string }, w: Window, now: nu
   }
   // a title of periods that names no window gets it after its periods: beside "Fees burned per 5 minutes" a total
   // of 803 AVAX read as one period's, where it was 6 hours'. "Daily transactions" takes it at its end
+  // an upgrade the title names is its window ("Gas price per week since Durango"), whose start the reader knows
   const per = PERIODS.exec(title);
-  if (per && claimsOf(title, "title", now).length === 0) {
+  if (per && claimsOf(title, "title", now).length === 0 && !namesUpgrade(title)) {
     const at = /^per\b/i.test(per[0]) ? per.index + per[0].length : title.length;
     title = `${title.slice(0, at)} ${words}${title.slice(at)}`;
   }

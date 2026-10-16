@@ -6,9 +6,10 @@ import { icttQuestion, icttTurn } from "./ictt";
 import { mevQuestion, mevTurn } from "./mev";
 import { lendingQuestion } from "./lending";
 import { networkVersion } from "./network-prompt";
-import { dexQuestion, promptVersion } from "./prompt";
+import { dexQuestion, promptVersion, shareTurn } from "./prompt";
 import { registryTurn } from "./registry-turn";
-import { NETWORK_ID } from "./target";
+import { NETWORK_ID, isFuji, targetOf } from "./target";
+import { upgradeTurn } from "./upgrades";
 import type { ChartSpec, Drill, Turn } from "./types";
 import type { VisualSpec } from "./visual";
 
@@ -39,9 +40,10 @@ const LOCAL_MAX = 500;
 const local = new Map<string, Recipe>();
 
 /** the same question on the same chain, however it was typed, against the same prompt: a DEX, lending, family or
-    ICTT question's names its variant, and a question that names a registry protocol with no chapter, an MEV question
-    or an ICTT question holds its turn's lines (registry-turn.ts, mev.ts, ictt.ts), so a change to them or to the
-    registry asks again; any other question's key is the one it was */
+    ICTT question's names its variant, and a question that names a registry protocol with no chapter, an MEV question,
+    an ICTT question, a network upgrade or a staked share of the supply holds its turn's lines (registry-turn.ts,
+    mev.ts, ictt.ts, upgrades.ts, prompt.ts shareTurn), so a change to them or to the registry asks again; any other
+    question's key is the one it was */
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
@@ -50,7 +52,7 @@ export function recipeKey(chainId: number, prompt: string, history: Turn[] = [])
     chainId === NETWORK_ID
       ? networkVersion(ictt)
       : promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history), familyQuestion(chainId, prompt, history), mevQuestion(chainId, prompt, history), ictt);
-  const named = `${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}${icttTurn(chainId, prompt)}`;
+  const named = `${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}${icttTurn(chainId, prompt)}${isFuji(chainId) ? "" : upgradeTurn(prompt, new Date(), targetOf(chainId).kind !== "pchain")}${shareTurn(chainId, prompt)}`;
   return createHash("sha256").update(`${chainId}\n${version}\n${norm}\n${past}${named && `\n${named}`}`).digest("hex").slice(0, 32);
 }
 

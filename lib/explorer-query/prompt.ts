@@ -13,7 +13,11 @@ import { registryTurn } from "./registry-turn";
 import { mevExamples, mevRules, mevTurn } from "./mev";
 import { ICTT_VERSION, icttChain, icttExamples, icttRules, icttTurn } from "./ictt";
 import { knownLines, refLine, refSchema } from "./sources";
+import { MAINNET_UPGRADES } from "@/constants/network-upgrades";
+import { gapsLine } from "./gaps";
+import { upgradeTime, upgradeTurn, upgradesLine } from "./upgrades";
 import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
+import { andList } from "./values";
 
 // the DEX gate lives with the DEX registry (protocols.ts), where the ICTT gate reads it too
 export { dexQuestion };
@@ -97,6 +101,20 @@ const STARTED = /\b(?:start(?:ed|s|ing)?|began|begin|new|join(?:ed|s)?|add(?:ed|
 const validatorsTurn = (prompt: string) =>
   VALIDATORS.test(prompt) && STARTED.test(prompt) && !/\b(?:l1s?|subnets?)\b/i.test(prompt) ? " A count of validators counts nodes, uniqExact(node_id), beside the registrations (a node that renews registers again), and the new ones: the nodes with no registration before the window." : "";
 
+/* a P-Chain question about how much of the AVAX supply is staked divides by the supply of each day: the writer read
+   p_avax_supply as the only supply, one current row, and answered "Circulating supply exists only as a current
+   figure" with no chart (6 of 6 runs, 2026-10-16). Any wording: a share word or a supply word, with a stake word,
+   and no word that makes it a share of the stake itself (top validators, delegators, L1s) */
+const SHARE = /%|\bper\s?cent(?:age)?\b|\bshare\b|\bratio\b|\bproportion\b|\bfraction\b|\bparticipation\b|\bhow much of\b|\b(?:more|less|most) of\b/i;
+const SUPPLY = /\bcirculating\b|\bsupply\b/i;
+const STAKE = /\bstak(?:e|ed|es|ing)\b/i;
+const OF_STAKE = /\b(?:validators?|delegat\w*|nodes?|top|largest|biggest|l1s?|subnets?)\b/i;
+/** the base of a staked share of the supply, on the mainnet P-Chain; also in the recipe key (cache.ts) */
+export const shareTurn = (chainId: number, prompt: string) =>
+  chainId === PCHAIN_IDS.mainnet && STAKE.test(prompt) && (SUPPLY.test(prompt) || (SHARE.test(prompt) && !OF_STAKE.test(prompt)))
+    ? " A share of the AVAX supply staked divides each day's Primary Network stake by that day's p_avax_supply_daily.circulating_supply_avax, as in the worked example, and the note names that base: the circulating supply, which the Avalanche Data API counts as the total supply."
+    : "";
+
 /* a DEX question about pools groups by pool, never by a swap's tokens: a WOOFi pool trades many pairs, one per swap,
    and r7's D08 split WOOFi's largest pool into its pairs, so the 9th pool by volume was missing from the top 10 */
 const POOLS = /\b(?:top(?:\s+\d+)?|busiest|largest|biggest|leading|which|what)\s+(?:\w+\s+)?pools?\b|\b(?:by|per|each|every)\s+pool\b|\bpools?\s+(?:by|with|ranked|sorted)\b/i;
@@ -122,8 +140,8 @@ export function userTurn(chainId: number, prompt: string, now = new Date(), alon
   const evm = targetOf(chainId).kind !== "pchain";
   const series = alone && evm ? seriesTurn(prompt) : "";
   const kept = !alone && evm && before ? keptTurn(before, now) : "";
-  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}${nftTurn(chainId, prompt)}${poolsTurn(chainId, prompt)}${feesTurn(chainId, prompt)}${unstakeTurn(prompt)}` : validatorsTurn(prompt);
-  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}${icttTurn(chainId, prompt)}\n\n${prompt}`;
+  const mints = evm ? `${mintsTurn(prompt)}${erc20Turn(prompt)}${nftTurn(chainId, prompt)}${poolsTurn(chainId, prompt)}${feesTurn(chainId, prompt)}${unstakeTurn(prompt)}` : `${validatorsTurn(prompt)}${shareTurn(chainId, prompt)}`;
+  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}${kept}${mints}${upgradeTurn(prompt, now, evm)}${registryTurn(chainId, prompt)}${mevTurn(chainId, prompt)}${icttTurn(chainId, prompt)}\n\n${prompt}`;
 }
 
 /** how an answer hands back its chart; the same for every target */
@@ -444,7 +462,7 @@ ${opts.coverage ? `\n${opts.coverage}` : ""}
 ${
   c
     ? `- Gas, per ACP-194 (Continuous Execution, live since the Helicon upgrade): raw_blocks.gas_used is the gas RESERVED (the sum of the block's tx gas limits, what fills the block against gas_limit). raw_txs.gas_used is the gas CHARGED per receipt, max(used, half the limit); fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. The C-Chain burns every fee.
-- Use these names in titles and notes, never "gas used" for the block figure. A sum of raw_txs.gas_used is gas charged, per block, per hour or per contract alike (name it gas_charged); gas reserved comes only from raw_blocks.gas_used.`
+- Use these names in titles and notes, never "gas used" for the block figure. A sum of raw_txs.gas_used is gas charged, per block, per hour or per contract alike (name it gas_charged); gas reserved comes only from raw_blocks.gas_used.${opts.chainId === 43114 ? `\n${upgradesLine(true)}` : ""}`
     : `- Gas: raw_blocks.gas_used is the block's gas used, against gas_limit. raw_txs.gas_used is the gas charged per receipt; fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. Whether an L1 burns its fees or pays them to a fee recipient depends on its configuration: say "fees paid", never "burned". A fee question also reads raw_blocks.miner over the same window, as the worked example "Fees per bucket" shows, and the note says where the fees went: to the burn address when not_burned is 0, that is when every block's miner is 0x0100000000000000000000000000000000000000, the one case where it may say "burned"; else to the one recipient, by its full address, when recipients is 1; else to how many recipients. That address or count is the one exception to the note rules against hex, addresses and counts.`
 }
 - ERC-20 Transfer logs: topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'); topic1 = from, topic2 = to (left-padded to 32 bytes, address is the last 20 bytes); data = amount (uint256, big endian: reinterpretAsUInt256(reverse(data))). A transfer's sender and recipient are lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address and the same over topic2 AS to_address. Never take them from tx_from, tx_to or raw_logs.address: those are the transaction's sender, the contract it called and the token contract. An ERC-20 transfer has no topic3 (topic3 IS NULL): an ERC-721 Transfer has the same topic0 and its token id in topic3, so a count of token transfers filters topic3 IS NULL, and a note that says ERC-20 or three topics holds only with that filter. ${
@@ -565,6 +583,9 @@ function linePivot(lines: string[]): string {
   ].join(", ");
 }
 
+const HELICON = MAINNET_UPGRADES.find((u) => u.name === "Helicon")!;
+const HELICON_FROM = `toDate('${upgradeTime(HELICON).slice(0, 10)}') - INTERVAL 30 DAY`;
+
 /** lines: the version lines in the validator set now, newest first
     (sources.ts); left out, the lines last read; null, none */
 export function pchainPrompt(opts: { chainId: number; network: string; schema: string; coverage: string | null; lines?: string[] | null }): string {
@@ -598,7 +619,7 @@ export function pchainPrompt(opts: { chainId: number; network: string; schema: s
   const lastDays = isFuji(id) ? "" : "\n- The last N days as a daily series are N whole days and today, from toDate(now()) - INTERVAL N DAY: the last 7 days start at toDate(now()) - INTERVAL 7 DAY, never 6, and the note says so.";
   return `You turn a question about the Avalanche P-Chain (${opts.network}; its rows carry chain_id = ${id}) into one ClickHouse SELECT and a chart spec. The P-Chain is Avalanche's platform chain: validators and delegators of the Primary Network, L1s and their validators, and the AVAX that moves between the P-Chain and the C-Chain and X-Chain. You are precise, terse, and you never invent data.
 
-## Tables (from the database, and ${supply ? "p_validator_versions and p_avax_supply" : "p_validator_versions"}, which our server sends with the query; this is the whole schema you may read)
+## Tables (from the database, and ${andList(targetOf(id).refs)}, which our server sends with the query; this is the whole schema you may read)
 ${opts.schema}
 ${opts.coverage ? `\n${opts.coverage}` : ""}
 
@@ -611,19 +632,22 @@ ${opts.coverage ? `\n${opts.coverage}` : ""}
     ? " On Fuji, ConvertSubnetToL1Tx rows carry no l1_validation_ids or l1_balances (they were indexed before those columns were decoded), so the first validators of a new L1 cannot be counted here: count registrations from RegisterL1ValidatorTx, carry the conversions beside them, and say in the note that the first validators of new L1s are not included."
     : ""
 }
-- Amounts (weight, stake_amount, balance, l1_balance, amount, supply) are nAVAX: divide by 1e9 for AVAX. An L1 validator's weight (p_l1_validator_snapshots.weight, l1_weight) is a unitless number the L1 sets: never divide it by 1e9, and never call it AVAX or stake.
+- Amounts (weight, stake_amount, balance, l1_balance, amount, supply) are nAVAX: divide by 1e9 for AVAX. An L1 validator's weight (p_l1_validator_snapshots.weight, l1_weight) is a unitless number the L1 sets: never divide it by 1e9, and never call it AVAX or stake.${isFuji(id) ? "" : " A sum of nAVAX is a whole number, and a whole number times it wraps past the UInt64 limit once the stake passes 184M AVAX, with no error: make the sum a decimal before any multiply, 100 * (sum(weight) / 1e9)."}
 - The snapshot tables (p_validator_snapshots, p_delegator_snapshots, p_l1_validator_snapshots) are photographs of the sets, taken about every 11 minutes. A snapshot's rows are written over several minutes under one snapshot_time, so the newest can be half written: for the current set, read snapshot_time = ${latest("<table>")}. That expression already passes over a snapshot still being written, so the note never mentions it. For a history, group by snapshot_time and keep the snapshots at least 15 minutes old. In snapshots, node_id and ids are already text (NodeID-…).
 - The Primary Network's subnet_id is 32 zero bytes: subnet_id = ${primary}. Other subnet_id values are L1s.
 - p_l1_validator_snapshots: an L1's seats. balance is what is left to pay the continuous fee (net of what has burned); a seat with balance 0 is inactive. A question about balances reads the active seats only (balance > 0), returns the L1 (subnet_id, which the server names) and the days the balance lasts (days_left) at the fee a seat pays per day, as in the worked example.
 - Fees paid: the Convert, Register and IncreaseL1ValidatorBalance deposits minus the balances left overstate the continuous fees L1 validators have paid, because a removed or disabled seat's balance is refunded to its owner and the tables do not mark refunds. ${supply ? "For the fees paid, read p_avax_supply.l1_validator_fees_avax, as in the worked example." : "Give that figure only as an upper bound, and say so in the note."}
-- p_exec_state_history: the P-Chain supply after each block (nAVAX), the AVAX the P-Chain counts as issued, gross of what the C-Chain and X-Chain burned. Call it the P-Chain supply, never the AVAX supply or the total supply.${supply ? " The total supply net of every chain's burns is p_avax_supply.total_supply_avax." : ""}
+- p_exec_state_history: the P-Chain supply after each block (nAVAX), the AVAX the P-Chain counts as issued, gross of what the C-Chain and X-Chain burned. Call it the P-Chain supply, never the AVAX supply or the total supply.${supply ? " The total supply net of every chain's burns is p_avax_supply.total_supply_avax, and on past days p_avax_supply_daily.total_supply_avax: a share of the supply divides by that, never by the P-Chain supply." : ""}
 - p_utxos_created and p_utxos_spent: every output and when it was spent. An address's balance is the sum of its outputs not yet spent (owner_addresses holds the owners).${audited}
 - p_validator_observations and p_node_info: what our nodes saw of each validator and node they peer with (uptime, version, IP), per observation.
 - Uptime: a validator's uptime is the median of what its observers saw: per observer, the average uptime_percent over the last hour of p_validator_observations; per validator, the median of those, with the number of observers, as in the worked example. A validator with no observations has no uptime: after a LEFT JOIN return if(up.observers > 0, round(up.median_uptime, 2), NULL), never 0. p_validator_snapshots.uptime_percent is one node's view and can be far from the rest: never report it as the uptime.
 - p_validator_versions: the AvalancheGo version line of every validator seat now, on the Primary Network and on every L1, one row per subnet and line; it has no row per node, so no node's own version is readable. It is not in the database: our server builds it from the explorer's validator feed and sends it with the query, so it has no history and no time column, and a read of it needs no time bound. It counts every active seat, as the explorer's validator pages do. version is the line ('1.15'), or 'Unknown' for the seats no source has a version for: keep the Unknown rows, they are part of the set. The page states how many seats have a known version, so never put that figure in the note. seats is the number of validator seats (name its sum validators, never seats). seen_day and seen_week count the seats whose version was seen in the last day and in the last 7 days, and from_crawler the seats whose version comes from a discovery crawler, which keeps the last version it saw of a node, so an old sighting may be out of date. For a question about upgrades, carry sum(seen_week) AS seen_7d with the counts; the page states how recent the versions are. weight is stake plus delegations in nAVAX on the Primary Network (is_l1 = 0) and the L1's own unitless weight on an L1 (is_l1 = 1): compare weight only inside one subnet. subnet_id is CB58 text, as the other tables return it with the CB58 expression below; return it as subnet_id and the server names the L1. A drill opens one L1's seats in p_l1_validator_snapshots on {{subnet_id:bytes}}, as in the worked example; a drill that stays in p_validator_versions compares subnet_id = {{subnet_id}}, with no quotes around the placeholder.${live?.length ? ` Version lines in the set now: ${live.join(", ")}.` : ""}${
   supply
     ? `
-- p_avax_supply: one row, the AVAX supply now as the Avalanche Data API counts it, in AVAX: total_supply_avax (net of every chain's burns), circulating_supply_avax, staked_avax, locked_avax, rewards_avax, burned_p_avax, burned_c_avax and burned_x_avax (what each chain has burned), l1_validator_fees_avax (all the continuous fees L1 validators have paid), genesis_unlock_avax, and updated_at (when the Data API counted). Like p_validator_versions, our server sends it with the query, so it has no history and a read of it needs no time bound. The page states when the figures were counted, so never put that in the note.`
+- p_avax_supply: one row, the AVAX supply now as the Avalanche Data API counts it, in AVAX: total_supply_avax (net of every chain's burns), circulating_supply_avax (which the Data API counts as equal to total_supply_avax), staked_avax, locked_avax, rewards_avax, burned_p_avax, burned_c_avax and burned_x_avax (what each chain has burned), l1_validator_fees_avax (all the continuous fees L1 validators have paid), genesis_unlock_avax, and updated_at (when the Data API counted). Like p_validator_versions, our server sends it with the query, so a read of it needs no time bound. It is the supply now; the supply on past days is in p_avax_supply_daily. The page states when the figures were counted, so never put that in the note.
+- p_avax_supply_daily: the AVAX supply at the end of each day (t) since 2022-10-18 (the Banff upgrade: P-Chain blocks before it carry no time), in AVAX: total_supply_avax and circulating_supply_avax, which the Data API counts as equal. Our server rebuilds it from p_avax_supply and the staking rewards paid after each day and sends it with the query, so a read of it needs no time bound. A share of the supply over time (the staked share, the share locked) divides by that day's circulating_supply_avax, as in the worked example, and the note names that base: "of the circulating supply, which the Avalanche Data API counts as the total supply". The page states how the supply is rebuilt, so never put that in the note.
+${gapsLine()}
+${upgradesLine(true)}`
     : ""
 }
 - Validators, unqualified ("how many validators", "validators now"): answer for the Primary Network and the L1s side by side, primary_validators and l1_validators (the active L1 seats), as in the worked example; never the Primary Network alone.
@@ -647,7 +671,11 @@ ${calendar(opts.chainId)}${lastDays}
 1. If the question fits a worked example below, adapt it and call render_chart directly; render_chart runs it and returns the database error if it fails.
 2. Call run_sql first only for joins, UTXO balances, or anything the examples do not cover.
 3. If the question is about C-Chain activity (EVM transactions, gas, contracts, tokens such as USDC or USDT), do not answer it here: call render_chart with kind "none", route "c-chain", sql "" and a one-line note. The page sends the question to the C-Chain.
-4. If the question cannot be answered from these tables, call render_chart with kind "none" and say why in the note.
+${
+  isFuji(id)
+    ? `4. If the question cannot be answered from these tables, call render_chart with kind "none" and say why in the note.`
+    : `4. If no table holds any part of the question, call render_chart with kind "none" and say why in the note. If the tables hold part of it, chart that part (the stake before and after a date, a share of the supply the tables hold), and the note says what the chart leaves out, such as days before the first one a table holds ("the stake history starts in July 2026").`
+}
 5. A drill must find records for the row it opens: keep the main query's window and filters, and filter on the row's own values. render_chart tests it on the first row and returns an error if it finds none.
 
 ## Worked examples (tested on these tables)
@@ -658,8 +686,8 @@ The 20 largest validators now, with their delegations, of all validators; drill 
 SELECT node_id, weight / 1e9 AS stake_avax, delegator_weight / 1e9 AS delegated_avax, delegator_count, delegation_fee_percent AS fee_pct, toString(end_time) AS ends, count() OVER () AS of_total FROM p_validator_snapshots WHERE chain_id = ${id} AND subnet_id = ${primary} AND snapshot_time = ${latest("p_validator_snapshots")} ORDER BY weight DESC LIMIT 20
 drill: SELECT block_time AS t, block_height, ${CB58("tx_id")} AS tx_id, tx_type, weight / 1e9 AS amount_avax, toString(end_time) AS ends FROM decoded_p_txs WHERE chain_id = ${id} AND block_time >= now() - INTERVAL 365 DAY AND node_id = {{node_id:bytes}} ORDER BY block_time DESC LIMIT 50
 
-AVAX staked on the Primary Network per day, from the last complete snapshot of each day:
-WITH snaps AS (SELECT snapshot_time, sum(weight + delegator_weight) / 1e9 AS staked FROM p_validator_snapshots WHERE chain_id = ${id} AND subnet_id = ${primary} AND snapshot_time >= toDate(now()) - INTERVAL 30 DAY AND snapshot_time <= now() - INTERVAL 15 MINUTE GROUP BY snapshot_time) SELECT toDate(snapshot_time) AS t, toNullable(argMax(staked, snapshot_time)) AS staked_avax FROM snaps GROUP BY t ORDER BY t WITH FILL FROM toDate(now()) - INTERVAL 30 DAY TO toDate(now()) + INTERVAL 1 DAY STEP INTERVAL 1 DAY
+AVAX staked on the Primary Network per day, from the last complete snapshot of each day${supply ? ", the days the snapshots miss added from p_stake_fill" : ""}:
+WITH snaps AS (SELECT snapshot_time, sum(weight + delegator_weight) / 1e9 AS staked FROM p_validator_snapshots WHERE chain_id = ${id} AND subnet_id = ${primary} AND snapshot_time >= toDate(now()) - INTERVAL 30 DAY AND snapshot_time <= now() - INTERVAL 15 MINUTE GROUP BY snapshot_time${supply ? ` UNION ALL SELECT snapshot_time, staked_avax FROM p_stake_fill WHERE chain_id = ${id} AND snapshot_time >= toDate(now()) - INTERVAL 30 DAY` : ""}) SELECT toDate(snapshot_time) AS t, toNullable(argMax(staked, snapshot_time)) AS staked_avax FROM snaps GROUP BY t ORDER BY t WITH FILL FROM toDate(now()) - INTERVAL 30 DAY TO toDate(now()) + INTERVAL 1 DAY STEP INTERVAL 1 DAY
 
 Transactions by type; drill into one type:
 SELECT tx_type, count() AS txs, round(100 * count() / sum(count()) OVER (), 2) AS share_pct FROM decoded_p_txs WHERE chain_id = ${id} AND block_time >= now() - INTERVAL 7 DAY GROUP BY tx_type ORDER BY txs DESC
@@ -689,6 +717,9 @@ ${
     ? `
 The continuous fees L1 validators have paid, all time (a single figure: a one-row table):
 SELECT l1_validator_fees_avax FROM p_avax_supply WHERE chain_id = ${id}
+
+The staked share of the circulating supply per day since 30 days before Helicon (it activated ${upgradeTime(HELICON)} UTC), the days the snapshots miss added from p_stake_fill:
+WITH snaps AS (SELECT snapshot_time, sum(weight + delegator_weight) / 1e9 AS staked FROM p_validator_snapshots WHERE chain_id = ${id} AND subnet_id = ${primary} AND snapshot_time >= ${HELICON_FROM} AND snapshot_time <= now() - INTERVAL 15 MINUTE GROUP BY snapshot_time UNION ALL SELECT snapshot_time, staked_avax FROM p_stake_fill WHERE chain_id = ${id} AND snapshot_time >= ${HELICON_FROM}), daily AS (SELECT toDate(snapshot_time) AS t, toNullable(argMax(staked, snapshot_time)) AS staked_avax FROM snaps GROUP BY t) SELECT s.t AS t, d.staked_avax AS staked_avax, s.circulating_supply_avax AS circulating_avax, round(100 * d.staked_avax / s.circulating_supply_avax, 2) AS staked_pct FROM p_avax_supply_daily AS s LEFT JOIN daily AS d ON d.t = s.t WHERE s.chain_id = ${id} AND s.t >= ${HELICON_FROM} ORDER BY t
 `
     : ""
 }
