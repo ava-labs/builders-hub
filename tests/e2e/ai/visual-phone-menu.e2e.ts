@@ -12,8 +12,8 @@ test('phone menu lists its links without clipped or overlapping text', VISUAL, a
   await openAsReturningVisitor(app, browser, '/');
   await phoneOnly(browser);
   await waitForHydration(browser, '#nd-nav');
-  const menu = await openSiteMenu(screen, browser, 'Solutions');
-  await expect(menu.getByRole('link', /^Why Avalanche\b/)).toBeVisible();
+  const menu = await openSiteMenu(screen, browser, 'Developers');
+  await expect(menu.getByRole('link', /^Documentation\b/)).toBeVisible();
   await waitForStillScreen(browser);
   await agent.assert(
     [

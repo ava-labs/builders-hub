@@ -92,16 +92,7 @@ export type GroupName = keyof typeof GROUPS;
 
 // The site pages that site/ and ai/ open by name. The routes sweep opens every other site page. site/ecosystem.e2e.ts
 // fetches every link of the ecosystem page, /audits included, so a removed or moved link target runs it.
-const SITE_CORE = [
-  '/grants',
-  '/events',
-  '/solutions',
-  '/validator-alerts',
-  '/guides',
-  '/ecosystem',
-  '/audits',
-  '/profile',
-];
+const SITE_CORE = ['/grants', '/events', '/validator-alerts', '/guides', '/ecosystem', '/audits', '/profile'];
 // site/ and ai/ open the sign-up and login pages, and webview/ opens them in in-app browsers.
 const AUTH_PAGES = ['/signup', '/login'];
 const TEXT_ROUTES = ['/llms.txt', '/llms-full.txt', '/mcp-manifest', '/static.json', '/install'];
@@ -210,7 +201,6 @@ export const NO_PAGE: readonly Pattern[] = [
 // Repo files that a test helper reads when the runner collects the tests. A change to one changes the test list.
 // tests/unit/ci/e2e-select.test.ts checks that every repo path a helper names is here.
 export const COLLECTION_READS: Record<string, readonly Unit[]> = {
-  'components/landing-v2/pillars.ts': ['routes'],
   'lib/rwa/projects.ts': ['routes'],
   'app/install/[tool]/route.ts': ['routes'],
   'lib/auth/protected-paths.ts': ['routes'],

@@ -28,7 +28,6 @@ const SECTION_TAGLINES: Record<string, string> = {
   stats: 'LIVE NETWORK DATA',
   explorer: 'BLOCKS · TRANSACTIONS · VALIDATORS',
   console: 'LAUNCH AND OPERATE L1S',
-  solutions: 'INTEROP · PERFORMANCE · PRIVACY · COMPLIANCE',
   showcase: 'PROJECTS FROM THE COMMUNITY',
   audits: 'AVA LABS AUDIT PROGRAM · FREE FOR BUILDERS',
   ecosystem: 'EVENTS · PROGRAMS · GUIDES · TOOLS',

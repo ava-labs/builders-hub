@@ -95,7 +95,7 @@ describe('phone sections', () => {
     expect(cardsOf(html)[1]).toContain('>Testnet Faucet<');
   });
 
-  it.each(['Solutions', 'Explorer', 'Ecosystem'])(
+  it.each(['Explorer', 'Ecosystem'])(
     '%s shows one picture card and its text links in the column beside it',
     (title) => {
       const section = phoneSection(title);

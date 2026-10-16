@@ -22,7 +22,7 @@ This repo uses Next.js 16 with Turbopack. Its APIs and conventions can differ fr
 
 | Path | Contents |
 |---|---|
-| `app/` | App Router. `(home)` holds the marketing pages, `explorer/[network]`, `stats`, `solutions`. Also `academy/`, `docs/`, `console/`, `api/` |
+| `app/` | App Router. `(home)` holds the marketing pages, `explorer/[network]`, `stats`. Also `academy/`, `docs/`, `console/`, `api/` |
 | `components/toolbox/` | The Builder Console: tools, flows, hooks, stores, `coreViem` |
 | `components/console/` | Console shell: sidebar, header, command palette, `console-flows.ts` |
 | `components/explorer-v2/` | The Explorer UI |

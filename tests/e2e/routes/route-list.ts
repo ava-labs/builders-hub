@@ -66,14 +66,6 @@ function firstMdxSlug(rel: string): string[] {
   return file ? [file.name.replace(/\.mdx$/, '')] : [];
 }
 
-/** The slugs of the PILLARS list in components/landing-v2/pillars.ts. generateStaticParams builds one page per pillar. */
-function pillarSlugs(): string[] {
-  const source = readRepoFile('components/landing-v2/pillars.ts');
-  const block = source.match(/export const PILLARS[^=]*=\s*\[([\s\S]*?)\n\];/);
-  if (!block) return [];
-  return [...block[1].matchAll(/^ {4}slug:\s*["']([^"']+)["']/gm)].map((m) => m[1]);
-}
-
 /** The first slug of the RWA_PROJECTS list in lib/rwa/projects.ts. getRWAProject finds it without network. */
 function firstRwaSlug(): string[] {
   const source = readRepoFile('lib/rwa/projects.ts');
@@ -95,7 +87,6 @@ function firstInstallTool(): string[] {
 const SAMPLES: Record<string, () => string[]> = {
   '/blog/[...slug]': () => firstMdxSlug('content/blog'),
   '/integrations/[...slug]': () => firstMdxSlug('content/integrations'),
-  '/solutions/[slug]': pillarSlugs,
 };
 
 // The RWA view of the C-Chain DeFi tab in the mainnet explorer.

@@ -3,7 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import { track } from "@/components/landing-v2/track";
-import { BODY, Chapter, FOCUS, Lead, Reveal, SUBHEAD, TextLink, Title } from "./kit";
+import { BODY, Chapter, FOCUS, Lead, Reveal, SUBHEAD, Title } from "./kit";
 
 /* Who already made the choice. Each entry says what is live, in the
    words of its source in the repo, and links to that source. Each cell
@@ -105,11 +105,6 @@ export default function InstitutionsChapter() {
           {CASES.map((c) => (
             <CaseCell key={c.name} c={c} />
           ))}
-        </div>
-        <div className="mt-12">
-          <TextLink href="/solutions" section="institutions">
-            Solutions for institutions
-          </TextLink>
         </div>
       </Reveal>
     </Chapter>

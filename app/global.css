@@ -1999,10 +1999,9 @@ html.v2-snap {
 #nd-nav > :last-child [class*="lg:grid-cols-3"]:has(.nav-featured) {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) !important;
   max-width: 56rem;
-  /* hang the panel under its trigger: the centered nav cluster puts the
-     Console item just right of the midline (~52%), so the panel centers
-     there instead of dead-center; the max() keeps it on-screen when the
-     viewport gets narrow */
+  /* hang the panel under the centered nav cluster, just right of the
+     midline (~52%), as the other panels do, instead of dead-center; the
+     max() keeps it on-screen when the viewport gets narrow */
   margin-left: max(1.5rem, calc(52% - 28rem));
   margin-right: 0;
 }
@@ -2030,7 +2029,7 @@ html.v2-snap {
 }
 
 /* v2 display voice: brand-aligned heavy caps, matching avalanche.com's
-   headline grammar. Every statement on the story/solutions pages uses
+   headline grammar. Every statement on the story pages uses
    this class, so when comms provides the brand display font (Aeonik
    heavy or similar) the swap happens here, once. */
 .v2-display {

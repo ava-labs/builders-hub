@@ -2354,6 +2354,33 @@ const config = {
         destination: "/academy",
         permanent: true,
       },
+      // /solutions and its four pillar pages were removed: each one sends visitors to the docs that
+      // cover its topic. Exact paths, not /solutions/:path*, so a later route under /solutions stays.
+      {
+        source: "/solutions",
+        destination: "/docs/avalanche-l1s",
+        permanent: true,
+      },
+      {
+        source: "/solutions/interoperability",
+        destination: "/docs/cross-chain",
+        permanent: true,
+      },
+      {
+        source: "/solutions/performance",
+        destination: "/docs/primary-network/avalanche-consensus",
+        permanent: true,
+      },
+      {
+        source: "/solutions/privacy",
+        destination: "/docs/avalanche-l1s#control-privacy-of-on-chain-data",
+        permanent: true,
+      },
+      {
+        source: "/solutions/compliance",
+        destination: "/docs/avalanche-l1s#launch-networks-designed-with-compliance",
+        permanent: true,
+      },
       // Academy consolidation (FDE-155): the Avalanche L1 and Blockchain landings merged into /academy. Exact
       // paths only, so the course urls below them stay. No ?path rule may point here: Next passes the query on,
       // so /academy would loop.
