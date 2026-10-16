@@ -3,6 +3,7 @@ import type { Browser } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { isPhoneLayout } from '../lib/skip';
 import { waitForHydration } from '../lib/hydration';
+import { NAVIGATION_TIMEOUT, TWO_ROUTE_TIMEOUT } from './helpers';
 
 // Below the hero and the stats board, the home page tells its story in five chapters
 // (components/landing-v2/story). Each one makes one claim with one proof and ends in a door.
@@ -99,18 +100,45 @@ test('home story doors link where they claim', async ({ app, browser }) => {
   await expect(institutions.getByRole('link', /BlackRock BUIDL/)).toHaveAttribute('href', '/integrations/blackrock');
 });
 
+// Each layer of the Own drawing, and the P-Chain plate under it, opens its docs.
+const LAYER_DOCS = [
+  { label: 'Virtual machine', href: '/docs/primary-network/virtual-machines#custom-vms-on-avalanche' },
+  { label: 'Gas token', href: '/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#setting-the-genesis-allocation' },
+  { label: 'Access', href: '/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#restricting-smart-contract-deployers' },
+  { label: 'Validator set', href: '/docs/avalanche-l1s#we-need-custom-validator-management' },
+];
+
 test('home story layers read as text on a phone', async ({ app, browser }) => {
   await app.open('/');
   await waitForHydration(browser, '[data-chapter="hero"] h1');
   await bringIntoView(browser, 'own');
-  // phones read the layers as a list; wider screens label them in the drawing and keep the list for screen readers
+  // phones read the layers as a list of links, top layer first; wider screens label them in the drawing
   const phone = await isPhoneLayout(browser);
-  if (phone) await expect(browser.locator('[data-chapter="own"] ol')).toBeVisible();
-  const layers = await browser.evaluate(() =>
-    [...document.querySelectorAll('[data-chapter="own"] ol li span:first-child')].map((n) => n.textContent?.trim() ?? ''),
-  );
-  expect(layers).toEqual(['Virtual machine', 'Gas token', 'Access', 'Validator set']);
+  if (phone) {
+    await expect(browser.locator('[data-chapter="own"] ol')).toBeVisible();
+    const layers = await browser.evaluate(() =>
+      [...document.querySelectorAll('[data-chapter="own"] ol li a')].map((a) => a.textContent?.trim() ?? ''),
+    );
+    expect(layers.map((text) => LAYER_DOCS.find((l) => text.startsWith(l.label))?.label)).toEqual(
+      LAYER_DOCS.map((l) => l.label),
+    );
+  }
   // nothing in the story is wider than the screen
   const overflow = await browser.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test('home story layers and the P-Chain open their docs', { timeout: TWO_ROUTE_TIMEOUT }, async ({ app, browser }) => {
+  await app.open('/');
+  await waitForHydration(browser, '[data-chapter="hero"] h1');
+  await bringIntoView(browser, 'own');
+  // a phone has the list under the drawing; a wider screen has the links on the drawing's labels. Either way one link per layer
+  const own = browser.locator('[data-chapter="own"]');
+  for (const layer of LAYER_DOCS) {
+    await expect(own.getByRole('link', new RegExp(`^${layer.label}`))).toHaveAttribute('href', layer.href);
+  }
+  await expect(own.getByRole('link', 'P-Chain docs')).toHaveAttribute('href', '/docs/primary-network/platformvm-architecture');
+  // the keyboard reaches a layer's docs too: over the canvas the scene takes the pointer, and these links keep the focus
+  await own.getByRole('link', /^Gas token/).press('Enter');
+  await expect(browser).toHaveURL(LAYER_DOCS[1].href, { timeout: NAVIGATION_TIMEOUT });
 });

@@ -75,6 +75,7 @@ export function SceneFrame<P extends object>({
   aspect,
   aspectNarrow,
   className = "",
+  onShown,
 }: {
   Scene: ComponentType<P & SceneProps>;
   sceneProps: P;
@@ -88,6 +89,8 @@ export function SceneFrame<P extends object>({
   /** width / height below 768 px; the wide ratio when absent */
   aspectNarrow?: number;
   className?: string;
+  /** true while the canvas, not the still, is what the box shows */
+  onShown?: (scene: boolean) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const theme = useHtmlTheme();
@@ -186,6 +189,9 @@ export function SceneFrame<P extends object>({
     box.addEventListener("webglcontextlost", lost, true);
     return () => box.removeEventListener("webglcontextlost", lost, true);
   }, [mount]);
+
+  const shown = mode === "scene" && mount && ready && swapped;
+  useEffect(() => onShown?.(shown), [shown, onShown]);
 
   const narrow = stillNarrow ?? still;
   return (

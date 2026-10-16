@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import {
@@ -20,44 +20,64 @@ import { CAPTION, MONO } from "../kit";
 import { plateNameCap, usePlateName } from "./logos";
 import { PALETTE, shadedBox, type SceneTheme } from "./palette";
 import type { SceneProps } from "./SceneFrame";
+import {
+  GAP_OPEN,
+  GAP_SHUT,
+  LABEL_H,
+  LABEL_PITCH,
+  LIFT,
+  PLATE,
+  PLATE_T,
+  PLATE_Y,
+  SIDE,
+  THICK,
+  UP_Y,
+  VIEW,
+  frameFor,
+} from "./stackLayout";
 
 /* Your L1 as an exploded drawing: the layers a team sets, stacked over the
    P-Chain plate every L1 registers on. Once the box is on screen the layers
    drop in, bottom first; the stack then opens as the drawing scrolls up, so
    each layer reads on its own. The validator set is red at rest; the layer
-   the reader points at lifts and takes the red. Once the drop has played,
-   the scene draws only when something moves. The plate's rim carries its
-   name. */
+   the reader points at lifts and takes the red, and the plate's name and
+   edges take it when the reader points at the plate. A click on a layer, its
+   label or the plate opens its docs. Once the drop has played, the scene
+   draws only when something moves. The plate's rim carries its name. */
 
 export interface StackLayer {
   key: string;
   label: string;
   line: string;
+  /** the docs page the layer opens */
+  href: string;
 }
+
+/** what the reader points at: a layer's index, the plate, or nothing */
+export type StackPoint = number | "plate" | null;
 
 export interface StackSceneProps {
   layers: StackLayer[];
-  /** index of the lit layer, or null */
-  active: number | null;
+  /** the lit layer's index, the plate, or null */
+  active: StackPoint;
   /** 0 = assembled, 1 = fully open */
   spread: MotionValue<number>;
-  /** the reader points at a layer in the drawing, or leaves it */
-  onPoint?: (index: number | null) => void;
+  /** the reader points at a layer or the plate in the drawing, or leaves it */
+  onPoint?: (point: StackPoint) => void;
+  /** a click on a layer, its label or the plate; newTab when a modifier key is down */
+  onSelect?: (point: Exclude<StackPoint, null>, newTab: boolean) => void;
   /** false draws the stack alone, centered (the narrow still) */
   labels?: boolean;
   /** false holds the drop, so it plays as the drawing is revealed, not before */
   play?: boolean;
+  /** true holds the rig unturned: a link over the drawing has the keyboard's focus, and its ring is drawn at rest */
+  rest?: boolean;
+  /** true once the canvas, not the still, is what the box shows */
+  shown?: boolean;
+  /** the mouse's last place in the window, kept by the page from its load, so the scene knows it even before it mounts */
+  pointerAt?: RefObject<[number, number] | null>;
 }
 
-const SIDE = 3;
-const THICK = 0.3;
-const GAP_SHUT = 0.04;
-// the least open gap: a narrow box opens the stack wider, so its labels keep their pitch
-const GAP_OPEN = 0.7;
-const LIFT = 0.24;
-const PLATE_Y = -0.62;
-const PLATE_T = 0.08;
-const PLATE = SIDE + 1.8;
 // the drop: each layer falls this far onto the one below, bottom first; low
 // enough that an open stack never leaves the frame as it falls
 const FALL = 1.4;
@@ -73,66 +93,27 @@ const NAME_FILL = 0.75;
 // the scene reports ready without the name after this long
 const READY_WAIT_MS = 3000;
 
-// the camera sits at target + VIEW. On screen, right is (1, 0, -1) / sqrt 2
-// and up is (-UP_XZ, UP_Y, -UP_XZ)
-const VIEW: [number, number, number] = [10, 8.2, 10];
-const VIEW_LEN = Math.hypot(...VIEW);
-const UP_Y = Math.hypot(VIEW[0], VIEW[2]) / VIEW_LEN;
-const UP_XZ = VIEW[1] / VIEW_LEN / Math.SQRT2;
-
-// the label column in px (pl-3, the w-12 rule, gap-3, the w-56 text) plus air at the box edge
-const LABEL_PX = 12 + 48 + 12 + 224 + 8;
-// a label is two lines, about 54 px tall; open, the labels sit LABEL_PITCH px apart
-const LABEL_H = 54;
-const LABEL_PITCH = 64;
-// air around the drawing, in units
-const MARGIN = 0.25;
-
-// screen extents in units from the origin: across, the plate's left corner
-// and the layers' right corner (where the labels hang); up, the plate's
-// front corner (lowest) and the top layer's back corner, lifted (highest)
-const PLATE_R = PLATE / Math.SQRT2;
-const ANCHOR_R = SIDE / Math.SQRT2;
-const BOTTOM_U = -UP_XZ * PLATE + UP_Y * (PLATE_Y - PLATE_T / 2);
-const topU = (count: number, gap: number) => UP_XZ * SIDE + UP_Y * ((count - 1) * (THICK + gap) + THICK / 2 + LIFT);
-
-interface Framing {
-  zoom: number;
-  /** the open gap for this box */
-  gap: number;
-  target: [number, number, number];
-}
-
-/** fit the whole plate, and the labels when there are any, in a box of width x height px */
-function frameFor(width: number, height: number, count: number, labels: boolean): Framing {
-  // the drawing's height in units, with its margin, at an open gap
-  const tall = (gap: number) => topU(count, gap) - BOTTOM_U + 2 * MARGIN;
-  const wide = PLATE_R + MARGIN + (labels ? ANCHOR_R : PLATE_R + MARGIN);
-  const room = labels ? width - LABEL_PX : width;
-  let zoom = Math.min(room / wide, height / tall(GAP_OPEN));
-  // the labels need LABEL_PITCH px between layers: a small zoom opens the
-  // gap past GAP_OPEN, and this bound keeps that taller stack in the box
-  if (labels) zoom = Math.min(zoom, (height - (count - 1) * LABEL_PITCH) / tall(-THICK));
-  zoom = Math.max(zoom, 1);
-  const gap = labels ? Math.max(GAP_OPEN, LABEL_PITCH / (UP_Y * zoom) - THICK) : GAP_OPEN;
-  // across: spare px split evenly at the two ends; alone, the plate is centered
-  const spare = room - wide * zoom;
-  const right = labels ? width / (2 * zoom) - (PLATE_R + MARGIN) - spare / (2 * zoom) : 0;
-  // up: halfway between the lowest and the highest point
-  const up = (topU(count, gap) + BOTTOM_U) / 2;
-  return { zoom, gap, target: [right / Math.SQRT2, up / UP_Y, -right / Math.SQRT2] };
-}
-
 /** what the frame callbacks read; one object per scene, written in place */
 interface Shared {
   /** the scene's own clock, s: it counts only while the box is on screen */
   time: number;
   running: boolean;
+  /** the box is on screen, whether or not the clock runs */
+  visible: boolean;
   /** the drop has played */
   landed: boolean;
-  active: number | null;
+  active: StackPoint;
   spread: MotionValue<number>;
   gap: number;
+  rest: boolean;
+  /** the pointer is over the canvas, where R3F tracks what it hovers */
+  inside: boolean;
+  /** the layer whose label the pointer is over */
+  onLabel: number | null;
+  /** the part a middle-button press began on: the release opens it only there */
+  middle: StackPoint;
+  /** look again, on the next frame, at what is under a pointer that has not moved */
+  recheck: () => void;
 }
 
 interface Geometry {
@@ -166,8 +147,11 @@ function useGeometry(theme: SceneTheme): Geometry {
 /** first in every frame: advance the scene's clock, and tell when the drop is over */
 function Tick({ shared, end, onLanded }: { shared: Shared; end: number; onLanded: () => void }) {
   useFrame((_, dt) => {
-    if (shared.running) shared.time += Math.min(dt, 0.1);
-    if (!shared.landed && shared.time >= end) {
+    if (!shared.running || shared.landed) return;
+    shared.time += Math.min(dt, 0.1);
+    // the drop moves the layers under a pointer that has not moved; the last look comes after they land
+    shared.recheck();
+    if (shared.time >= end) {
       shared.landed = true;
       onLanded();
     }
@@ -192,31 +176,107 @@ function Ready({ when, onReady }: { when: boolean; onReady: () => void }) {
   return null;
 }
 
-/** on demand, ask for a frame when an input changes: none of these ask on their own */
-function Kick({ spread, active, running }: { spread: MotionValue<number>; active: number | null; running: boolean }) {
+/**
+ * On demand, ask for a frame when an input changes: none of these ask on
+ * their own. And keep the hover true when the drawing moves under a pointer
+ * that has not moved (a scroll, the stack opening, the rig turning): the
+ * browser sends no pointer event then, and R3F raycasts only on one, so the
+ * lit layer would not be the one a click opens.
+ */
+function Kick({
+  shared,
+  spread,
+  active,
+  running,
+  rest,
+  shown,
+  pointerAt,
+  point,
+}: {
+  shared: Shared;
+  spread: MotionValue<number>;
+  active: StackPoint;
+  running: boolean;
+  rest: boolean;
+  shown: boolean;
+  pointerAt?: RefObject<[number, number] | null>;
+  point: (point: StackPoint) => void;
+}) {
   const gl = useThree((s) => s.gl);
+  const source = useThree((s) => s.events.connected as HTMLElement | undefined);
   const invalidate = useThree((s) => s.invalidate);
   const pointer = useThree((s) => s.pointer);
   useEffect(() => {
-    const el = gl.domElement;
-    const kick = () => invalidate();
+    const canvas = gl.domElement;
+    if (!source) return;
     // the pointer turns the rig; R3F only records it
-    el.addEventListener("pointermove", kick);
+    const move = () => {
+      shared.inside = true;
+      invalidate();
+    };
     // R3F keeps the last pointer when it leaves: center it, so the rig turns back to rest
     const leave = () => {
+      shared.inside = false;
       pointer.set(0, 0);
       invalidate();
     };
-    el.addEventListener("pointerleave", leave);
-    const off = spread.on("change", kick);
-    return () => {
-      el.removeEventListener("pointermove", kick);
-      el.removeEventListener("pointerleave", leave);
-      off();
+    let queued = 0;
+    const look = () => {
+      queued = 0;
+      const at = pointerAt?.current;
+      // off screen nothing is pointed at; while a link has the keyboard's focus, the focus shows, not the pointer
+      if (!at || !shared.visible || shared.rest) return;
+      const [clientX, clientY] = at;
+      const under = document.elementFromPoint(clientX, clientY);
+      if (shared.onLabel !== null && !under?.closest(`[data-stack-label="${shared.onLabel}"]`)) {
+        shared.onLabel = null;
+        point(null);
+      }
+      // a move where the pointer is now makes R3F raycast again; off the canvas, a leave drops its hover
+      if (under === canvas) canvas.dispatchEvent(new PointerEvent("pointermove", { clientX, clientY, bubbles: true }));
+      else if (shared.inside) source.dispatchEvent(new PointerEvent("pointerleave", { clientX, clientY }));
     };
-  }, [gl, invalidate, spread, pointer]);
-  useEffect(() => invalidate(), [active, running, invalidate]);
+    shared.recheck = () => {
+      if (!queued) queued = requestAnimationFrame(look);
+    };
+    const recheck = () => shared.recheck();
+    window.addEventListener("scroll", recheck, { passive: true });
+    source.addEventListener("pointermove", move);
+    source.addEventListener("pointerleave", leave);
+    const off = spread.on("change", () => {
+      invalidate();
+      recheck();
+    });
+    return () => {
+      window.removeEventListener("scroll", recheck);
+      source.removeEventListener("pointermove", move);
+      source.removeEventListener("pointerleave", leave);
+      off();
+      cancelAnimationFrame(queued);
+      shared.recheck = () => {};
+    };
+  }, [gl, source, invalidate, spread, pointer, shared, point, pointerAt]);
+  useEffect(() => invalidate(), [active, running, rest, invalidate]);
+  // the canvas takes over from the still, or a link gives the focus back: look at what the pointer is on
+  useEffect(() => {
+    if (shown && !rest) shared.recheck();
+  }, [shown, rest, shared]);
   return null;
+}
+
+/** a click opens a new tab with a modifier key down, as a link does */
+const newTab = (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => e.metaKey || e.ctrlKey || e.shiftKey;
+
+/** the pointer cursor while the reader points at something that opens */
+function usePointCursor(onPoint?: (point: StackPoint) => void) {
+  const gl = useThree((s) => s.gl);
+  return useCallback(
+    (point: StackPoint) => {
+      gl.domElement.style.cursor = point === null ? "" : "pointer";
+      onPoint?.(point);
+    },
+    [gl, onPoint],
+  );
 }
 
 function Layer({
@@ -226,6 +286,7 @@ function Layer({
   geometry,
   theme,
   onPoint,
+  onSelect,
   labels,
 }: {
   index: number;
@@ -233,14 +294,20 @@ function Layer({
   shared: Shared;
   geometry: Geometry;
   theme: SceneTheme;
-  onPoint?: (index: number | null) => void;
-  labels: boolean;
+  onPoint: (point: StackPoint) => void;
+  onSelect?: StackSceneProps["onSelect"];
+  labels: RefObject<HTMLDivElement | null> | null;
 }) {
   const rest = useRef<Group>(null);
+  const hit = useRef<Mesh>(null);
+  const gl = useThree((s) => s.gl);
+  const pointer = useThree((s) => s.pointer);
+  const invalidate = useThree((s) => s.invalidate);
   const lift = useRef<Group>(null);
   const mat = useRef<MeshBasicMaterial>(null);
   const line = useRef<LineBasicMaterial>(null);
   const tag = useRef<HTMLDivElement>(null);
+  const text = useRef<HTMLSpanElement>(null);
   const rule = useRef<HTMLSpanElement>(null);
   const palette = PALETTE[theme];
   const tones = useMemo(
@@ -271,28 +338,58 @@ function Layer({
     outer.position.y = index * (THICK + gap) + (1 - intro) ** 3 * FALL;
     // the lift grows with the spread, so a shut stack never intersects
     inner.position.y = lit.current * LIFT * spread;
+    // the hover target spans the rest place and the lift above it, so a lift
+    // never moves the layer out from under the pointer and its lifted top still opens it
+    if (hit.current) {
+      hit.current.scale.y = 1 + (LIFT * spread) / THICK;
+      hit.current.position.y = (LIFT * spread) / 2;
+    }
     mat.current?.color.copy(tones.face).lerp(tones.red, lit.current);
     line.current?.color.copy(tones.edge).lerp(tones.redEdge, lit.current);
-    if (tag.current) {
+    if (tag.current && text.current) {
       // a label shows once its layer has landed and the stack is open enough to hold it
       const pitch = (THICK + gap) * UP_Y * state.camera.zoom;
       const show = MathUtils.smoothstep(pitch, LABEL_H, LABEL_PITCH) * MathUtils.smoothstep(intro, 0.6, 1);
       tag.current.style.opacity = show.toFixed(3);
+      // a label that is not there takes no clicks
+      text.current.style.pointerEvents = show > 0.5 ? "auto" : "none";
     }
-    if (rule.current) rule.current.style.backgroundColor = lit.current > 0.5 ? palette.red : "";
+    // the leader's red comes and goes with its layer's
+    if (rule.current) rule.current.style.opacity = lit.current.toFixed(3);
   }, -1);
 
   return (
     <group ref={rest}>
-      {/* the hover target stays at the layer's rest place: a lift never moves it out from under the pointer */}
+      {/* the hover target holds the layer's rest place: a lift never moves it out from under the pointer */}
       <mesh
+        ref={hit}
         geometry={geometry.box}
         visible={false}
         onPointerOver={(e) => {
           e.stopPropagation();
-          onPoint?.(index);
+          onPoint(index);
         }}
-        onPointerOut={() => onPoint?.(null)}
+        // a pointer that moved onto a label keeps the label's light
+        onPointerOut={() => {
+          if (shared.onLabel === null) onPoint(null);
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          // a drag is not a click (R3F's own threshold)
+          if (e.delta <= 2) onSelect?.(index, newTab(e.nativeEvent));
+        }}
+        // the middle button opens a new tab, as on a link: press and release on the same part
+        onPointerDown={(e) => {
+          if (e.nativeEvent.button !== 1) return;
+          e.stopPropagation();
+          shared.middle = index;
+        }}
+        onPointerUp={(e) => {
+          if (e.nativeEvent.button !== 1) return;
+          e.stopPropagation();
+          if (shared.middle === index) onSelect?.(index, true);
+          shared.middle = null;
+        }}
       />
       <group ref={lift}>
         <mesh geometry={geometry.layer}>
@@ -309,12 +406,50 @@ function Layer({
           <lineBasicMaterial ref={line} color={palette.edge} />
         </lineSegments>
       </group>
-      {/* the label is a sibling of the lift: it holds its place, so labels never touch */}
+      {/* the label is a sibling of the lift: it holds its place, so labels never touch.
+          It sits in the label layer, outside R3F's event source, so its pointer events
+          never reach the raycaster. Its text opens the layer's docs for the pointer; the
+          links over the drawing (StackLinks) serve the keyboard and screen readers */}
       {labels && (
-        <Html position={[SIDE / 2, 0, -SIDE / 2]} style={{ pointerEvents: "none" }} zIndexRange={[10, 0]}>
+        <Html
+          portal={labels as RefObject<HTMLElement>}
+          position={[SIDE / 2, 0, -SIDE / 2]}
+          style={{ pointerEvents: "none" }}
+          zIndexRange={[10, 0]}
+        >
           <div ref={tag} className="flex -translate-y-1/2 items-center gap-3 pl-3" style={{ opacity: 0 }}>
-            <span ref={rule} className="h-px w-12 shrink-0 bg-zinc-300 dark:bg-zinc-700" />
-            <span className="flex w-56 flex-col gap-0.5">
+            <span className="relative h-px w-12 shrink-0 bg-zinc-300 dark:bg-zinc-700">
+              <span ref={rule} className="absolute inset-0" style={{ backgroundColor: palette.red, opacity: 0 }} />
+            </span>
+            <span
+              ref={text}
+              data-stack-label={index}
+              className="flex w-56 cursor-pointer flex-col gap-0.5"
+              style={{ pointerEvents: "none" }}
+              onPointerEnter={() => {
+                shared.onLabel = index;
+                onPoint(index);
+              }}
+              onPointerLeave={(e) => {
+                shared.onLabel = null;
+                onPoint(null);
+                // straight off the drawing, the rig turns back to rest; onto the canvas, R3F's next move sets it
+                if (e.relatedTarget !== gl.domElement) {
+                  pointer.set(0, 0);
+                  invalidate();
+                }
+              }}
+              onPointerMove={(e) => {
+                // the rig turns after the pointer over a label too
+                const box = gl.domElement.getBoundingClientRect();
+                pointer.set(((e.clientX - box.left) / box.width) * 2 - 1, 1 - ((e.clientY - box.top) / box.height) * 2);
+                invalidate();
+              }}
+              onClick={(e) => onSelect?.(index, newTab(e))}
+              onAuxClick={(e) => {
+                if (e.button === 1) onSelect?.(index, true);
+              }}
+            >
               <span className={`${MONO} text-zinc-900 dark:text-zinc-100`}>{layer.label}</span>
               <span className={CAPTION}>{layer.line}</span>
             </span>
@@ -329,15 +464,65 @@ function Plate({
   geometry,
   theme,
   name,
+  shared,
+  onPoint,
+  onSelect,
 }: {
   geometry: Geometry;
   theme: SceneTheme;
   name: ReturnType<typeof usePlateName>;
+  shared: Shared;
+  onPoint: (point: StackPoint) => void;
+  onSelect?: StackSceneProps["onSelect"];
 }) {
   const palette = PALETTE[theme];
+  const edge = useRef<LineBasicMaterial>(null);
+  const ink = useRef<MeshBasicMaterial>(null);
+  const tones = useMemo(
+    () => ({
+      edge: new Color(palette.edge),
+      redEdge: new Color(palette.redEdge),
+      ink: new Color(palette.plateInk),
+      red: new Color(palette.red),
+    }),
+    [palette],
+  );
+  const lit = useRef(shared.active === "plate" ? 1 : 0);
+  useFrame((state, dt) => {
+    const to = shared.active === "plate" ? 1 : 0;
+    lit.current = MathUtils.damp(lit.current, to, 10, Math.min(dt, 1 / 30));
+    if (Math.abs(lit.current - to) < 0.001) lit.current = to;
+    else state.invalidate();
+    edge.current?.color.copy(tones.edge).lerp(tones.redEdge, lit.current);
+    ink.current?.color.copy(tones.ink).lerp(tones.red, lit.current);
+  }, -1);
   return (
     <group position={[0, PLATE_Y, 0]}>
-      <mesh geometry={geometry.plate}>
+      <mesh
+        geometry={geometry.plate}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          onPoint("plate");
+        }}
+        onPointerOut={() => {
+          if (shared.onLabel === null) onPoint(null);
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.delta <= 2) onSelect?.("plate", newTab(e.nativeEvent));
+        }}
+        onPointerDown={(e) => {
+          if (e.nativeEvent.button !== 1) return;
+          e.stopPropagation();
+          shared.middle = "plate";
+        }}
+        onPointerUp={(e) => {
+          if (e.nativeEvent.button !== 1) return;
+          e.stopPropagation();
+          if (shared.middle === "plate") onSelect?.("plate", true);
+          shared.middle = null;
+        }}
+      >
         <meshBasicMaterial
           vertexColors
           color={palette.plate}
@@ -347,17 +532,25 @@ function Plate({
         />
       </mesh>
       <lineSegments geometry={geometry.plateEdges}>
-        <lineBasicMaterial color={palette.edge} />
+        <lineBasicMaterial ref={edge} color={palette.edge} />
       </lineSegments>
       {/* inset one 0.4 cell: a grid line on the plate's edge would fight its hairline and stipple it */}
       <gridHelper args={[GRID, 10, palette.grid, palette.grid]} position={[0, PLATE_T / 2 + 0.001, 0]} />
-      {name && <PlateName name={name} theme={theme} />}
+      {name && <PlateName name={name} theme={theme} ink={ink} />}
     </group>
   );
 }
 
 /** the plate's name, painted on its rim along the front-left edge (z = +PLATE / 2), reading toward the front corner */
-function PlateName({ name, theme }: { name: NonNullable<ReturnType<typeof usePlateName>>; theme: SceneTheme }) {
+function PlateName({
+  name,
+  theme,
+  ink,
+}: {
+  name: NonNullable<ReturnType<typeof usePlateName>>;
+  theme: SceneTheme;
+  ink: RefObject<MeshBasicMaterial | null>;
+}) {
   const mesh = useRef<Mesh>(null);
   const geometry = useMemo(() => {
     const g = new PlaneGeometry(name.aspect, 1);
@@ -373,7 +566,7 @@ function PlateName({ name, theme }: { name: NonNullable<ReturnType<typeof usePla
   // on the edge's middle, as in the network drawing
   return (
     <mesh ref={mesh} geometry={geometry} position={[0, PLATE_T / 2 + 0.002, GRID / 2 + RIM / 2]}>
-      <meshBasicMaterial color={PALETTE[theme].plateInk} alphaMap={name.texture} transparent depthWrite={false} />
+      <meshBasicMaterial ref={ink} color={PALETTE[theme].plateInk} alphaMap={name.texture} transparent depthWrite={false} />
     </mesh>
   );
 }
@@ -403,13 +596,18 @@ function Rig({
     camera.updateProjectionMatrix();
     invalidate();
   }, [size, camera, count, labels, shared, invalidate]);
-  // a small turn after the pointer, before drei's Html reads the positions
+  // a small turn after the pointer, before drei's Html reads the positions;
+  // none while a link over the drawing has the keyboard's focus
   useFrame((state, dt) => {
     const g = group.current;
     if (!g) return;
-    const to = state.pointer.x * 0.1;
+    const to = shared.rest ? 0 : state.pointer.x * 0.1;
     g.rotation.y = MathUtils.damp(g.rotation.y, to, 3, Math.min(dt, 1 / 30));
-    if (Math.abs(g.rotation.y - to) > 0.0005) state.invalidate();
+    if (Math.abs(g.rotation.y - to) > 0.0005) {
+      state.invalidate();
+      // the drawing turns under the pointer: what it points at can change
+      if (shared.inside) shared.recheck();
+    }
   }, -1);
   return <group ref={group}>{children}</group>;
 }
@@ -419,20 +617,42 @@ function Stack({
   active,
   spread,
   onPoint,
+  onSelect,
   labels,
+  labelLayer,
+  rest,
+  shown,
+  pointerAt,
+  visible,
   theme,
   running,
   onReady,
   onLanded,
-}: Required<Omit<StackSceneProps, "onPoint" | "play">> &
-  Pick<StackSceneProps, "onPoint"> &
-  SceneProps & { onLanded: () => void }) {
-  const [shared] = useState<Shared>(() => ({ time: 0, running, landed: false, active, spread, gap: GAP_OPEN }));
+}: Required<Omit<StackSceneProps, "onPoint" | "onSelect" | "play" | "pointerAt">> &
+  Pick<StackSceneProps, "onPoint" | "onSelect" | "pointerAt"> &
+  SceneProps & { labelLayer: RefObject<HTMLDivElement | null>; visible: boolean; onLanded: () => void }) {
+  const [shared] = useState<Shared>(() => ({
+    time: 0,
+    running,
+    visible,
+    landed: false,
+    active,
+    spread,
+    gap: GAP_OPEN,
+    rest,
+    inside: false,
+    onLabel: null,
+    middle: null,
+    recheck: () => {},
+  }));
   // the frame callbacks read the newest props from here
   shared.running = running;
+  shared.visible = visible;
   shared.active = active;
   shared.spread = spread;
+  shared.rest = rest;
   const geometry = useGeometry(theme);
+  const point = usePointCursor(onPoint);
   const end = (layers.length - 1) * DROP_STAGGER_S + DROP_S;
   const name = usePlateName();
   // a face that never loads must not hold the scene back
@@ -444,10 +664,19 @@ function Stack({
   return (
     <>
       <Tick shared={shared} end={end} onLanded={onLanded} />
-      <Kick spread={spread} active={active} running={running} />
+      <Kick
+        shared={shared}
+        spread={spread}
+        active={active}
+        running={running}
+        rest={rest}
+        shown={shown}
+        pointerAt={pointerAt}
+        point={point}
+      />
       <Ready when={name !== null || late} onReady={onReady} />
       <Rig count={layers.length} labels={labels} shared={shared}>
-        <Plate geometry={geometry} theme={theme} name={name} />
+        <Plate geometry={geometry} theme={theme} name={name} shared={shared} onPoint={point} onSelect={onSelect} />
         {layers.map((layer, i) => (
           <Layer
             key={layer.key}
@@ -456,8 +685,9 @@ function Stack({
             shared={shared}
             geometry={geometry}
             theme={theme}
-            onPoint={onPoint}
-            labels={labels}
+            onPoint={point}
+            onSelect={onSelect}
+            labels={labels ? labelLayer : null}
           />
         ))}
       </Rig>
@@ -468,6 +698,8 @@ function Stack({
 export default function StackScene({
   labels = true,
   play = true,
+  rest = false,
+  shown = false,
   running,
   onReady,
   ...props
@@ -489,16 +721,32 @@ export default function StackScene({
     onReady();
   }, [onReady]);
   const on = running && (play || unseen);
+  const labelLayer = useRef<HTMLDivElement>(null);
   return (
-    <Canvas
-      orthographic
-      flat
-      camera={{ zoom: 60, near: 0.1, far: 100 }}
-      dpr={[1, 2]}
-      frameloop={on && !landed ? "always" : "demand"}
-      gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
-    >
-      <Stack {...props} labels={labels} running={on} onReady={ready} onLanded={onLanded} />
-    </Canvas>
+    <div className="relative h-full w-full">
+      <Canvas
+        orthographic
+        flat
+        camera={{ zoom: 60, near: 0.1, far: 100 }}
+        dpr={[1, 2]}
+        frameloop={on && !landed ? "always" : "demand"}
+        gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
+      >
+        <Stack
+          {...props}
+          labels={labels}
+          labelLayer={labelLayer}
+          rest={rest}
+          shown={shown}
+          visible={running}
+          running={on}
+          onReady={ready}
+          onLanded={onLanded}
+        />
+      </Canvas>
+      {/* the labels' layer: over the canvas, but outside R3F's event source, so a
+          pointer on a label never reaches the raycaster with the label's offsets */}
+      <div ref={labelLayer} className="pointer-events-none absolute inset-0" />
+    </div>
   );
 }
