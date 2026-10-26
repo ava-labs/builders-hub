@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Board, CellLabel, EmptyRow, HEAD, ROW, INK, MUTED, TxTypePill, idInk } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, EmptyRow, HashChip, HEAD, ROW, INK, MUTED, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { formatTime, truncate } from "@/components/explorer-v2/format";
 import { crossChainAddressUrl, crossChainTxUrl } from "@/lib/crosschain-links";
 import type { Utxo } from "@/lib/pchain-explorer";
@@ -72,7 +72,7 @@ export function UtxoColumn({ base, title, utxos, side }: { base: string; title: 
               <span className={MUTED}>{side === "out" ? "unspent" : "—"}</span>
             );
             return (
-              <div key={`${u.utxoId}-${i}`} className={cn(ROW, COLS, "hover:bg-transparent dark:hover:bg-transparent")}>
+              <div key={`${u.utxoId}-${i}`} className={cn(ROW, COLS, "hover:bg-transparent dark:hover:bg-transparent", u.addresses.length > 1 && "md:h-auto md:items-start md:py-2.5")}>
                 <span className={cn(INK, "truncate")} title={`${u.amount} in the smallest unit`}>
                   {assetAmount(u, true)}
                 </span>
@@ -81,22 +81,20 @@ export function UtxoColumn({ base, title, utxos, side }: { base: string; title: 
                   <CellLabel>{side === "in" ? "Made In" : "Spent In"}</CellLabel>
                   {link}
                 </span>
-                <span className="col-span-2 min-w-0 truncate font-mono text-[12px] md:col-span-1">
+                <span className="col-span-2 min-w-0 font-mono text-[12px] md:col-span-1">
                   <CellLabel>Owner</CellLabel>
                   {u.addresses.length === 0 ? (
                     <span className={MUTED}>{cross ? `on the ${cross}` : "—"}</span>
                   ) : (
-                    u.addresses.map((a, j) => (
-                      <Link
-                        key={a}
-                        href={(side === "in" && cross && crossChainAddressUrl(network, u.createdOnChainId, a)) || `${base}/address/${a}`}
-                        className={cn(idInk, "hover:text-[#E6212F]")}
-                        title={a}
-                      >
-                        {j > 0 && <span className="text-zinc-300 dark:text-zinc-700">, </span>}
-                        {truncate(a, 10)}
-                      </Link>
-                    ))
+                    <span className="flex min-w-0 flex-col gap-1">
+                      {u.addresses.map((a) => (
+                        <HashChip
+                          key={a}
+                          value={a}
+                          href={(side === "in" && cross && crossChainAddressUrl(network, u.createdOnChainId, a)) || `${base}/address/${a}`}
+                        />
+                      ))}
+                    </span>
                   )}
                 </span>
                 <span className="col-span-2 min-w-0 overflow-hidden md:col-span-1">
