@@ -144,7 +144,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
           </p>
         </div>
         <div>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
             This tool allows you to migrate a validator from the V1 contract to the V2 contract. Before using this tool,
             ensure that you have the following:
             <ul>
@@ -154,7 +154,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
             </ul>
             You need to provide the validation ID, the latest nonce received from the P-Chain, and the address of the
             Validator Manager contract.
-          </p>
+          </div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
             For full details about the migration process, see the{' '}
             <a
@@ -170,7 +170,9 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
           </p>
         </div>
 
-        <form className="space-y-4">
+        {/* The form only lays out the fields. Its toolbox Button passes no type, so it keeps the browser's default,
+            submit: the form prevents its own submit, which reloaded the page while the migration ran. */}
+        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           <Input
             id="validatorManagerAddress"
             label="Validator Manager Address"

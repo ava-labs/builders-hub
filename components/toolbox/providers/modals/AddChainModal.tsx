@@ -448,6 +448,7 @@ function AddChainModalInner() {
                 error={lookupError}
                 button={
                   <Button
+                    type="button"
                     stickLeft
                     onClick={async () => {
                       const result = await lookup();
