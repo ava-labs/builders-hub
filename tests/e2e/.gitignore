@@ -19,5 +19,10 @@
 # that page: the step waits about 30 s, then fails as wrong-context while the URL is right. Re-recording does not
 # help, so this step calls the model in CI.
 .e2e/cache/2c4d5cec1995f39bb3f1ad25eb1041c29a79adf45c129b4db3f512fca4939e23.json
+# Replay entry of the step that opens the Fuji City (ai/journey-explorer-fuji-network.e2e.ts). Its end anchors (the
+# City key's Districts and Versions switches) show only when the City app has loaded. On CI, where software WebGL holds
+# the main thread, that can take longer than the replay waits, and the replay fails as end-mismatch (nightly E2E, run
+# 39915379038). This step calls the model in CI.
+.e2e/cache/fa19a6215cfa1423ede83ecfc46d285ea80bf0d72882acc04d1ed2e031846000.json
 # The output of the Console explore runs (explore/console/e2e.config.ts), the cache folder too: those runs commit nothing.
 explore/console/.e2e/

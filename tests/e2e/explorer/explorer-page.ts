@@ -12,6 +12,10 @@ export const DATA = { timeout: 90_000 };
 // A test that visits several pages can wait for a first-visit compile at each step, so it gets more than the 180 s default.
 export const MULTI_PAGE = { timeout: 360_000 };
 
+// A tap on the City. CI draws the 3D City with software WebGL, which holds the page's main thread for seconds at a time
+// while the City builds: a tap's input waits for the page that long. On a GPU the tap lands at once.
+export const CITY_TAP = { timeout: 90_000 };
+
 // A "Latest Blocks" row on an overview: an optional chain name, a comma-grouped height, then the next cell.
 export const OVERVIEW_BLOCK_ROW = /^([A-Z][\w .()-]*? )?\d{1,3}(,\d{3})+ [\dA-Z]/;
 

@@ -4,6 +4,7 @@ import { expect, type Locator, type Screen } from 'e2e';
 import { isPhoneLayout } from '../lib/skip';
 import { answerFirstVisitPrompts } from '../lib/visitor';
 import {
+  CITY_TAP,
   DATA,
   MULTI_PAGE,
   NAVIGATION,
@@ -27,9 +28,6 @@ const MAINNET_CITY = '/explorer/mainnet/chains';
 // How long the linked-chain test holds the overview feed: longer than the P-Chain registry takes to answer.
 const OVERVIEW_DELAY_MS = 20_000;
 const FUJI_CITY = '/explorer/fuji/chains';
-// A tap on the City. CI draws the 3D City with software WebGL, which holds the page's main thread for seconds at a time
-// while the City builds: a tap's input waits for the page that long. On a GPU the tap lands at once.
-const CITY_TAP = { timeout: 90_000 };
 
 // A short hash or address link on an overview board, as truncate() writes it: "0x1281…9d13".
 const SHORT_HASH = /^(0x)?[0-9A-Za-z]{4,6}…[0-9A-Za-z]{4}$/;
@@ -214,8 +212,20 @@ test('Fuji All Networks has no AVAX or Query tab, and its chain menu lists Fuji 
   const fixed = new Set(['MAINNET', 'FUJI', 'ALL NETWORKS', 'C-CHAIN', 'P-CHAIN', 'X-CHAIN']);
   const l1s = (await menu.getByRole('link').allTextContents()).filter((text) => !fixed.has(text.toUpperCase()));
   expect(l1s.length).toBeGreaterThan(0);
+  expect(l1s.filter((name) => fuji.has(name)).length, 'menu rows that name a Fuji catalog chain').toBeGreaterThan(0);
   expect(l1s.filter((name) => mainnetOnly.has(name)), 'mainnet-only chains in the Fuji menu').toEqual([]);
-  expect(l1s.filter((name) => !fuji.has(name)), 'menu rows that name no Fuji catalog chain').toEqual([]);
+  // The deploy build adds to the catalog the L1s that Glacier lists and the P-Chain shows active
+  // (scripts/enrich-chains.ts), so a row can name a chain that the committed catalog does not hold. Each row must
+  // still open a Fuji page. The menu sorts its rows again when its feeds answer, and a read of a row that left fails,
+  // so the poll reads the menu again.
+  const offFuji = async () => {
+    const links = await menu.getByRole('link').all();
+    const rows = await Promise.all(
+      links.map(async (link) => ({ name: (await link.textContent()) ?? '', href: await link.getAttribute('href') })),
+    );
+    return rows.filter(({ name, href }) => !fixed.has(name.toUpperCase()) && !href?.startsWith('/explorer/fuji/'));
+  };
+  await expect.poll(offFuji, { message: 'menu rows that open no Fuji page' }).toEqual([]);
 });
 
 // The pane of a linked chain stays open whatever feed answers first. Here the overview feed answers last.

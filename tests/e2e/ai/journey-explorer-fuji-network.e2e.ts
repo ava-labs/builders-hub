@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { z } from 'zod';
-import { DATA, MULTI_PAGE, NAVIGATION, OVERVIEW_BLOCK_ROW, pathPattern } from '../explorer/explorer-page';
+import { CITY_TAP, DATA, MULTI_PAGE, NAVIGATION, OVERVIEW_BLOCK_ROW, pathPattern } from '../explorer/explorer-page';
 import { desktopOnly, needsModel } from '../lib/skip';
 import { waitForHydration } from '../lib/hydration';
 import { answerFirstVisitPrompts } from '../lib/visitor';
@@ -68,7 +68,7 @@ test('visitor switches All Networks to Fuji and sees only Fuji chains there and 
   // The Chains door opens the sidebar list. The list has its own Network group, and the door's card leaves.
   await waitForHydration(browser, 'button[aria-controls="city-sidebar"]');
   const door = screen.getByRole('button', /^Chains/);
-  await door.tap();
+  await door.tap(CITY_TAP);
   await expect(door).toHaveAttribute('aria-expanded', 'true');
   const sidebar = screen.getByRole('complementary', 'Chains');
   await expect(sidebar.getByRole('group', 'Network').getByRole('link', 'Mainnet')).toBeVisible(DATA);
