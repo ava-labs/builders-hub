@@ -7,12 +7,14 @@ import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
+import { ZoomableImage } from "@/components/ui/zoomable-image";
 import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, VerificationAPIPage, XChainAPIPage } from "@/components/api/api-pages";
 import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import { sharedMDXComponents } from "@/components/mdx/shared-components";
 import { DocsCallout } from "@/components/docs-book/callout";
+import { DocsCodeBlock } from "@/components/docs-book/code-block";
 import { ColorKeyToggle } from "@/components/docs-book/color-key-toggle";
 import { Figure } from "@/components/docs-book/figure";
 import { RewardRoutesFigure } from "@/components/docs-book/reward-routes-figure";
@@ -31,7 +33,7 @@ import type { MDXComponents } from "mdx/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import posthog from "posthog-js";
-import { type ComponentProps, type FC, type ReactElement, type ReactNode } from "react";
+import { type ComponentProps, type FC, type ReactElement, type ReactNode, ViewTransition } from "react";
 
 export const dynamicParams = true;
 export const revalidate = false;
@@ -55,114 +57,119 @@ export default async function Page(props: {
     (page.data.edit_url as string) ||
     `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
 
+  // site-page-transition: going to another docs page, this page fades out and the next one fades in (app/global.css,
+  // bk-page-out and bk-page-in). React names the root of DocsPage, #nd-page (the article and its TOC), only for the
+  // change, so the navbar and the sidebar stay in the held root. default="none": an update in place, such as a
+  // same-page hash link, never fades.
   return (
-    <DocsPage
-      toc={toc}
-      full={page.data.full}
-      tableOfContent={{
-        style: "clerk",
-        single: false,
-        footer: (
-          <>
-        <SidebarActions
-          editUrl={editUrl}
-          title={(page.data.title as string) || "Untitled"}
-          pagePath={`/${params.slug.join("/")}`}
-          pageType="docs"
-        />
-            <ColorKeyToggle />
-            <BackToTop />
-          </>
-        ),
-      }}
-      // Below 1280px the TOC rail is hidden, so the popover carries the color key too. Only with headings:
-      // a footer alone makes fumadocs show the popover bar on a page with no headings.
-      tableOfContentPopover={toc.length > 0 ? { footer: <ColorKeyToggle /> } : undefined}
-    >
-      <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      {page.data.description && (
-        <DocsDescription>{page.data.description}</DocsDescription>
-      )}
-      <DocsBody className="text-fd-foreground/80">
-        <MDX
-          components={{
-            ...(() => {
-              const { h1, h2, h3, h4, h5, h6, img, ...restComponents } = defaultComponents;
-              return restComponents;
-            })(),
-            ...((await import("lucide-react")) as unknown as MDXComponents),
-            ...sharedMDXComponents,
-            Callout: DocsCallout,
-            Figure,
-            Term,
-            RewardRoutesFigure,
-            ...docsFigures,
-            // Fix srcset -> srcSet for React 19 compatibility
-            img: (props: any) => {
-              const { srcset, ...imgProps } = props;
-              // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
-              return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
-            },
-            InstallTabs: ({
-              items,
-              children,
-            }: {
-              items: string[];
-              children: ReactNode;
-            }) => (
-              <Tabs items={items} style={{ padding: '15px'}} id="package-manager">
-                {children}
-              </Tabs>
-            ),
-            StateGrowthChart,
-            TransactionLifecycle,
-            FirewoodPage,
-            ValidatorFlowExplainer,
-            StaircaseFigure,
-            HeightsRuler,
-            AddNetworkButtonInline,
-            File,
-            Folder,
-            Files,
-            APIPage: (props: any) => {
-              // Determine which API instance to use based on document path
-              const document = props.document || '';
-              const isMetricsApi = document.includes('popsicle.json');
-              const isPChainApi = document.includes('platformvm.yaml');
-              const isCChainApi = document.includes('coreth.yaml');
-              const isXChainApi = document.includes('xchain.yaml');
-              const isVerificationApi = document.includes('verification.json');
+    <ViewTransition enter="bk-page-in" exit="bk-page-out" default="none">
+      <DocsPage
+        toc={toc}
+        full={page.data.full}
+        tableOfContent={{
+          style: "clerk",
+          single: false,
+          footer: (
+            <>
+          <SidebarActions
+            editUrl={editUrl}
+            title={(page.data.title as string) || "Untitled"}
+            pagePath={`/${params.slug.join("/")}`}
+            pageType="docs"
+          />
+              <ColorKeyToggle />
+              <BackToTop />
+            </>
+          ),
+        }}
+        // Below 1280px the TOC rail is hidden, so the popover carries the color key too. Only with headings:
+        // a footer alone makes fumadocs show the popover bar on a page with no headings.
+        tableOfContentPopover={toc.length > 0 ? { footer: <ColorKeyToggle /> } : undefined}
+      >
+        <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
+        {page.data.description && (
+          <DocsDescription>{page.data.description}</DocsDescription>
+        )}
+        <DocsBody className="text-fd-foreground/80">
+          <MDX
+            components={{
+              ...(() => {
+                const { h1, h2, h3, h4, h5, h6, img, ...restComponents } = defaultComponents;
+                return restComponents;
+              })(),
+              ...((await import("lucide-react")) as unknown as MDXComponents),
+              ...sharedMDXComponents,
+              Callout: DocsCallout,
+              Figure,
+              Term,
+              RewardRoutesFigure,
+              ...docsFigures,
+              // docs-code-copy: the copy button morphs its clipboard into a check (components/docs-book/code-block.tsx).
+              pre: DocsCodeBlock,
+              // X3: a docs image opens full size from where it sits, like a blog chart (eco-blog-image-zoom). The
+              // zoomable image also passes srcset on as srcSet for React 19.
+              img: ZoomableImage,
+              InstallTabs: ({
+                items,
+                children,
+              }: {
+                items: string[];
+                children: ReactNode;
+              }) => (
+                <Tabs items={items} style={{ padding: '15px'}} id="package-manager">
+                  {children}
+                </Tabs>
+              ),
+              StateGrowthChart,
+              TransactionLifecycle,
+              FirewoodPage,
+              ValidatorFlowExplainer,
+              StaircaseFigure,
+              HeightsRuler,
+              AddNetworkButtonInline,
+              File,
+              Folder,
+              Files,
+              APIPage: (props: any) => {
+                // Determine which API instance to use based on document path
+                const document = props.document || '';
+                const isMetricsApi = document.includes('popsicle.json');
+                const isPChainApi = document.includes('platformvm.yaml');
+                const isCChainApi = document.includes('coreth.yaml');
+                const isXChainApi = document.includes('xchain.yaml');
+                const isVerificationApi = document.includes('verification.json');
 
-              if (isPChainApi) {
-                return <PChainAPIPage {...props} />;
-              } else if (isCChainApi) {
-                return <CChainAPIPage {...props} />;
-              } else if (isXChainApi) {
-                return <XChainAPIPage {...props} />;
-              } else if (isMetricsApi) {
-                return <MetricsAPIPage {...props} />;
-              } else if (isVerificationApi) {
-                return <VerificationAPIPage {...props} />;
-              } else {
-                return <DataAPIPage {...props} />;
-              }
-            },
-            blockquote: (props: ComponentProps<"blockquote">) => (
-              <DocsCallout art={false}>{props.children}</DocsCallout>
-            ),
+                if (isPChainApi) {
+                  return <PChainAPIPage {...props} />;
+                } else if (isCChainApi) {
+                  return <CChainAPIPage {...props} />;
+                } else if (isXChainApi) {
+                  return <XChainAPIPage {...props} />;
+                } else if (isMetricsApi) {
+                  return <MetricsAPIPage {...props} />;
+                } else if (isVerificationApi) {
+                  return <VerificationAPIPage {...props} />;
+                } else {
+                  return <DataAPIPage {...props} />;
+                }
+              },
+              blockquote: (props: ComponentProps<"blockquote">) => (
+                <DocsCallout art={false}>{props.children}</DocsCallout>
+              ),
+            }}
+          />
+        </DocsBody>
+        <Feedback
+          path={path}
+          title={page.data.title || "Untitled"}
+          pagePath={`/docs/${page.slugs.join("/")}`}
+          onRateAction={async (url, feedback) => {
+            "use server";
+            await posthog.capture("on_rate_document", feedback);
           }}
         />
-      </DocsBody>
-      <Feedback
-        path={path}
-        title={page.data.title || "Untitled"}
-        pagePath={`/docs/${page.slugs.join("/")}`}
-        onRateAction={async (url, feedback) => {
-          "use server";
-          await posthog.capture("on_rate_document", feedback);
-        }}
-      />
-    </DocsPage>
+      </DocsPage>
+    </ViewTransition>
   );
 }
 

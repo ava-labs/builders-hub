@@ -82,7 +82,10 @@ export function ColorKeyToggle() {
 
   if (!hasRoles) return null;
 
+  // colorkey.css fades the roles only under html[data-colorkey-fade], which a click sets: the saved choice applied
+  // after a page load switches at once (docs-colorkey-fade).
   const toggle = () => {
+    document.documentElement.dataset.colorkeyFade = '';
     applyOn(!on);
     saveOn(!on);
   };

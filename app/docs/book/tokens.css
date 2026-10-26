@@ -70,3 +70,33 @@ html[data-colorkey="off"] [data-route-layout="docs"] {
   font-weight: 500;
   letter-spacing: -0.012em;
 }
+
+/* ---------- Anchor landing ---------- */
+
+/* docs-anchor-flash: the heading a reader jumps to (an On this page entry, a heading link, a #section link) carries
+   an ink wash, its own color at 9% with a 6px ring, held for 400ms and then faded over 1.2s. The docs layout
+   (app/docs/docs-layout-wrapper.tsx) sets the attribute when the smooth scroll lands. Background and box-shadow only,
+   so the heading does not move. */
+[data-route-layout="docs"] #nd-page article [data-bk-anchor-mark] {
+  border-radius: 4px;
+  animation: bk-anchor-wash 1600ms var(--ease-out) both;
+}
+
+@keyframes bk-anchor-wash {
+  0%, 25% {
+    background-color: color-mix(in oklab, currentColor 9%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in oklab, currentColor 9%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+/* Reduce Motion keeps the wash, a color change with no movement, at 1s. !important beats the site policy
+   (app/global.css), which runs every animation in 1ms. */
+@media (prefers-reduced-motion: reduce) {
+  [data-route-layout="docs"] #nd-page article [data-bk-anchor-mark] {
+    animation-duration: 1000ms !important;
+  }
+}

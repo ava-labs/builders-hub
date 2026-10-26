@@ -12,6 +12,22 @@
 [data-route-layout="docs"] [data-bk-role="evm"] { color: var(--bk-role-evm); }
 [data-route-layout="docs"] [data-bk-role="icm"] { color: var(--bk-role-icm); }
 
+/* docs-colorkey-fade: when the switch turns the key off or on, each term and figure part fades between its role color
+   and ink in 200ms, so the reader sees which words were colored. A figure's strokes and fills follow currentColor.
+   The switch sets html[data-colorkey-fade] on its first click (color-key-toggle.tsx), so a saved Off applied after a
+   page load switches at once, with no fade. A color change has no movement, so Reduce Motion keeps the fade
+   unchanged, at 200ms. */
+html[data-colorkey-fade] [data-route-layout="docs"] [data-bk-role] {
+  transition: color 200ms ease;
+}
+
+/* !important beats the site policy (app/global.css), which runs color transitions in 150ms under Reduce Motion. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-colorkey-fade] [data-route-layout="docs"] [data-bk-role] {
+    transition-duration: 200ms !important;
+  }
+}
+
 /* The color key switch (color-key-toggle.tsx). In the TOC rail it sits close under the page actions. */
 [data-route-layout="docs"] [data-bk-colorkey] {
   margin-top: -4px;

@@ -169,7 +169,9 @@ header + * {
   }
   
   /* Anchor jumps stop below the fixed toc nav, not under it (fumadocs headings use scroll-m-28) */
-  body[data-layout="docs"] #nd-tocnav ~ article :is(h1, h2, h3, h4, h5, h6)[id] {
+  /* docs-anchor-flash: scoped to the server-rendered [data-route-layout], not body[data-layout] (set after hydration),
+     so a #section link opened on load stops below the bar too, with room for the anchor mark's ring */
+  [data-route-layout="docs"] #nd-tocnav ~ article :is(h1, h2, h3, h4, h5, h6)[id] {
     scroll-margin-top: calc(var(--fd-banner-height, 0px) + 9.5rem) !important; /* Banner + navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
   }
 
@@ -219,33 +221,60 @@ header + * {
     border-right: 1px solid hsl(var(--border)) !important;
   }
   
-  /* Change fumadocs sidebar animations to slide from left */
+  /* docs-phone-drawer: the drawer slides in from the left edge on the drawer curve, with no fade, and leaves in 200ms
+     on the strong ease-out; its backdrop fades out in the same 200ms. It moves on the translate property. Radix
+     Presence (fumadocs-ui sidebar.js) keeps each layer until its exit animation ends, so the open and closed states
+     run different keyframes. The exit runs only while the closed drawer still shows (:not(.invisible)): fumadocs
+     mounts the drawer after hydration already closed and hidden, and an exit there would put it on screen for a few
+     frames. Reduce Motion: see the block after this media query. */
   #nd-sidebar-mobile[data-state="open"] {
-    animation: slideInFromLeft 0.3s ease-out !important;
+    animation: slideInFromLeft 300ms var(--ease-drawer) both !important;
+  }
+
+  #nd-sidebar-mobile[data-state="closed"]:not(.invisible) {
+    animation: slideOutToLeft 200ms var(--ease-out) both !important;
   }
   
-  #nd-sidebar-mobile[data-state="closed"] {
-    animation: slideOutToLeft 0.2s ease-in !important;
+  div.backdrop-blur-xs[data-state="open"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeIn 300ms var(--ease-drawer) both !important;
+  }
+  
+  div.backdrop-blur-xs[data-state="closed"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeOut 200ms var(--ease-out) both !important;
   }
   
   @keyframes slideInFromLeft {
     from {
-      transform: translateX(-100%);
-      opacity: 0;
+      translate: -100% 0;
     }
     to {
-      transform: translateX(0);
-      opacity: 1;
+      translate: 0 0;
     }
   }
   
   @keyframes slideOutToLeft {
     from {
-      transform: translateX(0);
+      translate: 0 0;
+    }
+    to {
+      translate: -100% 0;
+    }
+  }
+  
+  @keyframes drawerFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes drawerFadeOut {
+    from {
       opacity: 1;
     }
     to {
-      transform: translateX(-100%);
       opacity: 0;
     }
   }
@@ -267,6 +296,35 @@ header + * {
   body[data-layout="docs"] [data-radix-dialog-overlay],
   #nd-sidebar-mobile ~ [data-radix-dialog-overlay] {
     pointer-events: auto !important;
+  }
+}
+
+/* docs-phone-drawer under Reduce Motion: the panel and its backdrop cross-fade, 150ms in and 120ms out, with no
+   travel. These come after the slide rules and have the same selectors, so they win; !important also beats the site
+   policy (app/global.css), which runs every animation in 1ms. */
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) {
+  #nd-sidebar-mobile[data-state="open"],
+  div.backdrop-blur-xs[data-state="open"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeIn 150ms var(--ease-out) both !important;
+  }
+
+  #nd-sidebar-mobile[data-state="closed"]:not(.invisible),
+  div.backdrop-blur-xs[data-state="closed"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeOut 120ms var(--ease-out) both !important;
+  }
+}
+
+/* docs-phone-drawer from the keyboard: opened or closed from the keyboard, the drawer and its backdrop show and go at
+   once, Reduce Motion included, as the phone menu does (site-phone-menu, app/global.css). That is while the keyboard
+   focus sits on the navbar's Toggle docs sidebar button (Enter opens the drawer) or anywhere in the drawer (its close
+   button, a link that opens another page); a tap focuses with no ring, so a tap keeps the slide. After the rules above,
+   with a second id, so it outranks them. The keyframes keep their name and run in 0s, as the mega menu's hold does
+   (site-mega-menu, app/global.css): a key pressed during a close the pointer started still ends that exit, so Radix
+   Presence unmounts the drawer and its backdrop (cancelling the keyframes instead would leave both on screen). */
+@media (max-width: 1023px) {
+  body[data-layout="docs"]:has([data-docs-sidebar-toggle]:focus-visible, #nd-sidebar-mobile :focus-visible) #nd-sidebar-mobile[data-state],
+  body[data-layout="docs"]:has([data-docs-sidebar-toggle]:focus-visible, #nd-sidebar-mobile :focus-visible) div.backdrop-blur-xs[data-state]:has(+ #nd-sidebar-mobile) {
+    animation-duration: 0s !important;
   }
 }
 
@@ -433,6 +491,14 @@ body[data-layout="docs"] article > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf
 body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-explainer):not(:has(.vf-explainer)):not(h1, h2, h3, h4, h5, h6) {
   max-width: 100% !important;
   overflow-x: auto !important;
+}
+
+/* eco-blog-image-zoom (X3), docs: the scroll box above clips what reaches past it, and an image that fills its
+   paragraph lost the sides of the site focus ring on its zoom button (2px wide, 2px out). Here the ring sits just
+   inside the image box, its outer edge on the image's edge; blog images keep the ring outside. Unlayered, so it wins
+   over the site ring in the base layer (app/global.css, site-focus-ring). */
+body[data-layout="docs"] [data-rmiz-ghost] > [data-rmiz-btn-zoom]:focus-visible {
+  outline-offset: -2px;
 }
 
 /* Tables fill the column. A wide table scrolls inside the overflow-auto div that fumadocs puts around it. Do not
@@ -631,38 +697,43 @@ aside[aria-label*="On this page" i] > div:first-child,
 
   /* Overlay backdrop - target fumadocs overlay specifically */
   /* The overlay is a div with: fixed, inset-0, backdrop-blur-xs, data-state */
-  body[data-layout="docs"] div.fixed.inset-0[data-state="open"]:not(aside):not([id]) {
+  /* docs-phone-drawer: the drawer's backdrop keeps the dim while it fades out, so dim and blur leave as one */
+  body[data-layout="docs"] div.fixed.inset-0[data-state="open"]:not(aside):not([id]),
+  body[data-layout="docs"] div.backdrop-blur-xs[data-state="closed"]:has(+ #nd-sidebar-mobile) {
     background-color: rgba(0, 0, 0, 0.5) !important;
   }
 
   /* Override fumadocs default grey hover states on mobile sidebar */
   /* Target all interactive elements including Tailwind utility-styled wrappers */
-  body[data-layout="docs"] #nd-sidebar-mobile a:hover,
-  body[data-layout="docs"] #nd-sidebar-mobile button:hover,
-  body[data-layout="docs"] #nd-sidebar-mobile [role="button"]:hover,
-  body[data-layout="docs"] #nd-sidebar-mobile [role="link"]:hover,
-  body[data-layout="docs"] #nd-sidebar-mobile li > div:hover,
-  body[data-layout="docs"] #nd-sidebar-mobile nav li:hover > *,
-  body[data-layout="docs"] #nd-sidebar-mobile [class*="hover\:bg-"]:hover {
-    background-color: rgba(0, 0, 0, 0.05) !important;
-  }
+  /* A pointer that can hover only: on a touch screen a tap would leave the hover grey stuck on the row */
+  @media (hover: hover) {
+    body[data-layout="docs"] #nd-sidebar-mobile a:hover,
+    body[data-layout="docs"] #nd-sidebar-mobile button:hover,
+    body[data-layout="docs"] #nd-sidebar-mobile [role="button"]:hover,
+    body[data-layout="docs"] #nd-sidebar-mobile [role="link"]:hover,
+    body[data-layout="docs"] #nd-sidebar-mobile li > div:hover,
+    body[data-layout="docs"] #nd-sidebar-mobile nav li:hover > *,
+    body[data-layout="docs"] #nd-sidebar-mobile [class*="hover\:bg-"]:hover {
+      background-color: rgba(0, 0, 0, 0.05) !important;
+    }
 
-  /* Dark mode hover states */
-  .dark body[data-layout="docs"] #nd-sidebar-mobile a:hover,
-  .dark body[data-layout="docs"] #nd-sidebar-mobile button:hover,
-  .dark body[data-layout="docs"] #nd-sidebar-mobile [role="button"]:hover,
-  .dark body[data-layout="docs"] #nd-sidebar-mobile [role="link"]:hover,
-  .dark body[data-layout="docs"] #nd-sidebar-mobile li > div:hover,
-  .dark body[data-layout="docs"] #nd-sidebar-mobile nav li:hover > *,
-  .dark body[data-layout="docs"] #nd-sidebar-mobile [class*="hover\:bg-"]:hover,
-  body[data-layout="docs"].dark #nd-sidebar-mobile a:hover,
-  body[data-layout="docs"].dark #nd-sidebar-mobile button:hover,
-  body[data-layout="docs"].dark #nd-sidebar-mobile [role="button"]:hover,
-  body[data-layout="docs"].dark #nd-sidebar-mobile [role="link"]:hover,
-  body[data-layout="docs"].dark #nd-sidebar-mobile li > div:hover,
-  body[data-layout="docs"].dark #nd-sidebar-mobile nav li:hover > *,
-  body[data-layout="docs"].dark #nd-sidebar-mobile [class*="hover\:bg-"]:hover {
-    background-color: rgba(255, 255, 255, 0.08) !important;
+    /* Dark mode hover states */
+    .dark body[data-layout="docs"] #nd-sidebar-mobile a:hover,
+    .dark body[data-layout="docs"] #nd-sidebar-mobile button:hover,
+    .dark body[data-layout="docs"] #nd-sidebar-mobile [role="button"]:hover,
+    .dark body[data-layout="docs"] #nd-sidebar-mobile [role="link"]:hover,
+    .dark body[data-layout="docs"] #nd-sidebar-mobile li > div:hover,
+    .dark body[data-layout="docs"] #nd-sidebar-mobile nav li:hover > *,
+    .dark body[data-layout="docs"] #nd-sidebar-mobile [class*="hover\:bg-"]:hover,
+    body[data-layout="docs"].dark #nd-sidebar-mobile a:hover,
+    body[data-layout="docs"].dark #nd-sidebar-mobile button:hover,
+    body[data-layout="docs"].dark #nd-sidebar-mobile [role="button"]:hover,
+    body[data-layout="docs"].dark #nd-sidebar-mobile [role="link"]:hover,
+    body[data-layout="docs"].dark #nd-sidebar-mobile li > div:hover,
+    body[data-layout="docs"].dark #nd-sidebar-mobile nav li:hover > *,
+    body[data-layout="docs"].dark #nd-sidebar-mobile [class*="hover\:bg-"]:hover {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+    }
   }
 }
 
@@ -689,4 +760,21 @@ div [role="tablist"] button:first-child {
 /* Reserve a gutter under the TOC footer so the chat bubble never covers it */
 body[data-layout="docs"] #nd-toc {
   padding-bottom: 5.5rem;
+}
+
+/* docs-pager-nudge: the Previous and Next cards under the page (fumadocs PageFooter; the Next card is text-end) keep
+   their background fade, and on hover their chevron moves 2px toward where the link goes. A hovering fine pointer
+   only; Reduce Motion keeps the chevron still. The related-cards grid has no pb-6 and no chevrons. */
+[data-route-layout="docs"] .\@container.grid.pb-6 > a > div > svg {
+  transition: transform 180ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-route-layout="docs"] .\@container.grid.pb-6 > a:not(.text-end):hover > div > svg {
+    transform: translateX(-2px);
+  }
+
+  [data-route-layout="docs"] .\@container.grid.pb-6 > a.text-end:hover > div > svg {
+    transform: translateX(2px);
+  }
 }

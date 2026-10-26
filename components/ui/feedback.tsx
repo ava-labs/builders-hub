@@ -1,7 +1,7 @@
 'use client';
 import { cn } from '@/utils/cn';
 import { buttonVariants } from 'fumadocs-ui/components/ui/button';
-import { ThumbsDown, ThumbsUp, Copy, Check } from 'lucide-react';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import {
   Collapsible,
@@ -9,6 +9,8 @@ import {
 } from 'fumadocs-ui/components/ui/collapsible';
 import { cva } from 'class-variance-authority';
 import { usePathname } from 'next/navigation';
+import { CopyMarkdownLabels } from '@/components/ui/copy-markdown-labels';
+import { useCopiedFlash } from '@/hooks/use-copied-flash';
 
 const rateButtonVariants = cva(
   'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground',
@@ -58,7 +60,8 @@ export function Feedback({
   const [opinion, setOpinion] = useState<'yes' | 'no' | null>(null);
   const [message, setMessage] = useState('');
   const [isCopyingMarkdown, setIsCopyingMarkdown] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
+  // docs-copy-markdown: Copied holds 2s after the last copy; a second copy restarts the wait, unmount cancels it.
+  const [isCopied, showCopied, hideCopied] = useCopiedFlash(2000);
 
   useEffect(() => {
     setPrevious(get(pathname));
@@ -83,7 +86,7 @@ export function Feedback({
 
   const handleCopyMarkdown = async () => {
     setIsCopyingMarkdown(true);
-    setIsCopied(false);
+    hideCopied();
 
     try {
       // Fetch the markdown content by appending .md to the page path
@@ -96,20 +99,13 @@ export function Feedback({
 
       const markdownContent = await response.text();
       await navigator.clipboard.writeText(markdownContent);
-      setIsCopied(true);
-
-      setTimeout(() => {
-        setIsCopied(false);
-      }, 2000);
+      showCopied();
     } catch (err) {
       console.error('Failed to copy markdown:', err);
       // Fallback to copying the page URL
       try {
         await navigator.clipboard.writeText(`${window.location.origin}${pagePath}`);
-        setIsCopied(true);
-        setTimeout(() => {
-          setIsCopied(false);
-        }, 2000);
+        showCopied();
       } catch (clipboardErr) {
         console.error('Failed to copy URL:', clipboardErr);
       }
@@ -166,22 +162,10 @@ export function Feedback({
             disabled={isCopyingMarkdown}
             className={cn(rateButtonVariants(), "gap-2 no-underline text-sm")}
           >
-            {isCopied ? (
-              <>
-                <Check className="size-4" />
-                Copied
-              </>
-            ) : isCopyingMarkdown ? (
-              <>
-                <Copy className="size-4" />
-                Copying...
-              </>
-            ) : (
-              <>
-                <Copy className="size-4" />
-                Copy Markdown
-              </>
-            )}
+            <CopyMarkdownLabels
+              state={isCopied ? 'done' : isCopyingMarkdown ? 'busy' : 'idle'}
+              done="Copied"
+            />
           </button>
 
         </div>

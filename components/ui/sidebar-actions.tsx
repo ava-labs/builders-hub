@@ -1,10 +1,12 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check } from 'lucide-react';
+import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink } from 'lucide-react';
 import newGithubIssueUrl from 'new-github-issue-url';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { CopyMarkdownLabels } from '@/components/ui/copy-markdown-labels';
+import { useCopiedFlash } from '@/hooks/use-copied-flash';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,14 +28,15 @@ export function SidebarActions({
   pageType = 'docs'
 }: SidebarActionsProps) {
   const [isCopyingMarkdown, setIsCopyingMarkdown] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
+  // docs-copy-markdown: Copied! holds 2s after the last copy; a second copy restarts the wait, unmount cancels it.
+  const [isCopied, showCopied, hideCopied] = useCopiedFlash(2000);
 
   // Ensure pagePath includes the pageType prefix (e.g. /docs or /academy)
   const fullPath = pagePath.startsWith(`/${pageType}`) ? pagePath : `/${pageType}${pagePath}`;
 
   const handleCopyMarkdown = async () => {
     setIsCopyingMarkdown(true);
-    setIsCopied(false);
+    hideCopied();
 
     try {
       const apiUrl = `${window.location.origin}${fullPath}.md`;
@@ -45,20 +48,13 @@ export function SidebarActions({
 
       const markdownContent = await response.text();
       await navigator.clipboard.writeText(markdownContent);
-      setIsCopied(true);
-
-      setTimeout(() => {
-        setIsCopied(false);
-      }, 2000);
+      showCopied();
     } catch (err) {
       console.error('Failed to copy markdown:', err);
       // Fallback to copying the page URL
       try {
         await navigator.clipboard.writeText(`${window.location.origin}${fullPath}`);
-        setIsCopied(true);
-        setTimeout(() => {
-          setIsCopied(false);
-        }, 2000);
+        showCopied();
       } catch (clipboardErr) {
         console.error('Failed to copy URL:', clipboardErr);
       }
@@ -133,30 +129,21 @@ Page: [${fullPath}](https://build.avax.network${fullPath})
         </a>
       </Button>
 
-      {/* Copy Markdown */}
+      {/* Copy Markdown. Its icon sits in the label stack, not straight in the button, so px-2.5 keeps the padding
+          that the button's has-[>svg] rule gave it. */}
       <Button
         variant="outline"
         size="sm"
-        className="w-full justify-start gap-2"
+        className="w-full justify-start gap-2 px-2.5"
         onClick={handleCopyMarkdown}
         disabled={isCopyingMarkdown}
       >
-        {isCopied ? (
-          <>
-            <Check className="size-4" />
-            Copied!
-          </>
-        ) : isCopyingMarkdown ? (
-          <>
-            <Copy className="size-4 animate-pulse" />
-            Copying...
-          </>
-        ) : (
-          <>
-            <Copy className="size-4" />
-            Copy Markdown
-          </>
-        )}
+        <CopyMarkdownLabels
+          state={isCopied ? 'done' : isCopyingMarkdown ? 'busy' : 'idle'}
+          done="Copied!"
+          align="start"
+          pulse
+        />
       </Button>
 
       {/* AI Assistant Dropdown */}

@@ -35,6 +35,22 @@
   [data-route-layout="docs"] [data-mermaid] > svg { min-width: calc(var(--bk-mermaid-width, 0) * 1px); }
 }
 
+/* docs-mermaid-fade: the renderer puts the drawing into an empty slot after the page loads, so it fades in, opacity
+   0 to 1 in 240ms on the strong ease-out. It never moves or scales. A redraw of the same chart after a light/dark
+   switch (the renderer marks the container data-bk-redraw) replaces the drawing at once, with no fade. A starting
+   style also applies when an element leaves a display: none subtree, so a chart shown again from an inactive tab or a
+   closed details would fade in again; no docs page puts a chart there today. Reduce Motion: the site policy
+   (app/global.css) keeps opacity transitions, at 150ms. */
+[data-route-layout="docs"] [data-mermaid] > svg {
+  transition: opacity 240ms var(--ease-out);
+}
+
+@starting-style {
+  [data-route-layout="docs"] [data-mermaid]:not([data-bk-redraw]) > svg {
+    opacity: 0;
+  }
+}
+
 /* Hairlines stay 1px at every scale. */
 [data-route-layout="docs"] [data-mermaid] svg :is(path, rect, line, circle, ellipse, polygon) {
   vector-effect: non-scaling-stroke;

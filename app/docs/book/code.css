@@ -32,11 +32,17 @@
   border-radius: 2px;
 }
 
-[data-route-layout="docs"] figure.shiki > div:has(> button) > button:hover,
 [data-route-layout="docs"] figure.shiki > div:has(> button) > button[data-checked],
-[data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div > button:hover,
 [data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div > button[data-checked] {
   color: var(--bk-ink);
+}
+
+/* A pointer that can hover only: on a touch screen a tap would leave the hover color stuck. */
+@media (hover: hover) {
+  [data-route-layout="docs"] figure.shiki > div:has(> button) > button:hover,
+  [data-route-layout="docs"] figure.shiki > div:has(> figcaption) > div > button:hover {
+    color: var(--bk-ink);
+  }
 }
 
 /* A code block that is the only content of a Tab panel: the panel draws the frame, so a second
@@ -44,6 +50,40 @@
 [data-route-layout="docs"] [role="tabpanel"] > figure.shiki:only-child {
   border: 0;
   border-radius: 0;
+}
+
+/* ---------- Tabs ---------- */
+
+/* docs-tabs-slide: one 1px underline travels to the chosen tab (translateX and scaleX, 250ms on the in-out curve), so
+   the eye follows the switch; the code still swaps at once. The docs layout (app/docs/docs-layout-wrapper.tsx) marks
+   each list whose tabs draw their own underline (fumadocs Tabs) and sets --bk-tab-x and --bk-tab-w from the active
+   tab; until then each tab draws its own line, as before. "still" places the line without travel: its first draw, a
+   resize. Reduce Motion: the site policy (app/global.css) drops transform transitions, so the line moves without
+   travel. */
+[data-route-layout="docs"] [role="tablist"][data-bk-tab-line] {
+  position: relative;
+}
+
+[data-route-layout="docs"] [role="tablist"][data-bk-tab-line] > [role="tab"][data-state="active"] {
+  border-color: transparent;
+}
+
+[data-route-layout="docs"] [role="tablist"][data-bk-tab-line]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  background: var(--color-fd-primary);
+  transform: translateX(var(--bk-tab-x)) scaleX(var(--bk-tab-w));
+  transform-origin: 0 0;
+  transition: transform 250ms var(--ease-in-out);
+  pointer-events: none;
+}
+
+[data-route-layout="docs"] [role="tablist"][data-bk-tab-line="still"]::after {
+  transition: none;
 }
 
 /* ---------- Titled block: the file name above the frame ---------- */

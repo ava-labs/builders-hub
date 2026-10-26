@@ -354,6 +354,13 @@ function liftClusterTitles(drawing: SVGSVGElement, paper: string): void {
 }
 
 /**
+ * The chart that each container drew last. mermaid.css fades a drawing in on its first draw (docs-mermaid-fade). A
+ * redraw of the same chart, after a light/dark switch, marks the container data-bk-redraw, so the new drawing replaces
+ * the old one at once instead of dipping to transparent.
+ */
+const drawnChart = new WeakMap<HTMLDivElement, string>();
+
+/**
  * Renders `chart` into `container` in the book look. Mermaid sizes every label in a scratch copy of the drawing. The
  * scratch copy sits in the container, so the book CSS also applies while Mermaid measures, and the old drawing stays
  * on screen until the new one is ready. The container gets the page color and the drawing's natural width for
@@ -382,7 +389,9 @@ async function renderInBookNow(
     let svg = await render(topDown);
     if (topDown && groupsCollide(svg)) svg = await render(false);
     if (isDestroyed()) return;
+    container.toggleAttribute("data-bk-redraw", drawnChart.get(container) === chart);
     container.innerHTML = svg;
+    drawnChart.set(container, chart);
     const drawing = container.querySelector("svg");
     if (drawing !== null) liftClusterTitles(drawing, palette.paper);
     container.style.setProperty("--bk-mermaid-paper", palette.paper);
