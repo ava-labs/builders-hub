@@ -10,7 +10,14 @@ if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 // Agent steps (agent.act, agent.assert) use this model. Without a key there is no agent, and the tests that
 // need one skip (needsModel in lib/skip.ts).
-const agents = process.env.ANTHROPIC_API_KEY ? { default: { model: anthropic('claude-sonnet-5-5') } } : undefined;
+// The nightly explore runs (.github/workflows/e2e-explore.yml) use the `explore` agent. Its planner reads the screen,
+// and e2e bounds a call's input by its byte count. The screen of a long page such as /integrations (230 cards, about
+// 140 KB) took the bound past the default 64000, which blocked the run (STEP_BUDGET_EXHAUSTED). This agent cuts each
+// screen at 40 KB, which leaves room for the planner's prompt and its record of the steps. The tests keep the default.
+const model = anthropic('claude-sonnet-5-5');
+const agents = process.env.ANTHROPIC_API_KEY
+  ? { default: { model }, explore: { model, maxObservationBytes: 40_960 } }
+  : undefined;
 
 // The site under test: a local dev server, or a Vercel preview in CI.
 const url = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
