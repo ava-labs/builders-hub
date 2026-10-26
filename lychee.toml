@@ -20,6 +20,16 @@ exclude = [
   '^https://build\.avax\.network',
   # Sites that block or log-wall bots
   '^https?://(www\.)?(x|twitter|linkedin)\.com',
+  # Cookie wall for bots
+  '^https://www\.vaneck\.com',
+  # Login redirect
+  '^https://account\.microsoft\.com/',
+  # The docs need a login (401)
+  '^https://docs\.cubist\.dev',
+  # Host refuses or times out from CI
+  '^https://crypto\.stanford\.edu/',
+  # The demo link holds its whole state in a 3489-character path, which returns 400 to HEAD and GET
+  '^https://sandbox\.eth\.build/',
   # RPC and API endpoints: they answer POST, not GET
   '^https://api\.avax(-test)?\.network/ext/',
   # Placeholders in examples

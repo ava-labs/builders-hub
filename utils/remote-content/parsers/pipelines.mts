@@ -35,6 +35,16 @@ export const fixRelativeLinks: TransformFunction = (content, meta) => {
   return replaceRelativeLinks(content, meta.sourceBaseUrl);
 };
 
+// Upstream docs that link to a page that has moved. Each key is the dead URL, each value its current home.
+// The nightly link check (link-check.yml) finds these. Fix the upstream file too, then remove the entry.
+const MOVED_LINKS: Record<string, string> = {
+  'https://book.getfoundry.sh/reference/cast/cast-send': 'https://www.getfoundry.sh/reference/cast/send',
+};
+
+export const fixMovedLinks: TransformFunction = (content) => {
+  return Object.entries(MOVED_LINKS).reduce((acc, [from, to]) => acc.replaceAll(from, to), content);
+};
+
 export const fixGitHubMarkdown: TransformFunction = (content) => {
   return content
     // Convert GitHub-style alerts to Callout components
@@ -358,6 +368,7 @@ export const basePipeline: TransformFunction[] = [
   addFrontmatter,
   removeFirstHeading,
   fixRelativeLinks,
+  fixMovedLinks,
 ];
 
 export const defaultPipeline: TransformFunction[] = [
