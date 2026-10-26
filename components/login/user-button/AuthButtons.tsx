@@ -7,8 +7,9 @@
 // padding takes `!` because the unlayered `nav button` rule in
 // app/global.css outranks Tailwind's layered utilities. In forced colors
 // the fill and the inset bar drop out, so a border keeps Sign up a button.
+// Keyboard focus shows the site's static ring (app/global.css, site-focus-ring).
 const BUTTON_CLASS =
-  'inline-flex h-8 items-center justify-center whitespace-nowrap text-sm font-medium leading-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6212F]';
+  'inline-flex h-8 items-center justify-center whitespace-nowrap text-sm font-medium leading-none transition-colors';
 const LOG_IN_CLASS = `${BUTTON_CLASS} px-3! text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 active:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:active:bg-zinc-800`;
 const SIGN_UP_CLASS = `${BUTTON_CLASS} pr-3! pl-3.5! forced-colors:border bg-zinc-900 text-white shadow-[inset_2px_0_0_#E6212F] hover:bg-zinc-800 active:bg-zinc-950 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 dark:active:bg-white`;
 

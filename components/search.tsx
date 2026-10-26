@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { liteClient } from "algoliasearch/lite";
 import {
@@ -24,6 +24,7 @@ import {
 } from "fumadocs-ui/components/dialog/search";
 import { cn } from "@/lib/utils";
 import { dialogRows, type AlgoliaHit } from "@/lib/search/dialog-rows";
+import { SEARCH_MOTION_START, searchMotion, type SearchInput } from "@/lib/search/dialog-motion";
 import {
   ChainHitRow,
   EntityHitRow,
@@ -137,6 +138,33 @@ function ExplorerListRow({ id, row, onSelect }: { id: string; row: ExplorerRow; 
 }
 
 export default function CustomSearchDialog(props: SharedProps) {
+  // site-search-dialog: opened from the keyboard the dialog shows and leaves
+  // in one frame; opened with a pointer it settles in 180ms and leaves in
+  // 120ms (app/global.css). lib/search/dialog-motion.ts decides which.
+  const [motion, dispatchMotion] = useReducer(searchMotion, SEARCH_MOTION_START);
+  if (motion.open !== props.open) dispatchMotion({ type: "open", open: props.open });
+  const instant = motion.instant ? "" : undefined;
+
+  // Each key and pointer press, heard in the capture phase on window, so a
+  // Cmd K press counts before fumadocs' own listener (window, bubble phase)
+  // opens the dialog. Only a change of kind is passed on.
+  useEffect(() => {
+    let last: SearchInput = SEARCH_MOTION_START.last;
+    const heard = (input: SearchInput) => () => {
+      if (input === last) return;
+      last = input;
+      dispatchMotion({ type: "input", input });
+    };
+    const onKey = heard("keyboard");
+    const onPointer = heard("pointer");
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("pointerdown", onPointer, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("pointerdown", onPointer, true);
+    };
+  }, []);
+
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<SortedResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -269,8 +297,8 @@ export default function CustomSearchDialog(props: SharedProps) {
       {...props}
       onOpenChange={handleOpenChange}
     >
-      <SearchDialogOverlay />
-      <SearchDialogContent>
+      <SearchDialogOverlay className="site-search-overlay" data-instant={instant} />
+      <SearchDialogContent className="site-search-content" data-instant={instant}>
         <SearchDialogHeader>
           <SearchDialogIcon />
           <SearchDialogInput />

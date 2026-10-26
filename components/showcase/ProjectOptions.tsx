@@ -20,7 +20,6 @@ import {
 } from "../ui/alert-dialog";
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
-import { Toaster } from "../ui/toaster";
 import { AssignBadge } from "./assign-badge";
 import { useRouter } from "next/navigation";
 
@@ -125,9 +124,9 @@ export const ProjectOptions = ({
     setIsAssignBadgeOpen(true);
   };
 
+  // Toasts render in ShowCaseCard's Toaster: a Toaster here, once per project card, showed each toast once per card.
   return (
     <>
-      <Toaster />
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button

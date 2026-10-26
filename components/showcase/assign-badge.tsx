@@ -7,7 +7,6 @@ import { Badge } from "@/types/badge";
 import { BadgeCategory } from "@/server/services/badge";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingButton } from "../ui/loading-button";
-import { Toaster } from "../ui/toaster";
 type showAssignBadgeProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -86,9 +85,9 @@ export const AssignBadge = ({
     handleClose();
   };
 
+  // the toasts render in ShowCaseCard's Toaster, which stays mounted after this modal closes
   const multiSelectCard = (
     <div className="flex flex-col gap-2">
-      <Toaster />
       <MultiSelect
         options={optionsWithLabel}
         selected={selectedBadges}

@@ -17,6 +17,58 @@ const bubbleTransport = new DefaultChatTransport({
   body: { source: 'bubble' },
 });
 
+/* site-chat-bubble: the chat panel grows out of the corner its bubble sits in
+   and folds back into it. The bubble grows to 1.04 on hover in 200ms and
+   presses to 0.96 in 120ms, on the strong ease-out; its icon holds still. The
+   panel grows from the bottom-right corner, from 8px lower at 96%, in 220ms.
+   Closing, it folds back in 140ms and ignores the pointer meanwhile, then the
+   bubble returns from 90% in 180ms. Under Reduce Motion nothing scales: the
+   panel fades in 150ms and out 100ms, and the bubble fades back in 120ms.
+   From the keyboard (Enter on the bubble; Escape, or Enter on close or
+   minimize) the panel shows and goes at once, the bubble back at once with
+   it: like the phone menu, a press from a control holding the keyboard focus
+   moves nothing. The panel then takes none of these classes, so no fade
+   plays either. Keyframes in app/global.css. The bubble's durations are set as
+   transition-duration only: tailwindcss-animate makes duration-* set
+   animation-duration too, which would stretch the bubble's return. */
+const BUBBLE_MOTION = [
+  'transition-[scale,box-shadow,border-color] [transition-duration:200ms] ease-out hover:scale-[1.04]',
+  'active:scale-[0.96] active:[transition-duration:120ms] motion-reduce:hover:scale-100 motion-reduce:active:scale-100',
+].join(' ');
+const BUBBLE_RETURN =
+  'animate-[site-chat-return_180ms_var(--ease-out)] motion-reduce:animate-[vs-fade-in_120ms_var(--ease-out)]!';
+const PANEL_MOTION = [
+  'origin-bottom-right data-[state=closed]:pointer-events-none',
+  'data-[state=open]:animate-[site-chat-in_220ms_var(--ease-out)]',
+  'data-[state=closed]:animate-[site-chat-out_140ms_var(--ease-out)_forwards]',
+  'motion-reduce:data-[state=open]:animate-[vs-fade-in_150ms_var(--ease-out)]!',
+  'motion-reduce:data-[state=closed]:animate-[vs-fade-out_100ms_var(--ease-out)_forwards]!',
+].join(' ');
+
+/**
+ * The collapsed bubble's gentle pulse, 2 s long: first 3 s after the bubble shows, then every `every` ms. The cleanup
+ * (the panel opening, or the bubble leaving) also ends a pulse in progress: the pulse is an inline animation, so one
+ * left on would replace the returning bubble's own animation.
+ */
+export function watchPulse(setPulse: (on: boolean) => void, every = 8000 + Math.random() * 4000): () => void {
+  let end: ReturnType<typeof setTimeout> | undefined;
+  const pulse = () => {
+    setPulse(true);
+    end = setTimeout(() => setPulse(false), 2000);
+  };
+  const first = setTimeout(pulse, 3000);
+  const repeat = setInterval(pulse, every);
+  return () => {
+    clearTimeout(first);
+    clearInterval(repeat);
+    clearTimeout(end);
+    setPulse(false);
+  };
+}
+
+/** Whether a press came from the keyboard: the control it landed on holds the keyboard focus (the phone menu's test). */
+export const fromKeyboard = (control: Element) => control.matches(':focus-visible');
+
 function getMessageText(message: UIMessage): string {
   if (message.parts && message.parts.length > 0) {
     return message.parts
@@ -37,9 +89,15 @@ export function ChatBubble() {
   const [inputValue, setInputValue] = useState('');
   const [shouldPulse, setShouldPulse] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // the open panel folding back into the corner: a full close clears the chat, a minimize keeps it
+  const [closing, setClosing] = useState<'close' | 'minimize' | null>(null);
+  // the bubble coming back after the panel folded away (never on the first paint)
+  const [returning, setReturning] = useState(false);
+  // the panel was opened, or is being closed, from the keyboard: it shows and goes at once
+  const [instant, setInstant] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const pulseIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { messages, sendMessage, status, setMessages, error } = useChat({
     id: 'chat-bubble',
@@ -69,25 +127,30 @@ export function ChatBubble() {
   }, []);
 
   // Gentle pulse every 8-12 seconds when collapsed
+  useEffect(() => (state === 'collapsed' && mounted ? watchPulse(setShouldPulse) : undefined), [state, mounted]);
+
+  // A closing panel stays mounted until its exit animation ends (at once when
+  // nothing animates), then the bubble returns. A full close clears the chat
+  // only then, so the panel does not empty while it folds.
   useEffect(() => {
-    if (state !== 'collapsed' || !mounted) return;
-
-    const triggerPulse = () => {
-      setShouldPulse(true);
-      setTimeout(() => setShouldPulse(false), 2000);
-    };
-
-    const initialTimeout = setTimeout(triggerPulse, 3000);
-
-    pulseIntervalRef.current = setInterval(() => {
-      triggerPulse();
-    }, 8000 + Math.random() * 4000);
-
+    if (!closing) return;
+    let live = true;
+    const exits = panelRef.current?.getAnimations() ?? [];
+    Promise.allSettled(exits.map((animation) => animation.finished)).then(() => {
+      if (!live) return;
+      if (closing === 'close') {
+        setMessages([]);
+        setInputValue('');
+      }
+      setClosing(null);
+      setState('collapsed');
+      // closed from the keyboard, the bubble is back at once too
+      setReturning(!instant);
+    });
     return () => {
-      clearTimeout(initialTimeout);
-      if (pulseIntervalRef.current) clearInterval(pulseIntervalRef.current);
+      live = false;
     };
-  }, [state, mounted]);
+  }, [closing, instant, setMessages]);
 
   // Focus input when transitioning to input state
   useEffect(() => {
@@ -107,6 +170,9 @@ export function ChatBubble() {
     const onAsk = (e: Event) => {
       const prompt = (e as CustomEvent<{ prompt: string }>).detail?.prompt;
       if (!prompt) return;
+      setClosing(null);
+      setReturning(false);
+      setInstant(false);
       setState('expanded');
       sendMessage({ text: prompt }, { body: { page: { path: pathname, selection: getSelection()?.brief } } });
     };
@@ -137,8 +203,10 @@ export function ChatBubble() {
         ? 'max-xl:bottom-24'
         : null;
 
-  const handleBubbleClick = () => {
+  const handleBubbleClick = (bubble: Element) => {
     if (state === 'collapsed') {
+      setInstant(fromKeyboard(bubble));
+      setReturning(false);
       setState('input');
     }
   };
@@ -159,15 +227,16 @@ export function ChatBubble() {
     router.push('/chat');
   };
 
-  const handleClose = () => {
-    setState('collapsed');
-    setMessages([]);
-    setInputValue('');
+  // the panel folds back into the corner first (the effect above finishes the close); from the keyboard it goes at once
+  const fold = (how: 'close' | 'minimize', byKey: boolean) => {
+    if (state === 'collapsed' || closing) return;
+    setInstant(byKey);
+    setClosing(how);
   };
 
-  const handleMinimize = () => {
-    setState('collapsed');
-  };
+  const handleClose = (event: React.MouseEvent<HTMLElement>) => fold('close', fromKeyboard(event.currentTarget));
+
+  const handleMinimize = (event: React.MouseEvent<HTMLElement>) => fold('minimize', fromKeyboard(event.currentTarget));
 
   const onSubmit = () => {
     if (!inputValue.trim() || isLoading) return;
@@ -182,7 +251,7 @@ export function ChatBubble() {
       onSubmit();
     }
     if (e.key === 'Escape') {
-      setState('collapsed');
+      fold('minimize', true);
     }
   };
 
@@ -198,25 +267,35 @@ export function ChatBubble() {
       {/* Collapsed bubble */}
       {state === 'collapsed' && (
         <button
-          onClick={handleBubbleClick}
+          onClick={(event) => handleBubbleClick(event.currentTarget)}
+          onAnimationEnd={() => setReturning(false)}
           aria-label="Open chat"
           className={cn(
-            "group relative w-14 h-14 rounded-full shadow-lg border flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-xl",
+            "group relative w-14 h-14 rounded-full shadow-lg border flex items-center justify-center hover:shadow-xl",
+            BUBBLE_MOTION,
+            returning && BUBBLE_RETURN,
             "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700/50",
             "hover:border-zinc-300 dark:hover:border-zinc-600",
           )}
           style={shouldPulse ? { animation: 'bubble-breathe 2s ease-in-out' } : undefined}
         >
           {/* Hover glow */}
-          <div className="absolute inset-0 rounded-full bg-zinc-900/0 dark:bg-white/0 group-hover:bg-zinc-900/5 dark:group-hover:bg-white/5 transition-all duration-300" />
+          <div className="absolute inset-0 rounded-full bg-zinc-900/0 dark:bg-white/0 group-hover:bg-zinc-900/5 dark:group-hover:bg-white/5 transition-colors duration-150 ease-out" />
 
-          <MessageSquare className="w-6 h-6 text-zinc-700 dark:text-zinc-300 relative z-10 transition-transform group-hover:scale-110" />
+          <MessageSquare className="w-6 h-6 text-zinc-700 dark:text-zinc-300 relative z-10" />
         </button>
       )}
 
       {/* Input state */}
       {state === 'input' && (
-        <div className="w-[340px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div
+          ref={panelRef}
+          data-state={closing ? 'closed' : 'open'}
+          className={cn(
+            'w-[340px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden',
+            instant ? undefined : PANEL_MOTION,
+          )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/50">
             <div className="flex items-center gap-2">
@@ -240,16 +319,23 @@ export function ChatBubble() {
               onKeyDown={handleKeyDown}
               placeholder={knowsPage ? 'Ask about this page...' : 'Type your question...'}
               rows={2}
-              className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
+              className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-[border-color,box-shadow]"
             />
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-600 mt-2 text-center">Enter to send · Shift+Enter for new line · Esc to close</p>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2 text-center">Enter to send · Shift+Enter for new line · Esc to close</p>
           </div>
         </div>
       )}
 
       {/* Expanded chat */}
       {state === 'expanded' && (
-        <div className="w-[380px] h-[520px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div
+          ref={panelRef}
+          data-state={closing ? 'closed' : 'open'}
+          className={cn(
+            'w-[380px] h-[520px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden',
+            instant ? undefined : PANEL_MOTION,
+          )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">
             <div className="flex items-center gap-2">
@@ -378,7 +464,7 @@ export function ChatBubble() {
                 onKeyDown={handleKeyDown}
                 placeholder={knowsPage ? 'Ask about this page...' : 'Type a message...'}
                 rows={1}
-                className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
+                className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-[border-color,box-shadow]"
               />
               {isLoading && (
                 <div className="p-2.5">

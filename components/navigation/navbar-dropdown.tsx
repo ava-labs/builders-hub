@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
 import { menuSections, singleItems, type NavItem, type NavSection } from './nav-config';
+import { useThemeSwitch } from './theme-switch';
 import { useSession } from 'next-auth/react';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { AuthButtons } from '@/components/login/user-button/AuthButtons';
+
+/** The sheet fades out in 140ms (the site's 150ms under Reduce Motion), then unmounts. */
+const SHEET_EXIT_MS = 150;
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -19,11 +23,15 @@ import { AuthButtons } from '@/components/login/user-button/AuthButtons';
  * Do NOT add navigation items here - update nav-config.ts instead.
  */
 export function NavbarDropdown() {
-  const [isOpen, setIsOpen] = useState(false);
+  // site-phone-menu: the sheet stays mounted while it closes, so its exit can play
+  const [sheet, setSheet] = useState<'closed' | 'open' | 'closing'>('closed');
+  const isOpen = sheet === 'open';
+  const close = useCallback(() => setSheet((state) => (state === 'open' ? 'closing' : state)), []);
+  const switchTheme = useThemeSwitch();
   const pathname = usePathname();
   const { openLoginModal } = useLoginModalTrigger();
   const handleLogin = (mode: 'signin' | 'signup') => {
-    setIsOpen(false);
+    close();
     openLoginModal(undefined, mode);
   };
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -39,8 +47,15 @@ export function NavbarDropdown() {
 
   // Close on navigation
   useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
+    close();
+  }, [pathname, close]);
+
+  // Unmount the sheet once its exit has played
+  useEffect(() => {
+    if (sheet !== 'closing') return;
+    const timer = setTimeout(() => setSheet('closed'), SHEET_EXIT_MS);
+    return () => clearTimeout(timer);
+  }, [sheet]);
 
   // Handle clicks outside the dropdown
   useEffect(() => {
@@ -48,7 +63,7 @@ export function NavbarDropdown() {
 
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        close();
       }
     };
 
@@ -57,28 +72,33 @@ export function NavbarDropdown() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside, true);
     };
-  }, [isOpen]);
+  }, [isOpen, close]);
 
   return (
     <div className="relative" data-navbar-dropdown ref={dropdownRef}>
-      {/* Dropdown trigger */}
+      {/* Dropdown trigger. The chevron turns on the sheet's curve; under Reduce Motion the site policy snaps it. */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => (isOpen ? close() : setSheet('open'))}
         className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors duration-100 hover:bg-accent hover:text-accent-foreground p-1.5 group"
         aria-label="Toggle Menu"
         aria-expanded={isOpen}
       >
-        <ChevronDown className={`size-5.5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`size-5.5 transition-[rotate] duration-200 ease-out ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
+      {sheet !== 'closed' && (
         <>
           {/* Dropdown menu — v2 sheet: squared, hairline-ruled ledger */}
           {/* The privacy banner covers the bottom of the viewport until the visitor answers it. While it
               shows, the sheet ends above it, so the last items can scroll into view and be tapped.
               4rem is the sheet top (under the 3.5rem navbar) plus a small gap. */}
+          {/* site-phone-menu: the sheet comes out of the top right corner, where its button sits: from 6px up and
+              98% to rest in 200ms on the strong ease-out. It closes in 140ms, fading 4px up, and takes no tap or
+              focus while it goes (inert). Under Reduce Motion it only fades. */}
           <div
-            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[calc(100dvh-var(--fd-banner-height,0px)-var(--privacy-banner-inset,0px)-4rem)] overflow-y-auto"
+            data-state={isOpen ? 'open' : 'closed'}
+            inert={!isOpen}
+            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[calc(100dvh-var(--fd-banner-height,0px)-var(--privacy-banner-inset,0px)-4rem)] overflow-y-auto origin-top-right transition-[opacity,translate,scale] duration-200 ease-out starting:opacity-0 motion-safe:starting:-translate-y-1.5 motion-safe:starting:scale-[0.98] data-[state=closed]:opacity-0 data-[state=closed]:duration-[140ms] motion-safe:data-[state=closed]:-translate-y-1"
           >
             <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {/* Controls row: theme + login */}
@@ -88,13 +108,7 @@ export function NavbarDropdown() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const html = document.documentElement;
-                    const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
-                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                    html.classList.remove('light', 'dark');
-                    html.classList.add(newTheme);
-                    html.style.colorScheme = newTheme;
-                    localStorage.setItem('theme', newTheme);
+                    switchTheme(e.currentTarget);
                   }}
                   className="inline-flex h-8 items-center border border-zinc-200 dark:border-zinc-800 px-1 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
                   aria-label="Toggle Theme"
@@ -109,7 +123,7 @@ export function NavbarDropdown() {
                     aria-label="Profile"
                     title="Profile"
                     className="inline-flex h-8 w-8 items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-50 transition-colors"
-                    onClick={() => setIsOpen(false)}
+                    onClick={close}
                   >
                     <UserRound className="size-4.5" strokeWidth={1.25} />
                   </Link>

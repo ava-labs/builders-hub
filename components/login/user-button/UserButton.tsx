@@ -23,9 +23,10 @@ const AVATAR_PX = 30;
 // v2 design language: a squared hairline box at the same 2rem height as
 // the search field and theme toggle. Hover inks the border rather than
 // scaling; the dropdown opens on hover so the user can sign out without
-// clicking through the box itself.
+// clicking through the box itself. Keyboard focus shows the site's ring
+// (app/global.css, site-focus-ring).
 const WRAPPER_CLASS =
-  'inline-flex h-8 w-8 items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 no-underline hover:no-underline focus:outline-none transition-colors hover:border-zinc-400 dark:hover:border-zinc-500';
+  'inline-flex h-8 w-8 items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 no-underline hover:no-underline transition-colors hover:border-zinc-400 dark:hover:border-zinc-500';
 const SLOT_CLASS = 'h-full w-full flex items-center justify-center';
 const ICON_CLASS = `${SLOT_CLASS} p-1.5 text-zinc-500 dark:text-zinc-400`;
 const INITIALS_CLASS = `${SLOT_CLASS} font-mono text-[10px] tracking-[0.1em] text-zinc-600 dark:text-zinc-300`;
