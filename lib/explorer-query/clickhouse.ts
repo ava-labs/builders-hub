@@ -388,10 +388,18 @@ const EMPTY_TTL_MS = 60 * 60_000;
     its read after 4 s and the answer asks again, so a cold read (20 s on a large L1) held both query slots */
 const coverageReads = new Map<number, Promise<Coverage | null>>();
 
+/** this chain's window as kept, while it is fresh */
+function keptCoverage(chainId: number) {
+  const hit = coverageCache.get(chainId);
+  return hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS) ? hit : null;
+}
+
+const coverageOf = (row: Record<string, unknown>): Coverage => ({ since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) });
+
 /** the window of this chain the database holds; null when it holds no rows. Throws when the database cannot be read. */
 function readCoverage(chainId: number): Promise<Coverage | null> {
-  const hit = coverageCache.get(chainId);
-  if (hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS)) return Promise.resolve(hit.value);
+  const hit = keptCoverage(chainId);
+  if (hit) return Promise.resolve(hit.value);
   const running = coverageReads.get(chainId);
   if (running) return running;
   const read = queryCoverage(chainId).finally(() => coverageReads.delete(chainId));
@@ -406,12 +414,22 @@ async function queryCoverage(chainId: number): Promise<Coverage | null> {
       : `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
   );
   const row = r.rows[0];
-  const value: Coverage | null =
-    row && row.blocks
-      ? { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) }
-      : null;
+  const value = row && row.blocks ? coverageOf(row) : null;
   coverageCache.set(chainId, { at: Date.now(), value });
   return value;
+}
+
+/** many EVM chains' windows from one read of raw_blocks grouped by chain, each kept as that chain's own; a chain with
+    no rows is kept as one */
+function groupedCoverage(chainIds: readonly number[]): Promise<Map<number, Coverage>> {
+  return runQuery(
+    `SELECT chain_id, toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id IN (${chainIds.join(", ")}) GROUP BY chain_id`,
+  ).then((r) => {
+    const by = new Map(r.rows.map((row) => [Number(row.chain_id), coverageOf(row)]));
+    const at = Date.now();
+    for (const id of chainIds) coverageCache.set(id, { at, value: by.get(id) ?? null });
+    return by;
+  });
 }
 
 /** what window of this chain the database holds; null for the network, whose chains each hold their own */
@@ -436,22 +454,24 @@ export async function indexState(chainId: number, timeoutMs = 4000): Promise<Cov
   return Promise.race([read, late]);
 }
 
+/** indexState for each chain a page lists. The EVM chains not kept yet are read together: every caller of the site
+    shares the stats-api key's reads (60 a minute per replica), and one read per chain on each cold instance spent them
+    all, so other questions got 429s */
+export function indexStates(chainIds: readonly number[], timeoutMs = 4000): Promise<(Coverage | "empty" | null)[]> {
+  const cold = chainIds.filter((id) => id !== NETWORK_ID && targetOf(id).kind !== "pchain" && !keptCoverage(id) && !coverageReads.has(id));
+  if (cold.length > 1) {
+    const read = groupedCoverage(cold);
+    for (const id of cold) coverageReads.set(id, read.then((by) => by.get(id) ?? null).finally(() => coverageReads.delete(id)));
+  }
+  return Promise.all(chainIds.map((id) => indexState(id, timeoutMs)));
+}
+
 /** every network chain's window, from one read of raw_blocks grouped by chain; each seeds that chain's own window, so
     the network costs one read where its chains would cost one each. Kept as a chain's own is */
 let networkRead: { at: number; value: Promise<Map<number, Coverage>> } | null = null;
 function networkCoverage(chains: readonly NetworkChain[]): Promise<Map<number, Coverage>> {
   if (networkRead && Date.now() - networkRead.at < COVERAGE_TTL_MS) return networkRead.value;
-  const value = runQuery(
-    `SELECT chain_id, toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id IN (${chains.map((c) => c.chainId).join(", ")}) GROUP BY chain_id`,
-  ).then((r) => {
-    const by = new Map<number, Coverage>();
-    for (const row of r.rows) {
-      const c = { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
-      by.set(Number(row.chain_id), c);
-      coverageCache.set(Number(row.chain_id), { at: Date.now(), value: c });
-    }
-    return by;
-  });
+  const value = groupedCoverage(chains.map((c) => c.chainId));
   networkRead = { at: Date.now(), value };
   value.catch(() => {
     if (networkRead?.value === value) networkRead = null;
