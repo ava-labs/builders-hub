@@ -18,7 +18,14 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({
+  children,
+  themeColor,
+}: {
+  children: ReactNode;
+  /** the browser chrome colour (meta theme-color) for each theme */
+  themeColor: Record<Theme, string>;
+}) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") return "light";
 
@@ -60,6 +67,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       mediaQuery.removeEventListener("change", handleMediaChange);
     };
   }, []);
+
+  // The browser chrome (a phone's status bar) follows the theme picked on the site, not only the OS scheme. The root
+  // layout's viewport export colours the first paint by the OS scheme; once the page runs, a theme-color entry of our
+  // own, first in <head> and with no media query, carries the site theme's colour. The browser takes the first entry
+  // that matches, and Next re-renders only its own entries (at the end of <head>) when the page changes.
+  const chromeColor = themeColor[theme];
+  useEffect(() => {
+    const meta =
+      document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"][data-site-theme]') ??
+      Object.assign(document.createElement("meta"), { name: "theme-color" });
+    meta.dataset.siteTheme = "";
+    meta.content = chromeColor;
+    if (document.head.firstElementChild !== meta) document.head.prepend(meta);
+  }, [chromeColor]);
 
   return (
     <ThemeContext.Provider value={{ theme }}>

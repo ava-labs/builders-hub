@@ -71,14 +71,31 @@ header[aria-label="Main"] [data-radix-popover-content] {
   padding-top: 72px !important;
 }
 
-/* Integrations page: Default scroll padding (no banner) */
-.integrations-page {
-  scroll-padding-top: 4rem;
-}
-
-/* Integrations page: Add scroll margin to section anchors for proper positioning */
-.integrations-page section[id] {
-  scroll-margin-top: 4rem;
+/* site-anchor-offset: an in-page link, or a hash in the URL, lands its target 4.5rem down, below the sticky navbar
+   (--site-nav-h, 57px) with 1rem less 1px of room for a focus ring (WCAG 2.4.11), not under it. The browser, Next's
+   scroll after a navigation and keyboard focus all keep clear of the page's scroll padding. It replaces the
+   Integrations page's own 4rem margin. Padding and a target's own scroll margin add up, so two kinds of page keep
+   their own offsets: the docs and Academy (#nd-docs-layout), and any page whose targets carry a scroll margin class
+   (fumadocs headings and accordions, the Solutions, Ecosystem and Explorer sections). The classes are named one by
+   one, never matched as a substring: a [class*=] test in :has() on html costs a style pass on every class change
+   (tests/unit/motion/focus-press.test.ts lists every such class in use). The home takes its padding from this rule
+   too. */
+html:not(
+    :has(
+        #nd-docs-layout,
+        .scroll-m-20,
+        .scroll-m-24,
+        .scroll-m-28,
+        .scroll-mt-8,
+        .scroll-mt-20,
+        .scroll-mt-24,
+        .lg\:scroll-mt-24,
+        .scroll-mt-28,
+        .scroll-mt-32,
+        .scroll-mt-40
+      )
+  ) {
+  scroll-padding-top: calc(var(--site-nav-h) + 1rem - 1px);
 }
 
 /* Integration detail page: Default padding (no banner) */
@@ -178,6 +195,182 @@ html.console-active #nd-nav {
 
   #nd-nav > :last-child * {
     pointer-events: auto;
+  }
+}
+
+/* site-mega-menu: the desktop menus drop in without stretching (fumadocs grew the panel's height from 0 and slid whole
+   menus 200px sideways). The panel arrives at full size: it fades in from 6px up and 98.5% scale, 180ms on the strong
+   ease-out, from the top centre, and leaves in 120ms, 4px up. Moving to another menu slides the old one out 16px in
+   150ms and the new one in 16px over 200ms, while the panel's height follows in 250ms on the in-out curve. All of it
+   runs on transitions (the entrances start from @starting-style), so a pointer that sweeps across the five triggers
+   retargets each menu from where it is instead of restarting keyframes: one steady panel. Radix unmounts a closing
+   panel or a leaving menu when its CSS animation ends, so those also run nav-menu-hold, which changes nothing and lasts
+   as long as the fade. A closing panel and a leaving menu take no pointer, their links included. A menu opened,
+   switched or closed from the keyboard (a trigger holds the keyboard focus) shows and goes at once: the hold keeps its
+   name and drops to 0s, which still ends it, so Radix unmounts the panel even when a key is pressed during a close the
+   pointer started (cancelling the hold instead would leave it mounted, invisible). Under Reduce Motion nothing moves:
+   the panel and the menus cross-fade in the site's 150ms, and the hold lasts as long. */
+#nd-nav > :last-child > div {
+  animation: none;
+  transform-origin: top center;
+  transition-property: opacity, translate, scale, width, height;
+  transition-duration: 180ms, 180ms, 180ms, 250ms, 250ms;
+  transition-timing-function: var(--ease-out), var(--ease-out), var(--ease-out), var(--ease-in-out), var(--ease-in-out);
+}
+@starting-style {
+  #nd-nav > :last-child > div[data-state="open"] {
+    opacity: 0;
+    translate: 0 -6px;
+    scale: 0.985;
+  }
+}
+#nd-nav > :last-child > div[data-state="closed"] {
+  opacity: 0;
+  translate: 0 -4px;
+  transition-duration: 120ms, 120ms, 120ms, 250ms, 250ms;
+  animation: nav-menu-hold 120ms;
+}
+#nd-nav > :last-child > div > [data-motion] {
+  animation: none;
+  transition-property: opacity, translate;
+  transition-duration: 200ms;
+  transition-timing-function: var(--ease-out);
+}
+@starting-style {
+  #nd-nav > :last-child > div > [data-motion="from-end"] {
+    opacity: 0;
+    translate: 16px 0;
+  }
+  #nd-nav > :last-child > div > [data-motion="from-start"] {
+    opacity: 0;
+    translate: -16px 0;
+  }
+}
+#nd-nav > :last-child > div > [data-motion^="to-"] {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 150ms;
+  animation: nav-menu-hold 150ms;
+}
+#nd-nav > :last-child > div[data-state="closed"] *,
+#nd-nav > :last-child > div > [data-motion^="to-"] * {
+  pointer-events: none;
+}
+#nd-nav > :last-child > div > [data-motion="to-start"] {
+  translate: -16px 0;
+}
+#nd-nav > :last-child > div > [data-motion="to-end"] {
+  translate: 16px 0;
+}
+@keyframes nav-menu-hold {
+  to {
+    visibility: visible;
+  }
+}
+#nd-nav:has(nav > ul > li > button[aria-controls]:focus-visible) > :last-child > div,
+#nd-nav:has(nav > ul > li > button[aria-controls]:focus-visible) > :last-child > div > [data-motion] {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  #nd-nav > :last-child > div[data-state="closed"],
+  #nd-nav > :last-child > div > [data-motion^="to-"] {
+    translate: none;
+    animation-duration: 150ms !important;
+  }
+}
+
+/* site-phone-menu: the phone sheet's motion lives in its classes (components/navigation/navbar-dropdown.tsx). Opened or
+   closed from the keyboard (its button holds the keyboard focus), it shows and goes at once, and so does the chevron. */
+[data-navbar-dropdown]:has(> button:focus-visible) > div,
+[data-navbar-dropdown] > button:focus-visible svg {
+  transition: none !important;
+}
+
+/* site-link-pending: the navbar links that skip prefetch (Developers, Console, Ecosystem) answer a slow click. Once the
+   wait passes 120ms (a timer in components/navigation/pending-hint.tsx, so a fast navigation never flashes it), a 2px
+   line under the label fades to 70% while a segment sweeps across it, 900ms linear and repeating. The line is always
+   in the page and absolutely placed, and the sweep is a clip-path, so nothing shifts. It goes at once when the page
+   arrives. Under Reduce Motion the line shows still. */
+.nav-pending-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  background-color: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-pending-hint[data-shown] {
+  opacity: 0.7;
+  transition: opacity 120ms var(--ease-out);
+  animation: nav-pending-sweep 900ms linear infinite;
+}
+@keyframes nav-pending-sweep {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+  50% {
+    clip-path: inset(0);
+  }
+  100% {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-pending-hint[data-shown] {
+    animation: none;
+  }
+}
+
+/* site-theme-switch: switching light and dark reveals the new theme in a circle that grows from the toggle pressed
+   (components/navigation/theme-switch.tsx), 450ms on the strong ease-out, over the old page held still; the two
+   snapshots are not blended. The script marks <html> with data-theme-reveal and the circle's centre and radius for
+   that one view transition. No element is named outside React's own transitions, so the whole page is in the root
+   snapshot and the circle is the only thing that moves; !important outranks the hold the docs, the Academy landing and
+   the explorer put on their root (those holds come later in this file at the same specificity; the site policy's 1ms
+   never reaches a view-transition pseudo-element, since its selectors match elements, ::before and ::after only). No
+   transition runs while the circle grows, <html> included, so the page it reveals has switched in full (next-themes
+   holds transitions for one timer tick only, which ends before the new theme is drawn, and some 30 elements would fade
+   their colours inside the circle; under Reduce Motion the site policy gives <html> colour fades of its own). Under
+   Reduce Motion there is no circle: the two pages cross-fade in 150ms on the strong ease-out (the site's plain fades,
+   vs-fade-out and vs-fade-in in exp-view-switch), added with plus-lighter so the fade never dips through the page, and
+   the root group lasts as long, so the transition ends with the fade (the UA gives the group 250ms, and every press
+   lands on <html> until the transition ends). */
+:root[data-theme-reveal],
+:root[data-theme-reveal] *,
+:root[data-theme-reveal] *::before,
+:root[data-theme-reveal] *::after {
+  transition: none !important;
+}
+:root[data-theme-reveal]::view-transition-old(root) {
+  animation: none !important;
+  mix-blend-mode: normal;
+}
+:root[data-theme-reveal]::view-transition-new(root) {
+  animation: theme-reveal 450ms var(--ease-out) !important;
+  mix-blend-mode: normal;
+}
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--theme-reveal-x) var(--theme-reveal-y));
+  }
+  to {
+    clip-path: circle(var(--theme-reveal-r) at var(--theme-reveal-x) var(--theme-reveal-y));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme-reveal]::view-transition-old(root) {
+    animation: vs-fade-out 150ms var(--ease-out) both !important;
+    mix-blend-mode: plus-lighter;
+  }
+  :root[data-theme-reveal]::view-transition-new(root) {
+    animation: vs-fade-in 150ms var(--ease-out) both !important;
+    mix-blend-mode: plus-lighter;
+  }
+  :root[data-theme-reveal]::view-transition-group(root) {
+    animation-duration: 150ms;
   }
 }
 
@@ -694,6 +887,9 @@ html {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius: 0.5rem;
+  /* the site navbar's height (#nd-nav): its 3.5rem bar and 1px rule. The anchor offset (site-anchor-offset), the
+     page-fade clips (site-page-transition, sol-tab-glide) and the reading line (eco-blog-progress) sit below it */
+  --site-nav-h: calc(3.5rem + 1px);
   --background: oklch(96.96% 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
@@ -877,12 +1073,85 @@ html {
   --animate-collapsible-up: collapsible-up 0.2s ease-out;
 }
 
+/* site-motion-tokens: the strong curves. They replace Tailwind's built-in ease-out and ease-in-out, so every ease-out
+   and ease-in-out class on the hub takes them, and ease-drawer adds one shared curve for sheets and drawers.
+   Hand-written CSS uses var(--ease-out), var(--ease-in-out) and var(--ease-drawer): "static" puts all three on :root
+   even when no class uses them, so a stylesheet compiled on its own can rely on them. JS takes the same numbers from
+   lib/motion-curves.ts (tests/unit/motion/foundation.test.ts keeps the two equal). */
+@theme static {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* site-browser-surfaces: selected text gets the brand blue tint on every machine instead of the system accent, and
+   keeps its own colour. The two tints are equally strong against their grounds (light 0.14 on white, dark 0.16 on the
+   dark ground). The rule, in both themes, applies to text that passes 4.5:1 at rest: selected, such text is never less
+   legible than under the browser's own default highlight (what the site showed before), except where it still passes
+   4.5:1. Listed near-threshold colours fall below 4.5:1 when selected; representative pairs are pinned in
+   tests/unit/motion/foundation.test.ts, and the full list is in the handover. Inputs and textareas are left out of the
+   rule, and a field that sets its own selection style (the shadcn Input's selection:bg-primary) keeps it, since
+   utilities win over this base layer. Text fields show the brand red caret. */
+@layer base {
+  *:not(input, textarea)::selection {
+    background-color: rgb(0 97 226 / 0.14);
+  }
+  .dark *:not(input, textarea)::selection {
+    background-color: rgb(108 157 255 / 0.16);
+  }
+  :is(input, textarea, [contenteditable="true"]) {
+    caret-color: #e6212f;
+  }
+}
+
+/* site-phone-baseline: no grey flash when a phone taps a link or a button (press states answer instead; Tailwind's
+   preflight sets the same on html, restated so the phone baseline reads in one place), and controls answer a tap at
+   once instead of waiting for a possible double-tap zoom. The status bar follows the site's theme through the theme
+   observer (components/content-design/theme-observer.tsx). */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :is(a, button, [role="button"], summary, label) {
+    touch-action: manipulation;
+  }
+}
+
+/* site-focus-ring: one keyboard focus ring, 2px brand red offset 2px, on every control that does not draw its own:
+   an element with a focus ring or outline class keeps it, and any utility wins over this base layer. #E6212F is
+   4.54:1 on white and 4.36:1 on #0A0A0A, above the 3:1 a focus indicator needs. The ring never animates: its width,
+   colour and offset are already set at rest, where outline-style none hides them, so focus changes only the style,
+   which no transition list can tween (a control whose own transitions cover outline would otherwise fade the colour
+   in and grow the ring, and so would the Reduce Motion rule, which fades outline-color). Containers that only script
+   focuses (tabindex -1: dialogs, menus, menu items) get no ring. */
+@layer base {
+  :is(a, button, input, select, textarea, summary, [role="button"], [tabindex]:not([tabindex="-1"])):not(
+      [class*="focus-visible:ring"],
+      [class*="focus:ring"],
+      [class*="focus-visible:outline"],
+      [class*="focus:outline"]
+    ) {
+    outline-width: 2px;
+    outline-color: #E6212F;
+    outline-offset: 2px;
+  }
+  :is(a, button, input, select, textarea, summary, [role="button"], [tabindex]:not([tabindex="-1"])):focus-visible:not(
+      [class*="focus-visible:ring"],
+      [class*="focus:ring"],
+      [class*="focus-visible:outline"],
+      [class*="focus:outline"]
+    ) {
+    outline: 2px solid #E6212F;
+    outline-offset: 2px;
   }
 }
 
@@ -971,13 +1240,30 @@ nav a {
   padding-top: 0.36rem !important;
   padding-bottom: 0.36rem !important;
   border-radius: 0 !important;
-  transition: all 0.2s ease !important;
 }
 
 nav button {
   padding: 0.1rem;
   border-radius: 0;
-  transition: all 0.2s ease !important;
+}
+
+/* site-press-feedback and site-focus-ring: links and buttons in a nav transition only colour, background, border,
+   opacity, shadow and transform, in 150ms on the strong ease-out, like the shared Button (components/ui/button.tsx).
+   Tailwind 4's scale-*, translate-* and rotate-* set properties of their own, so those are named too. outline is
+   left out, so a focus ring appears and leaves at once. Not !important, so the reduced-motion rule wins; unlayered, so
+   it still beats Tailwind transition classes on these elements (a nav that needs other transitions names them in a
+   more specific rule). Navbar buttons press in to 0.97; under Reduce Motion only the colour change on press stays. */
+nav a,
+nav button {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
+    transform, translate, scale, rotate;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-out);
+}
+@media (prefers-reduced-motion: no-preference) {
+  #nd-nav button:not(:disabled):active {
+    scale: 0.97;
+  }
 }
 
 /* v2: top-level navbar items in the page's sans voice, sentence case.
@@ -1051,7 +1337,6 @@ nav button[data-search-full] {
   border-radius: 0 !important;
   background-color: transparent !important;
   border: 1px solid rgb(228 228 231) !important; /* zinc-200 */
-  transition: all 0.2s ease !important;
   gap: 0.5rem !important;
   font-family: var(--font-mono) !important;
   font-size: 11px !important;
@@ -1089,7 +1374,6 @@ nav button[aria-label="Toggle Theme"] {
   border-radius: 0 !important;
   background-color: transparent !important;
   border: 1px solid rgb(228 228 231) !important; /* zinc-200 */
-  transition: all 0.2s ease !important;
 }
 
 /* Shrink the sun/moon glyphs to fit the 2rem box; square the active chip */
@@ -1124,11 +1408,25 @@ nav button[data-slot="dropdown-menu-trigger"] {
   padding: 0 !important;
   border-radius: 0 !important;
   background-color: transparent !important;
-  transition: all 0.2s ease !important;
 }
 
 nav button[data-slot="dropdown-menu-trigger"]:hover {
   background-color: transparent !important;
+}
+
+/* site-focus-ring, phone search toggle (from Task 2's review): below 1024px fumadocs' search toggle (button[data-search],
+   its SearchToggle) drew its own grey ring (focus-visible:ring-2 in ring-fd-ring, 2.52:1) beside the house ring. It
+   takes the house ring instead: 2px #E6212F, offset 2px. Width, colour and offset are set at rest, where outline-style
+   none hides them, so focus changes only the style and the ring never fades in, Reduce Motion included. Unlayered, so
+   it outranks fumadocs' focus-visible:outline-none and ring utilities. */
+button[data-search] {
+  outline-width: 2px;
+  outline-color: #E6212F;
+  outline-offset: 2px;
+}
+button[data-search]:focus-visible {
+  outline-style: solid;
+  box-shadow: none;
 }
 
 /* Larger padding for nav items - more breathing room between links */
@@ -1240,6 +1538,23 @@ nav button[aria-current="page"]:hover {
   box-shadow: inset 0 -2px 0 0 #E6212F !important;
   transform: none !important;
   scale: 1 !important;
+}
+
+/* exp-tab-answer: the explorer's section rail (components/explorer-v2/ExplorerSubnav.tsx) draws its own bar
+   and slides it to the tab a click lights, before the page lands. The underline above would fade in under that
+   tab and out under the old one while the bar slides, so the rail's current link draws none. At (0,4,2) this
+   outranks all four rules above, the dark hover one at (0,3,2) included, wherever this block sits. The current
+   link keeps aria-current until the next page lands, and the lit tab carries data-lit: a current link that is not
+   lit takes the rail's quiet ink (the tab's own zinc-400, dark zinc-500) over the ink above, at (0,5,2), so only
+   the lit tab reads dark from the click on. */
+:root [data-explorer-subnav] nav[aria-label="Explorer sections"] a[aria-current="page"] {
+  box-shadow: none !important;
+}
+:root [data-explorer-subnav] nav[aria-label="Explorer sections"] a[aria-current="page"]:not([data-lit]) {
+  color: var(--color-zinc-400) !important;
+}
+.dark [data-explorer-subnav] nav[aria-label="Explorer sections"] a[aria-current="page"]:not([data-lit]) {
+  color: var(--color-zinc-500) !important;
 }
 
 /* Simplified navbar responsive - compress then switch to mobile early */
@@ -1362,16 +1677,25 @@ nav button[aria-current="page"]:hover {
     margin-top: 0 !important; /* Remove any margin that might add extra spacing */
   }
   
-  /* When closed, hide it off-screen */
+  /* docs-phone-drawer: the drawer slides on the translate property (app/docs/styles.css, app/academy/styles.css).
+     No transform is forced here: an !important transform beat the slide keyframes and held the panel in place. */
   #nd-sidebar-mobile[data-state="closed"],
   #nd-sidebar-mobile:not([data-state="open"]) {
-    transform: translateX(-100%) !important;
     display: flex !important; /* Keep in DOM so it can be opened */
   }
-  
+
+  /* docs-phone-drawer: a hidden drawer (.invisible, fumadocs-ui sidebar.js: closed and its exit ended, or mounted
+     closed after hydration) waits behind the left edge and runs no animation: the exit keyframes skip it
+     (:not(.invisible)), and fumadocs' own data-[state=closed]:animate-fd-sidebar-out would move it across the screen.
+     The section description in it keeps visibility: visible (see "Always show sidebar folder description" below), so
+     a drawer left in place, at a page load or after the Reduce Motion fade, would show that line and take taps. */
+  #nd-sidebar-mobile.invisible {
+    translate: -100% 0;
+    animation: none;
+  }
+
   /* When open, show it */
   #nd-sidebar-mobile[data-state="open"] {
-    transform: translateX(0) !important;
     display: flex !important;
   }
   
@@ -1877,19 +2201,23 @@ html.embed-mode #nd-toc {
   border-radius: 5px;
 }
 
-/* Honor the OS-level "Reduce Motion" preference site-wide. Framer-motion
-   variants already respect this, but raw CSS @keyframes, Tailwind
-   `transition-*` utilities, and any third-party animation will keep
-   firing without this rule. Set to a near-instant duration rather than 0
-   so transitions still trigger their `transitionend` events (some libs
-   rely on those firing). */
+/* site-reduced-motion-policy: the OS "Reduce Motion" setting means less movement, not no feedback. Nothing moves:
+   transforms and size changes snap, while colour, opacity and shadow changes keep a 150ms fade. Every keyframe
+   animation plays once in 1ms with no delay, so it still ends on its last frame. framer-motion follows the same
+   setting through the MotionConfig in app/layout.client.tsx. A transition on a property outside this list no longer
+   runs, so it fires no transitionend: no code in this repo listens for one, Radix Presence waits for animationend
+   (still fired), and Leaflet's zoom also ends on its own 250ms timer. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke,
+      opacity, box-shadow !important;
+    transition-duration: 150ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }
@@ -1969,12 +2297,66 @@ html.embed-mode #nd-toc {
   animation: collapsible-up 200ms cubic-bezier(0.21, 0.47, 0.32, 0.98);
 }
 
-/* Homepage scroll padding. StoryHome tags <html> with v2-snap while it is
-   mounted, so no other route is affected. A focused link or an anchor jump
-   lands below the sticky navbar, not under it (WCAG 2.4.11). 4.5rem clears
-   the 57px header with room for the focus ring. */
-html.v2-snap {
-  scroll-padding-top: 4.5rem;
+/* home-hero-first-paint: a first-paint entrance for a hero's copy, written as a CSS animation so it plays from the
+   first frame: the copy never waits for the scripts, and it shows with JavaScript off. The home hero's headline,
+   buttons and ecosystem tape use it. Interface: an element with .hero-enter plays hero-rise, from 16px down at opacity
+   0 to the element at rest, in 600ms on the strong ease-out. Knobs, set per element: --hero-delay (when it starts,
+   default 0ms), --hero-rise-y (how far it rises, default 16px; a percentage is of the element's own height) and
+   --hero-duration (default 600ms). Fill mode backwards holds the start pose through the delay and leaves nothing on
+   the element once it ends (no identity transform, so no stacking context or containing block). Under Reduce Motion
+   every .hero-enter only fades in (vs-fade-in, exp-view-switch), 200ms from the first frame (the site policy drops the
+   delay); the !important holds over an element's own keyframes. The Solutions heroes use it too: the index's hall
+   photo, words and dek, and each pillar page's opening block (sol-hero-first-paint, below). */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--hero-rise-y, 16px));
+  }
+}
+.hero-enter {
+  animation: hero-rise var(--hero-duration, 600ms) var(--ease-out) var(--hero-delay, 0ms) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-enter {
+    animation-name: vs-fade-in !important;
+    animation-duration: 200ms !important;
+  }
+}
+
+/* sol-hero-first-paint: the Solutions heroes enter through .hero-enter (home-hero-first-paint, above), so they show
+   from the first frame and with JavaScript off instead of waiting for hydration. A pillar page's opening block takes
+   the plain rise (--hero-rise-y: 20px). Three poses of the index hero are not a rise, so a pose class swaps the
+   keyframes and keeps .hero-enter's knobs, curve and fill, and its Reduce Motion fade: .hero-zoom, the hall photo
+   fading in out of a 1.08 zoom (one more knob, --hero-zoom, sets where the zoom starts); .hero-mask, a word rising
+   out of the mask that hides it, with no fade; .hero-blur, the dek sharpening from 10px as it rises 8px
+   (SolutionsIndex.tsx, and SpecKit.tsx MaskText with firstPaint). The Ecosystem hero (EcosystemHero.tsx) enters the
+   same way: its camp photo out of a 1.06 zoom, and its dek. */
+@keyframes hero-zoom {
+  from {
+    opacity: 0;
+    transform: scale(var(--hero-zoom, 1.08));
+  }
+}
+@keyframes hero-mask {
+  from {
+    transform: translateY(105%);
+  }
+}
+@keyframes hero-blur {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(8px);
+  }
+}
+.hero-enter.hero-zoom {
+  animation-name: hero-zoom;
+}
+.hero-enter.hero-mask {
+  animation-name: hero-mask;
+}
+.hero-enter.hero-blur {
+  animation-name: hero-blur;
 }
 
 /* Story chapters rise in with framer-motion, which renders them hidden on
@@ -2140,29 +2522,73 @@ html.v2-snap {
   font-display: swap;
 }
 
-/* Audit marketplace: red-CTA hover sweep (house BrandButton pattern, mockup
-   board section 07). The light plane sweeps in behind the label; the label
-   flips to ink. Flattened by the prefers-reduced-motion reducer above. */
-.audits-sweep {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-.audits-sweep::before {
-  content: "";
+/* site-cta-synced-sweep: the brand CTAs' hover sweep, one grammar for BrandButton
+   (components/landing-v2/BrandButton.tsx), the home "Explore the network" bar (components/landing-v2/StoryHome.tsx),
+   ConsoleBar (components/landing-v2/ConsoleBar.tsx) and the audit marketplace's red CTAs (.audits-sweep below, with
+   components/audits/shared/SweepLabel.tsx). The hovered state is one aria-hidden, inert copy of the label on its own
+   fill, laid over the control and revealed left to right with clip-path in 220ms on the strong ease-out; it hides
+   again in 160ms. Text and fill are one element being revealed, so the label changes colour exactly where the fill
+   passes. The copy takes the control's box (display, alignment, gap and padding), so its label sits on the real one;
+   it ignores the pointer and stays out of text selection, and inert keeps it out of find in page. Hovering the
+   control reveals it; a BrandButton reveals it on its whole block (Tailwind's named group, group/brand-cta, a name no
+   other control uses, since any copy inside that group would wipe), the same hover that fades the secondary's edge bar.
+   Keyboard focus shows the hovered state too, and fades a BrandButton's edge bar with it. Under Reduce Motion the copy
+   is not clipped and fades in instead (the site policy keeps opacity transitions at 150ms). */
+.sweep-copy {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  background: #ebf0fa;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.3s ease-out;
+  display: inherit;
+  flex-direction: inherit;
+  align-items: inherit;
+  justify-content: inherit;
+  gap: inherit;
+  padding: inherit;
+  pointer-events: none;
+  user-select: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 160ms var(--ease-out);
 }
-.audits-sweep:hover::before {
-  transform: scaleX(1);
+:focus-visible > .sweep-copy {
+  clip-path: inset(0);
 }
-.audits-sweep:hover {
+@media (hover: hover) and (pointer: fine) {
+  :hover > .sweep-copy,
+  .group\/brand-cta:hover .sweep-copy {
+    clip-path: inset(0);
+    transition-duration: 220ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sweep-copy {
+    clip-path: none;
+    opacity: 0;
+  }
+  :focus-visible > .sweep-copy {
+    opacity: 1;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :hover > .sweep-copy,
+    .group\/brand-cta:hover .sweep-copy {
+      opacity: 1;
+    }
+  }
+}
+
+/* site-cta-synced-sweep, audits: the audit marketplace's red CTAs. The copy is brand light with ink, and the control
+   keeps its red under the copy while it wipes (the shared Button's own hover fill would show through the part the copy
+   has not reached yet). */
+.audits-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.audits-sweep > .sweep-copy {
+  background-color: #ebf0fa;
   color: #1f1f1f;
+}
+@media (hover: hover) and (pointer: fine) {
+  .audits-sweep:hover {
+    background-color: #e6212f;
+  }
 }
 
 /* The hero display word rests as INK (a fully red line over the red CTA
@@ -2227,16 +2653,25 @@ body:has([data-navbar-dropdown] > button[aria-expanded="true"]) .chatbot-contain
   display: none;
 }
 
-/* the city and 2D explorer toggle (components/explorer-v2/view-switch.tsx): the view it leaves fades out fast, and the one it
-   opens fades in once the old one is nearly gone */
+/* exp-view-switch: the city and 2D explorer toggle (components/explorer-v2/view-switch.tsx). The view it leaves fades
+   out fast, and the one it opens starts 60ms later on the strong ease-out, so the toggle answers at once. The fade-out
+   has its own keyframes: an animation played in reverse also runs its curve backwards, so it would start slow. Under
+   Reduce Motion the two views cross-fade in 150ms. vs-fade-in and vs-fade-out are the site's plain fades, which the
+   other blocks in this file reuse. Neither name contains the other: Radix Presence ends an exit on the end or cancel
+   of any animation whose name the current one contains, so an entry named vs-fade would cut short a vs-fade-out. */
 ::view-transition-old(.vs-out) {
-  animation: 140ms ease-out both vs-fade reverse;
+  animation: 120ms var(--ease-out) both vs-fade-out;
 }
 ::view-transition-new(.vs-in) {
-  animation: 220ms ease-in 80ms both vs-fade;
+  animation: 200ms var(--ease-out) 60ms both vs-fade-in;
 }
-@keyframes vs-fade {
+@keyframes vs-fade-in {
   from {
+    opacity: 0;
+  }
+}
+@keyframes vs-fade-out {
+  to {
     opacity: 0;
   }
 }
@@ -2245,12 +2680,308 @@ body:has([data-navbar-dropdown] > button[aria-expanded="true"]) .chatbot-contain
 :root:active-view-transition-type(view-switch)::view-transition-new(root) {
   animation: none;
 }
+/* React also starts a view transition when either view mounts without the type: a plain link into it, such as the
+   chain switcher's All Networks row or View all on the overview's boards. Both views render the explorer subnav, so an
+   explorer page's root never takes the browser's default cross-fade (as on the Academy landing below) */
+:root:has([data-explorer-subnav])::view-transition-old(root),
+:root:has([data-explorer-subnav])::view-transition-new(root) {
+  animation: none;
+}
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(.vs-out),
+  ::view-transition-old(.vs-out) {
+    animation: 150ms var(--ease-out) both vs-fade-out;
+  }
   ::view-transition-new(.vs-in) {
+    animation: 150ms var(--ease-out) both vs-fade-in;
+  }
+}
+
+/* acad-view-switch: the Academy landing's Overview, Tree and Stages (components/academy/landing/view-toggle.tsx) tag
+   their navigation with the same view-switch type, so the rest of the page holds still as above. The view it leaves
+   fades out in 140ms and the one it opens fades in over 220ms after 60ms, both on the strong ease-out, with the
+   explorer's vs-fade-out and vs-fade-in. The hero row does the same only when its content changes; the toggle's red
+   rule slides in academy-tokens.css. React starts a view transition here on the typed switch and on browser Back and
+   Forward between views, which carry no type (measured: a link into the landing, or out of it, starts none): while the
+   landing's view switch is on the page, its root never takes the browser's default cross-fade. Under Reduce Motion
+   the parts cross-fade in 150ms. */
+:root:has([data-view-switch="academy"])::view-transition-old(root),
+:root:has([data-view-switch="academy"])::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(.acad-view-out) {
+  animation: 140ms var(--ease-out) both vs-fade-out;
+}
+::view-transition-new(.acad-view-in) {
+  animation: 220ms var(--ease-out) 60ms both vs-fade-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.acad-view-out) {
+    animation: 150ms var(--ease-out) both vs-fade-out;
+  }
+  ::view-transition-new(.acad-view-in) {
+    animation: 150ms var(--ease-out) both vs-fade-in;
+  }
+}
+
+/* site-page-transition: going from one docs page to another, the article fades and the rest of the page holds still.
+   Each docs page wraps its DocsPage in a React ViewTransition (app/docs/[...slug]/page.tsx), which names #nd-page (the
+   article and its TOC) only for the change. The page it leaves fades out in 100ms; the next one fades in over 180ms
+   after 60ms, both on the strong ease-out (the explorer's vs-fade-out and vs-fade-in), so the two never stack. React
+   starts a view transition whenever a page mounts, so on a docs page the root (navbar, sidebar, page ground) never
+   takes the browser's default cross-fade. The overlay takes no pointer events. What a press during the fade (about
+   300ms) reaches in Chromium: a press on the sidebar or the bars reaches it, while a press on the fading article or
+   the chat bubble lands on the layout behind them (main#nd-docs-layout), since the browser does not hit-test named
+   elements while a view transition runs. Only a change that a pointer started on the page in plain view, not on a hover
+   card's trigger, with no floating layer open, no consent card showing and the chat below the docs bars, fades: the
+   docs layout (app/docs/docs-layout-wrapper.tsx) marks html[data-bk-page-fade] on such a press, and clears it on a
+   press elsewhere (the phone sidebar, search, a menu), on a mouse or pen press on a desktop docs-bar tab and on focus
+   landing on one (its hover card opens over the fade), on a press while a hover card, a popover or a dialog is open,
+   on a press while the consent card shows, on a press while the chat reaches above the docs bars (a short window, a
+   phone held sideways), on a key press and on Back or Forward; those changes swap at once. So the consent card is
+   never under a fade: it takes no name and takes its presses as usual (named, it took none while the fade ran, and a
+   press on Accept followed the sidebar link behind it). React still runs a view transition for a swap, and a captured
+   article is drawn above the whole page, over the unnamed card, for a frame or two; so while the card is in the page
+   a swap leaves the article unnamed (the !important beats the name React sets inline) and the page changes live. A
+   same-page hash link keeps its page, so nothing fades. The
+   fading pages are drawn above the whole page, and a scrolled article runs under the navbar (--site-nav-h) and the
+   docs bar (3rem), so the overlay is clipped 6.5rem down (the navbar's height and the docs bar's 3rem, less 1px),
+   below those bars, which stay on top as they are; the gate above keeps a fade from starting while the clip would cut
+   the chat. The chat bubble floats above the page, so it takes its own name and
+   stays still and whole above the fading pages; its old picture is dropped, since the live one shows at once. The
+   theme switch's reveal (html[data-theme-reveal]) covers the bars and the bubble too, so for it nothing is clipped or
+   named. Under Reduce Motion nothing moves anyway: the next page fades in over 120ms. */
+:root:has([data-route-layout="docs"])::view-transition {
+  pointer-events: none;
+}
+:root:has([data-route-layout="docs"]):not([data-theme-reveal])::view-transition {
+  --bk-bars: calc(var(--fd-banner-height, 0px) + var(--site-nav-h) + 3rem - 1px);
+  clip-path: polygon(0 var(--bk-bars), 100vw var(--bk-bars), 100vw 100vh, 0 100vh);
+}
+:root:has([data-route-layout="docs"])::view-transition-old(root),
+:root:has([data-route-layout="docs"])::view-transition-new(root) {
+  animation: none;
+}
+:root[data-bk-page-fade]::view-transition-old(.bk-page-out) {
+  animation: 100ms var(--ease-out) both vs-fade-out;
+}
+:root[data-bk-page-fade]::view-transition-new(.bk-page-in) {
+  animation: 180ms var(--ease-out) 60ms both vs-fade-in;
+}
+:root:not([data-bk-page-fade])::view-transition-old(.bk-page-out) {
+  display: none;
+}
+:root:not([data-bk-page-fade])::view-transition-new(.bk-page-in) {
+  animation: none;
+}
+:root:has([data-route-layout="docs"]):has(#privacy-banner-root > div):not([data-bk-page-fade]) #nd-page {
+  view-transition-name: none !important;
+}
+:root:has([data-route-layout="docs"]):not([data-theme-reveal]) [data-chatbot] {
+  view-transition-name: bk-chat;
+}
+::view-transition-group(bk-chat) {
+  animation: none;
+  z-index: 1;
+}
+::view-transition-old(bk-chat) {
+  display: none;
+}
+::view-transition-new(bk-chat) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-bk-page-fade]::view-transition-new(.bk-page-in) {
+    animation: 120ms var(--ease-out) both vs-fade-in;
+  }
+}
+
+/* sol-tab-glide: moving between Overview and the four pillars with the Solutions subnav
+   (components/landing-v2/SolutionsShell.tsx), the red underline travels to the tab opened in 250ms on the in-out curve
+   while the page below the subnav cross-fades: the page it leaves fades out in 120ms and the next one fades in over
+   240ms after 60ms, both on the strong ease-out (the explorer's vs-fade-out and vs-fade-in). The tabs tag their
+   navigation sol-tab, and React names the underline, the subnav and the page (its main) only for that navigation;
+   React also cancels the root's own snapshot, so Back, Forward and links without the type swap at once. The navbar
+   and the subnav hold still: the subnav shows its new state at once, above the fading pages and below the travelling
+   underline, on the page's ground (its snapshot has no backdrop blur, so a scrolled page would show through its 85%
+   fill), and the fading pages are clipped below the navbar (--site-nav-h: 3.5rem and its 1px rule), which a scrolled
+   page runs under. The next page's group sits under the old one, on the sheet's own ground (white, dark zinc-950), so
+   the pages never fade through the body's grey. The page snapshots are opaque, so the chat bubble, fixed outside the
+   page, takes a name for the fade (the hook the docs page fade uses) and holds above it. While the consent card shows,
+   a tab skips the type and swaps at once (SolutionsShell.tsx), so the card is never under a fade: it takes no name and
+   takes its presses as usual (named, it took none while the fade ran). Clicks pass through to the live page while the
+   fade runs. The active-tab rule
+   above (nav a[aria-current="page"]) draws the same 2px red rule as an inset shadow, which would sit under the new
+   tab while the underline travels, so the Solutions tabs keep only their own underline (the same pixels at rest).
+   Under Reduce Motion the underline moves without travelling and the page swaps without a cross-fade. */
+:root [data-solutions-subnav] nav[aria-label="Solutions sections"] a[aria-current="page"] {
+  box-shadow: none !important;
+}
+:root:active-view-transition-type(sol-tab)::view-transition {
+  --sol-navbar: calc(var(--fd-banner-height, 0px) + var(--site-nav-h));
+  clip-path: polygon(0 var(--sol-navbar), 100vw var(--sol-navbar), 100vw 100vh, 0 100vh);
+  pointer-events: none;
+}
+:root:active-view-transition-type(sol-tab) [data-chatbot] {
+  view-transition-name: sol-chat;
+}
+::view-transition-group(sol-chat) {
+  z-index: 3;
+  animation: none;
+}
+::view-transition-old(sol-chat) {
+  display: none;
+}
+::view-transition-new(sol-chat) {
+  animation: none;
+}
+::view-transition-group(.sol-tab-glide) {
+  z-index: 2;
+  animation-duration: 250ms;
+  animation-timing-function: var(--ease-in-out);
+}
+::view-transition-old(.sol-tab-glide),
+::view-transition-new(.sol-tab-glide) {
+  height: 100%;
+}
+::view-transition-group(.sol-tab-bar) {
+  z-index: 1;
+  animation: none;
+}
+::view-transition-old(.sol-tab-bar) {
+  display: none;
+}
+::view-transition-new(.sol-tab-bar) {
+  animation: none;
+  background-color: var(--color-white, #fff);
+}
+:root.dark::view-transition-new(.sol-tab-bar) {
+  background-color: var(--color-zinc-950, #09090b);
+}
+::view-transition-group(.sol-page-in) {
+  z-index: -1;
+  background-color: var(--color-white, #fff);
+}
+:root.dark::view-transition-group(.sol-page-in) {
+  background-color: var(--color-zinc-950, #09090b);
+}
+::view-transition-old(.sol-page-out) {
+  animation: 120ms var(--ease-out) both vs-fade-out;
+}
+::view-transition-new(.sol-page-in) {
+  animation: 240ms var(--ease-out) 60ms both vs-fade-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(.sol-tab-glide) {
+    animation: none;
+  }
+  ::view-transition-old(.sol-tab-glide),
+  ::view-transition-old(.sol-page-out) {
+    display: none;
+  }
+  ::view-transition-new(.sol-tab-glide),
+  ::view-transition-new(.sol-page-in) {
     animation: none;
   }
 }
+
+/* acad-path-card: the learning path card on the Academy landing (components/academy/landing/course-state.tsx) grows
+   out of the course it belongs to: from the transform origin Radix sets on the course's side, 4px towards the course
+   and scale 0.97, in 160ms on the strong ease-out; it leaves in 100ms. The card that takes over from another open card,
+   the card it replaces, and a card opened from the keyboard carry data-instant, decided once as the card opens, and show
+   and go at once (a keyboard-opened surface never animates). Under Reduce Motion the card only fades, with the
+   explorer's vs-fade-in and vs-fade-out, 120ms in and 80ms out: only the duration needs !important past the site
+   policy's 1ms, so Radix's inline animation: none still holds the fade until the card is placed. The dimming of the
+   other courses is unchanged. The in and out animations have different names, neither contained in the other, so Radix
+   Presence waits for the exit before it unmounts the card, also after an Escape during the entrance. */
+[data-academy="landing"][data-path-card] {
+  transform-origin: var(--radix-hover-card-content-transform-origin);
+}
+[data-academy="landing"][data-path-card][data-side="left"] {
+  --acad-path-dx: 4px;
+}
+[data-academy="landing"][data-path-card][data-state="open"] {
+  animation: acad-path-in 160ms var(--ease-out);
+}
+[data-academy="landing"][data-path-card][data-state="closed"] {
+  animation: acad-path-out 100ms var(--ease-out) forwards;
+}
+[data-academy="landing"][data-path-card][data-instant] {
+  animation: none;
+}
+@keyframes acad-path-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--acad-path-dx, -4px)) scale(0.97);
+  }
+}
+@keyframes acad-path-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-academy="landing"][data-path-card][data-state="open"] {
+    animation-name: vs-fade-in;
+    animation-duration: 120ms !important;
+  }
+  [data-academy="landing"][data-path-card][data-state="closed"] {
+    animation-name: vs-fade-out;
+    animation-duration: 80ms !important;
+  }
+  [data-academy="landing"][data-path-card][data-instant] {
+    animation-name: none;
+  }
+}
+
+/* acad-quiz-check: the knowledge check (components/quizzes/quiz-question.tsx). Its rows and their markers settle their
+   colours in 150ms on plain ease (Tailwind classes there). Once an answer is checked, the correct row's check draws
+   itself, its path's dash sliding from 23 (the path's length, rounded up) to 0, and the explanation fades up 4px into
+   place. The check and the explanation of an answer restored from the browser's storage show at rest. Under Reduce
+   Motion the check still draws (a stroke, not a movement) and the explanation only fades (vs-fade-in). */
+@keyframes acad-quiz-draw {
+  from {
+    stroke-dashoffset: 23;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes acad-quiz-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* acad-cert-progress: the certificate page (components/quizzes/certificate-progress.tsx). A question passed on the
+   page fills its ring and draws the ring's check (the knowledge check's acad-quiz-draw, the same 23-unit dash), and
+   each count it changes rolls its number up 4px (acad-quiz-rise); the bar fills by transform (Tailwind classes there).
+   Under Reduce Motion the check still draws, while the number and the bar change at once. */
+
+/* acad-credential-reveal: the credential (components/quizzes/certificate-credential.tsx), right after a quiz passed on
+   the certificate page completes the course; a page that opens on a finished course shows it at rest. The card prints
+   down from its top edge, its clip 8px outside the box so the frame ring (7px out) stays whole; the course name rises
+   8px and Generate fades in last; the card's and Generate's fades are vs-fade-in. Under Reduce Motion the card only
+   fades in over 200ms: no wipe and no rise. */
+@keyframes acad-cred-print {
+  from {
+    clip-path: inset(-8px -8px 100% -8px);
+  }
+  to {
+    clip-path: inset(-8px);
+  }
+}
+@keyframes acad-cred-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* con-tool-switch: the console's fade when a tool or a step opens (app/console/layout.client.tsx), and the late fade-in
+   of the requirements loader (components/toolbox/components/CheckRequirements.tsx), both on vs-fade-in. Opacity only:
+   nothing moves, and the page wrapper never becomes a containing block for fixed elements. */
 
 /* Light console: sections are white boards on a white pane, so they get a soft tint to stay visible.
    Fields keep their white fill so they still read as inputs inside a tinted section. */
@@ -2264,4 +2995,198 @@ html:not(.dark) [data-console-pane] :is(.bg-white, .bg-white\/80):not(input, tex
   html:has([data-console-pane]) :is(input, textarea, select) {
     font-size: 16px !important;
   }
+}
+
+/* site-search-dialog: the site search (components/search.tsx). Opened from the keyboard (Cmd K, or Enter on the search
+   field) it shows and leaves in one frame: a shortcut pressed many times a day should answer at once. Opened with a
+   pointer it settles from 97% in 180ms and leaves to 98% in 120ms, both on the strong ease-out and from its centre, and
+   the backdrop fades with it. The dialog marks a keyboard open with data-instant on both parts and keeps it until it has
+   closed; that rule carries one more attribute than the others, so it wins over each, Reduce Motion included. These
+   rules are unlayered, so they replace fumadocs' own 300ms zoom (its animate-fd-dialog-* utilities). Under Reduce
+   Motion a pointer open only fades, in 120ms both ways. The fades are vs-fade-in and vs-fade-out (exp-view-switch). */
+.site-search-overlay[data-state="open"] {
+  animation: vs-fade-in 180ms var(--ease-out);
+}
+.site-search-overlay[data-state="closed"] {
+  animation: vs-fade-out 120ms var(--ease-out) forwards;
+}
+.site-search-content[data-state="open"] {
+  animation: site-search-in 180ms var(--ease-out);
+}
+.site-search-content[data-state="closed"] {
+  animation: site-search-out 120ms var(--ease-out) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-search-overlay[data-state] {
+    animation-duration: 120ms !important;
+  }
+  .site-search-content[data-state="open"] {
+    animation-name: vs-fade-in;
+    animation-duration: 120ms !important;
+  }
+  .site-search-content[data-state="closed"] {
+    animation-name: vs-fade-out;
+    animation-duration: 120ms !important;
+  }
+}
+.site-search-overlay[data-instant][data-state],
+.site-search-content[data-instant][data-state] {
+  animation: none;
+}
+@keyframes site-search-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes site-search-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/* site-chat-bubble: the chat panel (components/chat/chat-bubble.tsx) grows out of the corner its bubble sits in, from
+   8px lower at 96%, in 220ms, and folds back into it in 140ms; then the bubble returns from 90% in 180ms, all on the
+   strong ease-out. The classes that play these sit on the panel and the bubble. Under Reduce Motion they only fade
+   (vs-fade-in and vs-fade-out): the panel 150ms in and 100ms out, the bubble 120ms back. Opened or closed from the
+   keyboard, the panel takes none of these classes and the bubble no return, so both show and go at once, as the phone
+   menu does. */
+@keyframes site-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+@keyframes site-chat-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+@keyframes site-chat-return {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+}
+
+/* site-tooltips: the shared tooltip (components/ui/tooltip.tsx). A delayed open grows from 97% at its trigger in 150ms
+   and leaves in 100ms, on the strong ease-out; a neighbour opened at once (data-state="instant-open") plays nothing.
+   Under Reduce Motion a delayed open only fades in, in 100ms. The keyframes are shared: site-search-in to open (from
+   97% and transparent), acad-path-out to leave (to 97% and transparent), and vs-fade-in under Reduce Motion. */
+
+/* eco-blog-progress: a 2px ink line under the navbar fills as a blog post is read (app/blog/[...slug]/page.tsx). It
+   runs over the article's view timeline, contain range: empty until the article's top reaches the top of the window,
+   full once its last line reaches the bottom. The scroll drives it, with no script, and linearly, since the line is the
+   reading position itself; it grows from the left. It sits right under the navbar (--site-nav-h, which rests at the
+   banner's height, as #nd-nav does), over the page's content and under the navbar's own layers. A browser without
+   scroll-driven animations shows no line. Under Reduce Motion it stays as it is: it moves only while the reader
+   scrolls. */
+.blog-reading-line {
+  display: none;
+}
+@supports (animation-timeline: view()) {
+  .blog-article {
+    view-timeline: --blog-read block;
+  }
+  .blog-reading-line {
+    display: block;
+    position: fixed;
+    top: calc(var(--fd-banner-height, 0px) + var(--site-nav-h));
+    left: 0;
+    right: 0;
+    z-index: 39;
+    height: 2px;
+    pointer-events: none;
+    transform-origin: left;
+    animation: blog-read linear both;
+    animation-timeline: --blog-read;
+    animation-range: contain;
+  }
+}
+@keyframes blog-read {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* eco-blog-outline: long blog posts list their h2 and h3 headings under the meta column, sticky 88px down, from 1024px
+   up (components/blog/blog-outline.tsx), and the heading being read turns ink. The list is a nav, so its links name
+   their own transition, a colour change in 150ms ease and nothing else: one class more than the `nav a, nav button`
+   rule (site-press-feedback), and unlayered like it, so this one wins. Under Reduce Motion the site policy keeps the
+   colour change. */
+.blog-outline a {
+  transition-property: color;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* eco-blog-image-zoom: a blog chart, and an image in the docs (X3), opens full size from where it sits
+   (components/ui/zoomable-image.tsx: fumadocs' ImageZoom on react-medium-image-zoom). The enlarged copy grows out of
+   the image's own box on a transform from its top-left corner (fumadocs' image-zoom.css) while the backdrop fades in:
+   250ms open and 200ms back, on the strong ease-out, in place of fumadocs' 300ms ease both ways. The keyboard reaches
+   the zoom through the library's zoom button, which fumadocs hides: here it fills the image's box with nothing to see
+   and no pointer hits, so Tab lands on it, the site focus ring draws around the image (on docs pages just inside it,
+   app/docs/styles.css: a docs paragraph scrolls sideways and would clip a ring outside it), and Enter or Space opens
+   the zoom; Escape closes it and the dialog hands focus back. The library sends the image back one render before it
+   hides the backdrop, so each change is marked on the dialog with the change itself: .zoomable-image-out for a close,
+   and .zoomable-image-instant for a change from the keyboard, which plays nothing. That rule comes last and
+   !important, so it wins every tie, Reduce Motion included (1ms, not none: the library moves on, and closes the
+   dialog, on the transitionend). Under Reduce Motion nothing travels: the image jumps to its enlarged place and fades
+   in over 150ms with the backdrop, then fades out over 120ms where it is and jumps back once it is invisible.
+   Unlayered and more specific than fumadocs' rules, these replace its timings, its own Reduce Motion rule included. */
+[data-rmiz-ghost] > [data-rmiz-btn-zoom] {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  pointer-events: none;
+}
+[data-rmiz-ghost] > [data-rmiz-btn-zoom] > svg {
+  display: none;
+}
+.zoomable-image [data-rmiz-modal-overlay] {
+  transition: background-color 250ms var(--ease-out);
+}
+.zoomable-image [data-rmiz-modal-img] {
+  transition: transform 250ms var(--ease-out);
+}
+.zoomable-image.zoomable-image-out [data-rmiz-modal-overlay],
+.zoomable-image.zoomable-image-out [data-rmiz-modal-img] {
+  transition-duration: 200ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoomable-image [data-rmiz-modal-overlay] {
+    transition-duration: 150ms !important;
+  }
+  .zoomable-image [data-rmiz-modal-img] {
+    transition-property: opacity !important;
+    transition-duration: 150ms !important;
+  }
+  .zoomable-image [data-rmiz-modal-overlay="hidden"] + [data-rmiz-modal-content] [data-rmiz-modal-img] {
+    opacity: 0;
+  }
+  .zoomable-image.zoomable-image-out [data-rmiz-modal-overlay] {
+    transition-duration: 120ms !important;
+  }
+  .zoomable-image.zoomable-image-out [data-rmiz-modal-img] {
+    transition-property: opacity, transform !important;
+    transition-duration: 120ms, 0s !important;
+    transition-delay: 0s, 120ms !important;
+  }
+}
+.zoomable-image.zoomable-image-instant [data-rmiz-modal-overlay],
+.zoomable-image.zoomable-image-instant [data-rmiz-modal-img] {
+  transition-duration: 1ms !important;
+  transition-delay: 0s !important;
 }

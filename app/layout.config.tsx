@@ -24,11 +24,19 @@ import {
   Landmark,
 } from 'lucide-react';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
+import { PendingLink } from '@/components/navigation/pending-hint';
+import { ThemeSwitch } from '@/components/navigation/theme-switch';
 
+// One tab stop per navbar item: the Link inside a trigger stays clickable but leaves the tab order when its page is
+// also in the menu, one Enter away (Solutions, Developers, Console, Explorer). Ecosystem keeps its tab stop: its menu
+// has no /ecosystem entry. A menu url would add a second, focusable fumadocs Link, so these triggers hold their own.
 export const solutionsMenu: LinkItemType = {
   type: 'menu',
-  text: 'Solutions',
-  url: '/solutions',
+  text: (
+    <Link href="/solutions" tabIndex={-1}>
+      Solutions
+    </Link>
+  ),
   items: [
     {
       icon: <Landmark />,
@@ -98,11 +106,12 @@ export const solutionsMenu: LinkItemType = {
 // for the reason the Console trigger gives below.
 export const ecosystemMenu: LinkItemType = {
   type: 'menu',
-  // the trigger's own Link: a menu url gets a Link that prefetches
+  // the trigger's own Link: a menu url gets a Link that prefetches. A PendingLink, like the other triggers that skip
+  // prefetch: a line under the label shows a slow click landed
   text: (
-    <Link href="/ecosystem" prefetch={false}>
+    <PendingLink href="/ecosystem" prefetch={false}>
       Ecosystem
-    </Link>
+    </PendingLink>
   ),
   items: [
     // grouped columns: events, then programs, then reading and tools
@@ -174,8 +183,12 @@ export const ecosystemMenu: LinkItemType = {
 
 export const explorerMenu: LinkItemType = {
   type: "menu",
-  text: "Explorer",
-  url: "/explorer/mainnet",
+  // out of the tab order (see solutionsMenu): Block Explorer opens the same page
+  text: (
+    <Link href="/explorer/mainnet" tabIndex={-1}>
+      Explorer
+    </Link>
+  ),
   items: [
     {
       icon: <Search />,
@@ -237,11 +250,12 @@ const noPrefetch = { prefetch: false };
 
 export const developersMenu: LinkItemType = {
   type: 'menu',
-  // the trigger's own Link: a menu url gets a Link that prefetches
+  // the trigger's own Link: a menu url gets a Link that prefetches. Out of the tab order (see solutionsMenu):
+  // Documentation opens the same page. A PendingLink (see ecosystemMenu)
   text: (
-    <Link href="/docs/primary-network" prefetch={false}>
+    <PendingLink href="/docs/primary-network" prefetch={false} tabIndex={-1}>
       Developers
-    </Link>
+    </PendingLink>
   ),
   items: [
     {
@@ -289,11 +303,12 @@ export const developersMenu: LinkItemType = {
 // not used on a page without that CSS, such as the home page.
 export const consoleMenu: LinkItemType = {
   type: 'menu',
-  // the trigger's own Link: a menu url gets a Link that prefetches
+  // the trigger's own Link: a menu url gets a Link that prefetches. Out of the tab order (see solutionsMenu): the
+  // Console card opens the same page. A PendingLink (see ecosystemMenu)
   text: (
-    <Link href="/console" prefetch={false}>
+    <PendingLink href="/console" prefetch={false} tabIndex={-1}>
       Console
-    </Link>
+    </PendingLink>
   ),
   items: [
     {
@@ -357,6 +372,8 @@ export const baseOptions: BaseLayoutProps = {
       </div>
     ),
   },
+  // fumadocs' toggle, with the theme change revealed from it (site-theme-switch)
+  themeSwitch: { component: <ThemeSwitch /> },
   links: [
     solutionsMenu,
     developersMenu,

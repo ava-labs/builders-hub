@@ -33,10 +33,14 @@ export const metadata = createMetadata({
   },
 });
 
+/* the browser chrome (a phone's status bar) per theme: the first paint follows the OS scheme, then the theme observer
+   recolours it whenever the theme picked on the site changes */
+const THEME_COLOR = { light: "#fff", dark: "#0A0A0A" };
+
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0A0A0A" },
-    { media: "(prefers-color-scheme: light)", color: "#fff" },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
   ],
 };
 
@@ -68,7 +72,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <ReferralCapture />
           </Suspense>
           <Body>
-            <ThemeProvider>
+            <ThemeProvider themeColor={THEME_COLOR}>
               <SearchRootProvider>{children}</SearchRootProvider>
               <HideOnChatPage>
                 <div id="privacy-banner-root" className="relative">
