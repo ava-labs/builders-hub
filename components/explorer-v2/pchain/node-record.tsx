@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Board, CellLabel, FIG, HEAD, INK, LoadMore, MUTED, ROW, RowDoor, SectionHeader, StatCell, StatStrip, TxTypePill, idInk } from "@/components/explorer-v2/ui";
-import { dayLong, dayShort, formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { dayLong, dayShort, formatAvax, formatNumber, formatTime, timeAgo, timeUntil, truncate } from "@/components/explorer-v2/format";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { isPrimaryTerm, txTypeLabel, type NodeResponse, type NodeStakingTx, type ValidationsResponse } from "@/lib/pchain-explorer";
 import { DELEGATION_TX, LIST_CAP, avax, delegationFeeCut, hasStakeTerms, useStakeTerms } from "./node-data";
@@ -20,6 +20,14 @@ const GOOD = "text-emerald-600 dark:text-emerald-400";
 const stop = (e: React.MouseEvent) => e.stopPropagation();
 /** a term's last day, without the weekday */
 const endDay = (ts: number) => dayLong(ts).replace(/^\w+, /, "");
+// when a stake unlocks: the date for planning, the countdown for a glance. A
+// narrow table keeps the countdown in the tooltip only.
+const Ends = ({ ts }: { ts: number }) => (
+  <>
+    {endDay(ts)}
+    <span className="max-lg:hidden"> · {timeUntil(ts)}</span>
+  </>
+);
 /* a cell whose figure is still being read off its tx */
 const Pending = () => (
   <span className="text-zinc-300 dark:text-zinc-600" title="reading the tx">
@@ -280,9 +288,9 @@ export function DelegatorsTable({ n, base }: { n: NodeResponse; base: string }) 
                   <CellLabel>Started</CellLabel>
                   {timeAgo(d.startTimestamp)}
                 </span>
-                <span className={cn(MUTED, "text-right")}>
+                <span className={cn(MUTED, "text-right")} title={d.endTimestamp > 0 ? timeUntil(d.endTimestamp) : undefined}>
                   <CellLabel>Ends</CellLabel>
-                  {d.endTimestamp > 0 ? endDay(d.endTimestamp) : ""}
+                  {d.endTimestamp > 0 ? <Ends ts={d.endTimestamp} /> : ""}
                 </span>
               </RowDoor>
             );
@@ -376,9 +384,9 @@ export function ActivityTable({
                   <CellLabel>Started</CellLabel>
                   {timeAgo(terms?.start ?? h.blockTimestamp)}
                 </span>
-                <span className={cn(MUTED, "text-right")}>
+                <span className={cn(MUTED, "text-right")} title={terms ? timeUntil(terms.end) : undefined}>
                   <CellLabel>Ends</CellLabel>
-                  {reading ? <Pending /> : terms ? endDay(terms.end) : ""}
+                  {reading ? <Pending /> : terms ? <Ends ts={terms.end} /> : ""}
                 </span>
               </RowDoor>
             );
