@@ -1,6 +1,8 @@
 import { test } from '@e2e-dev/web';
+import type { Browser } from '@e2e-dev/web';
 import { expect } from 'e2e';
-import { isPhoneLayout, phoneOnly } from '../lib/skip';
+import { desktopOnly, isPhoneLayout, phoneOnly } from '../lib/skip';
+import { waitForHydration } from '../lib/hydration';
 import { NAVIGATION_TIMEOUT, TWO_ROUTE_TIMEOUT, openAsReturningVisitor, openSiteMenu } from './helpers';
 
 // One item of each top menu, and the page it must open.
@@ -109,3 +111,144 @@ test('phone menu shows a picture card in every section, and its links fit their 
   expect(fit!.tooWide, 'links wider than their column').toEqual([]);
   expect(fit!.scrollsSideways, 'the sheet scrolls sideways').toBe(false);
 });
+
+// site-mega-menu (app/global.css): the desktop menus run on transitions, so a pointer that sweeps across the triggers
+// retargets each menu from where it is: one steady panel. Radix unmounts a closing panel when its exit animation (a
+// 120ms hold) ends. A menu closed from the keyboard ends that hold at once, also when the key comes in the middle of a
+// close the pointer started; a closing panel takes no pointer.
+
+/** The open panel under the navbar: the Radix NavigationMenu viewport. */
+const MENU_PANEL = '#nd-nav > :last-child > div';
+
+/** The centre of a navbar trigger, by its name. */
+async function triggerCentre(browser: Browser, name: string) {
+  const box = await browser.locator('#nd-nav').getByRole('button', name).boundingBox();
+  expect(box, `the ${name} trigger`).not.toBeNull();
+  return { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+}
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test('a rapid pointer sweep across the menus leaves one steady panel', async ({ app, browser }) => {
+  await openAsReturningVisitor(app, browser, '/grants');
+  await desktopOnly(browser, 'the menu panel is the desktop navbar');
+  await waitForHydration(browser, '#nd-nav nav button[aria-controls]');
+  const names = ['Solutions', 'Developers', 'Console', 'Explorer', 'Ecosystem'];
+  const centres = Object.fromEntries(await Promise.all(names.map(async (n) => [n, await triggerCentre(browser, n)])));
+
+  await browser.mouse.move(0, 0);
+  await browser.mouse.move(centres.Solutions.x, centres.Solutions.y);
+  await expect(browser.locator(MENU_PANEL)).toHaveAttribute('data-state', 'open');
+  await pause(500);
+
+  // On every frame from here: the lowest panel opacity, the most panels mounted, and frames with a closed panel.
+  await browser.evaluate((panel) => {
+    const seen = { lowest: 1, most: 0, closedFrames: 0, stop: false };
+    (window as unknown as { __e2eSweep: typeof seen }).__e2eSweep = seen;
+    const frame = () => {
+      const panels = [...document.querySelectorAll(panel)];
+      seen.most = Math.max(seen.most, panels.length);
+      for (const node of panels) {
+        seen.lowest = Math.min(seen.lowest, Number(getComputedStyle(node).opacity));
+        if (node.getAttribute('data-state') === 'closed') seen.closedFrames++;
+      }
+      if (!seen.stop) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    return null;
+  }, MENU_PANEL);
+  // Across to Ecosystem and back, ending on Console, with no pause on the way.
+  for (const name of ['Developers', 'Console', 'Explorer', 'Ecosystem', 'Explorer', 'Console']) {
+    await browser.mouse.move(centres[name].x, centres[name].y);
+  }
+  await pause(700);
+  const seen = await browser.evaluate(() => {
+    const record = (window as unknown as { __e2eSweep: { stop: boolean } }).__e2eSweep;
+    record.stop = true;
+    return record as unknown as { lowest: number; most: number; closedFrames: number };
+  });
+  expect(seen.lowest, 'the lowest opacity of the panel during the sweep').toBeGreaterThanOrEqual(0.99);
+  expect(seen.most, 'panels mounted at once').toBe(1);
+  expect(seen.closedFrames, 'frames with a closing panel').toBe(0);
+
+  // The sweep ends on Console's menu alone: one panel, open, with one menu in it, at rest.
+  await expect(browser.locator('#nd-nav').getByRole('button', 'Console')).toHaveAttribute('aria-expanded', 'true');
+  await expect(browser.locator(MENU_PANEL)).toHaveCount(1);
+  await expect(browser.locator(`${MENU_PANEL} > [data-motion]`)).toHaveCount(1);
+  const rest = await browser.evaluate((panel) => {
+    const menu = document.querySelector(`${panel} > [data-motion]`);
+    return menu ? Number(getComputedStyle(menu).opacity) : 0;
+  }, MENU_PANEL);
+  expect(rest).toBe(1);
+});
+
+for (const key of ['Tab', 'Escape']) {
+  test(`${key} during a close the pointer started unmounts the panel, and its links take no click`, async ({
+    app,
+    browser,
+  }) => {
+    await openAsReturningVisitor(app, browser, '/grants');
+    await desktopOnly(browser, 'the menu panel is the desktop navbar');
+    await waitForHydration(browser, '#nd-nav nav button[aria-controls]');
+
+    // Click the Solutions trigger outside its inner link (the link opens /solutions): on the button's own padding.
+    const spot = await browser.evaluate(() => {
+      const trigger = [...document.querySelectorAll('#nd-nav nav button[aria-controls]')].find(
+        (button) => button.textContent?.trim() === 'Solutions',
+      )!;
+      const button = trigger.getBoundingClientRect();
+      const link = trigger.querySelector('a')!.getBoundingClientRect();
+      return { x: (link.right + button.right) / 2, y: button.top + button.height / 2 };
+    });
+    await browser.mouse.move(spot.x, spot.y);
+    await browser.mouse.down();
+    await browser.mouse.up();
+    await expect(browser.locator(MENU_PANEL)).toHaveAttribute('data-state', 'open');
+    await pause(400);
+    const card = await browser
+      .locator(MENU_PANEL)
+      .getByRole('link', /^Why Avalanche\b/)
+      .boundingBox();
+    expect(card).not.toBeNull();
+
+    // The key, and the panel's state when it came.
+    await browser.evaluate((panel) => {
+      const states: string[] = [];
+      (window as unknown as { __e2eKeyState: string[] }).__e2eKeyState = states;
+      window.addEventListener(
+        'keydown',
+        () => states.push(document.querySelector(panel)?.getAttribute('data-state') ?? 'unmounted'),
+        true,
+      );
+      return null;
+    }, MENU_PANEL);
+    // The pointer leaves; Radix starts the close about 150ms later. Wait for it in the page, then press at once,
+    // inside the 120ms exit.
+    await browser.mouse.move(700, 700);
+    await browser.evaluate(
+      (panel) =>
+        new Promise<null>((resolve) => {
+          const check = () => {
+            const node = document.querySelector(panel);
+            if (!node || node.getAttribute('data-state') === 'closed') resolve(null);
+            else requestAnimationFrame(check);
+          };
+          check();
+        }),
+      MENU_PANEL,
+    );
+    await browser.keyboard.press(key);
+    expect(
+      await browser.evaluate(() => (window as unknown as { __e2eKeyState: string[] }).__e2eKeyState),
+      'the panel when the key came',
+    ).toEqual(['closed']);
+
+    await expect(browser.locator(MENU_PANEL)).toHaveCount(0, { timeout: 1_000 });
+    // Where the menu's first card was, a click reaches the page: /grants stays.
+    await browser.mouse.move(card!.x + 40, card!.y + 40);
+    await browser.mouse.down();
+    await browser.mouse.up();
+    await pause(1_500);
+    await expect(browser).toHaveURL('/grants');
+  });
+}

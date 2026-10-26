@@ -254,3 +254,100 @@ test('a tap on a phone opens the course with no card', async ({ app, browser }) 
   // The tap can be the first visit to the course route. Give the navigation the budget of app.open.
   await expect(browser).toHaveURL('/academy/avalanche-l1/erc20-bridge', { timeout: 120_000 });
 });
+
+// acad-path-card (app/global.css): a card grows out of its course in 160ms. The card that takes over from another open
+// card opens at once, with no open delay and no entrance, and so does a card opened from the keyboard; that one keeps
+// still when the pointer then enters its course. Each records, in the page: pointer entries on a course, the moment a
+// course's card opens (Radix sets data-state on the trigger) and every animation a card starts.
+async function startMotionLog(browser: Browser) {
+  await browser.evaluate(() => {
+    const log: { at: number; what: string }[] = [];
+    (window as unknown as { __pathMotion: typeof log }).__pathMotion = log;
+    const at = () => performance.now();
+    document.addEventListener(
+      'animationstart',
+      (event) => {
+        if ((event.target as Element).matches('[data-path-card]'))
+          log.push({ at: at(), what: `card ${event.animationName}` });
+      },
+      true,
+    );
+    document.addEventListener(
+      'pointerover',
+      (event) => {
+        const id = (event.target as Element).closest?.('main [data-course-id]')?.getAttribute('data-course-id');
+        if (id) log.push({ at: at(), what: `pointer ${id}` });
+      },
+      true,
+    );
+    new MutationObserver((records) => {
+      for (const record of records) {
+        const node = record.target as Element;
+        if (node.matches('main [data-course-id]') && node.getAttribute('data-state') === 'open') {
+          log.push({ at: at(), what: `open ${node.getAttribute('data-course-id')}` });
+        }
+      }
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-state'] });
+    return null;
+  });
+}
+
+const motionLog = (browser: Browser) =>
+  browser.evaluate(() => (window as unknown as { __pathMotion: { at: number; what: string }[] }).__pathMotion);
+
+test('the next course takes the path card over with no second wait and no entrance', async ({ app, browser }) => {
+  await openOverview(app, browser);
+  await desktopOnly(browser, 'the card needs a pointer that hovers and a width of 1024 px or more');
+  for (const [from, to] of MOVES) {
+    await hoverPath(browser, from);
+    await startMotionLog(browser);
+    await course(browser, to).hover();
+    await expect.poll(() => courseIds(browser, OPEN)).toEqual([to]);
+    const log = await motionLog(browser);
+    const entered = log.find((entry) => entry.what === `pointer ${to}`)?.at;
+    const opened = log.find((entry) => entry.what === `open ${to}`)?.at;
+    expect(entered, `the pointer reached ${to}`).toBeDefined();
+    expect(opened, `${to} opened its card`).toBeDefined();
+    // From no card a course waits 150ms; taking over from an open card it opens at once.
+    expect(opened! - entered!, `ms from the pointer on ${to} to its card`).toBeLessThan(100);
+    expect(log.filter((entry) => entry.what.startsWith('card ')).map((entry) => entry.what)).toEqual([]);
+    // The card it replaced has gone (with no exit either): one card, marked to show and go at once.
+    await pause(300);
+    expect(await browser.locator(CARD).count()).toBe(1);
+    await expect(browser.locator(CARD)).toHaveAttribute('data-instant', '');
+    await browser.mouse.move(OFF.x, OFF.y);
+    await expect(browser.locator(CARD)).toHaveCount(0);
+  }
+});
+
+test('a card opened from the keyboard does not replay its entrance when the pointer enters', async ({
+  app,
+  browser,
+}) => {
+  await openOverview(app, browser);
+  await desktopOnly(browser, 'the card needs a width of 1024 px or more');
+  await browser.mouse.move(OFF.x, OFF.y);
+  await startMotionLog(browser);
+  await focusPath(browser, 'permissioned-l1s');
+  // Opened from the keyboard: it showed at once.
+  await expect(browser.locator(CARD)).toHaveAttribute('data-instant', '');
+  expect(
+    (await motionLog(browser)).filter((entry) => entry.what.startsWith('card ')).map((entry) => entry.what),
+  ).toEqual([]);
+  await browser.evaluate((css) => {
+    (document.querySelector(css) as HTMLElement & { __e2eCard?: boolean }).__e2eCard = true;
+    return null;
+  }, CARD);
+
+  await course(browser, 'permissioned-l1s').hover();
+  await pause(600);
+  const log = await motionLog(browser);
+  expect(log.map((entry) => entry.what)).toContain('pointer permissioned-l1s');
+  expect(log.filter((entry) => entry.what.startsWith('card ')).map((entry) => entry.what)).toEqual([]);
+  const same = await browser.evaluate(
+    (css) => (document.querySelector(css) as (HTMLElement & { __e2eCard?: boolean }) | null)?.__e2eCard === true,
+    CARD,
+  );
+  expect(same, 'the card that shows is the one the keyboard opened').toBe(true);
+  expect(await courseIds(browser, OPEN)).toEqual(['permissioned-l1s']);
+});
