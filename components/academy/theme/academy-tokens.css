@@ -128,3 +128,25 @@
 /* :280-282, muted text (#737373 in both themes, 3.95:1 on the dark ground): ink-3, 7.3:1 in dark
    and 4.8:1 in light. */
 [data-academy] .text-fd-muted-foreground { color: var(--ac-ink-3); }
+
+/* acad-view-switch: the landing's view toggle (components/academy/landing/view-toggle.tsx). Once it has
+   measured its links it draws one 2px red rule on the current link's box, the same box and so the same
+   pixels, and the link's own rule clears. A view change puts the rule on the new link's box, from where
+   it showed (--view-line-from, translateX and scaleX), and slides it home in 250ms on the in-out curve.
+   The first draw and a resize place it still. Before that, and with scripts off, each link draws its own
+   rule. Under Reduce Motion the site policy (app/global.css) transitions no transform: the rule jumps. */
+[data-academy] [data-view-line] > a[aria-current="page"] { border-bottom-color: transparent; }
+[data-academy] [data-view-line]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: var(--view-line-x);
+  width: var(--view-line-w);
+  height: 2px;
+  background-color: var(--ac-red);
+  transform-origin: 0 0;
+  transform: var(--view-line-from);
+  transition: transform 250ms var(--ease-in-out);
+  pointer-events: none;
+}
+[data-academy] [data-view-line="still"]::after { transition: none; }

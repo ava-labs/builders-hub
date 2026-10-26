@@ -67,6 +67,8 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = tru
   const [lastAttemptAt, setLastAttemptAt] = useState<number>(0);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
+  // An answer checked on this visit, not one restored from storage: only its check draws and its explanation fades up.
+  const [checkedNow, setCheckedNow] = useState(false);
 
   const isLocked = attemptCount >= MAX_ATTEMPTS && !isCorrect;
   const isCoolingDown = cooldownRemaining > 0;
@@ -173,6 +175,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = tru
 
       setIsCorrect(correct);
       setIsAnswerChecked(true);
+      setCheckedNow(true);
       setAttemptCount(newAttemptCount);
       setLastAttemptAt(newLastAttemptAt);
 
@@ -218,7 +221,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = tru
   const renderAnswerFeedback = () => {
     if (!isAnswerChecked || !quizInfo) return null;
     return (
-      <QuizFeedback correct={isCorrect}>
+      <QuizFeedback correct={isCorrect} checkedNow={checkedNow}>
         {isCorrect ? (
           parseTextWithLinks(quizInfo.explanation)
         ) : (
@@ -269,6 +272,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = tru
                 name={questionId}
                 checked={selectedAnswers.includes(originalIndex)}
                 onSelect={() => handleAnswerSelect(originalIndex)}
+                checkedNow={checkedNow}
               >
                 {parseTextWithLinks(quizInfo.options[originalIndex])}
               </QuizOption>

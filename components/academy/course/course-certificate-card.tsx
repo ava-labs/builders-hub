@@ -16,9 +16,10 @@ export function CourseCertificateCard({ academy, courseTitle, href, label, after
   return (
     <section data-academy-part="course-certificate" className={cn('mb-9', afterModules ? 'mt-2' : 'mt-10')}>
       <h2 className="mb-3.5 font-ac-display text-[25px] font-medium tracking-[-0.015em] text-ac-ink">Certificate</h2>
+      {/* As a module tile: the border eases to ink, the arrow leans 2 px, the card presses to 0.99 (acad-tile-hover). */}
       <Link
         href={href}
-        className="grid grid-cols-[320px_minmax(0,1fr)] items-center gap-6 rounded-[12px] border border-ac-rule bg-ac-paper p-4 text-inherit hover:border-ac-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink max-md:grid-cols-1 max-md:gap-3.5"
+        className="group grid grid-cols-[320px_minmax(0,1fr)] items-center gap-6 rounded-[12px] border border-ac-rule bg-ac-paper p-4 text-inherit transition-[border-color,background-color,color,box-shadow,scale] duration-[150ms,150ms,150ms,150ms,160ms] ease-[ease,ease,ease,ease,var(--ease-out)] hover:border-ac-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink active:scale-[0.99] motion-reduce:active:scale-100 max-md:grid-cols-1 max-md:gap-3.5"
       >
         <CertificateArtwork
           academy={academy}
@@ -31,7 +32,10 @@ export function CourseCertificateCard({ academy, courseTitle, href, label, after
           </b>
           <span className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-ac-ink-2">
             {label}
-            <ArrowRight aria-hidden="true" className="size-[15px] shrink-0" />
+            <ArrowRight
+              aria-hidden="true"
+              className="size-[15px] shrink-0 transition-[translate] duration-180 ease-out motion-safe:group-hover:translate-x-0.5"
+            />
           </span>
         </span>
       </Link>

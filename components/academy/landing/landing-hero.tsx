@@ -4,7 +4,7 @@ import { academyCourse, academyCourseUrl } from '@/lib/academy/academy-programme
 import type { AcademyView } from './academy-views';
 import { START_BUTTON } from './course-marks';
 import { Team1Line } from './team1-link';
-import { ViewToggle } from './view-toggle';
+import { ViewFade, ViewToggle } from './view-toggle';
 
 /** The navbar Academy card's line (app/layout.config.tsx:249). */
 export const LANDING_LINE = 'Guided courses, from blockchain fundamentals to launching your own L1.';
@@ -22,6 +22,8 @@ interface LandingHeroProps {
  */
 export function LandingHero({ view, facts }: LandingHeroProps) {
   const start = academyCourse(START_COURSE_ID);
+  // J carries its own start button and Team1 line; the tree and stages views put them in the row.
+  const withStart = view !== 'overview';
   return (
     <div className="grid pt-8 pb-[26px] max-md:pt-[26px] max-md:pb-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-x-8">
       <h1 className="font-ac-display text-[34px] font-bold leading-[1.02] tracking-[-0.024em] text-ac-ink lg:text-[44px] xl:text-[48px]">
@@ -31,15 +33,19 @@ export function LandingHero({ view, facts }: LandingHeroProps) {
       <div className="mt-4 lg:col-start-2 lg:row-start-1 lg:mt-0">
         <ViewToggle view={view} />
       </div>
-      <div className="mt-5 flex flex-wrap items-center gap-x-[22px] gap-y-3 max-md:mt-[18px] lg:col-span-2">
-        {view === 'overview' ? null : (
-          <Link href={academyCourseUrl(start)} className={START_BUTTON}>
-            {`Start with ${start.name}`}
-          </Link>
-        )}
-        <span className="font-ac-mono text-[12px] tracking-[0.02em] text-ac-ink-3 tabular-nums">{facts}</span>
-        {view === 'overview' ? null : <Team1Line className="ml-auto max-md:ml-0" />}
-      </div>
+      {/* Keyed by its content, so the row cross-fades only when a view change changes it (acad-view-switch):
+          between Tree and Stages it reads the same and holds still. */}
+      <ViewFade key={withStart ? 'start' : 'facts'}>
+        <div className="mt-5 flex flex-wrap items-center gap-x-[22px] gap-y-3 max-md:mt-[18px] lg:col-span-2">
+          {withStart ? (
+            <Link href={academyCourseUrl(start)} className={START_BUTTON}>
+              {`Start with ${start.name}`}
+            </Link>
+          ) : null}
+          <span className="font-ac-mono text-[12px] tracking-[0.02em] text-ac-ink-3 tabular-nums">{facts}</span>
+          {withStart ? <Team1Line className="ml-auto max-md:ml-0" /> : null}
+        </div>
+      </ViewFade>
     </div>
   );
 }

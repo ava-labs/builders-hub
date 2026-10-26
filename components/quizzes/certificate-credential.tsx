@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { Award, Linkedin, Twitter } from 'lucide-react';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { certificateAcademyFor, type CertificateAcademy } from '@/components/academy/certificate/certificate-artwork';
@@ -36,6 +37,25 @@ export function credentialAcademy(pathname: string): CertificateAcademy {
   return certificateAcademyFor(pathname.split('/')[2] ?? '');
 }
 
+/**
+ * Whether the credential prints in: only when a quiz passed on this page completed the course, right after that pass.
+ * A page that opens on a finished course has passed nothing on it, so a returning learner, and every later visit, sees
+ * the credential at rest.
+ */
+export function revealsCredential(passedOnPage: number, completed: number, total: number): boolean {
+  return total > 0 && completed >= total && passedOnPage > 0;
+}
+
+/**
+ * How far to scroll so the revealed credential shows: from its top (relative to the viewport) to its landing, its top
+ * scroll margin (128px, under the 105px sticky header with the 7px frame ring clear). Negative (up) whenever the page,
+ * shortened by the progress list the credential replaced, left its top above the landing, also when the top shows
+ * below the header but its ring does not (105 to 128px); 0 once the top sits at or below the landing.
+ */
+export function revealScrollBy(top: number, landing: number): number {
+  return top < landing ? top - landing : 0;
+}
+
 export interface CertificateCredentialProps {
   academy: CertificateAcademy;
   courseTitle: string;
@@ -46,7 +66,19 @@ export interface CertificateCredentialProps {
   onGenerate: () => void;
   onShareOnX: () => void;
   onViewCertificate: () => void;
+  /** The course was completed on this page on this visit: the credential prints in, once (revealsCredential). */
+  reveal?: boolean;
 }
+
+// acad-credential-reveal: the card prints down from its top edge in 700ms on the in-out curve, fading in over the first
+// 200ms; the course name rises 8px over 500ms from 250ms in; Generate fades in last, at 550ms over 300ms (keyframes
+// acad-cred-print, acad-cred-rise and vs-fade-in in app/global.css). Under Reduce Motion the card only fades in over
+// 200ms (the !important keeps it past the site policy's 1ms): no wipe, no rise. scroll-mt-32 is where the reveal lands
+// the card's top: 128px down, its 7px frame ring clear of the 105px sticky header.
+const REVEAL_CARD =
+  'motion-safe:animate-[acad-cred-print_700ms_var(--ease-in-out)_backwards,vs-fade-in_200ms_var(--ease-out)_backwards] motion-reduce:animate-[vs-fade-in_200ms_var(--ease-out)_backwards]! scroll-mt-32';
+const REVEAL_TITLE = 'motion-safe:animate-[acad-cred-rise_500ms_var(--ease-out)_250ms_backwards]';
+const REVEAL_GENERATE = 'motion-safe:animate-[vs-fade-in_300ms_var(--ease-out)_550ms_backwards]';
 
 // Keyboard focus takes a 2 px ink ring outside the control in place of the translucent shadcn ring;
 // outline-solid restores the style that buttonVariants' outline-none clears.
@@ -81,11 +113,28 @@ export function CertificateCredential({
   onGenerate,
   onShareOnX,
   onViewCertificate,
+  reveal = false,
 }: CertificateCredentialProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  // acad-credential-reveal: the progress list the credential replaces was longer, so the page shortens and the browser
+  // can leave the credential's top above the viewport. Before the first paint, the reveal brings that top to its
+  // landing, at once: nothing is seen scrolling, and the print is the one motion. A later visit never scrolls.
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    if (!reveal || !card) return;
+    const by = revealScrollBy(card.getBoundingClientRect().top, parseFloat(getComputedStyle(card).scrollMarginTop));
+    if (by !== 0) window.scrollBy({ top: by, behavior: 'instant' });
+  }, [reveal]);
   return (
-    <div className="not-prose relative mx-[7px] mb-2 mt-10 rounded-[3px] border border-ac-ink bg-ac-paper px-12 pb-9 pt-11 shadow-[0_0_0_6px_var(--ac-paper),0_0_0_7px_var(--ac-rule)] max-md:px-[22px] max-md:pb-6 max-md:pt-7">
-      <CredentialHead academy={academy} courseTitle={courseTitle} facts={facts} />
-      <button className={GENERATE_CLASS} onClick={onGenerate} disabled={isGenerating}>
+    <div
+      ref={cardRef}
+      className={cn(
+        'not-prose relative mx-[7px] mb-2 mt-10 rounded-[3px] border border-ac-ink bg-ac-paper px-12 pb-9 pt-11 shadow-[0_0_0_6px_var(--ac-paper),0_0_0_7px_var(--ac-rule)] max-md:px-[22px] max-md:pb-6 max-md:pt-7',
+        reveal && REVEAL_CARD,
+      )}
+    >
+      <CredentialHead academy={academy} courseTitle={courseTitle} facts={facts} reveal={reveal} />
+      <button className={cn(GENERATE_CLASS, reveal && REVEAL_GENERATE)} onClick={onGenerate} disabled={isGenerating}>
         {isGenerating ? (
           <span className="flex items-center justify-center">
             <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-current"></span>
@@ -109,7 +158,8 @@ function CredentialHead({
   academy,
   courseTitle,
   facts,
-}: Pick<CertificateCredentialProps, 'academy' | 'courseTitle' | 'facts'>) {
+  reveal,
+}: Pick<CertificateCredentialProps, 'academy' | 'courseTitle' | 'facts' | 'reveal'>) {
   return (
     <div className="mb-7">
       <div className="mb-7 flex items-center justify-between border-b border-ac-rule pb-4">
@@ -120,7 +170,12 @@ function CredentialHead({
         <AvalancheLogo id={undefined} className="size-7" aria-hidden="true" />
       </div>
       <p className="mb-2 mt-0 text-[13.5px] leading-[1.75] text-ac-ink-3">Certificate of completion</p>
-      <h2 className="m-0 font-ac-display text-[38px] font-medium leading-[1.06] tracking-[-0.02em] text-ac-ink max-md:text-[30px]">
+      <h2
+        className={cn(
+          'm-0 font-ac-display text-[38px] font-medium leading-[1.06] tracking-[-0.02em] text-ac-ink max-md:text-[30px]',
+          reveal && REVEAL_TITLE,
+        )}
+      >
         {courseTitle}
       </h2>
       <p className="mb-0 mt-3 text-[15.5px] leading-[1.75] text-ac-ink-2">

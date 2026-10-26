@@ -27,7 +27,7 @@ describe('CertificateProgress', () => {
     expect(html).toContain('5 of 14 quizzes completed.');
     expect(html).toContain('lucide-award');
     expect(html).toContain('bg-ac-red');
-    expect(html).toContain('style="width:35.714285714285715%"');
+    expect(html).toContain('style="transform:translateX(-64.28571428571428%)"');
     expect(html).toContain('rounded-xl border border-ac-rule bg-ac-paper');
     expect(html).not.toMatch(PRODUCTION_COLOUR);
   });
@@ -35,7 +35,7 @@ describe('CertificateProgress', () => {
   it('draws an empty bar for a course without quizzes', () => {
     const html = renderToStaticMarkup(createElement(CertificateProgress, { completed: 0, total: 0 }));
     expect(html).toContain('0 of 0 quizzes completed.');
-    expect(html).toContain('style="width:0%"');
+    expect(html).toContain('style="transform:translateX(-100%)"');
   });
 
   it('keeps the card out of the prose paragraph margins, so they cannot move its lines', () => {

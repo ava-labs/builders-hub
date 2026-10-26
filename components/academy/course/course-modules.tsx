@@ -4,10 +4,12 @@ import type { CourseOutline, OutlineModule } from '@/lib/academy/course-outline'
 
 function ModuleTile({ courseModule }: { courseModule: OutlineModule }) {
   const count = courseModule.lessons.length;
+  // The border eases to ink in 150 ms, the arrow leans 2 px towards the module, and the tile presses to 0.99 in
+  // 160 ms; under Reduce Motion only the colour moves (acad-tile-hover).
   return (
     <Link
       href={courseModule.firstUrl}
-      className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-[12px] border border-ac-rule bg-ac-paper px-4 py-3.5 text-inherit hover:border-ac-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink"
+      className="group grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-[12px] border border-ac-rule bg-ac-paper px-4 py-3.5 text-inherit transition-[border-color,background-color,color,box-shadow,scale] duration-[150ms,150ms,150ms,150ms,160ms] ease-[ease,ease,ease,ease,var(--ease-out)] hover:border-ac-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink active:scale-[0.99] motion-reduce:active:scale-100"
     >
       <span className="inline-flex size-7 items-center justify-center rounded-[8px] bg-ac-tile font-ac-mono text-[11.5px] text-ac-ink">
         {courseModule.number}
@@ -18,7 +20,10 @@ function ModuleTile({ courseModule }: { courseModule: OutlineModule }) {
           {`${count} ${count === 1 ? 'lesson' : 'lessons'}`}
         </span>
       </span>
-      <ArrowRight aria-hidden="true" className="size-[15px] text-ac-ink-3" />
+      <ArrowRight
+        aria-hidden="true"
+        className="size-[15px] text-ac-ink-3 transition-[translate] duration-180 ease-out motion-safe:group-hover:translate-x-0.5"
+      />
     </Link>
   );
 }

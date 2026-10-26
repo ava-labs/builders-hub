@@ -8,6 +8,7 @@ import { QuickAccess } from './quick-access';
 import { SpotlightView } from './spotlight-view';
 import { StagesView } from './stages-view';
 import { TreeView } from './tree-view';
+import { ViewFade } from './view-toggle';
 
 interface AcademyLandingProps extends LandingViewProps {
   view: AcademyView;
@@ -31,9 +32,12 @@ export function AcademyLanding({ view, courseStats }: AcademyLandingProps) {
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 bg-ac-ground" />
       <div className="mx-auto max-w-7xl px-6 pb-32 sm:pb-36 lg:px-8">
         <LandingHero view={view} facts={facts} />
-        <div className={view === 'overview' ? 'pt-1' : 'pt-[22px]'}>
-          <LandingView view={view} courseStats={courseStats} />
-        </div>
+        {/* Keyed by the view, so a view change cross-fades the old view into the new one (acad-view-switch). */}
+        <ViewFade key={view}>
+          <div className={view === 'overview' ? 'pt-1' : 'pt-[22px]'}>
+            <LandingView view={view} courseStats={courseStats} />
+          </div>
+        </ViewFade>
         <QuickAccess />
       </div>
     </div>

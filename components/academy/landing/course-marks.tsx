@@ -6,10 +6,16 @@ import { cn } from '@/utils/cn';
 /** The Academy's keyboard ring: 2 px of ink, 2 px outside the control. */
 export const FOCUS_RING = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink';
 
-/** The ink start button of the Team1 landing header (academy-landing-header.tsx), without its arrow icon. */
+/**
+ * The ink start button of the Team1 landing header (academy-landing-header.tsx), without its arrow icon. Its hover
+ * colours ease in 150 ms on plain ease and it presses to 0.97 in 160 ms on the strong ease-out, with no press under
+ * Reduce Motion (acad-tile-hover).
+ */
 export const START_BUTTON = cn(
   'inline-flex items-center rounded-lg bg-ac-ink px-[18px] py-3 text-[14.5px] font-medium leading-none text-ac-paper',
   'hover:bg-ac-paper hover:text-ac-ink hover:inset-ring hover:inset-ring-ac-ink',
+  'transition-[border-color,background-color,color,box-shadow,scale] duration-[150ms,150ms,150ms,150ms,160ms]',
+  'ease-[ease,ease,ease,ease,var(--ease-out)] active:scale-[0.97] motion-reduce:active:scale-100',
   FOCUS_RING,
 );
 

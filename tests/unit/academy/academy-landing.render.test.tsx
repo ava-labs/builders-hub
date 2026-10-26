@@ -10,6 +10,12 @@ vi.mock('next-auth/react', () => ({
       ? { data: { user: { custom_attributes: auth.attrs } }, status: 'authenticated' }
       : { data: null, status: auth.status },
 }));
+// Next's App Router runs React's canary, which exports ViewTransition (the landing's view fades); the stable react
+// these tests load does not.
+vi.mock('react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react')>()),
+  ViewTransition: ({ children }: { children?: import('react').ReactNode }) => children,
+}));
 
 import AcademyPage, { metadata } from '@/app/(home)/academy/page';
 import { parseAcademyView, viewHref, type AcademyView } from '@/components/academy/landing/academy-views';

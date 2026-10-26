@@ -5,6 +5,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 const nav = vi.hoisted(() => ({ pathname: '/academy' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
+// Next's App Router runs React's canary, which exports ViewTransition (the landing's view fades); the stable react
+// these tests load does not.
+vi.mock('react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react')>()),
+  ViewTransition: ({ children }: { children?: ReactNode }) => children,
+}));
 
 // Children that need a session, a browser or fumadocs' providers are stubbed; this file
 // tests the two scope roots only.

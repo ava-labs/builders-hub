@@ -10,6 +10,7 @@ import {
   credentialAcademy,
   credentialFacts,
   credentialTitle,
+  revealsCredential,
 } from '@/components/quizzes/certificate-credential';
 import { useCourseOutline } from '@/components/academy/course/course-outline-context';
 import { usePathname, useRouter } from 'next/navigation';
@@ -37,6 +38,9 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [correctlyAnsweredQuizzes, setCorrectlyAnsweredQuizzes] = useState(0);
   const [shouldShowCertificate, setShouldShowCertificate] = useState(false);
+  // The quizzes passed on this page since it opened, not the ones loaded as passed: only these move the progress, and
+  // the credential prints in only when one of them completes the course.
+  const [passedNow, setPassedNow] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchQuizzes = () => {
@@ -92,6 +96,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     if (!completedQuizzes.includes(quizId)) {
       setCompletedQuizzes(prev => [...prev, quizId]);
       setCorrectlyAnsweredQuizzes(prev => prev + 1);
+      setPassedNow(prev => [...prev, quizId]);
     }
   };
 
@@ -158,7 +163,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       data-certificate={allQuizzesCompleted ? 'complete' : 'progress'}
     >
       {!shouldShowCertificate && (
-        <CertificateProgress completed={correctlyAnsweredQuizzes} total={totalQuizzes} />
+        <CertificateProgress completed={correctlyAnsweredQuizzes} total={totalQuizzes} rolls={passedNow.length > 0} />
       )}
       {!shouldShowCertificate && (
         <CertificateChapters
@@ -166,6 +171,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           quizzesByChapter={quizzesByChapter}
           completedQuizzes={completedQuizzes}
           onQuizCompleted={handleQuizCompleted}
+          passedNow={passedNow}
         />
       )}
 
@@ -183,6 +189,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
             onGenerate={handleGenerateCertificate}
             onShareOnX={shareOnTwitter}
             onViewCertificate={viewCertificate}
+            reveal={revealsCredential(passedNow.length, correctlyAnsweredQuizzes, totalQuizzes)}
           />
         </>
       )}

@@ -146,37 +146,64 @@ body[data-layout="academy"] [data-sidebar="sidebar"] button[aria-label="Collapse
     border-right: 1px solid hsl(var(--border)) !important;
   }
   
-  /* Change fumadocs sidebar animations to slide from left */
+  /* docs-phone-drawer: the drawer slides in from the left edge on the drawer curve, with no fade, and leaves in 200ms
+     on the strong ease-out; its backdrop fades out in the same 200ms. It moves on the translate property. Radix
+     Presence (fumadocs-ui sidebar.js) keeps each layer until its exit animation ends, so the open and closed states
+     run different keyframes. The exit runs only while the closed drawer still shows (:not(.invisible)): fumadocs
+     mounts the drawer after hydration already closed and hidden, and an exit there would put it on screen for a few
+     frames. Reduce Motion: see the block after this media query. */
   body[data-layout="academy"] #nd-sidebar-mobile[data-state="open"] {
-    animation: slideInFromLeftAcademy 0.3s ease-out !important;
+    animation: slideInFromLeftAcademy 300ms var(--ease-drawer) both !important;
+  }
+
+  body[data-layout="academy"] #nd-sidebar-mobile[data-state="closed"]:not(.invisible) {
+    animation: slideOutToLeftAcademy 200ms var(--ease-out) both !important;
   }
   
-  body[data-layout="academy"] #nd-sidebar-mobile[data-state="closed"] {
-    animation: slideOutToLeftAcademy 0.2s ease-in !important;
+  body[data-layout="academy"] div.backdrop-blur-xs[data-state="open"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeInAcademy 300ms var(--ease-drawer) both !important;
+  }
+  
+  body[data-layout="academy"] div.backdrop-blur-xs[data-state="closed"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeOutAcademy 200ms var(--ease-out) both !important;
   }
   
   @keyframes slideInFromLeftAcademy {
     from {
-      transform: translateX(-100%);
-      opacity: 0;
+      translate: -100% 0;
     }
     to {
-      transform: translateX(0);
-      opacity: 1;
+      translate: 0 0;
     }
   }
   
   @keyframes slideOutToLeftAcademy {
     from {
-      transform: translateX(0);
+      translate: 0 0;
+    }
+    to {
+      translate: -100% 0;
+    }
+  }
+  
+  @keyframes drawerFadeInAcademy {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes drawerFadeOutAcademy {
+    from {
       opacity: 1;
     }
     to {
-      transform: translateX(-100%);
       opacity: 0;
     }
   }
-
+  
   /* Also handle shadcn Sheet-based sidebar if used */
   body[data-layout="academy"] [data-sidebar="sidebar"][data-mobile="true"] {
     left: 0 !important;
@@ -192,6 +219,36 @@ body[data-layout="academy"] [data-sidebar="sidebar"] button[aria-label="Collapse
   body[data-layout="academy"] [data-radix-dialog-overlay],
   body[data-layout="academy"] #nd-sidebar-mobile ~ [data-radix-dialog-overlay] {
     pointer-events: auto !important;
+  }
+}
+
+/* docs-phone-drawer under Reduce Motion: the panel and its backdrop cross-fade, 150ms in and 120ms out, with no
+   travel. These come after the slide rules and have the same selectors, so they win; !important also beats the site
+   policy (app/global.css), which runs every animation in 1ms. */
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) {
+  body[data-layout="academy"] #nd-sidebar-mobile[data-state="open"],
+  body[data-layout="academy"] div.backdrop-blur-xs[data-state="open"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeInAcademy 150ms var(--ease-out) both !important;
+  }
+
+  body[data-layout="academy"] #nd-sidebar-mobile[data-state="closed"]:not(.invisible),
+  body[data-layout="academy"] div.backdrop-blur-xs[data-state="closed"]:has(+ #nd-sidebar-mobile) {
+    animation: drawerFadeOutAcademy 120ms var(--ease-out) both !important;
+  }
+}
+
+/* docs-phone-drawer from the keyboard: opened or closed from the keyboard, the drawer and its backdrop show and go at
+   once, Reduce Motion included, as the phone menu does (site-phone-menu, app/global.css) and as the docs drawer does
+   (app/docs/styles.css). That is while the keyboard focus sits on the navbar's Toggle academy sidebar button (Enter
+   opens the drawer) or anywhere in the drawer (its close button, a link that opens another page); a tap focuses with
+   no ring, so a tap keeps the slide. After the rules above, with a second id, so it outranks them. The keyframes keep
+   their name and run in 0s, as the mega menu's hold does (site-mega-menu, app/global.css): a key pressed during a
+   close the pointer started still ends that exit, so Radix Presence unmounts the drawer and its backdrop (cancelling
+   the keyframes instead would leave both on screen). */
+@media (max-width: 1023px) {
+  body[data-layout="academy"]:has([data-docs-sidebar-toggle]:focus-visible, #nd-sidebar-mobile :focus-visible) #nd-sidebar-mobile[data-state],
+  body[data-layout="academy"]:has([data-docs-sidebar-toggle]:focus-visible, #nd-sidebar-mobile :focus-visible) div.backdrop-blur-xs[data-state]:has(+ #nd-sidebar-mobile) {
+    animation-duration: 0s !important;
   }
 }
 
@@ -366,5 +423,22 @@ body[data-layout="academy"] #nd-toc > div {
 /* Ensure body has proper background color for academy */
 body[data-layout="academy"] {
   background: hsl(var(--background)) !important;
+}
+
+/* docs-pager-nudge: the Previous and Next cards under each lesson (fumadocs PageFooter; the Next card is text-end)
+   keep their background fade, and on hover their chevron moves 2px toward where the link goes. A hovering fine
+   pointer only; Reduce Motion keeps the chevron still. */
+[data-route-layout="academy"] .\@container.grid.pb-6 > a > div > svg {
+  transition: transform 180ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-route-layout="academy"] .\@container.grid.pb-6 > a:not(.text-end):hover > div > svg {
+    transform: translateX(-2px);
+  }
+
+  [data-route-layout="academy"] .\@container.grid.pb-6 > a.text-end:hover > div > svg {
+    transform: translateX(2px);
+  }
 }
 

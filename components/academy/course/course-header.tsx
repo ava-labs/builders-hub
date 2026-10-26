@@ -53,7 +53,8 @@ interface CourseFactsProps {
 /**
  * The facts row after the overview description, ending in the ink "Start course" button.
  * The button's hover takes the outlined look (paper, ink text, an inset ink border) and its keyboard
- * focus a 2 px ink ring; neither moves a box.
+ * focus a 2 px ink ring; neither moves a box. The hover colours ease in 150 ms and the button presses to
+ * 0.97 in 160 ms, with no press under Reduce Motion (acad-tile-hover).
  */
 export function CourseFacts({ outline, duration }: CourseFactsProps) {
   const start = outline.lessons[0]?.url;
@@ -72,7 +73,7 @@ export function CourseFacts({ outline, duration }: CourseFactsProps) {
       {start && (
         <Link
           href={start}
-          className="ml-auto inline-flex items-center gap-2 rounded-[8px] bg-ac-ink py-2.5 pr-3.5 pl-4 text-[14px] font-medium leading-none text-ac-paper hover:bg-ac-paper hover:text-ac-ink hover:inset-ring hover:inset-ring-ac-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink max-md:mt-1.5 max-md:ml-0"
+          className="ml-auto inline-flex items-center gap-2 rounded-[8px] bg-ac-ink py-2.5 pr-3.5 pl-4 text-[14px] font-medium leading-none text-ac-paper transition-[border-color,background-color,color,box-shadow,scale] duration-[150ms,150ms,150ms,150ms,160ms] ease-[ease,ease,ease,ease,var(--ease-out)] hover:bg-ac-paper hover:text-ac-ink hover:inset-ring hover:inset-ring-ac-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink active:scale-[0.97] motion-reduce:active:scale-100 max-md:mt-1.5 max-md:ml-0"
         >
           Start course
           <ArrowRight aria-hidden="true" className="size-[15px]" />

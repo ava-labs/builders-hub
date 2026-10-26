@@ -53,6 +53,23 @@ const TEXT: Record<OptionState, string> = {
   dimmed: 'text-ac-ink-3',
 };
 
+// acad-quiz-check: a row settles its border, fill and ring in 150ms on plain ease (a colour change), and its marker the
+// same, glyph colour included. The site's Reduce Motion policy keeps colour changes at 150ms.
+const ROW_SETTLE = 'transition-[border-color,background-color,box-shadow] duration-150 ease-[ease]';
+const MARKER_SETTLE = 'transition-[border-color,background-color,color] duration-150 ease-[ease]';
+
+// acad-quiz-check: the check of an answer checked on this visit draws itself, its path's dash sliding from 23 (the
+// path's length, rounded up) to 0 in 260ms, 60ms in (acad-quiz-draw, app/global.css). It draws under Reduce Motion too,
+// a stroke and not a movement: the !important keeps it past the site policy, which ends every animation in 1ms.
+const CHECK_DRAW =
+  '[&>path]:[stroke-dasharray:23] [&>path]:animate-[acad-quiz-draw_260ms_var(--ease-out)_60ms_backwards]!';
+
+// acad-quiz-check: the explanation of an answer checked on this visit fades up 4px into place in 220ms on the strong
+// ease-out (acad-quiz-rise). Under Reduce Motion it only fades (vs-fade-in), over the same 220ms: the !important keeps
+// the fade past the site policy's 1ms.
+const FEEDBACK_ENTER =
+  'animate-[acad-quiz-rise_220ms_var(--ease-out)_backwards] motion-reduce:animate-[vs-fade-in_220ms_var(--ease-out)_backwards]!';
+
 export interface QuizOptionProps {
   state: OptionState;
   /** Production's marker text: the option letter, or on multiple-answer questions a check mark or nothing. */
@@ -64,6 +81,8 @@ export interface QuizOptionProps {
   name: string;
   checked: boolean;
   onSelect: () => void;
+  /** The answer was checked on this visit: the correct row's check draws itself. An answer restored from storage shows at rest. */
+  checkedNow?: boolean;
   children: ReactNode;
 }
 
@@ -72,12 +91,23 @@ export interface QuizOptionProps {
  * keys (arrows and Space); the row takes the button's ink ring on keyboard focus. The marker is
  * hidden from the accessible name. The option text stays in the last span.
  */
-export function QuizOption({ state, marker, multiple, locked, name, checked, onSelect, children }: QuizOptionProps) {
+export function QuizOption({
+  state,
+  marker,
+  multiple,
+  locked,
+  name,
+  checked,
+  onSelect,
+  checkedNow = false,
+  children,
+}: QuizOptionProps) {
   return (
     <label
       data-option-state={state}
       className={cn(
         'flex items-center rounded-[10px] border px-3.5 py-3',
+        ROW_SETTLE,
         'has-focus-visible:outline-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ac-ink',
         ROW[state],
         locked ? 'cursor-not-allowed' : 'cursor-pointer',
@@ -95,11 +125,16 @@ export function QuizOption({ state, marker, multiple, locked, name, checked, onS
         aria-hidden="true"
         className={cn(
           'mr-3 flex size-[22px] shrink-0 items-center justify-center border-[1.5px] font-ac-mono text-[11px] leading-[calc(1.25/0.875)]',
+          MARKER_SETTLE,
           multiple ? 'rounded-md' : 'rounded-full',
           MARKER[state],
         )}
       >
-        {state === 'correct' ? <Check className="size-3" strokeWidth={3} aria-hidden="true" /> : marker}
+        {state === 'correct' ? (
+          <Check className={cn('size-3', checkedNow && CHECK_DRAW)} strokeWidth={3} aria-hidden="true" />
+        ) : (
+          marker
+        )}
       </span>
       <span className={cn('text-[14.5px] leading-[calc(1.25/0.875)]', TEXT[state])}>{children}</span>
     </label>
@@ -109,11 +144,25 @@ export function QuizOption({ state, marker, multiple, locked, name, checked, onS
 /**
  * The explanation panel: the lightbulb, production's "Correct" or "Not Quite" label, the text.
  * The text's margin carries !important: the prose paragraph rule sits later in the utilities layer
- * than m-0 and would add 1.25em above and below it.
+ * than m-0 and would add 1.25em above and below it. The explanation of an answer checked on this
+ * visit (checkedNow) fades up into place; one restored from storage shows at rest.
  */
-export function QuizFeedback({ correct, children }: { correct: boolean; children: ReactNode }) {
+export function QuizFeedback({
+  correct,
+  checkedNow = false,
+  children,
+}: {
+  correct: boolean;
+  checkedNow?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div className="mt-4 grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5 rounded-[10px] border border-ac-rule bg-ac-panel px-4 py-3.5">
+    <div
+      className={cn(
+        'mt-4 grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5 rounded-[10px] border border-ac-rule bg-ac-panel px-4 py-3.5',
+        checkedNow && FEEDBACK_ENTER,
+      )}
+    >
       <Lightbulb className="row-span-2 mt-px size-[17px] text-ac-ink-3" aria-hidden="true" />
       <div className="mb-[3px] flex items-center">
         <span
