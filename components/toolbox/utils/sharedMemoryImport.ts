@@ -111,10 +111,11 @@ export interface UtxoIndex {
 }
 
 /**
- * Reads one side of shared memory page by page. `readPage` is one getUTXOs call from `startIndex` (undefined for the
- * first page). The read stops at a page with fewer than UTXO_PAGE_SIZE UTXOs, or after MAX_UTXO_PAGES pages. The
- * node starts a page at the last UTXO of the page before it, so the read keeps each UTXO ID once. `complete` is false
- * when shared memory can hold more UTXOs than the read got.
+ * Reads the UTXOs at an address page by page: one side of shared memory here, and the P-Chain's own UTXOs for the
+ * balance in pChainNodeBalance.ts. `readPage` is one getUTXOs call from `startIndex` (undefined for the first page).
+ * The read stops at a page with fewer than UTXO_PAGE_SIZE UTXOs, or after MAX_UTXO_PAGES pages. The node starts a
+ * page at the last UTXO of the page before it, so the read keeps each UTXO ID once. `complete` is false when the
+ * address can hold more UTXOs than the read got.
  */
 export async function readSharedMemory(
   readPage: (startIndex: UtxoIndex | undefined) => Promise<{ utxos: Utxo[]; endIndex?: UtxoIndex }>,

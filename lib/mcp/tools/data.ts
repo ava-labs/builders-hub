@@ -18,7 +18,7 @@
 
 import { glacierFetch, fetchErc20Balances } from '@/lib/rwa/glacier/client';
 import { statsApi } from '@/lib/stats-api';
-import { avalancheRPC, nAvaxToAvax } from '../rpc';
+import { nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 import {
@@ -28,6 +28,7 @@ import {
   clampLimit,
 } from './lib/clickhouse-safe';
 import { P_CHAIN_ID, X_CHAIN_ID, C_CHAIN_EVM_ID, NETWORKS, networkSchemaProp } from './lib/constants';
+import { getPChainBalance } from './lib/pchain-balance';
 import { getString, errorResult, rejectBadEnum } from './lib/tool-helpers';
 
 interface StatsPoint {
@@ -311,18 +312,18 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
             note: balances ? undefined : 'No X-Chain balance data returned for this address.',
           });
         }
-        // platform.getBalance requires the chain-prefixed form; a bare Core copy (avax1…) has none.
+        // The node wants the chain-prefixed form; a bare Core copy (avax1…) has none.
         const pAddr = `P-${stripChainPrefix(value)}`;
-        const bal = (await avalancheRPC(net, 'pchain', 'platform.getBalance', { addresses: [pAddr] })) as Record<string, unknown>;
-        const toAvax = (v: unknown) => (typeof v === 'string' ? nAvaxToAvax(v) : undefined);
+        const bal = await getPChainBalance(net, [pAddr]);
         return json({
           kind: 'pchain-address',
           address: value,
           network: net,
-          balanceAvax: toAvax(bal.balance),
-          unlockedAvax: toAvax(bal.unlocked),
-          lockedStakeableAvax: toAvax(bal.lockedStakeable),
-          utxoCount: Array.isArray(bal.utxoIDs) ? (bal.utxoIDs as unknown[]).length : undefined,
+          balanceAvax: nAvaxToAvax(bal.balance),
+          unlockedAvax: nAvaxToAvax(bal.unlocked),
+          lockedStakeableAvax: nAvaxToAvax(bal.lockedStakeable),
+          utxoCount: bal.utxoIDs.length,
+          ...(bal.complete ? {} : { incomplete: 'The address holds more UTXOs than one read gets: the amounts are a lower bound.' }),
           raw: bal,
           note: 'P-Chain account. For validator/subnet/UTXO detail use platform_get_current_validators / platform_get_subnets / platform_get_utxos.',
         });

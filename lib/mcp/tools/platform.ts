@@ -3,6 +3,7 @@ import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 import { networkSchemaProp } from './lib/constants';
 import { PAGINATION_PROPS, paginateArrayField, rpcErrorResult } from './lib/tool-helpers';
+import { getPChainBalance } from './lib/pchain-balance';
 
 /**
  * Every platform_get_* handler is the same shape: cache a P-Chain RPC call, JSON
@@ -374,10 +375,17 @@ export const platformTools: ToolDomain = {
       return runRpcTool(network, `platform:totalStake:${network}:${JSON.stringify(params)}`, CACHE_TTL.FEES, 'platform.getTotalStake', params, withAvax({ stake_avax: 'stake' }));
     },
 
-    platform_get_balance: (args): Promise<ToolResult> => {
+    // platform.getBalance is deprecated in AvalancheGo: the same fields come
+    // from platform.getUTXOs (getPChainBalance).
+    platform_get_balance: async (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const params = { addresses: args.addresses as string[] };
-      return runRpcTool(network, `platform:balance:${network}:${JSON.stringify(params)}`, CACHE_TTL.BALANCE, 'platform.getBalance', params, withAvax({ balance_avax: 'balance' }));
+      const addresses = args.addresses as string[];
+      try {
+        const result = await withCache(`platform:balance:${network}:${JSON.stringify(addresses)}`, CACHE_TTL.BALANCE, () => getPChainBalance(network, addresses));
+        return { content: [{ type: 'text', text: JSON.stringify(withAvax({ balance_avax: 'balance', unlocked_avax: 'unlocked' })(result)) }] };
+      } catch (err) {
+        return rpcErrorResult(err, 'RPC error');
+      }
     },
 
     platform_get_utxos: (args): Promise<ToolResult> => {
