@@ -1,6 +1,7 @@
 import { Check, Clock, Copy as CopyIcon, ExternalLink, Send } from 'lucide-react';
-import { useState } from 'react';
 import { isAddress } from 'viem';
+import { DrawnCheck, MorphSlot } from '@/components/console/icon-morph';
+import { useCopiedFlash } from '@/hooks/use-copied-flash';
 import { cn } from '../lib/utils';
 
 interface SuccessProps {
@@ -16,13 +17,12 @@ interface SuccessProps {
 }
 
 export const Success = ({ label, value, isTestnet = true, xpChain = 'P', confirmed }: SuccessProps) => {
-  const [copied, setCopied] = useState(false);
+  const [copied, flashCopied] = useCopiedFlash(1500);
   if (!value) return null;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    flashCopied();
   };
 
   const isPChainTxId = /^[1-9A-HJ-NP-Za-km-z]{40,60}$/.test(value);
@@ -47,36 +47,38 @@ export const Success = ({ label, value, isTestnet = true, xpChain = 'P', confirm
   const isUnconfirmed = confirmed === false;
   // When confirmed is undefined: neutral "submitted" state (default for backward compat)
 
-  const icon = isConfirmed ? (
-    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-  ) : isUnconfirmed ? (
-    <Clock className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
-  ) : (
-    <Send className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
-  );
-
+  // con-tx-landed, as in the Activity panel: on confirmation the icon blurs into a check that draws itself, and the
+  // tint eases over (colours 200ms on plain ease).
   return (
     <div
       className={cn(
-        'border bg-white transition-colors dark:bg-zinc-950',
+        'border bg-white transition-[border-color] duration-200 ease-[ease] dark:bg-zinc-950',
         isConfirmed ? 'border-emerald-300 dark:border-emerald-900' : 'border-zinc-200 dark:border-zinc-800',
       )}
     >
       <div className="flex items-start gap-3 px-4 py-3">
         <span
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center border',
+            'grid h-8 w-8 shrink-0 items-center justify-center border transition-[background-color,border-color] duration-200 ease-[ease]',
             isConfirmed
               ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/30'
               : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900',
           )}
         >
-          {icon}
+          <MorphSlot show={isConfirmed}>
+            <DrawnCheck drawn={isConfirmed} className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          </MorphSlot>
+          <MorphSlot show={isUnconfirmed}>
+            <Clock className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+          </MorphSlot>
+          <MorphSlot show={!isConfirmed && !isUnconfirmed}>
+            <Send className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+          </MorphSlot>
         </span>
         <div className="min-w-0 flex-1 space-y-1">
           <span
             className={cn(
-              'block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]',
+              'block font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] transition-[color] duration-200 ease-[ease]',
               isConfirmed ? 'text-emerald-700 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400',
             )}
           >
@@ -100,14 +102,15 @@ export const Success = ({ label, value, isTestnet = true, xpChain = 'P', confirm
               <button
                 type="button"
                 onClick={handleCopy}
-                className="shrink-0 p-1 text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
+                className="grid shrink-0 p-1 text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
                 aria-label="Copy to clipboard"
               >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                ) : (
+                <MorphSlot show={!copied}>
                   <CopyIcon className="h-3.5 w-3.5" />
-                )}
+                </MorphSlot>
+                <MorphSlot show={copied}>
+                  <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                </MorphSlot>
               </button>
             )}
           </div>

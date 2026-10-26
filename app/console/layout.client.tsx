@@ -1,8 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { useParams, usePathname } from "next/navigation";
 import { ConsoleSidebar } from "../../components/console/console-sidebar";
 import { SiteHeader } from "../../components/console/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -21,19 +20,48 @@ import { CommandPalette } from "@/components/console/command-palette";
 import { ConsoleFooter } from "@/components/console/console-footer";
 import { cn } from "@/lib/utils";
 
+/**
+ * con-tool-switch: one 150ms fade when a tool or a step opens, and nothing moves. A CSS animation, so it runs while the
+ * route renders and needs no script to show the page. Opacity only, so Reduce Motion keeps it: the reducer in
+ * app/global.css would play it in 1ms.
+ */
+const PAGE_FADE = "animate-[vs-fade-in_150ms_var(--ease-out)] motion-reduce:[animation-duration:150ms]!";
+
+/**
+ * Step flows that render from a layout above their [step] route (stepFlowLayout, con-step-travel): the flow stays
+ * mounted from step to step and animates the change itself, so the pane fades once when the flow opens, not on every
+ * step. Only a [step] route shares its flow's key: a sibling page under a base (create-l1/basic) keeps its own.
+ * The ICTT bridge (/console/ictt/[step]) is not one of them: it still mounts with each step.
+ */
+const MOUNTED_FLOWS = [
+  "/console/add-validator/",
+  "/console/create-l1/",
+  "/console/encrypted-erc/deploy/",
+  "/console/encrypted-erc/deposit/",
+  "/console/layer-1/create/",
+  "/console/layer-1/upgrade/",
+  "/console/permissioned-l1s/change-validator-weight/",
+  "/console/permissioned-l1s/multisig-setup/",
+  "/console/permissioned-l1s/validator-manager-setup/",
+  "/console/permissionless-l1s/delegate/erc20/",
+  "/console/permissionless-l1s/delegate/native/",
+  "/console/permissionless-l1s/erc20-staking-manager-setup/",
+  "/console/permissionless-l1s/native-staking-manager-setup/",
+  "/console/permissionless-l1s/remove-delegation/",
+  "/console/permissionless-l1s/submit-uptime-proof/",
+  "/console/remove-validator/",
+  "/console/utilities/vmcMigrateFromV1/",
+];
+
 function ConsolePageTransition({ children, fill }: { children: ReactNode; fill: boolean }) {
   const pathname = usePathname();
+  const { step } = useParams<{ step?: string }>();
+  const flow = step === undefined ? undefined : MOUNTED_FLOWS.find((base) => pathname === `${base}${step}`);
 
   return (
-    <motion.div
-      key={pathname}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
-      className={fill ? "flex flex-col lg:min-h-0 lg:flex-1" : undefined}
-    >
+    <div key={flow ?? pathname} className={cn(PAGE_FADE, fill && "flex flex-col lg:min-h-0 lg:flex-1")}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 

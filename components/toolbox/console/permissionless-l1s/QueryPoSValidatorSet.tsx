@@ -634,7 +634,7 @@ export default function QueryPoSValidatorSet() {
             className={`w-full py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center mt-4 ${
               isLoading || !subnetId.trim() || !!validatorManagerDetails.error || validatorManagerDetails.isLoading
                 ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow transition-all duration-200'
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow'
             }`}
           >
             {isLoading ? (
@@ -894,7 +894,7 @@ export default function QueryPoSValidatorSet() {
                               <Button
                                 variant="secondary"
                                 onClick={() => setSelectedValidator(validator)}
-                                className="text-xs py-1 px-2 bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600 shadow-sm hover:shadow-md transition-all duration-200"
+                                className="text-xs py-1 px-2 bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600 shadow-sm hover:shadow-md"
                               >
                                 Details
                               </Button>
@@ -1034,7 +1034,7 @@ export default function QueryPoSValidatorSet() {
                               <Button
                                 variant="secondary"
                                 onClick={() => setSelectedDelegation(delegation)}
-                                className="text-xs py-1 px-2 bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600 shadow-sm hover:shadow-md transition-all duration-200"
+                                className="text-xs py-1 px-2 bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600 shadow-sm hover:shadow-md"
                               >
                                 Details
                               </Button>
@@ -1070,7 +1070,7 @@ export default function QueryPoSValidatorSet() {
             <Button
               variant="secondary"
               onClick={() => setSelectedValidator(null)}
-              className="text-xs py-1 px-2 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-600 transition-colors"
+              className="text-xs py-1 px-2 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-600"
             >
               Close
             </Button>
@@ -1241,7 +1241,7 @@ export default function QueryPoSValidatorSet() {
             <Button
               variant="secondary"
               onClick={() => setSelectedDelegation(null)}
-              className="text-xs py-1 px-2 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-600 transition-colors"
+              className="text-xs py-1 px-2 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-600"
             >
               Close
             </Button>

@@ -242,7 +242,8 @@ export function CommandPalette() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="overflow-hidden p-0">
+      {/* con-palette-instant: opened from the keyboard many times a day, so it appears and leaves in one frame. */}
+      <DialogContent instant className="overflow-hidden p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Command Palette</DialogTitle>
           <DialogDescription>Search for a command to run...</DialogDescription>

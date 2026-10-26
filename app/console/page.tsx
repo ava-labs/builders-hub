@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -23,6 +23,9 @@ import {
 } from 'lucide-react';
 import { Board, BoardHeader, Rise, SectionHeader } from '@/components/explorer-v2/ui';
 import { AlphaSequence } from '@/components/console/alpha-sequence';
+import { PRESS, PRESS_TRANSITION } from '@/components/console/motion';
+import { MorphSlot } from '@/components/console/icon-morph';
+import { useCopiedFlash } from '@/hooks/use-copied-flash';
 import { PromptComposer } from '@/components/studio/PromptComposer';
 
 const EYEBROW = 'font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400';
@@ -52,7 +55,7 @@ function Door({
       </span>
       <span className="mt-auto flex items-center gap-2 text-[16px] font-semibold text-zinc-900 dark:text-zinc-50">
         {title}
-        <ArrowRight className="h-3.5 w-3.5 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/door:translate-x-0 group-hover/door:opacity-100" />
+        <ArrowRight className="h-3.5 w-3.5 -translate-x-1 text-[#E6212F] opacity-0 transition-[translate,opacity] group-hover/door:translate-x-0 group-hover/door:opacity-100" />
       </span>
       <span className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</span>
     </Link>
@@ -70,7 +73,7 @@ function LinkRow({ href, icon: Icon, label, hint }: { href: string; icon: Lucide
         <span className="block text-[13.5px] font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
         <span className="block truncate text-[12px] text-zinc-500 dark:text-zinc-400">{hint}</span>
       </span>
-      <ArrowRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100" />
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[#E6212F] opacity-0 transition-[translate,opacity] group-hover/row:translate-x-0 group-hover/row:opacity-100" />
     </Link>
   );
 }
@@ -78,12 +81,11 @@ function LinkRow({ href, icon: Icon, label, hint }: { href: string; icon: Lucide
 const INSTALL_CMD = 'curl -sSfL https://build.avax.network/install/platform-cli | sh';
 
 function CliCopyBlock() {
-  const [copied, setCopied] = useState(false);
+  const [copied, flashCopied] = useCopiedFlash(2000);
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(INSTALL_CMD);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, []);
+    flashCopied();
+  }, [flashCopied]);
   return (
     <button
       onClick={handleCopy}
@@ -94,8 +96,14 @@ function CliCopyBlock() {
       <code className="whitespace-nowrap text-left font-mono text-xs text-zinc-700 dark:text-zinc-200">
         curl -sSfL build.avax.network/install/platform-cli | sh
       </code>
-      <span className="ml-auto shrink-0 p-1 text-zinc-400 transition-colors group-hover:text-zinc-700 dark:group-hover:text-zinc-200">
-        {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+      {/* con-copy-confirm: the copy icon blurs into the check; the check passes 3:1 in both themes. */}
+      <span className="ml-auto grid shrink-0 p-1 text-zinc-400 transition-colors group-hover:text-zinc-700 dark:group-hover:text-zinc-200">
+        <MorphSlot show={!copied}>
+          <Copy className="h-3.5 w-3.5" />
+        </MorphSlot>
+        <MorphSlot show={copied}>
+          <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+        </MorphSlot>
       </span>
     </button>
   );
@@ -150,13 +158,13 @@ function ConsoleHome() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/console/create-l1"
-              className="inline-flex h-9 items-center gap-2 border border-zinc-900 bg-zinc-900 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className={`inline-flex h-9 items-center gap-2 border border-zinc-900 bg-zinc-900 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 ${PRESS_TRANSITION} ${PRESS}`}
             >
               Create an L1 <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link
               href="/console/primary-network/faucet"
-              className="inline-flex h-9 items-center gap-2 border border-zinc-300 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-700 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
+              className={`inline-flex h-9 items-center gap-2 border border-zinc-300 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-700 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50 ${PRESS_TRANSITION} ${PRESS}`}
             >
               Get test AVAX
             </Link>
@@ -309,9 +317,10 @@ function ConsoleHome() {
           <div className="absolute inset-x-0 top-0 h-2/3 backdrop-blur-[1px]" />
           <div className="absolute inset-x-0 top-0 h-1/3 backdrop-blur-[1px]" />
         </div>
+        {/* con-composer-beam: the Avalanche red preset; the console has one red accent and no rainbow. */}
         <PromptComposer
           compact
-          beam="colorful"
+          beam="avalanche"
           className="pointer-events-auto relative mx-auto w-3/4 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]"
         />
       </div>

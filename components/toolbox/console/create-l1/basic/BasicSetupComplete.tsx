@@ -198,6 +198,15 @@ function useL1Balances(
   return state;
 }
 
+/**
+ * con-launch-confetti: the one celebration in the console looks like the console: its red, ink and greys (zinc-900,
+ * 500 and 300 in light; zinc-50, 400 and 600 in dark) in place of the library's rainbow.
+ */
+const LAUNCH_CONFETTI = {
+  light: ['#E6212F', '#18181B', '#71717A', '#D4D4D8'],
+  dark: ['#E6212F', '#FAFAFA', '#A1A1AA', '#52525B'],
+};
+
 export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
   const result = job.result;
   const { addChain } = useWallet();
@@ -207,7 +216,17 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
   useEffect(() => {
     if (firedRef.current || !result) return;
     firedRef.current = true;
-    const base = { spread: 60, startVelocity: 45, ticks: 200, gravity: 0.9, scalar: 1 };
+    // Under Reduce Motion no burst fires; the "is live" headline carries the moment alone.
+    const colors = document.documentElement.classList.contains('dark') ? LAUNCH_CONFETTI.dark : LAUNCH_CONFETTI.light;
+    const base = {
+      spread: 60,
+      startVelocity: 45,
+      ticks: 200,
+      gravity: 0.9,
+      scalar: 1,
+      colors,
+      disableForReducedMotion: true,
+    };
     confetti({ ...base, particleCount: 80, angle: 60, origin: { x: 0, y: 0.65 } });
     confetti({ ...base, particleCount: 80, angle: 120, origin: { x: 1, y: 0.65 } });
     setTimeout(() => {

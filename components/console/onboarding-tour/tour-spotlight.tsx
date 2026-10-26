@@ -2,13 +2,27 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
 
 interface SpotlightProps {
   targetRect: DOMRect | null;
   padding?: number;
+  /** The tour moved to its next stop: the cutout travels there. A scroll or a resize places it at once. */
+  glide?: boolean;
+  /** The tour is closing: the overlay fades out. */
+  leaving?: boolean;
 }
 
-export function TourSpotlight({ targetRect, padding = 8 }: SpotlightProps) {
+/**
+ * con-tour-glide: the dark overlay is the cutout's own wide shadow, so the cutout can travel from stop to stop
+ * (transform, width and height, 350ms on the in-out curve) and the eye follows it. The 2px ring straddles the edge,
+ * as the SVG stroke did. The overlay fades in over 200ms and out in 150ms. Reduce Motion: the site policy drops the
+ * travel, so the cutout jumps as before; the fades stay.
+ */
+const CUTOUT_SHADOW =
+  "0 0 0 1px rgb(59, 130, 246), inset 0 0 0 1px rgb(59, 130, 246), 0 0 0 9999px rgba(0, 0, 0, 0.6)";
+
+export function TourSpotlight({ targetRect, padding = 8, glide = false, leaving = false }: SpotlightProps) {
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -24,47 +38,28 @@ export function TourSpotlight({ targetRect, padding = 8 }: SpotlightProps) {
   const borderRadius = 8;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9998]">
-      {/* Dark overlay with cutout */}
-      <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <mask id="spotlight-mask">
-            <rect x="0" y="0" width="100%" height="100%" fill="white" />
-            <rect
-              x={spotlightX}
-              y={spotlightY}
-              width={spotlightWidth}
-              height={spotlightHeight}
-              rx={borderRadius}
-              ry={borderRadius}
-              fill="black"
-            />
-          </mask>
-        </defs>
-
-        {/* Overlay */}
-        <rect
-          x="0"
-          y="0"
-          width="100%"
-          height="100%"
-          fill="rgba(0, 0, 0, 0.6)"
-          mask="url(#spotlight-mask)"
-        />
-
-        {/* Simple border around spotlight */}
-        <rect
-          x={spotlightX}
-          y={spotlightY}
-          width={spotlightWidth}
-          height={spotlightHeight}
-          rx={borderRadius}
-          ry={borderRadius}
-          fill="none"
-          stroke="rgb(59, 130, 246)"
-          strokeWidth="2"
-        />
-      </svg>
+    <div
+      className={cn(
+        "fixed inset-0 z-[9998] transition-opacity",
+        leaving
+          ? "pointer-events-none opacity-0 duration-150 ease-out"
+          : "opacity-100 duration-200 ease-out starting:opacity-0"
+      )}
+    >
+      {/* The cutout: everything outside it is darkened by its shadow */}
+      <div
+        className={cn(
+          "absolute left-0 top-0",
+          glide && "transition-[transform,width,height] duration-350 ease-in-out"
+        )}
+        style={{
+          transform: `translate(${spotlightX}px, ${spotlightY}px)`,
+          width: spotlightWidth,
+          height: spotlightHeight,
+          borderRadius,
+          boxShadow: CUTOUT_SHADOW,
+        }}
+      />
 
       {/* Click blocker outside spotlight */}
       <div

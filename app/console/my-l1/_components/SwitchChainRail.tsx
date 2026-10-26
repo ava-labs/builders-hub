@@ -455,7 +455,7 @@ function ChainPill({ l1, state, onSelect }: { l1: CombinedL1; state: PillState; 
       <TooltipContent side="bottom" align="center" sideOffset={6} className={TOOLTIP}>
         <div className="space-y-0.5">
           <div className="font-medium">{l1.chainName}</div>
-          <div className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+          <div className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">
             chain {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
           </div>
         </div>

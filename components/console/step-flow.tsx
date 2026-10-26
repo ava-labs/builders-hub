@@ -3,14 +3,14 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FlowCompletionModal, type FlowCompletionAction } from './flow-completion-modal';
 import { getFlowMetadata, type FlowMetadata } from '@/components/console/console-flows';
 import { StepErrorBoundary } from '@/components/toolbox/components/StepErrorBoundary';
 import { ChainGate } from '@/components/toolbox/components/ChainGate';
-import { sectionContainer, sectionItem } from '@/components/console/motion';
+import { PRESS, PRESS_TRANSITION } from '@/components/console/motion';
+import { completionOn, locateStep, markStyle } from '@/components/console/step-position';
 
 /**
  * Chain requirement for a step. StepFlow checks the wallet's active chain
@@ -137,6 +137,12 @@ type StepFlowProps = {
    * sit at the same vertical line as the step pills.
    */
   navTrailing?: React.ReactNode;
+  /**
+   * Wraps the body of each step. The wrapper mounts fresh with every step, as the step itself does: a flow that stays
+   * mounted from step to step uses it for data that each step must read fresh (the validator flows'
+   * ValidatorManagerProvider, through validatorManagerPerStep).
+   */
+  wrapStep?: (step: React.ReactNode) => React.ReactNode;
 };
 
 export default function StepFlow({
@@ -155,9 +161,11 @@ export default function StepFlow({
   compact,
   aboveBody,
   navTrailing,
+  wrapStep,
 }: StepFlowProps) {
   const router = useRouter();
-  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+  // The step the completion modal is open on, null while it is closed (completionOn).
+  const [finishedOn, setFinishedOn] = useState<string | null>(null);
   const stepListRef = useRef<HTMLOListElement>(null);
   const [done, setDone] = useState<Set<string>>(() => new Set());
   // Progress and isComplete read browser storage, so both wait for mount: the server and first client render agree.
@@ -205,7 +213,7 @@ export default function StepFlow({
       return;
     }
     if (showCompletionModal && flowMetadata) {
-      setIsCompletionModalOpen(true);
+      setFinishedOn(currentStepKey);
     } else {
       // Fallback: navigate to console home if no modal configured.
       if (onFinish) {
@@ -214,62 +222,74 @@ export default function StepFlow({
       }
       router.push('/console');
     }
-  }, [onFinish, onNavigate, showCompletionModal, flowMetadata, router]);
+  }, [onFinish, onNavigate, showCompletionModal, flowMetadata, router, currentStepKey]);
 
   const handleCompletionModalChange = useCallback(
     (open: boolean) => {
-      setIsCompletionModalOpen(open);
+      setFinishedOn(open ? currentStepKey : null);
       // Fire onFinish only when the modal transitions from open → closed.
       // Guards against running onFinish on programmatic re-open.
       if (!open && onFinish) onFinish();
     },
-    [onFinish],
+    [onFinish, currentStepKey],
   );
 
-  // Find which step we're on - could be a single step or a branch option
-  const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {
-    // First check if it's a single step
-    const singleStepIndex = steps.findIndex((s) => s.type === 'single' && s.key === currentStepKey);
-    if (singleStepIndex !== -1) {
-      return {
-        currentIndex: singleStepIndex,
-        currentStep: steps[singleStepIndex],
-        selectedBranchOption: undefined,
-      };
-    }
+  // The flow outlives its steps (step-flow-route.tsx), so a step change while the modal is open, such as the
+  // browser's Back after Finish, closes it here without onFinish, as leaving a per-step page did.
+  const completionStep = completionOn(finishedOn, currentStepKey);
+  if (completionStep !== finishedOn) setFinishedOn(completionStep);
 
-    // Check if it's a branch option
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      if (step.type === 'branch') {
-        const option = step.options.find((opt) => opt.key === currentStepKey);
-        if (option) {
-          return {
-            currentIndex: i,
-            currentStep: step,
-            selectedBranchOption: option,
-          };
-        }
-      }
-    }
+  // Find which step we're on - could be a single step or a branch option. The step bar and the step list follow it.
+  const {
+    index: currentIndex,
+    step: currentStep,
+    option: selectedBranchOption,
+  } = useMemo(() => locateStep(steps, currentStepKey), [currentStepKey, steps]);
 
-    return { currentIndex: -1, currentStep: undefined, selectedBranchOption: undefined };
-  }, [currentStepKey, steps]);
+  /* con-step-travel: the title and the body show `shownKey`, which follows the URL at the bottom of a quick dip, so the
+     text never changes in view. A flow that renders from a layout above its [step] route (stepFlowLayout in
+     components/console/step-flow-route.tsx) stays mounted from step to step and plays the dip, as does a flow in chat
+     (onNavigate); a flow that mounts with each step (the ICTT bridge) starts on its step. */
+  const [shownKey, setShownKey] = useState(currentStepKey);
+  const dipping = currentStepKey !== shownKey;
+  useEffect(() => {
+    if (!dipping) return;
+    // The dip bottoms out at 36% of its 250ms. Reduce Motion keeps opacity fades at 150ms (app/global.css): wait for it.
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const swap = window.setTimeout(() => setShownKey(currentStepKey), reduce ? 150 : 90);
+    return () => window.clearTimeout(swap);
+  }, [dipping, currentStepKey]);
+  const shown = useMemo(() => {
+    const at = locateStep(steps, shownKey);
+    // A flow that showed "not found" has no step to dip from: it shows the new step at once.
+    return at.index >= 0
+      ? { ...at, key: shownKey }
+      : { index: currentIndex, step: currentStep, option: selectedBranchOption, key: currentStepKey };
+  }, [steps, shownKey, currentIndex, currentStep, selectedBranchOption, currentStepKey]);
+
+  // con-step-travel: the step the red mark and the ink travel from. Set while rendering, as React does for state that
+  // follows a prop, so the first frame of the new step already knows it.
+  const [markAt, setMarkAt] = useState(currentIndex);
+  const [leftStep, setLeftStep] = useState<number | null>(null);
+  if (markAt !== currentIndex) {
+    setLeftStep(markAt);
+    setMarkAt(currentIndex);
+  }
 
   const totalSteps = steps.length;
-  const atFirst = currentIndex <= 0;
-  const atLast = currentIndex >= totalSteps - 1;
+  const atFirst = shown.index <= 0;
+  const atLast = shown.index >= totalSteps - 1;
 
-  const CurrentComponent = useMemo(() => {
-    if (!currentStep) return undefined;
-    if (currentStep.type === 'single') return currentStep.component;
+  const ShownComponent = useMemo(() => {
+    if (!shown.step) return undefined;
+    if (shown.step.type === 'single') return shown.step.component;
     // For branch steps, use the selected option's component
-    return selectedBranchOption?.component || currentStep.options[0].component;
-  }, [currentStep, selectedBranchOption]);
+    return shown.option?.component || shown.step.options[0].component;
+  }, [shown]);
 
   const prevLink = useMemo(() => {
     if (atFirst) return null;
-    const prevStep = steps[currentIndex - 1];
+    const prevStep = steps[shown.index - 1];
 
     // When navigating back from any step, we need to determine the appropriate destination
     if (prevStep.type === 'single') {
@@ -279,11 +299,11 @@ export default function StepFlow({
       // The user can then select a different option if they want
       return `${basePath}/${prevStep.options[0].key}`;
     }
-  }, [atFirst, currentIndex, steps, basePath]);
+  }, [atFirst, shown.index, steps, basePath]);
 
   const nextLink = useMemo(() => {
-    if (atLast || currentIndex < 0) return null;
-    const nextStep = steps[currentIndex + 1];
+    if (atLast || shown.index < 0) return null;
+    const nextStep = steps[shown.index + 1];
 
     // When navigating forward, determine the appropriate destination
     if (nextStep.type === 'single') {
@@ -292,7 +312,7 @@ export default function StepFlow({
       // For branch steps, go to the first option by default
       return `${basePath}/${nextStep.options[0].key}`;
     }
-  }, [atLast, currentIndex, steps, basePath]);
+  }, [atLast, shown.index, steps, basePath]);
 
   // Helper: renders Link or button depending on onNavigate mode
   const NavEl = useMemo(() => {
@@ -317,7 +337,8 @@ export default function StepFlow({
   }, [onNavigate, basePath]);
 
   // After every hook: the rules of hooks forbid an earlier return
-  if (currentIndex < 0 || !currentStep || !CurrentComponent) {
+  const shownStep = shown.step;
+  if (currentIndex < 0 || !currentStep || !shownStep || !ShownComponent) {
     return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
   }
 
@@ -326,9 +347,9 @@ export default function StepFlow({
     return step.type === 'single' ? step.key : step.options[0].key;
   };
 
-  const stepTitle = (s: StepDefinition) =>
-    s.type === 'single' ? s.title : (s.options.find((o) => o.key === selectedBranchOption?.key)?.label ?? s.title);
-  const nextStep = atLast ? null : steps[currentIndex + 1];
+  const stepTitle = (s: StepDefinition, option = selectedBranchOption) =>
+    s.type === 'single' ? s.title : (s.options.find((o) => o.key === option?.key)?.label ?? s.title);
+  const nextStep = atLast ? null : steps[shown.index + 1];
   const nextTitle = nextStep ? (nextStep.type === 'single' ? nextStep.title : nextStep.options[0].label) : null;
   const goTo = (step: StepDefinition) => onNavigate?.(getStepNavKey(step));
 
@@ -342,35 +363,55 @@ export default function StepFlow({
           ? 'skipped'
           : 'upcoming';
   const SKIPPED_TITLE = 'Not completed yet: you moved past this step before finishing it.';
-  const leaveWithNext = () => markDone(currentStep.key);
+  const leaveWithNext = () => markDone(shownStep.key);
+  const stepBody = (
+    <ChainGate requiredChain={shownStep.requiredChain}>
+      <ShownComponent />
+    </ChainGate>
+  );
 
-  const BTN =
-    'inline-flex h-10 items-center gap-2 border px-3 sm:px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-colors';
+  const BTN = `inline-flex h-10 items-center gap-2 border px-3 sm:px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] ${PRESS_TRANSITION} ${PRESS}`;
   const BTN_GHOST =
     'border-zinc-300 text-zinc-700 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-100 dark:hover:text-zinc-50';
   const BTN_INK =
     'border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300';
 
   return (
-    <motion.div className={className} variants={sectionContainer} initial="hidden" animate="visible" data-console-flow>
-      <motion.nav
-        aria-label="Steps"
-        className={cn('nav-plain flex flex-col', compact ? 'mb-4 gap-2' : 'mb-8 gap-3')}
-        variants={sectionItem}
-      >
+    <div className={className} data-console-flow>
+      <nav aria-label="Steps" className={cn('nav-plain flex flex-col', compact ? 'mb-4 gap-2' : 'mb-8 gap-3')}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <p className="min-w-0 flex-1 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-            Step <span className="text-zinc-900 dark:text-zinc-50">{currentIndex + 1}</span> of {totalSteps}
+          <p
+            className={cn(
+              'min-w-0 flex-1 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400',
+              // con-step-travel: the title dips out with a 2px blur and comes back with the new step's name.
+              'transition-[opacity,filter] ease-[ease]',
+              dipping ? 'duration-[90ms] opacity-0 motion-safe:blur-[2px]' : 'duration-[160ms]',
+            )}
+          >
+            Step <span className="text-zinc-900 dark:text-zinc-50">{shown.index + 1}</span> of {totalSteps}
             <span className="mx-2 text-zinc-300 dark:text-zinc-700">/</span>
-            <span className="text-zinc-900 dark:text-zinc-50">{stepTitle(currentStep)}</span>
+            <span className="text-zinc-900 dark:text-zinc-50">{stepTitle(shownStep, shown.option)}</span>
           </p>
           {navTrailing && <div className="shrink-0">{navTrailing}</div>}
         </div>
 
-        {/* One segment per step: done in ink, current in red, passed-but-unfinished in amber, the rest grey. */}
-        <div className="-my-2 flex gap-1" aria-hidden>
+        {/* One segment per step: done in ink, current in red, passed-but-unfinished in amber, the rest grey. The ink and
+            the amber fill a grey bar, so the step the red mark leaves fills from the side it left (con-step-travel). Each
+            fill keeps one colour, so a step that fills shows its colour at once, and only a hover eases a colour. */}
+        <div className="relative -my-2 flex gap-1" aria-hidden>
           {steps.map((s, i) => {
             const status = statusOf(s, i);
+            // The step the mark leaves fills from the side it left, and eases its hover colour as its neighbours do
+            // (transition-colors: 150ms on the default curve).
+            const fill = cn(
+              'absolute inset-0',
+              i === leftStep
+                ? [
+                    '[transition:scale_300ms_var(--ease-in-out),background-color_150ms_var(--default-transition-timing-function)]',
+                    currentIndex > i ? 'origin-left' : 'origin-right',
+                  ]
+                : 'transition-colors',
+            );
             return (
               // The colour sits on an inner span: the nav's plain-link reset clears backgrounds on its anchors.
               <NavEl key={s.key} stepKey={getStepNavKey(s)} className="group/seg block flex-1">
@@ -378,20 +419,38 @@ export default function StepFlow({
                 <span className="block py-2">
                   <span
                     className={cn(
-                      'block h-1 transition-colors',
-                      status === 'done' &&
-                        'bg-zinc-900 group-hover/seg:bg-zinc-600 dark:bg-zinc-100 dark:group-hover/seg:bg-zinc-400',
-                      status === 'active' && 'bg-[#E6212F]',
-                      status === 'skipped' && 'bg-amber-400 group-hover/seg:bg-amber-500 dark:bg-amber-500/80',
-                      status === 'upcoming' &&
-                        'bg-zinc-200 group-hover/seg:bg-zinc-300 dark:bg-zinc-800 dark:group-hover/seg:bg-zinc-700',
+                      'relative block h-1',
+                      status === 'active'
+                        ? // red as the travelling mark lands on it, not before
+                          'bg-[#E6212F] [transition:background-color_0ms_300ms]'
+                        : 'bg-zinc-200 transition-colors group-hover/seg:bg-zinc-300 dark:bg-zinc-800 dark:group-hover/seg:bg-zinc-700',
                     )}
-                  />
+                  >
+                    <span
+                      className={cn(
+                        fill,
+                        'bg-amber-400 group-hover/seg:bg-amber-500 dark:bg-amber-500/80',
+                        status === 'skipped' ? 'scale-x-100' : 'scale-x-0',
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        fill,
+                        'bg-zinc-900 group-hover/seg:bg-zinc-600 dark:bg-zinc-100 dark:group-hover/seg:bg-zinc-400',
+                        status === 'done' ? 'scale-x-100' : 'scale-x-0',
+                      )}
+                    />
+                  </span>
                 </span>
                 <span className="sr-only">{stepTitle(s)}</span>
               </NavEl>
             );
           })}
+          {/* con-step-travel: one red mark travels from step to step; a second click mid-way retargets it. */}
+          <span
+            className="pointer-events-none absolute left-0 top-2 h-1 bg-[#E6212F] transition-transform duration-300 ease-in-out"
+            style={markStyle(currentIndex, totalSteps)}
+          />
         </div>
 
         {!compact && currentStep.type === 'branch' && (
@@ -493,24 +552,23 @@ export default function StepFlow({
             })}
           </ol>
         )}
-      </motion.nav>
+      </nav>
 
       {aboveBody && (
-        <motion.div
-          className={cn('border-t border-zinc-200 dark:border-zinc-800', compact ? 'py-4' : 'py-6')}
-          variants={sectionItem}
-        >
+        <div className={cn('border-t border-zinc-200 dark:border-zinc-800', compact ? 'py-4' : 'py-6')}>
           {aboveBody}
-        </motion.div>
+        </div>
       )}
 
-      <motion.div variants={sectionItem}>
+      {/* con-step-travel: the step body dips on opacity only and swaps at the bottom of the dip. The step on its way out
+          takes no clicks or focus. */}
+      <div
+        inert={dipping}
+        className={cn('transition-opacity ease-[ease]', dipping ? 'duration-[90ms] opacity-0' : 'duration-[160ms]')}
+      >
         <div className={compact ? 'min-h-[150px]' : 'min-h-[200px]'}>
-          <StepErrorBoundary>
-            <ChainGate requiredChain={currentStep.requiredChain}>
-              <CurrentComponent />
-            </ChainGate>
-          </StepErrorBoundary>
+          {/* Keyed by the step, so a new step mounts fresh with its wrapper, as the route change mounted it. */}
+          <StepErrorBoundary key={shown.key}>{wrapStep ? wrapStep(stepBody) : stepBody}</StepErrorBoundary>
         </div>
 
         <div
@@ -521,7 +579,7 @@ export default function StepFlow({
         >
           {prevLink ? (
             onNavigate ? (
-              <button type="button" onClick={() => goTo(steps[currentIndex - 1])} className={cn(BTN, BTN_GHOST)}>
+              <button type="button" onClick={() => goTo(steps[shown.index - 1])} className={cn(BTN, BTN_GHOST)}>
                 <ArrowLeft className="h-3.5 w-3.5" /> Back
               </button>
             ) : (
@@ -534,11 +592,11 @@ export default function StepFlow({
           )}
 
           <div className="flex min-w-0 items-center gap-2">
-            {'optional' in currentStep &&
-              currentStep.optional &&
+            {'optional' in shownStep &&
+              shownStep.optional &&
               nextLink &&
               (onNavigate ? (
-                <button type="button" onClick={() => goTo(steps[currentIndex + 1])} className={cn(BTN, BTN_GHOST)}>
+                <button type="button" onClick={() => goTo(steps[shown.index + 1])} className={cn(BTN, BTN_GHOST)}>
                   Skip
                 </button>
               ) : (
@@ -564,7 +622,7 @@ export default function StepFlow({
                   type="button"
                   onClick={() => {
                     leaveWithNext();
-                    goTo(steps[currentIndex + 1]);
+                    goTo(steps[shown.index + 1]);
                   }}
                   className={cn(BTN, BTN_INK, 'min-w-0')}
                 >
@@ -584,12 +642,12 @@ export default function StepFlow({
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Completion Modal */}
       {showCompletionModal && flowMetadata && (
         <FlowCompletionModal
-          open={isCompletionModalOpen}
+          open={completionStep !== null}
           onOpenChange={handleCompletionModalChange}
           metadata={flowMetadata}
           transactionHash={transactionHash}
@@ -597,6 +655,6 @@ export default function StepFlow({
           customActions={completionActions}
         />
       )}
-    </motion.div>
+    </div>
   );
 }

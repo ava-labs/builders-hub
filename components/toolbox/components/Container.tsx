@@ -1,10 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
 import { ReportIssueButton } from '@/components/console/report-issue-button';
 import { EditOnGitHubButton } from '@/components/console/edit-on-github-button';
-import { sectionContainer, sectionItem } from '@/components/console/motion';
 
 interface ContainerProps {
   title: string;
@@ -19,11 +17,12 @@ interface ContainerProps {
  *   - title at a measured 2xl with tight leading
  *   - GitHub / Report buttons rendered as subtle ghost-style links, not prominent outlined buttons
  *   - 8-space gap between chrome and body for breathing room without feeling cavernous
+ *   - no entrance of its own: the console pane fades once when a tool opens (con-tool-switch)
  */
 export function Container({ title, children, description, githubUrl }: ContainerProps) {
   return (
-    <motion.div variants={sectionContainer} initial="hidden" animate="visible" data-console-tool={title}>
-      <motion.div variants={sectionItem}>
+    <div data-console-tool={title}>
+      <div>
         <div className="flex flex-col gap-3 border-b border-zinc-200 pb-6 sm:flex-row sm:items-start sm:justify-between dark:border-zinc-800">
           <div className="flex min-w-0 flex-col gap-2">
             <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">
@@ -47,10 +46,8 @@ export function Container({ title, children, description, githubUrl }: Container
             />
           </div>
         </div>
-      </motion.div>
-      <motion.div className="mt-8 space-y-6" variants={sectionItem}>
-        {children}
-      </motion.div>
-    </motion.div>
+      </div>
+      <div className="mt-8 space-y-6">{children}</div>
+    </div>
   );
 }

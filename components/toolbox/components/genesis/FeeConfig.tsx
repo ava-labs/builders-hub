@@ -189,8 +189,8 @@ const FieldTooltip = ({ field }: { field: keyof typeof FIELD_DESCRIPTIONS }) => 
       <TooltipContent className="max-w-xs">
         <div className="space-y-2">
           <p className="font-medium text-xs">{info.title}</p>
-          <p className="text-xs text-zinc-300">{info.description}</p>
-          {'recommendation' in info && <p className="text-xs text-zinc-100">💡 {info.recommendation}</p>}
+          <p className="text-xs text-zinc-300 dark:text-zinc-700">{info.description}</p>
+          {'recommendation' in info && <p className="text-xs">{info.recommendation}</p>}
         </div>
       </TooltipContent>
     </Tooltip>

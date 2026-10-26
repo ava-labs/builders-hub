@@ -3,7 +3,7 @@
 import StepFlow from "@/components/console/step-flow";
 import { steps } from "../steps";
 import { useAddValidatorStore } from "@/components/toolbox/stores/addValidatorStore";
-import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManagerLayout";
+import ValidatorManagerLayout, { validatorManagerPerStep } from "@/components/toolbox/contexts/ValidatorManagerLayout";
 import { useSubnetIdQuery } from "@/components/toolbox/hooks/useSubnetIdQuery";
 
 export default function AddValidatorClientPage({ currentStepKey }: { currentStepKey: string }) {
@@ -12,11 +12,12 @@ export default function AddValidatorClientPage({ currentStepKey }: { currentStep
   useSubnetIdQuery(subnetIdL1, flowCompleted, setSubnetIdL1);
 
   return (
-    <ValidatorManagerLayout subnetIdL1={subnetIdL1}>
+    <ValidatorManagerLayout subnetIdL1={subnetIdL1} providerPerStep>
       <StepFlow
         steps={steps}
         basePath={basePath}
         currentStepKey={currentStepKey}
+        wrapStep={validatorManagerPerStep(subnetIdL1)}
         transactionHash={pChainTxId || undefined}
       />
     </ValidatorManagerLayout>

@@ -13,6 +13,13 @@ import type { Requirement } from '../types/requirements';
 const GATE_FRAME =
   'flex min-h-[calc(var(--console-viewport)-var(--header-height)-8rem)] items-center justify-center md:min-h-[calc(var(--console-viewport)-var(--header-height)-10rem)]';
 
+/**
+ * con-tool-switch: the loader waits 400ms, then fades in over 150ms, so a quick check never flashes it. Under Reduce
+ * Motion the reducer in app/global.css would drop the wait, so the wait and the fade are kept there too.
+ */
+const LOADER_WAIT =
+  'animate-[vs-fade-in_150ms_var(--ease-out)_400ms_both] motion-reduce:[animation-delay:400ms]! motion-reduce:[animation-duration:150ms]!';
+
 // Export config key enums for convenience
 export { WalletRequirementsConfigKey, AccountRequirementsConfigKey };
 
@@ -100,7 +107,7 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (state.isLoading) {
     return (
-      <div className={GATE_FRAME}>
+      <div className={`${GATE_FRAME} ${LOADER_WAIT}`}>
         <div className={`${PANEL} flex items-center justify-center gap-2 px-6 py-8`}>
           <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
           <p className={EYEBROW}>Checking requirements…</p>

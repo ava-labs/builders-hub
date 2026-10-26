@@ -10,6 +10,14 @@ export interface ConsoleNotification {
   txHash?: string;
   explorerUrl?: string;
   timestamp: number;
+  /** When the status left 'loading' (set by updateNotification), so the Activity dot follows the last result. */
+  resolvedAt?: number;
+}
+
+/** `n` with `update` applied. Leaving 'loading' stamps the time the result landed. */
+function applyUpdate(n: ConsoleNotification, update: Partial<ConsoleNotification>): ConsoleNotification {
+  const resolves = n.status === 'loading' && update.status !== undefined && update.status !== 'loading';
+  return resolves ? { ...n, ...update, resolvedAt: Date.now() } : { ...n, ...update };
 }
 
 interface NotificationPanelStore {
@@ -38,7 +46,7 @@ export const useNotificationPanelStore = create<NotificationPanelStore>((set) =>
   },
   updateNotification: (id, update) => {
     set((state) => ({
-      notifications: state.notifications.map((n) => (n.id === id ? { ...n, ...update } : n)),
+      notifications: state.notifications.map((n) => (n.id === id ? applyUpdate(n, update) : n)),
     }));
   },
   removeNotification: (id) => {

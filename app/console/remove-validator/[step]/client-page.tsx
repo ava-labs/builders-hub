@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import StepFlow, { type StepDefinition } from "@/components/console/step-flow";
 import { steps as fullSteps } from "../steps";
 import { useRemoveValidatorStore } from "@/components/toolbox/stores/removeValidatorStore";
-import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManagerLayout";
+import ValidatorManagerLayout, { validatorManagerPerStep } from "@/components/toolbox/contexts/ValidatorManagerLayout";
 import { useSubnetIdQuery } from "@/components/toolbox/hooks/useSubnetIdQuery";
 import { useValidatorManagerContext } from "@/components/toolbox/contexts/ValidatorManagerContext";
 
@@ -17,6 +17,10 @@ import { useValidatorManagerContext } from "@/components/toolbox/contexts/Valida
  * While detection is loading we keep the full PoS-including list so a deep
  * link to /claim-fees doesn't 404 on a refresh before context resolves; the
  * step itself still has an "n/a for PoA" placeholder as a backstop.
+ *
+ * The flow stays mounted from step to step (con-step-travel), so this outer
+ * provider loads once per flow; each step gets a provider of its own through
+ * wrapStep, which reads the manager afresh on every step.
  */
 function RemoveValidatorFlow({
   basePath,
@@ -42,6 +46,7 @@ function RemoveValidatorFlow({
       steps={steps}
       basePath={basePath}
       currentStepKey={currentStepKey}
+      wrapStep={validatorManagerPerStep(vmcCtx.subnetId)}
       transactionHash={pChainTxId || undefined}
     />
   );
