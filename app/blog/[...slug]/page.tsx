@@ -14,6 +14,9 @@ import {
 } from "fumadocs-ui/components/codeblock";
 import { BadgeCheck } from "lucide-react";
 import { Feedback } from "@/components/ui/feedback";
+import { ZoomableImage } from "@/components/ui/zoomable-image";
+import { BlogOutline } from "@/components/blog/blog-outline";
+import { blogOutline } from "@/app/blog/outline";
 import posthog from "posthog-js";
 import { formatBlogDate } from "@/utils/formatBlogDate";
 
@@ -31,6 +34,8 @@ export default async function Page(props: {
   // (e.g., "post-name/index.mdx" for an index file)
   // This correctly handles both regular .mdx files and index.mdx files
   const path = `content/blog/${page.path}`;
+  // eco-blog-outline: the post's h2 and h3 headings, listed under the meta from three up
+  const outline = blogOutline(page.data.toc);
 
   return (
     <>
@@ -57,12 +62,14 @@ export default async function Page(props: {
           Back
         </Link>
       </div>
-      <article className="container grid grid-cols-1 px-0 py-8 lg:grid-cols-[2fr_1fr] lg:px-4">
+      <article className="blog-article container grid grid-cols-1 px-0 py-8 lg:grid-cols-[2fr_1fr] lg:px-4">
         <div className="prose p-4">
           <MDX
             components={{
               ...sharedMDXComponents,
               BadgeCheck,
+              // eco-blog-image-zoom: a chart opens full size from where it sits
+              img: ZoomableImage,
               pre: ({
                 title,
                 className,
@@ -91,7 +98,7 @@ export default async function Page(props: {
         </div>
         <div className="flex flex-col gap-4 border-l p-4 text-sm">
           <div>
-            <p className="mb-1 text-muted-foreground">Written by</p>
+            <p className="mb-1 text-zinc-600 dark:text-muted-foreground">Written by</p>
             <div className="col-span-2 flex flex-col gap-2">
               {((page.data.authors as string[]) || []).map((author: string) => (
                 <Link
@@ -106,26 +113,30 @@ export default async function Page(props: {
             </div>
           </div>
           <div>
-            <p className="mb-1 text-sm text-muted-foreground">On</p>
+            <p className="mb-1 text-sm text-zinc-600 dark:text-muted-foreground">On</p>
             <p className="font-medium">
               {formatBlogDate(page.data.date as string | Date)}
             </p>
           </div>
 
           <div>
-            <p className="mb-2 text-muted-foreground">Topics</p>
+            <p className="mb-2 text-zinc-600 dark:text-muted-foreground">Topics</p>
             <div className="flex flex-wrap items-center gap-4 text-xs">
               {((page.data.topics as string[]) || []).map((item: string) => (
                 <span
                   key={item}
-                  className="relative z-10 rounded-full bg-fd-accent px-3 py-1.5 font-medium text-muted-foreground"
+                  className="relative z-10 rounded-full bg-fd-accent px-3 py-1.5 font-medium text-zinc-600 dark:text-muted-foreground"
                 >
                   {item}
                 </span>
               ))}
             </div>
           </div>
+          {outline && <BlogOutline items={outline} />}
         </div>
+        {/* eco-blog-progress: a 2px line under the navbar fills as the article is read, driven by the scroll alone
+            (app/global.css) */}
+        <div aria-hidden="true" className="blog-reading-line bg-zinc-900 dark:bg-zinc-100" />
       </article>
     </>
   );

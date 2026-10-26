@@ -10,7 +10,7 @@ import {
 } from "../ui/select";
 import HackathonCard from "./HackathonCard";
 import { HackathonHeader, HackathonsFilters } from "@/types/hackathons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Separator } from "../ui/separator";
@@ -73,6 +73,51 @@ function labelForEventType(eventType: string) {
   return eventType.charAt(0).toUpperCase() + eventType.slice(1);
 }
 
+/**
+ * eco-events-pagination: the past-events query whose cards are on screen, and how many times a fetch has swapped the
+ * cards. While the query asked for differs from it, a fetch is running and the cards on screen are stale.
+ */
+export interface PastLanding {
+  query: string;
+  swaps: number;
+}
+
+/**
+ * The landing once a fetch for `query` ends, with the cards it brought (`swapped`) or after a failure, which leaves the
+ * old cards. A fetch for the query already on screen (the first one repeats what the server rendered) changes nothing.
+ */
+export function landPastEvents(landed: PastLanding, query: string, swapped: boolean): PastLanding {
+  if (landed.query === query) return landed;
+  return { query, swaps: swapped ? landed.swaps + 1 : landed.swaps };
+}
+
+/** eco-events-pagination: how long (ms) each card a fetch brought waits after the one before it. */
+const PAST_STAGGER = 40;
+/** The last card that waits longer than the one before it: from the eighth on, cards wait 280ms, on a page of 60 too. */
+const PAST_STAGGER_LAST = 7;
+
+/**
+ * eco-events-pagination: the motion of the past-event card at `index`. While a fetch runs (`pending`) it dims to 0.45
+ * in 120ms ease; once a fetch has swapped the cards (`swaps` > 0) it fades in from 0 in 180ms on the strong ease-out,
+ * PAST_STAGGER after the card before it, up to the eighth card. Under Reduce Motion the dim and the fade stay at 120ms,
+ * and the site policy drops the stagger. The cards the server sent show at once.
+ */
+export function pastCardMotion(
+  index: number,
+  pending: boolean,
+  swaps: number,
+): { className: string; style?: CSSProperties } {
+  const className = [
+    "transition-[opacity] duration-120 ease-[ease] motion-reduce:duration-120!",
+    pending ? "opacity-45" : "",
+    swaps > 0 ? "animate-[vs-fade-in_180ms_var(--ease-out)_backwards] motion-reduce:[animation-duration:120ms]!" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  if (swaps === 0) return { className };
+  return { className, style: { animationDelay: `${Math.min(index, PAST_STAGGER_LAST) * PAST_STAGGER}ms` } };
+}
+
 type Props = {
   initialPastEvents: HackathonHeader[];
   initialUpcomingEvents: HackathonHeader[];
@@ -120,6 +165,11 @@ export default function Events({
   const [searchValue, setSearchValue] = useState("");
   const [activeEventType, setActiveEventType] = useState<string>("all");
   const [pastEventType, setPastEventType] = useState<string>("");
+  // eco-events-pagination: the past cards on screen belong to pastLanding.query; a page, search or filter change asks
+  // for another query, and until its fetch lands the cards dim
+  const pastQuery = buildQueryString(filters, searchQuery, pageSize, pastEventType);
+  const [pastLanding, setPastLanding] = useState<PastLanding>({ query: pastQuery, swaps: 0 });
+  const pastPending = pastQuery !== pastLanding.query;
 
   // Search debounce
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -159,8 +209,8 @@ export default function Events({
     const signal = abortController.signal;
 
     async function fetchEvents() {
+      const queryString = buildQueryString(filters, searchQuery, pageSize, pastEventType);
       try {
-        const queryString = buildQueryString(filters, searchQuery, pageSize, pastEventType);
         const { data } = await axios.get(
           `/api/events?${queryString}&status=ENDED`,
           {
@@ -171,10 +221,12 @@ export default function Events({
         if (!signal.aborted) {
           setPastEvents(data.hackathons);
           setTotalPages(Math.ceil(data.total / pageSize));
+          setPastLanding((landed) => landPastEvents(landed, queryString, true));
         }
       } catch (err: any) {
         if (!signal.aborted) {
           console.error("Error fetching events:", err);
+          setPastLanding((landed) => landPastEvents(landed, queryString, false));
         }
       }
     }
@@ -466,10 +518,17 @@ export default function Events({
             </Select>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
-          {pastEvents.map((event: any) => (
-              <HackathonCard key={event.id} hackathon={event} basePath="/events" />
-            ))}
+        {/* eco-events-pagination: while a fetch runs the grid takes no clicks and its cards dim; the cards a fetch
+            brings mount fresh (keyed by the swap) and fade in */}
+        <div
+          className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8 aria-busy:pointer-events-none"
+          aria-busy={pastPending}
+        >
+          {pastEvents.map((event: any, i: number) => (
+            <div key={`${pastLanding.swaps}:${event.id}`} {...pastCardMotion(i, pastPending, pastLanding.swaps)}>
+              <HackathonCard hackathon={event} basePath="/events" />
+            </div>
+          ))}
         </div>
         <Pagination className="flex justify-end gap-2">
           <PaginationContent className="flex-wrap cursor-pointer">

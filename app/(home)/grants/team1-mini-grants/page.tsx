@@ -26,20 +26,21 @@ export default function Team1MiniGrantsPage() {
             </p>
           </div>
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons. eco-grants-cta: no hover growth and the rest glow kept; a press scales to 0.97 in 160ms on the
+              strong ease-out (a dim under Reduce Motion), and hover nudges the arrow 3px. */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
             <Link
               href="/grants/team1-mini-grants/apply"
-              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-xl shadow-red-500/30 hover:shadow-2xl hover:shadow-red-500/50 hover:scale-[1.02] transition-all duration-300"
+              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-xl shadow-red-500/30 transition-[scale] duration-160 ease-out active:scale-[0.97] motion-reduce:active:scale-100 motion-reduce:active:opacity-85"
             >
               Apply Now
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-5 h-5 ml-2 transition-[translate] duration-200 ease-out motion-safe:group-hover:translate-x-[3px]" />
             </Link>
             <a
               href="https://team1.network/grants"
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-white/10 backdrop-blur-sm border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 dark:border-slate-700/40"
+              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-white/10 backdrop-blur-sm border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 transition-[background-color,scale] duration-[150ms,160ms] ease-[ease,var(--ease-out)] active:scale-[0.97] motion-reduce:active:scale-100 motion-reduce:active:opacity-85 dark:border-slate-700/40"
             >
               <ExternalLink className="w-5 h-5 mr-2" />
               Learn More

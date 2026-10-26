@@ -60,11 +60,8 @@ export function BlogList({ blogs }: BlogListProps) {
           {filteredBlogs[0] && (
             <Link
               href={filteredBlogs[0].url}
-              className="group relative flex flex-col md:flex-row gap-6 rounded-xl border border-primary/30 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm p-6 md:p-8 shadow-lg transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 dark:from-card-dark/80 dark:to-card-dark/60 dark:border-white/20 dark:hover:border-white/30 mb-8"
+              className="group relative flex flex-col md:flex-row gap-6 rounded-xl border border-primary/30 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm p-6 md:p-8 shadow-lg transition-[border-color,scale] duration-[150ms,160ms] ease-[ease,var(--ease-out)] hover:border-primary/50 active:scale-[0.985] motion-reduce:active:scale-100 motion-reduce:active:opacity-85 dark:from-card-dark/80 dark:to-card-dark/60 dark:border-white/20 dark:hover:border-white/30 mb-8"
             >
-              {/* Hover gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 rounded-xl" />
-
               <div className="relative flex-1 flex flex-col">
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-3">
@@ -116,9 +113,12 @@ export function BlogList({ blogs }: BlogListProps) {
                       <span className="text-xs">+{filteredBlogs[0].data.authors.length - 2}</span>
                     )}
                   </div>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-transform group-hover:translate-x-1">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
                     Read article
-                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight
+                      size={16}
+                      className="transition-[translate] duration-200 ease-out motion-safe:group-hover:translate-x-[3px]"
+                    />
                   </span>
                 </div>
               </div>
@@ -131,11 +131,8 @@ export function BlogList({ blogs }: BlogListProps) {
               <Link
                 key={post.url}
                 href={post.url}
-                className="group relative flex flex-col rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 dark:bg-card-dark/60 dark:border-white/20 dark:hover:border-white/30 overflow-hidden"
+                className="group relative flex flex-col rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm shadow-md transition-[border-color,scale] duration-[150ms,160ms] ease-[ease,var(--ease-out)] hover:border-primary/40 active:scale-[0.985] motion-reduce:active:scale-100 motion-reduce:active:opacity-85 dark:bg-card-dark/60 dark:border-white/20 dark:hover:border-white/30 overflow-hidden"
               >
-                {/* Hover gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
                 <div className="relative flex flex-col h-full p-6">
                   {/* Header */}
                   <time className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-3">
@@ -184,9 +181,12 @@ export function BlogList({ blogs }: BlogListProps) {
                         <span className="text-xs">+{post.data.authors.length - 2}</span>
                       )}
                     </div>
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary transition-transform group-hover:translate-x-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
                       Read
-                      <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                      <ArrowRight
+                        size={14}
+                        className="transition-[translate] duration-200 ease-out motion-safe:group-hover:translate-x-[3px]"
+                      />
                     </span>
                   </div>
                 </div>

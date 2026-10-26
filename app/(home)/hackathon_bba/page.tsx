@@ -137,7 +137,7 @@ const TrackCard: React.FC<{ track: Track }> = ({ track }) => {
         onClick={() => setIsModalOpen(true)}
       >
         <div className="absolute top-3 right-3 text-gray-400 transition-all duration-300 ease-in-out group-hover:text-blue-600">
-          <ArrowUpRight size={28} className="transform transition-transform duration-300 ease-in-out group-hover:translate-x-1 group-hover:-translate-y-1"/>
+          <ArrowUpRight size={28} className="transform transition-transform duration-300 ease-out group-hover:translate-x-1 group-hover:-translate-y-1"/>
         </div>
         <div className="p-6 flex-grow">
           <div className="flex items-center mb-4">

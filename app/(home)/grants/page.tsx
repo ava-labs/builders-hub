@@ -44,14 +44,16 @@ function ProgramCard({ title, description, href, external, image }: ProgramCardP
 
   return (
     <CardWrapper {...linkProps} className="block group">
-      <div className="relative overflow-hidden rounded-lg transition-all duration-300 hover:shadow-xl h-[280px] border border-zinc-200/50 dark:border-zinc-800/50">
+      {/* eco-photo-cards: one gesture per card. The shadow changes in 200ms ease; the photo zooms to 1.03 in 700ms and
+          comes back in 300ms on the strong ease-out (not under Reduce Motion); the title holds still. */}
+      <div className="relative overflow-hidden rounded-lg transition-[box-shadow] duration-200 ease-[ease] hover:shadow-xl h-[280px] border border-zinc-200/50 dark:border-zinc-800/50">
         {/* Image background */}
         <Image
           src={image}
           alt={title}
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-[scale] duration-300 group-hover:duration-700 ease-out motion-safe:group-hover:scale-103"
         />
 
         {/* Dark overlay for text readability */}
@@ -59,7 +61,7 @@ function ProgramCard({ title, description, href, external, image }: ProgramCardP
 
         {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <h3 className="text-xl font-bold text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">
+          <h3 className="text-xl font-bold text-white mb-2">
             {title}
           </h3>
           <p className="text-white/80 text-sm line-clamp-2">
@@ -67,8 +69,9 @@ function ProgramCard({ title, description, href, external, image }: ProgramCardP
           </p>
         </div>
 
-        {/* Hover arrow */}
-        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+        {/* Hover arrow: it fades in 200ms ease and travels its 8px in 200ms on the strong ease-out, so it arrives with
+            the zoom; under Reduce Motion it rests in place and only fades */}
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-[opacity,translate] duration-200 ease-[ease,var(--ease-out)] transform translate-x-2 group-hover:translate-x-0 motion-reduce:translate-x-0">
           <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
             <ArrowRight className="w-4 h-4 text-white" />
           </div>
@@ -101,20 +104,21 @@ export default function Page() {
                 Empowering innovators to build the future of blockchain technology with scalable and sustainable solutions.
               </p>
 
-              {/* CTA Buttons */}
+              {/* CTA Buttons. eco-grants-cta: no hover growth and the rest glow kept; a press scales to 0.97 in 160ms on
+                  the strong ease-out (a dim under Reduce Motion), and hover nudges the arrow 3px. */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
                 <a
                   href="#programs"
-                  className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-xl shadow-red-500/30 hover:shadow-2xl hover:shadow-red-500/50 hover:scale-[1.02] transition-all duration-300"
+                  className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-xl shadow-red-500/30 transition-[scale] duration-160 ease-out active:scale-[0.97] motion-reduce:active:scale-100 motion-reduce:active:opacity-85"
                 >
                   View Programs
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-5 h-5 ml-2 transition-[translate] duration-200 ease-out motion-safe:group-hover:translate-x-[3px]" />
                 </a>
                 <a
                   href="https://immunefi.com/bug-bounty/avalanche/information/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-white/10 backdrop-blur-sm border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 dark:border-slate-700/40"
+                  className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold tracking-[-0.015em] rounded-xl bg-white/10 backdrop-blur-sm border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 transition-[background-color,scale] duration-[150ms,160ms] ease-[ease,var(--ease-out)] active:scale-[0.97] motion-reduce:active:scale-100 motion-reduce:active:opacity-85 dark:border-slate-700/40"
                 >
                   <Shield className="w-5 h-5 mr-2" />
                   Bug Bounty
