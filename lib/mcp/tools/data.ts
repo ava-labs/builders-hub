@@ -2,63 +2,54 @@
  * On-chain data tool domain (consolidated).
  *
  * Three parameterized tools replace the eight PR-#4302 data/stats tools:
- *  - onchain_lookup   — resolve any identifier (address / contract / token / NFT /
- *                       tx / subnet / validator / chain) via the indexed Glacier API.
- *  - onchain_activity — time-windowed feeds ("what happened in the last N hours");
- *                       EVM activity via the query gateway, P-chain + asset
- *                       transfers from Glacier.
- *  - chain_stats      — chain/contract metrics via the query gateway,
- *                       P-chain validator snapshot from Glacier.
+ *  - onchain_lookup:   resolve any identifier (address / contract / token / NFT /
+ *                      tx / subnet / validator / chain) via the indexed Glacier API.
+ *  - onchain_activity: recent feeds: EVM transactions from Glacier with the
+ *                      chain's window count from the Stats API, P-chain +
+ *                      asset transfers from Glacier.
+ *  - chain_stats:      chain metrics from the Stats API, P-chain validator
+ *                      snapshot from Glacier.
  *
- * Backend split: indexed EVM flow data (tx counts, gas, fees, time-series) goes
- * through the hardened query gateway, whose CATEGORY ROUTER picks the most
- * accurate live source PER FIELD (ClickHouse for exact counts/senders, settled
- * stats-api buckets for window gas/fees, Glacier for exact per-tx detail rows)
- * and stamps every field + flags every caveat in the envelope (sources/warnings)
- * — the wrappers pass those through verbatim (gatewayMeta). Direct identifier
- * lookups (tx validation, balances, metadata) stay MCP-side on Glacier: exact,
- * real-time, no extra hop. The MCP never touches ClickHouse or its creds;
- * `onchain_query` exposes the gateway's typed intents directly.
+ * Backend split: aggregated EVM data (tx counts, gas, fees, time-series) comes
+ * from the public Stats API (stats-api.avax.network), which serves closed
+ * periods only. Direct identifier lookups (tx validation, balances, metadata)
+ * use Glacier: exact and real-time. The MCP holds no database credentials.
  */
 
 import { glacierFetch, fetchErc20Balances } from '@/lib/rwa/glacier/client';
+import { statsApi } from '@/lib/stats-api';
 import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 import {
   assertChainId,
-  toSafeHexAddr,
   assertSafeHours,
   assertSafeDays,
   clampLimit,
 } from './lib/clickhouse-safe';
-import { gatewayQuery, gatewayConfigured } from './lib/gateway-client';
-import type { GatewayResult } from './lib/gateway-client';
 import { P_CHAIN_ID, X_CHAIN_ID, C_CHAIN_EVM_ID, NETWORKS, networkSchemaProp } from './lib/constants';
 import { getString, errorResult, rejectBadEnum } from './lib/tool-helpers';
 
-/**
- * Pass the gateway's routing metadata through to the model VERBATIM: per-field
- * source stamps, mandatory caveat flags (warnings), settle coverage, degrade
- * reasons, and staleness stamps. The model is instructed (tool descriptions) to
- * relay any warning to the user — a flagged number must never be presented as
- * exact. Dropping these here would silently undo the gateway's routing honesty.
- */
-function gatewayMeta(gw: GatewayResult): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  if (gw.sources) out.sources = gw.sources;
-  if (gw.warnings?.length) out.warnings = gw.warnings;
-  if (gw.settledFromSec) out.settledFromSec = gw.settledFromSec;
-  if (gw.settledThroughSec) out.settledThroughSec = gw.settledThroughSec;
-  if (gw.degraded) {
-    out.degraded = gw.degraded;
-    out.note = gw.message;
-  }
-  if (gw.servedStale) {
-    out.servedStale = true;
-    out.asOf = gw.asOf;
-  }
-  return out;
+interface StatsPoint {
+  value: number;
+  timestamp: number;
+}
+
+// The Stats API's page limit: 90 days of hourly buckets.
+const STATS_MAX_PAGE = 2160;
+const STATS_METRICS = ['txCount', 'gasUsed', 'feesPaid', 'activeSenders', 'avgGasPrice'] as const;
+const STATS_UNITS = 'gasUsed in gas units, feesPaid in the native token, avgGasPrice in gwei';
+
+/** One metric's buckets from startSec on, oldest first; null when the Stats API has no data for it. */
+async function statsMetric(chainId: number, metric: string, interval: string, startSec: number): Promise<StatsPoint[] | null> {
+  const page = await statsApi<{ results?: StatsPoint[] }>(
+    `/v2/chains/${chainId}/metrics/${metric}?timeInterval=${interval}&startTimestamp=${startSec}&pageSize=${STATS_MAX_PAGE}`,
+  );
+  return page?.results ? [...page.results].reverse() : null;
+}
+
+function sumOf(points: StatsPoint[] | null): number | undefined {
+  return points ? points.reduce((n, p) => n + p.value, 0) : undefined;
 }
 
 function getNetwork(args: Record<string, unknown>): Network {
@@ -117,20 +108,9 @@ function detectKind(value: string): string {
 const KINDS = ['auto', 'address', 'contract', 'token', 'nft', 'transaction', 'subnet', 'validator', 'chain', 'pchain'] as const;
 const SCOPES = ['address', 'chain', 'token', 'contract', 'primary'] as const;
 const FEEDS = ['transactions', 'transfers', 'erc20Transfers', 'nftTransfers'] as const;
-const TARGETS = ['chain', 'contract', 'network'] as const;
+const TARGETS = ['chain', 'network'] as const;
 const WINDOWS = ['series', 'recent'] as const;
 const TIME_INTERVALS = ['hour', 'day', 'week', 'month'] as const;
-const DSL_OPS = [
-  'chainStatsRecent',
-  'chainStatsSeries',
-  'addressActivity',
-  'chainActivity',
-  'contractStats',
-  'protocolRanking',
-  'contractGasFlow',
-  'topUnknownContracts',
-  'chainGasTotal',
-] as const;
 
 // Accept both the prefixed tooling form (P-avax1…/X-fuji1…) and the BARE bech32 that
 // Core wallet actually copies (avax1…/fuji1…). HRP is pinned to Avalanche networks so a
@@ -443,49 +423,48 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
       });
     }
 
-    // EVM time-windowed activity — via the query gateway, which routes per field
-    // (exact window count + detail rows from the best live source, each stamped).
-    // Only if the GATEWAY ITSELF is unreachable, fall back to Glacier latest so
-    // the tool still answers (the time window is not applied there).
+    // EVM transaction feeds. Glacier gives the latest transactions. For scope=chain the
+    // Stats API adds the transaction count over the last `hours` (closed hours only).
+    // There is no per-address window count, so an address feed is the latest page only.
     if ((scope === 'chain' || scope === 'address') && feed === 'transactions') {
       const cid = assertChainId(getChainId(args));
       const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 2), 24 * 30);
-      const limit = clampLimit(args.pageSize, 100, 25);
-      const addrHex = scope === 'address' ? toSafeHexAddr(getString(args, 'value')) : '';
-      try {
-        const op = addrHex ? 'addressActivity' : 'chainActivity';
-        const params: Record<string, unknown> = { chainId: cid, hours, limit };
-        if (addrHex) params.address = addrHex;
-        const gw = await gatewayQuery(op, params);
-        const sample = (gw.results.sample ?? []) as Array<Record<string, unknown>>;
-        const countRow = (gw.results.count?.[0] ?? {}) as { n?: number };
+      const chainSeg = safeChainSeg(String(cid));
+      const pageSize = String(clampLimit(args.pageSize, 100, 25));
+      // This feed cannot apply a timestamp range; say so instead of answering as if it matched.
+      const rangeNote =
+        fromTs != null || toTs != null
+          ? ' The fromTimestamp/toTimestamp you passed were not applied. For a timestamp-range feed, query a P-/X-Chain address with scope=primary.'
+          : '';
+      if (scope === 'address') {
+        const addr = safeAddr(getString(args, 'value'));
+        const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/addresses/${addr}/transactions`, { pageSize });
         return json({
-          source: gw.source,
+          source: 'glacier',
           scope,
-          chainId: cid,
-          windowHours: hours,
-          txCountInWindow: Number(countRow.n ?? sample.length),
-          sampleSize: sample.length,
-          // This EVM feed windows by `hours` only; if a timestamp range was passed it was not
-          // applied — say so instead of returning the default-window data as if it matched.
-          ...(fromTs != null || toTs != null
-            ? { note: `This feed windows by \`hours\` (used the last ${hours}h); the fromTimestamp/toTimestamp you passed were not applied. For a timestamp-range feed, query a P-/X-Chain address with scope=primary.` }
-            : {}),
-          ...gatewayMeta(gw),
-          sampleTransactions: sample,
+          chainId: chainSeg,
+          address: addr,
+          note: `Latest transactions for the address. No time window applies to address feeds.${rangeNote}`,
+          result,
         });
-      } catch {
-        // Data gateway unreachable → Glacier fallback (latest; time window NOT applied).
-        const chainSeg = safeChainSeg(String(cid));
-        const pageSize = String(limit);
-        if (scope === 'address') {
-          const addr = safeAddr(getString(args, 'value'));
-          const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/addresses/${addr}/transactions`, { pageSize });
-          return json({ source: 'glacier-fallback', scope, chainId: chainSeg, address: addr, note: 'Data gateway unreachable — latest transactions from Glacier; the time window was NOT applied.', result });
-        }
-        const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/transactions`, { pageSize });
-        return json({ source: 'glacier-fallback', scope: 'chain', chainId: chainSeg, note: 'Data gateway unreachable — latest chain transactions from Glacier; the time window was NOT applied.', result });
       }
+      const [result, hourly] = await Promise.all([
+        glacierFetch<unknown>(`/v1/chains/${chainSeg}/transactions`, { pageSize }),
+        statsMetric(cid, 'txCount', 'hour', Math.floor(Date.now() / 1000) - hours * 3600),
+      ]);
+      return json({
+        source: hourly ? 'glacier+stats-api' : 'glacier',
+        scope,
+        chainId: chainSeg,
+        windowHours: hours,
+        txCountInWindow: sumOf(hourly),
+        note:
+          (hourly
+            ? 'txCountInWindow counts closed hours only (Stats API). The sample is the latest transactions (Glacier).'
+            : 'The Stats API has no hourly data for this chain, so there is no window count. The sample is the latest transactions (Glacier).') +
+          rangeNote,
+        result,
+      });
     }
 
     // Glacier — P/X-chain primary network feed.
@@ -551,6 +530,11 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
 // ---------------------------------------------------------------------------
 
 async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
+  if (getString(args, 'target') === 'contract') {
+    return errorResult(
+      'Error: per-contract stats are not available. Run SQL on the indexed data in the Builder Hub explorer Query page: https://build.avax.network/explorer/mainnet/query',
+    );
+  }
   const enumErr =
     rejectBadEnum(args, 'network', NETWORKS) ||
     rejectBadEnum(args, 'target', TARGETS) ||
@@ -564,72 +548,63 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
     if (target === 'chain') {
       const cid = assertChainId(getChainId(args));
       const window = getString(args, 'window', 'recent');
-      // Validate window params BEFORE the gateway call so an out-of-range days/hours
-      // surfaces as an honest validation error via the outer catch — not a false
-      // "gateway unreachable" fallback. The inner catch is only for a real outage.
-      const gwUnreachable = async () => {
-        const chainSeg = safeChainSeg(String(cid));
-        const latest = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/blocks`, { pageSize: '1' }).catch(() => null);
-        return json({ source: 'glacier-fallback', target: 'chain', chainId: chainSeg, note: 'Data gateway unreachable — latest-block snapshot from Glacier (no time-window aggregation).', latestBlock: latest });
-      };
+      const nowSec = Math.floor(Date.now() / 1000);
       if (window === 'series') {
         const days = assertSafeDays(typeof args.days === 'number' ? args.days : Number(args.days || 30), 365);
         const rawInterval = getString(args, 'timeInterval', 'day');
         const interval = (TIME_INTERVALS as readonly string[]).includes(rawInterval) ? rawInterval : 'day';
-        try {
-          const gw = await gatewayQuery('chainStatsSeries', { chainId: cid, days, bucket: interval });
-          return json({
-            source: gw.source,
-            target,
-            chainId: cid,
-            timeInterval: interval,
-            days,
-            ...gatewayMeta(gw),
-            series: gw.results.series ?? [],
-          });
-        } catch {
-          return gwUnreachable();
+        if (interval === 'hour' && days > 90) {
+          return errorResult('Error: timeInterval=hour supports at most 90 days. Use day, week or month for a longer window.');
         }
-      }
-      const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 24), 24 * 30);
-      try {
-        const gw = await gatewayQuery('chainStatsRecent', { chainId: cid, hours });
+        const all = await Promise.all(STATS_METRICS.map((m) => statsMetric(cid, m, interval, nowSec - days * 86400)));
+        if (all.every((points) => !points)) {
+          return errorResult(`Error: the Stats API has no ${interval} data for chain ${cid}.`);
+        }
+        // One row per bucket, with each metric as a field.
+        const rows = new Map<number, Record<string, number>>();
+        STATS_METRICS.forEach((metric, i) => {
+          for (const p of all[i] ?? []) {
+            const row = rows.get(p.timestamp) ?? { timestamp: p.timestamp };
+            row[metric] = p.value;
+            rows.set(p.timestamp, row);
+          }
+        });
         return json({
-          source: gw.source,
+          source: 'stats-api',
           target,
           chainId: cid,
-          windowHours: hours,
-          ...gatewayMeta(gw),
-          metrics: gw.results.metrics?.[0] ?? {},
+          timeInterval: interval,
+          days,
+          units: STATS_UNITS,
+          note: 'Closed periods only: the current period is not included.',
+          series: [...rows.values()].sort((a, b) => a.timestamp - b.timestamp),
         });
-      } catch {
-        return gwUnreachable();
       }
-    }
-
-    if (target === 'contract') {
-      const cid = assertChainId(getChainId(args));
-      const addr = toSafeHexAddr(getString(args, 'value') || getString(args, 'contract'));
-      const days = assertSafeDays(typeof args.days === 'number' ? args.days : Number(args.days || 30), 365);
-      const gw = await gatewayQuery('contractStats', { chainId: cid, contract: addr, days });
-      // Per-contract stats are a days-based aggregate only — there is no per-contract
-      // time-series or hourly granularity. Say so instead of silently ignoring
-      // window:series / hours and returning the default-window aggregate as if it matched.
-      const askedSeries = getString(args, 'window') === 'series';
-      const askedHours = args.hours != null;
-      const paramNote =
-        askedSeries || askedHours
-          ? `Per-contract stats are a ${days}-day aggregate — there is no per-contract time-series or hourly granularity.${askedSeries ? ' window:series was not applied.' : ''}${askedHours ? ' `hours` was not applied; use `days`.' : ''}`
-          : undefined;
+      const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 24), 24 * 30);
+      const startSec = nowSec - hours * 3600;
+      const [tx, gas, fees, price] = await Promise.all(
+        ['txCount', 'gasUsed', 'feesPaid', 'avgGasPrice'].map((m) => statsMetric(cid, m, 'hour', startSec)),
+      );
+      if (!tx) return errorResult(`Error: the Stats API has no hourly data for chain ${cid}.`);
+      const txCount = sumOf(tx) ?? 0;
+      // An hour's avgGasPrice is a per-transaction mean, so weight it by that hour's txCount.
+      const txByHour = new Map(tx.map((p) => [p.timestamp, p.value]));
+      const weightedPrice = price?.reduce((n, p) => n + p.value * (txByHour.get(p.timestamp) ?? 0), 0);
       return json({
-        source: gw.source,
+        source: 'stats-api',
         target,
         chainId: cid,
-        contract: `0x${addr}`,
-        days,
-        ...(paramNote ? { paramNote } : {}),
-        ...gatewayMeta(gw),
-        stats: gw.results.stats?.[0] ?? {},
+        windowHours: hours,
+        coveredFromSec: tx[0]?.timestamp,
+        coveredThroughSec: tx.length ? tx[tx.length - 1].timestamp + 3600 : undefined,
+        units: STATS_UNITS,
+        note: 'Closed hours only: the current hour is not in the sums. Unique senders do not add up across hours, so activeSenders is not here; use window=series with timeInterval=day.',
+        metrics: {
+          txCount,
+          gasUsed: sumOf(gas),
+          feesPaid: sumOf(fees),
+          avgGasPrice: txCount && weightedPrice != null ? weightedPrice / txCount : undefined,
+        },
       });
     }
 
@@ -642,31 +617,6 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
       note: 'P-chain validator/delegator metrics are a current snapshot — there is no historical P-chain time-series here.',
       result,
     });
-  } catch (err) {
-    return errorResult(asMessage(err));
-  }
-}
-
-// ---------------------------------------------------------------------------
-// onchain_query — direct typed-DSL passthrough to the query gateway
-// ---------------------------------------------------------------------------
-
-async function onchainQuery(args: Record<string, unknown>): Promise<ToolResult> {
-  const op = getString(args, 'op');
-  if (!op || !(DSL_OPS as readonly string[]).includes(op)) {
-    return errorResult(`Error: op must be one of: ${DSL_OPS.join(', ')}.`);
-  }
-  if (!gatewayConfigured()) return errorResult('Error: on-chain query gateway is not configured.');
-  const params =
-    args.params && typeof args.params === 'object' && !Array.isArray(args.params)
-      ? (args.params as Record<string, unknown>)
-      : {};
-  try {
-    // The gateway now decides Fuji freshness per-window and returns its own
-    // degraded/message ONLY when data is genuinely unavailable — pass it through
-    // verbatim. No blanket "frozen, query C-Chain" note: it contradicted the live
-    // stats-api / Glacier responses Fuji now serves, and C-Chain can't serve Fuji.
-    return json({ ...(await gatewayQuery(op, params)) });
   } catch (err) {
     return errorResult(asMessage(err));
   }
@@ -734,7 +684,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_activity',
       description:
-        'Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` (max 720h = 30 days; for longer windows use chain_stats series or onchain_query day-based ops) plus a recent sample. For a token/contract use scope=token (transfers). scope=primary covers P/X-chain and DEFAULTS to P-Chain when no blockchainId is given (so "last N P-chain transactions" just works). A value with no scope defaults to address.',
+        'Recent on-chain activity. scope=chain returns the transaction COUNT over the last `hours` (closed hours, max 720h = 30 days; for longer windows use chain_stats window=series) plus the latest transactions. scope=address returns the latest transactions of the address, with no time window. For a token/contract use scope=token (transfers). scope=primary covers P/X-chain and DEFAULTS to P-Chain when no blockchainId is given (so "last N P-chain transactions" just works). A value with no scope defaults to address.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -744,7 +694,7 @@ export const dataTools: ToolDomain = {
           network: networkSchemaProp({ description: 'Network (default: mainnet)' }),
           chainId: { type: 'string', description: 'EVM chain ID (default: C-Chain for the network)' },
           blockchainId: { type: 'string', description: 'Blockchain ID for scope=primary (default: P-Chain)' },
-          hours: { type: 'number', description: 'Look-back window in hours for EVM transaction feeds (default: 2 for chain, max 720)' },
+          hours: { type: 'number', description: 'Look-back window in hours for the scope=chain count (default: 2, max 720)' },
           fromTimestamp: { type: 'number', description: 'Unix start time (scope=primary)' },
           toTimestamp: { type: 'number', description: 'Unix end time (scope=primary)' },
           pageSize: { type: 'number', minimum: 1, maximum: 100, description: 'Max rows (default: 25)' },
@@ -755,42 +705,19 @@ export const dataTools: ToolDomain = {
     {
       name: 'chain_stats',
       description:
-        'On-chain statistics via the query gateway, which picks the most accurate live source PER FIELD and stamps it (sources/warnings in the response). target=chain: tx count/gas/fees/active senders/avg gas price over a recent window (window=recent, `hours`, max 720h = 30 days) OR a time-series (window=series, `days`, max 365). target=contract: per-contract tx/sender/gas totals (`days`, max 365 — use this for contract activity beyond 30 days). target=network: current P-chain validator snapshot. IMPORTANT: relay any `warnings` notes to the user verbatim-in-substance (e.g. gas coverage windows or accuracy caveats) — never present a flagged value as exact. Note: C-Chain gasUsed is gas-target-regulated, so daily gas is ~stable even as tx count varies — expected, not an error.',
+        'Chain statistics from the Avalanche Stats API (pre-aggregated; closed periods only, so the current hour or day is not included). target=chain: tx count, gas used, fees paid and average gas price over the last `hours` (window=recent, max 720h = 30 days), or a time-series that also has active senders (window=series, `days` max 365; timeInterval=hour max 90 days). target=network: current P-chain validator snapshot. There are no per-contract stats here; for those, run SQL in the Builder Hub explorer Query page. Note: C-Chain gasUsed is gas-target-regulated, so daily gas is about stable even as tx count varies. That is expected, not an error.',
       inputSchema: {
         type: 'object',
         properties: {
-          target: { type: 'string', enum: [...TARGETS], description: 'chain (default) | contract | network' },
+          target: { type: 'string', enum: [...TARGETS], description: 'chain (default) | network' },
           window: { type: 'string', enum: [...WINDOWS], description: 'chain: recent aggregate (default) or series' },
           chainId: { type: 'string', description: 'EVM chain ID (default: C-Chain for the network)' },
-          value: { type: 'string', description: 'Contract address (target=contract)' },
           timeInterval: { type: 'string', enum: [...TIME_INTERVALS], description: 'Bucket size for window=series (default: day)' },
           hours: { type: 'number', description: 'Look-back hours for window=recent (default: 24, max 720)' },
-          days: { type: 'number', description: 'Look-back days for series / contract (default: 30, max 365)' },
+          days: { type: 'number', description: 'Look-back days for window=series (default: 30, max 365; max 90 with timeInterval=hour)' },
           network: networkSchemaProp({ description: 'Network (default: mainnet)' }),
         },
         required: [],
-      },
-    },
-    {
-      name: 'onchain_query',
-      description:
-        'PRIMARY tool for indexed on-chain stats/activity/totals — prefer this over raw RPC for chain data. Each `op` is a backend-agnostic intent: the query gateway selects the most accurate live source per field (indexed DB / pre-aggregated metrics / Data API), stamps every field (`sources`), and flags any caveat (`warnings`) — relay warnings to the user, never present a flagged value as exact. Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Lookback: hour-based ops (chainStatsRecent/chainActivity/addressActivity) max 720h (30 days); day-based ops (chainStatsSeries/contractStats/chainGasTotal/protocolRanking/contractGasFlow/topUnknownContracts) max 365 days — use a day-based op for windows over 30 days. Ops: ' +
-        'chainStatsRecent {chainId, hours≤720} — tx count/gas/fees/active senders/avg gas price over the last N hours; ' +
-        'chainStatsSeries {chainId, days≤365, bucket: hour|day|week|month} — bucketed time-series of the same; ' +
-        'addressActivity {chainId, address, hours≤720, limit≤100} — tx count + recent sample for an address in a window; ' +
-        'chainActivity {chainId, hours≤720, limit≤100} — tx count + recent sample chain-wide in a window; ' +
-        'contractStats {chainId, contract, days≤365} — tx/unique-sender/gas totals for a contract; ' +
-        'protocolRanking {chainId, contracts[≤25], days≤365, orderBy: txCount|gasUsed|uniqueSenders|feesPaidAvax, dir: asc|desc, limit≤100} — rank a set of contracts; ' +
-        'contractGasFlow {chainId, contract, days≤365, limit≤100} — gas received/given per counterparty; ' +
-        'topUnknownContracts {chainId, exclude[≤25], days≤365, limit≤100} — top contracts by gas excluding a set; ' +
-        'chainGasTotal {chainId, days≤365} OR {chainId, fromDate, toDate} — total tx/gas/fees over N days or a YYYY-MM-DD range (≤365d). Note: C-Chain gasUsed is gas-target-regulated → ~stable day-to-day even as txCount varies (expected, not a bug).',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          op: { type: 'string', enum: [...DSL_OPS], description: 'The query operation' },
-          params: { type: 'object', description: 'Op-specific parameters (see description); validated server-side.' },
-        },
-        required: ['op', 'params'],
       },
     },
   ],
@@ -826,6 +753,5 @@ export const dataTools: ToolDomain = {
     onchain_lookup: onchainLookup,
     onchain_activity: onchainActivity,
     chain_stats: chainStats,
-    onchain_query: onchainQuery,
   },
 };

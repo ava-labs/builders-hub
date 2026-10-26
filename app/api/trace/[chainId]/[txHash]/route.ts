@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { softStatus } from "@/lib/explorer-soft-status";
+import { callTracer, prestateDiff } from "@/lib/debug-trace";
 
 // One transaction's execution trace, from a debug-enabled node the public
-// RPC does not offer: the call tree with logs (callTracer), the account
-// and storage diff (prestateTracer), and an opcode gas profile reduced
-// server-side from the struct log so 13k steps never reach the browser.
+// RPC does not offer: the call tree with logs (callTracer) and the account
+// and storage diff (prestateTracer). Both are native tracers with a
+// node-side timeout (lib/debug-trace.ts). The route never runs the struct
+// logger: it keeps every opcode step in node memory and OOM-killed the
+// shared node, so the opcode profile and the struct log's gas split are null.
 //
 // The node is token-authenticated and paid for; this route exposes exactly
 // one thing it can do (trace a transaction by hash) and nothing else, and
@@ -41,12 +44,11 @@ interface PrestateAccount {
 export interface TraceResponse {
   call: TraceFrame;
   prestate: { pre: Record<string, PrestateAccount>; post: Record<string, PrestateAccount> } | null;
-  /** gas by opcode, totals, from the struct log */
+  /** gas by opcode: needs the struct logger, so null */
   opcodes: { op: string; gas: number; count: number }[] | null;
   steps: number | null;
-  /** where the gas went, from the struct log. Under ACP-194 the callTracer
-   *  root reports gas CHARGED, max(used, limit/2), so the execution's own
-   *  cost is only recoverable here */
+  /** where the gas went: needs the struct logger, so null. Under ACP-194 the
+   *  callTracer root reports gas CHARGED, max(used, limit/2) */
   gas: GasBreakdown | null;
 }
 
@@ -64,37 +66,6 @@ export interface GasBreakdown {
   used: number;
 }
 
-interface StructLog {
-  op: string;
-  gas: number;
-  gasCost: number;
-  depth: number;
-  refund?: number;
-}
-
-interface StructTrace {
-  /** the EVM's gas used for the transaction, refunds as the fork credits them */
-  gas: number;
-  structLogs: StructLog[];
-}
-
-/** gas used from the struct log: the first top-level step starts with the
- *  limit minus intrinsic gas; the last one ends with what is left. The
- *  tracer's own `gas` is the figure the chain charged on, so the refund is
- *  whatever separates the two (none since Helicon) */
-function gasBreakdown(limit: number, trace: StructTrace): GasBreakdown | null {
-  const logs = trace.structLogs;
-  const top = logs.filter((l) => l.depth === 1);
-  if (!top.length || !limit) return null;
-  const first = top[0];
-  const last = top[top.length - 1];
-  const intrinsic = limit - first.gas;
-  const execution = first.gas - (last.gas - last.gasCost);
-  const before = intrinsic + execution;
-  const used = trace.gas > 0 && trace.gas <= before ? trace.gas : before;
-  return { limit, intrinsic, execution, refund: before - used, used };
-}
-
 const cache = new Map<string, TraceResponse>();
 const CACHE_MAX = 400;
 
@@ -108,7 +79,8 @@ async function rpc<T>(url: string, method: string, params: unknown[]): Promise<T
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    signal: AbortSignal.timeout(45_000),
+    // the node stops at TRACE_TIMEOUT; this covers the queue and the state replay before it
+    signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`debug node HTTP ${res.status}`);
   const body = (await res.json()) as { result?: T; error?: { code: number; message: string } };
@@ -137,26 +109,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
   else r.n++;
 
   try {
-    const [call, prestate, struct] = await Promise.all([
-      rpc<TraceFrame>(url, "debug_traceTransaction", [hash, { tracer: "callTracer", tracerConfig: { withLog: true } }]),
-      rpc<TraceResponse["prestate"]>(url, "debug_traceTransaction", [hash, { tracer: "prestateTracer", tracerConfig: { diffMode: true } }]).catch(() => null),
-      rpc<StructTrace>(url, "debug_traceTransaction", [hash, { disableStorage: true, disableMemory: true, disableStack: true, disableReturnData: true }]).catch(() => null),
+    const [call, prestate] = await Promise.all([
+      rpc<TraceFrame>(url, "debug_traceTransaction", [hash, callTracer({ withLog: true })]),
+      rpc<TraceResponse["prestate"]>(url, "debug_traceTransaction", [hash, prestateDiff()]).catch(() => null),
     ]);
-    let opcodes: TraceResponse["opcodes"] = null;
-    let steps: number | null = null;
-    if (struct?.structLogs) {
-      const agg = new Map<string, { gas: number; count: number }>();
-      for (const s of struct.structLogs) {
-        const a = agg.get(s.op) ?? { gas: 0, count: 0 };
-        a.gas += s.gasCost;
-        a.count++;
-        agg.set(s.op, a);
-      }
-      opcodes = [...agg.entries()].map(([op, v]) => ({ op, ...v })).sort((a, b) => b.gas - a.gas);
-      steps = struct.structLogs.length;
-    }
-    const gas = struct?.structLogs ? gasBreakdown(parseInt(call.gas, 16), struct) : null;
-    const out: TraceResponse = { call, prestate, opcodes, steps, gas };
+    const out: TraceResponse = { call, prestate, opcodes: null, steps: null, gas: null };
     // a pending or unknown tx must not be cached as a result; only final traces are
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
     cache.set(key, out);

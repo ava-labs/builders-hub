@@ -39,9 +39,6 @@ interface ExplorerContextValue {
   tokenPrice: number | null;
   priceData: PriceData | null;
   
-  // Glacier support
-  glacierSupported: boolean;
-  
   // Loading state
   isTokenDataLoading: boolean;
   
@@ -55,7 +52,7 @@ interface ExplorerContextValue {
 const ExplorerContext = createContext<ExplorerContextValue | null>(null);
 
 // Cache for token data per chainId
-const tokenDataCache = new Map<string, { data: PriceData | null; symbol: string; glacierSupported: boolean; timestamp: number }>();
+const tokenDataCache = new Map<string, { data: PriceData | null; symbol: string; timestamp: number }>();
 const CACHE_DURATION = 60 * 1000; // 1 minute cache
 
 interface ExplorerProviderProps {
@@ -106,8 +103,7 @@ export function ExplorerProvider({
   const [tokenSymbol, setTokenSymbol] = useState<string>('');
   const [tokenPrice, setTokenPrice] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<PriceData | null>(null);
-  const [glacierSupported, setGlacierSupported] = useState<boolean>(false);
-  // Start with true to prevent showing banner before data is fetched
+  // Start with true: token data is loading until the first fetch settles
   const [isTokenDataLoading, setIsTokenDataLoading] = useState(true);
   
   // Check if this chain exists in static l1-chains.json (custom chains won't be there)
@@ -153,7 +149,6 @@ export function ExplorerProvider({
       setTokenSymbol(cached.symbol);
       setPriceData(cached.data);
       setTokenPrice(cached.data?.price || null);
-      setGlacierSupported(cached.glacierSupported);
       setIsTokenDataLoading(false);
       return;
     }
@@ -161,26 +156,23 @@ export function ExplorerProvider({
     setIsTokenDataLoading(true);
     
     try {
-      // Only fetch price and glacier support (not full explorer data)
+      // Only fetch price (not full explorer data)
       const url = buildApiUrl(`/api/explorer/${chainId}`, { priceOnly: 'true' });
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         const symbol = data?.tokenSymbol || data?.price?.symbol || nativeToken || '';
         const price = data?.price || null;
-        const isGlacierSupported = data?.glacierSupported ?? false;
         
         // Update state
         setTokenSymbol(symbol);
         setPriceData(price);
         setTokenPrice(price?.price || null);
-        setGlacierSupported(isGlacierSupported);
         
         // Update cache
         tokenDataCache.set(cacheKey, {
           data: price,
           symbol,
-          glacierSupported: isGlacierSupported,
           timestamp: now,
         });
       }
@@ -226,7 +218,6 @@ export function ExplorerProvider({
     tokenSymbol,
     tokenPrice,
     priceData,
-    glacierSupported,
     isTokenDataLoading,
     refreshTokenData,
     buildApiUrl,

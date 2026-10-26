@@ -53,9 +53,9 @@ async function getRedisClient() {
 }
 
 const WINDOW_MS = 60 * 1000; // 1 minute
-// Per-client anti-abuse guard (origin/hashed-IP). Backend protection is the query
-// gateway's job (it rate-limits and admission-controls each data source), so this
-// is sized only to stop a single client from hammering the MCP.
+// Per-client anti-abuse guard (origin/hashed-IP). The upstream APIs (Stats API,
+// Glacier) rate-limit themselves, so this is sized only to stop a single client
+// from hammering the MCP.
 const MAX_REQUESTS = 120; // per client per minute
 const MAX_LOCAL_CLIENTS = 10_000;
 const localLimits = new Map<string, { used: number; resetAt: number }>();
@@ -135,7 +135,7 @@ export function getMCPRequestCost(body: unknown): number {
       const record = message as { method?: unknown; params?: { name?: unknown } };
       if (record.method !== 'tools/call') return total + 1;
       const name = record.params?.name;
-      return total + (name === 'onchain_activity' || name === 'chain_stats' || name === 'onchain_query' ? 4 : 2);
+      return total + (name === 'onchain_activity' || name === 'chain_stats' ? 4 : 2);
     }, 0)
   );
 }

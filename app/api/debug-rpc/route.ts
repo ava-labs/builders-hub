@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
 import { getClientIP } from '@/lib/net/clientIp';
+import { clientCallTracer } from '@/lib/debug-trace';
 
 const FUJI_DEBUG_RPC_URL = process.env.FUJI_DEBUG_RPC_URL;
 
@@ -13,6 +14,26 @@ const FUJI_DEBUG_RPC_URL = process.env.FUJI_DEBUG_RPC_URL;
  * endpoint into a free generic RPC relay.
  */
 const ALLOWED_METHODS = new Set(['debug_traceCall', 'debug_traceTransaction']);
+
+/**
+ * The params the node gets: the client's own, with its trace config reduced
+ * to a callTracer config with a node-side timeout (lib/debug-trace.ts). A
+ * request for the struct logger or any other tracer gets null, and a 400.
+ * A traceCall runs on the latest block only, so it never replays old state.
+ */
+function nodeParams(method: string, params: unknown): unknown[] | null {
+  if (!Array.isArray(params)) return null;
+  if (method === 'debug_traceTransaction') {
+    const [hash, cfg] = params;
+    const config = clientCallTracer(cfg);
+    if (typeof hash !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(hash) || !config) return null;
+    return [hash, config];
+  }
+  const [call, block, cfg] = params;
+  const config = clientCallTracer(cfg);
+  if (!call || typeof call !== 'object' || block !== 'latest' || !config) return null;
+  return [call, 'latest', config];
+}
 
 /** Simple in-memory rate limiter: max 20 requests per identity per minute */
 const rateLimits = new Map<string, { count: number; windowStart: number }>();
@@ -89,6 +110,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const nodeParamsList = nodeParams(method, params);
+  if (!nodeParamsList) {
+    return NextResponse.json(
+      { error: 'Only a callTracer trace of a tx hash, or of a call on the latest block, is allowed' },
+      { status: 400 },
+    );
+  }
+
   try {
     const rpcResponse = await fetch(FUJI_DEBUG_RPC_URL, {
       method: 'POST',
@@ -96,9 +125,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         jsonrpc: '2.0',
         method,
-        params: params ?? [],
+        params: nodeParamsList,
         id: id ?? 1,
       }),
+      // the node stops the trace itself; this covers the queue and the state replay before it
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!rpcResponse.ok) {

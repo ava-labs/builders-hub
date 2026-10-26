@@ -4,7 +4,6 @@ import { ReactNode, useState, FormEvent, useMemo, useEffect, useRef } from "reac
 import { Search } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
@@ -78,7 +77,6 @@ export function ExplorerLayout({
   // deployment's explorer must not leak back to its mainnet twin
   const params = useParams();
   const network = typeof params?.network === "string" ? params.network : "mainnet";
-  const { glacierSupported, isTokenDataLoading } = useExplorer();
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -398,22 +396,6 @@ export function ExplorerLayout({
           </Rise>
         )}
       </div>
-      )}
-
-      {/* Glacier Support Warning - the sheet's voice: square, mono, edge bar */}
-      {!loading && !isTokenDataLoading && glacierSupported === false && (
-        <div className="relative mx-auto w-full max-w-[90rem] px-5 md:px-6">
-          <div className="flex items-start gap-4 border border-zinc-200 border-l-2 border-l-amber-500 bg-white/80 px-4 py-3 backdrop-blur-sm dark:border-zinc-800 dark:border-l-amber-500 dark:bg-zinc-950/80">
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-500">
-                No indexing support
-              </span>{" "}
-              <span className="block mt-1">
-                Address portfolios, token transfers, and detailed transaction history may not be available for this chain.
-              </span>
-            </p>
-          </div>
-        </div>
       )}
 
       {/* Page Content — relative so it paints above the fixed snow canvas */}

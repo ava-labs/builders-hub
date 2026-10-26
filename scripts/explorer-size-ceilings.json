@@ -10,7 +10,7 @@
   "components/explorer-v2/network/city3d/Backdrop.tsx": 963,
   "components/explorer-v2/staking/StakingMetricPage.tsx": 826,
   "components/explorer-v2/xchain/XchainPages.tsx": 817,
-  "app/api/explorer/[chainId]/route.ts": 727,
+  "app/api/explorer/[chainId]/route.ts": 717,
   "components/explorer-v2/gas/instruments.tsx": 679,
   "components/explorer-v2/staking/PrimaryValidators.tsx": 716,
   "lib/explorer-clickhouse.ts": 681,

@@ -77,7 +77,8 @@ function fixed(v: number, format: Format, sym: string, axis: boolean): string {
     case "seconds":
       return `${v.toFixed(2)} s`;
     case "usd":
-      return `${v < 0 ? "-" : ""}$${a >= 1000 ? compactFixed(a) : a.toFixed(2)}`;
+      // a fee of a fraction of a cent keeps three significant digits ($0.0257, not $0.03)
+      return `${v < 0 ? "-" : ""}$${a >= 1000 ? compactFixed(a) : a > 0 && a < 0.1 ? String(Number(a.toPrecision(3))) : a.toFixed(2)}`;
     case "compact":
       return compactFixed(v);
     default:

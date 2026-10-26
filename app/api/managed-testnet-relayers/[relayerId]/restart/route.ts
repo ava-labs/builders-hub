@@ -18,9 +18,10 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
 
   try {
     // First verify the relayer belongs to the user by fetching the list
-    const listResponse = await fetch(RelayerServiceURLs.list(password), {
+    const listResponse = await fetch(RelayerServiceURLs.list(), {
       method: 'GET',
       headers: {
+        'x-admin-password': password,
         'Accept': 'application/json'
       }
     });
@@ -58,13 +59,14 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
 
     // URL encode the relayerId to handle special characters
     const encodedRelayerId = encodeURIComponent(relayerId);
-    const restartUrl = RelayerServiceURLs.restart(encodedRelayerId, password);
+    const restartUrl = RelayerServiceURLs.restart(encodedRelayerId);
     
     console.log(`[Relayers] Restarting relayer ${encodedRelayerId}`);
     
     const response = await fetch(restartUrl, {
       method: 'POST',
       headers: {
+        'x-admin-password': password,
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },

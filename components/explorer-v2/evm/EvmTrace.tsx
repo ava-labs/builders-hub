@@ -500,7 +500,8 @@ function GasProfiler({
         {[
           { k: "Gas limit", v: limit, tone: "#e4e4e7" },
           ...(charged !== undefined ? [{ k: "Gas charged", v: charged, tone: "#A2AFB2" }] : []),
-          { k: "Gas used", v: used, tone: "#0061E2" },
+          // with no struct log, the root reports gas charged: a "used" bar would repeat it
+          ...(gas || charged === undefined ? [{ k: "Gas used", v: used, tone: "#0061E2" }] : []),
         ].map((r) => (
           <div key={r.k} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-4">
             <span className="uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{r.k}</span>
@@ -1084,13 +1085,13 @@ export function EvmTrace({
           {tab === "gas" && (
             <div className="flex flex-col gap-6">
               <GasProfiler frames={frames} gas={trace.gas ?? null} charged={charged} logs={logs} n={n} />
-              <Board>
+              {trace.opcodes && <Board>
                 <div className={cn(HEAD, "grid grid-cols-[minmax(0,1fr)_5rem_7rem]")}>
                   <span>Opcode</span>
                   <span className="text-right">Count</span>
                   <span className="text-right">Gas</span>
                 </div>
-                {(trace.opcodes ?? [])
+                {trace.opcodes
                   .filter((o) => !CALL_OPS.has(o.op))
                   .slice(0, 10)
                   .map((o) => (
@@ -1103,7 +1104,7 @@ export function EvmTrace({
                 <div className="px-5 py-2.5 font-mono text-[10px] text-zinc-400 md:px-6 dark:text-zinc-500">
                   {trace.steps?.toLocaleString("en-US") ?? "—"} opcodes executed · call opcodes omitted: the EVM books the gas they forward as their own cost
                 </div>
-              </Board>
+              </Board>}
             </div>
           )}
         </>

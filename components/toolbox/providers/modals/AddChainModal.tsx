@@ -238,7 +238,7 @@ function AddChainModalInner() {
     // only this path forwards Core wallet's proprietary isTestnet flag.
     // blockExplorerUrls is per EIP-3085 optional; when set, the wallet
     // shows the same explorer link the in-app L1 dashboard treats as
-    // default (Firn for Quick L1 deploys).
+    // default.
     const isCoreWallet = useWalletStore.getState().walletType === 'core';
     await walletClient.request({
       method: 'wallet_addEthereumChain',
@@ -362,10 +362,8 @@ function AddChainModalInner() {
         validatorManagerBlockchainId: data.validatorManagerBlockchainId || undefined,
         logoUrl: data.logoUrl,
         genesisData: validatedGenesis,
-        // Forwarded from the caller (Quick L1 passes result.explorer.url here)
-        // so the persisted L1ListItem.explorerUrl matches the URL the user
-        // saw on the deployment success screen — making it the default
-        // explorer in the My L1 dashboard's ExplorerMenu.
+        // Forwarded from the caller so the persisted L1ListItem.explorerUrl
+        // becomes the default explorer in the My L1 dashboard's ExplorerMenu.
         explorerUrl: options?.explorerUrl,
       };
 
