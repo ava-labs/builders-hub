@@ -23,7 +23,8 @@ import {
 import type { L1Chain } from "@/types/stats";
 import { resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { isGenesisCode, knownAddress } from "@/lib/evm-explorer";
-import { balanceChanges, hexBig, hexInt, type TraceFrame, type TraceResponse } from "@/lib/trace";
+import { balanceChanges, hexBig, hexInt, type TraceFrame } from "@/lib/trace";
+import { getGasProfile, getTrace } from "@/lib/trace-node";
 import { getVerifiedContractResolvingProxies } from "@/lib/sourcify";
 import { decodeEventLog as registryDecodeEvent, decodeFunctionInput as registryDecodeInput } from "@/abi/event-signatures.generated";
 import { docsTools } from "@/lib/mcp/tools";
@@ -599,12 +600,17 @@ async function txData(ref: Extract<PageRef, { kind: "evm-tx" }>, baseUrl: string
   if (!head) return `Transaction ${hash} was not found on ${chainName(scope)} (not executed yet, or wrong chain).`;
   const out: string[] = [`Transaction ${hash} on ${chainName(scope)}`, head.text];
 
-  const traceRes = await fetch(`${baseUrl}/api/trace/${scope.chainId}/${hash}`, { signal: AbortSignal.timeout(50_000) }).catch(() => null);
-  const trace = traceRes?.ok ? ((await traceRes.json()) as TraceResponse) : null;
+  // in process, not through /api/trace: the chat's own budget lane, and no self-fetch.
+  // The gas split is a second replay on the node: asked only when the tx was charged
+  // half its limit, the one case where gas used and gas charged differ
+  const from = { lane: "chat", ip: "chat" } as const;
+  const atHalfLimit = hexInt(head.receipt.gasUsed) === Math.ceil(hexInt(head.tx.gas) / 2);
+  const [traced, profiled] = await Promise.all([getTrace(scope.chainId ?? "", hash, from), atHalfLimit ? getGasProfile(scope.chainId ?? "", hash, from) : null]);
+  const trace = "trace" in traced ? traced.trace : null;
   const sym = nativeSymbol(scope);
 
-  if (trace?.gas) {
-    const g = trace.gas;
+  const g = profiled && "profile" in profiled ? profiled.profile.gas : null;
+  if (g) {
     out.push(`Gas breakdown: limit ${num(g.limit)}; charged ${num(hexInt(head.receipt.gasUsed))} (what the fee is paid on); used by execution ${num(g.used)} = intrinsic ${num(g.intrinsic)} + execution ${num(g.execution)}${g.refund > 0 ? ` - refund ${num(g.refund)}` : " (no storage refund is credited since Helicon)"}.`);
   }
 
@@ -628,7 +634,8 @@ async function txData(ref: Extract<PageRef, { kind: "evm-tx" }>, baseUrl: string
       if (changes.length > 16) out.push(`  ... ${changes.length - 16} more`);
     }
   } else {
-    const reason = traceRes?.status === 404 ? "this chain has no trace node, so internal calls are not available" : "the trace node did not answer";
+    const miss = "miss" in traced ? traced.miss : null;
+    const reason = miss === "no_node" ? "this chain has no trace node, so internal calls are not available" : miss === "not_found" ? "the trace node does not know this transaction yet" : miss === "too_large" ? "the trace is too large to read" : "the trace node is busy or did not answer";
     out.push(`No execution trace: ${reason}. The receipt's events follow.`);
     const d = head.tx.to && head.tx.input.length >= 10 ? decodeCall({ type: "CALL", from: head.tx.from, to: head.tx.to, input: head.tx.input, gas: head.tx.gas, gasUsed: head.receipt.gasUsed } as TraceFrame, n, seen) : null;
     if (d) out.push(`Top-level call: ${who(head.tx.to!, n, seen)}.${d.name}(${d.args.join(", ")})`);

@@ -27,19 +27,31 @@ export interface PrestateAccount {
   storage?: Record<string, string>;
 }
 
-export interface TraceResponse {
-  call: TraceFrame;
-  prestate: { pre: Record<string, PrestateAccount>; post: Record<string, PrestateAccount> } | null;
+/** where the gas went, from the gas tracer (lib/debug-trace.ts). The trace
+ *  route answers these as null; the tx page asks for them apart
+ *  (/api/trace/<chain>/<hash>/gas) and merges them into the trace */
+export interface GasProfile {
+  /** per opcode, at every depth, the most gas first */
   opcodes: { op: string; gas: number; count: number }[] | null;
+  /** the opcodes executed */
   steps: number | null;
-  /** from the struct log; the callTracer root reports gas charged under ACP-194 */
-  gas?: {
+  /** the callTracer root reports gas charged under ACP-194; this is what
+   *  execution used. Null for a tx that ran no code */
+  gas: {
     limit: number;
+    /** before the first opcode: 21,000 plus calldata and access list */
     intrinsic: number;
+    /** what the top call's opcodes cost, its calls included */
     execution: number;
+    /** what the EVM credited back at the end: none since Apricot Phase 1 */
     refund: number;
     used: number;
   } | null;
+}
+
+export interface TraceResponse extends GasProfile {
+  call: TraceFrame;
+  prestate: { pre: Record<string, PrestateAccount>; post: Record<string, PrestateAccount> } | null;
 }
 
 export const hexInt = (v: string | undefined): number => (v ? parseInt(v, 16) : 0);
@@ -132,7 +144,7 @@ export interface BalanceChange {
 }
 
 /** native deltas from the account diff, token deltas from Transfer logs */
-export function balanceChanges(t: TraceResponse): BalanceChange[] {
+export function balanceChanges(t: Pick<TraceResponse, "call" | "prestate">): BalanceChange[] {
   const out = new Map<string, BalanceChange>();
   const add = (address: string, token: string | null, delta: bigint) => {
     if (delta === 0n) return;
@@ -170,7 +182,7 @@ export interface StorageChange {
   after: string | null;
 }
 
-export function storageChanges(t: TraceResponse): StorageChange[] {
+export function storageChanges(t: Pick<TraceResponse, "prestate">): StorageChange[] {
   if (!t.prestate) return [];
   const { pre, post } = t.prestate;
   const out: StorageChange[] = [];

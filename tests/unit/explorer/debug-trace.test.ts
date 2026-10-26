@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-import { TRACE_TIMEOUT, callTracer, clientCallTracer, prestateDiff } from '@/lib/debug-trace';
+import { TRACE_TIMEOUT, callTracer, clientCallTracer } from '@/lib/debug-trace';
 
 /* No call to a debug node may run the struct logger: it keeps every opcode
    step in node memory and OOM-killed the shared C-Chain node. Every trace
@@ -48,7 +48,6 @@ describe('trace configs', () => {
       tracerConfig: { withLog: true, onlyTopCall: false },
       timeout: TRACE_TIMEOUT,
     });
-    expect(prestateDiff()).toEqual({ tracer: 'prestateTracer', tracerConfig: { diffMode: true }, timeout: TRACE_TIMEOUT });
     expect(TRACE_TIMEOUT).toBe('5s');
   });
 
@@ -68,31 +67,29 @@ describe('trace configs', () => {
 });
 
 describe('the tx trace route', () => {
-  it('asks the node for a call tree and a state diff, never a struct log, once per tx', async () => {
+  it('asks the node for a call tree and a state diff in one replay, never a struct log, once per tx', async () => {
     vi.stubEnv('CCHAIN_DEBUG_RPC_URL', NODE);
     vi.resetModules();
-    const bodies = stubNode((b) => (configOf(b).tracer === 'callTracer' ? ROOT : { pre: {}, post: {} }));
+    const bodies = stubNode(() => ({ callTracer: ROOT, prestateTracer: { pre: {}, post: {} } }));
     const { GET } = await import('@/app/api/trace/[chainId]/[txHash]/route');
     const req = () => new NextRequest(`http://localhost/api/trace/43114/${HASH}`);
-    const params = { params: Promise.resolve({ chainId: '43114', txHash: HASH }) };
+    const params = () => ({ params: Promise.resolve({ chainId: '43114', txHash: HASH }) });
 
-    const res = await GET(req(), params);
+    const res = await GET(req(), params());
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.call).toEqual(ROOT);
     expect(body.prestate).toEqual({ pre: {}, post: {} });
     expect(body).toMatchObject({ opcodes: null, steps: null, gas: null });
 
-    expect(bodies).toHaveLength(2);
-    for (const b of bodies) {
-      expect(b.method).toBe('debug_traceTransaction');
-      expect(['callTracer', 'prestateTracer']).toContain(configOf(b).tracer);
-      expect(configOf(b).timeout).toBe(TRACE_TIMEOUT);
-    }
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].method).toBe('debug_traceTransaction');
+    expect(configOf(bodies[0]).tracer).toBe('muxTracer');
+    expect(configOf(bodies[0]).timeout).toBe(TRACE_TIMEOUT);
 
     // the same tx again is served from memory: the node is not asked twice
-    expect((await GET(req(), { params: Promise.resolve({ chainId: '43114', txHash: HASH }) })).status).toBe(200);
-    expect(bodies).toHaveLength(2);
+    expect((await GET(req(), params())).status).toBe(200);
+    expect(bodies).toHaveLength(1);
   });
 });
 

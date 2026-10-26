@@ -18,7 +18,6 @@ import {
 } from "viem";
 import { cn } from "@/lib/utils";
 import { Board, HashChip, HEAD, LoadMore } from "@/components/explorer-v2/ui";
-import { truncate } from "@/components/explorer-v2/format";
 import { Tabs, EmptyRow } from "./AddressTables";
 import { TokenMark, NativeMark } from "./TokenMark";
 import { useUnlistedTokenMeta } from "./useErc20";
@@ -29,6 +28,9 @@ import { declaredSymbol, formatTokenAmount, usdOfToken, useSignatures, useTokenL
 import { knownAddress } from "@/lib/evm-explorer";
 import { readRpc } from "@/lib/explorer-rpc";
 import type { TraceState } from "./useTrace";
+import type { GasState } from "./useGasProfile";
+import { GasTab } from "./EvmTraceGas";
+import { TRACE_INK as C } from "./trace-ink";
 import {
   balanceChanges,
   contractsIn,
@@ -48,38 +50,12 @@ import {
    for: the call tree with its events in place (what happened, in order),
    the balance changes (who ended up with what), the storage written
    (which state moved, with mapping keys recovered so a slot reads as
-   balance[account], not a hash), and where the gas went. Names come from
-   the token list, Sourcify, the selector registry, then the signature
-   database; anything still unknown stays honest hex. */
+   balance[account], not a hash), and where the gas went (EvmTraceGas.tsx).
+   Names come from the token list, Sourcify, the selector registry, then
+   the signature database; anything still unknown stays honest hex. */
 
 type Tab = "calls" | "events" | "balances" | "state" | "gas";
 const LABELS: Record<Tab, string> = { calls: "Call Trace", events: "Events", balances: "Balance Changes", state: "State", gas: "Gas" };
-
-const CALL_OPS = new Set(["CALL", "STATICCALL", "DELEGATECALL", "CALLCODE", "CREATE", "CREATE2"]);
-
-/* The trace reads like highlighted code: one hue per kind of thing, the
-   same in every tab, light and dark. Contract names stay ink; the brand
-   red is kept for reverts. */
-const C = {
-  fn: "text-violet-700 dark:text-violet-300",
-  addr: "text-teal-700 dark:text-teal-300",
-  num: "text-amber-700 dark:text-amber-300",
-  yes: "text-emerald-700 dark:text-emerald-300",
-  no: "text-red-700 dark:text-red-300",
-  bytes: "text-zinc-500 dark:text-zinc-400",
-  str: "text-sky-700 dark:text-sky-300",
-  punct: "text-zinc-300 dark:text-zinc-700",
-  param: "text-zinc-400 dark:text-zinc-500",
-  type: {
-    CALL: "text-zinc-500 dark:text-zinc-400",
-    STATICCALL: "text-sky-600 dark:text-sky-400",
-    DELEGATECALL: "text-fuchsia-600 dark:text-fuchsia-400",
-    CALLCODE: "text-fuchsia-600 dark:text-fuchsia-400",
-    CREATE: "text-emerald-600 dark:text-emerald-400",
-    CREATE2: "text-emerald-600 dark:text-emerald-400",
-    SELFDESTRUCT: "text-red-600 dark:text-red-400",
-  } as Record<string, string>,
-};
 
 type Kind = "address" | "number" | "bool" | "bytes" | "string" | "tuple" | "name";
 interface Val {
@@ -415,20 +391,7 @@ function slotName(slot: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* gas profiler                                                        */
-
-/* one ink per call kind, the same kinds the call tree colors */
-const FLAME_TONES: Record<string, string> = {
-  CALL: "#0061E2",
-  STATICCALL: "#0284c7",
-  DELEGATECALL: "#a21caf",
-  CALLCODE: "#a21caf",
-  CREATE: "#059669",
-  CREATE2: "#059669",
-  SELFDESTRUCT: "#E6212F",
-};
-const FLAME_ROW = 26;
-const FLAME_HATCH = "repeating-linear-gradient(135deg, rgba(230,33,47,0.85) 0 3px, transparent 3px 7px)";
+/* frame names                                                        */
 
 /** a frame's name as one line: contract.function */
 function frameLabel(f: FlatFrame, n: Names): string {
@@ -437,186 +400,6 @@ function frameLabel(f: FlatFrame, n: Names): string {
   const fn = f.frame.type.startsWith("CREATE") ? "new contract" : d?.name ?? (f.frame.input && f.frame.input !== "0x" ? f.frame.input.slice(0, 10) : "transfer");
   const who = nameOf(f.frame.to, n);
   return who ? `${who}.${fn}` : fn;
-}
-
-/** Where the gas went, as a flame graph. The three totals first on one
- *  scale (the limit, what ACP-194 charged, what execution used), then the
- *  call tree as boxes as wide as their gas: intrinsic gas and the top call
- *  side by side, each call's children under it. Click a box to zoom into
- *  it; the panel beside the graph reads the box under the cursor. */
-function GasProfiler({
-  frames,
-  gas,
-  charged,
-  logs,
-  n,
-}: {
-  frames: FlatFrame[];
-  gas: NonNullable<TraceResponse["gas"]> | null;
-  /** the receipt's gasUsed: ACP-194 gas charged */
-  charged?: number;
-  logs: { frameId: string }[];
-  n: Names;
-}) {
-  const byId = useMemo(() => new Map(frames.map((f) => [f.id, f])), [frames]);
-  // the callTracer root reports gas CHARGED under ACP-194, so the top
-  // frame's width comes from the struct log's execution figure
-  const gasOf = (f: FlatFrame) => (f.id === "0" && gas ? gas.execution : hexInt(f.frame.gasUsed));
-  const [focus, setFocus] = useState("0");
-  const [pick, setPick] = useState<string | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
-  const root = byId.get("0");
-  if (!root) return null;
-  const focusF = byId.get(focus) ?? root;
-  const atRoot = focusF.id === "0";
-  const intrinsic = atRoot && gas ? gas.intrinsic : 0;
-  const scale = Math.max(1, intrinsic + gasOf(focusF));
-
-  const boxes: { f: FlatFrame; x: number; w: number; row: number }[] = [];
-  const place = (f: FlatFrame, x: number, row: number) => {
-    boxes.push({ f, x, w: gasOf(f) / scale, row });
-    let cx = x;
-    for (const id of f.children) {
-      const c = byId.get(id);
-      if (!c) continue;
-      place(c, cx, row + 1);
-      cx += gasOf(c) / scale;
-    }
-  };
-  place(focusF, intrinsic / scale, 0);
-  const rows = Math.max(1, ...boxes.map((b) => b.row + 1));
-  const trail = focusF.id.split(".").map((_, i, a) => a.slice(0, i + 1).join("."));
-  const shown = byId.get(hover ?? pick ?? focusF.id) ?? focusF;
-  const shownGas = gasOf(shown);
-  const shownSelf = Math.max(0, shownGas - shown.children.reduce((s, id) => s + (byId.get(id) ? gasOf(byId.get(id)!) : 0), 0));
-  const used = gas?.used ?? gasOf(root);
-  const limit = gas?.limit ?? hexInt(root.frame.gas);
-  const pctOf = (v: number) => (limit > 0 ? `${Math.max(0.4, Math.min(100, (v / limit) * 100)).toFixed(2)}%` : "0%");
-
-  return (
-    <div className="flex flex-col gap-6">
-      {/* the three totals on the limit's scale */}
-      <Board divide={false} className="flex flex-col gap-2.5 px-5 py-5 font-mono text-[11px] md:px-6">
-        {[
-          { k: "Gas limit", v: limit, tone: "#e4e4e7" },
-          ...(charged !== undefined ? [{ k: "Gas charged", v: charged, tone: "#A2AFB2" }] : []),
-          // with no struct log, the root reports gas charged: a "used" bar would repeat it
-          ...(gas || charged === undefined ? [{ k: "Gas used", v: used, tone: "#0061E2" }] : []),
-        ].map((r) => (
-          <div key={r.k} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-4">
-            <span className="uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{r.k}</span>
-            <span className="flex h-5 items-center gap-2 bg-zinc-50 dark:bg-zinc-900">
-              <span className="h-full" style={{ width: pctOf(r.v), background: r.tone }} />
-              <span className="shrink-0 tabular-nums text-zinc-900 dark:text-zinc-50">{r.v.toLocaleString("en-US")}</span>
-            </span>
-          </div>
-        ))}
-        {charged !== undefined && charged > used && (
-          <p className="pt-1 text-zinc-400 dark:text-zinc-500">Charged is half the limit: ACP-194 charges the larger of gas used and half the limit.</p>
-        )}
-      </Board>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <Board divide={false} className="flex min-w-0 flex-col gap-3 px-5 py-4 md:px-6">
-          {/* where the zoom is */}
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-            {trail.map((id, i) => {
-              const f = byId.get(id);
-              if (!f) return null;
-              return (
-                <span key={id} className="flex items-center gap-1.5">
-                  {i > 0 && <span className="text-zinc-300 dark:text-zinc-700">›</span>}
-                  <button type="button" onClick={() => { setFocus(id); setPick(id); }} className={cn("hover:text-[#E6212F]", id === focusF.id && "text-zinc-900 dark:text-zinc-50")}>
-                    {i === 0 ? "whole transaction" : frameLabel(f, n)}
-                  </button>
-                </span>
-              );
-            })}
-            {atRoot && <span className="ml-auto">click a box to zoom</span>}
-          </div>
-          <div className="relative w-full overflow-hidden" style={{ height: rows * FLAME_ROW }} onMouseLeave={() => setHover(null)}>
-            {atRoot && gas && (
-              <div
-                className="absolute flex items-center overflow-hidden px-1.5 font-mono text-[10px] text-zinc-700"
-                style={{ left: 0, width: `${(intrinsic / scale) * 100}%`, top: 0, height: FLAME_ROW - 2, background: "#e4e4e7" }}
-                title={`intrinsic gas · ${intrinsic.toLocaleString("en-US")}: the base cost, 21,000 plus calldata`}
-              >
-                <span className="truncate">intrinsic · {intrinsic.toLocaleString("en-US")}</span>
-              </div>
-            )}
-            {boxes.map(({ f, x, w, row }) => {
-              const g = gasOf(f);
-              const dim = hover !== null && hover !== f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onMouseEnter={() => setHover(f.id)}
-                  onFocus={() => setHover(f.id)}
-                  onClick={() => {
-                    setPick(f.id);
-                    if (f.children.length) setFocus(f.id);
-                  }}
-                  aria-label={`${frameLabel(f, n)}, ${g.toLocaleString("en-US")} gas`}
-                  className={cn("absolute flex items-center overflow-hidden px-1.5 text-left font-mono text-[10px] text-white transition-opacity", dim && "opacity-60")}
-                  style={{
-                    left: `${x * 100}%`,
-                    width: `max(1px, calc(${w * 100}% - 1px))`,
-                    top: row * FLAME_ROW,
-                    height: FLAME_ROW - 2,
-                    background: FLAME_TONES[f.frame.type] ?? FLAME_TONES.CALL,
-                    filter: `brightness(${1 + (row % 2) * 0.12})`,
-                  }}
-                >
-                  {f.frame.error && <span aria-hidden className="absolute inset-0" style={{ background: FLAME_HATCH }} />}
-                  {w > 0.05 && <span className="relative truncate">{frameLabel(f, n)} · {g.toLocaleString("en-US")}</span>}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-            {["CALL", "STATICCALL", "DELEGATECALL", "CREATE"].map((k) => (
-              <span key={k} className="flex items-center gap-1.5">
-                <span className="h-2 w-2" style={{ background: FLAME_TONES[k] }} />
-                {k.toLowerCase()}
-              </span>
-            ))}
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2" style={{ background: FLAME_HATCH }} />
-              reverted
-            </span>
-          </div>
-        </Board>
-
-        {/* the box under the cursor, or the one last clicked */}
-        <Board divide={false} className="flex flex-col gap-3 border px-5 py-4 font-mono text-[12px]">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{shown.id === "0" ? "Top call" : `Depth ${shown.depth}`}</span>
-          <span className={cn("break-all", C.fn)}>{frameLabel(shown, n)}</span>
-          <span className="flex min-w-0 items-baseline gap-2 text-zinc-500 dark:text-zinc-400">
-            <span className={cn("shrink-0 text-[10px] font-bold uppercase tracking-[0.14em]", C.type[shown.frame.type] ?? C.type.CALL)}>{shown.frame.type.toLowerCase()}</span>
-            {shown.frame.to && (
-              <Link href={`${n.base}/address/${shown.frame.to}`} title={shown.frame.to} className={cn("truncate hover:text-[#E6212F]", C.addr)}>
-                {truncate(shown.frame.to, 10)}
-              </Link>
-            )}
-          </span>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 tabular-nums">
-            <dt className="text-zinc-400 dark:text-zinc-500">gas</dt>
-            <dd className="text-right text-zinc-900 dark:text-zinc-50">{shownGas.toLocaleString("en-US")}</dd>
-            <dt className="text-zinc-400 dark:text-zinc-500">share</dt>
-            <dd className="text-right text-zinc-900 dark:text-zinc-50">{used > 0 ? `${((shownGas / used) * 100).toFixed(1)}%` : "—"}</dd>
-            <dt className="text-zinc-400 dark:text-zinc-500" title="spent by this call itself, not the calls it made">own gas</dt>
-            <dd className="text-right text-zinc-900 dark:text-zinc-50">{shownSelf.toLocaleString("en-US")}</dd>
-            <dt className="text-zinc-400 dark:text-zinc-500">calls made</dt>
-            <dd className="text-right text-zinc-900 dark:text-zinc-50">{shown.children.length}</dd>
-            <dt className="text-zinc-400 dark:text-zinc-500">events</dt>
-            <dd className="text-right text-zinc-900 dark:text-zinc-50">{logs.filter((l) => l.frameId === shown.id).length}</dd>
-          </dl>
-          {shown.frame.error && <span className="text-[#E6212F]">reverted: {shown.frame.revertReason ?? shown.frame.error}</span>}
-        </Board>
-      </div>
-    </div>
-  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -661,11 +444,18 @@ export function EvmTrace({
   sender,
   symbol,
   charged,
+  gasState,
+  onGasWanted,
 }: {
   /** the receipt's gasUsed: what ACP-194 charged */
   charged?: number;
   trace: TraceResponse | null;
   state: TraceState;
+  /** the gas profile, which joins the trace later (useGasProfile.ts) */
+  gasState: GasState;
+  /** the Gas tab opened, or the pointer or the focus came to it: the page
+   *  asks for the gas profile */
+  onGasWanted: () => void;
   chainId: string;
   base: string;
   sender: string;
@@ -676,9 +466,13 @@ export function EvmTrace({
   const [stateShown, setStateShown] = useState(60);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const frames = useMemo(() => (trace ? flatten(trace.call) : []), [trace]);
-  const logs = useMemo(() => (trace ? logsIn(trace.call) : []), [trace]);
-  const contracts = useMemo(() => (trace ? contractsIn(trace.call) : []), [trace]);
+  // the gas profile joins the trace as a new object: what reads only the
+  // call tree and the state diff is not worked out again
+  const call = trace?.call;
+  const prestate = trace?.prestate ?? null;
+  const frames = useMemo(() => (call ? flatten(call) : []), [call]);
+  const logs = useMemo(() => (call ? logsIn(call) : []), [call]);
+  const contracts = useMemo(() => (call ? contractsIn(call) : []), [call]);
   const verified = useVerifiedContracts(chainId, contracts);
   const tokens = useTokenList(chainId);
 
@@ -707,8 +501,8 @@ export function EvmTrace({
 
   const n: Names = { tokens, contracts: verified, sigs, chainId, base, sender };
 
-  const changes = useMemo(() => (trace ? balanceChanges(trace) : []), [trace]);
-  const storage = useMemo(() => (trace ? storageChanges(trace) : []), [trace]);
+  const changes = useMemo(() => (call ? balanceChanges({ call, prestate }) : []), [call, prestate]);
+  const storage = useMemo(() => storageChanges({ prestate }), [prestate]);
   const { price } = usePrice(chainId);
   const usd = price?.price ?? null;
   const prices = useTokenPrices(chainId, changes.map((c) => c.token).filter((t): t is string => !!t));
@@ -717,7 +511,7 @@ export function EvmTrace({
 
   // every address the execution mentions, for recovering mapping keys
   const slotLabels = useMemo(() => {
-    if (!trace || storage.length === 0) return new Map<string, SlotLabel>();
+    if (!call || storage.length === 0) return new Map<string, SlotLabel>();
     const addrs = new Set<string>();
     const walk = (f: TraceFrame) => {
       addrs.add(f.from);
@@ -725,10 +519,10 @@ export function EvmTrace({
       for (const l of f.logs ?? []) for (const t of l.topics.slice(1)) if (/^0x0{24}[0-9a-f]{40}$/i.test(t)) addrs.add(`0x${t.slice(26)}`);
       (f.calls ?? []).forEach(walk);
     };
-    walk(trace.call);
-    for (const a of Object.keys(trace.prestate?.post ?? {})) addrs.add(a);
+    walk(call);
+    for (const a of Object.keys(prestate?.post ?? {})) addrs.add(a);
     return labelSlots(new Set(storage.map((s) => s.slot.toLowerCase())), [...addrs]);
-  }, [trace, storage]);
+  }, [call, prestate, storage]);
 
   if (state === "none") return null;
 
@@ -789,9 +583,9 @@ export function EvmTrace({
           <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">tracing execution…</div>
         </Board>
       )}
-      {state === "error" && (
+      {(state === "error" || state === "later") && (
         <Board divide={false}>
-          <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">the trace node did not answer</div>
+          <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">{state === "later" ? "the trace node is busy · tap or click anywhere to load the trace" : "the trace node did not answer"}</div>
         </Board>
       )}
       {trace && (
@@ -799,7 +593,11 @@ export function EvmTrace({
           <Tabs
             tabs={["calls", "events", "balances", "state", "gas"]}
             active={tab}
-            onChange={setTab}
+            onChange={(t) => {
+              setTab(t);
+              if (t === "gas") onGasWanted();
+            }}
+            onIntent={(t) => t === "gas" && onGasWanted()}
             labels={{ ...LABELS, events: logs.length ? `Events · ${logs.length}` : "Events" }}
           />
 
@@ -1083,29 +881,7 @@ export function EvmTrace({
           )}
 
           {tab === "gas" && (
-            <div className="flex flex-col gap-6">
-              <GasProfiler frames={frames} gas={trace.gas ?? null} charged={charged} logs={logs} n={n} />
-              {trace.opcodes && <Board>
-                <div className={cn(HEAD, "grid grid-cols-[minmax(0,1fr)_5rem_7rem]")}>
-                  <span>Opcode</span>
-                  <span className="text-right">Count</span>
-                  <span className="text-right">Gas</span>
-                </div>
-                {trace.opcodes
-                  .filter((o) => !CALL_OPS.has(o.op))
-                  .slice(0, 10)
-                  .map((o) => (
-                    <div key={o.op} className="grid grid-cols-[minmax(0,1fr)_5rem_7rem] items-center gap-4 px-5 py-2 font-mono text-[12px] md:px-6">
-                      <span className="text-zinc-700 dark:text-zinc-300">{o.op}</span>
-                      <span className="text-right tabular-nums text-zinc-500 dark:text-zinc-400">{o.count.toLocaleString("en-US")}</span>
-                      <span className="text-right tabular-nums text-zinc-700 dark:text-zinc-300">{o.gas.toLocaleString("en-US")}</span>
-                    </div>
-                  ))}
-                <div className="px-5 py-2.5 font-mono text-[10px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  {trace.steps?.toLocaleString("en-US") ?? "—"} opcodes executed · call opcodes omitted: the EVM books the gas they forward as their own cost
-                </div>
-              </Board>}
-            </div>
+            <GasTab frames={frames} profile={trace} state={gasState} charged={charged} logs={logs} label={(f) => frameLabel(f, n)} base={base} />
           )}
         </>
       )}
