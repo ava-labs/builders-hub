@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 import type { AdminAuditorRow } from "@/server/services/audits/visibility";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import {
@@ -144,11 +145,13 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
             onClick={() => setPanel({ mode: "add" })}
             className="audits-sweep group h-11 bg-brand text-white md:h-10"
           >
-            <Plus
-              aria-hidden
-              className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
-            />
-            Add auditor
+            <SweepLabel>
+              <Plus
+                aria-hidden
+                className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
+              />
+              Add auditor
+            </SweepLabel>
           </Button>
         </div>
       </div>

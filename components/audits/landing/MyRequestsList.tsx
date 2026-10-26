@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { OwnerRequestSummary } from "@/server/services/audits/visibility";
 import { AUDITS_DIALOG } from "@/components/audits/shared/classes";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 import { RequestCard } from "@/components/audits/landing/RequestCard";
 
 type Filter = "all" | "review" | "collecting" | "deciding" | "closed" | "drafts";
@@ -136,13 +137,15 @@ export function MyRequestsList({
           ) : null}
           <Link
             href="/audits/new"
-            className="audits-sweep group inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
+            className="audits-sweep group inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-[scale] duration-160 ease-out active:scale-[0.97] motion-reduce:active:scale-100 md:h-10"
           >
-            <Plus
-              aria-hidden
-              className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
-            />
-            New request
+            <SweepLabel>
+              <Plus
+                aria-hidden
+                className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
+              />
+              New request
+            </SweepLabel>
           </Link>
         </div>
       </div>

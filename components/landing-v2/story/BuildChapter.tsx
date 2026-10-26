@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import { track } from "@/components/landing-v2/track";
-import { BODY, Chapter, FOCUS, Reveal, SUBHEAD } from "./kit";
+import { BODY, CELL_ARROW, Chapter, FOCUS, Reveal, SUBHEAD } from "./kit";
 
 /* The close. The hero's display voice returns as a bookend, then the
    two ways in, then the help a builder gets on either path. */
@@ -49,7 +49,7 @@ function Resource({ href, label, line }: { href: string; label: string; line: st
       {/* the lead's 18 px step: a label, quieter than the path titles above */}
       <span className="v2-heading pr-6 text-lg text-zinc-900 dark:text-zinc-50">{label}</span>
       <span className={`text-pretty ${BODY}`}>{line}</span>
-      <ArrowRight className="absolute top-6.5 right-6 h-4 w-4 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F] group-focus-visible:translate-x-0.5 group-focus-visible:text-[#E6212F] md:top-8.5 md:right-8 dark:text-zinc-600" />
+      <ArrowRight className={`absolute top-6.5 right-6 h-4 w-4 ${CELL_ARROW} md:top-8.5 md:right-8`} />
     </HoverPrefetchLink>
   );
 }
@@ -57,14 +57,14 @@ function Resource({ href, label, line }: { href: string; label: string; line: st
 export default function BuildChapter({ academyLine }: { academyLine: string | null }) {
   return (
     <Chapter id="build">
-      <Reveal>
+      <Reveal title>
         {/* the period holds still: a loop with no pause control fails WCAG 2.2.2 */}
         <h2 className="v2-display text-[3rem] text-zinc-900 md:text-[4rem] xl:text-[5rem] dark:text-zinc-50">
           Build yours<span className="text-[#E6212F]">.</span>
         </h2>
       </Reveal>
 
-      <Reveal delay={0.1} className="mt-16 md:mt-20">
+      <Reveal delay={0.08} className="mt-16 md:mt-20">
         {/* one hairline grid: the two paths, then the four resources under them */}
         <div className="grid gap-px border border-zinc-200 bg-zinc-200 md:grid-cols-2 lg:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-800">
           {PATHS.map((p) => (

@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { SUBSIDY_MAX_PCT, SUBSIDY_PCT_STEP } from "@/lib/audits/subsidy";
 import { BlocksArt } from "@/components/audits/shared/BlocksArt";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 import { formatIsoDate, formatUsd, parseWholeNumber } from "@/components/audits/shared/format";
 
 interface SubsidyWorksheetProps {
@@ -229,7 +230,9 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
           onClick={() => void decide("approved")}
           className="audits-sweep h-11 bg-brand text-white"
         >
-          Approve {formatUsd(amount)} ({pct}%)
+          <SweepLabel>
+            Approve {formatUsd(amount)} ({pct}%)
+          </SweepLabel>
         </Button>
         <Button disabled={busy} variant="outline" onClick={() => void decide("declined")}>
           Decline subsidy

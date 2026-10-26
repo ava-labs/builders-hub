@@ -51,7 +51,7 @@ export default function OwnChapter() {
       {/* every width reads the claim, the drawing, the cost, then the way in.
           From lg the claim holds the left five columns, the drawing the right seven */}
       <div className="grid gap-y-12 lg:grid-cols-12 lg:items-center lg:gap-x-8">
-        <Reveal className="lg:col-span-5">
+        <Reveal title className="lg:col-span-5">
           <Title lead="Own the chain." rest="Set the rules" />
           <Lead className="mt-8">
             An Avalanche L1 is a blockchain for your application alone. It can require its validators to be in a
@@ -59,7 +59,7 @@ export default function OwnChapter() {
           </Lead>
         </Reveal>
 
-        <Reveal delay={0.1} className="-mx-5 md:mx-0 md:-my-12 lg:-my-20 lg:col-span-7">
+        <Reveal delay={0.08} className="-mx-5 md:mx-0 md:-my-12 lg:-my-20 lg:col-span-7">
           <div ref={drawingRef}>
             <SceneFrame
               Scene={StackScene}
@@ -75,7 +75,7 @@ export default function OwnChapter() {
       </div>
 
       {/* phones: the layers as text, right after the drawing; from 768 px the drawing labels them */}
-      <Reveal delay={0.1} className="mt-12 md:sr-only">
+      <Reveal delay={0.08} className="mt-12 md:sr-only">
         <ol className="divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
           {[...LAYERS].reverse().map((layer) => (
             <li key={layer.key} className="flex flex-col gap-1 py-4">
@@ -86,7 +86,7 @@ export default function OwnChapter() {
         </ol>
       </Reveal>
 
-      <Reveal delay={0.15} className="mt-16 md:mt-20 lg:mt-28">
+      <Reveal delay={0.12} className="mt-16 md:mt-20 lg:mt-28">
         <div className="grid gap-12 border-t border-zinc-200 pt-12 max-md:border-t-0 max-md:pt-0 md:grid-cols-3 md:gap-8 dark:border-zinc-800">
           <Figure
             value={

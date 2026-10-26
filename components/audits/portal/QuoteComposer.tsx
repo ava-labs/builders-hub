@@ -41,6 +41,7 @@ import {
   toUtcCalendarDate,
 } from "@/components/audits/shared/format";
 import { QuoteSummary } from "@/components/audits/portal/QuoteSummary";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 
 interface QuoteComposerProps {
   requestId: string;
@@ -316,8 +317,10 @@ export function QuoteComposer({
             onClick={() => (existing ? setConfirming(true) : void submit())}
             className="audits-sweep h-11 w-full bg-brand text-white"
           >
-            {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {existing ? "Update quote" : "Send quote"}
+            <SweepLabel>
+              {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {existing ? "Update quote" : "Send quote"}
+            </SweepLabel>
           </Button>
         </div>
 

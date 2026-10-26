@@ -5,7 +5,9 @@ import { useLiveFeed, type LivePace } from "@/components/explorer-v2/network/liv
 import { formatNumber } from "@/components/explorer-v2/format";
 import type { LiveChain } from "@/components/explorer-v2/network/network-reads";
 import { LIVE_HEADS, type LiveHead } from "@/lib/live-window";
+import { EASE_OUT, cssEase } from "@/lib/motion-curves";
 import {
+  C_CHAIN,
   LaneField,
   LaneHeight,
   LanesFrame,
@@ -56,8 +58,18 @@ const LANE_PACE: LivePace = { pollMs: 2_000, staleRestMs: [15_000, 30_000, 60_00
    could reach its landing before it reaches the page */
 const SKEW_RANGE_MS = [-1_000, 2_000] as const;
 const SKEW_WINDOW_MS = 6_000;
-/* a block lands red and turns gray over this long after it crosses the edge */
+/* a block lands red and turns gray over this long after it crosses the edge,
+   at a steady rate, as it drifts on */
 const LAND_MS = 2_400;
+/* the live dot rings as C-Chain blocks land, so it pulses with the blocks
+   it labels, at most once every RING_GAP_MS: a ring says a block landed
+   since the last ring, and the blocks that land in between join the next */
+const RING_GAP_MS = 2_000;
+const RING: Keyframe[] = [
+  { transform: "scale(1)", opacity: 0.6 },
+  { transform: "scale(2.4)", opacity: 0 },
+];
+const RING_TIMING: KeyframeAnimationOptions = { duration: 700, easing: cssEase(EASE_OUT) };
 /* blocks kept behind a lane's newest: past the widest field at its pace */
 const KEEP_MS = 90_000;
 /* one drift animation's span; the next starts where it ends */
@@ -101,6 +113,16 @@ function place(sorted: LiveHead[], drawn: Map<number, number>): Drawn[] {
   return out;
 }
 
+/** ms until each block that has not landed yet crosses the edge (NOW): its drawn time, `delayMs` behind the clock */
+export function landingsIn(heads: readonly { drawnMs: number }[], delayMs: number, nowMs: number): number[] {
+  return heads.map((h) => h.drawnMs + delayMs - nowMs).filter((wait) => wait >= 0);
+}
+
+/** a landing rings the live dot only once RING_GAP_MS have passed since the last ring */
+export function canRing(lastRingMs: number, nowMs: number): boolean {
+  return nowMs - lastRingMs >= RING_GAP_MS;
+}
+
 /** a block's square: 6 px for one transaction, 16 px from about 30 */
 const side = (txCount: number) => Math.round(Math.min(16, Math.max(6, 4 + 2.4 * Math.log2(1 + txCount))));
 
@@ -125,6 +147,7 @@ function LiveLane({
   k,
   onArrive,
   onFeed,
+  onLand,
 }: {
   chain: LiveChain;
   /** the lane may poll */
@@ -139,6 +162,8 @@ function LiveLane({
   /** a new block reached the page this many ms after it was made */
   onArrive: (lagMs: number) => void;
   onFeed: (chainId: string, state: FeedState) => void;
+  /** one of this lane's blocks crosses the edge (NOW) */
+  onLand?: () => void;
 }) {
   const [read, setRead] = useState(false);
   const polling = armed && !(still && read);
@@ -216,6 +241,14 @@ function LiveLane({
     [],
   );
 
+  // each block that has not landed calls onLand as it crosses the edge, on
+  // the clock that places it; off screen (or still) nothing lands
+  useEffect(() => {
+    if (!onLand || !moving) return;
+    const timers = landingsIn(heads, clock.delay, Date.now()).map((wait) => window.setTimeout(onLand, wait));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [onLand, moving, heads, clock.delay]);
+
   /* A block's red: it lands red and turns gray once it is across the edge,
      on the clock, so a block still short of the edge never takes the red
      from the one just in view. A still lane marks its newest block. */
@@ -232,7 +265,7 @@ function LiveLane({
       el.style.opacity = "0";
       return;
     }
-    el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LAND_MS, delay: wait, easing: "ease-in", fill: "both" });
+    el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LAND_MS, delay: wait, easing: "linear", fill: "both" });
   };
 
   return (
@@ -299,6 +332,17 @@ export default function NetworkLanesLive({
     (id: string, v: FeedState) => setFeeds((s) => (s[id] === v ? s : { ...s, [id]: v })),
     [],
   );
+
+  // the live dot's ring: a landing starts it, with no render of the lanes,
+  // unless the last ring is under RING_GAP_MS old
+  const ring = useRef<HTMLSpanElement>(null);
+  const lastRing = useRef(-Infinity);
+  const onLand = useCallback(() => {
+    const now = performance.now();
+    if (!canRing(lastRing.current, now)) return;
+    lastRing.current = now;
+    ring.current?.animate(RING, RING_TIMING);
+  }, []);
   const shown = phone ? chains.slice(0, PHONE_LANES) : chains;
   const states = shown.map((c) => feeds[c.chainId]);
   // an outage shows in a still read too: empty lanes would read as quiet chains
@@ -315,6 +359,7 @@ export default function NetworkLanesLive({
       chains={chains}
       renderMark={renderMark}
       state={state}
+      ring={ring}
       lane={(chain, i) => (
         <LiveLane
           chain={chain}
@@ -325,6 +370,7 @@ export default function NetworkLanesLive({
           k={k}
           onArrive={onArrive}
           onFeed={onFeed}
+          onLand={chain.chainId === C_CHAIN ? onLand : undefined}
         />
       )}
     />

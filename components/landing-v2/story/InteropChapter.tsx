@@ -82,7 +82,7 @@ export default function InteropChapter({ data }: { data: InteropData }) {
 
   return (
     <Chapter id="interop">
-      <Reveal>
+      <Reveal title>
         <Title lead="Any L1 can connect." rest="No bridge operator" />
         <Lead className="mt-8">
           With Interchain Messaging (ICM), the sending chain&apos;s validators sign each message. The receiving chain checks
@@ -90,7 +90,7 @@ export default function InteropChapter({ data }: { data: InteropData }) {
         </Lead>
       </Reveal>
 
-      <Reveal delay={0.1} className="-mx-5 mt-12 md:mx-0 md:mt-16">
+      <Reveal delay={0.08} className="-mx-5 mt-12 md:mx-0 md:mt-16">
         <div ref={boxRef}>
           <SceneFrame
             Scene={NetworkScene}
@@ -108,7 +108,7 @@ export default function InteropChapter({ data }: { data: InteropData }) {
         </p>
       </Reveal>
 
-      <Reveal delay={0.15} className="mt-12 md:mt-16">
+      <Reveal delay={0.12} className="mt-12 md:mt-16">
         <div className="grid gap-12 border-t border-zinc-200 pt-10 md:grid-cols-3 md:gap-8 md:pt-12 dark:border-zinc-800">
           {messages > 0 && (
             <Figure value={formatCompact(messages)} caption="ICM messages between these chains in the last 30 days." />

@@ -7,6 +7,7 @@ import {
   AnimatePresence,
   motion,
   useInView,
+  useIsPresent,
   useReducedMotion,
   useScroll,
   useSpring,
@@ -31,30 +32,18 @@ import { rosterOf } from "@/components/explorer-v2/network/network-reads";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { SCRUB_SPRING } from "@/components/landing-v2/scrub";
 import { track } from "@/components/landing-v2/track";
-
-const EASE_OUT = [0.22, 1, 0.36, 1] as const;
-
-// Arrival cascade: the board rises as one, then its rows stagger in.
-// Everything plays on entry: no reveal is gated behind scroll.
-const BOARD_VARIANTS = {
-  hidden: { opacity: 0, y: 24 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: EASE_OUT, staggerChildren: 0.12, delayChildren: 0.1 },
-  },
-};
-const ROW_VARIANTS = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE_OUT } },
-};
-// Reduced motion: the same hidden start as the server sent (a different
-// start would not hydrate), shown at once with no cascade
-const BOARD_STATIC = {
-  hidden: BOARD_VARIANTS.hidden,
-  show: { opacity: 1, y: 0, transition: { duration: 0, staggerChildren: 0, delayChildren: 0 } },
-};
-const ROW_STATIC = { hidden: ROW_VARIANTS.hidden, show: { opacity: 1, y: 0, transition: { duration: 0 } } };
+import {
+  BOARD_STATIC,
+  BOARD_VARIANTS,
+  COUNT,
+  COUNT_FROM,
+  HEADING_RISE,
+  NOUN_ROLL,
+  NOUN_WIDTH,
+  ROW_STATIC,
+  ROW_VARIANTS,
+  STOP_DROP,
+} from "@/components/landing-v2/home-motion";
 
 /* ------------------------------------------------------------------ */
 /* Ledger strip: the network's figures, set like a ledger             */
@@ -84,11 +73,22 @@ const STAKE_CLASS =
 function LedgerFigure({ value, animateIn }: { value: number; animateIn: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
-  // the server cannot read reduced motion, so both sides start at 0 and the
-  // effect below sets the figure; a reduced-motion start would not hydrate
-  const [display, setDisplay] = useState(0);
-  // live refreshes count from the last shown figure, not from zero again
-  const shownRef = useRef(0);
+  // the server sends the figure itself, so it reads right before the scripts
+  // run and with them off; both sides start there, so it hydrates
+  const [display, setDisplay] = useState(value);
+  // live refreshes count from the last shown figure
+  const shownRef = useRef(value);
+
+  // A figure still below the screen at hydration takes the count's start
+  // there, unseen, and lands on its value when it comes into view. One
+  // already on screen keeps its value: it never drops back to count.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!animateIn || !el || el.getBoundingClientRect().top < window.innerHeight) return;
+    shownRef.current = value * COUNT_FROM;
+    setDisplay(shownRef.current);
+    // only at mount: a later value counts from the figure on screen
+  }, []);
 
   useEffect(() => {
     if (!animateIn) {
@@ -98,8 +98,7 @@ function LedgerFigure({ value, animateIn }: { value: number; animateIn: boolean 
     }
     if (!inView) return;
     const controls = animate(shownRef.current, value, {
-      duration: 1.4,
-      ease: EASE_OUT,
+      ...COUNT,
       onUpdate: (v) => {
         shownRef.current = v;
         setDisplay(v);
@@ -262,12 +261,30 @@ const HERO_NOUNS = [
   "marketplace",
 ];
 
+// The noun on screen. It rolls in from below while the last one rolls out
+// (both sit at the slot's top left, so the two cross in one place). Once it
+// starts to leave it drops out of the heading's accessible name, so the
+// heading never reads two nouns.
+function HeroNoun({ noun }: { noun: string }) {
+  const isPresent = useIsPresent();
+  return (
+    <motion.span
+      aria-hidden={isPresent ? undefined : true}
+      className="absolute left-0 top-0 whitespace-nowrap"
+      {...NOUN_ROLL}
+    >
+      {noun}
+    </motion.span>
+  );
+}
+
 function ChapterOne() {
   const reducedMotion = useReducedMotion();
 
   // Exit dim: the hero hands off by fading as it scrolls away, so the rising
   // stats board is the only thing asking for attention. Opacity only: a y
   // parallax here could collide with the board entering below the fold.
+  // Under Reduce Motion a CSS class holds it at 1: the first render is the server's.
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress: exit } = useScroll({
     target: sectionRef,
@@ -276,21 +293,24 @@ function ChapterOne() {
   const smoothExit = useSpring(exit, SCRUB_SPRING);
   const exitOpacity = useTransform(smoothExit, [0.35, 0.85], [1, 0]);
 
-  const [nounIndex, setNounIndex] = useState(0);
+  // the number of word changes so far: the noun is read from it, and the
+  // full stop drops in again on each change
+  const [turn, setTurn] = useState(0);
   useEffect(() => {
     if (reducedMotion) return;
     const timer = setInterval(() => {
-      setNounIndex((i) => (i + 1) % HERO_NOUNS.length);
+      setTurn((t) => t + 1);
     }, 2800);
     return () => clearInterval(timer);
   }, [reducedMotion]);
   // modulo at read time: guards stale state (e.g. Fast Refresh keeping an
   // index from a longer, older version of the array)
-  const noun = HERO_NOUNS[nounIndex % HERO_NOUNS.length] ?? HERO_NOUNS[0];
+  const noun = HERO_NOUNS[turn % HERO_NOUNS.length] ?? HERO_NOUNS[0];
   const article = /^[aeiou]/.test(noun) ? "an" : "a";
 
   // width-smoothed slot: measure the incoming word and transition the slot's
-  // width so the line glides instead of snapping as words change length
+  // width so the line settles with the roll instead of snapping as words
+  // change length
   const measureRef = useRef<HTMLSpanElement>(null);
   const [nounWidth, setNounWidth] = useState<number | null>(null);
   useLayoutEffect(() => {
@@ -320,15 +340,9 @@ function ChapterOne() {
   }, []);
 
   // top-to-bottom load sequence: each block rises in after the one above it
-  // The server cannot read reduced motion, so it always sends the hidden
-  // start. With reduced motion the client skips the start (initial false) but
-  // keeps animate, so framer writes the shown values over the server's
-  const rise = (delay: number) => ({
-    initial: reducedMotion ? (false as const) : { opacity: 0, y: 16 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
-  });
-
+  // (.hero-enter in global.css). A CSS animation plays from the first frame,
+  // so the copy never waits for hydration and shows with scripts off; under
+  // Reduce Motion it only fades in.
   return (
     // In-flow navbar (~3.5rem) sits above; subtract it so the section is one viewport.
     // The small viewport (svh): on a phone, 100vh is the screen with the browser's
@@ -339,16 +353,15 @@ function ChapterOne() {
       className="v2-snap-section relative flex min-h-[calc(100vh-3.5rem)] flex-col supports-[height:100svh]:min-h-[calc(var(--v2-hero-h,100svh)-3.5rem)]"
     >
       <motion.div
-        className="flex flex-1 flex-col"
-        style={reducedMotion ? undefined : { opacity: exitOpacity }}
+        className="flex flex-1 flex-col motion-reduce:opacity-100!"
+        style={{ opacity: exitOpacity }}
       >
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 text-center">
         {/* the splash ends at the ecosystem tape, so the tape never crops it */}
         <HeroSplash />
         {/* phones: as large as the widest noun ("marketplace.", 7.53em) allows */}
-        <motion.h1
-          className="v2-display text-[clamp(2.5rem,calc((100vw_-_2.75rem)/7.6),3.5rem)] text-zinc-900 dark:text-zinc-50 md:text-[4rem] xl:text-[5rem]"
-          {...rise(0.05)}
+        <h1
+          className="hero-enter [--hero-delay:50ms] v2-display text-[clamp(2.5rem,calc((100vw_-_2.75rem)/7.6),3.5rem)] text-zinc-900 dark:text-zinc-50 md:text-[4rem] xl:text-[5rem]"
         >
           Build {article}{" "}
           {/* on mobile the noun always takes its own line. Short nouns like
@@ -363,33 +376,32 @@ function ChapterOne() {
                  bottoms inside overflow-hidden (4px at 390px); the padding
                  reserves the descent, the negative margin keeps layout. */
               className="relative inline-block overflow-hidden align-bottom pb-[0.08em] -mb-[0.08em]"
-              style={{
-                width: nounWidth ?? undefined,
-                transition: "width 0.45s cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
+              style={{ width: nounWidth ?? undefined, transition: NOUN_WIDTH }}
             >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={noun}
-                  className="inline-block whitespace-nowrap"
-                  initial={{ y: "105%" }}
-                  animate={{ y: 0 }}
-                  exit={{ y: "-105%" }}
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  {noun}
-                </motion.span>
-              </AnimatePresence>
-              <span ref={measureRef} aria-hidden className="invisible absolute left-0 top-0 whitespace-nowrap">
+              {/* in flow and invisible: gives the slot its height (and its
+                  width until the measure lands) and measures the next word */}
+              <span ref={measureRef} aria-hidden className="invisible inline-block whitespace-nowrap">
                 {noun}
               </span>
+              <AnimatePresence initial={false}>
+                <HeroNoun key={noun} noun={noun} />
+              </AnimatePresence>
             </span>
-            <span className="text-[#E6212F] motion-safe:animate-[pulse_3s_ease-in-out_infinite]">.</span>
+            {/* the red full stop confirms each new word once, then holds still */}
+            <motion.span
+              key={turn}
+              className="inline-block text-[#E6212F]"
+              initial={turn === 0 ? false : STOP_DROP.initial}
+              animate={STOP_DROP.animate}
+              transition={STOP_DROP.transition}
+            >
+              .
+            </motion.span>
           </span>
-        </motion.h1>
+        </h1>
 
 
-        <motion.div className="mt-12 flex flex-col items-center gap-6" {...rise(0.3)}>
+        <div className="hero-enter [--hero-delay:300ms] mt-12 flex flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
           <BrandButton
             href="/console"
@@ -417,13 +429,13 @@ function ChapterOne() {
           >
             READ THE ARCHITECTURE →
           </HoverPrefetchLink>
-        </motion.div>
+        </div>
       </div>
 
       {/* proof band at the fold: the ecosystem tape is part of the hero */}
-      <motion.div {...rise(0.45)}>
+      <div className="hero-enter [--hero-delay:450ms]">
         <BuiltOnMarquee embedded />
-      </motion.div>
+      </div>
       </motion.div>
     </section>
   );
@@ -543,13 +555,13 @@ function StatsChapter({
         <motion.div
           data-reveal
           className="flex flex-col gap-5 md:gap-10 lg:flex-row lg:items-end lg:justify-between"
-          initial={{ opacity: 0, y: 24 }}
+          initial={HEADING_RISE.initial}
           {...(staticMode
             ? { animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
             : {
                 whileInView: { opacity: 1, y: 0 },
                 viewport: { once: true, amount: 0.4 },
-                transition: { duration: 0.6, ease: EASE_OUT },
+                transition: HEADING_RISE.transition,
               })}
         >
           {/* staircase stack per the /solutions hero: lines step right,
@@ -573,10 +585,10 @@ function StatsChapter({
           />
         </motion.div>
       </div>
-      {/* the rows take the board's hidden start, so each carries data-reveal too */}
+      {/* the board is in place at once and its rows settle in, so each row
+          carries data-reveal (shown when scripts are off) */}
       <motion.div
         className="divide-y divide-zinc-200 border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80"
-        data-reveal
         initial="hidden"
         {...(staticMode
           ? { animate: "show", variants: BOARD_STATIC }
@@ -651,17 +663,20 @@ function StatsChapter({
             onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore the network", href: "/explorer" })}
             // the focus ring is a pseudo-element over the sweep: the bar's own
             // outline would paint under its positioned children
-            className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-4 outline-none focus-visible:after:pointer-events-none focus-visible:after:absolute focus-visible:after:inset-0.5 focus-visible:after:z-20 focus-visible:after:border-2 focus-visible:after:border-[#1F1F1F] md:py-5"
+            className="relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-4 outline-none focus-visible:after:pointer-events-none focus-visible:after:absolute focus-visible:after:inset-0.5 focus-visible:after:z-20 focus-visible:after:border-2 focus-visible:after:border-[#1F1F1F] md:py-5"
           >
-            <span
-              aria-hidden
-              className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
-            />
-            <span className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 md:px-6">
-              <span className="text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F] group-focus-visible:text-[#1F1F1F]">
-                Explore the network
+            <span className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 md:px-6">
+              <span className="text-sm font-medium text-white">Explore the network</span>
+              <ArrowRight className="h-4 w-4 text-white" />
+            </span>
+            {/* the sweep: an aria-hidden copy of the hovered bar, revealed from
+                the left on hover and keyboard focus (.sweep-copy in global.css),
+                so the label flips where the fill passes */}
+            <span aria-hidden inert className="sweep-copy bg-[#EBF0FA]">
+              <span className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 md:px-6">
+                <span className="text-sm font-medium text-[#1F1F1F]">Explore the network</span>
+                <ArrowRight className="h-4 w-4 text-[#E6212F]" />
               </span>
-              <ArrowRight className="h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F] group-focus-visible:text-[#E6212F]" />
             </span>
           </HoverPrefetchLink>
         </motion.div>
@@ -745,16 +760,6 @@ export default function StoryHome({
   defi: { tvlUsd: number | null; stablesUsd: number | null; dexVolume30dUsd: number | null };
 }) {
   const reducedMotion = useReducedMotion();
-
-  // Scroll padding is a document-level property; scope it to this page by
-  // tagging <html> while mounted (CSS in global.css under .v2-snap), so a
-  // focused link or an anchor jump lands below the sticky navbar. Layout
-  // effect, so the cleanup drops the class in the unmount commit, before
-  // the next route paints.
-  useLayoutEffect(() => {
-    document.documentElement.classList.add("v2-snap");
-    return () => document.documentElement.classList.remove("v2-snap");
-  }, []);
 
   // Live refresh: repoll the overview metrics so the board ticks while the
   // page is open. A zeroed aggregate means the API cache is still warming;

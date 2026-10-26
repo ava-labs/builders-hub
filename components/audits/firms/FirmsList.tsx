@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { PublicFirm } from "@/server/services/audits/visibility";
 import { MONO_LABEL } from "@/components/audits/shared/classes";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 import { hostOf, monogramOf, truncate } from "@/components/audits/shared/format";
 import { isAllowedLogoSrc } from "@/lib/audits/logoSrc";
 
@@ -78,9 +79,9 @@ export function FirmsList({ firms }: { firms: PublicFirm[] }) {
       <div className="mt-6">
         <Link
           href="/audits/new"
-          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors"
+          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-[scale] duration-160 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
         >
-          Request quotes
+          <SweepLabel>Request quotes</SweepLabel>
         </Link>
       </div>
 

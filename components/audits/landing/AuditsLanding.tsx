@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BlocksArt } from "@/components/audits/shared/BlocksArt";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 
 const HOW_IT_WORKS = [
   {
@@ -62,9 +63,9 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
       <div className="mt-6">
         <Link
           href="/audits/new"
-          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors"
+          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-[scale] duration-160 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
         >
-          Request quotes
+          <SweepLabel>Request quotes</SweepLabel>
         </Link>
       </div>
 

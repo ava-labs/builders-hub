@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { rosterOf, type LiveChain, type RosterRow } from "@/components/explorer-v2/network/network-reads";
 import { MONO } from "@/components/landing-v2/story/kit";
 
@@ -23,7 +23,8 @@ const LANES = 4;
 /** below md a phone reads the C-Chain's lane alone (the first), with no
  *  time axis: the chapter fits one phone screen */
 export const PHONE_LANES = 1;
-const C_CHAIN = "43114";
+/** the lane that leads, and the one whose blocks ring the live dot */
+export const C_CHAIN = "43114";
 /** a block drifts this many px a second. The axis (md up) reads the wide
  *  pace from --k in LanesFrame's class list: keep the two in step */
 export const PX_PER_S = { phone: 20, wide: 30 };
@@ -49,19 +50,22 @@ export function LanesFrame({
   renderMark,
   state,
   lane,
+  ring,
 }: {
   chains: LiveChain[];
   renderMark: RenderMark;
   state: LanesState;
   /** a lane's field and its newest height: two grid cells */
   lane: (chain: LiveChain, index: number) => ReactNode;
+  /** the live dot's ring, at rest unseen: NetworkLanesLive rings it as C-Chain blocks land, at most every 2 s */
+  ring?: Ref<HTMLSpanElement>;
 }) {
   const live = state === "live";
   return (
     <div className={`grid gap-x-3 [--k:30px] md:gap-x-6 ${ROW_GRID}`}>
       <span className={`col-span-2 mb-1 flex items-center gap-2 text-zinc-500 dark:text-zinc-400 ${MONO}`}>
         <span className="relative flex h-1.5 w-1.5">
-          {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />}
+          {live && <span ref={ring} className="absolute inline-flex h-full w-full rounded-full bg-[#E6212F] opacity-0" />}
           <span
             className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-[#E6212F]" : "bg-zinc-300 dark:bg-zinc-700"}`}
           />

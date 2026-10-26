@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useInView, useReducedMotion } from "framer-motion";
-import { CAPTION, Chapter, Lead, MONO, Reveal, TextLink, Title } from "./kit";
+import { CAPTION, Chapter, FOCUS, Lead, MONO, QUIET, Reveal, TextLink, Title } from "./kit";
 
 /* The first objection, answered: final in a second or less, with no
    reorgs. A ruler in real time, one line for both chains: two transactions
@@ -45,7 +45,15 @@ const at = (ms: number) => `${(ms / SPAN_MS) * 100}%`;
 // a run leaves from; run: one trip each, which ends on the final pose
 type Pose = "rest" | "start" | "run";
 
-function FinalityRuler() {
+/**
+ * What a press of "Run it again" does: on a ruler on screen it runs the race
+ * from the start. Off screen it only resets to the start pose, so the race
+ * runs when the ruler is next watched (a run played off screen would go
+ * unseen, and the watch would find it already running and not replay it).
+ */
+export const replayPose = (onScreen: boolean): Pose => (onScreen ? "run" : "start");
+
+function FinalityRuler({ replays }: { replays: number }) {
   const ref = useRef<HTMLDivElement>(null);
   // the run plays once when the whole ruler sits in the top three quarters
   // of the screen, and is armed again only after the ruler leaves the
@@ -59,6 +67,13 @@ function FinalityRuler() {
     if (watched) setPhase("run");
     else if (!onScreen) setPhase("start");
   }, [watched, onScreen, reduced]);
+  // "Run it again" runs it from the start while the ruler is on screen (as
+  // of the press: the effect runs for presses only), and only resets it off
+  // screen: each press also gives the moving parts a new key, so their
+  // animations start over
+  useEffect(() => {
+    if (replays) setPhase(replayPose(onScreen));
+  }, [replays]);
 
   const pose: Pose = reduced ? "rest" : phase;
 
@@ -107,7 +122,7 @@ function FinalityRuler() {
             className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
             style={{ left: at(m.ms) }}
           >
-            <div className="flex flex-col items-center gap-3" style={lit(m)}>
+            <div key={replays} className="flex flex-col items-center gap-3" style={lit(m)}>
               <p
                 className={`v2-heading whitespace-nowrap text-3xl leading-none tracking-[-0.04em] md:text-4xl lg:text-5xl ${m.accent ? "text-[#E6212F]" : "text-zinc-900 dark:text-zinc-50"}`}
               >
@@ -132,13 +147,14 @@ function FinalityRuler() {
           to their mark, so the end pose lands on it */}
       <div aria-hidden className="relative h-px w-full bg-zinc-200 dark:bg-zinc-800">
         <div
+          key={replays}
           className="absolute inset-y-0 left-0 origin-left bg-zinc-900 dark:bg-zinc-100"
           style={{ width: at(FINAL_MS), ...fill }}
         />
         {/* the trips ride together until 0.5 s, so the L1's red block goes on top */}
         {MARKS.map((m) => (
           <div
-            key={m.chain}
+            key={`${m.chain}-${replays}`}
             className={`absolute inset-y-0 left-0 ${m.accent ? "z-10" : ""}`}
             style={{ width: at(m.ms), ...trip(m) }}
           >
@@ -179,17 +195,19 @@ function FinalityRuler() {
 }
 
 export default function FinalChapter() {
+  // each press of "Run it again" counts up, and the ruler runs from the start
+  const [replays, setReplays] = useState(0);
   return (
     <Chapter id="final">
-      <Reveal>
+      <Reveal title>
         <Title lead="Final in a second or less." rest="No reorgs" />
         <Lead className="mt-8">
           A transaction is final when consensus accepts its block. Apps and exchanges need no extra confirmations.
         </Lead>
       </Reveal>
 
-      <Reveal delay={0.1} className="mt-16 md:mt-20">
-        <FinalityRuler />
+      <Reveal delay={0.08} className="mt-16 md:mt-20">
+        <FinalityRuler replays={replays} />
         <p className={`mt-6 max-w-3xl ${CAPTION}`}>
           <span className="motion-reduce:hidden">Shown at true speed. </span>Sources: AvaCloud for its L1s, the
           Avalanche docs for the <span className="whitespace-nowrap">C-Chain</span>.
@@ -198,6 +216,19 @@ export default function FinalChapter() {
           <TextLink href="/docs/primary-network/exchange-integration#determining-finality" section="final">
             How finality works
           </TextLink>
+          {/* the race once more, at true speed, on the link's line (the
+              phone gap keeps it there from 360 px; narrower, it would take a
+              row of its own, so it is not shown, and the race still runs
+              again after the ruler leaves the screen). Not shown under
+              reduced motion, where the ruler rests on its final pose, nor
+              without scripts, which it needs */}
+          <button
+            type="button"
+            onClick={() => setReplays((n) => n + 1)}
+            className={`-my-3.5 ml-6 inline-flex cursor-pointer items-center whitespace-nowrap py-3.5 max-[360px]:hidden sm:ml-8 motion-reduce:hidden [@media(scripting:none)]:hidden ${QUIET} ${MONO} ${FOCUS}`}
+          >
+            Run it again
+          </button>
         </div>
       </Reveal>
     </Chapter>

@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode, Ref } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { useInView } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import { track } from "@/components/landing-v2/track";
@@ -9,7 +9,8 @@ import { track } from "@/components/landing-v2/track";
 /* The story chapters' one type scale and one motion. Every chapter below
    the stats board is built from these parts, so the page speaks with one
    voice: a two-line title in Aeonik Medium, one lead
-   sentence, and its proof. Content rises in once, as it enters.
+   sentence, and its proof. The title settles in once, as it enters, and
+   the rest fades in.
 
    The scale, largest first:
      Title    36 / 48 / 56 px, Aeonik Medium (h2)
@@ -19,8 +20,6 @@ import { track } from "@/components/landing-v2/track";
      BODY     15 px
      CAPTION  13 px (footnotes under a figure or a drawing)
      MONO     12 px uppercase, tracked (labels, quiet links) */
-
-export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 export const BODY = "text-pretty text-[15px] leading-snug text-zinc-500 dark:text-zinc-400";
 export const CAPTION = "text-pretty text-[13px] leading-snug text-zinc-500 dark:text-zinc-400";
@@ -50,37 +49,65 @@ export function Chapter({
   );
 }
 
-/** when a block starts to rise: its top passes 10% above the bottom of the screen, at any block height */
+/** when a block arrives: its top passes 10% above the bottom of the screen, at any block height */
 export const REVEAL_VIEW = { once: true, margin: "0px 0px -10% 0px" } as const;
 
+/* A block waits in its first pose and arrives in its second. The title
+   block settles 8 px; every other block (drawing, figures, doors) only
+   fades, so the chapter's own drawing stays its one motion. Under reduced
+   motion the title fades over 200 ms and the rest is simply there (the
+   layered !important outranks the site policy's 150 ms) */
+const WAIT = {
+  title: "opacity-0 translate-y-2 motion-reduce:translate-y-0",
+  block: "opacity-0 motion-reduce:opacity-100",
+};
+const ARRIVE = {
+  title: "transition-[opacity,translate] duration-400 ease-out motion-reduce:duration-200!",
+  block: "transition-opacity duration-300 ease-out",
+};
+
 /**
- * Rises in once when its top passes 90% of the screen height, at any block
- * height. Under reduced motion it is in place as soon as the page hydrates.
- * data-reveal lets global.css show it when scripts are off.
+ * Arrives once, when its top passes 90% of the screen height, at any block
+ * height. The server sends it in place, and a block on screen when the page
+ * hydrates stays as it is: only one still below the screen waits, so no
+ * content needs scripts to appear. data-reveal also shows it in global.css
+ * when scripts are off.
  */
 export function Reveal({
   children,
+  title = false,
   delay = 0,
   className = "",
 }: {
   children: ReactNode;
+  /** the chapter's title block: it settles 8 px, where any other block fades in place */
+  title?: boolean;
+  /** seconds after it enters: 0.08 and 0.12 stagger the blocks that enter together */
   delay?: number;
   className?: string;
 }) {
-  const reduced = useReducedMotion();
-  // the server cannot read reduced motion, so both send the same hidden
-  // start (a different start would not hydrate); reduced motion only drops
-  // the duration, so the content appears in place
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, REVEAL_VIEW);
+  const [waiting, setWaiting] = useState(false);
+  // only a block wholly below the screen waits: it is out of sight, so no
+  // block ever vanishes in view. A passive effect measures after the
+  // router's scroll handling, where a layout effect reads the page left
+  // behind; a block on screen during a smooth scroll stays in place
+  useEffect(() => {
+    const el = ref.current;
+    if (el && el.getBoundingClientRect().top >= window.innerHeight) setWaiting(true);
+  }, []);
+  const kind = title ? "title" : "block";
+  const pose = waiting ? (inView ? ARRIVE[kind] : WAIT[kind]) : "";
   return (
-    <motion.div
+    <div
+      ref={ref}
       data-reveal
-      className={className}
-      initial={{ opacity: 0, y: 24 }}
-      {...(reduced ? { animate: { opacity: 1, y: 0 } } : { whileInView: { opacity: 1, y: 0 }, viewport: REVEAL_VIEW })}
-      transition={reduced ? { duration: 0 } : { duration: 0.7, delay, ease: EASE_OUT }}
+      className={`${pose} ${className}`.trim()}
+      style={waiting && inView && delay ? { transitionDelay: `${delay}s` } : undefined}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -150,6 +177,20 @@ export function Figure({
 }
 
 /**
+ * A cell's arrow (the institutions cases, the build resources), placed by
+ * the cell: zinc-500 holds 3:1 on both themes. Hovering the cell or
+ * focusing it from the keyboard turns it red and nudges it 2 px. One
+ * property moves it (transform), so the nudge is animated and never
+ * doubles; under reduced motion only the colour changes.
+ */
+export const CELL_ARROW =
+  "translate-none text-zinc-500 [transition:color_150ms_ease,transform_200ms_var(--ease-out)] group-hover:text-[#E6212F] group-focus-visible:text-[#E6212F] motion-safe:group-hover:[transform:translateX(2px)] motion-safe:group-focus-visible:[transform:translateX(2px)]";
+
+/** the quiet link's ink: TextLink's, and the replay button's beside one */
+export const QUIET =
+  "text-zinc-600 transition-colors hover:text-zinc-900 focus-visible:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50 dark:focus-visible:text-zinc-50";
+
+/**
  * The page's quiet link: mono label and arrow, tracked as a home CTA. The
  * padding grows the tap area to 44 px; the negative margin keeps the layout.
  */
@@ -166,7 +207,7 @@ export function TextLink({
     <HoverPrefetchLink
       href={href}
       onClick={() => track("home_cta_clicked", { section, label: children, href })}
-      className={`group -my-3.5 inline-flex items-center max-sm:self-start gap-1.5 py-3.5 text-zinc-600 transition-colors hover:text-zinc-900 focus-visible:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50 dark:focus-visible:text-zinc-50 ${MONO} ${FOCUS}`}
+      className={`group -my-3.5 inline-flex items-center max-sm:self-start gap-1.5 py-3.5 ${QUIET} ${MONO} ${FOCUS}`}
     >
       {children}
       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />

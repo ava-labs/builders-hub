@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 
 /**
  * The approval gate's one control. Until an admin approves here, the request
@@ -148,10 +149,12 @@ export function ReviewDecision({
               disabled={busy !== null}
               onClick={() => void decide("approve")}
             >
-              {busy === "approve" ? (
-                <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Approve and notify
+              <SweepLabel>
+                {busy === "approve" ? (
+                  <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Approve and notify
+              </SweepLabel>
             </Button>
             <Button
               variant="ghost"

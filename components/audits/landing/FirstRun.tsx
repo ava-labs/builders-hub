@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/audits/shared/EmptyState";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 
 /** Signed in, zero requests (design 1f). Copy verbatim. */
 export function FirstRun({
@@ -27,9 +28,9 @@ export function FirstRun({
       action={
         <Link
           href="/audits/new"
-          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors"
+          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-[scale] duration-160 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
         >
-          Start your first request
+          <SweepLabel>Start your first request</SweepLabel>
         </Link>
       }
       footnote={

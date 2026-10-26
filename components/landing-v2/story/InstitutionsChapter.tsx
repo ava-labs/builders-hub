@@ -3,7 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import { track } from "@/components/landing-v2/track";
-import { BODY, Chapter, FOCUS, Lead, Reveal, SUBHEAD, TextLink, Title } from "./kit";
+import { BODY, CELL_ARROW, Chapter, FOCUS, Lead, Reveal, SUBHEAD, TextLink, Title } from "./kit";
 
 /* Who already made the choice. Each entry says what is live, in the
    words of its source in the repo, and links to that source. Each cell
@@ -84,7 +84,7 @@ function CaseCell({ c }: { c: Case }) {
       </span>
       <span className={`text-pretty ${BODY}`}>{c.line}</span>
       {/* the arrow sits level with the chip's center at every width */}
-      <ArrowRight className="absolute right-6 top-8 h-4 w-4 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F] group-focus-visible:translate-x-0.5 group-focus-visible:text-[#E6212F] sm:top-9 md:right-8 md:top-11 dark:text-zinc-600" />
+      <ArrowRight className={`absolute right-6 top-8 h-4 w-4 ${CELL_ARROW} sm:top-9 md:right-8 md:top-11`} />
     </HoverPrefetchLink>
   );
 }
@@ -92,14 +92,14 @@ function CaseCell({ c }: { c: Case }) {
 export default function InstitutionsChapter() {
   return (
     <Chapter id="institutions">
-      <Reveal>
+      <Reveal title>
         <Title lead="Already in production" />
         <Lead className="mt-8">
           Institutions run funds, credit, securities and stablecoins on the{" "}
           <span className="whitespace-nowrap">C-Chain</span> and on L1s.
         </Lead>
       </Reveal>
-      <Reveal delay={0.1} className="mt-16 md:mt-20">
+      <Reveal delay={0.08} className="mt-16 md:mt-20">
         {/* hairline grid: the 1 px gaps show the border color through */}
         <div className="grid gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-800">
           {CASES.map((c) => (

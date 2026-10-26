@@ -18,6 +18,7 @@ import { StepTimeline } from "@/components/audits/wizard/StepTimeline";
 import { StepReview } from "@/components/audits/wizard/StepReview";
 import { WIZARD_STEPS, type AuditWizardValues } from "@/components/audits/wizard/types";
 import type { PublicFirm } from "@/server/services/audits/visibility";
+import { SweepLabel } from "@/components/audits/shared/SweepLabel";
 
 const CONTINUE_LABELS = ["Continue to scope", "Continue to timeline", "Continue to review"];
 
@@ -136,10 +137,12 @@ function WizardBody({ importProjectId }: { importProjectId: string | null }) {
                     onClick={() => void submit()}
                     className="audits-sweep h-11 bg-brand text-white md:h-10"
                   >
-                    {submitting ? (
-                      <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    Submit request
+                    <SweepLabel>
+                      {submitting ? (
+                        <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Submit request
+                    </SweepLabel>
                   </Button>
                 </div>
               )}
