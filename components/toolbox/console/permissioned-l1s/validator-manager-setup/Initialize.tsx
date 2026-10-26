@@ -139,14 +139,15 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         // owner() unreadable (not a contract, RPC hiccup): fall through to the event scan below
       }
 
+      // The public C-Chain RPC answers eth_getLogs for at most 100 blocks, both ends counted, and rejects a wider range
       const latestBlock = await chainPublicClient.getBlockNumber();
-      const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
+      const fromBlock = latestBlock > 99n ? latestBlock - 99n : 0n;
 
       const logs = await chainPublicClient.getLogs({
         address: managerAddress as `0x${string}`,
         event: initializedEvent as AbiEvent,
         fromBlock: fromBlock,
-        toBlock: 'latest',
+        toBlock: latestBlock,
       });
 
       setIsInitialized(logs.length > 0);
