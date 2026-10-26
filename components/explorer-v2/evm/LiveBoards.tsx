@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { truncate, ageShort } from "@/components/explorer-v2/format";
-import { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ROW_H, ViewAll, useFreeze, useOpening } from "./belt";
+import { BREATHE } from "@/components/explorer-v2/motion";
+import { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ROW_H, ViewAll, useFreeze, useHold, useOpening } from "./belt";
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
@@ -32,7 +33,7 @@ import { txNewer, type TxRow } from "./tx-window";
 
 export { HEAD, ROW, INK, MUTED, RowSkeleton, ageShort };
 // the belt's parts, for the pages that set them with the boards
-export { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ROW_H, ViewAll, useFreeze, useOpening };
+export { Belt, Height, MotionRow, PHONE_ROWS, ROWS, ROW_H, ViewAll, useFreeze, useHold, useOpening };
 
 /** a transferred amount beside its method: two places when it is money,
  *  four when it is small, a floor when it is dust */
@@ -117,7 +118,7 @@ export function PhaseTrack({
     >
       <motion.span
         ref={dot}
-        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : "animate-[root-breathe_2.4s_ease-in-out_infinite] bg-zinc-300 dark:bg-zinc-600")}
+        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : `${BREATHE} bg-zinc-300 dark:bg-zinc-600`)}
         initial={false}
         animate={{ scale: committed ? [1, 1.8, 1] : 1 }}
         transition={{ duration: 0.5, delay: committed ? delayMs / 1000 : 0, ease: "easeOut" }}
@@ -129,10 +130,8 @@ export function PhaseTrack({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: committed ? delayMs / 1000 : 0 }}
-          className={cn(
-            "font-mono text-[10px] uppercase tracking-[0.12em]",
-            committed ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
-          )}
+          // X4: both words read at 4.5:1 or more (4.8:1 on white, 7.6:1 on zinc-950); the word and the dot tell them apart
+          className="font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400"
         >
           {committed ? "committed" : "accepted"}
         </motion.span>
@@ -180,9 +179,9 @@ export function LatestBlocksBoard({
   const cols = showSettlement
     ? "md:grid-cols-[7.5rem_3rem_minmax(0,1fr)_8.5rem_3rem]"
     : "md:grid-cols-[7.5rem_3rem_minmax(0,1fr)_3rem]";
-  // the belt holds still under the pointer so a row can be clicked
-  const [hover, setHover] = useState(false);
-  const shown = useFreeze({ rows: incomingRows, tip, executedHeight }, hover);
+  // the belt holds still under the pointer or keyboard focus so a row can be read and opened
+  const [held, hold] = useHold();
+  const shown = useFreeze({ rows: incomingRows, tip, executedHeight }, held);
   const rows = shown.rows;
   // the rows it opens with stand still (a page opened from memory has them at once)
   const opening = useOpening(rows, (b) => String(b.number));
@@ -202,7 +201,7 @@ export function LatestBlocksBoard({
           </span>
         }
       />
-      <Board divide={false} className="group/belt" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <Board divide={false} className="group/belt" {...hold}>
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span>Height</span>
           <span className="text-right">Txs</span>
@@ -235,7 +234,8 @@ export function LatestBlocksBoard({
                     delayMs={(ROWS - i) * 60}
                   />
                 )}
-                <span className={cn(MUTED, "text-right")}>{ageShort(b.timestamp)}</span>
+                {/* X4: the age reads at 4.5:1 or more in both themes, where MUTED does not */}
+                <span className={cn(MUTED, "text-right text-zinc-500 dark:text-zinc-400")}>{ageShort(b.timestamp)}</span>
               </Link>
             </MotionRow>
           ))}
@@ -326,12 +326,12 @@ export function LatestTxsBoard({
   streaming: boolean;
 }) {
   // the ticker: one row at a time, names warmed before a row is released;
-  // it holds still while the pointer is over it so a row can be clicked
-  const [hover, setHover] = useState(false);
+  // it holds still under the pointer or keyboard focus so a row can be read and opened
+  const [held, hold] = useHold();
   const rows = useTicker(txs, ROWS + 1, {
     key: (t) => t.hash,
     newer: txNewer,
-    paused: hover,
+    paused: held,
     onEnqueue: (fresh) => void prewarmContractNames(chainId, fresh.map((t) => t.to)),
     enabled: streaming,
   });
@@ -347,7 +347,7 @@ export function LatestTxsBoard({
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Transactions" action={<ViewAll href={`${base}/txs`} />} />
-      <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <Board divide={false} {...hold}>
         {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
         <div className="overflow-x-auto">
         <div className="md:min-w-[46rem] xl:min-w-0">

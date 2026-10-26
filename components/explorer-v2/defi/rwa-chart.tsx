@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Area, AreaChart, Bar, BarChart, Brush, CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 import { ChartBoard } from "@/components/explorer-v2/ui";
-import { ChartEmpty, TipPlate } from "@/components/explorer-v2/staking/bits";
+import { ChartEmpty, TipPlate, TOOLTIP_DEFAULTS } from "@/components/explorer-v2/staking/bits";
 import { ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
 import { useChartZoom } from "@/lib/rwa/hooks/useChartZoom";
 import type { TimeInterval } from "@/lib/rwa/types";
@@ -189,7 +189,7 @@ export function RwaChart({
     <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} className="stroke-zinc-200 dark:stroke-zinc-800" />,
     <XAxis key="x" dataKey="date" tickFormatter={(d: string) => tickLabel(d, interval)} tick={TICK} tickLine={false} axisLine={false} minTickGap={32} />,
     <YAxis key="y" tickFormatter={fmt} tick={TICK} tickLine={false} axisLine={false} width={58} />,
-    <Tooltip key="tip" cursor={{ stroke: "currentColor", strokeOpacity: 0.3 }} content={<ChartTip series={series} interval={interval} fmt={fmt} />} />,
+    <Tooltip key="tip" {...TOOLTIP_DEFAULTS} cursor={{ stroke: "currentColor", strokeOpacity: 0.3 }} content={<ChartTip series={series} interval={interval} fmt={fmt} />} />,
     !zoom.isZoomed && <Brush key="brush" dataKey="date" height={22} stroke="currentColor" fill="transparent" travellerWidth={8} tickFormatter={(d: string) => tickLabel(d, interval)} />,
     zoom.zoomState.refAreaLeft && zoom.zoomState.refAreaRight && (
       <ReferenceArea key="zoom" x1={zoom.zoomState.refAreaLeft} x2={zoom.zoomState.refAreaRight} strokeOpacity={0.3} fill="currentColor" fillOpacity={0.12} />

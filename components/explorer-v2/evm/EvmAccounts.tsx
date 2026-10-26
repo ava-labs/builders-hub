@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { ChartBoard, EmptyRow, RowSkeleton } from "@/components/explorer-v2/ui";
-import { ChartEmpty, TipPlate } from "@/components/explorer-v2/staking/bits";
+import { ChartEmpty, TipPlate, TOOLTIP_DEFAULTS } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { ShareMap, TAIL_TONE, type SharePart } from "@/components/explorer-v2/ShareMap";
 import { dayLong, dayShort, truncate } from "@/components/explorer-v2/format";
@@ -145,7 +145,7 @@ function DayChart({
             tickFormatter={(v: number) => fmtCompact(v)}
             domain={kind === "bars" ? [0, "dataMax"] : ["auto", "auto"]}
           />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={kind === "bars" ? { fill: "rgba(161,161,170,0.1)" } : { stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;

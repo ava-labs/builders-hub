@@ -17,7 +17,7 @@ import { HELICON_ACTIVATION } from "@/constants/helicon";
 import { AXIS_TICK, BRUSH_PROPS, SheetGrid } from "@/components/explorer-v2/metric-sheet";
 import { MarkLabel } from "@/components/explorer-v2/evm/query/fit-text";
 import { dayLong, dayShort } from "@/components/explorer-v2/format";
-import { TipPlate } from "./bits";
+import { TipPlate, TOOLTIP_DEFAULTS } from "./bits";
 import { thin, windowSeries, type StakingApy, type StakingApyPoint } from "./data";
 
 /* The reward rate by term length, over time: the 1-year and 2-week terms
@@ -141,7 +141,7 @@ export function RateCurvesChart({ data, variant }: { data: RatePoint[]; variant:
           {...(sheet ? {} : { orientation: "right" as const, tickCount: 3 })}
           tickFormatter={(v: number) => `${v.toFixed(sheet || v < 10 ? 1 : 0)}%`}
         />
-        <RechartsTooltip cursor={{ stroke: "rgba(161,161,170,0.35)" }} content={<RateTip />} />
+        <RechartsTooltip {...TOOLTIP_DEFAULTS} cursor={{ stroke: "rgba(161,161,170,0.35)" }} content={<RateTip />} />
         <ReferenceLine x={HELICON_AT} stroke={HELICON_RED} strokeWidth={1.5} label={<MarkLabel value="Helicon" />} />
         <Line type="monotone" dataKey="maxAPY" stroke="currentColor" strokeWidth={2} dot={false} isAnimationActive={false} />
         <Line type="monotone" dataKey="twoWeekAPY" stroke={TWO_WEEK_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} isAnimationActive={false} />

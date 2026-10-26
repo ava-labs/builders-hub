@@ -1,20 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
 import type { PchainNetwork } from "@/lib/pchain-explorer";
 import { C_CHAIN_ID } from "@/lib/explorer-catalog";
+import { cn } from "@/lib/utils";
+import { EASE_OUT } from "@/lib/motion-curves";
 import { Board, EmptyRow } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
-import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import {
   CHART_FLOOR_DAYS,
   fmtCompact,
   metricSeries,
   pctOf,
+  statsWindow,
   useChainMetrics,
   windowPair,
   type Metrics,
+  type MetricsRead,
+  type StatsWindow,
 } from "@/components/explorer-v2/evm/metric-charts";
 import { BLOCK_GRAY, LayerBlock, PickReadout, type BlockDay, type BlockLayer } from "@/components/explorer-v2/network/icm-parts";
 
@@ -87,6 +93,83 @@ const ICM_LAYERS: BlockLayer[] = [
   { key: "out", label: "Sent", tone: "#71717A" },
 ];
 
+const EMPTY: Metrics = {};
+
+/* exp-range-hold (a) and stats-chart-pick (a): a region whose content
+   changes cross-fades. The copy it leaves goes to opacity 0 into a 2px
+   blur, which hides the double image, and the new one arrives out of that
+   blur 40ms later, both on the strong ease-out. Nothing in either moves;
+   the leaving copy, popped out of the flow over the new one, takes no
+   pointer, focus or reader, and keyboard focus inside it moves to the same
+   control in the new copy. A window leaves in 140ms and arrives in 200ms,
+   a picked chart in 120ms and 180ms. Under Reduce Motion a swap is a 150ms
+   opacity cross-fade with no blur. */
+interface Beat {
+  out: number;
+  in: number;
+}
+const WINDOW_BEAT: Beat = { out: 0.14, in: 0.2 };
+const PICK_BEAT: Beat = { out: 0.12, in: 0.18 };
+const FOCUSABLE = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
+
+/** the control that takes over focus from a copy that leaves: the one at the
+ *  same place among the arriving copy's controls (tab order). Null when focus
+ *  is in no leaving copy, or the arriving copy has no control there. */
+export function focusHandOff<E>(copies: readonly { leaving: boolean; controls: readonly E[] }[], active: E): E | null {
+  const from = copies.find((c) => c.leaving && c.controls.includes(active));
+  const to = copies.find((c) => !c.leaving);
+  if (!from || !to) return null;
+  return to.controls[from.controls.indexOf(active)] ?? null;
+}
+
+function Swap({ k, beat, children }: { k: string; beat: Beat; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  // the copy that leaves goes inert, and at its next rendering update the
+  // browser would drop the focus inside it on the page: a layout effect runs
+  // first, and hands focus to the same control in the copy that arrives
+  useLayoutEffect(() => {
+    const root = box.current;
+    const active = document.activeElement;
+    if (!root || !(active instanceof HTMLElement) || !root.contains(active)) return;
+    const copies = [...root.children].map((c) => ({
+      leaving: c.hasAttribute("inert"),
+      controls: [...c.querySelectorAll<HTMLElement>(FOCUSABLE)],
+    }));
+    focusHandOff(copies, active)?.focus({ preventScroll: true });
+  }, [k]);
+  return (
+    <div ref={box} className="relative">
+      <AnimatePresence initial={false} mode="popLayout">
+        <SwapCopy key={k} beat={beat}>
+          {children}
+        </SwapCopy>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function SwapCopy({ beat, ref, children }: { beat: Beat; ref?: Ref<HTMLDivElement>; children: ReactNode }) {
+  const present = useIsPresent();
+  const still = useReducedMotion();
+  const blur = still ? {} : { filter: "blur(2px)" };
+  return (
+    <motion.div
+      ref={ref}
+      inert={!present}
+      initial={{ opacity: 0, ...blur }}
+      animate={{
+        opacity: 1,
+        ...(still ? {} : { filter: "blur(0px)" }),
+        transitionEnd: { filter: "none" },
+        transition: still ? { duration: 0.15, ease: EASE_OUT } : { duration: beat.in, delay: 0.04, ease: EASE_OUT },
+      }}
+      exit={{ opacity: 0, ...blur, transition: { duration: still ? 0.15 : beat.out, ease: EASE_OUT } }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 /** the network's windowed readings and the chart they pick, without the shell */
 export function NetworkStatsBody({ network = "mainnet" }: { network?: PchainNetwork }) {
   return network === "fuji" ? <FujiStatsBody /> : <StatsBody network={network} />;
@@ -99,42 +182,54 @@ function FujiStatsBody() {
   return <StatsBody network="fuji" fees={fees} />;
 }
 
-function StatsBody({ network, fees }: { network: PchainNetwork; fees?: { metrics: Metrics | null; failed: boolean } }) {
+function StatsBody({ network, fees }: { network: PchainNetwork; fees?: MetricsRead }) {
   const clock = useExplorerTimeRange();
-  const range = RANGE_DAYS[clock];
   const fuji = network === "fuji";
   // fetch double the window so every reading can face its previous window
-  const { metrics, failed } = useChainMetrics(fuji ? "fuji" : "all", Math.min(range * 2, 365), fuji ? FUJI_METRICS : METRICS);
+  const main = useChainMetrics(fuji ? "fuji" : "all", Math.min(RANGE_DAYS[clock] * 2, 365), fuji ? FUJI_METRICS : METRICS);
   const [pick, setPick] = useState<MetricKey>("txCount");
+  const still = useReducedMotion();
 
+  // exp-range-hold: the last window every read answered stays on screen,
+  // dimmed, until the next one has; a first visit has none to hold, and
+  // draws each read as it lands
+  const [kept, setKept] = useState<StatsWindow<ExplorerRange> | null>(null);
+  const { view, stale, keep } = statsWindow(kept, clock, main, fees);
+  if (keep) setKept(keep);
   const ownFees = !!fees;
-  const feeMetrics = fees?.metrics;
+  const viewMetrics = view?.metrics;
+  const viewFees = view?.fees;
   const m = useMemo<Metrics>(() => {
-    if (!ownFees) return metrics ?? {};
+    if (!viewMetrics) return EMPTY;
+    if (!ownFees) return viewMetrics;
     // the C-Chain's fee series stand in for the rollup's
-    const merged: Metrics = { ...metrics };
-    for (const k of FEE_KEYS) merged[k] = feeMetrics?.[k];
+    const merged: Metrics = { ...viewMetrics };
+    for (const k of FEE_KEYS) merged[k] = viewFees?.[k];
     return merged;
-  }, [metrics, feeMetrics, ownFees]);
+  }, [viewMetrics, viewFees, ownFees]);
+  const shown = view?.clock ?? clock;
+  const range = RANGE_DAYS[shown];
+  // under Reduce Motion a window swaps in place, where its dim lifts; otherwise it cross-fades
+  const key = still ? "still" : shown;
   const chartDays = Math.max(CHART_FLOOR_DAYS, range);
   const isFee = (spec: MetricSpec) => ownFees && FEE_KEYS.includes(spec.key);
   // a reading's feed has answered: on Fuji a fee reading waits for the C-Chain's
-  const answered = (spec: MetricSpec) => (isFee(spec) ? !!fees?.metrics || !!fees?.failed : !!metrics);
+  const answered = (spec: MetricSpec) => !!view && (!isFee(spec) || view.complete);
 
   // the ICM feed has its own shape: received and sent per day
   const icmDays = useMemo<BlockDay[]>(() => {
-    const pts = [...(metrics?.icmMessages?.data ?? [])].sort((a, b) => a.timestamp - b.timestamp);
+    const pts = [...(m.icmMessages?.data ?? [])].sort((a, b) => a.timestamp - b.timestamp);
     return thin(windowSeries(pts, chartDays), 200).map((p) => ({ date: p.date, v: { in: p.incomingCount, out: p.outgoingCount } }));
-  }, [metrics, chartDays]);
+  }, [m, chartDays]);
   const icmPair = useMemo(() => {
-    const pts = [...(metrics?.icmMessages?.data ?? [])].sort((a, b) => a.timestamp - b.timestamp);
+    const pts = [...(m.icmMessages?.data ?? [])].sort((a, b) => a.timestamp - b.timestamp);
     if (!pts.length) return null;
     return windowPair(
       pts.map((p) => ({ timestamp: p.timestamp, value: p.incomingCount + p.outgoingCount })),
       range,
       "sum",
     );
-  }, [metrics, range]);
+  }, [m, range]);
 
   const days = (spec: MetricSpec): BlockDay[] => {
     if (spec.key === "icm") return icmDays;
@@ -165,58 +260,70 @@ function StatsBody({ network, fees }: { network: PchainNetwork; fees?: { metrics
     if (!isFee(spec)) return sub;
     return sub ? `C-Chain · ${sub}` : "C-Chain";
   };
-  const windowNote = range < CHART_FLOOR_DAYS ? "7 days" : rangeWindowLabel(clock);
+  const windowNote = range < CHART_FLOOR_DAYS ? "7 days" : rangeWindowLabel(shown);
 
   let body: React.ReactNode;
-  if (failed) {
+  if (main.failed) {
     body = (
       <Board divide={false} className="border">
         <EmptyRow>Chain metrics unavailable</EmptyRow>
       </Board>
     );
   } else {
+    const chart = pickedDays.length ? (
+      <LayerBlock
+        label={picked.label}
+        note={isFee(picked) ? `C-Chain · ${windowNote}` : windowNote}
+        days={pickedDays}
+        layers={picked.key === "icm" ? ICM_LAYERS : [{ key: "a", label: picked.label, tone: BLOCK_GRAY }]}
+        fmt={fmtOf(picked)}
+        unit={picked.unit}
+        headline={picked.mode}
+        overlay={picked.overlay}
+        href={picked.key === "icm" ? `/explorer/${network}/chains` : undefined}
+        stale={stale}
+      />
+    ) : answered(picked) ? (
+      <Board divide={false} className={cn("border transition-opacity duration-150 ease-out", stale && "opacity-60")}>
+        <EmptyRow>No {picked.label.toLowerCase()} in this window</EmptyRow>
+      </Board>
+    ) : (
+      <div className="h-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+    );
     body = (
-      <div className="flex flex-col gap-12">
-        {/* the readings on the clock; each one picks the chart below */}
-        <ReadoutRow cols={4}>
+      // a held window is busy for a screen reader too: its figures are being replaced
+      <div className="flex flex-col gap-12" aria-busy={stale}>
+        {/* the readings on the clock; each one picks the chart below. A readout
+            stays mounted through a new window, so focus on it stays too: only
+            its face cross-fades */}
+        <ReadoutRow cols={4} className={cn("transition-opacity duration-150 ease-out", stale && "opacity-60")}>
           {SPECS.map((spec) => {
             const { value, delta } = readingOf(spec);
             const d = days(spec);
             const spark = spec.key === "icm" ? d.map((x) => x.v.in + x.v.out) : d.map((x) => x.v.a);
             return (
               <PickReadout key={spec.key} label={spec.label} on={pick === spec.key} onPick={() => setPick(spec.key)}>
-                <Readout
-                  label={spec.label}
-                  value={value !== null ? fmtOf(spec)(value) : answered(spec) ? "—" : null}
-                  unit={value !== null ? spec.unit : undefined}
-                  sub={subOf(spec)}
-                  delta={delta}
-                  spark={spark}
-                />
+                <Swap k={key} beat={WINDOW_BEAT}>
+                  <Readout
+                    label={spec.label}
+                    value={value !== null ? fmtOf(spec)(value) : answered(spec) ? "—" : null}
+                    unit={value !== null ? spec.unit : undefined}
+                    sub={subOf(spec)}
+                    delta={delta}
+                    spark={spark}
+                  />
+                </Swap>
               </PickReadout>
             );
           })}
         </ReadoutRow>
 
-        {pickedDays.length ? (
-          <LayerBlock
-            label={picked.label}
-            note={isFee(picked) ? `C-Chain · ${windowNote}` : windowNote}
-            days={pickedDays}
-            layers={picked.key === "icm" ? ICM_LAYERS : [{ key: "a", label: picked.label, tone: BLOCK_GRAY }]}
-            fmt={fmtOf(picked)}
-            unit={picked.unit}
-            headline={picked.mode}
-            overlay={picked.overlay}
-            href={picked.key === "icm" ? `/explorer/${network}/chains` : undefined}
-          />
-        ) : answered(picked) ? (
-          <Board divide={false} className="border">
-            <EmptyRow>No {picked.label.toLowerCase()} in this window</EmptyRow>
-          </Board>
-        ) : (
-          <div className="h-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-        )}
+        {/* the picked chart: it cross-fades on a new window, and on a new pick */}
+        <Swap k={key} beat={WINDOW_BEAT}>
+          <Swap k={pick} beat={PICK_BEAT}>
+            {chart}
+          </Swap>
+        </Swap>
       </div>
     );
   }

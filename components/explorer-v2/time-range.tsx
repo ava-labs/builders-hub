@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EASE_DRAWER } from "@/lib/motion-curves";
 
 /* ------------------------------------------------------------------ */
 /* The explorer's shared clock. One page-level time range — picked in   */
@@ -133,10 +135,14 @@ export function useRangeConsumersPresent(): boolean {
 }
 
 /* The control itself — the NetworkControl's segmented grammar, one cell
-   per range, red-free (the active cell inverts like the network toggle). */
+   per range, red-free (the active cell inverts like the network toggle).
+   exp-range-hold (a): the ink is one cell that slides to the range picked,
+   transform only, 200ms on the explorer's curve, so the eye sees where the
+   window moved; under Reduce Motion it moves at once. */
 export function ExplorerRangeControl({ className }: { className?: string }) {
   const current = useExplorerTimeRange0();
   const present = useRangeConsumersPresent();
+  const still = useReducedMotion();
   if (!present) return null;
   return (
     <>
@@ -178,13 +184,20 @@ export function ExplorerRangeControl({ className }: { className?: string }) {
             title={title}
             onClick={() => setExplorerRange(value)}
             className={cn(
-              "px-1.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2",
+              "relative px-1.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2",
               active
-                ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+                ? "text-zinc-50 dark:text-zinc-900"
                 : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
             )}
           >
-            {label}
+            {active && (
+              <motion.span
+                layoutId="explorer-range-cell"
+                transition={still ? { duration: 0 } : { duration: 0.2, ease: EASE_DRAWER }}
+                className="absolute inset-0 bg-zinc-900 dark:bg-zinc-50"
+              />
+            )}
+            <span className="relative">{label}</span>
           </button>
         );
       })}

@@ -18,7 +18,7 @@ import { getChainFromBlockchainId } from "@/components/explorer/utils/chainLooku
 import { FeedDown } from "@/components/explorer-v2/evm/bits";
 import { CellLabel, ChartBoard, idInk } from "@/components/explorer-v2/ui";
 import { dayLong, dayShort, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
-import { TipPlate } from "@/components/explorer-v2/staking/bits";
+import { TipPlate, TOOLTIP_DEFAULTS } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { ShareMap, TAIL_TONE, type SharePart } from "@/components/explorer-v2/ShareMap";
@@ -210,7 +210,7 @@ function DailyChart({ days }: { days: IcmDay[] }) {
             tick={AXIS_TICK}
             tickFormatter={(v: number) => fmtCount(v)}
           />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;

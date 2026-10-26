@@ -21,7 +21,7 @@ import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { ShareMap, PLAIN_TONE, TAIL_TONE, type SharePart } from "@/components/explorer-v2/ShareMap";
 import { dayLong, dayShort, truncate } from "@/components/explorer-v2/format";
 import { useTokenUsd } from "@/components/explorer/GasMarketPage";
-import { ChartEmpty, TipPlate } from "./bits";
+import { ChartEmpty, TipPlate, TOOLTIP_DEFAULTS } from "./bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   NANO,
@@ -104,7 +104,7 @@ function TotalStakeChart({ data }: { data: StakePoint[] }) {
           <CartesianGrid vertical={false} stroke={GRID_STROKE} />
           <XAxis {...dayX("day")} />
           <YAxis {...rightY(fmtCompact)} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -165,7 +165,7 @@ function AreaTrend({
           <CartesianGrid vertical={false} stroke={GRID_STROKE} />
           <XAxis {...dayX("day")} />
           <YAxis {...rightY((v: number) => fmtCompact(v))} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -205,7 +205,7 @@ function RatioChart({ data }: { data: RatioPoint[] }) {
           <CartesianGrid vertical={false} stroke={GRID_STROKE} />
           <XAxis {...dayX("day")} />
           <YAxis {...rightY(pctFmt, ["auto", "auto"])} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -254,7 +254,7 @@ function RewardsBars({ data }: { data: RewardPoint[] }) {
           <CartesianGrid vertical={false} stroke={GRID_STROKE} />
           <XAxis {...dayX("day")} />
           <YAxis {...rightY(fmtCompact)} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -303,7 +303,7 @@ function MoneyBars({ data, color, noun }: { data: FlowDay[]; color: string; noun
           <CartesianGrid vertical={false} stroke={GRID_STROKE} />
           <XAxis {...dayX("date")} />
           <YAxis {...rightY(fmtCompact)} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -374,7 +374,7 @@ export function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint
             tickFormatter={(v: number) => fmtCompact(v)}
             width={48}
           />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -448,7 +448,7 @@ export function FeeChart({ data }: { data: FeeBucket[] }) {
             tick={AXIS_TICK}
             width={40}
           />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -909,7 +909,7 @@ export function PrimaryStakingContent({
                 className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               >
                 The validator set
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+                <ArrowRight className="h-3 w-3 transition-[color,translate] group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
               </Link>
             )
           }
@@ -1183,7 +1183,7 @@ export function PrimaryStakingContent({
                 className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               >
                 How to stake
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+                <ArrowRight className="h-3 w-3 transition-[color,translate] group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
               </Link>
             }
           />

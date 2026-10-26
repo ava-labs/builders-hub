@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
-import { motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { INK } from "@/components/explorer-v2/ui";
 import { formatNumber } from "@/components/explorer-v2/format";
@@ -65,17 +65,47 @@ export function MotionRow({
    *  hidden on small screens where the window is not fixed */
   overflow?: boolean;
 }) {
+  const still = useReducedMotion();
+  const cls = cn("border-b border-zinc-200 dark:border-zinc-800", overflow && "max-md:hidden");
+  // exp-belts-reduced: under Reduce Motion a newcomer fades in where it lands, opacity only in 200 ms
+  // ease, and the rows below take their places at once. A CSS transition from @starting-style, not a
+  // framer fade: framer ends its WAAPI fade by cancelling it before it writes the last value, and the
+  // stylesheet's reduced-motion opacity transition then replayed the fade from 0. The !important
+  // utility outranks that rule's 150 ms.
+  if (still) {
+    return <div className={cn(cls, animateIn && "transition-opacity duration-200! ease-[ease] starting:opacity-0")}>{children}</div>;
+  }
   return (
     <motion.div
       layout="position"
       initial={animateIn ? { y: -ROW_H, opacity: 0 } : false}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: EASE }}
-      className={cn("border-b border-zinc-200 dark:border-zinc-800", overflow && "max-md:hidden")}
+      className={cls}
     >
       {children}
     </motion.div>
   );
+}
+
+/** exp-belt-hold: a live board holds still while the pointer is over it or keyboard focus is inside it,
+ *  so a row can be read and opened either way, and moves on once both have left. Spread the handlers on
+ *  the board. */
+export function useHold() {
+  const [hover, setHover] = useState(false);
+  const [focus, setFocus] = useState(false);
+  const handlers = {
+    onMouseEnter: () => setHover(true),
+    onMouseLeave: () => setHover(false),
+    // only keyboard focus holds: a row a pointer focused (a click, a cmd-click that opens a tab) holds nothing
+    // once the pointer has left
+    onFocus: (e: React.FocusEvent<HTMLDivElement>) => setFocus(e.target.matches(":focus-visible")),
+    // focus moving between the board's own rows keeps the hold
+    onBlur: (e: React.FocusEvent<HTMLDivElement>) => {
+      if (!e.currentTarget.contains(e.relatedTarget)) setFocus(false);
+    },
+  };
+  return [hover || focus, handlers] as const;
 }
 
 /** the last value seen before `frozen` went true, until it goes false */

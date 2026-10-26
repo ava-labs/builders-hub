@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { MotionConfig } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, EmptyRow, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
-import { Belt, GasBar, Height, MotionRow, Party, fmtAmount } from "@/components/explorer-v2/evm/LiveBoards";
+import { Belt, GasBar, Height, MotionRow, Party, fmtAmount, useHold } from "@/components/explorer-v2/evm/LiveBoards";
 import { useTicker } from "./ticker";
 import { methodLabel } from "@/components/explorer-v2/evm/bits";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
@@ -356,12 +355,12 @@ interface BoardProps<T> {
    older than the top row when it lands (a slow read's) is let go, not
    slotted in under it, so the board only ever moves down. */
 function NetworkBlocksBoard({ rows: blocks, loading, empty, network }: BoardProps<LiveBlock>) {
-  // the belt holds still under the pointer so a row can be clicked
-  const [hover, setHover] = useState(false);
+  // the belt holds still under the pointer or keyboard focus so a row can be read and opened
+  const [held, hold] = useHold();
   const rows = useTicker(blocks, ROWS + 1, {
     key: (b) => b.hash,
     newer: blockNewer,
-    paused: hover,
+    paused: held,
     every: POLL_MS,
     merged: true,
   });
@@ -369,7 +368,7 @@ function NetworkBlocksBoard({ rows: blocks, loading, empty, network }: BoardProp
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Blocks" action={<ViewAll href={`/explorer/${network}/chains`} />} />
-      <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <Board divide={false} {...hold}>
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span>Chain</span>
           <span>Height</span>
@@ -395,7 +394,8 @@ function NetworkBlocksBoard({ rows: blocks, loading, empty, network }: BoardProp
                 <span className="max-md:order-last max-md:col-span-2">
                   <GasBar used={b.gasUsed} limit={b.gasLimit} />
                 </span>
-                <span className={cn(MUTED, "text-right")}>{ageShort(b.at / 1000)}</span>
+                {/* X4: the age reads at 4.5:1 or more in both themes, where MUTED does not */}
+                <span className={cn(MUTED, "text-right text-zinc-500 dark:text-zinc-400")}>{ageShort(b.at / 1000)}</span>
               </Link>
             </MotionRow>
           ))}
@@ -425,11 +425,11 @@ function useMethodLabels(rows: LiveTx[]) {
 }
 
 function NetworkTxsBoard({ rows: txs, loading, empty, network }: BoardProps<LiveTx>) {
-  const [hover, setHover] = useState(false);
+  const [held, hold] = useHold();
   const rows = useTicker(txs, ROWS + 1, {
     key: (t) => t.hash,
     newer: txNewer,
-    paused: hover,
+    paused: held,
     every: POLL_MS,
     merged: true,
   });
@@ -439,7 +439,7 @@ function NetworkTxsBoard({ rows: txs, loading, empty, network }: BoardProps<Live
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Transactions" action={<ViewAll href={`/explorer/${network}/chains`} />} />
-      <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <Board divide={false} {...hold}>
         {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
         <div className="overflow-x-auto">
           <div className="md:min-w-[46rem] xl:min-w-0">
@@ -500,7 +500,7 @@ function NetworkTxsBoard({ rows: txs, loading, empty, network }: BoardProps<Live
                           <span className="text-zinc-300 dark:text-zinc-700">—</span>
                         )}
                       </span>
-                      <span className={cn(MUTED, "text-right max-md:hidden")}>{ageShort(t.at / 1000)}</span>
+                      <span className={cn(MUTED, "text-right max-md:hidden text-zinc-500 dark:text-zinc-400")}>{ageShort(t.at / 1000)}</span>
                     </RowDoor>
                   </MotionRow>
                 );
@@ -538,13 +538,11 @@ export function OverviewLiveBoards({
     : undefined;
   // a row enters about every second for as long as the page is open: with
   // reduced motion it fades in where it lands, and the rows below it step
-  // down without sliding
+  // down without sliding (MotionRow)
   return (
-    <MotionConfig reducedMotion="user">
-      <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <NetworkBlocksBoard rows={blocks} loading={loading} empty={empty} network={network} />
-        <NetworkTxsBoard rows={txs} loading={loading} empty={empty} network={network} />
-      </div>
-    </MotionConfig>
+    <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <NetworkBlocksBoard rows={blocks} loading={loading} empty={empty} network={network} />
+      <NetworkTxsBoard rows={txs} loading={loading} empty={empty} network={network} />
+    </div>
   );
 }

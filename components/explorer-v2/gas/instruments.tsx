@@ -50,7 +50,7 @@ export function Instrument({
   bodyClass,
 }: Head & { children: ReactNode; bodyClass?: string }) {
   return (
-    <div className={cn("min-w-0 pr-2 pt-2 transition-opacity", stale && "opacity-60")}>
+    <div className={cn("min-w-0 pr-2 pt-2 transition-opacity ease-out", stale && "opacity-60")}>
       <ReadoutBlock href={href} className="flex-col">
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-x-8 gap-y-3 px-5 pt-3 md:px-6">
           <span className="flex min-w-0 flex-col gap-1.5">

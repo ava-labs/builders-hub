@@ -22,7 +22,7 @@ import {
   SiblingDoor,
 } from "@/components/explorer-v2/metric-sheet";
 import { Board, BoardHeader, StatDash } from "@/components/explorer-v2/ui";
-import { ChartEmpty, Stat, TipPlate } from "./bits";
+import { ChartEmpty, Stat, TipPlate, TOOLTIP_DEFAULTS } from "./bits";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   NANO,
@@ -218,7 +218,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
                     tick={AXIS_TICK}
                     tickFormatter={(v: number) => fmtCompact(v)}
                   />
-                  <RechartsTooltip
+                  <RechartsTooltip {...TOOLTIP_DEFAULTS}
                     cursor={{ stroke: "rgba(161,161,170,0.35)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
@@ -274,7 +274,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
                     tick={AXIS_TICK}
                     tickFormatter={(v: number) => `${v.toFixed(0)}%`}
                   />
-                  <RechartsTooltip
+                  <RechartsTooltip {...TOOLTIP_DEFAULTS}
                     cursor={{ stroke: "rgba(161,161,170,0.35)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
@@ -322,7 +322,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
                   <SheetGrid />
                   <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
                   <YAxis domain={["auto", "auto"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
-                  <RechartsTooltip
+                  <RechartsTooltip {...TOOLTIP_DEFAULTS}
                     cursor={{ stroke: "rgba(161,161,170,0.35)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
@@ -505,7 +505,7 @@ function RewardsSheet({ base, network }: { base: string; network: string }) {
                   <SheetGrid />
                   <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
                   <YAxis domain={[0, "dataMax"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
-                  <RechartsTooltip
+                  <RechartsTooltip {...TOOLTIP_DEFAULTS}
                     cursor={{ fill: "rgba(161,161,170,0.08)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
@@ -553,7 +553,7 @@ function RewardsSheet({ base, network }: { base: string; network: string }) {
                   <SheetGrid />
                   <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
                   <YAxis domain={[0, "dataMax"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
-                  <RechartsTooltip
+                  <RechartsTooltip {...TOOLTIP_DEFAULTS}
                     cursor={{ fill: "rgba(161,161,170,0.08)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
@@ -595,7 +595,7 @@ function RewardsSheet({ base, network }: { base: string; network: string }) {
                   <SheetGrid />
                   <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
                   <YAxis domain={["auto", "auto"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
-                  <RechartsTooltip
+                  <RechartsTooltip {...TOOLTIP_DEFAULTS}
                     cursor={{ stroke: "rgba(161,161,170,0.35)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
@@ -705,7 +705,7 @@ function ExpirySheet({ base, network }: { base: string; network: string }) {
                   <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
                   <YAxis yAxisId="day" domain={[0, "dataMax"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
                   <YAxis yAxisId="cum" orientation="right" domain={[0, "dataMax"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
-                  <RechartsTooltip
+                  <RechartsTooltip {...TOOLTIP_DEFAULTS}
                     cursor={{ fill: "rgba(161,161,170,0.08)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;

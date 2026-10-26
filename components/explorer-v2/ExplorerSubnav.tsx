@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EASE_OUT } from "@/lib/motion-curves";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
@@ -24,6 +26,7 @@ import { NavbarSlot } from "@/components/explorer-v2/navbar-slot";
 import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
 import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
 import { buildTabs, type Tab } from "@/components/explorer-v2/subnav-tabs";
+import { TabMark, useTabAnswer } from "@/components/explorer-v2/tab-answer";
 import { chainSwitchTarget, switchTarget } from "@/components/explorer-v2/network-switch";
 import { useAskedPath } from "@/components/explorer-v2/evm/query-asking";
 import {
@@ -75,6 +78,22 @@ interface ExplorerSubnavProps {
   className?: string;
 }
 
+/* exp-chain-menu: the chain menu grows out of its button's top-left corner, opacity and scale 0.96 to 1
+   in 160ms, and shrinks to 0.98 as it fades in 110ms, both on the strong ease-out. Opened or shut from
+   the keyboard (custom: keyed) it comes and goes at once; under Reduce Motion it only fades, 120ms in
+   and 100ms out. */
+function menuMotion(still: boolean): Variants {
+  return {
+    closed: { opacity: 0, scale: still ? 1 : 0.96 },
+    open: { opacity: 1, scale: 1, transition: { duration: still ? 0.12 : 0.16, ease: EASE_OUT } },
+    gone: (keyed: boolean) => ({
+      opacity: 0,
+      scale: still ? 1 : 0.98,
+      transition: { duration: keyed ? 0 : still ? 0.1 : 0.11, ease: EASE_OUT },
+    }),
+  };
+}
+
 /* Chain switcher: the dropdown that holds the whole ecosystem. The two
    system chains are pinned; the L1 list is validated against the P-Chain
    (a chain appears only if its subnet has stake-backed validators right
@@ -107,6 +126,13 @@ function ChainSwitcher({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  // the last open or shut came from the keyboard: the menu comes and goes at once (exp-chain-menu)
+  const [keyed, setKeyed] = useState(false);
+  const still = useReducedMotion();
+  const shut = (byKey: boolean) => {
+    setKeyed(byKey);
+    setOpen(false);
+  };
   const [filter, setFilter] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const label = (chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks";
@@ -128,10 +154,10 @@ function ChainSwitcher({
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) shut(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") shut(true);
     };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
@@ -203,7 +229,7 @@ function ChainSwitcher({
         aria-current={current ? "page" : undefined}
         onClick={(e) => {
           if (current) e.preventDefault();
-          setOpen(false);
+          shut(e.detail === 0);
         }}
         className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
       >
@@ -222,7 +248,7 @@ function ChainSwitcher({
         {current ? (
           <span aria-label="Current chain" className="h-1.5 w-1.5 shrink-0 bg-[var(--chain-accent,#E6212F)]" />
         ) : (
-          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-hover:text-[#E6212F] dark:text-zinc-600" />
+          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 opacity-0 transition-[color,opacity,translate] group-hover:translate-x-0.5 group-hover:opacity-100 group-hover:text-[#E6212F] dark:text-zinc-600" />
         )}
       </Link>
     );
@@ -235,7 +261,9 @@ function ChainSwitcher({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-describedby={inNavbar && caption ? captionId : undefined}
-        onClick={() => {
+        onClick={(e) => {
+          // Enter and Space click with no detail: from the keyboard the menu opens and shuts at once
+          setKeyed(e.detail === 0);
           setOpen((v) => !v);
           setFilter("");
         }}
@@ -274,18 +302,25 @@ function ChainSwitcher({
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
       </button>
 
+      {/* exp-chain-menu: a removed child keeps its last props, so the exit reads `keyed` from here */}
+      <AnimatePresence custom={keyed}>
       {open && (
         // z-50 within the subnav's own stacking context (the z-[35] rail):
         // only needs to clear siblings inside the rail, not the page
-        <div
+        <motion.div
           role="dialog"
           aria-label="Switch chain"
-          className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          custom={keyed}
+          variants={menuMotion(!!still)}
+          initial={keyed ? false : "closed"}
+          animate="open"
+          exit="gone"
+          className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] origin-top-left border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           {networkRow && (
             // a tap on either network closes the menu, the current one too, which changes no page
             <div
               onClick={(e) => {
-                if ((e.target as Element).closest("a")) setOpen(false);
+                if ((e.target as Element).closest("a")) shut(e.detail === 0);
               }}
               className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-900"
             >
@@ -326,8 +361,9 @@ function ChainSwitcher({
               </p>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -508,6 +544,9 @@ export function ExplorerSubnav({
     return { WebkitMaskImage: mask, maskImage: mask } as React.CSSProperties;
   }, [rail]);
 
+  // exp-tab-answer: a click lights its tab and slides the bar under it before the page lands
+  const { isLit, onPending, barRef } = useTabAnswer(tabs, pathname);
+
   return (
     // sticky just below the global navbar (h-14 + banner), riding every
     // shell: only this rail pins; the page header below scrolls away.
@@ -556,16 +595,17 @@ export function ExplorerSubnav({
             className="scrollbar-hide flex items-stretch gap-x-2 overflow-x-auto sm:gap-x-4 md:gap-x-5"
           >
             {tabs.map((tab) => {
-              const active = tab.isActive(pathname);
+              // lit: the page's tab, or from a click on, the tab whose page is on the way. aria-current stays on
+              // the page on screen until the next one lands; data-lit marks the lit tab (app/global.css)
+              const lit = isLit(tab);
+              const current = tab.isActive(pathname);
               const cls = cn(
                 "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors sm:tracking-[0.12em]",
-                active
+                lit
                   ? "text-zinc-900 dark:text-zinc-100"
                   : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
               );
-              const bar = active && (
-                <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--chain-accent,#E6212F)]" />
-              );
+              const mark = <TabMark href={tab.href} lit={lit} onPending={onPending} barRef={barRef} />;
 
               if (inert) {
                 return (
@@ -589,8 +629,9 @@ export function ExplorerSubnav({
                     href={tab.href}
                     label={tab.label}
                     className={cls}
-                    bar={bar}
-                    active={active}
+                    bar={mark}
+                    current={current}
+                    lit={lit}
                   />
                 );
               }
@@ -600,11 +641,12 @@ export function ExplorerSubnav({
                   key={tab.label}
                   href={tab.href}
                   transitionTypes={tab.view ? VIEW_SWITCH : undefined}
-                  aria-current={active ? "page" : undefined}
+                  aria-current={current ? "page" : undefined}
+                  data-lit={lit || undefined}
                   className={cls}
                 >
                   {tabText(tab)}
-                  {bar}
+                  {mark}
                 </Link>
               );
             })}

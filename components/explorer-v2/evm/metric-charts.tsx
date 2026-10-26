@@ -5,7 +5,9 @@ import {
   Area,
   Bar,
   ComposedChart,
+  Curve,
   Line,
+  Rectangle,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -13,7 +15,7 @@ import {
 } from "recharts";
 import { ChartBoard } from "@/components/explorer-v2/ui";
 import { recall, remember } from "@/components/explorer-v2/page-data";
-import { TipPlate } from "@/components/explorer-v2/staking/bits";
+import { TipPlate, TOOLTIP_DEFAULTS } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
 
 /* ------------------------------------------------------------------ */
@@ -150,6 +152,69 @@ export function metricSeries(
   );
 }
 
+/** exp-range-hold: the window to draw while the next one loads. The window on
+ *  screen stays, marked stale, until the next one has landed; a first load
+ *  has none to hold, and a failed read holds nothing, so its failure shows. */
+export function heldWindow<T>(prev: T | null, next: T | null, loading: boolean): { data: T | null; stale: boolean } {
+  if (next === null && loading && prev !== null) return { data: prev, stale: true };
+  return { data: next, stale: false };
+}
+
+/** a chain-metrics read, as useChainMetrics answers it */
+export interface MetricsRead {
+  metrics: Metrics | null;
+  failed: boolean;
+}
+
+/** exp-range-hold: what useChainMetrics answers for `url`. Each read keeps
+ *  the url it answers: in the render between a new window and its read, the
+ *  answer is that url's memory or nothing, never the last window's payload
+ *  (exp-range-hold holds that window itself, dimmed) */
+export function metricsReadFor(
+  url: string,
+  read: MetricsRead & { url: string },
+  memory: (url: string) => Metrics | null,
+): MetricsRead {
+  return read.url === url ? { metrics: read.metrics, failed: read.failed } : { metrics: memory(url), failed: false };
+}
+
+/** exp-range-hold: one window of the network stats, the clock it was read
+ *  on and the reads it draws. On Fuji the fee readings come from a second
+ *  read, the C-Chain's: `fees` is its payload (null until it answers, or if
+ *  it fails), and `complete` says every read the window waits for has answered. */
+export interface StatsWindow<C> {
+  clock: C;
+  metrics: Metrics;
+  fees: Metrics | null;
+  complete: boolean;
+}
+
+/** exp-range-hold: the window Network Stats draws, and the one to keep as the
+ *  last complete window. A window is complete once every read it waits for
+ *  has answered, a failed fee read included, so a failing C-Chain read never
+ *  holds the stats dimmed. The last complete window stays, stale, until the
+ *  next one is complete; a first visit has none to hold, and draws each read
+ *  as it lands. Windows compare by their reads, clock and completeness, not
+ *  by object: a window built afresh is still the one kept, and `keep` is null
+ *  unless the window to keep has changed. */
+export function statsWindow<C>(
+  kept: StatsWindow<C> | null,
+  clock: C,
+  main: MetricsRead,
+  fees?: MetricsRead,
+): { view: StatsWindow<C> | null; stale: boolean; keep: StatsWindow<C> | null } {
+  const asked: StatsWindow<C> | null = main.metrics
+    ? { clock, metrics: main.metrics, fees: fees?.metrics ?? null, complete: !fees || !!fees.metrics || fees.failed }
+    : null;
+  const same =
+    asked !== null &&
+    kept !== null &&
+    asked.clock === kept.clock && asked.metrics === kept.metrics && asked.fees === kept.fees && asked.complete === kept.complete;
+  const done = asked?.complete ? (same ? kept : asked) : null;
+  const { data: view, stale } = heldWindow(kept, done ?? (kept ? null : asked), !main.failed);
+  return { view, stale, keep: done !== kept ? done : null };
+}
+
 /**
  * The chain-stats fetch, one per (chain, window): sub-month windows ride
  * the 30d payload and slice client-side, so flipping the page clock
@@ -160,15 +225,15 @@ export function useChainMetrics(chainId: string, range: number, metricKeys: stri
   // pins it to September 2020), so the widest clock tick is true all-time
   const timeRange = range <= 30 ? "30d" : range <= 90 ? "90d" : range <= 365 ? "1y" : "all";
   const url = `/api/chain-stats/${chainId}?metrics=${metricKeys}&timeRange=${timeRange}`;
-  // the charts a page drew before open from memory while they are read again
-  const [metrics, setMetrics] = useState<Metrics | null>(() => recall<Metrics>(url, false)?.data ?? null);
-  const [failed, setFailed] = useState(false);
+  // the charts a page drew before open from memory while they are read again.
+  // Each read keeps the url it answers, so a new window never draws on the
+  // last one's payload (exp-range-hold holds that window itself, dimmed)
+  const [read, setRead] = useState(() => ({ url, metrics: recall<Metrics>(url, false)?.data ?? null, failed: false }));
 
   useEffect(() => {
     let cancelled = false;
     let again: ReturnType<typeof setTimeout> | undefined;
-    setMetrics(recall<Metrics>(url, false)?.data ?? null);
-    setFailed(false);
+    setRead({ url, metrics: recall<Metrics>(url, false)?.data ?? null, failed: false });
     const load = (first: boolean) =>
       fetch(url)
         .then(async (res) => {
@@ -176,13 +241,13 @@ export function useChainMetrics(chainId: string, range: number, metricKeys: stri
           const data = (await res.json()) as Metrics;
           if (cancelled) return;
           remember(url, data);
-          setMetrics(data);
+          setRead({ url, metrics: data, failed: false });
           // a metric the stats API did not answer in time comes back missing, and the server keeps nothing: ask once more
           if (first && res.headers.get("X-Partial-Metrics")) again = setTimeout(() => void load(false), 10_000);
         })
         .catch(() => {
           // a second ask that fails leaves the first answer standing
-          if (!cancelled && first) setFailed(true);
+          if (!cancelled && first) setRead((r) => ({ ...r, failed: true }));
         });
     void load(true);
     return () => {
@@ -191,7 +256,52 @@ export function useChainMetrics(chainId: string, range: number, metricKeys: stri
     };
   }, [url]);
 
-  return { metrics, failed };
+  return metricsReadFor(url, read, (asked) => recall<Metrics>(asked, false)?.data ?? null);
+}
+
+/** stats-bar-band: what recharts hands a ComposedChart's cursor: the line it
+ *  would draw at the hovered day (top to bottom), the plot's width, and the
+ *  day's index (-1 when a synced chart does not hold that date) */
+interface CursorAt {
+  points?: { x: number; y: number }[];
+  width?: number;
+  payloadIndex?: number;
+}
+
+/** stats-synced-days: the hovered day's line, top to bottom, or null where
+ *  the chart holds no such day: a synced chart that lacks the date gets
+ *  payloadIndex -1, and recharts would draw its cursor at the plot's left
+ *  edge */
+export function dayLine(cursor: CursorAt): [{ x: number; y: number }, { x: number; y: number }] | null {
+  const [top, bottom] = cursor.points ?? [];
+  return top && bottom && (cursor.payloadIndex ?? 0) >= 0 ? [top, bottom] : null;
+}
+
+/** stats-bar-band: the band behind a hovered bar, one day wide around the
+ *  crosshair and as tall as the plot. A bar chart's days split the plot's
+ *  width evenly; null where there is no day to mark. */
+export function dayBand(cursor: CursorAt, days: number): { x: number; y: number; width: number; height: number } | null {
+  const line = dayLine(cursor);
+  if (!line || !cursor.width || days < 1) return null;
+  const [top, bottom] = line;
+  const width = cursor.width / days;
+  return { x: top.x - width / 2, y: top.y, width, height: bottom.y - top.y };
+}
+
+/** stats-synced-days: an area chart's hover hairline, the 1px line recharts
+ *  draws by default, drawn only on a day the chart holds */
+function DayLine({ className, ...cursor }: CursorAt & { className?: string }) {
+  const line = dayLine(cursor);
+  return line ? <Curve points={line} className={className} stroke="rgba(161,161,170,0.35)" pointerEvents="none" /> : null;
+}
+
+/** stats-bar-band: a bar chart's hover mark, the soft band DualChart always
+ *  asked for. A ComposedChart draws a cursor object as a 1px line, so the
+ *  band is a Rectangle of its own; recharts draws it where the Tooltip sits
+ *  among the chart's children, behind the bars. */
+function DayBand({ days, className, ...cursor }: CursorAt & { days: number; className?: string }) {
+  const band = dayBand(cursor, days);
+  return band ? <Rectangle {...band} className={className} fill="rgba(161,161,170,0.08)" stroke="none" pointerEvents="none" /> : null;
 }
 
 /* the workhorse: bars or area for the headline, a line for the overlay */
@@ -203,6 +313,7 @@ export function DualChart({
   bLabel,
   bFmt,
   bOwnAxis = false,
+  syncId,
 }: {
   data: DualPoint[];
   kind: "bars" | "area";
@@ -212,20 +323,23 @@ export function DualChart({
   bFmt?: (v: number) => string;
   /** overlay rides its own (hidden) axis when scales are incompatible */
   bOwnAxis?: boolean;
+  /** stats-synced-days: charts on one time axis share an id, and the day
+   *  hovered on one is read on all of them, matched by date */
+  syncId?: string;
 }) {
   const hasB = !!bLabel && data.some((d) => d.b !== undefined);
   return (
     <div className="h-44 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} barCategoryGap="22%">
+        <ComposedChart data={data} barCategoryGap="22%" syncId={syncId} syncMethod="value">
           <XAxis dataKey="date" hide />
           <YAxis yAxisId="a" hide domain={[0, "dataMax"]} />
           {hasB && bOwnAxis && <YAxis yAxisId="b" hide domain={[0, "dataMax"]} />}
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={
               kind === "bars"
-                ? { fill: "rgba(161,161,170,0.08)" }
-                : { stroke: "rgba(161,161,170,0.35)" }
+                ? <DayBand days={data.length} />
+                : <DayLine />
             }
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;

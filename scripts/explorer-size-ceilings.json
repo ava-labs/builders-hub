@@ -16,7 +16,7 @@
   "lib/explorer-clickhouse.ts": 681,
   "lib/explorer-query/visual.ts": 653,
   "components/explorer-v2/staking/L1Economy.tsx": 698,
-  "components/explorer-v2/ui.tsx": 689,
+  "components/explorer-v2/ui.tsx": 680,
   "components/explorer-v2/network/NetworkStablecoins.tsx": 678,
   "components/explorer-v2/network/city3d/warmup.tsx": 666,
   "components/explorer-v2/network/city3d/Traffic.tsx": 641,

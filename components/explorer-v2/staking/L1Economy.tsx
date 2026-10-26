@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, BoardHeader, ChartBoard, StatDash, TxTypePill, idInk } from "@/components/explorer-v2/ui";
-import { ChartEmpty, Stat, TipPlate } from "./bits";
+import { ChartEmpty, Stat, TipPlate, TOOLTIP_DEFAULTS } from "./bits";
 import { timeAgo, truncate } from "@/components/explorer-v2/format";
 import { pchainApiPath, type TxSummary } from "@/lib/pchain-explorer";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
@@ -59,7 +59,7 @@ function SeatsChart({ data }: { data: SeatPoint[] }) {
         <ComposedChart data={data}>
           <XAxis dataKey="day" hide />
           <YAxis hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -239,7 +239,7 @@ function L1OpsChart({ data }: { data: L1OpsPoint[] }) {
         <ComposedChart data={data}>
           <XAxis dataKey="date" hide />
           <YAxis hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -285,7 +285,7 @@ function ConversionsChart({ data }: { data: L1Ops["conversions"] }) {
         <ComposedChart data={data}>
           <XAxis dataKey="month" hide />
           <YAxis hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
@@ -376,7 +376,7 @@ function SeatsByL1({ sets, network }: { sets: LiveL1[]; network: string }) {
           className="group mt-2 inline-flex items-center gap-1.5 self-start font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
         >
           {sets.length - LEADERBOARD_CAP} more sets
-          <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+          <ArrowRight className="h-3 w-3 transition-[color,translate] group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
         </Link>
       )}
     </div>
@@ -522,7 +522,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
                 className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               >
                 All validator sets
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+                <ArrowRight className="h-3 w-3 transition-[color,translate] group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
               </Link>
             }
           />
@@ -633,7 +633,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
                 className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               >
                 Chains directory
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+                <ArrowRight className="h-3 w-3 transition-[color,translate] group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
               </Link>
             }
           />

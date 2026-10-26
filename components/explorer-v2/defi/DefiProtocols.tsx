@@ -33,7 +33,7 @@ import { SPAN_LABEL, spanOf, useDefiOverview, useDefiYields } from "./data";
 import { ProtocolMap } from "./ProtocolMap";
 import { Movers } from "./Movers";
 import { ProtocolFilters } from "./ProtocolFilters";
-import { ProtocolTable } from "./ProtocolTable";
+import { ProtocolTable, UNFOLD_MS } from "./ProtocolTable";
 import { YieldBoard } from "./YieldBoard";
 
 /* The C-Chain's DeFi tab. It leads with the figures, then shows where
@@ -138,15 +138,25 @@ function DefiView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, selection, sort, openSlug]);
 
-  // a shared link that names a protocol opens its row once the list is in
+  // a shared link that names a protocol opens its row once the list is in.
+  // stats-protocol-rows: with motion on, the row is centred once its panel has
+  // unfolded and the one it replaces has folded, so the scroll aims at the
+  // row's final place; under Reduce Motion nothing unfolds, and it is centred
+  // as soon as it is drawn. The timer outlives the re-run setShown causes, not the page.
   const scrolled = useRef(false);
+  const centring = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (!open || scrolled.current || !sorted) return;
     scrolled.current = true;
     const i = sorted.findIndex((p) => p.id === open);
     if (i >= shown) setShown(i + 1);
-    requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`defi-row-${open}`)?.scrollIntoView({ behavior: "smooth", block: "center" })));
+    const centre = () => document.getElementById(`defi-row-${open}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    clearTimeout(centring.current);
+    if (still) requestAnimationFrame(() => requestAnimationFrame(centre));
+    else centring.current = setTimeout(centre, UNFOLD_MS);
   }, [open, sorted, shown]);
+  useEffect(() => () => clearTimeout(centring.current), []);
 
   const reveal = () => requestAnimationFrame(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   const onToggle = (key: FacetKey, id: string) => {

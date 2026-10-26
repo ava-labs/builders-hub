@@ -48,6 +48,12 @@ export function TipPlate({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** stats-tip-follows: what every recharts Tooltip starts from. Reading a
+ *  chart is feedback, so the plate moves with the crosshair: left to its
+ *  default, recharts glides it 400ms behind (transform 400ms ease) and the
+ *  plate sits over a day the crosshair has already left. */
+export const TOOLTIP_DEFAULTS = { isAnimationActive: false } as const;
+
 /** quiet empty/loading plate inside a chart Board */
 export function ChartEmpty({ failed, label = "Loading…" }: { failed: boolean; label?: string }) {
   return (

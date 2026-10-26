@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CartesianGrid, Cell, ReferenceArea, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
-import { TipPlate } from "@/components/explorer-v2/staking/bits";
+import { TipPlate, TOOLTIP_DEFAULTS } from "@/components/explorer-v2/staking/bits";
 import { cn } from "@/lib/utils";
 import { HEAD, ROW, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
@@ -490,7 +490,7 @@ export function RecordPlot({
             <YAxis type="number" dataKey="y" interval={0} tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={GUTTER} />
             <ZAxis range={[36, 36]} />
             {running && within && <ReferenceArea x1={running} x2={within[1]} fill="rgba(161,161,170,0.1)" stroke="none" ifOverflow="hidden" />}
-            <RechartsTooltip
+            <RechartsTooltip {...TOOLTIP_DEFAULTS}
               cursor={{ stroke: "rgba(161,161,170,0.4)" }}
               content={({ active, payload }) => {
                 if (!active || !payload?.[0]) return null;

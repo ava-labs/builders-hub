@@ -34,7 +34,8 @@ export function QueryTab({
   label,
   className,
   bar,
-  active,
+  current,
+  lit,
 }: {
   network: string;
   chainSlug: string;
@@ -42,9 +43,13 @@ export function QueryTab({
   label: string;
   /** the subnav's own tab classes */
   className: string;
-  /** the red active bar, when active */
+  /** the subnav's mark for the tab (tab-answer.tsx), rendered inside the Link: the red bar when lit,
+   *  and the click's pending state, which only a child of the Link can read */
   bar: React.ReactNode;
-  active: boolean;
+  /** the page on screen is this tab's: aria-current, until the next page lands */
+  current: boolean;
+  /** the rail lights this tab: its page, or the one a click has on the way */
+  lit: boolean;
 }) {
   const fine = useFinePointer();
   const [open, setOpen] = useState(false);
@@ -60,7 +65,7 @@ export function QueryTab({
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
   const link = (
-    <Link href={href} aria-current={active ? "page" : undefined} className={className}>
+    <Link href={href} aria-current={current ? "page" : undefined} data-lit={lit || undefined} className={className}>
       {label}
       {bar}
     </Link>
@@ -75,7 +80,8 @@ export function QueryTab({
       <Popover.Anchor asChild>
         <Link
           href={href}
-          aria-current={active ? "page" : undefined}
+          aria-current={current ? "page" : undefined}
+          data-lit={lit || undefined}
           aria-haspopup="dialog"
           aria-expanded={open}
           className={className}

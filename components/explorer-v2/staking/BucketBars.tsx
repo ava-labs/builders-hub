@@ -1,7 +1,7 @@
 "use client";
 
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
-import { TipPlate } from "./bits";
+import { TipPlate, TOOLTIP_DEFAULTS } from "./bits";
 
 /* The health charts' bars: one bar a bucket, and a click on a bar cuts
    the roster to that bucket. The validator views share them. */
@@ -27,7 +27,7 @@ export function BucketBars({
         <BarChart data={data} barCategoryGap="18%">
           <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" }} />
           <YAxis hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,8 @@ const LIVE_ROWS = 25;
 const PAGE = 25;
 const MAX = 100;
 const METRICS = ["txCount", "avgTps", "cumulativeTxCount"].join(",");
+// stats-synced-days: the two charts share one time axis, so the day hovered on either is read on both
+const TX_CHARTS_SYNC = "evm-txs-charts";
 const NO_TXS: TxSummary[] = [];
 
 export function EvmTxsList({ network }: { network: string }) {
@@ -71,7 +73,13 @@ export function EvmTxsList({ network }: { network: string }) {
   // control, so its two charts say their window in the title
   const range = RANGE_DAYS.month;
   const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
-  const m = metrics ?? {};
+  // stats-synced-days: each chart keeps one series object until the metrics
+  // change. recharts re-reads the hovered day from the pointer's x whenever a
+  // chart's data changes, and the synced chart's x is the other chart's, a day
+  // off near a day's edge; the live list above re-renders this page many
+  // times a second
+  const txSeries = useMemo(() => metricSeries(metrics ?? {}, range, "txCount", "avgTps"), [metrics, range]);
+  const totalSeries = useMemo(() => metricSeries(metrics ?? {}, range, "cumulativeTxCount"), [metrics, range]);
 
   // the parties take what the fixed columns leave: at 1400px and up that is
   // room for two whole addresses
@@ -184,15 +192,16 @@ export function EvmTxsList({ network }: { network: string }) {
       {/* the shape of the feed over time */}
       <div className="mt-10 grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartSection label={`Transactions · ${RANGE_LABEL.month}`} action={<OverlayKey label="avg tps" dashed />}>
-          {metricSeries(m, range, "txCount", "avgTps").length ? (
+          {txSeries.length ? (
             <DualChart
-              data={metricSeries(m, range, "txCount", "avgTps")}
+              data={txSeries}
               kind="bars"
               fmt={fmtCompact}
               aLabel="txs"
               bLabel="avg TPS"
               bFmt={(v) => v.toFixed(1)}
               bOwnAxis
+              syncId={TX_CHARTS_SYNC}
             />
           ) : (
             <ChartEmpty failed={!!metrics || failed} />
@@ -200,8 +209,8 @@ export function EvmTxsList({ network }: { network: string }) {
         </ChartSection>
 
         <ChartSection label={`Total Transactions · ${RANGE_LABEL.month}`}>
-          {metricSeries(m, range, "cumulativeTxCount").length ? (
-            <DualChart data={metricSeries(m, range, "cumulativeTxCount")} kind="area" fmt={fmtCompact} aLabel="txs all-time" />
+          {totalSeries.length ? (
+            <DualChart data={totalSeries} kind="area" fmt={fmtCompact} aLabel="txs all-time" syncId={TX_CHARTS_SYNC} />
           ) : (
             <ChartEmpty failed={!!metrics || failed} />
           )}

@@ -179,7 +179,7 @@ export function LayerBlock({
   const span = days.length > 1 ? `${dayLabel(days[0].date)} to ${dayLabel(days[last].date)}` : "";
 
   return (
-    <div className={cn("pr-2 pt-2 transition-opacity", stale && "opacity-60")}>
+    <div className={cn("pr-2 pt-2 transition-opacity ease-out", stale && "opacity-60")}>
       <ReadoutBlock href={href} className="flex-col">
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-x-8 gap-y-3 px-5 pt-3 md:px-6">
           <span className="flex min-w-0 flex-col gap-1.5">
@@ -549,7 +549,10 @@ export function ViewSwitch<T extends string>({ id, value, onChange, options, fil
   );
 }
 
-/** a readout that picks what the chart below draws; the pick wears a blue rule */
+/** a readout that picks what the chart below draws; the pick wears a blue rule.
+ *  exp-pick-focus: keyboard focus draws a 2px ring in the selection blue, 10px
+ *  out, clear of the block's 8px faces. Its colour and offset are set at rest,
+ *  so the ring appears at once in every mode. */
 export function PickReadout({ on, onPick, label, children }: { on: boolean; onPick: () => void; label: string; children: ReactNode }) {
   return (
     <div
@@ -564,7 +567,7 @@ export function PickReadout({ on, onPick, label, children }: { on: boolean; onPi
           onPick();
         }
       }}
-      className="relative cursor-pointer focus-visible:outline-none"
+      className="relative cursor-pointer outline-offset-[10px] outline-[#0061E2] focus-visible:outline-2 dark:outline-[#5f9dff]"
     >
       {children}
       <span aria-hidden className={cn("absolute -bottom-2 left-0 right-2 h-0.5 transition-colors", on ? "bg-[#0061E2] dark:bg-[#5f9dff]" : "bg-transparent")} />

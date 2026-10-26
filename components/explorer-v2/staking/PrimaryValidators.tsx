@@ -55,7 +55,7 @@ import {
 import { BEHIND_SWATCH, UpgradeReadiness, releaseShares } from "./UpgradeReadiness";
 import { ActiveChips, FacetRail, NA, PresetRow, RosterSearch, STATUS_INK, ToolButton, daysLeftTone, type Pending } from "./TriageFilters";
 import { BucketBars, QUIET_BAR } from "./BucketBars";
-import { ChartEmpty, TipPlate } from "./bits";
+import { ChartEmpty, TipPlate, TOOLTIP_DEFAULTS } from "./bits";
 import {
   NANO,
   fmtCompact,
@@ -116,7 +116,7 @@ function CountChart({ data }: { data: CountPoint[] }) {
         <ComposedChart data={data}>
           <XAxis dataKey="day" hide />
           <YAxis hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
+          <RechartsTooltip {...TOOLTIP_DEFAULTS}
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;

@@ -10,6 +10,36 @@ import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 
 
 export const EASE_CSS = "cubic-bezier(0.32,0.72,0,1)";
 
+/** exp-live-breathe: the explorer's one live signal, a solid mark breathing opacity 1 to 0.3 on a 2.4 s
+ *  cycle (root-breathe in app/global.css), the state-root dots' own breath */
+export const BREATHE = "animate-[root-breathe_2.4s_ease-in-out_infinite]";
+
+/** exp-live-breathe: a breathing mark keeps step with every other one on the page (each loop starts at
+ *  the document timeline's origin) and rests while it is off screen. A still reader needs nothing: the
+ *  stylesheet's reduced-motion rule ends the loop on its last frame, a solid mark. */
+export function useInStep<T extends Element>(): RefObject<T | null> {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const io = new IntersectionObserver((entries) => {
+      // a queued pair of crossings (out and back in before this runs) resolves to the latest one
+      const entry = entries[entries.length - 1];
+      for (const a of el.getAnimations()) {
+        if (!entry.isIntersecting) a.pause();
+        else {
+          a.play();
+          a.startTime = 0;
+        }
+      }
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
 /** the reader asked the system for less motion */
 export function useStill(): boolean {
   const [still, setStill] = useState(false);

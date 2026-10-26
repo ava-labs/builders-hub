@@ -11,7 +11,7 @@ import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Board, ChartBoard, EmptyRow, HEAD, INK, MUTED, ROW, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
-import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
+import { ChartEmpty, TOOLTIP_DEFAULTS } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
 import { StablecoinMap, type CoveredCountry } from "@/components/explorer-v2/network/StablecoinMap";
 import { HoverReadout, HoverRow } from "@/components/explorer-v2/network/stablecoin-hover";
@@ -564,7 +564,7 @@ export function NetworkStablecoins() {
                     isAnimationActive={false}
                     content={<TreemapCell picked={cut.token ?? null} onPick={(id: string) => cutBy("token", id)} />}
                   >
-                    <RechartsTooltip
+                    <RechartsTooltip {...TOOLTIP_DEFAULTS}
                       content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload as TreemapDatum;

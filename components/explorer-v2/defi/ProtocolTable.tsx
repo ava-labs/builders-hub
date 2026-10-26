@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -171,7 +172,9 @@ export function ProtocolTable({
                     </span>
                     <ChevronDown className={cn("hidden h-3.5 w-3.5 justify-self-end text-zinc-300 transition-transform md:block dark:text-zinc-600", isOpen && "rotate-180 text-zinc-900 dark:text-zinc-100")} />
                   </button>
-                  {isOpen && <Detail p={p} now={now} />}
+                  <Unfold open={isOpen}>
+                    <Detail p={p} now={now} />
+                  </Unfold>
                 </div>
               );
             })}
@@ -180,6 +183,63 @@ export function ProtocolTable({
         </div>
       </Board>
       {rows && shown < rows.length && <LoadMore onClick={onMore} label={`Load more · ${(rows.length - shown).toLocaleString("en-US")} remaining`} />}
+    </div>
+  );
+}
+
+/** stats-protocol-rows: a row's panel as its row opens and closes.
+ *  "unfolding" is a new panel's unfold from its starting style; "folding"
+ *  keeps a closed row's panel on screen while it folds away */
+export type Fold = "unfolding" | "open" | "folding" | "closed";
+
+/** stats-protocol-rows: a panel's next state as its row opens or closes. A
+ *  new panel unfolds; a panel that reopens mid-fold is still in the page and
+ *  unfolds again from where it is. SETTLE ends each move. */
+export function foldOn(fold: Fold, open: boolean): Fold {
+  if (!open) return fold === "closed" ? "closed" : "folding";
+  return fold === "closed" || fold === "unfolding" ? "unfolding" : "open";
+}
+
+/** stats-protocol-rows: the unfold's length, the one home of the number the
+ *  panel's duration-220 class carries; the page waits it out before it
+ *  centres an opened row (DefiProtocols) */
+export const UNFOLD_MS = 220;
+
+/** stats-protocol-rows: the fold, faster than the unfold */
+const FOLD_MS = 160;
+
+/** stats-protocol-rows: when a move ends: an unfolded panel drops its
+ *  starting style, and a folded one leaves the DOM */
+const SETTLE: Partial<Record<Fold, [Fold, number]>> = { unfolding: ["open", UNFOLD_MS], folding: ["closed", FOLD_MS] };
+
+/** stats-protocol-rows: a row's panel unfolds in place instead of dropping in
+ *  one frame and pushing every row below: grid rows 0fr to 1fr in 220ms on the
+ *  house ease-out (from @starting-style as the panel mounts) while its content
+ *  fades in over 180ms. Closing folds both in 160ms, then the panel leaves the
+ *  DOM; it takes no focus or click while it folds. Switching rows folds one as
+ *  the next unfolds. Under Reduce Motion the stylesheet's reducer
+ *  (site-reduced-motion-policy) runs no grid-rows transition and keeps the
+ *  fade at 150ms: the panel opens in place and closes at once. A re-sort
+ *  moves an open row's node, and a moved node takes its starting style
+ *  again, so the panel keeps it only while it unfolds. */
+function Unfold({ open, children }: { open: boolean; children: React.ReactNode }) {
+  const [fold, setFold] = useState<Fold>(open ? "unfolding" : "closed");
+  const next = foldOn(fold, open);
+  if (next !== fold) setFold(next);
+  useEffect(() => {
+    const settle = SETTLE[fold];
+    if (!settle) return;
+    const t = setTimeout(() => setFold(settle[0]), settle[1]);
+    return () => clearTimeout(t);
+  }, [fold]);
+  if (next === "closed") return null;
+  const folding = next === "folding";
+  const starting = next === "unfolding";
+  return (
+    <div inert={folding} className={cn("grid transition-[grid-template-rows] ease-out", starting && "starting:grid-rows-[0fr]", folding ? "grid-rows-[0fr] duration-160" : "grid-rows-[1fr] duration-220")}>
+      <div className={cn("min-h-0 overflow-hidden transition-opacity ease-out", starting && "starting:opacity-0", folding ? "opacity-0 duration-160" : "opacity-100 duration-180")}>
+        {children}
+      </div>
     </div>
   );
 }

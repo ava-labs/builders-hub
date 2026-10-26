@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { animate, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowRight, Check, Copy } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCopiedFlash } from "@/hooks/use-copied-flash";
 import { truncate } from "./format";
+import { BREATHE, useInStep } from "./motion";
+import { CopyMark } from "./copy-mark";
 
 /* ------------------------------------------------------------------ */
 /* Rise — the landing/solutions load sequence: each block fades up in   */
@@ -74,12 +77,12 @@ export function SubjectHeadline({
   prefix?: string;
   copyLabel?: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  // a second copy restarts the check's 1.5s, and an unmount clears it (exp-copy-morph)
+  const [copied, showCopied] = useCopiedFlash(1500);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      showCopied();
     } catch {
       /* clipboard unavailable — the text is selectable anyway */
     }
@@ -89,17 +92,13 @@ export function SubjectHeadline({
       type="button"
       onClick={copy}
       title={copyLabel}
-      className="group flex w-fit max-w-full items-baseline gap-3 text-left"
+      className="group/copy flex w-fit max-w-full items-baseline gap-3 text-left"
     >
       <span className="min-w-0 font-mono text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
         {prefix && <>{prefix} </>}
         <span className="break-all">{display ?? value}</span>
       </span>
-      {copied ? (
-        <Check className="h-4 w-4 shrink-0 self-center text-emerald-600 dark:text-emerald-400" />
-      ) : (
-        <Copy className="h-4 w-4 shrink-0 self-center text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-600 dark:group-hover:text-zinc-400" />
-      )}
+      <CopyMark copied={copied} className="self-center" size="h-4 w-4" idle="text-zinc-300 group-hover/copy:text-zinc-500 dark:text-zinc-600 dark:group-hover/copy:text-zinc-400" done="text-emerald-600 dark:text-emerald-400" />
     </button>
   );
 }
@@ -149,7 +148,7 @@ export function Board({
   children: React.ReactNode;
   className?: string;
   divide?: boolean;
-} & Pick<React.HTMLAttributes<HTMLDivElement>, "onMouseEnter" | "onMouseLeave">) {
+} & Pick<React.HTMLAttributes<HTMLDivElement>, "onMouseEnter" | "onMouseLeave" | "onFocus" | "onBlur">) {
   return (
     <div
       {...rest}
@@ -197,7 +196,7 @@ export function ChartBoard({
         <p className="flex min-w-0 items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
           <span className="truncate">{label}</span>
           {href && (
-            <ArrowRight className="h-3 w-3 shrink-0 -translate-x-0.5 text-[#E6212F] opacity-0 transition-all group-hover/chart:translate-x-0 group-hover/chart:opacity-100" />
+            <ArrowRight className="h-3 w-3 shrink-0 -translate-x-0.5 text-[#E6212F] opacity-0 transition-[translate,opacity] group-hover/chart:translate-x-0 group-hover/chart:opacity-100" />
           )}
         </p>
         {action}
@@ -510,26 +509,20 @@ export const MUTED = "font-mono text-[12px] tabular-nums text-zinc-400 dark:text
 export const FIG = "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
 export const UNIT = "text-sm font-normal text-zinc-400 dark:text-zinc-500";
 
-/** the live pulse: a small green dot with a ping ring. Red belongs to
- *  alerts, reverts and drops; a healthy feed should not look like one. */
+/** the live pulse: a small green dot that breathes in step with every live mark on the page
+ *  (exp-live-breathe). Red belongs to alerts, reverts and drops; a healthy feed should not look like one. */
 export const LIVE_DOT = "bg-emerald-500 dark:bg-emerald-400";
 export function LiveDot({ className, size = "h-1.5 w-1.5" }: { className?: string; size?: string }) {
-  return (
-    <span className={cn("relative flex", size, className)}>
-      <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", LIVE_DOT)} />
-      <span className={cn("relative inline-flex rounded-full", size, LIVE_DOT)} />
-    </span>
-  );
+  const ref = useInStep<HTMLSpanElement>();
+  return <span ref={ref} className={cn("flex rounded-full", BREATHE, size, LIVE_DOT, className)} />;
 }
 
-/** a LIVE label whose ping takes the chain's accent, where LiveDot keeps to green */
+/** a LIVE label whose dot takes the chain's accent, where LiveDot keeps to green */
 export function LiveTag() {
+  const ref = useInStep<HTMLSpanElement>();
   return (
     <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-      <span className="relative flex h-1.5 w-1.5">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--chain-accent,#E6212F)] opacity-60" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]" />
-      </span>
+      <span ref={ref} className={cn("flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]", BREATHE)} />
       Live
     </span>
   );
@@ -650,14 +643,13 @@ export function HashChip({
   className?: string;
   mono?: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, showCopied] = useCopiedFlash(1200);
   const copy = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
+      showCopied();
     } catch {
       /* ignore */
     }
@@ -684,10 +676,10 @@ export function HashChip({
       )}
       <button
         onClick={copy}
-        className="-m-1.5 shrink-0 p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+        className="group/copy -m-1.5 shrink-0 p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
         aria-label="Copy"
       >
-        {copied ? <Check className="h-3 w-3 text-[#E6212F]" /> : <Copy className="h-3 w-3" />}
+        <CopyMark copied={copied} size="h-3 w-3" done="text-[#E6212F]" />
       </button>
     </span>
   );

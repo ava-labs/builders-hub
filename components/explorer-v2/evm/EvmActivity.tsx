@@ -187,7 +187,7 @@ function ActivityBlock({
   const hd = hover !== null ? days[hover] : null;
 
   return (
-    <div className={cn("pr-2 pt-2 transition-opacity", stale && "opacity-60")}>
+    <div className={cn("pr-2 pt-2 transition-opacity ease-out", stale && "opacity-60")}>
       <ReadoutBlock href={href} className="flex-col">
         {/* the window's readings: how much, how fast, and of what kind */}
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-x-8 gap-y-3 px-5 pt-3 md:px-6">
