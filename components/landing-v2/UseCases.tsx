@@ -2,7 +2,7 @@
 
 import UseCaseDiagram from "@/components/landing-v2/UseCaseDiagrams";
 import type { UseCase } from "@/components/landing-v2/pillars";
-import { MaskText, Reveal, sentenceCase } from "@/components/landing-v2/SpecKit";
+import { Reveal, sentenceCase } from "@/components/landing-v2/SpecKit";
 
 /* ------------------------------------------------------------------ */
 /* Use-case rows: the institutional patterns, argued in full            */
@@ -29,13 +29,14 @@ export function UseCaseRows({ useCases }: { useCases: UseCase[] }) {
             <p className="mt-5 max-w-xl text-[15px] font-medium leading-relaxed text-zinc-900 dark:text-zinc-100">
               {useCase.tagline}
             </p>
-            <p className="mt-5 font-mono text-[11px] tracking-[0.08em] text-zinc-400 dark:text-zinc-500">{useCase.stack}</p>
+            <p className="mt-5 font-mono text-[11px] tracking-[0.08em] text-zinc-500 dark:text-zinc-400">{useCase.stack}</p>
+            {/* the figures hold still: they are read and compared (sol-reveals) */}
             <dl className="mt-10 grid grid-cols-3 gap-6 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-              {useCase.guarantees.map((g, i) => (
+              {useCase.guarantees.map((g) => (
                 <div key={g.label}>
                   <dt className="text-[12px] text-zinc-500 dark:text-zinc-400">{sentenceCase(g.label)}</dt>
                   <dd className="v2-heading mt-2 text-[17px] text-zinc-900 dark:text-zinc-50">
-                    <MaskText delay={0.1 + i * 0.06}>{sentenceCase(g.value)}</MaskText>
+                    {sentenceCase(g.value)}
                   </dd>
                 </div>
               ))}

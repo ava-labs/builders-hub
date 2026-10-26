@@ -25,7 +25,7 @@ function SectionHeading({ lead, rest }: { lead: string; rest?: string }) {
     <h2 className="v2-heading text-3xl text-zinc-900 md:text-[2.5rem] dark:text-zinc-50">
       <MaskText>{lead}</MaskText>
       {rest && (
-        <MaskText delay={0.08} className="text-zinc-400 dark:text-zinc-500">
+        <MaskText delay={0.08} className="text-zinc-500">
           {rest}
         </MaskText>
       )}
@@ -41,9 +41,11 @@ export default function PillarPage({ pillar }: { pillar: Pillar }) {
   return (
     <SolutionsShell>
       {/* promise and proof, split against the plate: the plate runs flush
-          to the sheet's right edge at full height, exactly 4:5 wide */}
+          to the sheet's right edge at full height, exactly 4:5 wide. The
+          promise rises in from the first frame, in CSS, so it never waits
+          for the scripts (sol-hero-first-paint) */}
       <section className="-mx-5 -mt-6 md:-mx-6 lg:mr-[-1.5rem] lg:ml-0 lg:flex lg:min-h-[calc(100vh-5.375rem)]">
-        <Reveal className="flex flex-1 flex-col justify-center px-5 py-16 md:px-6 lg:py-20 lg:pl-0 lg:pr-16 xl:pr-24">
+        <div className="hero-enter flex flex-1 flex-col justify-center px-5 py-16 [--hero-rise-y:20px] md:px-6 lg:py-20 lg:pl-0 lg:pr-16 xl:pr-24">
           <h1 className="v2-display text-3xl text-zinc-900 md:text-5xl xl:text-[3.5rem] dark:text-zinc-50">
             {pillar.display.lead.map((line) => (
               <span key={line} className="block">
@@ -76,7 +78,7 @@ export default function PillarPage({ pillar }: { pillar: Pillar }) {
               </div>
             ))}
           </dl>
-        </Reveal>
+        </div>
         <div className="shrink-0 lg:w-[min(50%,calc((100vh-5.375rem)*0.8))]">
           <PillarPlate slug={pillar.slug} priority />
         </div>
@@ -93,7 +95,7 @@ export default function PillarPage({ pillar }: { pillar: Pillar }) {
           }`}
         >
           {pillar.capabilities.map((capability, i) => (
-            <Reveal key={capability.title} delay={i * 0.08} className="border-t border-zinc-900 pt-6 dark:border-zinc-100">
+            <Reveal key={capability.title} delay={i * 0.04} className="border-t border-zinc-900 pt-6 dark:border-zinc-100">
               <p className="font-mono text-[11px] tracking-[0.2em] text-[#E6212F]">{pad2(i + 1)}</p>
               <h3 className="v2-heading mt-4 text-xl text-zinc-900 dark:text-zinc-50">{capability.title}</h3>
               <p className="mt-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300">{capability.body}</p>
@@ -153,7 +155,7 @@ export default function PillarPage({ pillar }: { pillar: Pillar }) {
           <span className="bg-[linear-gradient(#E6212F,#E6212F)] bg-[length:0%_2px] bg-left-bottom bg-no-repeat pb-1 transition-[background-size] duration-500 group-hover:bg-[length:100%_2px]">
             {next.title}
           </span>
-          <ArrowRight className="h-8 w-8 shrink-0 text-zinc-300 transition-all duration-300 group-hover:translate-x-2 group-hover:text-[#E6212F] dark:text-zinc-600" />
+          <ArrowRight className="h-8 w-8 shrink-0 text-zinc-500 [transition:color_150ms_ease,translate_200ms_var(--ease-out)] group-hover:translate-x-2 group-hover:text-[#E6212F]" />
         </span>
       </Link>
     </SolutionsShell>
@@ -197,7 +199,7 @@ function ResourceIndex({ pillar }: { pillar: Pillar }) {
                 <h3 className="text-[15px] font-medium text-zinc-900 dark:text-zinc-50">
                   {GROUP_NAMES[group.heading] ?? sentenceCase(group.heading)}
                 </h3>
-                <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">{pad2(group.links.length)}</span>
+                <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{pad2(group.links.length)}</span>
               </div>
               <ul>
                 {group.links.map((link) => {
@@ -210,17 +212,17 @@ function ResourceIndex({ pillar }: { pillar: Pillar }) {
                       >
                         <span
                           aria-hidden
-                          className="absolute -left-4 bottom-4 top-4 w-0.5 origin-top scale-y-0 bg-[#E6212F] transition-transform duration-300 group-hover:scale-y-100"
+                          className="absolute -left-4 bottom-4 top-4 w-0.5 origin-top scale-y-0 bg-[#E6212F] [transition:scale_200ms_var(--ease-out)] group-hover:scale-y-100"
                         />
-                        <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{pad2(n)}</span>
-                        <span className="text-[17px] font-medium tracking-[-0.01em] text-zinc-900 transition-transform duration-300 group-hover:translate-x-1 md:text-[19px] dark:text-zinc-50">
+                        <span className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">{pad2(n)}</span>
+                        <span className="text-[17px] font-medium tracking-[-0.01em] text-zinc-900 [transition:translate_200ms_var(--ease-out)] group-hover:translate-x-1 md:text-[19px] dark:text-zinc-50">
                           {link.text}
                         </span>
                         <span className="relative flex justify-end">
-                          <span className="text-[12px] text-zinc-400 transition-all duration-300 group-hover:-translate-x-2 group-hover:opacity-0 dark:text-zinc-500">
+                          <span className="text-[12px] text-zinc-500 [transition:opacity_200ms_ease,translate_200ms_var(--ease-out)] group-hover:-translate-x-2 group-hover:opacity-0 dark:text-zinc-400">
                             {kindOf(link.href)}
                           </span>
-                          <ArrowRight className="absolute right-0 top-1/2 h-4 w-4 -translate-x-2 -translate-y-1/2 text-[#E6212F] opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
+                          <ArrowRight className="absolute right-0 top-1/2 h-4 w-4 -translate-x-2 -translate-y-1/2 text-[#E6212F] opacity-0 [transition:opacity_200ms_ease,translate_200ms_var(--ease-out)] group-hover:translate-x-0 group-hover:opacity-100" />
                         </span>
                       </Link>
                     </li>

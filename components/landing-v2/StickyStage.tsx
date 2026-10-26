@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "framer-motion";
+import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
 import { Plate, type PlateSpec } from "@/components/landing-v2/PillarPlate";
 import PlateVideo from "@/components/landing-v2/PlateVideo";
 
@@ -53,20 +53,9 @@ function handoff(i: number, n: number): [number[], number[]] {
 
 /* One step's plate: photo, scrim, and drawing move as a single layer, so
    a drawing traced onto its photo stays on its features while the layer
-   settles out of its zoom. */
-function StepLayer({
-  i,
-  n,
-  pos,
-  plate,
-  still,
-}: {
-  i: number;
-  n: number;
-  pos: MotionValue<number>;
-  plate: PlateSpec;
-  still: boolean;
-}) {
+   settles out of its zoom. Under Reduce Motion the layer holds still in
+   CSS, so the first render is the one the server sent. */
+function StepLayer({ i, n, pos, plate }: { i: number; n: number; pos: MotionValue<number>; plate: PlateSpec }) {
   // the ground fades in ahead of the boundary, so it is set before its drawing
   const opacity = useTransform(pos, i === 0 ? [-1, 0] : [i - 0.8, i - 0.35], i === 0 ? [1, 1] : [0, 1]);
   const scale = useTransform(pos, [i - 0.8, i - 0.2, i + 0.5], [1.1, 1, 1.02]);
@@ -74,7 +63,7 @@ function StepLayer({
   const drawing = useTransform(pos, input, output);
   return (
     <>
-      <motion.div data-plate className="absolute inset-0" style={{ opacity, scale: still ? 1 : scale }}>
+      <motion.div data-plate className="absolute inset-0 motion-reduce:transform-none!" style={{ opacity, scale }}>
         {plate.video ? (
           <PlateVideo video={plate.video} />
         ) : plate.photo ? (
@@ -108,7 +97,6 @@ function StepLayer({
 // 5.375rem throughout = global navbar (3.5rem) + solutions subnav (30px):
 // where the stage pins and how tall one step of reading is
 export default function StickyStage({ steps, className = "" }: { steps: StageStep[]; className?: string }) {
-  const reducedMotion = !!useReducedMotion();
   const [active, setActive] = useState(0);
   const refs = useRef<(HTMLDivElement | null)[]>([]);
   const stepsRef = useRef<HTMLDivElement>(null);
@@ -142,8 +130,11 @@ export default function StickyStage({ steps, className = "" }: { steps: StageSte
               refs.current[i] = el;
             }}
             data-step={i}
-            className={`pb-16 transition-opacity duration-700 lg:flex lg:min-h-[calc(100vh-5.375rem)] lg:flex-col lg:justify-center lg:py-16 lg:pr-16 xl:pr-24 ${
-              i === active ? "lg:opacity-100" : "lg:opacity-30"
+            // sol-sticky-dim: the steps not being read dim to 55%, so the next
+            // one stays readable, and the hand-off lands in 300ms (150ms under
+            // Reduce Motion, the site policy)
+            className={`pb-16 transition-opacity duration-300 ease-out lg:flex lg:min-h-[calc(100vh-5.375rem)] lg:flex-col lg:justify-center lg:py-16 lg:pr-16 xl:pr-24 ${
+              i === active ? "lg:opacity-100" : "lg:opacity-55"
             }`}
           >
             <Plate photo={step.plate.photo} video={step.plate.video} caption={step.plate.caption} className="mb-10 lg:hidden">
@@ -157,7 +148,7 @@ export default function StickyStage({ steps, className = "" }: { steps: StageSte
       <div className="hidden shrink-0 lg:block lg:w-[min(50%,calc((100vh-5.375rem)*0.8))]">
         <div className="sticky top-[calc(var(--fd-banner-height,0px)+5.375rem)] h-[calc(100vh-5.375rem)] overflow-hidden bg-zinc-950">
           {steps.map((step, i) => (
-            <StepLayer key={step.key} i={i} n={n} pos={pos} plate={step.plate} still={reducedMotion} />
+            <StepLayer key={step.key} i={i} n={n} pos={pos} plate={step.plate} />
           ))}
         </div>
       </div>

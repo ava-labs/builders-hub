@@ -3,6 +3,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import type { PillarSlug } from "@/components/landing-v2/pillars";
+import { restSmil } from "@/components/landing-v2/smil-rest";
 
 /* ------------------------------------------------------------------ */
 /* Photo overlays: each pillar's drawing, surveyed onto its photograph  */
@@ -50,19 +51,10 @@ const useGlow = () => `url(#${React.useContext(GlowContext)})`;
 
 function Frame({ label, children }: { label: string; children: React.ReactNode }) {
   const glowId = `glow-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  const ref = useRef<SVGSVGElement>(null);
-  const reducedMotion = useReducedMotion();
-  useEffect(() => {
-    // SMIL ignores prefers-reduced-motion; hold the scene on a frame where
-    // the light is mid-route, so the still still tells the story
-    const svg = ref.current;
-    if (!svg || !reducedMotion) return;
-    svg.setCurrentTime(1.4);
-    svg.pauseAnimations();
-    return () => svg.unpauseAnimations();
-  }, [reducedMotion]);
+  // SMIL ignores prefers-reduced-motion: restSmil holds the scene on a frame
+  // where the light is mid-route, and pauses it while it is off screen
   return (
-    <svg ref={ref} viewBox="0 0 1600 2000" className="absolute inset-0 h-full w-full select-none" role="img" aria-label={label}>
+    <svg ref={restSmil} viewBox="0 0 1600 2000" className="absolute inset-0 h-full w-full select-none" role="img" aria-label={label}>
       <defs>
         <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="9" />

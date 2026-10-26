@@ -3,14 +3,17 @@
 import { useRef } from 'react';
 import Image from 'next/image';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { EASE, MaskText } from '@/components/landing-v2/SpecKit';
+import { MaskText } from '@/components/landing-v2/SpecKit';
 
 /* The header: a base camp under the peaks, full-bleed across the sheet,
    the title on the open snowfield to its left. Tents and paths lead to
    one hall, and its beacon is the only red in the photograph. As on the
    /solutions hero, the desktop band holds the photograph's own aspect,
    so the glow pins to the beacon's pixel, and the band zooms toward it
-   as the page scrolls away. Phones get a taller crop on the camp. */
+   as the page scrolls away. Phones get a taller crop on the camp. The
+   photo and the dek enter from the first frame, in CSS (.hero-enter in
+   app/global.css, as on the /solutions hero), so they never wait for the
+   scripts and show with JavaScript off. */
 
 // the beacon's centre in the photograph (3168x1344), measured from its red pixels
 const BEACON = { x: '81.47%', y: '40.41%' };
@@ -19,22 +22,17 @@ export default function EcosystemHero() {
   const reducedMotion = useReducedMotion();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
+  // under Reduce Motion the band holds still; it starts at 1 either way, so
+  // the first render is the one the server sent
+  const scale = useTransform(scrollYProgress, [0, 1], [1, reducedMotion ? 1 : 1.1]);
 
   return (
     <section ref={ref} className="relative -mx-5 -mt-14 overflow-hidden bg-zinc-950 md:-mx-6 md:-mt-20">
       <div className="relative aspect-[4/5] sm:aspect-[16/10] lg:aspect-[3168/1344]">
         {/* zoom origin sits on the beacon, so it holds still: 61% of the phone crop, the photo's own spot above */}
-        <motion.div
-          className="absolute inset-0 origin-[61%_40.41%] sm:origin-[81.47%_40.41%]"
-          style={reducedMotion ? undefined : { scale }}
-        >
-          <motion.div
-            className="absolute inset-0 origin-[61%_40.41%] sm:origin-[81.47%_40.41%]"
-            initial={reducedMotion ? false : { scale: 1.06, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 2.4, ease: EASE }}
-          >
+        <motion.div className="absolute inset-0 origin-[61%_40.41%] sm:origin-[81.47%_40.41%]" style={{ scale }}>
+          {/* the camp fades in out of a slight zoom from the first frame (sol-hero-first-paint) */}
+          <div className="hero-enter hero-zoom absolute inset-0 origin-[61%_40.41%] sm:origin-[81.47%_40.41%] [--hero-duration:2400ms] [--hero-zoom:1.06]">
             <Image
               src="/images/ecosystem/base-camp.webp"
               alt="A base camp of lit tents on a snowfield below a mountain range, its paths leading to one hall with a red beacon"
@@ -53,7 +51,7 @@ export default function EcosystemHero() {
               animate={reducedMotion ? undefined : { opacity: [0.2, 0.55, 0.2] }}
               transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
             />
-          </motion.div>
+          </div>
         </motion.div>
 
         {/* scrims: the fog darkens under the words, the foot into the page */}
@@ -75,14 +73,10 @@ export default function EcosystemHero() {
               </span>
             </MaskText>
           </h1>
-          <motion.p
-            className="mt-auto max-w-[20rem] text-[15px] leading-relaxed text-white/80 md:text-base"
-            initial={reducedMotion ? false : { opacity: 0, filter: 'blur(10px)', y: 8 }}
-            animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-            transition={{ duration: 1.4, delay: 1.1, ease: EASE }}
-          >
+          {/* the dek sharpens as it rises, 1.1 s into the entrance */}
+          <p className="hero-enter hero-blur mt-auto max-w-[20rem] text-[15px] leading-relaxed text-white/80 [--hero-delay:1100ms] [--hero-duration:1400ms] md:text-base">
             Events, programs, guides and tools for builders on Avalanche.
-          </motion.p>
+          </p>
         </div>
       </div>
     </section>

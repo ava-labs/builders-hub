@@ -1,4 +1,5 @@
 import React from "react";
+import { restSmil } from "@/components/landing-v2/smil-rest";
 
 /* ------------------------------------------------------------------ */
 /* Use-case diagrams — one instrument per institutional pattern, in    */
@@ -15,8 +16,10 @@ const STRONG = "stroke-zinc-900 dark:stroke-zinc-100";
 const NODE = "fill-zinc-700 dark:fill-zinc-300";
 const GLYPH = "fill-zinc-900 font-mono dark:fill-zinc-100";
 
+// the loops hold still under Reduce Motion and pause off screen (sol-diagrams-rest)
 function frame(label: string) {
   return {
+    ref: restSmil,
     viewBox: "0 0 420 200",
     className: "w-full max-w-[440px] select-none",
     role: "img" as const,

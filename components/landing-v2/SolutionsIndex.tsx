@@ -10,7 +10,7 @@ import Image from "next/image";
 import { pillarPlate } from "@/components/landing-v2/PillarPlate";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import { COMPARISON, PILLARS, type Pillar } from "@/components/landing-v2/pillars";
-import { EASE, MaskText, Reveal } from "@/components/landing-v2/SpecKit";
+import { MaskText, Reveal } from "@/components/landing-v2/SpecKit";
 
 /* ------------------------------------------------------------------ */
 /* /solutions: the four pillars, stated in one line                    */
@@ -19,27 +19,24 @@ import { EASE, MaskText, Reveal } from "@/components/landing-v2/SpecKit";
 // the headline names the pillars in the order the sections below read them
 const PILLAR_WORDS = PILLARS.map((p) => p.label.charAt(0) + p.label.slice(1).toLowerCase());
 
-// the avalanche pass: a step every CASCADE_MS while the pulse is on a word
-// (steps 0-3), then the remaining steps are the rest at the bottom before
-// the next slide: the headline black again, only the final period red
+// sol-period-cascade, the avalanche pass: as the words land, the red pulse
+// steps down their full stops CASCADE_MS apart, then rests with only the
+// final one red. It runs once: a loop with no pause control fails WCAG 2.2.2.
+const CASCADE_START = 1100;
 const CASCADE_MS = 650;
-const CASCADE_STEPS = PILLAR_WORDS.length + 12;
+
+/** The pass as [ms from now, the word whose full stop is lit] steps, -1 the
+ *  rest, for an entrance that has run `elapsed` ms: it starts CASCADE_START
+ *  into the entrance, or at once if the words landed before the page went live. */
+export function cascadeSteps(words: number, elapsed: number): [number, number][] {
+  const start = Math.max(0, CASCADE_START - elapsed);
+  return Array.from({ length: words + 1 }, (_, k) => [start + k * CASCADE_MS, k < words ? k : -1]);
+}
 
 export default function SolutionsIndex() {
-  const reducedMotion = useReducedMotion();
-
-  // -1 = resting; 0..3 = the word the red pulse is passing through
-  const [step, setStep] = useState(PILLAR_WORDS.length);
-  useEffect(() => {
-    if (reducedMotion) return;
-    const timer = setInterval(() => setStep((s) => (s + 1) % CASCADE_STEPS), CASCADE_MS);
-    return () => clearInterval(timer);
-  }, [reducedMotion]);
-  const active = step < PILLAR_WORDS.length ? step : -1;
-
   return (
     <SolutionsShell>
-      <Hero active={active} />
+      <Hero />
 
       {/* the four pillars, read one at a time beside their drawing */}
       <StickyStage
@@ -49,7 +46,7 @@ export default function SolutionsIndex() {
           content: (
             <div className="max-w-xl">
               <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span className="text-zinc-400 dark:text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
+                <span className="text-zinc-500 dark:text-zinc-400">{String(i + 1).padStart(2, "0")}</span>
                 <span className="mx-2 text-zinc-300 dark:text-zinc-700">·</span>
                 <span className="text-[#E6212F]">{pillar.label}</span>
               </p>
@@ -64,7 +61,7 @@ export default function SolutionsIndex() {
                     key={proof.label}
                     className="flex items-baseline justify-between gap-6 border-b border-zinc-200 py-3.5 font-mono uppercase dark:border-zinc-800"
                   >
-                    <dt className="text-[11px] tracking-[0.16em] text-zinc-500">{proof.label}</dt>
+                    <dt className="text-[11px] tracking-[0.16em] text-zinc-500 dark:text-zinc-400">{proof.label}</dt>
                     <dd className="text-right text-[13px] tracking-[0.08em] text-zinc-900 dark:text-zinc-100">{proof.value}</dd>
                   </div>
                 ))}
@@ -94,23 +91,35 @@ export default function SolutionsIndex() {
    light at the end of the hall can be pinned to the pixel; the band zooms
    down the hall toward it as the page scrolls away. Phones get a taller
    crop anchored on the centre aisle. */
-function Hero({ active }: { active: number }) {
+function Hero() {
   const reducedMotion = useReducedMotion();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
+  // under Reduce Motion the band holds still; it starts at 1 either way, so
+  // the first render is the one the server sent
+  const scale = useTransform(scrollYProgress, [0, 1], [1, reducedMotion ? 1 : 1.12]);
+
+  // -1 = resting; 0..3 = the word the red pulse is passing through
+  const [active, setActive] = useState(-1);
+  useEffect(() => {
+    if (reducedMotion) return;
+    // the words rise from the first paint, not from hydration: time the pass from their entrance
+    const entrance = ref.current?.querySelector("h1 .hero-enter")?.getAnimations()[0];
+    const elapsed = entrance ? Number(entrance.currentTime) : CASCADE_START;
+    const timers = cascadeSteps(PILLAR_WORDS.length, elapsed).map(([at, word]) =>
+      setTimeout(() => setActive(word), at),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [reducedMotion]);
 
   return (
     <section ref={ref} className="relative -mx-5 -mt-6 overflow-hidden bg-zinc-950 md:-mx-6">
       <div className="relative aspect-[4/5] sm:aspect-[16/10] lg:aspect-[2880/1258]">
         {/* zoom origin sits on the red light, so it holds still */}
-        <motion.div className="absolute inset-0 origin-[49%_69%]" style={reducedMotion ? undefined : { scale }}>
-          <motion.div
-            className="absolute inset-0 origin-[49%_69%]"
-            initial={reducedMotion ? false : { scale: 1.08, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 2.4, ease: EASE }}
-          >
+        <motion.div className="absolute inset-0 origin-[49%_69%]" style={{ scale }}>
+          {/* the hall fades in out of a slight zoom from the first frame, in
+              CSS, so it never waits for the scripts (sol-hero-first-paint) */}
+          <div className="hero-enter hero-zoom absolute inset-0 origin-[49%_69%] [--hero-duration:2400ms]">
             <Image
               src="/images/solutions/exchange-hall.jpg"
               alt="A monumental exchange hall of ice columns, snow falling through the skylight, a red light at the end of the hall"
@@ -127,7 +136,7 @@ function Hero({ active }: { active: number }) {
               animate={reducedMotion ? undefined : { opacity: [0.15, 0.45, 0.15] }}
               transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
             />
-          </motion.div>
+          </div>
         </motion.div>
 
         {/* scrims: the fog darkens under the words, the foot into the page */}
@@ -146,7 +155,7 @@ function Hero({ active }: { active: number }) {
               const lit = active === i;
               const last = i === PILLAR_WORDS.length - 1;
               return (
-                <MaskText key={word} delay={0.3 + i * 0.09}>
+                <MaskText key={word} delay={0.3 + i * 0.09} firstPaint>
                   <span style={{ marginLeft: `${i * 0.6}em` }} className="inline-block">
                     <span className="text-white">{word}</span>
                     {/* only the periods carry the pulse; the words hold still */}
@@ -163,14 +172,9 @@ function Hero({ active }: { active: number }) {
           {/* the dek settles in the bottom-left corner, over the floor of
               the hall: it arrives once the words have landed, sharpening
               out of the falling snow */}
-          <motion.p
-            className="mt-auto max-w-[19rem] text-[15px] leading-relaxed text-white/80 md:text-base"
-            initial={reducedMotion ? false : { opacity: 0, filter: "blur(10px)", y: 8 }}
-            animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-            transition={{ duration: 1.4, delay: 1.1, ease: EASE }}
-          >
+          <p className="hero-enter hero-blur mt-auto max-w-[19rem] text-[15px] leading-relaxed text-white/80 [--hero-delay:1100ms] [--hero-duration:1400ms] md:text-base">
             A high-performance EVM, configured for regulated finance.
-          </motion.p>
+          </p>
         </div>
       </div>
     </section>
@@ -188,7 +192,6 @@ function Comparison() {
     pillar,
     rows: COMPARISON.filter((r) => r.pillar === pillar.slug),
   })).filter((g) => g.rows.length > 0);
-  let rowIndex = 0;
 
   return (
     // the page closes dark: this section carries `dark`, so the table and
@@ -228,7 +231,7 @@ function Comparison() {
               Graduate to your own L1.
             </MaskText>
           </h2>
-          <Reveal delay={0.1} className="lg:pt-2">
+          <Reveal delay={0.05} className="lg:pt-2">
             <p className="max-w-xl text-[17px] leading-relaxed text-zinc-600 dark:text-zinc-300">
               The shared C-Chain gives an application immediate reach. A dedicated L1 keeps native messaging and
               irreversible finality, and makes the rest configurable: blockspace, gas token, who validates, who can see
@@ -294,18 +297,14 @@ function Comparison() {
               </tr>
               {rows.map((row, i) => {
                 const differs = row.cChain !== row.l1;
-                const delay = (rowIndex++ % 4) * 0.05;
+                // the rows hold still: cells are read and compared (sol-reveals)
                 return (
-                  <motion.tr
+                  <tr
                     key={row.label}
                     role="row"
                     className={`grid grid-cols-2 border-t lg:table-row ${
                       i === 0 ? "border-zinc-300 dark:border-zinc-600" : "border-zinc-200 dark:border-zinc-800"
                     }`}
-                    initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-40px" }}
-                    transition={{ duration: 0.45, delay, ease: EASE }}
                   >
                     {/* lg and up: the pillar name in the rail, beside its first row */}
                     {i === 0 && (
@@ -340,7 +339,7 @@ function Comparison() {
                     >
                       {row.l1}
                     </td>
-                  </motion.tr>
+                  </tr>
                 );
               })}
             </tbody>
