@@ -272,18 +272,13 @@ export const blockchainLookupTransaction = tool({
         const result = await rpcCall(url, 'avm.getTx', { txID: txHash, encoding: 'json' });
         if (result) {
           const parsed = parseXChainTransaction(result);
-          let txStatus = 'Unknown';
-          try {
-            const statusResult = await rpcCall(url, 'avm.getTxStatus', { txID: txHash });
-            if (statusResult?.status) txStatus = statusResult.status;
-            else if (typeof statusResult === 'string') txStatus = statusResult;
-          } catch { /* ignore */ }
 
           const isAlt = net !== network;
           return {
             found: true,
             chain: 'X-Chain',
-            transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
+            // avm.getTx returns only accepted txs, and avm.getTxStatus is deprecated.
+            transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: 'Accepted', ...parsed.details },
             network: net === 'fuji' ? 'Fuji Testnet' : 'Mainnet',
             ...(isAlt ? { note: `Found on ${net === 'fuji' ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
             explorerUrl: explorerUrl('X-Chain', 'tx', txHash, net === 'fuji'),
