@@ -1,4 +1,3 @@
-import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
 import { getPChainUnlockedNAvax } from '../utils/pChainNodeBalance';
 import { avalancheFuji, avalanche } from 'viem/chains';
 import { createPublicClient, http } from 'viem';
@@ -25,24 +24,6 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (..
   };
 }
 
-// Cache for indexed chains to avoid repeated API calls
-let indexedChainsCache: Number[] | null = null;
-let indexedChainsPromise: Promise<Number[]> | null = null;
-
-async function getIndexedChains(): Promise<Number[]> {
-  if (indexedChainsCache) return indexedChainsCache;
-
-  if (!indexedChainsPromise) {
-    indexedChainsPromise = getChains().then((chains) => {
-      const chainIds = chains.map((chain) => parseInt(chain.chainId));
-      indexedChainsCache = chainIds;
-      return chainIds;
-    });
-  }
-
-  return indexedChainsPromise;
-}
-
 interface BalanceUpdateCallbacks {
   setBalance: (type: 'pChain' | 'cChain' | string, amount: number | null) => void;
   setLoading: (type: 'pChain' | 'cChain' | string, loading: boolean) => void;
@@ -63,7 +44,11 @@ interface BalanceUpdateCallbacks {
 // Service class for managing balance operations
 class BalanceService {
   private callbacks: BalanceUpdateCallbacks | null = null;
-  private rpcUrls = new Map<string, string>();
+  // C-Chain RPCs are known up front, so its balance never depends on an L1
+  // list having been registered first.
+  private rpcUrls = new Map<string, string>(
+    [avalanche, avalancheFuji].map((chain) => [chain.id.toString(), chain.rpcUrls.default.http[0]]),
+  );
   private chainClients = new Map<string, ReturnType<typeof createPublicClient>>();
 
   constructor(private debounceTime: number = 500) {}
@@ -160,28 +145,16 @@ class BalanceService {
 
   // P-Chain balance fetching
   //
-  // The node is the source of truth. Glacier is only a fallback: its P-Chain
-  // indexer can stall (Fuji froze for ~24h on 2026-07-28), and a stale balance
-  // silently blocks users: the wizards gate on `pChainBalance > 0`, and the
-  // header is what a user checks before topping up.
+  // The node is the only source. An indexer can stall (Fuji froze for ~24h on
+  // 2026-07-28), and a stale balance silently blocks users: the wizards gate
+  // on `pChainBalance > 0`, and the header is what a user checks before
+  // topping up.
   async fetchPChainBalance(isTestnet: boolean, pChainAddress: string): Promise<number> {
     if (!pChainAddress) return 0;
 
     try {
       const unlocked = await getPChainUnlockedNAvax(isTestnet, pChainAddress);
       return Number(unlocked) / 1e9;
-    } catch (nodeError) {
-      console.warn('P-Chain node balance failed, falling back to the indexer:', nodeError);
-    }
-
-    try {
-      const network = isTestnet ? 'testnet' : 'mainnet';
-      const response = await getPChainBalance(network, pChainAddress);
-      // `unlockedUnstaked` only. Deliberately NOT summing `atomicMemoryUnlocked`:
-      // funds sitting in shared memory need an ImportTx before the P-Chain can
-      // spend them, so counting them here would overstate what's spendable
-      // (this is exactly why Core's number reads high against the node's).
-      return Number(response.balances.unlockedUnstaked[0]?.amount || 0) / 1e9;
     } catch (error) {
       console.error('Failed to fetch P-Chain balance:', error);
       return 0;
@@ -194,35 +167,27 @@ class BalanceService {
     if (!walletEVMAddress || !walletChainId) return 0;
 
     try {
-      const indexedChains = await getIndexedChains();
-      const isIndexedChain = indexedChains.includes(walletChainId);
-
-      if (isIndexedChain) {
-        const balance = await getNativeTokenBalance(walletChainId, walletEVMAddress);
-        return Number(balance.balance) / 10 ** balance.decimals;
-      } else {
-        // Use a chain-specific client (via registered rpcUrl) so we query
-        // the correct RPC, not the currently-connected chain's transport.
-        const chainClient = this.getOrCreateClient(walletChainId.toString());
-        if (!chainClient) {
-          // No registered RPC for this chain — the fallback to the wallet's
-          // active publicClient yields the *current chain's* balance, which
-          // is wrong for the requested chain. Warn once per chain so the
-          // upstream code path (HeroCard / DashboardBody) can call
-          // `registerRpcUrls` before reading. Returns 0 so the UI doesn't
-          // crash, but the dev surface now points at the real cause instead
-          // of a silent zero.
-          warnMissingRpc(walletChainId);
-          const fallbackBalance = await publicClient.getBalance({
-            address: walletEVMAddress as `0x${string}`,
-          });
-          return Number(fallbackBalance) / 1e18;
-        }
-        const balance = await chainClient.getBalance({
+      // Use a chain-specific client (via registered rpcUrl) so we query
+      // the correct RPC, not the currently-connected chain's transport.
+      const chainClient = this.getOrCreateClient(walletChainId.toString());
+      if (!chainClient) {
+        // No registered RPC for this chain: the fallback to the wallet's
+        // active publicClient yields the *current chain's* balance, which
+        // is wrong for the requested chain. Warn once per chain so the
+        // upstream code path (HeroCard / DashboardBody) can call
+        // `registerRpcUrls` before reading. Returns 0 so the UI doesn't
+        // crash, but the dev surface now points at the real cause instead
+        // of a silent zero.
+        warnMissingRpc(walletChainId);
+        const fallbackBalance = await publicClient.getBalance({
           address: walletEVMAddress as `0x${string}`,
         });
-        return Number(balance) / 1e18;
+        return Number(fallbackBalance) / 1e18;
       }
+      const balance = await chainClient.getBalance({
+        address: walletEVMAddress as `0x${string}`,
+      });
+      return Number(balance) / 1e18;
     } catch (error) {
       console.error('Failed to fetch L1 balance:', error);
       return null;
@@ -233,13 +198,11 @@ class BalanceService {
   async fetchCChainBalance(isTestnet: boolean, walletEVMAddress: string): Promise<number> {
     if (!walletEVMAddress) return 0;
 
-    try {
-      const chain = isTestnet ? avalancheFuji : avalanche;
-      const balance = await getNativeTokenBalance(chain.id, walletEVMAddress);
-      return Number(balance.balance) / 10 ** balance.decimals;
-    } finally {
-      // Handle any cleanup if needed
-    }
+    const chain = isTestnet ? avalancheFuji : avalanche;
+    const balance = await this.getOrCreateClient(chain.id.toString())!.getBalance({
+      address: walletEVMAddress as `0x${string}`,
+    });
+    return Number(balance) / 1e18;
   }
 
   // These will be set up by initializeDebouncedMethods

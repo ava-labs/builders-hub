@@ -6,8 +6,7 @@
  * P-Chain indexer stalled for ~24h, so the console showed a balance that
  * predated the user's last two imports while Core showed an atomic-memory
  * entry that an ImportTx had already consumed. Neither number matched the
- * node. `platform.getBalance` is authoritative and cheap, so read it first
- * and treat the indexer as a fallback only.
+ * node. `platform.getBalance` is authoritative and cheap, so read only it.
  */
 
 import { getPChainRpcUrl } from './avalancheEndpoints';
@@ -32,7 +31,7 @@ function withPChainPrefix(address: string): string {
  * and platform-locked funds that can't pay a tx fee, which would let the UI
  * green-light a transaction the node then rejects for insufficient funds.
  *
- * Throws on transport or RPC error so the caller can fall back.
+ * Throws on transport or RPC error so the caller decides what to show.
  */
 export async function getPChainUnlockedNAvax(isTestnet: boolean, pChainAddress: string): Promise<bigint> {
   const response = await fetch(getPChainRpcUrl(isTestnet), {

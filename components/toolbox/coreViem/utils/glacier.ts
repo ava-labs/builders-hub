@@ -159,64 +159,6 @@ export async function getSubnetInfoForNetwork(
   return data;
 }
 
-// Interfaces for P-Chain Balance
-interface AssetBalance {
-  assetId: string;
-  name: string;
-  symbol: string;
-  denomination: number;
-  type: string;
-  amount: string;
-  utxoCount: number;
-  status?: string; // Optional, e.g., for atomicMemoryUnlocked
-  sharedWithChainId?: string; // Optional, e.g., for atomicMemoryUnlocked
-}
-
-interface Balances {
-  unlockedStaked: AssetBalance[];
-  unlockedUnstaked: AssetBalance[];
-  lockedStaked: AssetBalance[];
-  lockedPlatform: AssetBalance[];
-  lockedStakeable: AssetBalance[];
-  pendingStaked: AssetBalance[];
-  atomicMemoryLocked: AssetBalance[];
-  atomicMemoryUnlocked: AssetBalance[];
-}
-
-interface PChainChainInfo {
-  chainName: string;
-  network: string; // e.g., "fuji", "mainnet"
-}
-
-interface PChainBalanceResponse {
-  balances: Balances;
-  chainInfo: PChainChainInfo;
-}
-
-export async function getPChainBalance(network: Network, address: string): Promise<PChainBalanceResponse> {
-  const networkPath = network === 'testnet' ? 'fuji' : network;
-  const url = `${endpoint}/v1/networks/${networkPath}/blockchains/p-chain/balances?addresses=${address}`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      accept: 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch P-Chain balance for ${address} on ${networkPath} (${network}): ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const data: PChainBalanceResponse = await response.json();
-  return data;
-}
-
 interface UtilityAddressesInfo {
   multicall: string;
 }
