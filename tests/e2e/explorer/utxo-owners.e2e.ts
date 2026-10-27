@@ -3,8 +3,8 @@ import { expect } from 'e2e';
 import { DATA } from './explorer-page';
 
 // The Fund Flow table shows a multisig UTXO's first owner and a "+8" chip. Hovering or tapping the chip opens a card
-// with every owner, each with a copy button (components/explorer-v2/pchain/utxo-ledger.tsx). The tx is a past mainnet
-// tx whose three outputs are owned 5 of 9.
+// with every owner, each with a copy button (components/explorer-v2/pchain/owners.tsx). The tx is a past mainnet tx
+// whose three outputs are owned 5 of 9; the story line above the table has a fourth chip, without the threshold.
 const TX = 'txV7PMua148QA8mP6p6kG5fi1PRkgV6DxX4ESyz9u8L4HNpH2';
 const OWNERS = [
   'avax1pc8td7945eve3p56a2k3lw520hq0tmpmgrj0cn',
@@ -25,9 +25,9 @@ test('p-chain tx table opens every owner of a multisig utxo from its chip', asyn
   await expect(screen.getByRole('link', 'avax1pc8td…j0cn')).toHaveCount(3, DATA);
   await expect(screen.getByRole('link', 'avax1u944m…zl42')).toHaveCount(0);
   const chips = screen.getByRole('button', `All ${OWNERS.length} owners`);
-  await expect(chips).toHaveCount(3);
-  await expect(chips.first()).toHaveText('+8');
-  await chips.first().click();
+  await expect(chips).toHaveCount(4);
+  await expect(chips.last()).toHaveText('+8');
+  await chips.last().click();
   const card = screen.getByRole('dialog', 'Owners');
   await expect(card).toBeVisible();
   await expect(card.getByText('5 of 9 to sign')).toBeVisible();
