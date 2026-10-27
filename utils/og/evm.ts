@@ -74,7 +74,12 @@ const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', '
 
 /** "AUG 24 · 20:53 UTC" from a hex unix timestamp, as on the approved mocks. */
 export function formatTimestampHex(hex: string): string {
-  const d = new Date(Number(BigInt(hex)) * 1000);
+  return formatUnixTime(Number(BigInt(hex)));
+}
+
+/** "AUG 24 · 20:53 UTC" from unix seconds. */
+export function formatUnixTime(secs: number): string {
+  const d = new Date(secs * 1000);
   const hh = String(d.getUTCHours()).padStart(2, '0');
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()} · ${hh}:${mm} UTC`;
