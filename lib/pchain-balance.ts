@@ -9,8 +9,9 @@
  * - any other output type is skipped and not listed.
  * `balance` is the three summed. "Now" is the local clock; GetBalance used the node's.
  *
- * It runs in the browser, in Node routes and in the MCP server. The Avalanche TypeScript SDK decodes the UTXOs
- * (getUtxoFromBytes) and reads them (utils).
+ * The MCP tools read balances with it. The Console and the faucet page call the Avalanche SDK's pChain.getBalance,
+ * which does the same sum since @avalanche-sdk/client 0.1.4, but reads every page (up to 3 times), and the anonymous
+ * MCP needs a page cap (maxPages). The Avalanche SDK decodes the UTXOs (getUtxoFromBytes) and reads them (utils).
  */
 
 import type { Utxo } from '@avalanche-sdk/client/serializable';
@@ -52,26 +53,6 @@ interface UtxoPage {
 }
 
 const NO_AMOUNTS: AssetAmounts = { unlocked: 0n, lockedStakeable: 0n, lockedNotStakeable: 0n };
-
-/** A PChainRpc over fetch: POSTs JSON-RPC to `url`; `signal` aborts every page. Throws on HTTP and RPC errors. */
-export function fetchPChainRpc(url: string, signal?: AbortSignal): PChainRpc {
-  return async (method, params) => {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-      signal,
-    });
-    if (!response.ok) {
-      throw new Error(`${method} failed: ${response.status} ${response.statusText}`);
-    }
-    const json = (await response.json()) as { result?: unknown; error?: { message?: string } };
-    if (json.error || json.result === undefined) {
-      throw new Error(`${method} error: ${json.error?.message ?? 'no result'}`);
-    }
-    return json.result;
-  };
-}
 
 /** Every UTXO that references one of the addresses, once each. A UTXO can open a page and close the page before. */
 async function readUtxos(rpc: PChainRpc, addresses: readonly string[], maxPages: number): Promise<Utxo[]> {
