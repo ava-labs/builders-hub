@@ -1,5 +1,7 @@
 import 'server-only';
 import { getAddress, isAddress, isHash } from 'viem';
+import { avalancheFuji } from 'viem/chains';
+import { createPChainClient } from '@avalanche-sdk/client';
 import {
   MANAGED_NODES_PRODUCTION_URL,
   ManagedTestnetNodesServiceURLs,
@@ -379,7 +381,6 @@ export async function recoverLiveL1(userId: string, job: DeploymentJob): Promise
   };
 }
 
-const FUJI_P_CHAIN = 'https://api.avax-test.network/ext/bc/P';
 const BLS_HEX = /^0x[0-9a-fA-F]+$/;
 
 /** The conversion transaction among a launch's P-Chain transactions, as the job or a saved step records them. */
@@ -414,29 +415,21 @@ export async function registerLaunchedNodes(
 ): Promise<number> {
   if (!CB58_ID.test(launch.subnetId) || !CB58_ID.test(launch.blockchainId) || !CB58_ID.test(launch.conversionTx))
     return 0;
-  const res = await fetch(FUJI_P_CHAIN, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'platform.getTx',
-      params: { txID: launch.conversionTx, encoding: 'json' },
-    }),
-    cache: 'no-store',
+  const pChain = createPChainClient({
+    chain: avalancheFuji as never,
+    transport: { type: 'http', config: { retryCount: 0, fetchOptions: { cache: 'no-store' } } },
   });
-  if (!res.ok) return 0;
-  const body = (await res.json().catch(() => null)) as {
-    result?: {
-      tx?: {
-        unsignedTx?: {
-          subnetID?: string;
-          validators?: { nodeID?: string; signer?: { publicKey?: string; proofOfPossession?: string } }[];
-        };
-      };
-    };
-  } | null;
-  const tx = body?.result?.tx?.unsignedTx;
+  const result = await pChain.getTx({ txID: launch.conversionTx, encoding: 'json' }).catch(() => null);
+  const tx = (
+    result?.tx as
+      | {
+          unsignedTx?: {
+            subnetID?: string;
+            validators?: { nodeID?: string; signer?: { publicKey?: string; proofOfPossession?: string } }[];
+          };
+        }
+      | undefined
+  )?.unsignedTx;
   if (!tx || tx.subnetID !== launch.subnetId) return 0;
 
   const existing = await prisma.nodeRegistration.findMany({

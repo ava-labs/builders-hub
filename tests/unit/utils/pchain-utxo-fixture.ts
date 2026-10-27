@@ -9,7 +9,7 @@ import {
 } from '@avalanche-sdk/client/serializable';
 import { utils } from '@avalanche-sdk/client/utils';
 
-/* P-Chain UTXOs as platform.getUTXOs returns them (hex), for the tests of lib/pchain-balance.ts and its callers. */
+/* P-Chain UTXOs as platform.getUTXOs returns them (hex), for the tests of the P-Chain balance reads. */
 
 const pvmManager = utils.getManagerForVM('PVM');
 
