@@ -1,11 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   EPOCH_DURATION_MS,
   computeEpochStatus,
   decideAdvanceAction,
   deriveProposerVMUrl,
-  parseCurrentEpochResponse,
-  parsePlatformHeightResponse,
+  fetchCurrentEpoch,
+  fetchLivePChainHeight,
+  parseCurrentEpoch,
+  parsePlatformHeight,
   type ProposerVMEpoch,
 } from './proposervm';
 
@@ -50,52 +52,76 @@ describe('deriveProposerVMUrl', () => {
   });
 });
 
-describe('parseCurrentEpochResponse', () => {
+describe('parseCurrentEpoch', () => {
   it('parses the string-encoded fields avalanchego returns', () => {
-    const parsed = parseCurrentEpochResponse({
-      jsonrpc: '2.0',
-      id: 1,
-      result: { number: '56', startTime: '1754500000', pChainHeight: '291012' },
-    });
+    const parsed = parseCurrentEpoch({ number: '56', startTime: '1754500000', pChainHeight: '291012' });
     expect(parsed).toEqual({ number: 56n, startTimeSec: 1754500000, pChainHeight: 291012n });
   });
 
   it('parses the pre-Granite all-zeros response without throwing', () => {
-    const parsed = parseCurrentEpochResponse({
-      jsonrpc: '2.0',
-      id: 1,
-      result: { number: '0', startTime: '0', pChainHeight: '0' },
-    });
+    const parsed = parseCurrentEpoch({ number: '0', startTime: '0', pChainHeight: '0' });
     expect(parsed).toEqual({ number: 0n, startTimeSec: 0, pChainHeight: 0n });
   });
 
-  it('throws the RPC error message when the node returns an error', () => {
-    expect(() =>
-      parseCurrentEpochResponse({ jsonrpc: '2.0', id: 1, error: { message: 'proposervm API not enabled' } }),
-    ).toThrow(/proposervm API not enabled/);
-  });
-
   it('throws on a malformed result', () => {
-    expect(() =>
-      parseCurrentEpochResponse({ jsonrpc: '2.0', id: 1, result: { number: 'x', startTime: '1', pChainHeight: '2' } }),
-    ).toThrow();
-    expect(() => parseCurrentEpochResponse({ jsonrpc: '2.0', id: 1 })).toThrow();
+    expect(() => parseCurrentEpoch({ number: 'x', startTime: '1', pChainHeight: '2' })).toThrow();
+    expect(() => parseCurrentEpoch(undefined)).toThrow();
   });
 });
 
-describe('parsePlatformHeightResponse', () => {
+describe('parsePlatformHeight', () => {
   it('parses the string-encoded platform.getHeight result', () => {
-    expect(parsePlatformHeightResponse({ jsonrpc: '2.0', id: 1, result: { height: '302171' } })).toBe(302_171n);
-  });
-
-  it('throws the RPC error message when the node returns an error', () => {
-    expect(() => parsePlatformHeightResponse({ jsonrpc: '2.0', id: 1, error: { message: 'rate limited' } })).toThrow(
-      /rate limited/,
-    );
+    expect(parsePlatformHeight({ height: '302171' })).toBe(302_171n);
   });
 
   it('throws on a malformed result', () => {
-    expect(() => parsePlatformHeightResponse({ jsonrpc: '2.0', id: 1, result: {} })).toThrow(/platform\.getHeight/);
+    expect(() => parsePlatformHeight({})).toThrow(/platform\.getHeight/);
+  });
+});
+
+describe('fetchCurrentEpoch and fetchLivePChainHeight', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  /** A node that answers every request with `answer` (a JSON-RPC result or error), and records the calls. */
+  const mockNode = (answer: { result: unknown } | { error: { code: number; message: string } }) =>
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (_url, init) =>
+        new Response(JSON.stringify({ jsonrpc: '2.0', id: JSON.parse(String(init?.body)).id, ...answer }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+
+  it("reads the epoch from the L1's own proposervm URL", async () => {
+    const fetchMock = mockNode({ result: { number: '56', startTime: '1754500000', pChainHeight: '291012' } });
+    const url = 'https://l1.example/ext/bc/2X/proposervm';
+
+    expect(await fetchCurrentEpoch(url)).toEqual({ number: 56n, startTimeSec: 1754500000, pChainHeight: 291012n });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(url);
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).method).toBe('proposervm.getCurrentEpoch');
+  });
+
+  it('throws the RPC error message when the node returns an error', async () => {
+    mockNode({ error: { code: -32601, message: 'proposervm API not enabled' } });
+
+    await expect(fetchCurrentEpoch('https://l1.example/ext/bc/2X/proposervm')).rejects.toThrow(
+      /proposervm API not enabled/,
+    );
+  });
+
+  it('reads platform.getHeight from the P-Chain URL', async () => {
+    const fetchMock = mockNode({ result: { height: '302171' } });
+
+    expect(await fetchLivePChainHeight('https://api.avax-test.network/ext/bc/P')).toBe(302_171n);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.avax-test.network/ext/bc/P');
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).method).toBe('platform.getHeight');
+  });
+
+  it('throws the RPC error message, and sends one request', async () => {
+    const fetchMock = mockNode({ error: { code: -32000, message: 'rate limited' } });
+
+    await expect(fetchLivePChainHeight('https://api.avax-test.network/ext/bc/P')).rejects.toThrow(/rate limited/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, formatEther, defineChain } from 'viem';
 import { avalancheFuji } from 'viem/chains';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getPChainNodeBalance } from '@/components/toolbox/utils/pChainNodeBalance';
 
 const FAUCET_C_CHAIN_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
@@ -57,33 +58,13 @@ async function getPChainBalance(): Promise<{ balance: string; balanceFormatted: 
   if (!FAUCET_P_CHAIN_ADDRESS) return null;
 
   try {
-    // Use JSON-RPC API directly for proper typing
-    const response = await fetch('https://api.avax-test.network/ext/bc/P', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'platform.getBalance',
-        params: {
-          addresses: [FAUCET_P_CHAIN_ADDRESS],
-        },
-      }),
-    });
-
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(data.error.message || 'Failed to fetch P-chain balance');
-    }
-
-    const balanceNAvax = BigInt(data.result.balance);
-    const balanceAvax = Number(balanceNAvax) / 1e9;
+    // The faucet's AVAX on the Fuji P-Chain (locked included), from the Avalanche SDK within one budget of 10 s and
+    // 21 requests: the SDK reads every page, and anyone can add UTXOs to the faucet's address
+    const { balance } = await getPChainNodeBalance(true, [FAUCET_P_CHAIN_ADDRESS]);
 
     return {
-      balance: balanceNAvax.toString(),
-      balanceFormatted: balanceAvax.toFixed(2),
+      balance: balance.toString(),
+      balanceFormatted: (Number(balance) / 1e9).toFixed(2),
     };
   } catch (error) {
     console.error('Failed to fetch P-Chain balance:', error);

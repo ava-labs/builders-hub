@@ -7,6 +7,9 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
+import { createPublicClient, formatEther, http } from 'viem';
+import { avalanche, avalancheFuji } from 'viem/chains';
+import { createPChainClient, createXChainClient } from '@avalanche-sdk/client';
 import { blockchainTools } from '@/lib/mcp/tools';
 
 // ─── P-Chain transaction parser ─────────────────────────────────────────────
@@ -173,20 +176,27 @@ function parseXChainTransaction(rawTx: any): { type: string; description: string
 
 // ─── RPC helpers ────────────────────────────────────────────────────────────
 
-function rpcUrl(network: 'mainnet' | 'fuji', chain: 'C' | 'P' | 'X') {
-  const base = network === 'fuji' ? 'https://api.avax-test.network' : 'https://api.avax.network';
-  return chain === 'C' ? `${base}/ext/bc/C/rpc` : `${base}/ext/bc/${chain}`;
+/**
+ * Clients for the public API of a network: viem for the C-Chain, the Avalanche SDK for the P-Chain and the X-Chain.
+ * One request per read, no retry: viem waits out a 429's Retry-After, which the public API sets to thousands of seconds.
+ */
+function clients(network: 'mainnet' | 'fuji') {
+  const chain = network === 'fuji' ? avalancheFuji : avalanche;
+  const sdkConfig = { chain: chain as never, transport: { type: 'http' as const, config: { retryCount: 0 } } };
+  return {
+    cChain: createPublicClient({ chain, transport: http(undefined, { retryCount: 0 }) }),
+    pChain: createPChainClient(sdkConfig),
+    xChain: createXChainClient(sdkConfig),
+  };
 }
 
-async function rpcCall(url: string, method: string, params: any) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.error ? null : json.result;
+/** The result of a read, or null when it throws (an RPC error, a tx that is not found, a rate limit). */
+async function orNull<T>(read: Promise<T>): Promise<T | null> {
+  try {
+    return await read;
+  } catch {
+    return null;
+  }
 }
 
 function explorerUrl(chain: string, type: 'tx' | 'subnet' | 'validator', id: string, isTestnet: boolean) {
@@ -215,10 +225,11 @@ export const blockchainLookupTransaction = tool({
       // C-Chain (EVM hash)
       if (isEVMHash) {
         for (const net of [network, altNetwork]) {
-          const url = rpcUrl(net, 'C');
-          const tx = await rpcCall(url, 'eth_getTransactionByHash', [txHash]);
+          const { cChain } = clients(net);
+          const hash = txHash as `0x${string}`;
+          const tx = await orNull(cChain.getTransaction({ hash }));
           if (tx) {
-            const receipt = await rpcCall(url, 'eth_getTransactionReceipt', [txHash]);
+            const receipt = await orNull(cChain.getTransactionReceipt({ hash }));
             const isAlt = net !== network;
             return {
               found: true,
@@ -227,10 +238,10 @@ export const blockchainLookupTransaction = tool({
                 hash: tx.hash,
                 from: tx.from,
                 to: tx.to,
-                value: tx.value ? (parseInt(tx.value, 16) / 1e18).toFixed(6) + ' AVAX' : '0 AVAX',
-                blockNumber: tx.blockNumber ? parseInt(tx.blockNumber, 16) : 'pending',
-                status: receipt?.status === '0x1' ? 'success' : receipt?.status === '0x0' ? 'failed' : 'pending',
-                gasUsed: receipt?.gasUsed ? parseInt(receipt.gasUsed, 16).toString() : 'unknown',
+                value: `${Number(formatEther(tx.value)).toFixed(6)} AVAX`,
+                blockNumber: tx.blockNumber !== null ? Number(tx.blockNumber) : 'pending',
+                status: receipt?.status === 'success' ? 'success' : receipt?.status === 'reverted' ? 'failed' : 'pending',
+                gasUsed: receipt ? receipt.gasUsed.toString() : 'unknown',
               },
               network: net === 'fuji' ? 'Fuji Testnet' : 'Mainnet',
               ...(isAlt ? { note: `Found on ${net === 'fuji' ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
@@ -242,17 +253,12 @@ export const blockchainLookupTransaction = tool({
 
       // P-Chain
       for (const net of [network, altNetwork]) {
-        const url = rpcUrl(net, 'P');
-        const result = await rpcCall(url, 'platform.getTx', { txID: txHash, encoding: 'json' });
+        const { pChain } = clients(net);
+        const result = await orNull(pChain.getTx({ txID: txHash, encoding: 'json' }));
         if (result) {
-          const rawTx = result.tx || result;
-          const parsed = parsePChainTransaction(rawTx);
-          let txStatus = 'Unknown';
-          try {
-            const statusResult = await rpcCall(url, 'platform.getTxStatus', { txID: txHash });
-            if (statusResult?.status) txStatus = statusResult.status;
-            else if (typeof statusResult === 'string') txStatus = statusResult;
-          } catch { /* ignore */ }
+          const parsed = parsePChainTransaction(result.tx);
+          const statusResult = await orNull(pChain.getTxStatus({ txID: txHash }));
+          const txStatus = statusResult?.status ?? 'Unknown';
 
           const isAlt = net !== network;
           return {
@@ -268,22 +274,16 @@ export const blockchainLookupTransaction = tool({
 
       // X-Chain
       for (const net of [network, altNetwork]) {
-        const url = rpcUrl(net, 'X');
-        const result = await rpcCall(url, 'avm.getTx', { txID: txHash, encoding: 'json' });
+        const result = await orNull(clients(net).xChain.getTx({ txID: txHash, encoding: 'json' }));
         if (result) {
           const parsed = parseXChainTransaction(result);
-          let txStatus = 'Unknown';
-          try {
-            const statusResult = await rpcCall(url, 'avm.getTxStatus', { txID: txHash });
-            if (statusResult?.status) txStatus = statusResult.status;
-            else if (typeof statusResult === 'string') txStatus = statusResult;
-          } catch { /* ignore */ }
 
           const isAlt = net !== network;
           return {
             found: true,
             chain: 'X-Chain',
-            transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
+            // avm.getTx returns only accepted txs, and avm.getTxStatus is deprecated.
+            transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: 'Accepted', ...parsed.details },
             network: net === 'fuji' ? 'Fuji Testnet' : 'Mainnet',
             ...(isAlt ? { note: `Found on ${net === 'fuji' ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
             explorerUrl: explorerUrl('X-Chain', 'tx', txHash, net === 'fuji'),
@@ -328,12 +328,12 @@ export const blockchainLookupSubnet = tool({
   }),
   execute: async ({ subnetId, network }) => {
     const isTestnet = network === 'fuji';
-    const pChainUrl = rpcUrl(network, 'P');
+    const { pChain } = clients(network);
 
     try {
       const [validatorsResult, chainsResult] = await Promise.all([
-        rpcCall(pChainUrl, 'platform.getCurrentValidators', { subnetID: subnetId }),
-        rpcCall(pChainUrl, 'platform.getBlockchains', {}),
+        orNull(pChain.getCurrentValidators({ subnetID: subnetId })),
+        orNull(pChain.getBlockchains()),
       ]);
 
       const validators = (validatorsResult?.validators || []).map((v: any) => ({
@@ -383,9 +383,8 @@ export const blockchainLookupChain = tool({
     };
 
     for (const net of [network, network === 'fuji' ? 'mainnet' as const : 'fuji' as const]) {
-      const url = rpcUrl(net, 'P');
-      const result = await rpcCall(url, 'platform.getBlockchains', {});
-      const chain = result?.blockchains?.find((c: any) => c.id === chainId);
+      const result = await orNull(clients(net).pChain.getBlockchains());
+      const chain = result?.blockchains?.find((c) => c.id === chainId);
       if (chain) {
         const isTestnet = net === 'fuji';
         return {
@@ -414,30 +413,15 @@ export const blockchainLookupValidator = tool({
   }),
   execute: async ({ nodeId, subnetId, network }) => {
     const isTestnet = network === 'fuji';
-    const pChainUrl = rpcUrl(network, 'P');
 
     try {
-      const result = await rpcCall(pChainUrl, 'platform.getCurrentValidators', { subnetID: subnetId, nodeIDs: [nodeId] });
+      const result = await orNull(
+        clients(network).pChain.getCurrentValidators({ subnetID: subnetId, nodeIDs: [nodeId] }),
+      );
       const validators = result?.validators || [];
 
-      if (validators.length === 0) {
-        // Check pending
-        const pendingResult = await rpcCall(pChainUrl, 'platform.getPendingValidators', { subnetID: subnetId, nodeIDs: [nodeId] });
-        const pending = pendingResult?.validators || [];
-        if (pending.length > 0) {
-          const v = pending[0];
-          return {
-            found: true,
-            status: 'pending',
-            nodeId: v.nodeID,
-            stakeAmount: v.stakeAmount ? (parseInt(v.stakeAmount) / 1e9).toFixed(4) + ' AVAX' : undefined,
-            startTime: v.startTime ? new Date(parseInt(v.startTime) * 1000).toISOString() : undefined,
-            endTime: v.endTime ? new Date(parseInt(v.endTime) * 1000).toISOString() : undefined,
-            network: isTestnet ? 'Fuji Testnet' : 'Mainnet',
-          };
-        }
-        return { found: false, nodeId, error: 'Validator not found in current or pending validators' };
-      }
+      // No pending validators since Durango: a validator starts when its tx is accepted.
+      if (validators.length === 0) return { found: false, nodeId, error: 'Validator not found in current validators' };
 
       const v = validators[0];
       return {
