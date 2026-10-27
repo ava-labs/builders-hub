@@ -9,10 +9,12 @@
  * - any other output type is skipped and not listed.
  * `balance` is the three summed. "Now" is the local clock; GetBalance used the node's.
  *
- * It runs in the browser, in Node routes and in the MCP server, so it imports only @avalabs/avalanchejs.
+ * It runs in the browser, in Node routes and in the MCP server. The Avalanche TypeScript SDK decodes the UTXOs
+ * (getUtxoFromBytes) and reads them (utils).
  */
 
-import { Utxo, utils } from '@avalabs/avalanchejs';
+import type { Utxo } from '@avalanche-sdk/client/serializable';
+import { getUtxoFromBytes, utils } from '@avalanche-sdk/client/utils';
 
 /** AVAX on the P-Chain, by network. */
 export const AVAX_ASSET_ID = {
@@ -42,8 +44,6 @@ export interface PChainBalance extends AssetAmounts {
 const UTXO_PAGE_SIZE = 1024;
 /** By default, a read throws rather than ask for more pages than this. */
 const MAX_UTXO_PAGES = 20;
-
-const pvmManager = utils.getManagerForVM('PVM');
 
 /** One page of platform.getUTXOs. Its endIndex is the next page's startIndex. */
 interface UtxoPage {
@@ -85,7 +85,7 @@ async function readUtxos(rpc: PChainRpc, addresses: readonly string[], maxPages:
       ...(startIndex && { startIndex }),
     })) as UtxoPage;
     for (const hex of utxos) {
-      const utxo = pvmManager.unpack(utils.hexToBuffer(hex), Utxo);
+      const utxo = getUtxoFromBytes(hex, 'P');
       byId.set(utxo.ID(), utxo);
     }
     if (utxos.length < UTXO_PAGE_SIZE || !endIndex) return [...byId.values()];

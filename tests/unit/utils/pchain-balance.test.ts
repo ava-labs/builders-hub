@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Id, MintOutput, OutputOwners, Utxo, avaxSerial, utils } from '@avalabs/avalanchejs';
+import { Id, MintOutput, OutputOwners, Utxo, avaxSerial } from '@avalanche-sdk/client/serializable';
+import { utils } from '@avalanche-sdk/client/utils';
 import { readPChainBalance, toGetBalanceJson, type PChainRpc } from '@/lib/pchain-balance';
 import { TEST_ADDRESS, txId, utxoHex } from './pchain-utxo-fixture';
 

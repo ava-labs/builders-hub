@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { clearCache } from '@/lib/mcp/cache';
 import { dataTools } from '@/lib/mcp/tools/data';
 import { platformTools } from '@/lib/mcp/tools/platform';

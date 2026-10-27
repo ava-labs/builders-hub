@@ -3,7 +3,7 @@
 import SelectBlockchainId from './SelectBlockchainId';
 import { useState, useCallback } from 'react';
 import { useWalletStore } from '../stores/walletStore';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 
 // API Response type from AvaCloud - matches the official API response
 type BlockchainApiResponse = {
@@ -46,8 +46,8 @@ export default function SelectBlockchain({
 
   // Network names for API calls
   const networkNames: Record<number, string> = {
-    [networkIDs.MainnetID]: 'mainnet',
-    [networkIDs.FujiID]: 'fuji',
+    [MAINNET_NETWORK_ID]: 'mainnet',
+    [TESTNET_NETWORK_ID]: 'fuji',
   };
 
   // Fetch blockchain details when needed

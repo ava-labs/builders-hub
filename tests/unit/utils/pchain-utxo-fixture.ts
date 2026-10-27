@@ -1,4 +1,13 @@
-import { BigIntPr, Id, OutputOwners, TransferOutput, Utxo, avaxSerial, pvmSerial, utils } from '@avalabs/avalanchejs';
+import {
+  BigIntPr,
+  Id,
+  OutputOwners,
+  TransferOutput,
+  Utxo,
+  avaxSerial,
+  pvmSerial,
+} from '@avalanche-sdk/client/serializable';
+import { utils } from '@avalanche-sdk/client/utils';
 
 /* P-Chain UTXOs as platform.getUTXOs returns them (hex), for the tests of lib/pchain-balance.ts and its callers. */
 
