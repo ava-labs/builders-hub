@@ -38,10 +38,14 @@ function withPChainPrefix(address: string): string {
  * and requests: a stale balance is worse than a missing one, so a hung or slow
  * node must not hold the caller, and a large UTXO set must not cost unbounded
  * requests. The budget's signal aborts every request of the read, and the
- * caller gets the error when the budget runs out. Throws on transport or RPC
- * error.
+ * caller gets the error when the budget runs out. `maxRequests` (21 by
+ * default) sets the request budget. Throws on transport or RPC error.
  */
-export async function getPChainNodeBalance(isTestnet: boolean, addresses: string[]): Promise<GetBalanceReturnType> {
+export async function getPChainNodeBalance(
+  isTestnet: boolean,
+  addresses: string[],
+  maxRequests: number = READ_BUDGET_REQUESTS,
+): Promise<GetBalanceReturnType> {
   const budget = new AbortController();
   // An AbortError: viem retries any other abort reason
   const stop = (why: string) => budget.abort(new DOMException(`P-Chain balance: ${why}`, 'AbortError'));
@@ -55,7 +59,7 @@ export async function getPChainNodeBalance(isTestnet: boolean, addresses: string
         config: {
           fetchOptions: { signal: budget.signal },
           onFetchRequest: () => {
-            if (++requests > READ_BUDGET_REQUESTS) stop(`more than ${READ_BUDGET_REQUESTS} requests`);
+            if (++requests > maxRequests) stop(`more than ${maxRequests} requests`);
           },
         },
       },

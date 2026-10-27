@@ -500,7 +500,7 @@ export async function pL1Validators(subnetId: string): Promise<L1Validator[]> {
     .map((v) => toL1Validator(v, subnetId));
 }
 
-// pBalance sums the UTXOs as the app's lib/pchain-balance.ts does (tests/e2e is a separate package, so it keeps its
+// pBalance sums the UTXOs as the Avalanche SDK's pChain.getBalance does (tests/e2e is a separate package, so it keeps its
 // own copy): 1,024 UTXOs a page, each page starts at the endIndex of the page before it, the read stops at a short page
 // or one without an endIndex, each UTXO ID counts once, and more pages than MAX_BALANCE_PAGES is an error.
 const UTXO_PAGE_SIZE = 1_024;

@@ -1,9 +1,8 @@
-import { AVAX_ASSET_ID, readPChainBalance, toGetBalanceJson } from '@/lib/pchain-balance';
 import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
-import { MCP_MAX_UTXO_PAGES, networkSchemaProp } from './lib/constants';
-import { errorResult, PAGINATION_PROPS, paginateArrayField, rpcErrorResult } from './lib/tool-helpers';
+import { networkSchemaProp } from './lib/constants';
+import { errorResult, PAGINATION_PROPS, paginateArrayField, readPChainBalanceJson, rpcErrorResult } from './lib/tool-helpers';
 
 /**
  * Every single-call platform_get_* handler is the same shape: cache a P-Chain RPC call, JSON
@@ -378,15 +377,15 @@ export const platformTools: ToolDomain = {
     platform_get_balance: async (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
       const { addresses } = args;
-      // One call can cost several getUTXOs pages (MCP_MAX_UTXO_PAGES), so a bad list stops before any request.
+      // One call can cost several requests (MCP_MAX_P_CHAIN_BALANCE_REQUESTS), so a bad list stops before any request.
       if (!Array.isArray(addresses) || addresses.length === 0 || !addresses.every((a) => typeof a === 'string' && a !== '')) {
         return errorResult('Error: addresses must be a non-empty array of P-Chain addresses');
       }
       const params = { addresses: addresses as string[] };
       try {
         // platform.getBalance is deprecated (avalanchego v1.9.12): read platform.getUTXOs and sum it the same way.
-        const balance = await withCache(`platform:balance:${network}:${JSON.stringify(params)}`, CACHE_TTL.BALANCE, async () =>
-          toGetBalanceJson(await readPChainBalance((method, p) => avalancheRPC(network, 'pchain', method, p), params.addresses, AVAX_ASSET_ID[network], undefined, MCP_MAX_UTXO_PAGES)),
+        const balance = await withCache(`platform:balance:${network}:${JSON.stringify(params)}`, CACHE_TTL.BALANCE, () =>
+          readPChainBalanceJson(network, params.addresses),
         );
         return { content: [{ type: 'text', text: JSON.stringify(withAvax({ balance_avax: 'balance' })(balance)) }] };
       } catch (err) {

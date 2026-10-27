@@ -37,33 +37,34 @@ const FULL_PAGE = Array.from({ length: 1024 }, (_, i) =>
   utxoHex({ txID: txId(i + 1), index: 0, assetId: FUJI_AVAX, amount: 1n, address: TEST_ADDRESS }),
 );
 
-/** A node that answers platform.getUTXOs with `utxos` (one page) and any other method with an RPC error. */
+/**
+ * A node that answers platform.getStakingAssetID with the AVAX of its network (by URL), platform.getUTXOs with `utxos`
+ * (one page), and any other method with an RPC error.
+ */
 function mockNode(utxos = UTXOS) {
-  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
-    const { method } = JSON.parse(String(init?.body));
-    const body =
-      method === 'platform.getUTXOs'
-        ? {
-            jsonrpc: '2.0',
-            result: {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+    const { method, id } = JSON.parse(String(init?.body));
+    const avax = String(url).includes('avax-test') ? FUJI_AVAX : MAINNET_AVAX;
+    const result =
+      method === 'platform.getStakingAssetID'
+        ? { assetID: avax }
+        : method === 'platform.getUTXOs'
+          ? {
               numFetched: String(utxos.length),
               utxos,
               endIndex: { address: TEST_ADDRESS, utxo: txId(3) },
               encoding: 'hex',
-            },
-            id: 1,
-          }
-        : {
-            jsonrpc: '2.0',
-            error: { code: -32601, message: `the method ${method} does not exist`, data: null },
-            id: 1,
-          };
+            }
+          : undefined;
+    const body = result
+      ? { jsonrpc: '2.0', result, id }
+      : { jsonrpc: '2.0', error: { code: -32601, message: `the method ${method} does not exist`, data: null }, id };
     return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
   });
 }
 
 const methodsOf = (fetchMock: ReturnType<typeof mockNode>) =>
-  fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).method);
+  fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).method).sort();
 
 const textOf = (result: { content: { text: string }[] }) => result.content[0]?.text ?? '';
 
@@ -94,7 +95,7 @@ describe('platform_get_balance', () => {
       balance_avax: '3.5',
     });
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.avax-test.network/ext/bc/P');
-    expect(methodsOf(fetchMock)).toEqual(['platform.getUTXOs']);
+    expect(methodsOf(fetchMock)).toEqual(['platform.getStakingAssetID', 'platform.getUTXOs']);
   });
 
   it('reads Mainnet AVAX from the Mainnet node by default', async () => {
@@ -110,14 +111,14 @@ describe('platform_get_balance', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.avax.network/ext/bc/P');
   });
 
-  it('reads at most 5 pages for one call', async () => {
+  it('sends at most 11 requests for one call', async () => {
     const fetchMock = mockNode(FULL_PAGE);
 
     const result = await platformTools.handlers.platform_get_balance({ addresses: [TEST_ADDRESS], network: 'fuji' });
 
     expect(result.isError).toBe(true);
-    expect(textOf(result)).toBe('platform.getUTXOs: more than 5 pages (5,120 UTXOs)');
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(textOf(result)).toBe('P-Chain balance: more than 11 requests');
+    expect(fetchMock).toHaveBeenCalledTimes(12);
   });
 
   it.each([
@@ -143,7 +144,7 @@ describe('platform_get_balance', () => {
 
     expect(first.isError).toBeFalsy();
     expect(textOf(second)).toBe(textOf(first));
-    expect(methodsOf(fetchMock)).toEqual(['platform.getUTXOs']);
+    expect(methodsOf(fetchMock)).toEqual(['platform.getStakingAssetID', 'platform.getUTXOs']);
   });
 });
 
@@ -164,7 +165,7 @@ describe('onchain_lookup, P-Chain address', () => {
       utxoCount: 3,
     });
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.avax-test.network/ext/bc/P');
-    expect(methodsOf(fetchMock)).toEqual(['platform.getUTXOs']);
+    expect(methodsOf(fetchMock)).toEqual(['platform.getStakingAssetID', 'platform.getUTXOs']);
   });
 
   it('reads a Mainnet address from the Mainnet node, in Mainnet AVAX', async () => {
@@ -176,13 +177,13 @@ describe('onchain_lookup, P-Chain address', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.avax.network/ext/bc/P');
   });
 
-  it('reads at most 5 pages', async () => {
+  it('sends at most 11 requests', async () => {
     const fetchMock = mockNode(FULL_PAGE);
 
     const result = await dataTools.handlers.onchain_lookup({ value: TEST_ADDRESS });
 
     expect(result.isError).toBe(true);
-    expect(textOf(result)).toBe('platform.getUTXOs: more than 5 pages (5,120 UTXOs)');
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(textOf(result)).toBe('P-Chain balance: more than 11 requests');
+    expect(fetchMock).toHaveBeenCalledTimes(12);
   });
 });
