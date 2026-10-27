@@ -1,6 +1,6 @@
 'use client';
 
-import { createAvalancheWalletClient } from '@avalanche-sdk/client';
+import { createAvalancheWalletClient, createCChainClient, createPChainClient } from '@avalanche-sdk/client';
 import {
   utils as ajsUtils,
   avaxSerial,
@@ -153,7 +153,14 @@ let currentChainId = (() => {
 
 const currentChain = () => chainEntry(currentChainId) ?? FUJI_C;
 const toHexChainId = (id: number) => `0x${id.toString(16)}` as Hex;
-const pChainApi = () => (currentChain().isTestnet ? 'https://api.avax-test.network' : 'https://api.avax.network');
+/** The Avalanche SDK's P-Chain and C-Chain (avax.*) clients for the public API of the active network. No retry. */
+function xpClients() {
+  const config = {
+    chain: (currentChain().isTestnet ? sdkAvalancheFuji : sdkAvalanche) as never,
+    transport: { type: 'http' as const, config: { retryCount: 0 } },
+  };
+  return { P: createPChainClient(config), C: createCChainClient(config) };
+}
 
 function setChain(id: number) {
   if (id === currentChainId) return;
@@ -283,11 +290,8 @@ async function resolveSubnetAuth(transactionHex: string): Promise<{ subnetOwners
     };
     if (typeof tx?.getSubnetAuth !== 'function' || typeof tx?.getSubnetID !== 'function') return {};
     const subnetAuth = tx.getSubnetAuth().values();
-    const result = await postJson(`${pChainApi()}/ext/bc/P`, 'platform.getTx', {
-      txID: tx.getSubnetID().toString(),
-      encoding: 'hex',
-    });
-    if (!result?.tx) return {};
+    const result = await xpClients().P.getTx({ txID: tx.getSubnetID().toString(), encoding: 'hex' });
+    if (typeof result?.tx !== 'string') return {};
     const signed = manager.unpack(Buffer.from(ajsUtils.strip0x(result.tx), 'hex'), avaxSerial.SignedTx as never) as {
       unsignedTx?: { getSubnetOwners?: () => { threshold: { value(): number }; addrs: never } };
     };
@@ -306,10 +310,9 @@ async function resolveSubnetAuth(transactionHex: string): Promise<{ subnetOwners
 async function signAndIssueSingleKey(
   account: AvalancheAccount,
   transactionHex: string,
-  vm: 'EVM' | 'PVM',
-  endpointPath: string,
-  issueMethod: string,
+  chain: 'C' | 'P',
 ): Promise<string> {
+  const vm = chain === 'C' ? 'EVM' : 'PVM';
   const manager = ajsUtils.getManagerForVM(vm);
   const codec = manager.getDefaultCodec();
   const innerTx = manager.unpackTransaction(ajsUtils.hexToBuffer(transactionHex));
@@ -322,8 +325,8 @@ async function signAndIssueSingleKey(
   const signedHex = ajsUtils.bufferToHex(
     ajsUtils.addChecksum((signedTx as unknown as { toBytes(c: unknown): Uint8Array }).toBytes(codec)),
   );
-  const result = await postJson(`${pChainApi()}${endpointPath}`, issueMethod, { tx: signedHex, encoding: 'hex' });
-  return result.txID as string;
+  const { txID } = await xpClients()[chain].issueTx({ tx: signedHex, encoding: 'hex' });
+  return txID;
 }
 
 function isPvmImportTx(transactionHex: string): boolean {
@@ -340,10 +343,8 @@ function isPvmImportTx(transactionHex: string): boolean {
 
 async function sendXpTransaction(p: { transactionHex: string; chainAlias: string; utxos?: unknown }) {
   const account = await requireAccount();
-  if (p.chainAlias === 'C')
-    return signAndIssueSingleKey(account, p.transactionHex, 'EVM', '/ext/bc/C/avax', 'avax.issueTx');
-  if (p.chainAlias === 'P' && isPvmImportTx(p.transactionHex))
-    return signAndIssueSingleKey(account, p.transactionHex, 'PVM', '/ext/bc/P', 'platform.issueTx');
+  if (p.chainAlias === 'C') return signAndIssueSingleKey(account, p.transactionHex, 'C');
+  if (p.chainAlias === 'P' && isPvmImportTx(p.transactionHex)) return signAndIssueSingleKey(account, p.transactionHex, 'P');
   const auth = p.chainAlias === 'P' ? await resolveSubnetAuth(p.transactionHex) : {};
   const result = (await createAvalancheWalletClient({
     chain: (currentChain().isTestnet ? sdkAvalancheFuji : sdkAvalanche) as never,
