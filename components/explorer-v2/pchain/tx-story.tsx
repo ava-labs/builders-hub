@@ -10,6 +10,7 @@ import { txTypeLabel, type Tx } from "@/lib/pchain-explorer";
 import { avaxExact, sumBig, type Ledger, type LedgerRow } from "./utxo";
 import { blockchainName, subnetName } from "./names";
 import { autoCompoundPct, humanPeriod, type TxContext } from "./tx-hooks";
+import { Owners } from "./owners";
 
 /* The glance layer of a P-Chain tx, in the C-Chain story's voice: one
    sentence saying what happened, in the words a person would use, then
@@ -387,10 +388,13 @@ function Line({
       <span className="min-w-0 text-zinc-500 max-md:order-last max-md:col-span-2 max-md:text-[12px] md:truncate dark:text-zinc-400">
         {who?.length ? (
           <>
-            <Link href={`${base}/address/${who[0]}`} className={cn(idInk, "hover:text-[#E6212F]")} title={who.join(", ")}>
-              {truncate(who[0], 12)}
-            </Link>
-            {who.length > 1 && <span> +{who.length - 1}</span>}
+            {who.length > 1 ? (
+              <Owners owners={who} hrefOf={(a) => `${base}/address/${a}`} len={12} className="inline-flex max-w-full align-middle" />
+            ) : (
+              <Link href={`${base}/address/${who[0]}`} className={cn(idInk, "hover:text-[#E6212F]")} title={who[0]}>
+                {truncate(who[0], 12)}
+              </Link>
+            )}
             {note && <span className="text-zinc-400 dark:text-zinc-500"> · {note}</span>}
           </>
         ) : (
