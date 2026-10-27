@@ -33,4 +33,5 @@ test('p-chain tx table opens every owner of a multisig utxo from its chip', asyn
   await expect(card.getByText('5 of 9 to sign')).toBeVisible();
   for (const owner of OWNERS) await expect(card.getByRole('link', owner)).toBeVisible();
   await expect(card.getByRole('button', 'Copy')).toHaveCount(OWNERS.length);
+  await expect(card.getByRole('button', 'Copy all')).toBeVisible();
 });
