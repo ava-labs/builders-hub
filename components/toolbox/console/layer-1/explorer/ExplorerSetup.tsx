@@ -7,7 +7,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import InputChainId from '@/components/toolbox/components/InputChainId';
 import InputSubnetId from '@/components/toolbox/components/InputSubnetId';
 import BlockchainDetailsDisplay from '@/components/toolbox/components/BlockchainDetailsDisplay';
-import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { useNetworkInfo } from '@/components/toolbox/stores/walletStore';
 import DockerBlockscoutSetup from '../create/SelfHostedExplorer';
@@ -53,7 +53,7 @@ export default function ExplorerSetup() {
       if (l1Info.evmChainId) setResolvedEvmChainId(l1Info.evmChainId);
     }
 
-    // Abort superseded lookups: a stale Glacier response for a previous
+    // Abort superseded lookups: a stale Stats API response for a previous
     // chainId must not clobber the current chain's network/name/ids —
     // isTestnet feeds AVAGO_NETWORK_ID and container versions downstream.
     const controller = new AbortController();
@@ -84,7 +84,7 @@ export default function ExplorerSetup() {
 
   const manualEvmValid = /^[1-9]\d*$/.test(manualEvmChainId);
   const evmChainId = resolvedEvmChainId > 0 ? resolvedEvmChainId : manualEvmValid ? parseInt(manualEvmChainId, 10) : 0;
-  // Commands target the chain's network (Glacier-derived), not the wallet's —
+  // Commands target the chain's network (from the Stats API), not the wallet's:
   // the page must keep working with no wallet connected.
   const isTestnet = chainIsTestnet ?? walletIsTestnet;
   // Preserve the pre-rework behavior of not generating anything while the

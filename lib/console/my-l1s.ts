@@ -1,4 +1,4 @@
-import { getBlockchainInfoForNetwork } from '@/components/toolbox/coreViem/utils/glacier';
+import { getBlockchainInfoForNetwork } from '@/components/toolbox/coreViem/utils/statsApi';
 
 // Per-L1 aggregation of one user's NodeRegistration rows. The dashboard reads
 // from this instead of `walletChainId` so the page survives Reset Console
@@ -11,11 +11,11 @@ export interface MyL1 {
   blockchainId: string;
   /** EVM chain ID (decimal) - matches `walletChainId` when the wallet is on this L1. */
   evmChainId: number | null;
-  /** Display name from glacier or NodeRegistration.chain_name fallback. */
+  /** Display name from the Stats API or NodeRegistration.chain_name fallback. */
   chainName: string;
   /** RPC endpoint to call from the dashboard / wallet. */
   rpcUrl: string;
-  /** Whether glacier reports this chain as testnet (managed nodes are always testnet). */
+  /** Whether the Stats API reports this chain as testnet (managed nodes are always testnet). */
   isTestnet: boolean;
   /** L1-level status: 'active' if any node is alive, 'expired' if all nodes spun down. */
   status: 'active' | 'expired';
@@ -67,7 +67,7 @@ export async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
     bySubnet.set(node.subnet_id, list);
   }
 
-  // Resolve glacier metadata in parallel to avoid N round-trips serialized.
+  // Resolve Stats API metadata in parallel to avoid N round-trips serialized.
   // Failures fall back to NodeRegistration.chain_name + a null evmChainId so
   // the dashboard still renders the L1 (just without TPS / wallet add).
   const entries = Array.from(bySubnet.entries());
@@ -87,7 +87,7 @@ export async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
         evmChainId = info.evmChainId;
         chainName = info.blockchainName || chainName;
       } catch {
-        // Glacier may not have indexed a brand-new L1 yet; ship without enrichment.
+        // The Stats API may not have indexed a brand-new L1 yet; ship without enrichment.
       }
 
       const activeExpiryTimes = group

@@ -6,7 +6,7 @@ import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
-import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 import { useProxyAdmin } from '@/components/toolbox/hooks/contracts';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { Input } from '@/components/toolbox/components/Input';

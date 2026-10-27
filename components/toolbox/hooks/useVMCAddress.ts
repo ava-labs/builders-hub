@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { networkIDs } from '@avalabs/avalanchejs';
-import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork, GlacierHttpError } from '../coreViem/utils/glacier';
+import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork, StatsApiHttpError } from '../coreViem/utils/statsApi';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { DATA_API_ERROR, NOT_AN_L1, NO_L1_SELECTED, subnetLookupErrorText } from '../utils/vmcLookupText';
@@ -10,10 +10,10 @@ import { DATA_API_ERROR, NOT_AN_L1, NO_L1_SELECTED, subnetLookupErrorText } from
 const NOT_AN_L1_RETRY_INTERVAL_MS = 20_000;
 const NOT_AN_L1_RETRY_FOR_MS = 5 * 60_000;
 
-/** Replaces the error of a Data API (Glacier) read with `text(status)`. A network error has no status. */
+/** Replaces the error of a Stats API read with `text(status)`. A network error has no status. */
 function fromDataApi<T>(read: Promise<T>, text: (status: number | undefined) => string): Promise<T> {
   return read.catch((e: unknown) => {
-    throw new Error(text(e instanceof GlacierHttpError ? e.status : undefined));
+    throw new Error(text(e instanceof StatsApiHttpError ? e.status : undefined));
   });
 }
 
@@ -44,7 +44,7 @@ interface VMCAddressResult {
 
 /**
  * Hook A: Resolves the Validator Manager Contract address for a given subnetId
- * by querying the Glacier API. Results are cached per (network, subnetId) pair.
+ * by querying the Stats API. Results are cached per (network, subnetId) pair.
  */
 export function useVMCAddress(subnetId: string): VMCAddressResult {
   const { avalancheNetworkID } = useWalletStore();

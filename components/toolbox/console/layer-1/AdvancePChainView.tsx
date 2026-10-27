@@ -15,7 +15,7 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { getPChainTxBlockHeight } from '@/components/toolbox/coreViem/utils/glacier';
+import { getPChainTxBlockHeight } from '@/components/toolbox/coreViem/utils/statsApi';
 import { useProposerVMStatus } from '@/components/toolbox/hooks/useProposerVMStatus';
 import { useAdvanceProposerVM, type AdvancePhase } from '@/components/toolbox/hooks/useAdvanceProposerVM';
 

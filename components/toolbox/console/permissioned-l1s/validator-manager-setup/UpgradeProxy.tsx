@@ -9,7 +9,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useProxyAdmin } from '@/components/toolbox/hooks/contracts';
-import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { Input } from '@/components/toolbox/components/Input';
 import { Step, Steps } from '@/components/toolbox/components/Steps';

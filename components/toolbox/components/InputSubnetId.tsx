@@ -6,7 +6,7 @@ import { useCreateChainStore } from '../stores/createChainStore';
 import { useWalletStore } from '../stores/walletStore';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { networkIDs } from '@avalabs/avalanchejs';
-import { getSubnetInfoForNetwork, GlacierHttpError } from '../coreViem/utils/glacier';
+import { getSubnetInfoForNetwork, StatsApiHttpError } from '../coreViem/utils/statsApi';
 import {
   isSubnetMiss,
   subnetFieldErrorText,
@@ -42,8 +42,8 @@ export function subnetFieldNetwork(
 }
 
 /** The HTTP status of a failed Data API read, or undefined for a network error. */
-function glacierStatus(e: unknown): number | undefined {
-  return e instanceof GlacierHttpError ? e.status : undefined;
+function readStatus(e: unknown): number | undefined {
+  return e instanceof StatsApiHttpError ? e.status : undefined;
 }
 
 /**
@@ -70,13 +70,13 @@ export async function checkSubnetField(
     await read(isTestnet ? 'testnet' : 'mainnet', value, signal);
     return { status: 'found', error: null };
   } catch (e) {
-    const status = glacierStatus(e);
+    const status = readStatus(e);
     if (!isSubnetMiss(status)) return { status: 'failed', error: null };
     let otherNetwork: OtherNetworkRead = 'unknown';
     if (!signal.aborted) {
       otherNetwork = await read(isTestnet ? 'mainnet' : 'testnet', value, signal).then(
         (): OtherNetworkRead => 'found',
-        (other: unknown): OtherNetworkRead => (isSubnetMiss(glacierStatus(other)) ? 'missing' : 'unknown'),
+        (other: unknown): OtherNetworkRead => (isSubnetMiss(readStatus(other)) ? 'missing' : 'unknown'),
       );
     }
     return { status: 'not-found', error: subnetFieldErrorText(status, isTestnet, { otherNetwork, pageNetwork }) };

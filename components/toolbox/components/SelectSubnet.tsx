@@ -2,13 +2,13 @@
 
 import SelectSubnetId from './SelectSubnetId';
 import { useState, useCallback, useEffect } from 'react';
-import { Subnet } from '@avalanche-sdk/chainkit/models/components/subnet.js';
 import BlockchainDetailsDisplay from './BlockchainDetailsDisplay';
-import { useAvalancheSDKChainkit } from '../stores/useAvalancheSDKChainkit';
+import { useWalletStore } from '../stores/walletStore';
+import { getSubnetInfoForNetwork, type SubnetInfo } from '../coreViem/utils/statsApi';
 
 export type SubnetSelection = {
   subnetId: string;
-  subnet: Subnet | null;
+  subnet: SubnetInfo | null;
 };
 
 export default function SelectSubnet({
@@ -26,8 +26,8 @@ export default function SelectSubnet({
   hidePrimaryNetwork?: boolean;
   hideDetails?: boolean;
 }) {
-  const { getSubnetById } = useAvalancheSDKChainkit();
-  const [subnetDetails, setSubnetDetails] = useState<Record<string, Subnet>>({});
+  const { isTestnet } = useWalletStore();
+  const [subnetDetails, setSubnetDetails] = useState<Record<string, SubnetInfo>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch subnet details when needed
@@ -37,7 +37,7 @@ export default function SelectSubnet({
 
       try {
         setIsLoading(true);
-        const subnet = await getSubnetById({ subnetId });
+        const subnet = await getSubnetInfoForNetwork(isTestnet ? 'fuji' : 'mainnet', subnetId);
 
         setSubnetDetails((prev) => ({
           ...prev,
@@ -55,7 +55,7 @@ export default function SelectSubnet({
         setIsLoading(false);
       }
     },
-    [getSubnetById, subnetDetails, onChange],
+    [isTestnet, subnetDetails, onChange],
   );
 
   // Handle value change and fetch details if needed

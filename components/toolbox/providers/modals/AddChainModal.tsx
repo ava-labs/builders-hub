@@ -9,7 +9,8 @@ import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1L
 import { classifyRpcUrlForPage, rpcUrlsEquivalent } from '@/components/toolbox/lib/rpcUrl';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Input } from '../../components/Input';
-import { getBlockchainInfo, getChainDetails, getSubnetInfo } from '../../coreViem/utils/glacier';
+import { getChainDetails } from '../../coreViem/utils/glacier';
+import { getBlockchainInfo, getSubnetInfo } from '../../coreViem/utils/statsApi';
 import { Dialog, DialogContent, DialogOverlay, DialogTitle } from '../../components/ui/dialog';
 import { fetchChainId } from '../../lib/chainId';
 import { useWallet } from '../../hooks/useWallet';
@@ -184,7 +185,7 @@ function AddChainModalInner() {
         const blockchainInfo = await getBlockchainInfo(avalancheChainId);
         setValue('subnetId', blockchainInfo.subnetId);
         setValue('chainName', blockchainInfo.blockchainName || '');
-        // Caller-supplied isTestnet wins — Glacier silently falls back to
+        // Caller-supplied isTestnet wins: getBlockchainInfo silently falls back to
         // mainnet on a 404, which mislabels brand-new testnet L1s that
         // haven't been indexed yet.
         setValue('isTestnet', options?.isTestnet !== undefined ? options.isTestnet : blockchainInfo.isTestnet);

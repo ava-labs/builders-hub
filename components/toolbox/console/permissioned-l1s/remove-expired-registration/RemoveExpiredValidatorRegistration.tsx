@@ -13,6 +13,7 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { listL1Validators } from '@/components/toolbox/coreViem/utils/statsApi';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import {
   newL1ValidatorRegistrationMessage,
@@ -79,7 +80,7 @@ const metadata: ConsoleToolMetadata = {
 
 function RemoveExpiredValidatorRegistration() {
   const [subnetId, setSubnetId] = useState<string>(useCreateChainStore()((s) => s.subnetId) || '');
-  const { avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID, isTestnet } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
@@ -108,7 +109,7 @@ function RemoveExpiredValidatorRegistration() {
     >
   >({});
 
-  const { listL1Validators, aggregateSignature } = useAvalancheSDKChainkit();
+  const { aggregateSignature } = useAvalancheSDKChainkit();
 
   const {
     validatorManagerAddress,
@@ -163,21 +164,15 @@ function RemoveExpiredValidatorRegistration() {
       }
       setIsLoadingValidators(true);
       try {
-        const result = await listL1Validators({ subnetId, pageSize: 200, includeInactiveL1Validators: false });
+        const validators = await listL1Validators(isTestnet ? 'fuji' : 'mainnet', subnetId);
         const ids = new Set<string>();
-        for await (const page of result) {
-          let validatorsArr: any[] = [];
-          if ('result' in page && page.result && 'validators' in page.result) {
-            validatorsArr = (page.result as any).validators as any[];
-          }
-          for (const v of validatorsArr) {
-            if (!v?.validationId) continue;
-            try {
-              const hex = CB58ToHex(v.validationId).toLowerCase();
-              ids.add(hex);
-            } catch {
-              // ignore
-            }
+        for (const v of validators) {
+          if (!v.validationId) continue;
+          try {
+            const hex = CB58ToHex(v.validationId).toLowerCase();
+            ids.add(hex);
+          } catch {
+            // ignore
           }
         }
         if (!cancelled) setValidatorIdHexSet(ids);
@@ -191,7 +186,7 @@ function RemoveExpiredValidatorRegistration() {
     return () => {
       cancelled = true;
     };
-  }, [subnetId, listL1Validators]);
+  }, [subnetId, isTestnet]);
 
   const fetchEvents = async () => {
     if (!validatorManagerAddress) {

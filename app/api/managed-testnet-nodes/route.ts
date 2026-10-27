@@ -8,7 +8,7 @@ import {
   ManagedTestnetNodeServiceRequestError,
   selectNewestNode,
 } from './service';
-import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/glacier';
+import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/statsApi';
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';

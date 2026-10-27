@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { PRIMARY_NETWORK_SUBNET_ID } from '@/lib/console/my-l1/types';
+import { listL1Validators } from '@/components/toolbox/coreViem/utils/statsApi';
 
-const GLACIER_BASE = 'https://glacier-api.avax.network/v1';
 const POLL_INTERVAL_MS = 60_000;
 
 export interface L1ValidatorSetState {
@@ -12,12 +12,6 @@ export interface L1ValidatorSetState {
   isLoading: boolean;
   error: string | null;
 }
-
-type GlacierValidator = {
-  nodeId?: string;
-  nodeID?: string;
-  remainingBalance?: number;
-};
 
 export function useL1ValidatorSet(
   subnetId: string | undefined,
@@ -60,17 +54,9 @@ export function useL1ValidatorSet(
           return;
         }
 
-        const network = isTestnet ? 'testnet' : 'mainnet';
-        const url = `${GLACIER_BASE}/networks/${network}/l1Validators?subnetId=${encodeURIComponent(
-          subnetId,
-        )}&pageSize=100`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Glacier ${res.status}`);
-        const data = (await res.json()) as { validators?: GlacierValidator[] };
-        const active = (data.validators ?? []).filter(
-          (v) => v.remainingBalance === undefined || v.remainingBalance > 0,
-        );
-        const nodeIds = active.map((v) => v.nodeId ?? v.nodeID).filter((v): v is string => Boolean(v));
+        const validators = await listL1Validators(isTestnet ? 'testnet' : 'mainnet', subnetId);
+        const active = validators.filter((v) => v.remainingBalance > 0);
+        const nodeIds = active.map((v) => v.nodeId).filter((v): v is string => Boolean(v));
         if (requestId === requestIdRef.current) {
           setState({ count: active.length, nodeIds, isLoading: false, error: null });
         }

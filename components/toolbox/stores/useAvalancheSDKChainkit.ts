@@ -20,19 +20,6 @@ interface SignatureAggregationResult {
   signedMessage: string;
 }
 
-// Types for L1 validators
-interface ListL1ValidatorsParams {
-  subnetId: string;
-  pageToken?: string;
-  pageSize?: number;
-  includeInactiveL1Validators?: boolean;
-}
-
-// Types for subnet operations
-interface GetSubnetByIdParams {
-  subnetId: string;
-}
-
 /**
  * Custom hook for interacting with the Avalanche SDK
  * Replaces useAvaCloudSDK with the new avalanche-sdk-typescript implementation
@@ -106,31 +93,6 @@ export const useAvalancheSDKChainkit = (customNetwork?: 'mainnet' | 'fuji') => {
     [sdk],
   );
 
-  // Primary Network - Subnet operations
-  const getSubnetById = useCallback(
-    async ({ subnetId }: GetSubnetByIdParams) => {
-      return await sdk.data.primaryNetwork.getSubnetById({
-        network: networkName,
-        subnetId,
-      });
-    },
-    [sdk, networkName],
-  );
-
-  // Primary Network - L1 Validator operations
-  const listL1Validators = useCallback(
-    async ({ subnetId, pageToken, pageSize, includeInactiveL1Validators = false }: ListL1ValidatorsParams) => {
-      return await sdk.data.primaryNetwork.listL1Validators({
-        network: networkName,
-        subnetId,
-        pageToken,
-        pageSize,
-        includeInactiveL1Validators,
-      });
-    },
-    [sdk, networkName],
-  );
-
   return {
     // Raw SDK access for advanced usage
     sdk,
@@ -138,9 +100,5 @@ export const useAvalancheSDKChainkit = (customNetwork?: 'mainnet' | 'fuji') => {
 
     // Signature aggregation (most common pattern)
     aggregateSignature,
-
-    // Primary Network API methods
-    getSubnetById,
-    listL1Validators,
   };
 };

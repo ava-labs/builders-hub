@@ -9,11 +9,10 @@ import { Button } from '@/components/toolbox/components/Button';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { formatEther } from 'viem';
 
-import { GlobalParamNetwork } from '@avalabs/avacloud-sdk/models/components';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { Tooltip } from '@/components/toolbox/components/Tooltip';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
+import { listL1Validators } from '@/components/toolbox/coreViem/utils/statsApi';
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
@@ -94,7 +93,7 @@ const ValidatorStatusNames = ['Unknown', 'PendingAdded', 'Active', 'PendingRemov
 const DelegatorStatusNames = ['Unknown', 'PendingAdded', 'Active', 'PendingRemoved', 'Completed'];
 
 export default function QueryPoSValidatorSet() {
-  const { avalancheNetworkID, isTestnet, walletEVMAddress } = useWalletStore();
+  const { avalancheNetworkID, walletEVMAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const l1ListStore = useL1ListStore();
 
@@ -136,7 +135,7 @@ export default function QueryPoSValidatorSet() {
   const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
 
   // Network names for display
-  const networkNames: Record<number, GlobalParamNetwork> = {
+  const networkNames: Record<number, 'mainnet' | 'fuji'> = {
     [networkIDs.MainnetID]: 'mainnet',
     [networkIDs.FujiID]: 'fuji',
   };
@@ -194,25 +193,11 @@ export default function QueryPoSValidatorSet() {
         throw new Error('Invalid network selected');
       }
 
-      const sdk = new AvaCloudSDK({
-        serverURL: isTestnet ? 'https://api.avax-test.network' : 'https://api.avax.network',
-        network: networkNames[Number(avalancheNetworkID)],
-      });
-
-      const result = await sdk.data.primaryNetwork.listL1Validators({
-        network: networkNames[Number(avalancheNetworkID)],
-        subnetId,
-      });
-
       // Get all pages of results
-      const allValidators: ValidatorResponse[] = [];
-      for await (const page of result) {
-        if ('result' in page && page.result && 'validators' in page.result) {
-          allValidators.push(...(page.result.validators as unknown as ValidatorResponse[]));
-        } else if ('validators' in page) {
-          allValidators.push(...(page.validators as unknown as ValidatorResponse[]));
-        }
-      }
+      const allValidators: ValidatorResponse[] = (await listL1Validators(network, subnetId)).map((v) => ({
+        ...v,
+        remainingBalance: String(v.remainingBalance),
+      }));
 
       setValidators(allValidators);
 

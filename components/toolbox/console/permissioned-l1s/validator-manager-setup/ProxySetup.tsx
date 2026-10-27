@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useId } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 import TransparentUpgradeableProxyABI from '@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json';
-import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,

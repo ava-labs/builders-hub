@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { checkSubnetField, subnetFieldNetwork, type SubnetRead } from '@/components/toolbox/components/InputSubnetId';
-import { GlacierHttpError } from '@/components/toolbox/coreViem/utils/glacier';
+import { StatsApiHttpError } from '@/components/toolbox/coreViem/utils/statsApi';
 import { SUBNET_ID_FORMAT_ERROR } from '@/components/toolbox/utils/vmcLookupText';
 
 // IDs with a correct checksum. The stub Data API below decides on which network each one is a subnet. UNKNOWN_ID (the
@@ -28,8 +28,8 @@ function stubDataApi(fail: Partial<Record<Network, number>> = {}, onRead?: () =>
     reads.push(network);
     onRead?.();
     const status = fail[network];
-    if (status) throw new GlacierHttpError('Service Unavailable', status);
-    if (!subnets[network].includes(subnetId)) throw new GlacierHttpError('Not Found', 404);
+    if (status) throw new StatsApiHttpError('Service Unavailable', status);
+    if (!subnets[network].includes(subnetId)) throw new StatsApiHttpError('Not Found', 404);
     return { subnetId };
   };
   return { read, reads };

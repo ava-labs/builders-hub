@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { formatEther } from 'viem';
-import { getBlockchainInfo } from '../coreViem/utils/glacier';
+import { getBlockchainInfo } from '../coreViem/utils/statsApi';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import type { StakingDetails } from '@/components/toolbox/contexts/ValidatorManagerContext';
 
@@ -74,7 +74,7 @@ export function ValidatorManagerDetails({
     fetchBlockchainName();
   }, [blockchainId]);
 
-  // Resolve uptime blockchain name from Glacier
+  // Resolve uptime blockchain name from the Stats API
   const uptimeBlockchainID = staking?.settings?.uptimeBlockchainID;
   const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
   useEffect(() => {

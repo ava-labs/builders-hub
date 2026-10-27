@@ -1,9 +1,9 @@
 import { Input, type Suggestion } from './Input';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { CB58ToHex, hexToCB58 } from '@avalanche-sdk/client/utils';
-import { L1ValidatorDetailsFull } from '@avalabs/avacloud-sdk/models/components';
 import { formatAvaxBalance } from '../coreViem/utils/format';
-import { useAvalancheSDKChainkit } from '../stores/useAvalancheSDKChainkit';
+import { useWalletStore } from '../stores/walletStore';
+import { listL1Validators, type L1Validator } from '../coreViem/utils/statsApi';
 import { useChainPublicClient } from '../hooks/useChainPublicClient';
 import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import type { Abi } from 'viem';
@@ -86,10 +86,9 @@ export default function SelectValidationID({
   /** Optional: pass to fetch on-chain lifecycle status for each validator */
   validatorManagerAddress?: string;
 }) {
-  //const { listL1Validators } = useAvaCloudSDK();
-  const { listL1Validators } = useAvalancheSDKChainkit();
+  const { isTestnet } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
-  const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([]);
+  const [validators, setValidators] = useState<L1Validator[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [validationIdToNodeId, setValidationIdToNodeId] = useState<Record<string, string>>({});
   // Map validationID (hex) -> on-chain status number
@@ -106,17 +105,10 @@ export default function SelectValidationID({
       setIsLoading(true);
       setLoadError(null);
       try {
-        const result = await listL1Validators({
-          subnetId: subnetId,
-          pageSize: 100, // Add reasonable page size
-          includeInactiveL1Validators: true,
+        // Every page, with the removed validators (weight 0)
+        const validatorsList = await listL1Validators(isTestnet ? 'fuji' : 'mainnet', subnetId, {
+          includeRemoved: true,
         });
-
-        // Handle pagination
-        let validatorsList: L1ValidatorDetailsFull[] = [];
-        for await (const page of result) {
-          validatorsList.push(...page.result.validators);
-        }
 
         setValidators(validatorsList);
 
@@ -146,7 +138,7 @@ export default function SelectValidationID({
     };
 
     fetchValidators();
-  }, [subnetId, listL1Validators]);
+  }, [subnetId, isTestnet]);
 
   // Fetch on-chain lifecycle status for each validator via multicall
   useEffect(() => {

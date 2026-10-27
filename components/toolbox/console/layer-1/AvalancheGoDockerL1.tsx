@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useWalletStore } from '../../stores/walletStore';
 import { useCreateChainStore } from '../../stores/createChainStore';
 import { Container } from '../../components/Container';
-import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork, GlacierHttpError } from '../../coreViem/utils/glacier';
+import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork, StatsApiHttpError } from '../../coreViem/utils/statsApi';
 import InputSubnetId from '../../components/InputSubnetId';
 import { DATA_API_ERROR, pageLookupErrorText, subnetIdFormatErrorText } from '../../utils/vmcLookupText';
 import BlockchainDetailsDisplay from '../../components/BlockchainDetailsDisplay';
@@ -372,7 +372,7 @@ function AvalanchegoDockerInner({
         // network error) does not blame the ID. The Subnet ID field reads the other network too, and its more exact
         // text replaces this one when it has one.
         if (!abortController.signal.aborted) {
-          const status = error instanceof GlacierHttpError ? error.status : undefined;
+          const status = error instanceof StatsApiHttpError ? error.status : undefined;
           setSubnetIdError(pageLookupErrorText(status, selectedNetwork === 'fuji'));
         }
       } finally {

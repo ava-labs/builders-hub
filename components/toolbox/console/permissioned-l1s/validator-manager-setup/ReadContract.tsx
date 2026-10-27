@@ -6,7 +6,7 @@ import type { AbiEvent } from 'viem';
 import { useEffect, useState } from 'react';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { ChevronDown, ChevronRight, RefreshCw, Database, Activity } from 'lucide-react';
-import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,

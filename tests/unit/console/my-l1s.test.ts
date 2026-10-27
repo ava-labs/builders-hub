@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/components/toolbox/coreViem/utils/glacier', () => ({
+vi.mock('@/components/toolbox/coreViem/utils/statsApi', () => ({
   getBlockchainInfoForNetwork: vi.fn(),
 }));
 
-import { getBlockchainInfoForNetwork } from '@/components/toolbox/coreViem/utils/glacier';
+import { getBlockchainInfoForNetwork } from '@/components/toolbox/coreViem/utils/statsApi';
 import { aggregateL1s, type NodeRow } from '@/lib/console/my-l1s';
 
 const glacierInfo = {

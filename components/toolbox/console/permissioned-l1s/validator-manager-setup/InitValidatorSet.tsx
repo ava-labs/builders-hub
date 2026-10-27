@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
-import { getPChainRpcUrl, getGlacierNetwork } from '@/components/toolbox/utils/avalancheEndpoints';
+import { getPChainRpcUrl } from '@/components/toolbox/utils/avalancheEndpoints';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
@@ -20,7 +20,7 @@ import {
 } from '@avalanche-sdk/interchain/validator-manager';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Button } from '@/components/toolbox/components/Button';
-import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getBlockchainInfoForNetwork, getSubnetInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
@@ -119,9 +119,9 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
     const aggPromise = (async () => {
       // SDK extracts the conversion data + builds the unsigned warp message.
-      // Glacier provides the signing-subnet (the subnet that attests to the
+      // The Stats API provides the signing-subnet (the subnet that attests to the
       // L1's bootstrap validators); kept out of the SDK to avoid pulling in
-      // a Glacier dep there.
+      // a data API dep there.
       const extracted = await extractSubnetToL1ConversionDataFromPChainTx({
         txId,
         pChainRpcUrl: getPChainRpcUrl(isTestnet),
@@ -134,16 +134,10 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         );
       }
 
-      const network = getGlacierNetwork(isTestnet);
-      const glacierRes = await fetch(
-        `https://glacier-api.avax.network/v1/networks/${network}/blockchains/${extracted.blockchainId}`,
-        { headers: { accept: 'application/json' } },
-      );
-      if (!glacierRes.ok) throw new Error(`Glacier returned ${glacierRes.status}`);
-      const glacierData = await glacierRes.json();
-      if (!glacierData.subnetId) throw new Error('No subnetId from Glacier');
+      const chainInfo = await getBlockchainInfoForNetwork(isTestnet ? 'testnet' : 'mainnet', extracted.blockchainId);
+      if (!chainInfo.subnetId) throw new Error('No subnetId from the Stats API');
 
-      const data: ConversionData = { ...extracted, signingSubnetId: glacierData.subnetId };
+      const data: ConversionData = { ...extracted, signingSubnetId: chainInfo.subnetId };
       setConversionResult(data);
 
       if (data.managerAddress) {
@@ -199,7 +193,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     setCollectedData({});
     if (!isSubnetId(subnetId)) return;
 
-    // The convert step's own record, for when Glacier has not indexed the conversion yet.
+    // The convert step's own record, for when the Stats API has not indexed the conversion yet.
     const saved = subnetId === storeSubnetId ? storeConversionTxId : '';
     const controller = new AbortController();
     getSubnetInfo(subnetId, controller.signal)
@@ -215,7 +209,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
           setManagerAddress(manager.contractAddress);
           setManagerBlockchainId(manager.blockchainId);
         }
-        // Glacier reports no conversion hash until the subnet converts.
+        // The Stats API reports no conversion hash until the subnet converts.
         const txId = subnetInfo.l1ConversionTransactionHash || saved;
         if (txId) setConversionTxID(txId);
         else setNotConverted(true);
@@ -443,7 +437,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                     ConvertSubnetToL1Tx
                   </Link>
                   .
-                  {/* Hide the hint only for a known C-Chain manager: managerBlockchainId stays empty while Glacier lags */}
+                  {/* Hide the hint only for a known C-Chain manager: managerBlockchainId stays empty while the Stats API lags */}
                   {!managerOnCChain && (
                     <>
                       {' '}

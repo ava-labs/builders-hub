@@ -4,8 +4,9 @@ import SelectBlockchainId from './SelectBlockchainId';
 import { useState, useCallback } from 'react';
 import { useWalletStore } from '../stores/walletStore';
 import { networkIDs } from '@avalabs/avalanchejs';
+import { getBlockchainInfoForNetwork } from '../coreViem/utils/statsApi';
 
-// API Response type from AvaCloud - matches the official API response
+// API response type of the Stats API blockchain route (the Glacier shape)
 type BlockchainApiResponse = {
   createBlockTimestamp: number;
   createBlockNumber: string;
@@ -45,7 +46,7 @@ export default function SelectBlockchain({
   const [isLoading, setIsLoading] = useState(false);
 
   // Network names for API calls
-  const networkNames: Record<number, string> = {
+  const networkNames: Record<number, 'mainnet' | 'fuji'> = {
     [networkIDs.MainnetID]: 'mainnet',
     [networkIDs.FujiID]: 'fuji',
   };
@@ -61,23 +62,7 @@ export default function SelectBlockchain({
 
         setIsLoading(true);
 
-        // Use direct API call as shown in AvaCloud documentation
-        // https://developers.avacloud.io/data-api/primary-network/get-blockchain-details-by-id
-        const response = await fetch(
-          `https://glacier-api.avax.network/v1/networks/${network}/blockchains/${blockchainId}`,
-          {
-            method: 'GET',
-            headers: {
-              accept: 'application/json',
-            },
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch blockchain details: ${response.statusText}`);
-        }
-
-        const blockchain: BlockchainApiResponse = await response.json();
+        const blockchain: BlockchainApiResponse = await getBlockchainInfoForNetwork(network, blockchainId);
 
         setBlockchainDetails((prev) => ({
           ...prev,

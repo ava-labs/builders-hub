@@ -7,7 +7,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { Button } from '@/components/toolbox/components/Button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
-import { getPChainTxBlockHeight } from '@/components/toolbox/coreViem/utils/glacier';
+import { getPChainTxBlockHeight } from '@/components/toolbox/coreViem/utils/statsApi';
 import { useProposerVMStatus } from '@/components/toolbox/hooks/useProposerVMStatus';
 import { useAdvanceProposerVM, type AdvancePhase } from '@/components/toolbox/hooks/useAdvanceProposerVM';
 
@@ -21,7 +21,7 @@ interface ProposerVMPreflightCardProps {
 }
 
 /** Full cb58 txID only: the wired inputs are controlled fields, so anything
- *  shorter is a keystroke in progress and must not hit Glacier. */
+ *  shorter is a keystroke in progress and must not hit the Stats API. */
 const P_CHAIN_TXID_SHAPE = /^[1-9A-HJ-NP-Za-km-z]{40,60}$/;
 
 function formatHeight(height: bigint | null): string {
@@ -65,7 +65,7 @@ export function ProposerVMPreflightCard({ requiredTxId, onAdvanced }: ProposerVM
   // unmount the progress line and its Cancel control.
   if (!active || resolvingTarget || (status.isLoading && advance.phase === 'idle')) return null;
 
-  // With a resolved target this is exact; without one (Glacier lag or
+  // With a resolved target this is exact; without one (Stats API lag or
   // unknown tx) computeEpochStatus falls back to its idle-chain heuristic,
   // so a healthy chain stays quiet instead of flashing a false hint.
   const state = status.status.state;

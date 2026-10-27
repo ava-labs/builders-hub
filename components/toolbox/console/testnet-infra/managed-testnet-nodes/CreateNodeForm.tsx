@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { networkIDs } from '@avalabs/avalanchejs';
-import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 import InputSubnetId from '@/components/toolbox/components/InputSubnetId';
 import BlockchainDetailsDisplay from '@/components/toolbox/components/BlockchainDetailsDisplay';
 import { Board, BoardHeader } from '@/components/explorer-v2/ui';

@@ -4,7 +4,7 @@ import { newValidationUptimeMessage, newWarpMessage } from '@avalanche-sdk/inter
 import { CB58ToHex, hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import { getBlockchainInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getBlockchainInfo } from '@/components/toolbox/coreViem/utils/statsApi';
 
 interface UptimeProofResult {
   uptimeSeconds: number;
@@ -148,7 +148,7 @@ export function useUptimeProof() {
    *
    * @param uptimeBlockchainID — from getStakingManagerSettings().uptimeBlockchainID (hex bytes32).
    *   Used as sourceChainID in the warp message. The signing subnet is derived
-   *   from this blockchain ID via the Glacier API.
+   *   from this blockchain ID via the Stats API.
    */
   async function createAndSignUptimeProof(
     validationID: string,
@@ -165,7 +165,7 @@ export function useUptimeProof() {
         (uptimeBlockchainID.startsWith('0x') ? uptimeBlockchainID : `0x${uptimeBlockchainID}`) as `0x${string}`,
       );
 
-      // Resolve the signing subnet from the uptimeBlockchainID via Glacier
+      // Resolve the signing subnet from the uptimeBlockchainID via the Stats API
       const blockchainInfo = await getBlockchainInfo(uptimeBlockchainCB58);
       const signingSubnetId = blockchainInfo.subnetId;
 

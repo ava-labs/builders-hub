@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { utils } from '@avalabs/avalanchejs';
-import { getBlockchainInfo, getChainDetails } from '../coreViem/utils/glacier';
+import { getChainDetails } from '../coreViem/utils/glacier';
+import { getBlockchainInfo } from '../coreViem/utils/statsApi';
 
 interface LookupResult {
   rpcUrl: string;

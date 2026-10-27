@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useId } from 'react';
 import { Loader2, Search, Users, Coins, Calendar, ChevronDown, Check, RefreshCw } from 'lucide-react';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { listL1Validators } from '@/components/toolbox/coreViem/utils/statsApi';
 import { ValidatorData } from './DisableL1ValidatorContext';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
 import { Button } from '@/components/toolbox/components/Button';
@@ -15,7 +16,7 @@ interface ValidatorSelectorProps {
 }
 
 export default function ValidatorSelector({ subnetId, onSelect, selectedValidator }: ValidatorSelectorProps) {
-  const { listL1Validators } = useAvalancheSDKChainkit();
+  const { isTestnet } = useWalletStore();
   const [validators, setValidators] = useState<ValidatorData[]>([]);
   const [filteredValidators, setFilteredValidators] = useState<ValidatorData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,21 +33,10 @@ export default function ValidatorSelector({ subnetId, onSelect, selectedValidato
     onSelect(null);
 
     try {
-      // Use the avalanche-sdk-typescript via the hook
-      const result = await listL1Validators({
-        subnetId,
-        includeInactiveL1Validators: false,
-      });
-
-      // Extract validators from the paginated async response
-      const allValidators: ValidatorData[] = [];
-
-      // SDK returns an async iterable - iterate through pages
-      for await (const page of result) {
-        if (page.result?.validators) {
-          allValidators.push(...(page.result.validators as unknown as ValidatorData[]));
-        }
-      }
+      // Every page of the validators still in the set
+      const allValidators: ValidatorData[] = (await listL1Validators(isTestnet ? 'fuji' : 'mainnet', subnetId)).map(
+        (v) => ({ ...v, remainingBalance: String(v.remainingBalance) }),
+      );
 
       // Filter to only show active validators (weight > 0)
       const activeValidators = allValidators.filter((v) => v.weight > 0);
@@ -59,7 +49,7 @@ export default function ValidatorSelector({ subnetId, onSelect, selectedValidato
     } finally {
       setIsLoading(false);
     }
-  }, [subnetId, listL1Validators, onSelect]);
+  }, [subnetId, isTestnet, onSelect]);
 
   // Filter validators based on search
   useEffect(() => {

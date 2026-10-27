@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { ArrowRight, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { BoardHeader, HashChip } from '@/components/explorer-v2/ui';
 import { networkIDs } from '@avalabs/avalanchejs';
-import { GlobalParamNetwork } from '@avalabs/avacloud-sdk/models/components';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useVMCAddress } from '@/components/toolbox/hooks/useVMCAddress';
@@ -21,6 +19,7 @@ import {
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { ValidatorResponse, formatTimestamp, formatStake } from './types';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
+import { listL1Validators } from '@/components/toolbox/coreViem/utils/statsApi';
 import { Alert } from '@/components/toolbox/components/Alert';
 
 const metadata: ConsoleToolMetadata = {
@@ -30,7 +29,7 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-const networkNames: Record<number, GlobalParamNetwork> = {
+const networkNames: Record<number, 'mainnet' | 'fuji'> = {
   [networkIDs.MainnetID]: 'mainnet',
   [networkIDs.FujiID]: 'fuji',
 };
@@ -60,7 +59,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
-  const { avalancheNetworkID, isTestnet } = useWalletStore();
+  const { avalancheNetworkID } = useWalletStore();
   const [subnetId, setSubnetId] = useState('');
   const [validators, setValidators] = useState<ValidatorResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,20 +92,10 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
         const network = networkNames[Number(avalancheNetworkID)];
         if (!network) throw new Error('Invalid network');
 
-        const sdk = new AvaCloudSDK({
-          serverURL: isTestnet ? 'https://api.avax-test.network' : 'https://api.avax.network',
-          network,
-        });
-
-        const result = await sdk.data.primaryNetwork.listL1Validators({ network, subnetId });
-        const all: ValidatorResponse[] = [];
-        for await (const page of result) {
-          if ('result' in page && page.result && 'validators' in page.result) {
-            all.push(...(page.result.validators as unknown as ValidatorResponse[]));
-          } else if ('validators' in page) {
-            all.push(...(page.validators as unknown as ValidatorResponse[]));
-          }
-        }
+        const all: ValidatorResponse[] = (await listL1Validators(network, subnetId)).map((v) => ({
+          ...v,
+          remainingBalance: String(v.remainingBalance),
+        }));
 
         const active = all.filter((v) => v.weight > 0).sort((a, b) => b.weight - a.weight);
         setValidators(active);
@@ -121,7 +110,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
     };
 
     fetchValidators();
-  }, [subnetId, avalancheNetworkID, isTestnet]);
+  }, [subnetId, avalancheNetworkID]);
 
   const totalWeight = validators.reduce((sum, v) => sum + v.weight, 0);
 
