@@ -1,7 +1,7 @@
 //FIXME: Sooner or later we should use the SDK
 
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 
 const endpoint = 'https://glacier-api.avax.network';
 
@@ -37,7 +37,7 @@ export async function getBlockchainInfo(
 ): Promise<BlockchainInfo & { isTestnet: boolean }> {
   // Get current network from wallet store
   const { avalancheNetworkID } = useWalletStore.getState();
-  const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'testnet';
+  const currentNetwork = avalancheNetworkID === MAINNET_NETWORK_ID ? 'mainnet' : 'testnet';
   const otherNetwork = currentNetwork === 'mainnet' ? 'testnet' : 'mainnet';
 
   try {
@@ -115,7 +115,7 @@ export async function getSubnetInfo(
 ): Promise<SubnetInfo & { isTestnet: boolean }> {
   // Get current network from wallet store
   const { avalancheNetworkID } = useWalletStore.getState();
-  const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'testnet';
+  const currentNetwork = avalancheNetworkID === MAINNET_NETWORK_ID ? 'mainnet' : 'testnet';
   const otherNetwork = currentNetwork === 'mainnet' ? 'testnet' : 'mainnet';
 
   try {

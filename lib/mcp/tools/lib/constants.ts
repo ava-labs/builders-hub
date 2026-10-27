@@ -33,6 +33,12 @@ export const ALLOWED_CHAIN_IDS: Set<number> = (() => {
 
 export const NETWORKS = ['mainnet', 'fuji'] as const;
 
+/**
+ * The most platform.getUTXOs pages (1,024 UTXOs each) that one P-Chain balance read may ask for: platform_get_balance
+ * and onchain_lookup. The MCP is anonymous, so it reads fewer pages than the Console (20).
+ */
+export const MCP_MAX_UTXO_PAGES = 5;
+
 export const CONSOLE_BASE = 'https://build.avax.network/console';
 
 /**

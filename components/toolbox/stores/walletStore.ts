@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { CoreWalletClientType } from '../coreViem';
 import { createPublicClient, custom, http } from 'viem';
 import { avalancheFuji } from 'viem/chains';
@@ -28,7 +28,7 @@ interface WalletState {
   coreEthAddress: string;
 
   // Network state
-  avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
+  avalancheNetworkID: typeof TESTNET_NETWORK_ID | typeof MAINNET_NETWORK_ID;
   isTestnet: boolean;
   evmChainName: string;
 
@@ -70,7 +70,7 @@ interface WalletActions {
   }) => void;
 
   updateNetworkSettings: (data: {
-    avalancheNetworkID?: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
+    avalancheNetworkID?: typeof TESTNET_NETWORK_ID | typeof MAINNET_NETWORK_ID;
     isTestnet?: boolean;
     evmChainName?: string;
   }) => void;
@@ -84,7 +84,7 @@ interface WalletActions {
   setWalletChainId: (walletChainId: number) => void;
   setWalletChainConfirmed: (walletChainConfirmed: boolean) => void;
   setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => void;
-  setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => void;
+  setAvalancheNetworkID: (avalancheNetworkID: typeof TESTNET_NETWORK_ID | typeof MAINNET_NETWORK_ID) => void;
   setPChainAddress: (pChainAddress: string) => void;
   setCoreEthAddress: (coreEthAddress: string) => void;
   setIsTestnet: (isTestnet: boolean) => void;
@@ -154,7 +154,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     walletChainId: 0,
     walletChainConfirmed: false,
     walletEVMAddress: '' as `0x${string}` | '',
-    avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
+    avalancheNetworkID: TESTNET_NETWORK_ID as typeof TESTNET_NETWORK_ID | typeof MAINNET_NETWORK_ID,
     pChainAddress: '',
     coreEthAddress: '',
     isTestnet: false,
@@ -188,7 +188,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     },
 
     updateNetworkSettings: (data: {
-      avalancheNetworkID?: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
+      avalancheNetworkID?: typeof TESTNET_NETWORK_ID | typeof MAINNET_NETWORK_ID;
       isTestnet?: boolean;
       evmChainName?: string;
     }) => {
@@ -211,7 +211,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     setWalletChainId: (walletChainId: number) => set({ walletChainId }),
     setWalletChainConfirmed: (walletChainConfirmed: boolean) => set({ walletChainConfirmed }),
     setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => set({ walletEVMAddress }),
-    setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) =>
+    setAvalancheNetworkID: (avalancheNetworkID: typeof TESTNET_NETWORK_ID | typeof MAINNET_NETWORK_ID) =>
       set({ avalancheNetworkID }),
     setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
     setCoreEthAddress: (coreEthAddress: string) => set({ coreEthAddress }),
@@ -281,7 +281,7 @@ export const useNetworkInfo = () => {
   const evmChainName = useWalletStore((state) => state.evmChainName);
 
   return useMemo(() => {
-    const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
+    const networkName = avalancheNetworkID === MAINNET_NETWORK_ID ? 'mainnet' : 'fuji';
     return {
       isTestnet,
       chainId,

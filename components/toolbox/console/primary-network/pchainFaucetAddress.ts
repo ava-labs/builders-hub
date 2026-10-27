@@ -1,4 +1,4 @@
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 
 /**
  * Normalize a user-pasted P-Chain address for the (Fuji-only) faucet.

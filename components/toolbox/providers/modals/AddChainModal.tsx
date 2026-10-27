@@ -18,7 +18,7 @@ import { useLookupChain } from '@/components/toolbox/hooks/useLookupChain';
 import { toast } from '@/lib/toast';
 import type { ChainData } from '@/types/wallet';
 import { cn } from '@/lib/utils';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 
 /**
  * Modal for adding an existing Avalanche L1 to the user's wallet.
@@ -262,7 +262,7 @@ function AddChainModalInner() {
     const walletStore = useWalletStore.getState();
     walletStore.setWalletChainId(chainData.evmChainId);
     walletStore.setIsTestnet(chainData.isTestnet);
-    walletStore.setAvalancheNetworkID(chainData.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+    walletStore.setAvalancheNetworkID(chainData.isTestnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
   };
 
   const addChainDirect = async (chainData: ChainData): Promise<boolean> => {

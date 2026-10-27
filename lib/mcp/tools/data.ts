@@ -18,6 +18,7 @@
 
 import { glacierFetch, fetchErc20Balances } from '@/lib/rwa/glacier/client';
 import { statsApi } from '@/lib/stats-api';
+import { AVAX_ASSET_ID, readPChainBalance, toGetBalanceJson } from '@/lib/pchain-balance';
 import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
@@ -27,7 +28,7 @@ import {
   assertSafeDays,
   clampLimit,
 } from './lib/clickhouse-safe';
-import { P_CHAIN_ID, X_CHAIN_ID, C_CHAIN_EVM_ID, NETWORKS, networkSchemaProp } from './lib/constants';
+import { P_CHAIN_ID, X_CHAIN_ID, C_CHAIN_EVM_ID, NETWORKS, MCP_MAX_UTXO_PAGES, networkSchemaProp } from './lib/constants';
 import { getString, errorResult, rejectBadEnum } from './lib/tool-helpers';
 
 interface StatsPoint {
@@ -311,9 +312,9 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
             note: balances ? undefined : 'No X-Chain balance data returned for this address.',
           });
         }
-        // platform.getBalance requires the chain-prefixed form; a bare Core copy (avax1…) has none.
+        // platform.getUTXOs requires the chain-prefixed form; a bare Core copy (avax1…) has none.
         const pAddr = `P-${stripChainPrefix(value)}`;
-        const bal = (await avalancheRPC(net, 'pchain', 'platform.getBalance', { addresses: [pAddr] })) as Record<string, unknown>;
+        const bal = toGetBalanceJson(await readPChainBalance((method, p) => avalancheRPC(net, 'pchain', method, p), [pAddr], AVAX_ASSET_ID[net], undefined, MCP_MAX_UTXO_PAGES));
         const toAvax = (v: unknown) => (typeof v === 'string' ? nAvaxToAvax(v) : undefined);
         return json({
           kind: 'pchain-address',

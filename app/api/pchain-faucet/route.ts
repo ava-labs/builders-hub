@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
+import { createAvalancheWalletClient } from '@avalanche-sdk/client';
+import { privateKeyToAvalancheAccount } from '@avalanche-sdk/client/accounts';
+import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
 
@@ -16,39 +18,30 @@ interface TransferResponse {
   message?: string;
 }
 
+/**
+ * The key as the SDK takes it, 0x and 64 hex digits. avalanchejs also took it without 0x, with 0X, or with a
+ * leading zero dropped, so the stored key can be in any of those forms.
+ */
+const asHexKey = (key: string): `0x${string}` => `0x${key.replace(/^0x/i, '').padStart(64, '0')}`;
+
 async function transferPToP(
   privateKey: string,
   sourceAddress: string,
   destinationAddress: string
 ): Promise<{ txID: string }> {
-  const context = await Context.getContextFromURI("https://api.avax-test.network");
-  const pvmApi = new pvm.PVMApi("https://api.avax-test.network");
-  const feeState = await pvmApi.getFeeState();
-  const { utxos } = await pvmApi.getUTXOs({ addresses: [sourceAddress] });
-  const amountNAvax = BigInt(Math.floor(FIXED_AMOUNT * 1e9));
-
-  const outputs = [
-    TransferableOutput.fromNative(context.avaxAssetID, amountNAvax, [
-      utils.bech32ToBytes(destinationAddress),
-    ]),
-  ];
-
-  const tx = pvm.newBaseTx(
-    {
-      feeState,
-      fromAddressesBytes: [utils.bech32ToBytes(sourceAddress)],
-      outputs,
-      utxos,
-    },
-    context
-  );
-
-  await addTxSignatures({
-    unsignedTx: tx,
-    privateKeys: [utils.hexToBuffer(privateKey)],
+  // The Avalanche SDK reads the UTXOs, the fee state and the context from the Fuji API, builds the BaseTx (change
+  // back to the source), signs it with the faucet's key and issues it.
+  const client = createAvalancheWalletClient({
+    chain: avalancheFuji as never,
+    transport: { type: 'http' },
+    account: privateKeyToAvalancheAccount(asHexKey(privateKey)),
   });
-
-  return pvmApi.issueSignedTx(tx.getSignedTx());
+  const txnRequest = await client.pChain.prepareBaseTxn({
+    fromAddresses: [sourceAddress],
+    outputs: [{ addresses: [destinationAddress], amount: BigInt(Math.floor(FIXED_AMOUNT * 1e9)) }],
+  });
+  const { txHash } = await client.sendXPTransaction(txnRequest);
+  return { txID: txHash };
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -134,8 +127,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       await cancelFaucetClaim(claimId);
     }
 
+    // A fixed message: the SDK's RPC errors carry the request body (the signed tx) and the node URL.
     return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Failed to complete transfer' },
+      { success: false, message: 'Failed to complete transfer' },
       { status: 500 }
     );
   }
