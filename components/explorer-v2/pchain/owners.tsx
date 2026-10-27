@@ -92,7 +92,7 @@ export function Owners({
               {copied ? "Copied" : "Copy all"}
             </button>
           </div>
-          <ul className="flex flex-col gap-1.5 px-3 py-3 md:px-4">
+          <ul className="flex max-h-80 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 py-3 md:px-4">
             {owners.map((a) => (
               <li key={a} className="flex max-md:[&_a]:text-[11px]">
                 <HashChip value={a} href={hrefOf(a)} len={66} />
