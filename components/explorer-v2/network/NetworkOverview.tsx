@@ -76,13 +76,19 @@ const num = (v: string | undefined) => {
 /* a figure no feed has on this network: zinc-500, which reads on white (zinc-400 does not) and on the dark ground */
 const NO_DATA = <span className="text-zinc-500">No data</span>;
 
+/* a failed overview read is read again this long after, then twice as long each time */
+const OVERVIEW_RETRY_MS = 20_000;
+
 export function NetworkOverview({ network = "mainnet" }: { network?: PchainNetwork }) {
   // the shared clock: registers this page as a consumer, so the subnav
   // surfaces its range control and every reading below tracks the one pick
   const range = useExplorerTimeRange();
   const days = RANGE_DAYS[overviewWindow(range)];
-  // each feed opens from memory (a range seen before, a hovered link's read) while it is read again
-  const { data, error } = usePolledJson<OverviewData>(overviewStatsUrl(range, network));
+  // each feed opens from memory (a range seen before, a hovered link's read) while it is read again;
+  // a feed that failed (a server with a cold cache) is read again until it answers
+  const { data, error } = usePolledJson<OverviewData>(overviewStatsUrl(range, network), {
+    retryFailedMs: OVERVIEW_RETRY_MS,
+  });
 
   // the figures' pasts: sparks and moves against the previous window
   const series = useNetworkSeries(days, network);
@@ -156,7 +162,8 @@ export function NetworkOverview({ network = "mainnet" }: { network?: PchainNetwo
 
         {/* the C-Chain home's live boards, merged across the busiest
             chains: each row wears the logo of the chain it came from.
-            If the feed fails, there is no roster and the boards do not show. */}
+            If the feed fails, there is no roster and the boards do not show
+            until a later read of the feed answers. */}
         {(liveChains || !error) && (
           <OverviewLiveBoards key={network} chains={liveChains} network={network} onRates={setLiveRates} />
         )}

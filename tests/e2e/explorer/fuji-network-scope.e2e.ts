@@ -27,6 +27,11 @@ import {
 const MAINNET_CITY = '/explorer/mainnet/chains';
 // How long the linked-chain test holds the overview feed: longer than the P-Chain registry takes to answer.
 const OVERVIEW_DELAY_MS = 20_000;
+// The page reads the overview feed up to 3 times, then sets an error and hides the boards (usePolledJson in
+// components/explorer-v2/page-data.ts). After that error it reads the feed again 20 s later (OVERVIEW_RETRY_MS in
+// components/explorer-v2/network/NetworkOverview.tsx).
+const FAILED_OVERVIEW_READS = 3;
+const OVERVIEW_RETRY_MS = 20_000;
 const FUJI_CITY = '/explorer/fuji/chains';
 
 // A short hash or address link on an overview board, as truncate() writes it: "0x1281…9d13".
@@ -146,6 +151,26 @@ test('the Fuji overview boards link Fuji pages only', async ({ app, screen }) =>
     return hrefs.filter((href) => !href?.startsWith('/explorer/fuji/'));
   };
   await expect.poll(notFuji).toEqual([]);
+});
+
+// A server with no cache can take longer to answer the overview feed than the page waits for each read. Here each of
+// the page's first reads fails at once. The boards must fill when a later read of the feed answers.
+test('the Fuji overview boards fill when the first reads of the overview feed fail', async ({
+  app,
+  screen,
+  browser,
+}) => {
+  let failed = 0;
+  await browser.route(/\/api\/overview-stats\?.*network=fuji/, async (route) => {
+    if (failed >= FAILED_OVERVIEW_READS) return route.continue();
+    failed++;
+    await route.abort();
+  });
+  await app.open('/explorer/fuji');
+  await expect.poll(() => failed, DATA).toBe(FAILED_OVERVIEW_READS);
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible({
+    timeout: OVERVIEW_RETRY_MS + DATA.timeout,
+  });
 });
 
 test('the Fuji City lists no mainnet chain', MULTI_PAGE, async ({ app, screen, browser }) => {
