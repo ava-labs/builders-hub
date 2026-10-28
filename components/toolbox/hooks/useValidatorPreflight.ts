@@ -143,7 +143,15 @@ function deriveChecks(
       ? notMetCheck(
           'There is a pending P-Chain operation for this validator (nonce mismatch). Complete the current operation before starting a new one. If you recently submitted a P-Chain transaction, wait for it to be confirmed.',
         )
-      : deriveInitiateRemovalCheck(status, stakingData, walletAddress, churn, totalWeight, validatorWeight),
+      : deriveInitiateRemovalCheck(
+          status,
+          stakingData,
+          walletAddress,
+          churn,
+          totalWeight,
+          validatorWeight,
+          validatorData,
+        ),
     completeRemoval: deriveCompleteRemovalCheck(status),
     completeRegistration: deriveCompleteRegistrationCheck(status),
   };
@@ -192,6 +200,7 @@ function deriveInitiateRemovalCheck(
   churn: ValidatorPreflightResult['churn'],
   totalWeight: bigint,
   validatorWeight: bigint,
+  validatorData: ValidatorPreflightResult['validatorData'],
 ): PreflightCheck {
   if (status !== ValidatorStatus.Active) {
     if (status === ValidatorStatus.PendingAdded) {
@@ -220,6 +229,21 @@ function deriveInitiateRemovalCheck(
     const isOwner = stakingData.owner.toLowerCase() === walletAddress.toLowerCase();
     if (!isOwner) {
       return notMetCheck(`Connected wallet is not the validator owner. Owner: ${stakingData.owner}`);
+    }
+  }
+
+  // Check minimum stake duration (PoS only). The StakingManager enforces
+  // startTime + minStakeDuration on BOTH initiateValidatorRemoval and
+  // forceInitiateValidatorRemoval, so an early removal reverts with
+  // MinStakeDurationNotPassed even in force mode.
+  if (stakingData && validatorData && validatorData.startTime > 0n && stakingData.minStakeDuration > 0n) {
+    const removableAt = validatorData.startTime + stakingData.minStakeDuration;
+    const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+    if (nowSeconds < removableAt) {
+      const removableAtDate = new Date(Number(removableAt) * 1000);
+      return notMetCheck(
+        `Minimum stake duration has not passed. Removal (including force removal) becomes possible at ${removableAtDate.toLocaleString()}.`,
+      );
     }
   }
 
