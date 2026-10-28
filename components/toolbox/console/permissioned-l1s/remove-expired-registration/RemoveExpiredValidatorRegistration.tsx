@@ -213,15 +213,16 @@ function RemoveExpiredValidatorRegistration() {
         setEvents([]);
         return;
       }
-      const CHUNK_SIZE = 2000n;
-      const totalBlocks = latest - startBlock;
+      // The public C-Chain RPC answers eth_getLogs for at most 100 blocks, both ends counted, and rejects a wider range
+      const CHUNK_SIZE = 100n;
+      const totalBlocks = latest - startBlock + 1n;
       const totalChunks = Math.ceil(Number(totalBlocks) / Number(CHUNK_SIZE));
       let currentChunk = 0;
       let cursor = startBlock;
       const allLogs: any[] = [];
 
       while (cursor <= latest) {
-        const to = cursor + CHUNK_SIZE > latest ? latest : cursor + CHUNK_SIZE;
+        const to = cursor + CHUNK_SIZE - 1n > latest ? latest : cursor + CHUNK_SIZE - 1n;
         currentChunk++;
         setFetchProgress({ current: currentChunk, total: totalChunks });
 
