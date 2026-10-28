@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createWalletClient, http, parseEther, createPublicClient, defineChain, isAddress } from 'viem';
+import { createWalletClient, http, parseEther, formatEther, createPublicClient, defineChain, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
 import { withChainLock, getNextNonce, withNonceRetry } from '@/lib/faucet/nonceManager';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import {
+  BALANCE_GATE_STATUS,
+  BALANCE_READ_FAILED_MESSAGE,
+  C_CHAIN_MAX_BALANCE_WEI,
+  L1_MAX_BALANCE_WEI,
+  balanceGateMessage,
+} from '@/lib/faucet/balanceGate';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -173,6 +180,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         { success: false, message: 'Cannot send tokens to the faucet address' },
         { status: 400 }
+      );
+    }
+
+    // Before the reservation: a refused drip records no claim and uses none of the daily limit
+    const isCChain = parsedChainId === avalancheFuji.id;
+    const maxBalance = isCChain ? C_CHAIN_MAX_BALANCE_WEI : L1_MAX_BALANCE_WEI;
+    let destinationBalance: bigint;
+    try {
+      const publicClient = createPublicClient({ chain: createViemChain(supportedChain), transport: http() });
+      destinationBalance = await publicClient.getBalance({ address: destinationAddress });
+    } catch (error) {
+      console.error('EVM chain faucet balance read error:', error);
+      return NextResponse.json({ success: false, message: BALANCE_READ_FAILED_MESSAGE }, { status: 503 });
+    }
+    if (destinationBalance > maxBalance) {
+      const symbol = isCChain ? 'AVAX' : supportedChain.coinName;
+      return NextResponse.json(
+        { success: false, message: balanceGateMessage(formatEther(maxBalance), symbol) },
+        { status: BALANCE_GATE_STATUS }
       );
     }
 
