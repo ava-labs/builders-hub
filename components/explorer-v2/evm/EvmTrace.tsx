@@ -373,7 +373,6 @@ export function EvmTrace({
   trace,
   state,
   retrying,
-  onLoad,
   chainId,
   base,
   sender,
@@ -386,8 +385,6 @@ export function EvmTrace({
   state: TraceState;
   /** the page asks again for a trace not indexed yet */
   retrying: boolean;
-  /** the user asks for the trace ("idle" until then) */
-  onLoad: () => void;
   chainId: string;
   base: string;
   sender: string;
@@ -450,16 +447,6 @@ export function EvmTrace({
 
   return (
     <section id="execution" className="flex scroll-mt-24 flex-col gap-4">
-      {state === "idle" && (
-        <Board divide={false}>
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 font-mono text-[11px] text-zinc-500 md:px-6 dark:text-zinc-400">
-            <span>The execution trace: internal calls, events, token balance changes and gas per call.</span>
-            <button type="button" onClick={onLoad} className="border border-zinc-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] dark:border-zinc-700 dark:text-zinc-50">
-              Load trace
-            </button>
-          </div>
-        </Board>
-      )}
       {state === "loading" && (
         <Board divide={false}>
           <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">reading the trace…</div>

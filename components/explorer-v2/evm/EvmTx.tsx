@@ -216,11 +216,9 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const icmMessages = t ? icmMessagesInLogs(t.logs) : [];
 
   // the execution trace, from the ingestion pipeline (bounded by the tx's
-  // block), asked for on a click only: when it is here it carries the
-  // internal calls, token movements and events, so the flat sections for
-  // those step aside
-  const [traceFor, setTraceFor] = useState<string | null>(null);
-  const { trace, state: traceState, retrying } = useTrace(c.chainId, txHash, liveRpc && t ? t.blockNumber : null, traceFor === txHash);
+  // block): when it is here it carries the internal calls, token movements
+  // and events, so the flat sections for those step aside
+  const { trace, state: traceState, retrying } = useTrace(c.chainId, txHash, liveRpc && t ? t.blockNumber : null);
   const traced = traceState === "ready";
 
   // where the tx's block stands in Continuous Execution
@@ -485,7 +483,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </div>
           </section>
 
-          {liveRpc && <EvmTrace trace={trace} state={traceState} retrying={retrying} onLoad={() => setTraceFor(txHash)} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
+          {liveRpc && <EvmTrace trace={trace} state={traceState} retrying={retrying} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
 
           {!traced && transfers.length > 0 && (
             <section className="flex flex-col gap-4">

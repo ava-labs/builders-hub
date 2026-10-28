@@ -5,10 +5,8 @@ import { SOFT_READ, isOk, statusOf } from "@/lib/explorer-soft-status";
 import type { TraceResponse } from "@/lib/trace";
 
 /* One transaction's trace, for the tx page, from the ingestion pipeline
-   (app/api/trace). The page asks for it only when the user asks
-   ("idle" until then): a trace holds about twice the rows of its block and
-   tx, and most visits never open it. The route answers its misses soft, so
-   the console logs no error for them.
+   (app/api/trace). The route answers its misses soft, so the console logs
+   no error for them.
 
    A tx newer than the pipeline (about 2 s behind the chain) is not indexed
    yet ("pending"), and a busy query service turns the read away: the page
@@ -16,16 +14,15 @@ import type { TraceResponse } from "@/lib/trace";
    RETRY_MS.length times. A chain the pipeline does not trace, or a trace
    too large to send, has none ("none"). */
 
-export type TraceState = "idle" | "loading" | "ready" | "none" | "pending" | "error";
+export type TraceState = "loading" | "ready" | "none" | "pending" | "error";
 
 /** the waits before each next ask while the trace is not indexed */
 const RETRY_MS = [2_000, 3_000, 5_000, 8_000, 13_000, 20_000, 30_000, 30_000, 30_000, 30_000];
 
-/** block: the tx's block, or null on a chain the pipeline does not trace.
- *  wanted: the user asked for the trace of this tx */
-export function useTrace(chainId: string, hash: string, block: number | null, wanted: boolean): { trace: TraceResponse | null; state: TraceState; retrying: boolean } {
+/** block: the tx's block, or null on a chain the pipeline does not trace */
+export function useTrace(chainId: string, hash: string, block: number | null): { trace: TraceResponse | null; state: TraceState; retrying: boolean } {
   const [trace, setTrace] = useState<TraceResponse | null>(null);
-  const [state, setState] = useState<TraceState>(block === null ? "none" : wanted ? "loading" : "idle");
+  const [state, setState] = useState<TraceState>(block === null ? "none" : "loading");
   // the asks so far, for this tx only
   const [asked, setAsked] = useState<{ key: string; n: number }>({ key: "", n: 0 });
   const key = `${chainId}:${hash}:${block}`;
@@ -34,10 +31,6 @@ export function useTrace(chainId: string, hash: string, block: number | null, wa
     if (n === 0) setTrace(null);
     if (block === null) {
       setState("none");
-      return;
-    }
-    if (!wanted) {
-      setState("idle");
       return;
     }
     if (n === 0) setState("loading");
@@ -64,6 +57,6 @@ export function useTrace(chainId: string, hash: string, block: number | null, wa
       controller.abort();
       clearTimeout(timer);
     };
-  }, [chainId, hash, block, wanted, key, n]);
+  }, [chainId, hash, block, key, n]);
   return { trace, state, retrying: state === "pending" && n < RETRY_MS.length };
 }
