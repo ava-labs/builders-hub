@@ -12,7 +12,7 @@ import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import { readIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { toStatsChainId } from "@/lib/dedicated-stats";
 import { buildTxUrl, buildAddressUrl, buildBlockUrl } from "@/utils/eip3091";
-import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
+import { SOFT_READ, isOk, statusOf } from "@/lib/explorer-soft-status";
 
 /* ------------------------------------------------------------------ */
 /* The one chain-suggestion engine behind every explorer search bar    */
@@ -303,67 +303,102 @@ export interface Bech32Hit {
   id: string;
 }
 
+/** What one chain's probe learned: it holds the address, it does not, or the
+ *  read failed and nothing is known. */
+export type Holds = "yes" | "no" | "unknown";
+
+/** A probe's answer from its read. A timeout, a soft 504, a 429 or a 5xx is
+ *  unknown, never a miss; another error status (a 404, a 400) is a miss. */
+export async function holdsOf<T>(res: Response, has: (d: T) => boolean): Promise<Holds> {
+  if (!isOk(res)) {
+    const s = statusOf(res);
+    return s === 429 || s >= 500 ? "unknown" : "no";
+  }
+  return has((await res.json()) as T) ? "yes" : "no";
+}
+
 /** a string balance/amount that is present and nonzero */
 const nz = (v?: string) => v !== undefined && v !== "0";
 
-function pchainAddressHas(network: string, bare: string): Promise<boolean> {
+interface PAddress {
+  utxoCount?: number;
+  utxos?: unknown[];
+  fundedBy?: unknown;
+  balance?: { total?: string };
+  breakdown?: { atomicMemoryUnlocked?: string; atomicMemoryLocked?: string };
+}
+const pHas = (d: PAddress) =>
+  (d.utxoCount ?? 0) > 0 ||
+  (d.utxos?.length ?? 0) > 0 ||
+  !!d.fundedBy ||
+  nz(d.balance?.total) ||
+  nz(d.breakdown?.atomicMemoryUnlocked) ||
+  nz(d.breakdown?.atomicMemoryLocked);
+
+function pchainAddressHas(network: string, bare: string): Promise<Holds> {
   return fetch(pchainApiPath(network, `address/${encodeURIComponent(bare)}`), SOFT_READ)
-    .then(async (res) => {
-      if (!isOk(res)) return false;
-      const d = await res.json();
-      return (
-        (d.utxoCount ?? 0) > 0 ||
-        (d.utxos?.length ?? 0) > 0 ||
-        !!d.fundedBy ||
-        nz(d.balance?.total) ||
-        nz(d.breakdown?.atomicMemoryUnlocked) ||
-        nz(d.breakdown?.atomicMemoryLocked)
-      );
-    })
-    .catch(() => false);
+    .then((res) => holdsOf(res, pHas))
+    .catch(() => "unknown" as const);
 }
 
-function xchainAddressHas(network: string, bare: string): Promise<boolean> {
+interface XAddress {
+  transactions?: unknown[];
+  balances?: { balance?: string; utxoCount?: number }[];
+}
+const xHas = (d: XAddress) =>
+  (d.transactions?.length ?? 0) > 0 || (d.balances ?? []).some((b) => nz(b.balance) || (b.utxoCount ?? 0) > 0);
+
+function xchainAddressHas(network: string, bare: string): Promise<Holds> {
   return fetch(`/api/xchain/${network}/address/${encodeURIComponent(bare)}`, SOFT_READ)
-    .then(async (res) => {
-      if (!isOk(res)) return false;
-      const d = await res.json();
-      return (
-        (d.transactions?.length ?? 0) > 0 ||
-        (d.balances ?? []).some((b: { balance?: string; utxoCount?: number }) => nz(b.balance) || (b.utxoCount ?? 0) > 0)
-      );
-    })
-    .catch(() => false);
+    .then((res) => holdsOf(res, xHas))
+    .catch(() => "unknown" as const);
 }
 
-const bech32AddressCache = new Map<string, Promise<Bech32Hit[]>>();
-/** One probe pair per address per session, shared by the dropdown and Enter.
- *  P-Chain first in the array, so Enter keeps its long-standing default when
- *  both chains claim the address. */
-export function bech32AddressCached(network: string, q: string): Promise<Bech32Hit[]> {
-  const key = `${network}:${q}`;
-  let p = bech32AddressCache.get(key);
-  if (!p) {
-    const bare = q.replace(/^[xp]-/i, "");
-    const prefix = /^([xp])-/i.exec(q)?.[1].toLowerCase();
-    if (prefix === "x") {
-      p = Promise.resolve([{ chain: "x-chain" as const, id: `X-${bare}` }]);
-    } else if (prefix === "p") {
-      p = Promise.resolve([{ chain: "p-chain" as const, id: bare }]);
-    } else {
-      p = Promise.all([pchainAddressHas(network, bare), xchainAddressHas(network, bare)])
-        .then(([onP, onX]) => {
-          const hits: Bech32Hit[] = [];
-          if (onP) hits.push({ chain: "p-chain", id: bare });
-          if (onX) hits.push({ chain: "x-chain", id: `X-${bare}` });
-          if (hits.length === 0) hits.push({ chain: "p-chain", id: bare });
-          return hits;
-        })
-        .catch(() => [{ chain: "p-chain" as const, id: bare }]);
-    }
-    bech32AddressCache.set(key, p);
-  }
-  return p;
+const holdsCache = new Map<string, Promise<Holds>>();
+/** One probe per chain and address per session. An unknown answer is dropped
+ *  once it settles, so the next ask reads again; a clean miss is kept. */
+function holdsCached(key: string, probe: () => Promise<Holds>): Promise<Holds> {
+  const kept = holdsCache.get(key);
+  if (kept) return kept;
+  const read = probe();
+  holdsCache.set(key, read);
+  void read.then((h) => {
+    if (h === "unknown" && holdsCache.get(key) === read) holdsCache.delete(key);
+  });
+  return read;
+}
+
+export interface Bech32Answer {
+  /** the chains that hold the address, P-Chain first; the P-Chain alone when no chain is known to */
+  hits: Bech32Hit[];
+  /** the chains whose probe failed: the next call asks them again */
+  unknown: Bech32Hit["chain"][];
+}
+
+/** The two probes' answers as hits. P-Chain first, so Enter keeps its
+ *  long-standing default when both chains claim the address. */
+export function bech32Answer(bare: string, p: Holds, x: Holds): Bech32Answer {
+  const hits: Bech32Hit[] = [];
+  if (p === "yes") hits.push({ chain: "p-chain", id: bare });
+  if (x === "yes") hits.push({ chain: "x-chain", id: `X-${bare}` });
+  if (hits.length === 0) hits.push({ chain: "p-chain", id: bare });
+  const unknown: Bech32Hit["chain"][] = [];
+  if (p === "unknown") unknown.push("p-chain");
+  if (x === "unknown") unknown.push("x-chain");
+  return { hits, unknown };
+}
+
+/** The chains that hold an address, shared by the dropdown and Enter. A
+ *  prefix selects the chain with no probe. */
+export function bech32AddressCached(network: string, q: string): Promise<Bech32Answer> {
+  const bare = q.replace(/^[xp]-/i, "");
+  const prefix = /^([xp])-/i.exec(q)?.[1].toLowerCase();
+  if (prefix === "x") return Promise.resolve({ hits: [{ chain: "x-chain", id: `X-${bare}` }], unknown: [] });
+  if (prefix === "p") return Promise.resolve({ hits: [{ chain: "p-chain", id: bare }], unknown: [] });
+  return Promise.all([
+    holdsCached(`p:${network}:${bare}`, () => pchainAddressHas(network, bare)),
+    holdsCached(`x:${network}:${bare}`, () => xchainAddressHas(network, bare)),
+  ]).then(([p, x]) => bech32Answer(bare, p, x));
 }
 
 const pchainSearchCache = new Map<string, Promise<SearchResult>>();
@@ -437,6 +472,30 @@ export function heightHitCached(q: string, targets: EntityTargets): Promise<Enti
   return pchainSearchCached(targets.network, q).then((found) => heightHit(q, targets, found));
 }
 
+const chainName = (c: Bech32Hit["chain"]) => (c === "x-chain" ? "X-Chain" : "P-Chain");
+
+/** The row while the chains whose probe failed are asked again. */
+export function bech32Pending(q: string, unknown: Bech32Hit["chain"][]): EntityHit {
+  const chains = unknown.map(chainName).join(" and ");
+  return { icon: "address", label: "Address", id: q, href: null, detail: `Asking the ${chains} again…`, status: "searching" };
+}
+
+/** An address answer's rows: one per chain that holds it, then one that
+ *  names the chains that did not answer, so a missing row has a reason. */
+export function bech32Rows(q: string, network: string, found: Bech32Answer): EntityHit[] {
+  const rows: EntityHit[] = found.hits.map((h) => ({
+    icon: "address",
+    label: "Address",
+    id: q,
+    href: `/explorer/${network}/${h.chain}/address/${h.id}`,
+    detail: chainName(h.chain),
+    status: "ready",
+  }));
+  if (found.unknown.length === 0) return rows;
+  const chains = found.unknown.map(chainName).join(" and ");
+  return [...rows, { icon: "address", label: "Address", id: q, href: null, detail: `The ${chains} did not answer`, status: "notfound" }];
+}
+
 const ENTITY_DEBOUNCE_MS = 350;
 
 /* One entity resolution can be two rows: a bare bech32 address that both
@@ -499,19 +558,15 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
             : { icon: "tx", label: "Transaction", id: q, href: null, detail: "No chain claims this hash", status: "notfound" }],
         });
       } else if (isBech32) {
-        const found = await bech32AddressCached(targets.network, q);
+        let found = await bech32AddressCached(targets.network, q);
         if (cancelled) return;
-        setResolved({
-          q,
-          hits: found.map((h) => ({
-            icon: "address" as const,
-            label: "Address",
-            id: q,
-            href: `/explorer/${targets.network}/${h.chain}/address/${h.id}`,
-            detail: h.chain === "x-chain" ? "X-Chain" : "P-Chain",
-            status: "ready" as const,
-          })),
-        });
+        // a failed probe is asked once more, and the row says so meanwhile
+        if (found.unknown.length > 0) {
+          setResolved({ q, hits: [bech32Pending(q, found.unknown)] });
+          found = await bech32AddressCached(targets.network, q);
+          if (cancelled) return;
+        }
+        setResolved({ q, hits: bech32Rows(q, targets.network, found) });
       } else {
         // CB58 — a P-Chain or X-Chain id: the search API answers for the
         // P-Chain; on a miss the X-Chain's tx/asset probes take over
