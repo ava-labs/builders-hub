@@ -38,6 +38,8 @@ exclude = [
   '^https?://(www\.)?example\.(com|org)',
   # Archived snapshots are immutable and the archive refuses bursts
   '^https://web\.archive\.org/',
+  # A deleted GitHub account, linked as an ACP author
+  '^https://github\.com/crypto-virgil$',
 ]
 
 # A GitHub blob page can answer 503 under load. The raw file of the same path answers 200 or 404, so check that.
