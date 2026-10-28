@@ -96,13 +96,16 @@ describe('xchainHit', () => {
 
 /* A bech32 address is one account on the P-Chain and the X-Chain. An X-/P-
    prefix selects the chain outright; a bare avax1… asks both chains whether
-   they hold the account and returns a hit per claimant, P-Chain first. */
+   they hold the account and returns a hit per claimant, P-Chain first. The
+   X-Chain node's UTXO read settles an X-Chain holder at once; an address with
+   no UTXO waits for the explorer API's history read. */
 
 const ADDR = 'avax1xph3ysxkmj2zlhac6nz9hj9cx2av4f7xa9a245';
 const P_EMPTY = { utxoCount: 0, utxos: [], balance: { total: '0' }, breakdown: { atomicMemoryUnlocked: '0', atomicMemoryLocked: '0' } };
 const P_LIVE = { utxoCount: 2, utxos: [{}], balance: { total: '5' }, breakdown: { atomicMemoryUnlocked: '0', atomicMemoryLocked: '0' } };
 const X_EMPTY = { balances: [], transactions: [] };
 const X_LIVE = { balances: [{ balance: '10', utxoCount: 1 }], transactions: [{}] };
+const X_DRAINED = { balances: [], transactions: [{}] };
 
 /* A read's answer: a body as 200, a number as that status, `soft(n)` as the
    soft answer a proxy gives a read that asks (200 with x-status n), an Error
@@ -115,10 +118,18 @@ function reply(a: Answer): Response {
   if ('soft' in a) return new Response('{}', { status: 200, headers: { 'x-status': String(a.soft) } });
   return new Response(JSON.stringify(a), { status: 200 });
 }
+const utxos = (n: number) => ({
+  jsonrpc: '2.0',
+  id: 1,
+  result: { numFetched: String(n), utxos: Array(n).fill('0x00') },
+});
 
-/** P-Chain address read, X-Chain address read */
-function addressFetch(p: Answer, x: Answer) {
-  return vi.fn(async (input: RequestInfo | URL) => reply(String(input).includes('/api/pchain/') ? p : x));
+/** P-Chain address read, X-Chain history read, X-Chain node UTXO read */
+function addressFetch(p: Answer, x: Answer, utxo: Answer = utxos(0)) {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    return reply(url.includes('/api/pchain/') ? p : url.includes('/ext/bc/X') ? utxo : x);
+  });
 }
 
 /* The same reads through the real /api/pchain and /api/xchain routes, whose
@@ -130,6 +141,7 @@ function proxiedFetch(upstream: (url: string) => Response) {
   const answered: string[] = [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    if (url.includes('/ext/bc/X')) return reply(utxos(0));
     if (!url.startsWith('/')) return upstream(url);
     const [, , proxy, network, ...path] = url.split('/');
     const { GET } =
@@ -260,19 +272,65 @@ describe('bech32AddressCached', () => {
     const q = 'avax1dddddddddddddddddddddddddddddddddddddd';
     await bech32AddressCached('mainnet', q);
     await bech32AddressCached('mainnet', q);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // the P-Chain read, the X-Chain history read and the X-Chain UTXO read
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('asks the x-chain node for one utxo on the box network', async () => {
+    const fetchMock = addressFetch(P_EMPTY, X_EMPTY);
+    vi.stubGlobal('fetch', fetchMock);
+    const q = 'fuji1eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+    await bech32AddressCached('fuji', q);
+    const call = fetchMock.mock.calls.find(([u]) => String(u).includes('/ext/bc/X'));
+    expect(call?.[0]).toBe('/api/avalanche-api/fuji/ext/bc/X');
+    const init = call?.[1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      method: 'avm.getUTXOs',
+      params: { addresses: [`X-${q}`], limit: 1 },
+    });
+  });
+
+  it('claims an x-chain holder from its utxo while the history read times out', async () => {
+    vi.stubGlobal('fetch', addressFetch(P_EMPTY, soft(504), utxos(1)));
+    const q = 'avax1ffffffffffffffffffffffffffffffffffffff';
+    expect(await bech32AddressCached('mainnet', q)).toEqual({
+      hits: [{ chain: 'x-chain', id: `X-${q}` }],
+      unknown: [],
+    });
+  });
+
+  it('claims a drained x-chain address from its history', async () => {
+    vi.stubGlobal('fetch', addressFetch(P_EMPTY, X_DRAINED, utxos(0)));
+    const q = 'avax1gggggggggggggggggggggggggggggggggggggg';
+    expect((await bech32AddressCached('mainnet', q)).hits).toEqual([{ chain: 'x-chain', id: `X-${q}` }]);
+  });
+
+  it('falls back to the history read when the x-chain node refuses', async () => {
+    for (const [i, utxo] of [
+      429,
+      502,
+      { jsonrpc: '2.0', id: 1, error: { code: -32000, message: 'busy' } },
+      new Error('down'),
+    ].entries()) {
+      vi.stubGlobal('fetch', addressFetch(P_EMPTY, X_LIVE, utxo));
+      const q = `avax1h${i}`;
+      expect((await bech32AddressCached('mainnet', q)).hits, JSON.stringify(utxo)).toEqual([
+        { chain: 'x-chain', id: `X-${q}` },
+      ]);
+    }
   });
 
   it('reports a failed x-chain probe as unknown, not absent, and asks again on the next call', async () => {
     const q = 'avax1jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj';
-    // the soft 504 the proxy gives at its 15 s cap
-    const failing = addressFetch(P_EMPTY, soft(504));
+    // the soft 504 the proxy gives at its 15 s cap, and no UTXO answer
+    const failing = addressFetch(P_EMPTY, soft(504), 502);
     vi.stubGlobal('fetch', failing);
     expect(await bech32AddressCached('mainnet', q)).toEqual({
       hits: [{ chain: 'p-chain', id: q }],
       unknown: ['x-chain'],
     });
-    const answering = addressFetch(P_EMPTY, X_LIVE);
+    const answering = addressFetch(P_EMPTY, X_LIVE, 502);
     vi.stubGlobal('fetch', answering);
     expect(await bech32AddressCached('mainnet', q)).toEqual({
       hits: [{ chain: 'x-chain', id: `X-${q}` }],
@@ -319,19 +377,19 @@ describe('bech32AddressCached', () => {
     const q = 'avax1llllllllllllllllllllllllllllllllllllll';
     vi.stubGlobal('fetch', addressFetch(P_EMPTY, X_EMPTY));
     await bech32AddressCached('mainnet', q);
-    const again = addressFetch(P_LIVE, X_LIVE);
+    const again = addressFetch(P_LIVE, X_LIVE, utxos(1));
     vi.stubGlobal('fetch', again);
     expect(await bech32AddressCached('mainnet', q)).toEqual({ hits: [{ chain: 'p-chain', id: q }], unknown: [] });
     expect(again).not.toHaveBeenCalled();
   });
 
   it('shares a probe in flight between the dropdown and Enter', async () => {
-    const fetchMock = addressFetch(P_EMPTY, X_LIVE);
+    const fetchMock = addressFetch(P_EMPTY, X_LIVE, utxos(1));
     vi.stubGlobal('fetch', fetchMock);
     const q = 'avax1mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm';
     const [a, b] = await Promise.all([bech32AddressCached('mainnet', q), bech32AddressCached('mainnet', q)]);
     expect(a).toEqual(b);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
 

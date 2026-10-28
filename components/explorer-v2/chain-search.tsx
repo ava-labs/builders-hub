@@ -348,10 +348,23 @@ interface XAddress {
 const xHas = (d: XAddress) =>
   (d.transactions?.length ?? 0) > 0 || (d.balances ?? []).some((b) => nz(b.balance) || (b.utxoCount ?? 0) > 0);
 
+/* The X-Chain node answers "has a UTXO" in about 0.1 s. The explorer API's
+   address read walks the whole history: 3 to 32 s cold, and the proxy cuts
+   it at 15 s. So a UTXO settles it; only an address with none waits for the
+   history read, as a drained address still has its txs. The history read
+   starts at once either way: it also warms the address page's own read. */
 function xchainAddressHas(network: string, bare: string): Promise<Holds> {
-  return fetch(`/api/xchain/${network}/address/${encodeURIComponent(bare)}`, SOFT_READ)
+  const history = fetch(`/api/xchain/${network}/address/${encodeURIComponent(bare)}`, SOFT_READ)
     .then((res) => holdsOf(res, xHas))
     .catch(() => "unknown" as const);
+  const utxo = { jsonrpc: "2.0", id: 1, method: "avm.getUTXOs", params: { addresses: [`X-${bare}`], limit: 1, encoding: "hex" } };
+  return fetch(`/api/avalanche-api/${network}/ext/bc/X`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(utxo),
+  })
+    .then(async (res) => (res.ok && ((await res.json()).result?.utxos?.length ?? 0) > 0 ? ("yes" as const) : history))
+    .catch(() => history);
 }
 
 const holdsCache = new Map<string, Promise<Holds>>();
