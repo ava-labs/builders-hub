@@ -91,7 +91,7 @@ Validators charge a fee as a percentage of delegator rewards:
 ```
 
 <Callout type="info">
-Post-Durango, the P-Chain ignores the transaction start time — validation begins when the transaction is accepted. `--start` is retained for compatibility but has no on-chain effect on current networks.
+Post-Durango, the P-Chain ignores the transaction start time. Validation begins when the network accepts the transaction. Platform CLI keeps `--start` for compatibility, but the flag has no on-chain effect on current networks.
 </Callout>
 
 ### Duration
@@ -115,7 +115,7 @@ By default, rewards go to your P-Chain address. Specify a different address with
 
 ## Auto-Renewed Staking (ACP-236)
 
-An auto-renewed validator automatically restakes at the end of each cycle instead of expiring, optionally compounding its rewards. The configuration for the *next* cycle can be updated at any time by the owner address set when the validator was added.
+An auto-renewed validator automatically restakes at the end of each cycle instead of expiring, optionally compounding its rewards. The owner address can update the configuration for the *next* cycle at any time. You set this owner address when you add the validator.
 
 ### Add an Auto-Renewed Validator
 
@@ -147,7 +147,7 @@ platform-cli validator add-auto-renewed \
 
 ### Update the Next-Cycle Config
 
-Change the next cycle's period and auto-compound rate, or stop auto-renewal. Must be signed by the `--owner-address` set at add time, and references the original `add-auto-renewed` transaction ID.
+Change the next cycle's period and auto-compound rate, or stop auto-renewal. Sign this transaction with the `--owner-address` that you set at add time. The transaction references the original `add-auto-renewed` transaction ID.
 
 ```bash
 platform-cli validator set-auto-renewed-config \
