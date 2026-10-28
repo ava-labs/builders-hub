@@ -1,7 +1,11 @@
-/* Pure helpers over a transaction trace: flatten the call tree, derive
-   the balance changes an execution caused (native from the account diff,
-   tokens from Transfer logs), and size gas per frame. No React, no fetch;
-   the tx page's trace section composes these. */
+/* Pure helpers over a transaction trace: flatten the call tree, derive the
+   token balance changes from Transfer logs, and size gas per frame. The
+   trace is stats-api's (/evm-api/{chain}/tx/{hash}/trace; lib/trace-stats.ts).
+   No React, no fetch; the tx page's trace section and the chat compose these.
+
+   The indexed trace holds no per-frame error and no link from a log to the
+   frame that emitted it. So only the top frame of a reverted tx carries an
+   error, and the logs stay a flat list in log index order. */
 
 import { ERC20_TRANSFER_TOPIC } from "@/lib/token-list";
 
@@ -16,42 +20,20 @@ export interface TraceFrame {
   gasUsed: string;
   error?: string;
   revertReason?: string;
-  logs?: { address: string; topics: string[]; data: string; position?: string }[];
   calls?: TraceFrame[];
 }
 
-export interface PrestateAccount {
-  balance?: string;
-  nonce?: number;
-  code?: string;
-  storage?: Record<string, string>;
+export interface TraceLog {
+  address: string;
+  topics: string[];
+  data: string;
+  logIndex: number;
 }
 
-/** where the gas went, from the gas tracer (lib/debug-trace.ts). The trace
- *  route answers these as null; the tx page asks for them apart
- *  (/api/trace/<chain>/<hash>/gas) and merges them into the trace */
-export interface GasProfile {
-  /** per opcode, at every depth, the most gas first */
-  opcodes: { op: string; gas: number; count: number }[] | null;
-  /** the opcodes executed */
-  steps: number | null;
-  /** the callTracer root reports gas charged under ACP-194; this is what
-   *  execution used. Null for a tx that ran no code */
-  gas: {
-    limit: number;
-    /** before the first opcode: 21,000 plus calldata and access list */
-    intrinsic: number;
-    /** what the top call's opcodes cost, its calls included */
-    execution: number;
-    /** what the EVM credited back at the end: none since Apricot Phase 1 */
-    refund: number;
-    used: number;
-  } | null;
-}
-
-export interface TraceResponse extends GasProfile {
+export interface TraceResponse {
   call: TraceFrame;
-  prestate: { pre: Record<string, PrestateAccount>; post: Record<string, PrestateAccount> } | null;
+  /** every log the tx emitted, in log index order */
+  logs: TraceLog[];
 }
 
 export const hexInt = (v: string | undefined): number => (v ? parseInt(v, 16) : 0);
@@ -99,38 +81,15 @@ export function flatten(root: TraceFrame): FlatFrame[] {
 }
 
 /** every distinct contract the execution touched */
-export function contractsIn(root: TraceFrame): string[] {
+export function contractsIn(t: TraceResponse): string[] {
   const set = new Set<string>();
   const walk = (f: TraceFrame) => {
     if (f.to) set.add(f.to.toLowerCase());
-    for (const l of f.logs ?? []) set.add(l.address.toLowerCase());
     (f.calls ?? []).forEach(walk);
   };
-  walk(root);
+  walk(t.call);
+  for (const l of t.logs) set.add(l.address.toLowerCase());
   return [...set];
-}
-
-/** all logs in execution order, with the frame that emitted them */
-export function logsIn(root: TraceFrame): { frameId: string; log: NonNullable<TraceFrame["logs"]>[number] }[] {
-  const out: { frameId: string; log: NonNullable<TraceFrame["logs"]>[number] }[] = [];
-  const walk = (f: TraceFrame, id: string) => {
-    // callTracer orders a frame's logs and calls separately; `position`
-    // says after which child call a log fired, so interleave on it
-    const kids = f.calls ?? [];
-    const logs = [...(f.logs ?? [])].sort((a, b) => hexInt(a.position) - hexInt(b.position));
-    let li = 0;
-    for (let ci = 0; ci <= kids.length; ci++) {
-      while (li < logs.length && hexInt(logs[li].position) <= ci && (ci < kids.length || true)) {
-        if (hexInt(logs[li].position) > ci) break;
-        out.push({ frameId: id, log: logs[li] });
-        li++;
-      }
-      if (ci < kids.length) walk(kids[ci], `${id}.${ci}`);
-    }
-    while (li < logs.length) out.push({ frameId: id, log: logs[li++] });
-  };
-  walk(root, "0");
-  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -138,30 +97,24 @@ export function logsIn(root: TraceFrame): { frameId: string; log: NonNullable<Tr
 
 export interface BalanceChange {
   address: string;
-  /** null = the chain's native coin */
-  token: string | null;
+  /** the token contract */
+  token: string;
   delta: bigint;
 }
 
-/** native deltas from the account diff, token deltas from Transfer logs */
-export function balanceChanges(t: Pick<TraceResponse, "call" | "prestate">): BalanceChange[] {
+/** token deltas from the tx's Transfer logs. A reverted call keeps no logs,
+ *  so these are the moves that held. Native coin deltas are not here: the
+ *  trace rows do not say which inner calls reverted */
+export function balanceChanges(t: Pick<TraceResponse, "logs">): BalanceChange[] {
   const out = new Map<string, BalanceChange>();
-  const add = (address: string, token: string | null, delta: bigint) => {
+  const add = (address: string, token: string, delta: bigint) => {
     if (delta === 0n) return;
-    const k = `${address}:${token ?? "native"}`;
+    const k = `${address}:${token}`;
     const cur = out.get(k);
     if (cur) cur.delta += delta;
     else out.set(k, { address, token, delta });
   };
-  if (t.prestate) {
-    const { pre, post } = t.prestate;
-    for (const a of new Set([...Object.keys(pre), ...Object.keys(post)])) {
-      const b0 = hexBig(pre[a]?.balance);
-      const b1 = post[a]?.balance !== undefined ? hexBig(post[a].balance) : b0;
-      if (post[a] && post[a].balance !== undefined) add(a.toLowerCase(), null, b1 - b0);
-    }
-  }
-  for (const { log } of logsIn(t.call)) {
+  for (const log of t.logs) {
     if ((log.topics[0] ?? "").toLowerCase() !== ERC20_TRANSFER_TOPIC || log.topics.length !== 3 || log.data.length < 66) continue;
     const from = `0x${log.topics[1].slice(26)}`.toLowerCase();
     const to = `0x${log.topics[2].slice(26)}`.toLowerCase();
@@ -170,44 +123,4 @@ export function balanceChanges(t: Pick<TraceResponse, "call" | "prestate">): Bal
     add(to, log.address.toLowerCase(), amount);
   }
   return [...out.values()].filter((c) => c.delta !== 0n);
-}
-
-/* ------------------------------------------------------------------ */
-/* Storage changes                                                     */
-
-export interface StorageChange {
-  contract: string;
-  slot: string;
-  before: string | null;
-  after: string | null;
-}
-
-export function storageChanges(t: Pick<TraceResponse, "prestate">): StorageChange[] {
-  if (!t.prestate) return [];
-  const { pre, post } = t.prestate;
-  const out: StorageChange[] = [];
-  for (const [a, acct] of Object.entries(post)) {
-    const slots = new Set([...Object.keys(acct.storage ?? {}), ...Object.keys(pre[a]?.storage ?? {})]);
-    for (const s of slots) {
-      const before = pre[a]?.storage?.[s] ?? null;
-      const after = acct.storage?.[s] ?? null;
-      if (before !== after) out.push({ contract: a.toLowerCase(), slot: s, before, after });
-    }
-  }
-  return out;
-}
-
-/** a 32-byte word as the friendliest thing it can be: an address if it
- *  looks like one, a small integer if it is one, else the hex */
-export function wordLabel(word: string | null): string {
-  if (!word) return "∅";
-  const w = word.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-  if (/^0{24}[0-9a-f]{40}$/.test(w) && !/^0{64}$/.test(w) && !/^0{40}/.test(w.slice(24))) return `0x${w.slice(24)}`;
-  try {
-    const n = BigInt(`0x${w}`);
-    if (n < 10n ** 30n) return n.toLocaleString("en-US");
-  } catch {
-    /* fall through */
-  }
-  return `0x${w.slice(0, 8)}…${w.slice(-6)}`;
 }

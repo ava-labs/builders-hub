@@ -126,14 +126,11 @@ describe('the explorer proxies', () => {
 });
 
 describe('a node this deployment does not have', () => {
-  it('leaves the tx page without a trace, softly', async () => {
-    vi.stubEnv('FUJI_DEBUG_RPC_URL', '');
-    vi.resetModules();
+  it('leaves the tx page of an untraced chain without a trace, softly', async () => {
     const { GET } = await import('@/app/api/trace/[chainId]/[txHash]/route');
-    const res = await GET(soft(`http://localhost/api/trace/43113/${HASH}`), { params: Promise.resolve({ chainId: '43113', txHash: HASH }) });
+    const res = await GET(soft(`http://localhost/api/trace/1/${HASH}?block=1`), { params: Promise.resolve({ chainId: '1', txHash: HASH }) });
     expect(res.status).toBe(200);
     expect(statusOf(res)).toBe(404);
-    vi.unstubAllEnvs();
   });
 
   it('answers the burn as a soft 503, which stops the blocks list asking', async () => {
