@@ -38,7 +38,7 @@ export class ScanLimitError extends Error {
   }
 }
 
-/** the query service was still busy (503) or over the rate (429) after the short waits: the same read works again shortly */
+/** the query service was still busy (503) or over the rate (429) after the waits of BUSY_WAITS_MS: the same read works again shortly */
 export class QueryBusyError extends Error {
   constructor(message: string) {
     super(message);
@@ -132,6 +132,10 @@ interface StatsQueryJson {
 /* the endpoint runs two ad-hoc queries at once and turns a third away
    (503), so this instance holds its own two slots and waits for one */
 const STATS_SLOTS = 2;
+/* the waits before each new try while the service is busy (503) or over the rate (429, which says how long). Each
+   replica runs two queries, for every caller, and turns a third away at once; under load one query holds its slot
+   10 to 30 s (2026-10-27), so a read waits about 23 s for a slot */
+const BUSY_WAITS_MS = [1_000, 2_000, 4_000, 8_000, 8_000];
 let statsBusy = 0;
 const statsQueue: (() => void)[] = [];
 
@@ -152,12 +156,12 @@ const CUT_OFF = "the query service cut its answer off, as it does when a value i
 async function postStats(sql: string, chainId?: number): Promise<RawJson> {
   const key = process.env.STATS_QUERY_KEY;
   if (!key) throw new Error("STATS_QUERY_KEY is not set");
-  // busy (503) and over the rate (429) are worth a short wait; other
+  // busy (503) and over the rate (429) are worth a wait; other
   // instances share the key, so this one's slots are not the whole story
   let res: Response | null = null;
   let text = "";
   let pages = 0;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  for (let attempt = 0; ; attempt += 1) {
     // the rows stream: the query runs until the body is read, so the slot is held until then
     const got = await statsSlot(async () => {
       const r = await fetch(STATS_QUERY_URL, {
@@ -177,9 +181,10 @@ async function postStats(sql: string, chainId?: number): Promise<RawJson> {
       continue;
     }
     if (res.status !== 429 && res.status !== 503) break;
+    const wait = BUSY_WAITS_MS[attempt];
+    if (wait === undefined) break;
     const after = Number(res.headers.get("retry-after"));
-    if (attempt === 3) break;
-    await new Promise((r) => setTimeout(r, Math.min(8, Number.isFinite(after) && after > 0 ? after : 1 + attempt) * 1000));
+    await new Promise((r) => setTimeout(r, Number.isFinite(after) && after > 0 ? Math.min(8_000, after * 1000) : wait));
   }
   if (!res) throw new Error("stats-api did not answer");
   let body: StatsQueryJson;
