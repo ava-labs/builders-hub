@@ -16,9 +16,8 @@ const handFiltered = (fuji: boolean) => CATALOG.filter((c) => (c.isTestnet === t
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
-// stats-api tracks no chain, the subnet list is empty, and the market has no price
+// stats-api tracks no chain, and the market has no price
 function upstream(url: string): Response {
-  if (url.includes('/v1/networks/mainnet/subnets?')) return json({ subnets: [] });
   if (url.includes('coingecko')) return json({});
   return json({ error: 'Not Found' }, 404);
 }

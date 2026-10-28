@@ -52,7 +52,6 @@ interface OverviewData {
     totalActiveAddresses: number;
     totalICMMessages: number;
     totalValidators: number;
-    activeL1Count: number;
     contributors?: { txCount: number; activeAddresses: number; icmMessages: number };
   };
 }
