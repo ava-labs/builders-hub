@@ -370,7 +370,7 @@ function RemoveExpiredValidatorRegistration() {
     });
   }, [events, validatorIdHexSet, nowSeconds, validatorStatusById]);
 
-  const handleForceRemove = async (validationId: string) => {
+  const handleForceRemove = async (validationId: string, initiateTxHash: string) => {
     setActionState((s) => ({
       ...s,
       [validationId]: {
@@ -384,8 +384,14 @@ function RemoveExpiredValidatorRegistration() {
       if (!walletClient || !viemChain || !walletClient.account) throw new Error('Wallet/chain not initialized');
       if (!subnetId) throw new Error('Subnet ID required');
 
-      const justification = await findRegistrationJustification(validationId, subnetId, chainPublicClient!);
-      if (!justification) throw new Error('Could not build justification for this validation ID');
+      // The event's tx is the initiate tx, so the justification needs no log search
+      const justification = await findRegistrationJustification({
+        validationId: validationId as `0x${string}`,
+        subnetId,
+        publicClient: chainPublicClient!,
+        validatorManager: validatorManagerAddress as `0x${string}`,
+        initiateTxHash: initiateTxHash as `0x${string}`,
+      });
 
       const innerRemovalMsg = newL1ValidatorRegistrationMessage(hexToCB58(validationId as `0x${string}`), false);
       const unsignedRemovalMsg = newWarpMessage(
@@ -628,7 +634,7 @@ function RemoveExpiredValidatorRegistration() {
                         </div>
                         <Button
                           variant="primary"
-                          onClick={() => handleForceRemove(ev.validationId)}
+                          onClick={() => handleForceRemove(ev.validationId, ev.txHash)}
                           disabled={!!state?.isProcessing || !subnetId}
                           className="shrink-0"
                         >

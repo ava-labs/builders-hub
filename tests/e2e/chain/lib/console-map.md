@@ -124,6 +124,7 @@ Count these when you set your own poll rate. They are the app's requests; the No
 - A reverted C-Chain or Fuji tx makes the page read the site's own `/api/trace` for the revert reason, up to 4 times in about 6 s (`lib/trace-revert.ts`).
 - Each Warp click: one Glacier aggregation request per page-side attempt (up to 4).
 - Remove expired registration: one `eth_getLogs` per 2,000 blocks from 'From Block' to the head.
+- Complete a removal (PoA and PoS): about 10 to 20 `eth_getBlockByNumber` to find the block where the registration completed, then one `eth_getLogs` per 100 blocks back from it, usually one (`utils/registrationJustification.ts`).
 
 ### 1.11 The P-Chain balance warning
 
