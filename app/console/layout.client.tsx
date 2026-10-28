@@ -7,7 +7,6 @@ import { ConsoleSidebar } from "../../components/console/console-sidebar";
 import { SiteHeader } from "../../components/console/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
-import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
 import { OnboardingTour } from "@/components/console/onboarding-tour";
@@ -40,24 +39,12 @@ function ConsolePageTransition({ children, fill }: { children: ReactNode; fill: 
 /** Pages that fit between the header and the footer and scroll inside their own panes. */
 const FILL_ROUTES = [/^\/console\/studio\/[^/]+$/];
 
-/**
- * Runs the automated faucet in a leaf. The hook reads the whole wallet store, so its component renders again on each
- * wallet store write. In ConsoleContent, that render also rendered WalletProvider and wagmi's Hydrate again. With
- * `ssr: false`, Hydrate calls reconnect() in each render, and the reconnect updated ConnectModal and WalletSync
- * during that render: React's "Cannot update a component while rendering a different component" warning.
- */
-function AutomatedFaucet() {
-  useAutomatedFaucet();
-  return null;
-}
-
 function ConsoleContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const fill = FILL_ROUTES.some((route) => route.test(pathname));
 
   return (
     <WalletProvider>
-      <AutomatedFaucet />
       <LayoutWrapper baseOptions={baseOptions}>
         <NavbarDropdownInjector />
         <ConsoleViewport>
