@@ -23,8 +23,8 @@ import {
 import type { L1Chain } from "@/types/stats";
 import { resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { isGenesisCode, knownAddress } from "@/lib/evm-explorer";
-import { balanceChanges, hexBig, hexInt, type TraceFrame } from "@/lib/trace";
-import { getGasProfile, getTrace } from "@/lib/trace-node";
+import { balanceChanges, hexBig, hexInt, type TraceFrame, type TraceResponse } from "@/lib/trace";
+import { getTrace } from "@/lib/trace-clickhouse";
 import { getVerifiedContractResolvingProxies } from "@/lib/sourcify";
 import { decodeEventLog as registryDecodeEvent, decodeFunctionInput as registryDecodeInput } from "@/abi/event-signatures.generated";
 import { docsTools } from "@/lib/mcp/tools";
@@ -174,7 +174,7 @@ const heliconLive = (scope: ChainScope, unixSeconds?: number) =>
 const GAS_GLOSSARY = `Gas vocabulary on this chain (ACP-194, Continuous Execution, live since the Helicon upgrade):
 - Gas reserved: the sum of the gas limits of a block's transactions. It is what fills a block and what the block header reports as gasUsed.
 - Gas charged: what the sender pays for, max(gas used, half the gas limit). It is the receipt's gasUsed. Fee = gas charged x effective gas price.
-- Gas used: what execution consumed: intrinsic gas + opcode costs. Since Helicon the EVM credits no storage refund, so gas charged equals gas used unless the half-limit floor applied. Only the execution trace knows the split.
+- Gas used: what execution consumed: intrinsic gas + opcode costs. Since Helicon the EVM credits no storage refund, so gas charged equals gas used unless the half-limit floor applied. The page does not split gas used into intrinsic gas and execution.
 - A transaction is FINAL the moment its block is accepted. The state root commits a few blocks later; that is bookkeeping, not finality. Say "accepted" while its state root is not committed yet, then "state root committed", never "settled", "waiting" or "pending".`;
 
 /* ------------------------------------------------------------------ */
@@ -225,7 +225,7 @@ export async function pageBrief(ref: PageRef, baseUrl: string): Promise<string> 
         const head = ref.scope.rpcUrl ? await withTimeout(txHeadline(ref.scope, ref.hash), 3_000, null) : null;
         if (head) lines.push(head.text);
         lines.push(
-          "The page shows: a status row (Final or Reverted), the state root row, sender and target, value, gas, then tabs: Call Trace (the decoded internal calls with gas per frame), Events, Balance Changes, State, Gas (a flame graph of gas per call).",
+          "The page shows: a status row (Final or Reverted), the state root row, sender and target, value, gas, then tabs: Call Trace (the decoded internal calls with gas per frame), Events, Balance Changes (tokens), Gas (a flame graph of gas per call).",
           "Call page_data before you explain what this transaction did, its calls, events, balance changes or gas. Use the contract names and token symbols it returns; never invent addresses or figures.",
           explorerLinks(ref.scope),
         );
@@ -533,10 +533,9 @@ function decodeLog(log: { address: string; topics: string[]; data: string }, n: 
 
 const MAX_FRAMES = 140;
 
-function walkTree(root: TraceFrame, n: Names, seen: Set<string>): { lines: string[]; frames: number; events: number; maxDepth: number } {
+function walkTree(root: TraceFrame, n: Names, seen: Set<string>): { lines: string[]; frames: number; maxDepth: number } {
   const lines: string[] = [];
   let frames = 0;
-  let events = 0;
   let maxDepth = 0;
   const walk = (f: TraceFrame, depth: number) => {
     frames++;
@@ -552,37 +551,27 @@ function walkTree(root: TraceFrame, n: Names, seen: Set<string>): { lines: strin
     const value = f.value && hexBig(f.value) > 0n ? ` value ${amount(hexBig(f.value), 18)}` : "";
     const fail = f.error ? `  REVERTED${f.revertReason ? `: ${f.revertReason}` : f.error ? ` (${f.error})` : ""}` : "";
     lines.push(`${pad}${f.type} ${target}.${fn}${args}${outs}${value}  [gas ${num(hexInt(f.gasUsed))}]${fail}`);
-    const kids = f.calls ?? [];
-    const logs = [...(f.logs ?? [])].sort((a, b) => hexInt(a.position) - hexInt(b.position));
-    let li = 0;
-    for (let ci = 0; ci <= kids.length; ci++) {
-      while (li < logs.length && hexInt(logs[li].position) <= ci) {
-        events++;
-        lines.push(`${pad}  EVENT ${who(logs[li].address, n, seen)}.${decodeLog(logs[li], n, seen)}`);
-        li++;
-      }
-      if (ci < kids.length) walk(kids[ci], depth + 1);
-    }
+    for (const k of f.calls ?? []) walk(k, depth + 1);
   };
   walk(root, 0);
   if (frames > MAX_FRAMES) lines.push(`... ${num(frames - MAX_FRAMES)} more frames not shown (the tree has ${num(frames)} calls)`);
-  return { lines, frames, events, maxDepth };
+  return { lines, frames, maxDepth };
 }
 
-function collect(root: TraceFrame): { addresses: string[]; selectors: string[]; topics: string[] } {
+function collect(trace: TraceResponse): { addresses: string[]; selectors: string[]; topics: string[] } {
   const addresses = new Set<string>();
   const selectors = new Set<string>();
   const topics = new Set<string>();
   const walk = (f: TraceFrame) => {
     if (f.to) addresses.add(f.to);
     if (f.input && f.input.length >= 10 && !f.type.startsWith("CREATE")) selectors.add(f.input.slice(0, 10));
-    for (const l of f.logs ?? []) {
-      addresses.add(l.address);
-      if (l.topics[0]) topics.add(l.topics[0]);
-    }
     (f.calls ?? []).forEach(walk);
   };
-  walk(root);
+  walk(trace.call);
+  for (const l of trace.logs) {
+    addresses.add(l.address);
+    if (l.topics[0]) topics.add(l.topics[0]);
+  }
   return { addresses: [...addresses], selectors: [...selectors], topics: [...topics] };
 }
 
@@ -600,42 +589,36 @@ async function txData(ref: Extract<PageRef, { kind: "evm-tx" }>, baseUrl: string
   if (!head) return `Transaction ${hash} was not found on ${chainName(scope)} (not executed yet, or wrong chain).`;
   const out: string[] = [`Transaction ${hash} on ${chainName(scope)}`, head.text];
 
-  // in process, not through /api/trace: the chat's own budget lane, and no self-fetch.
-  // The gas split is a second replay on the node: asked only when the tx was charged
-  // half its limit, the one case where gas used and gas charged differ
-  const from = { lane: "chat", ip: "chat" } as const;
-  const atHalfLimit = hexInt(head.receipt.gasUsed) === Math.ceil(hexInt(head.tx.gas) / 2);
-  const [traced, profiled] = await Promise.all([getTrace(scope.chainId ?? "", hash, from), atHalfLimit ? getGasProfile(scope.chainId ?? "", hash, from) : null]);
+  // in process, not through /api/trace: no self-fetch. The trace is the
+  // ingestion pipeline's (ClickHouse), never a replay on a node
+  const traced = await getTrace(scope.chainId ?? "", hash, hexInt(head.tx.blockNumber ?? undefined));
   const trace = "trace" in traced ? traced.trace : null;
-  const sym = nativeSymbol(scope);
-
-  const g = profiled && "profile" in profiled ? profiled.profile.gas : null;
-  if (g) {
-    out.push(`Gas breakdown: limit ${num(g.limit)}; charged ${num(hexInt(head.receipt.gasUsed))} (what the fee is paid on); used by execution ${num(g.used)} = intrinsic ${num(g.intrinsic)} + execution ${num(g.execution)}${g.refund > 0 ? ` - refund ${num(g.refund)}` : " (no storage refund is credited since Helicon)"}.`);
-  }
 
   const root = trace?.call;
-  const col = root ? collect(root) : { addresses: head.receipt.logs.map((l) => l.address).concat(head.tx.to ? [head.tx.to] : []), selectors: head.tx.input.length >= 10 ? [head.tx.input.slice(0, 10)] : [], topics: head.receipt.logs.map((l) => l.topics[0]).filter(Boolean) };
+  const col = trace ? collect(trace) : { addresses: head.receipt.logs.map((l) => l.address).concat(head.tx.to ? [head.tx.to] : []), selectors: head.tx.input.length >= 10 ? [head.tx.input.slice(0, 10)] : [], topics: head.receipt.logs.map((l) => l.topics[0]).filter(Boolean) };
   const n = await loadNames(scope, baseUrl, head.tx.from, col.addresses, col.selectors, col.topics);
   const seen = new Set<string>();
 
   if (root) {
     const tree = walkTree(root, n, seen);
-    out.push(`Call tree: ${num(tree.frames)} calls, ${num(tree.events)} events, depth ${tree.maxDepth}. Format: TYPE contract.function(args) -> outputs [gas]. Indentation = nesting. Names in [brackets] are the address behind a name, shown once. "sender" is the transaction sender ${head.tx.from}.`);
+    out.push(`Call tree: ${num(tree.frames)} calls, depth ${tree.maxDepth}. Format: TYPE contract.function(args) -> outputs [gas]. Indentation = nesting. Names in [brackets] are the address behind a name, shown once. "sender" is the transaction sender ${head.tx.from}. Only the top call of a reverted transaction is marked: the trace does not record which inner calls reverted.`);
     out.push(...tree.lines);
+    out.push(`Events, in log order (${num(trace!.logs.length)}; the trace does not record which call emitted each):`);
+    for (const l of trace!.logs.slice(0, 40)) out.push(`  EVENT ${who(l.address, n, seen)}.${decodeLog(l, n, seen)}`);
+    if (trace!.logs.length > 40) out.push(`  ... ${trace!.logs.length - 40} more`);
     const changes = balanceChanges(trace!);
     if (changes.length) {
-      out.push("Balance changes (fee excluded):");
+      out.push("Token balance changes (native coin changes are not derived):");
       for (const c of changes.slice(0, 16)) {
-        const tok = c.token ? n.tokens.get(c.token) : null;
-        const amt = c.token ? (tok ? `${amount(c.delta, tok.decimals)} ${tok.symbol}` : `${num(c.delta)} units of ${who(c.token, n, seen)}`) : `${amount(c.delta, 18)} ${sym}`;
+        const tok = n.tokens.get(c.token);
+        const amt = tok ? `${amount(c.delta, tok.decimals)} ${tok.symbol}` : `${num(c.delta)} units of ${who(c.token, n, seen)}`;
         out.push(`  ${who(c.address, n, seen)}: ${c.delta > 0n ? "+" : ""}${amt}`);
       }
       if (changes.length > 16) out.push(`  ... ${changes.length - 16} more`);
     }
   } else {
     const miss = "miss" in traced ? traced.miss : null;
-    const reason = miss === "no_node" ? "this chain has no trace node, so internal calls are not available" : miss === "not_found" ? "the trace node does not know this transaction yet" : miss === "too_large" ? "the trace is too large to read" : "the trace node is busy or did not answer";
+    const reason = miss === "no_index" ? "this chain is not traced, so internal calls are not available" : miss === "not_indexed" ? "the trace is not indexed yet" : miss === "too_large" ? "the trace is too large to read" : "the trace query is busy or failed";
     out.push(`No execution trace: ${reason}. The receipt's events follow.`);
     const d = head.tx.to && head.tx.input.length >= 10 ? decodeCall({ type: "CALL", from: head.tx.from, to: head.tx.to, input: head.tx.input, gas: head.tx.gas, gasUsed: head.receipt.gasUsed } as TraceFrame, n, seen) : null;
     if (d) out.push(`Top-level call: ${who(head.tx.to!, n, seen)}.${d.name}(${d.args.join(", ")})`);

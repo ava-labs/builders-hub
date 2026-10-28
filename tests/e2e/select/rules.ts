@@ -83,8 +83,8 @@ export const GROUPS = {
   // api/explorer-query-ictt.e2e.ts asks the Explorer query route a question: a change to the route or to a module it
   // imports (lib/explorer-query/) runs the API tests, beside the Explorer pages that fetch it
   'api-query': { label: 'the Explorer query API', units: ['api'] },
-  // api/trace-gate.e2e.ts checks that the trace route and its gas route refuse crawlers: a change to a route or to a
-  // module it imports (the node budget, the crawler list) runs the API tests, beside the Explorer pages that fetch it
+  // api/trace-gate.e2e.ts checks that the trace route refuses crawlers: a change to the route or to a module it imports
+  // (the ClickHouse reader, the crawler list) runs the API tests, beside the Explorer pages that fetch it
   'api-trace': { label: 'the Explorer trace API', units: ['api'] },
   // An API route that no page names. Its pages are found through the fetch literals (select.ts).
   'api-other': { label: 'other API routes', units: [] },

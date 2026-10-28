@@ -1,8 +1,15 @@
-/* Pure helpers over a transaction trace: flatten the call tree, derive
-   the balance changes an execution caused (native from the account diff,
-   tokens from Transfer logs), and size gas per frame. No React, no fetch;
-   the tx page's trace section composes these. */
+/* Pure helpers over a transaction trace: build the call tree from the
+   ingestion pipeline's rows (raw_traces, raw_logs; lib/trace-clickhouse.ts),
+   flatten it, derive the token balance changes from Transfer logs, and size
+   gas per frame. No React, no fetch; the tx page's trace section and the
+   chat compose these.
 
+   The rows hold no per-frame error and no link from a log to the frame
+   that emitted it. So only the top frame of a reverted tx carries an error
+   (with the reason its output holds), and the logs stay a flat list in
+   log index order. */
+
+import { decodeAbiParameters } from "viem";
 import { ERC20_TRANSFER_TOPIC } from "@/lib/token-list";
 
 export interface TraceFrame {
@@ -16,42 +23,42 @@ export interface TraceFrame {
   gasUsed: string;
   error?: string;
   revertReason?: string;
-  logs?: { address: string; topics: string[]; data: string; position?: string }[];
   calls?: TraceFrame[];
 }
 
-export interface PrestateAccount {
-  balance?: string;
-  nonce?: number;
-  code?: string;
-  storage?: Record<string, string>;
+export interface TraceLog {
+  address: string;
+  topics: string[];
+  data: string;
+  logIndex: number;
 }
 
-/** where the gas went, from the gas tracer (lib/debug-trace.ts). The trace
- *  route answers these as null; the tx page asks for them apart
- *  (/api/trace/<chain>/<hash>/gas) and merges them into the trace */
-export interface GasProfile {
-  /** per opcode, at every depth, the most gas first */
-  opcodes: { op: string; gas: number; count: number }[] | null;
-  /** the opcodes executed */
-  steps: number | null;
-  /** the callTracer root reports gas charged under ACP-194; this is what
-   *  execution used. Null for a tx that ran no code */
-  gas: {
-    limit: number;
-    /** before the first opcode: 21,000 plus calldata and access list */
-    intrinsic: number;
-    /** what the top call's opcodes cost, its calls included */
-    execution: number;
-    /** what the EVM credited back at the end: none since Apricot Phase 1 */
-    refund: number;
-    used: number;
-  } | null;
-}
-
-export interface TraceResponse extends GasProfile {
+export interface TraceResponse {
   call: TraceFrame;
-  prestate: { pre: Record<string, PrestateAccount>; post: Record<string, PrestateAccount> } | null;
+  /** every log the tx emitted, in log index order */
+  logs: TraceLog[];
+}
+
+/** one row of the trace query: a frame (kind 0) or a log (kind 1). Bytes
+ *  and addresses are lower-case hex without 0x; value is a decimal string */
+export interface TraceRow {
+  kind: number;
+  /** a frame's trace_address joined with dots ("" for the top frame), or a log's index */
+  pos: string;
+  type: string;
+  /** a frame's sender, or a log's emitter */
+  src: string;
+  dst: string;
+  /** the frame has no target (a failed creation) */
+  no_to: number | boolean;
+  value: string;
+  gas: number;
+  gas_used: number;
+  /** a frame's input, or a log's data */
+  input: string;
+  /** a frame's output, or a log's topics joined with commas */
+  output: string;
+  ok: boolean;
 }
 
 export const hexInt = (v: string | undefined): number => (v ? parseInt(v, 16) : 0);
@@ -63,6 +70,92 @@ export const hexBig = (v: string | undefined): bigint => {
     return 0n;
   }
 };
+
+const PANICS: Record<number, string> = {
+  0x01: "assert failed",
+  0x11: "arithmetic overflow",
+  0x12: "division by zero",
+  0x21: "invalid enum value",
+  0x22: "bad storage byte array",
+  0x31: "pop on an empty array",
+  0x32: "array index out of bounds",
+  0x41: "out of memory",
+  0x51: "call to an uninitialized function",
+};
+
+/** the reason a reverted call's output holds: an Error(string) message, a
+ *  Panic(uint256) code, or a custom error's selector. Null for an empty
+ *  output, which is also what an out-of-gas stop leaves */
+export function revertReason(output: string | undefined): string | null {
+  const hex = (output ?? "").toLowerCase();
+  if (hex.length < 10) return null;
+  const sel = hex.slice(0, 10);
+  const body = `0x${hex.slice(10)}` as `0x${string}`;
+  try {
+    if (sel === "0x08c379a0") return decodeAbiParameters([{ type: "string" }], body)[0];
+    if (sel === "0x4e487b71") {
+      const code = Number(decodeAbiParameters([{ type: "uint256" }], body)[0]);
+      return `panic 0x${code.toString(16).padStart(2, "0")}${PANICS[code] ? ` (${PANICS[code]})` : ""}`;
+    }
+  } catch {
+    /* not the shape its selector says: name the selector */
+  }
+  return `custom error ${sel}`;
+}
+
+const path = (pos: string): number[] => (pos === "" ? [] : pos.split(".").map(Number));
+
+/** a frame's place before another's: depth-first, parents before children */
+function byPath(a: number[], b: number[]): number {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return a.length - b.length;
+}
+
+/** the call tree and the logs from the trace query's rows, or null when
+ *  the rows hold no top frame. A frame whose parent is missing hangs under
+ *  its nearest ancestor that is there, so no frame is lost */
+export function traceFromRows(rows: TraceRow[]): TraceResponse | null {
+  const frames = rows
+    .filter((r) => Number(r.kind) === 0)
+    .map((r) => ({ r, p: path(r.pos) }))
+    .sort((a, b) => byPath(a.p, b.p));
+  if (frames.length === 0 || frames[0].p.length !== 0) return null;
+
+  const byPos = new Map<string, TraceFrame>();
+  for (const { r, p } of frames) {
+    const value = BigInt(r.value || "0");
+    const f: TraceFrame = {
+      type: r.type,
+      from: `0x${r.src}`,
+      to: r.no_to === true || Number(r.no_to) === 1 ? undefined : `0x${r.dst}`,
+      input: `0x${r.input}`,
+      output: `0x${r.output}`,
+      value: `0x${value.toString(16)}`,
+      gas: `0x${Number(r.gas).toString(16)}`,
+      gasUsed: `0x${Number(r.gas_used).toString(16)}`,
+    };
+    if (p.length > 0) {
+      let up = p.slice(0, -1);
+      while (up.length > 0 && !byPos.has(up.join("."))) up = up.slice(0, -1);
+      const parent = byPos.get(up.join("."))!;
+      (parent.calls ??= []).push(f);
+    }
+    byPos.set(r.pos, f);
+  }
+
+  const call = byPos.get("")!;
+  if (!frames[0].r.ok) {
+    call.error = "execution reverted";
+    const reason = revertReason(call.output);
+    if (reason) call.revertReason = reason;
+  }
+
+  const logs = rows
+    .filter((r) => Number(r.kind) === 1)
+    .map((r) => ({ address: `0x${r.src}`, topics: r.output ? r.output.split(",").map((t) => `0x${t}`) : [], data: `0x${r.input}`, logIndex: Number(r.pos) }))
+    .sort((a, b) => a.logIndex - b.logIndex);
+  return { call, logs };
+}
 
 /** a frame with its place in the tree */
 export interface FlatFrame {
@@ -99,38 +192,15 @@ export function flatten(root: TraceFrame): FlatFrame[] {
 }
 
 /** every distinct contract the execution touched */
-export function contractsIn(root: TraceFrame): string[] {
+export function contractsIn(t: TraceResponse): string[] {
   const set = new Set<string>();
   const walk = (f: TraceFrame) => {
     if (f.to) set.add(f.to.toLowerCase());
-    for (const l of f.logs ?? []) set.add(l.address.toLowerCase());
     (f.calls ?? []).forEach(walk);
   };
-  walk(root);
+  walk(t.call);
+  for (const l of t.logs) set.add(l.address.toLowerCase());
   return [...set];
-}
-
-/** all logs in execution order, with the frame that emitted them */
-export function logsIn(root: TraceFrame): { frameId: string; log: NonNullable<TraceFrame["logs"]>[number] }[] {
-  const out: { frameId: string; log: NonNullable<TraceFrame["logs"]>[number] }[] = [];
-  const walk = (f: TraceFrame, id: string) => {
-    // callTracer orders a frame's logs and calls separately; `position`
-    // says after which child call a log fired, so interleave on it
-    const kids = f.calls ?? [];
-    const logs = [...(f.logs ?? [])].sort((a, b) => hexInt(a.position) - hexInt(b.position));
-    let li = 0;
-    for (let ci = 0; ci <= kids.length; ci++) {
-      while (li < logs.length && hexInt(logs[li].position) <= ci && (ci < kids.length || true)) {
-        if (hexInt(logs[li].position) > ci) break;
-        out.push({ frameId: id, log: logs[li] });
-        li++;
-      }
-      if (ci < kids.length) walk(kids[ci], `${id}.${ci}`);
-    }
-    while (li < logs.length) out.push({ frameId: id, log: logs[li++] });
-  };
-  walk(root, "0");
-  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -138,30 +208,24 @@ export function logsIn(root: TraceFrame): { frameId: string; log: NonNullable<Tr
 
 export interface BalanceChange {
   address: string;
-  /** null = the chain's native coin */
-  token: string | null;
+  /** the token contract */
+  token: string;
   delta: bigint;
 }
 
-/** native deltas from the account diff, token deltas from Transfer logs */
-export function balanceChanges(t: Pick<TraceResponse, "call" | "prestate">): BalanceChange[] {
+/** token deltas from the tx's Transfer logs. A reverted call keeps no logs,
+ *  so these are the moves that held. Native coin deltas are not here: the
+ *  trace rows do not say which inner calls reverted */
+export function balanceChanges(t: Pick<TraceResponse, "logs">): BalanceChange[] {
   const out = new Map<string, BalanceChange>();
-  const add = (address: string, token: string | null, delta: bigint) => {
+  const add = (address: string, token: string, delta: bigint) => {
     if (delta === 0n) return;
-    const k = `${address}:${token ?? "native"}`;
+    const k = `${address}:${token}`;
     const cur = out.get(k);
     if (cur) cur.delta += delta;
     else out.set(k, { address, token, delta });
   };
-  if (t.prestate) {
-    const { pre, post } = t.prestate;
-    for (const a of new Set([...Object.keys(pre), ...Object.keys(post)])) {
-      const b0 = hexBig(pre[a]?.balance);
-      const b1 = post[a]?.balance !== undefined ? hexBig(post[a].balance) : b0;
-      if (post[a] && post[a].balance !== undefined) add(a.toLowerCase(), null, b1 - b0);
-    }
-  }
-  for (const { log } of logsIn(t.call)) {
+  for (const log of t.logs) {
     if ((log.topics[0] ?? "").toLowerCase() !== ERC20_TRANSFER_TOPIC || log.topics.length !== 3 || log.data.length < 66) continue;
     const from = `0x${log.topics[1].slice(26)}`.toLowerCase();
     const to = `0x${log.topics[2].slice(26)}`.toLowerCase();
@@ -170,44 +234,4 @@ export function balanceChanges(t: Pick<TraceResponse, "call" | "prestate">): Bal
     add(to, log.address.toLowerCase(), amount);
   }
   return [...out.values()].filter((c) => c.delta !== 0n);
-}
-
-/* ------------------------------------------------------------------ */
-/* Storage changes                                                     */
-
-export interface StorageChange {
-  contract: string;
-  slot: string;
-  before: string | null;
-  after: string | null;
-}
-
-export function storageChanges(t: Pick<TraceResponse, "prestate">): StorageChange[] {
-  if (!t.prestate) return [];
-  const { pre, post } = t.prestate;
-  const out: StorageChange[] = [];
-  for (const [a, acct] of Object.entries(post)) {
-    const slots = new Set([...Object.keys(acct.storage ?? {}), ...Object.keys(pre[a]?.storage ?? {})]);
-    for (const s of slots) {
-      const before = pre[a]?.storage?.[s] ?? null;
-      const after = acct.storage?.[s] ?? null;
-      if (before !== after) out.push({ contract: a.toLowerCase(), slot: s, before, after });
-    }
-  }
-  return out;
-}
-
-/** a 32-byte word as the friendliest thing it can be: an address if it
- *  looks like one, a small integer if it is one, else the hex */
-export function wordLabel(word: string | null): string {
-  if (!word) return "∅";
-  const w = word.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-  if (/^0{24}[0-9a-f]{40}$/.test(w) && !/^0{64}$/.test(w) && !/^0{40}/.test(w.slice(24))) return `0x${w.slice(24)}`;
-  try {
-    const n = BigInt(`0x${w}`);
-    if (n < 10n ** 30n) return n.toLocaleString("en-US");
-  } catch {
-    /* fall through */
-  }
-  return `0x${w.slice(0, 8)}…${w.slice(-6)}`;
 }

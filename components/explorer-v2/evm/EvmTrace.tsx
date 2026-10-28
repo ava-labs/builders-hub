@@ -8,7 +8,6 @@ import {
   decodeFunctionData,
   decodeFunctionResult,
   encodeAbiParameters,
-  keccak256,
   parseAbiItem,
   parseAbiParameters,
   toFunctionSelector,
@@ -17,45 +16,32 @@ import {
   type AbiParameter,
 } from "viem";
 import { cn } from "@/lib/utils";
-import { Board, HashChip, HEAD, LoadMore } from "@/components/explorer-v2/ui";
+import { Board, HashChip, HEAD } from "@/components/explorer-v2/ui";
 import { Tabs, EmptyRow } from "./AddressTables";
-import { TokenMark, NativeMark } from "./TokenMark";
+import { TokenMark } from "./TokenMark";
 import { useUnlistedTokenMeta } from "./useErc20";
-import { usePrice, usdOfWei } from "./hooks";
 import { useVerifiedContracts, decodeEventWithAbi, type SourcifyContract } from "@/lib/sourcify-client";
 import { decodeEventLog as registryDecodeEvent, decodeFunctionInput as registryDecodeInput } from "@/abi/event-signatures.generated";
 import { declaredSymbol, formatTokenAmount, usdOfToken, useSignatures, useTokenList, useTokenPrices, type SignatureHit, type TokenMap } from "@/lib/token-list";
 import { knownAddress } from "@/lib/evm-explorer";
 import { readRpc } from "@/lib/explorer-rpc";
 import type { TraceState } from "./useTrace";
-import type { GasState } from "./useGasProfile";
 import { GasTab } from "./EvmTraceGas";
 import { TRACE_INK as C } from "./trace-ink";
-import {
-  balanceChanges,
-  contractsIn,
-  flatten,
-  hexBig,
-  hexInt,
-  logsIn,
-  storageChanges,
-  wordLabel,
-  type BalanceChange,
-  type FlatFrame,
-  type TraceFrame,
-  type TraceResponse,
-} from "@/lib/trace";
+import { balanceChanges, contractsIn, flatten, hexBig, hexInt, type BalanceChange, type FlatFrame, type TraceFrame, type TraceResponse } from "@/lib/trace";
 
 /* The execution, dissected, in four views a developer actually reaches
-   for: the call tree with its events in place (what happened, in order),
-   the balance changes (who ended up with what), the storage written
-   (which state moved, with mapping keys recovered so a slot reads as
-   balance[account], not a hash), and where the gas went (EvmTraceGas.tsx).
-   Names come from the token list, Sourcify, the selector registry, then
-   the signature database; anything still unknown stays honest hex. */
+   for: the call tree (what happened, in order), the events, the token
+   balance changes (who ended up with what), and where the gas went
+   (EvmTraceGas.tsx). The trace comes from the ingestion pipeline
+   (useTrace.ts), which records no per-call errors and no link from an
+   event to the call that emitted it: only the top call of a reverted tx is
+   marked, and the events are one list. Names come from the token list,
+   Sourcify, the selector registry, then the signature database; anything
+   still unknown stays honest hex. */
 
-type Tab = "calls" | "events" | "balances" | "state" | "gas";
-const LABELS: Record<Tab, string> = { calls: "Call Trace", events: "Events", balances: "Balance Changes", state: "State", gas: "Gas" };
+type Tab = "calls" | "events" | "balances" | "gas";
+const LABELS: Record<Tab, string> = { calls: "Call Trace", events: "Events", balances: "Balance Changes", gas: "Gas" };
 
 type Kind = "address" | "number" | "bool" | "bytes" | "string" | "tuple" | "name";
 interface Val {
@@ -338,59 +324,6 @@ function decodeLog(log: { address: string; topics: string[]; data: string }, n: 
 }
 
 /* ------------------------------------------------------------------ */
-/* storage: recover mapping keys                                       */
-
-const pad32 = (hex: string) => `0x${hex.replace(/^0x/, "").toLowerCase().padStart(64, "0")}` as `0x${string}`;
-const slotHash = (key: string, base: string) => keccak256(encodeAbiParameters([{ type: "bytes32" }, { type: "bytes32" }], [pad32(key), pad32(base)]));
-
-interface SlotLabel {
-  base: number;
-  keys: string[]; // one key for mapping(k), two for mapping(k1)(k2)
-}
-
-/** which mapping slot and keys a storage key came from, if the key is an
- *  address the execution touched and the mapping lives in one of the first
- *  MAX_BASE slots. Nested mappings (allowance[owner][spender]) too. */
-function labelSlots(keysWanted: Set<string>, addresses: string[], maxBase = 32): Map<string, SlotLabel> {
-  const out = new Map<string, SlotLabel>();
-  const addrs = [...new Set(addresses.map((a) => a.toLowerCase()))].slice(0, 24);
-  const firstLevel: { hash: `0x${string}`; base: number; key: string }[] = [];
-  for (let base = 0; base < maxBase; base++) {
-    for (const a of addrs) {
-      const h = slotHash(a, `0x${base.toString(16)}`);
-      firstLevel.push({ hash: h, base, key: a });
-      if (keysWanted.has(h)) out.set(h, { base, keys: [a] });
-    }
-  }
-  if (out.size < keysWanted.size) {
-    for (const f of firstLevel) {
-      for (const b of addrs) {
-        const h = slotHash(b, f.hash);
-        if (keysWanted.has(h)) out.set(h, { base: f.base, keys: [f.key, b] });
-      }
-    }
-  }
-  return out;
-}
-
-/* ------------------------------------------------------------------ */
-
-/** a 32-byte word without its padding: leading zeros go; a long
- *  remainder keeps both ends so packed fields stay recognisable */
-function shortWord(word: string): string {
-  const body = word.toLowerCase().replace(/^0x/, "").replace(/^0+/, "") || "0";
-  return body.length <= 20 ? `0x${body}` : `0x${body.slice(0, 10)}…${body.slice(-8)}`;
-}
-
-/** a slot by its number when it is a plain index, else its hash kept short */
-function slotName(slot: string): string {
-  const body = slot.toLowerCase().replace(/^0x/, "");
-  const trimmed = body.replace(/^0+/, "") || "0";
-  if (trimmed.length <= 6) return `slot ${parseInt(trimmed, 16)}`;
-  return `0x${body.slice(0, 10)}…${body.slice(-8)}`;
-}
-
-/* ------------------------------------------------------------------ */
 /* frame names                                                        */
 
 /** a frame's name as one line: contract.function */
@@ -439,40 +372,34 @@ function EventBody({ log, n }: { log: { address: string; topics: string[]; data:
 export function EvmTrace({
   trace,
   state,
+  retrying,
+  onLoad,
   chainId,
   base,
   sender,
   symbol,
   charged,
-  gasState,
-  onGasWanted,
 }: {
   /** the receipt's gasUsed: what ACP-194 charged */
   charged?: number;
   trace: TraceResponse | null;
   state: TraceState;
-  /** the gas profile, which joins the trace later (useGasProfile.ts) */
-  gasState: GasState;
-  /** the Gas tab opened, or the pointer or the focus came to it: the page
-   *  asks for the gas profile */
-  onGasWanted: () => void;
+  /** the page asks again for a trace not indexed yet */
+  retrying: boolean;
+  /** the user asks for the trace ("idle" until then) */
+  onLoad: () => void;
   chainId: string;
   base: string;
   sender: string;
   symbol: string;
 }) {
   const [tab, setTab] = useState<Tab>("calls");
-  // big executions write hundreds of slots; the state tab pages them
-  const [stateShown, setStateShown] = useState(60);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  // the gas profile joins the trace as a new object: what reads only the
-  // call tree and the state diff is not worked out again
   const call = trace?.call;
-  const prestate = trace?.prestate ?? null;
+  const logs = useMemo(() => trace?.logs ?? [], [trace]);
   const frames = useMemo(() => (call ? flatten(call) : []), [call]);
-  const logs = useMemo(() => (call ? logsIn(call) : []), [call]);
-  const contracts = useMemo(() => (call ? contractsIn(call) : []), [call]);
+  const contracts = useMemo(() => (trace ? contractsIn(trace) : []), [trace]);
   const verified = useVerifiedContracts(chainId, contracts);
   const tokens = useTokenList(chainId);
 
@@ -491,7 +418,7 @@ export function EvmTrace({
   }, [frames, verified, chainId]);
   const unknownTopics = useMemo(() => {
     const out = new Set<string>();
-    for (const { log } of logs) {
+    for (const log of logs) {
       const abi = verified.get(log.address.toLowerCase())?.abi ?? knownAddress(log.address, chainId)?.abi;
       if (!decodeEventWithAbi(abi, log) && !registryDecodeEvent(log) && log.topics[0]) out.add(log.topics[0].toLowerCase());
     }
@@ -501,28 +428,10 @@ export function EvmTrace({
 
   const n: Names = { tokens, contracts: verified, sigs, chainId, base, sender };
 
-  const changes = useMemo(() => (call ? balanceChanges({ call, prestate }) : []), [call, prestate]);
-  const storage = useMemo(() => storageChanges({ prestate }), [prestate]);
-  const { price } = usePrice(chainId);
-  const usd = price?.price ?? null;
-  const prices = useTokenPrices(chainId, changes.map((c) => c.token).filter((t): t is string => !!t));
+  const changes = useMemo(() => balanceChanges({ logs }), [logs]);
+  const prices = useTokenPrices(chainId, changes.map((c) => c.token));
   // an unlisted token's own decimals scale its balance changes, never its events: a pair's amount0In is not its LP token
-  const unlisted = useUnlistedTokenMeta(readRpc(chainId, undefined), changes.flatMap((c) => (c.token && !tokens.get(c.token) ? [c.token] : [])));
-
-  // every address the execution mentions, for recovering mapping keys
-  const slotLabels = useMemo(() => {
-    if (!call || storage.length === 0) return new Map<string, SlotLabel>();
-    const addrs = new Set<string>();
-    const walk = (f: TraceFrame) => {
-      addrs.add(f.from);
-      if (f.to) addrs.add(f.to);
-      for (const l of f.logs ?? []) for (const t of l.topics.slice(1)) if (/^0x0{24}[0-9a-f]{40}$/i.test(t)) addrs.add(`0x${t.slice(26)}`);
-      (f.calls ?? []).forEach(walk);
-    };
-    walk(call);
-    for (const a of Object.keys(prestate?.post ?? {})) addrs.add(a);
-    return labelSlots(new Set(storage.map((s) => s.slot.toLowerCase())), [...addrs]);
-  }, [call, prestate, storage]);
+  const unlisted = useUnlistedTokenMeta(readRpc(chainId, undefined), changes.flatMap((c) => (!tokens.get(c.token) ? [c.token] : [])));
 
   if (state === "none") return null;
 
@@ -539,65 +448,36 @@ export function EvmTrace({
     return false;
   };
 
-  /** a storage word: an amount on a token contract, else an address,
-   *  an integer, or the full hex */
-  const slotValue = (contract: string, word: string | null): Val => {
-    if (!word) return { kind: "string", text: "∅" };
-    const tok = tokens.get(contract);
-    if (tok) {
-      try {
-        return { kind: "number", text: `${formatTokenAmount(BigInt(word), tok.decimals)} ${tok.symbol}`, title: word };
-      } catch {
-        /* fall through */
-      }
-    }
-    const label = wordLabel(word);
-    if (label.startsWith("0x") && label.length === 42) return addrVal(label, n);
-    if (/^[\d,]+$/.test(label)) return { kind: "number", text: label, title: word };
-    return { kind: "bytes", text: shortWord(word), title: word };
-  };
-
-  /** what a slot moved by, when both sides read as numbers */
-  const slotDelta = (contract: string, before: string | null, after: string | null): { text: string; up: boolean } | null => {
-    let b: bigint, a: bigint;
-    try {
-      b = before ? BigInt(before) : 0n;
-      a = after ? BigInt(after) : 0n;
-    } catch {
-      return null;
-    }
-    if (a === b) return null;
-    const d = a - b;
-    const abs = d < 0n ? -d : d;
-    const tok = tokens.get(contract);
-    if (tok) return { text: `${d < 0n ? "−" : "+"}${formatTokenAmount(abs, tok.decimals)} ${tok.symbol}`, up: d > 0n };
-    // plain integers only; a packed word's difference means nothing
-    if (a < 10n ** 30n && b < 10n ** 30n) return { text: `${d < 0n ? "−" : "+"}${abs.toLocaleString("en-US")}`, up: d > 0n };
-    return null;
-  };
-
   return (
     <section id="execution" className="flex scroll-mt-24 flex-col gap-4">
-      {state === "loading" && (
+      {state === "idle" && (
         <Board divide={false}>
-          <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">tracing execution…</div>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 font-mono text-[11px] text-zinc-500 md:px-6 dark:text-zinc-400">
+            <span>The execution trace: internal calls, events, token balance changes and gas per call.</span>
+            <button type="button" onClick={onLoad} className="border border-zinc-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] dark:border-zinc-700 dark:text-zinc-50">
+              Load trace
+            </button>
+          </div>
         </Board>
       )}
-      {(state === "error" || state === "later") && (
+      {state === "loading" && (
         <Board divide={false}>
-          <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">{state === "later" ? "the trace node is busy · tap or click anywhere to load the trace" : "the trace node did not answer"}</div>
+          <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">reading the trace…</div>
+        </Board>
+      )}
+      {(state === "error" || state === "pending") && (
+        <Board divide={false}>
+          <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
+            {state === "pending" ? `Trace not indexed yet${retrying ? " · trying again shortly" : ""}` : "the trace did not load"}
+          </div>
         </Board>
       )}
       {trace && (
         <>
           <Tabs
-            tabs={["calls", "events", "balances", "state", "gas"]}
+            tabs={["calls", "events", "balances", "gas"]}
             active={tab}
-            onChange={(t) => {
-              setTab(t);
-              if (t === "gas") onGasWanted();
-            }}
-            onIntent={(t) => t === "gas" && onGasWanted()}
+            onChange={setTab}
             labels={{ ...LABELS, events: logs.length ? `Events · ${logs.length}` : "Events" }}
           />
 
@@ -620,7 +500,6 @@ export function EvmTrace({
                 const d = decodeCall(fr, n);
                 const value = hexBig(fr.value);
                 const gas = hexInt(fr.gasUsed);
-                const frameLogs = logs.filter((l) => l.frameId === f.id);
                 const isCollapsed = collapsed.has(f.id);
                 // one rail per ancestor, centred under that ancestor's chevron
                 const rails = (count: number) =>
@@ -708,42 +587,6 @@ export function EvmTrace({
                         {gas.toLocaleString("en-US")}
                       </span>
                     </div>
-                    {frameLogs.map(({ log }, i) => {
-                      const ev = decodeLog(log, n);
-                      return (
-                        // an event sits in the row of a child call: same indent, same
-                        // kind column, so its emitter lines up with a sibling's target
-                        <div key={i} className="relative flex min-h-7 items-center gap-3 py-1 pr-5 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-50/60 md:pr-6 dark:text-zinc-400 dark:hover:bg-zinc-900/60" style={{ paddingLeft: `${20 + (f.depth + 1) * 22}px` }}>
-                          {rails(f.depth + 1)}
-                          <span className="h-4 w-4 shrink-0" aria-hidden />
-                          <span className="w-[6.75rem] shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-rose-600 dark:text-rose-400">event</span>
-                          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5">
-                          <Who addr={log.address} n={n} />
-                          <span className={C.punct}>.</span>
-                          {ev ? (
-                            <>
-                              <span className={cn(C.fn, ev.guessed && "underline decoration-dotted decoration-current underline-offset-4")}>{ev.name}</span>
-                              {ev.params.length > 0 && (
-                                <>
-                                  <span className={C.punct}>(</span>
-                                  {ev.params.map((p, k) => (
-                                    <span key={k} className="inline-flex flex-wrap items-baseline gap-1">
-                                      {p.name && <span className={cn("text-[10px]", C.param)}>{p.name}=</span>}
-                                      <V v={strVal(p.value, p.type, p.name, log.address, n)} />
-                                      {k < ev.params.length - 1 && <span className={C.punct}>,</span>}
-                                    </span>
-                                  ))}
-                                  <span className={C.punct}>)</span>
-                                </>
-                              )}
-                            </>
-                          ) : (
-                            <V v={{ kind: "bytes", text: log.topics[0] ?? "" }} />
-                          )}
-                          </span>
-                        </div>
-                      );
-                    })}
                   </div>
                 );
               })}
@@ -758,19 +601,13 @@ export function EvmTrace({
               {logs.length === 0 && (
                 <EmptyRow>{trace.call.error ? "the transaction reverted, so the chain kept none of its events" : "this transaction emitted no events"}</EmptyRow>
               )}
-              {logs.map(({ frameId, log }, i) => {
-                const caller = frames.find((f) => f.id === frameId);
-                return (
-                  // a phone wraps a 42-character address rather than push it off the screen
-                  <div key={i} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1 px-5 py-2.5 font-mono text-[12px] max-md:[overflow-wrap:anywhere] max-md:[&_.whitespace-nowrap]:whitespace-normal md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,14rem)] md:px-6">
-                    <span className="tabular-nums text-zinc-400 dark:text-zinc-500">#{i}</span>
-                    <EventBody log={log} n={n} />
-                    <span className="col-start-2 truncate text-[11px] text-zinc-400 md:col-start-auto md:text-right dark:text-zinc-500" title="the call that emitted it">
-                      {caller ? `in ${frameLabel(caller, n)}` : ""}
-                    </span>
-                  </div>
-                );
-              })}
+              {logs.map((log, i) => (
+                // a phone wraps a 42-character address rather than push it off the screen
+                <div key={log.logIndex} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-3 px-5 py-2.5 font-mono text-[12px] max-md:[overflow-wrap:anywhere] max-md:[&_.whitespace-nowrap]:whitespace-normal md:px-6">
+                  <span className="tabular-nums text-zinc-400 dark:text-zinc-500">#{i}</span>
+                  <EventBody log={log} n={n} />
+                </div>
+              ))}
             </Board>
           )}
 
@@ -782,30 +619,30 @@ export function EvmTrace({
                 <span className="text-right">Change</span>
                 <span className="text-right">USD</span>
               </div>
-              {changes.length === 0 && <EmptyRow>no balance changed</EmptyRow>}
+              {changes.length === 0 && <EmptyRow>no token balance changed</EmptyRow>}
               {[...changes]
                 .sort((a, b) => {
-                  // the sender first, then anyone with a name, then the rest; native before tokens
+                  // the sender first, then anyone with a name, then the rest
                   const rank = (x: BalanceChange) => (x.address === sender.toLowerCase() ? 0 : nameOf(x.address, n) ? 1 : 2);
-                  return rank(a) - rank(b) || a.address.localeCompare(b.address) || (a.token === null ? -1 : b.token === null ? 1 : a.token.localeCompare(b.token));
+                  return rank(a) - rank(b) || a.address.localeCompare(b.address) || a.token.localeCompare(b.token);
                 })
                 .map((c, i, arr) => {
-                  const tok = c.token ? tokens.get(c.token) : undefined;
-                  const amt = c.token ? tok ?? unlisted.get(c.token) : undefined;
-                  const declared = c.token && !tok ? declaredSymbol(amt?.symbol, tokens, symbol) : null;
+                  const tok = tokens.get(c.token);
+                  const amt = tok ?? unlisted.get(c.token);
+                  const declared = !tok ? declaredSymbol(amt?.symbol, tokens, symbol) : null;
                   const neg = c.delta < 0n;
                   const abs = neg ? -c.delta : c.delta;
-                  const usdText = c.token ? (amt ? usdOfToken(abs, amt.decimals, prices.get(c.token)) : undefined) : usdOfWei(abs, usd);
+                  const usdText = amt ? usdOfToken(abs, amt.decimals, prices.get(c.token)) : undefined;
                   return (
                     <div key={`${c.address}-${c.token}`} className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 font-mono text-[12.5px] transition-colors hover:bg-zinc-50/60 md:h-11 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,12rem)_8rem] md:py-0 md:px-6 dark:hover:bg-zinc-900/60">
                       <span className="min-w-0">{i === 0 || arr[i - 1].address !== c.address ? <Who addr={c.address} n={n} /> : null}</span>
                       <span className="flex min-w-0 items-center gap-1.5">
-                        {!c.token ? <NativeMark symbol={symbol} size={14} /> : tok ? <TokenMark address={c.token} chainId={chainId} token={tok} size={14} /> : nameOf(c.token, n) ? <Who addr={c.token} n={n} /> : <HashChip value={c.token} href={`${base}/address/${c.token}`} len={8} />}
+                        {tok ? <TokenMark address={c.token} chainId={chainId} token={tok} size={14} /> : nameOf(c.token, n) ? <Who addr={c.token} n={n} /> : <HashChip value={c.token} href={`${base}/address/${c.token}`} len={8} />}
                       </span>
                       <span className={cn("tabular-nums md:text-right", neg ? C.no : C.yes)}>
                         {neg ? "−" : "+"}
-                        {c.token ? (amt ? formatTokenAmount(abs, amt.decimals) : abs.toLocaleString("en-US")) : (Number(abs) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })}{" "}
-                        <span className={cn("text-[11px] text-zinc-400 dark:text-zinc-500", declared && "underline decoration-dotted underline-offset-2")} title={declared ? "the symbol the contract declares; the token is not on our token list" : undefined}>{c.token ? tok?.symbol ?? declared ?? "" : symbol}</span>
+                        {amt ? formatTokenAmount(abs, amt.decimals) : abs.toLocaleString("en-US")}{" "}
+                        <span className={cn("text-[11px] text-zinc-400 dark:text-zinc-500", declared && "underline decoration-dotted underline-offset-2")} title={declared ? "the symbol the contract declares; the token is not on our token list" : undefined}>{tok?.symbol ?? declared ?? ""}</span>
                       </span>
                       <span className="tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{usdText ?? "—"}</span>
                     </div>
@@ -814,74 +651,8 @@ export function EvmTrace({
             </Board>
           )}
 
-          {tab === "state" && (
-            <Board divide={false}>
-              <div className={cn(HEAD, "md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_1.25rem_minmax(0,1fr)_minmax(0,9rem)]", "border-b border-zinc-200 dark:border-zinc-800")}>
-                <span>Slot</span>
-                <span className="text-right">Before</span>
-                <span />
-                <span>After</span>
-                <span className="text-right">Change</span>
-              </div>
-              {storage.length === 0 && <EmptyRow>no storage written</EmptyRow>}
-              {storage.slice(0, stateShown).map((s, i, arr) => {
-                const first = i === 0 || arr[i - 1].contract !== s.contract;
-                const label = slotLabels.get(s.slot.toLowerCase());
-                const delta = slotDelta(s.contract, s.before, s.after);
-                const count = first ? storage.filter((x) => x.contract === s.contract).length : 0;
-                return (
-                  <div key={`${s.contract}-${s.slot}`}>
-                    {/* each contract heads its own group, so its slots get the whole width */}
-                    {first && (
-                      <div className="flex items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/70 px-5 py-2 font-mono text-[12px] md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40">
-                        <Who addr={s.contract} n={n} />
-                        <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                          {count} slot{count === 1 ? "" : "s"} written
-                        </span>
-                      </div>
-                    )}
-                    <div className={cn("grid grid-cols-2 items-center gap-x-4 gap-y-1 border-b border-zinc-100 px-5 py-2.5 font-mono text-[12px] transition-colors hover:bg-zinc-50/60 md:h-10 md:py-0 md:px-6 dark:border-zinc-900 dark:hover:bg-zinc-900/60", "md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_1.25rem_minmax(0,1fr)_minmax(0,9rem)]")}>
-                      <span className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap" title={s.slot}>
-                        {label ? (
-                          <>
-                            <span className="shrink-0 text-zinc-400 dark:text-zinc-500">slot {label.base}</span>
-                            {label.keys.map((k, ki) => (
-                              <span key={ki} className="inline-flex min-w-0 items-center">
-                                <span className="text-zinc-300 dark:text-zinc-700">[</span>
-                                <span className="min-w-0 truncate"><Who addr={k} n={n} /></span>
-                                <span className="text-zinc-300 dark:text-zinc-700">]</span>
-                              </span>
-                            ))}
-                          </>
-                        ) : (
-                          <span className={cn("truncate", C.bytes)}>{slotName(s.slot)}</span>
-                        )}
-                      </span>
-                      <span className="min-w-0 truncate md:text-right"><V v={slotValue(s.contract, s.before)} className="whitespace-nowrap text-zinc-500 dark:text-zinc-400" /></span>
-                      <span className={cn("hidden text-center md:block", C.punct)}>→</span>
-                      <span className="min-w-0 truncate"><V v={slotValue(s.contract, s.after)} className="whitespace-nowrap" /></span>
-                      <span className={cn("truncate tabular-nums md:text-right", delta ? (delta.up ? C.yes : C.no) : "text-zinc-300 dark:text-zinc-700")}>
-                        {delta ? delta.text : "—"}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-              {storage.length > stateShown && (
-                <div className="flex justify-center py-3">
-                  <LoadMore onClick={() => setStateShown((v) => v + 60)} label={`Show more · ${storage.length - stateShown} slots`} />
-                </div>
-              )}
-              {storage.length > 0 && (
-                <div className="px-5 py-2.5 font-mono text-[10px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  {storage.length} slots across {new Set(storage.map((x) => x.contract)).size} contracts · mapping keys recovered where the key is an address this execution touched · hover a word for its full value
-                </div>
-              )}
-            </Board>
-          )}
-
           {tab === "gas" && (
-            <GasTab frames={frames} profile={trace} state={gasState} charged={charged} logs={logs} label={(f) => frameLabel(f, n)} base={base} />
+            <GasTab frames={frames} charged={charged} label={(f) => frameLabel(f, n)} base={base} />
           )}
         </>
       )}

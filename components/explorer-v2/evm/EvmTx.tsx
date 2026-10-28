@@ -17,11 +17,10 @@ import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcTx } from "./useRpcTx";
 import { EvmTrace } from "./EvmTrace";
 import { useTrace } from "./useTrace";
-import { useGasProfile } from "./useGasProfile";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useVerifiedContracts, functionNameFromAbi, decodeEventWithAbi, decodeFunctionWithAbi } from "@/lib/sourcify-client";
 import { getEventByTopic, getFunctionBySelector } from "@/abi/event-signatures.generated";
-import { balanceChanges, flatten } from "@/lib/trace";
+import { flatten } from "@/lib/trace";
 import { storyOf } from "@/lib/tx-story";
 import { precompileActs } from "@/lib/precompiles";
 import { EvmTxStory } from "./EvmTxStory";
@@ -216,10 +215,12 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const icmFallback = useIcmFallback(txHash, error === "not found" && !t);
   const icmMessages = t ? icmMessagesInLogs(t.logs) : [];
 
-  // the execution trace, from the debug node; when it is here it carries
-  // the internal calls, token movements and events, so the flat sections
-  // for those step aside
-  const { trace: callTrace, state: traceState } = useTrace(c.chainId, txHash, !!liveRpc);
+  // the execution trace, from the ingestion pipeline (bounded by the tx's
+  // block), asked for on a click only: when it is here it carries the
+  // internal calls, token movements and events, so the flat sections for
+  // those step aside
+  const [traceFor, setTraceFor] = useState<string | null>(null);
+  const { trace, state: traceState, retrying } = useTrace(c.chainId, txHash, liveRpc && t ? t.blockNumber : null, traceFor === txHash);
   const traced = traceState === "ready";
 
   // where the tx's block stands in Continuous Execution
@@ -259,10 +260,6 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const feeSplit = useFeeSplit(liveRpc ?? fallbackRpc, t?.blockNumber, feeFacts);
   // since Helicon (its headers carry the price floor) a tx pays for at least half its gas limit
   const halfLimit = !!t && feeFacts?.floor != null && t.gasUsed === Math.ceil(t.gasLimit / 2);
-  // the trace's gas profile, asked for apart: for the Gas tab, and for a tx
-  // charged half its limit, where the Gas Charged box shows what execution used
-  const [gasWanted, setGasWanted] = useState(false);
-  const { trace, state: gasState } = useGasProfile(c.chainId, txHash, callTrace, { tab: gasWanted, floor: halfLimit });
   // the fee to eight places with the RPC's fee facts, as the Fee box's table reads; a fee under a millionth of the coin in its nano unit or in wei
   const feeFigure = unitParts(formatFeeAmount(feeWei, sym, feeFacts ? 8 : 6));
   const feeNote = [usdOfWei(feeWei, usd), BURN_CHAINS.has(String(c.chainId)) ? "burned" : null, feeFacts ? null : formatNano(gasPriceWei, sym)].filter(Boolean).join(" · ");
@@ -288,12 +285,8 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const acts = t ? precompileActs(c.chainId, t) : [];
   const nativeNet = (() => {
     if (!t) return 0n;
-    if (trace) {
-      const mine = balanceChanges(trace).find((ch) => ch.token === null && ch.address === t.from.toLowerCase());
-      return (mine?.delta ?? 0n) + feeWei;
-    }
     const refunds = t.internalTxns.filter((it) => it.to?.toLowerCase() === t.from.toLowerCase()).reduce((acc, it) => acc + BigInt(it.value || "0"), 0n);
-    // with no trace, native coin the Native Minter sent the sender shows only in its log
+    // native coin the Native Minter sent the sender shows only in its log
     const minted = acts.reduce((acc, a) => (a.kind === "mint" && a.to === t.from.toLowerCase() ? acc + a.amount : acc), 0n);
     return refunds + minted - BigInt(t.value || "0");
   })();
@@ -468,8 +461,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                   <span className="text-red-700 dark:text-red-300">{feeFigure.value}</span> <span className={UNIT}>{feeFigure.unit}</span>
                 </RailRow>
                 {/* ACP-194: the receipt charges max(used, limit / 2), and the fee
-                    is paid on that; what execution actually used comes from
-                    the gas profile */}
+                    is paid on that */}
                 <RailRow
                   label="Gas Charged"
                   sub={
@@ -484,7 +476,6 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                         {gasPct.toFixed(0)}% of the {formatNumber(t.gasLimit)} limit
                       </span>
                       {halfLimit && <span>the minimum charge: half the gas limit</span>}
-                      {trace?.gas && trace.gas.used !== t.gasUsed && <span>{formatNumber(trace.gas.used)} used by execution</span>}
                     </span>
                   }
                 >
@@ -494,7 +485,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </div>
           </section>
 
-          {liveRpc && <EvmTrace trace={trace} state={traceState} gasState={gasState} onGasWanted={() => setGasWanted(true)} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
+          {liveRpc && <EvmTrace trace={trace} state={traceState} retrying={retrying} onLoad={() => setTraceFor(txHash)} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
 
           {!traced && transfers.length > 0 && (
             <section className="flex flex-col gap-4">

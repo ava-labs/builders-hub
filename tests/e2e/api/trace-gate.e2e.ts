@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'e2e';
 import { appFetch } from './app-fetch';
 
-// The trace route and its gas route run work on the shared C-Chain debug node. Crawlers get a 403 there (from the
-// Vercel firewall rule on the deployed site, and from the routes themselves), and robots.txt asks them to stay off
-// them. Chain 1 has no trace node here, so no request in this file reaches a node.
+// The trace route reads a tx's trace from ClickHouse, on the query service's shared slots. Crawlers get a 403 there
+// (from the Vercel firewall rule on the deployed site, and from the route itself), and robots.txt asks them to stay
+// off it. Chain 1 is not traced, so no request in this file runs a query.
 const HASH = `0x${'0'.repeat(63)}1`;
 const CRAWLER = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
 const BROWSER =
@@ -21,18 +21,20 @@ describe('trace route gate', { platforms: ['api'], tags: ['api', 'explorer'] }, 
     expect(text).not.toMatch(/^Disallow: \/api\/og/m);
   });
 
-  test('a crawler gets a 403 on the trace route and the gas route', async ({ app }) => {
-    for (const path of [`/api/trace/1/${HASH}`, `/api/trace/1/${HASH}/gas`]) {
-      const res = await appFetch(app, path, { headers: { 'user-agent': CRAWLER } });
-      expect(res.status, path).toBe(403);
-    }
+  test('a crawler gets a 403 on the trace route', async ({ app }) => {
+    const res = await appFetch(app, `/api/trace/1/${HASH}?block=1`, { headers: { 'user-agent': CRAWLER } });
+    expect(res.status).toBe(403);
   });
 
-  test('a browser gets the route answer: no trace node for chain 1', async ({ app }) => {
-    for (const path of [`/api/trace/1/${HASH}`, `/api/trace/1/${HASH}/gas`]) {
-      const res = await appFetch(app, path, { headers: { 'user-agent': BROWSER } });
-      expect(res.status, path).toBe(404);
-      expect(res.headers.get('cache-control') ?? '', path).not.toContain('s-maxage');
-    }
+  test('a browser gets the route answer: chain 1 is not traced', async ({ app }) => {
+    const res = await appFetch(app, `/api/trace/1/${HASH}?block=1`, { headers: { 'user-agent': BROWSER } });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: 'no_index' });
+    expect(res.headers.get('cache-control') ?? '').not.toContain('s-maxage');
+  });
+
+  test('the gas profile route is gone', async ({ app }) => {
+    const res = await appFetch(app, `/api/trace/43114/${HASH}/gas`, { headers: { 'user-agent': BROWSER } });
+    expect(res.status).toBe(404);
   });
 });
