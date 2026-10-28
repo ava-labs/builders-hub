@@ -39,6 +39,22 @@ export function readAddressedCallPayload(unsignedMessage: Uint8Array): Uint8Arra
 }
 
 /**
+ * Build the justification for the registration of `validationId` from the RegisterL1ValidatorMessage that the
+ * P-Chain RegisterL1ValidatorTx holds. The validation ID is the sha256 of that message, so the message of another
+ * registration of the same node does not match.
+ */
+export function justificationFromRegisterMessage(registerMessageHex: Hex, validationId: Hex): Uint8Array {
+  const payload = hexToBytes(registerMessageHex);
+  const messageValidationId = sha256(payload);
+  if (messageValidationId !== validationId.toLowerCase()) {
+    throw new Error(
+      `The P-Chain transaction belongs to another registration of this node. Its message has validation ID ${messageValidationId}, but the validator manager has validation ID ${validationId} for the node. Enter the P-Chain transaction of the current registration.`,
+    );
+  }
+  return marshalRegisterMessageJustification(payload);
+}
+
+/**
  * Find the RegisterL1ValidatorMessage for `validationIdHex` by looking up the
  * ValidatorManager events indexed on that validation ID, then reading the warp
  * log from the transaction that emitted them.
