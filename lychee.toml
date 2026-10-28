@@ -39,3 +39,19 @@ exclude = [
   # Archived snapshots are immutable and the archive refuses bursts
   '^https://web\.archive\.org/',
 ]
+
+# A GitHub blob page can answer 503 under load. The raw file of the same path answers 200 or 404, so check that.
+# Only a path that ends in a file extension is remapped: a folder has no raw file.
+remap = [
+  '^https://github\.com/([^/]+)/([^/]+)/blob/([^#?]+/[^/#?]+\.[A-Za-z0-9]+(#.*)?)$ https://raw.githubusercontent.com/$1/$2/$3',
+]
+
+# GitHub answers a burst with 429, and `accept` passes 429, so a dead GitHub link could pass on a busy night.
+# Two requests at a time, 500 ms apart, stay under the rate limit.
+[hosts."github.com"]
+concurrency = 2
+request_interval = "500ms"
+
+[hosts."raw.githubusercontent.com"]
+concurrency = 2
+request_interval = "500ms"
