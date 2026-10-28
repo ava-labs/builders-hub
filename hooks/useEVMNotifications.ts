@@ -7,6 +7,7 @@ import { failureText } from '@/components/toolbox/lib/walletRejection';
 import { ReceiptUnknownError, waitForReceiptWithWalletFallback } from '@/components/toolbox/lib/walletReceipt';
 import { usePathname } from 'next/navigation';
 import posthog from 'posthog-js';
+import { revertReasonOf } from '@/lib/trace-revert';
 import l1ChainsData from '@/constants/l1-chains.json';
 import {
   getAllCustomChains,
@@ -120,26 +121,10 @@ const useEVMNotifications = () => {
           if (receipt.status === 'reverted') {
             let revertMessage = `Transaction reverted (hash: ${hash})`;
 
-            // On Fuji, auto-trace the failed tx for richer error context
-            if (isTestnet) {
-              try {
-                const traceResp = await fetch('/api/debug-rpc', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    method: 'debug_traceTransaction',
-                    params: [hash, { tracer: 'callTracer', tracerConfig: { onlyTopCall: false } }],
-                  }),
-                });
-                if (traceResp.ok) {
-                  const traceData = await traceResp.json();
-                  const reason = traceData?.result?.revertReason || traceData?.result?.error;
-                  if (reason) revertMessage = `Transaction reverted: ${reason} (hash: ${hash})`;
-                }
-              } catch {
-                // Trace failed, use default message
-              }
-            }
+            // On the C-Chain and Fuji, the indexed trace names the reason
+            // (lib/trace-revert.ts); any other chain keeps the default message
+            const reason = await revertReasonOf(viemChain.id, hash, receipt.blockNumber);
+            if (reason) revertMessage = `Transaction reverted: ${reason} (hash: ${hash})`;
 
             txHistoryState.updateTxStatus(hash, 'failed', revertMessage);
             throw new Error(revertMessage);
