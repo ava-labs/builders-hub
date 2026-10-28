@@ -10,12 +10,12 @@ const BROWSER =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 
 describe('trace route gate', { platforms: ['api'], tags: ['api', 'explorer'] }, () => {
-  test('robots.txt disallows the trace and debug routes and nothing else', async ({ app }) => {
+  test('robots.txt disallows the trace route and nothing else', async ({ app }) => {
     const res = await appFetch(app, '/robots.txt');
     expect(res.status).toBe(200);
     const text = await res.text();
     expect(text).toMatch(/^Disallow: \/api\/trace\/$/m);
-    expect(text).toMatch(/^Disallow: \/api\/debug-rpc$/m);
+    expect(text).not.toMatch(/debug-rpc/);
     expect(text).not.toMatch(/^Disallow: \/$/m);
     expect(text).not.toMatch(/^Allow:/m);
     expect(text).not.toMatch(/^Disallow: \/api\/og/m);

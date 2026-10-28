@@ -26,7 +26,7 @@ export type TraceResult = { trace: TraceResponse } | { miss: TraceMiss };
 /** the tables of one block land within about 230 ms of each other, logs
  *  sometimes after the traces: a trace younger than this can still lack
  *  its logs, so it counts as not indexed yet */
-export const SETTLE_MS = 3_000;
+export const SETTLE_MS = 1_000;
 /** the most this module sends: Vercel refuses a function response over 4.5 MB */
 export const MAX_TRACE_BYTES = 4 * 1024 * 1024;
 

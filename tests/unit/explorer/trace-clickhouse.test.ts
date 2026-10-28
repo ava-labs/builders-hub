@@ -199,7 +199,7 @@ describe('the trace route', () => {
   });
 
   it('says not indexed yet, uncached, for a tx the pipeline has not reached or has just written', async () => {
-    for (const rows of [[], [frame('', { age: 1_200 }), frame('0')]]) {
+    for (const rows of [[], [frame('', { age: 400 }), frame('0')]]) {
       stubService(rows);
       const res = await get(`http://localhost/api/trace/43114/${HASH}?block=98737562`);
       expect(res.status).toBe(404);
@@ -231,5 +231,58 @@ describe('the trace route', () => {
     expect((await get(`http://localhost/api/trace/43114/0x12?block=1`)).status).toBe(400);
     expect((await get(`http://localhost/api/trace/43114/${HASH}?block=1`, { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' })).status).toBe(403);
     expect(urls).toHaveLength(0);
+  });
+});
+
+describe("the Console's revert reason", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  /** the trace route answers these, one per ask; every URL asked is kept */
+  function stubRoute(answers: { status: number; body: unknown }[]) {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        urls.push(String(url));
+        const a = answers[Math.min(urls.length, answers.length) - 1];
+        // the route answers a miss soft: 200, with the status in a header
+        return a.status === 200
+          ? new Response(JSON.stringify(a.body))
+          : new Response(JSON.stringify(a.body), { headers: { 'x-status': String(a.status) } });
+      }),
+    );
+    return urls;
+  }
+
+  const reverted = traceFromRows([frame('', { ok: false, output: `08c379a0${encodeAbiParameters([{ type: 'string' }], ['Ownable: caller is not the owner']).slice(2)}` })]);
+
+  it('waits for a tx the pipeline has not indexed yet, then names the reason', async () => {
+    vi.useFakeTimers();
+    const urls = stubRoute([{ status: 404, body: { error: 'not_indexed' } }, { status: 404, body: { error: 'not_indexed' } }, { status: 200, body: reverted }]);
+    const { revertReasonOf } = await import('@/lib/trace-revert');
+    const reason = revertReasonOf(43113, HASH, 123n);
+    await vi.runAllTimersAsync();
+    expect(await reason).toBe('Ownable: caller is not the owner');
+    expect(urls).toEqual(Array(3).fill(`/api/trace/43113/${HASH}?block=123`));
+  });
+
+  it('gives up with null on a chain the pipeline does not trace, without asking again', async () => {
+    const urls = stubRoute([{ status: 404, body: { error: 'no_index' } }]);
+    const { revertReasonOf } = await import('@/lib/trace-revert');
+    expect(await revertReasonOf(99999, HASH, 1)).toBeNull();
+    expect(urls).toHaveLength(1);
+  });
+
+  it('gives up with null after its waits', async () => {
+    vi.useFakeTimers();
+    const urls = stubRoute([{ status: 404, body: { error: 'not_indexed' } }]);
+    const { revertReasonOf } = await import('@/lib/trace-revert');
+    const reason = revertReasonOf(43114, HASH, 1);
+    await vi.runAllTimersAsync();
+    expect(await reason).toBeNull();
+    expect(urls).toHaveLength(4);
   });
 });
