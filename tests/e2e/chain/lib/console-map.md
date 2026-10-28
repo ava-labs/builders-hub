@@ -121,7 +121,7 @@ Count these when you set your own poll rate. They are the app's requests; the No
 
 - After each P-Chain tx, `waitForPChainConfirmation` polls `platform.getTxStatus` every 2 s for up to 60 s (`utils/pchainConfirmation.ts`). After 60 s the page reports a timeout and keeps the issued tx ID, but the tx can still commit. Decide by the chain.
 - The top-up tool reads the P-Chain balance every 10 s.
-- A failed contract simulation on Fuji makes the page call the site's own `/api/debug-rpc`.
+- A reverted C-Chain or Fuji tx makes the page read the site's own `/api/trace` for the revert reason, up to 4 times in about 6 s (`lib/trace-revert.ts`).
 - Each Warp click: one Glacier aggregation request per page-side attempt (up to 4).
 - Remove expired registration: one `eth_getLogs` per 2,000 blocks from 'From Block' to the head.
 

@@ -3,17 +3,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Board, HEAD } from "@/components/explorer-v2/ui";
+import { Board } from "@/components/explorer-v2/ui";
 import { truncate } from "@/components/explorer-v2/format";
-import { hexInt, type FlatFrame, type GasProfile } from "@/lib/trace";
+import { hexInt, type FlatFrame } from "@/lib/trace";
 import { TRACE_INK } from "./trace-ink";
-import type { GasState } from "./useGasProfile";
 
 /* The trace's Gas tab (EvmTrace.tsx): where the gas went by call, as a
-   flame graph, and by opcode, as a table. The opcode profile and the gas
-   split come after the trace, from the gas tracer (useGasProfile.ts). */
-
-const CALL_OPS = new Set(["CALL", "STATICCALL", "DELEGATECALL", "CALLCODE", "CREATE", "CREATE2"]);
+   flame graph. */
 
 /* one ink per call kind, the same kinds the call tree colors */
 const FLAME_TONES: Record<string, string> = {
@@ -28,32 +24,27 @@ const FLAME_TONES: Record<string, string> = {
 const FLAME_ROW = 26;
 const FLAME_HATCH = "repeating-linear-gradient(135deg, rgba(230,33,47,0.85) 0 3px, transparent 3px 7px)";
 
-/** Where the gas went, as a flame graph. The three totals first on one
- *  scale (the limit, what ACP-194 charged, what execution used), then the
- *  call tree as boxes as wide as their gas: intrinsic gas and the top call
- *  side by side, each call's children under it. Click a box to zoom into
- *  it; the panel beside the graph reads the box under the cursor. */
-function GasProfiler({
+/** The Gas tab: where the gas went, as a flame graph. The totals first on
+ *  one scale (the limit, what ACP-194 charged), then the call tree as
+ *  boxes as wide as their gas, each call's children under it. The top
+ *  call's box is the gas charged, which under ACP-194 can be more than its
+ *  calls used. Click a box to zoom into it; the panel beside the graph
+ *  reads the box under the cursor. */
+export function GasTab({
   frames,
-  gas,
   charged,
-  logs,
   label,
   base,
 }: {
   frames: FlatFrame[];
-  gas: GasProfile["gas"];
   /** the receipt's gasUsed: ACP-194 gas charged */
   charged?: number;
-  logs: { frameId: string }[];
   /** a frame's name as one line: contract.function */
   label: (f: FlatFrame) => string;
   base: string;
 }) {
   const byId = useMemo(() => new Map(frames.map((f) => [f.id, f])), [frames]);
-  // the callTracer root reports gas CHARGED under ACP-194, so the top
-  // frame's width comes from the gas tracer's execution figure
-  const gasOf = (f: FlatFrame) => (f.id === "0" && gas ? gas.execution : hexInt(f.frame.gasUsed));
+  const gasOf = (f: FlatFrame) => hexInt(f.frame.gasUsed);
   const [focus, setFocus] = useState("0");
   const [pick, setPick] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
@@ -61,8 +52,7 @@ function GasProfiler({
   if (!root) return null;
   const focusF = byId.get(focus) ?? root;
   const atRoot = focusF.id === "0";
-  const intrinsic = atRoot && gas ? gas.intrinsic : 0;
-  const scale = Math.max(1, intrinsic + gasOf(focusF));
+  const scale = Math.max(1, gasOf(focusF));
 
   const boxes: { f: FlatFrame; x: number; w: number; row: number }[] = [];
   const place = (f: FlatFrame, x: number, row: number) => {
@@ -75,25 +65,24 @@ function GasProfiler({
       cx += gasOf(c) / scale;
     }
   };
-  place(focusF, intrinsic / scale, 0);
+  place(focusF, 0, 0);
   const rows = Math.max(1, ...boxes.map((b) => b.row + 1));
   const trail = focusF.id.split(".").map((_, i, a) => a.slice(0, i + 1).join("."));
   const shown = byId.get(hover ?? pick ?? focusF.id) ?? focusF;
   const shownGas = gasOf(shown);
   const shownSelf = Math.max(0, shownGas - shown.children.reduce((s, id) => s + (byId.get(id) ? gasOf(byId.get(id)!) : 0), 0));
-  const used = gas?.used ?? gasOf(root);
-  const limit = gas?.limit ?? hexInt(root.frame.gas);
+  const used = gasOf(root);
+  const limit = hexInt(root.frame.gas);
   const pctOf = (v: number) => (limit > 0 ? `${Math.max(0.4, Math.min(100, (v / limit) * 100)).toFixed(2)}%` : "0%");
 
   return (
     <div className="flex flex-col gap-6">
-      {/* the three totals on the limit's scale */}
+      {/* the totals on the limit's scale */}
       <Board divide={false} className="flex flex-col gap-2.5 px-5 py-5 font-mono text-[11px] md:px-6">
         {[
           { k: "Gas limit", v: limit, tone: "#e4e4e7" },
-          ...(charged !== undefined ? [{ k: "Gas charged", v: charged, tone: "#A2AFB2" }] : []),
-          // with no gas split, the root reports gas charged: a "used" bar would repeat it
-          ...(gas || charged === undefined ? [{ k: "Gas used", v: used, tone: "#0061E2" }] : []),
+          // the top call reports gas charged: with the receipt's figure, a "used" bar would repeat it
+          charged !== undefined ? { k: "Gas charged", v: charged, tone: "#A2AFB2" } : { k: "Gas used", v: used, tone: "#0061E2" },
         ].map((r) => (
           <div key={r.k} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-4">
             <span className="uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{r.k}</span>
@@ -103,7 +92,7 @@ function GasProfiler({
             </span>
           </div>
         ))}
-        {charged !== undefined && charged > used && charged === Math.ceil(limit / 2) && (
+        {charged !== undefined && charged === Math.ceil(limit / 2) && (
           <p className="pt-1 text-zinc-400 dark:text-zinc-500">Charged is half the limit: ACP-194 charges the larger of gas used and half the limit.</p>
         )}
       </Board>
@@ -127,15 +116,6 @@ function GasProfiler({
             {atRoot && <span className="ml-auto">click a box to zoom</span>}
           </div>
           <div className="relative w-full overflow-hidden" style={{ height: rows * FLAME_ROW }} onMouseLeave={() => setHover(null)}>
-            {atRoot && gas && (
-              <div
-                className="absolute flex items-center overflow-hidden px-1.5 font-mono text-[10px] text-zinc-700"
-                style={{ left: 0, width: `${(intrinsic / scale) * 100}%`, top: 0, height: FLAME_ROW - 2, background: "#e4e4e7" }}
-                title={`intrinsic gas · ${intrinsic.toLocaleString("en-US")}: the base cost, 21,000 plus calldata`}
-              >
-                <span className="truncate">intrinsic · {intrinsic.toLocaleString("en-US")}</span>
-              </div>
-            )}
             {boxes.map(({ f, x, w, row }) => {
               const g = gasOf(f);
               const dim = hover !== null && hover !== f.id;
@@ -201,82 +181,10 @@ function GasProfiler({
             <dd className="text-right text-zinc-900 dark:text-zinc-50">{shownSelf.toLocaleString("en-US")}</dd>
             <dt className="text-zinc-400 dark:text-zinc-500">calls made</dt>
             <dd className="text-right text-zinc-900 dark:text-zinc-50">{shown.children.length}</dd>
-            <dt className="text-zinc-400 dark:text-zinc-500">events</dt>
-            <dd className="text-right text-zinc-900 dark:text-zinc-50">{logs.filter((l) => l.frameId === shown.id).length}</dd>
           </dl>
           {shown.frame.error && <span className="text-[#E6212F]">reverted: {shown.frame.revertReason ?? shown.frame.error}</span>}
         </Board>
       </div>
-    </div>
-  );
-}
-
-const OPCODE_GRID = "grid grid-cols-[minmax(0,1fr)_5rem_7rem]";
-
-/** the ten opcodes that cost the most gas, at every depth */
-function OpcodeTable({ opcodes, steps }: { opcodes: NonNullable<GasProfile["opcodes"]>; steps: number }) {
-  return (
-    <Board>
-      <div role="table" aria-label="Gas by opcode" className="divide-y divide-zinc-200 dark:divide-zinc-800">
-        <div role="row" className={cn(HEAD, OPCODE_GRID)}>
-          <span role="columnheader">Opcode</span>
-          <span role="columnheader" className="text-right">Count</span>
-          <span role="columnheader" className="text-right">Gas</span>
-        </div>
-        {opcodes
-          .filter((o) => !CALL_OPS.has(o.op))
-          .slice(0, 10)
-          .map((o) => (
-            <div key={o.op} role="row" className={cn(OPCODE_GRID, "items-center gap-4 px-5 py-2 font-mono text-[12px] md:px-6")}>
-              <span role="cell" className="text-zinc-700 dark:text-zinc-300">{o.op}</span>
-              <span role="cell" className="text-right tabular-nums text-zinc-500 dark:text-zinc-400">{o.count.toLocaleString("en-US")}</span>
-              <span role="cell" className="text-right tabular-nums text-zinc-700 dark:text-zinc-300">{o.gas.toLocaleString("en-US")}</span>
-            </div>
-          ))}
-      </div>
-      <div className="px-5 py-2.5 font-mono text-[10px] text-zinc-400 md:px-6 dark:text-zinc-500">
-        {steps.toLocaleString("en-US")} opcodes executed · call opcodes omitted: the EVM books the gas they forward as their own cost
-      </div>
-    </Board>
-  );
-}
-
-/** The Gas tab: the flame graph, then the opcode table once the gas
- *  profile is in. While it loads, a line says so; when the node budget is
- *  spent, a line says the node is busy (the page asks again on the next
- *  tap, click or key); with no profile (a node that did not answer) the
- *  tab shows the graph alone */
-export function GasTab({
-  frames,
-  profile,
-  state,
-  charged,
-  logs,
-  label,
-  base,
-}: {
-  frames: FlatFrame[];
-  profile: GasProfile;
-  state: GasState;
-  charged?: number;
-  logs: { frameId: string }[];
-  label: (f: FlatFrame) => string;
-  base: string;
-}) {
-  return (
-    <div className="flex flex-col gap-6">
-      <GasProfiler frames={frames} gas={profile.gas} charged={charged} logs={logs} label={label} base={base} />
-      {profile.opcodes && profile.steps !== null ? (
-        <OpcodeTable opcodes={profile.opcodes} steps={profile.steps} />
-      ) : (
-        state !== "none" && (
-          <Board divide={false}>
-            <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-              {state === "later" ? "the trace node is busy · tap or click anywhere to count gas by opcode" : "counting gas by opcode…"}
-            </div>
-          </Board>
-        )
-      )}
     </div>
   );
 }
