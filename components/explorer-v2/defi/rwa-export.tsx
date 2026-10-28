@@ -5,17 +5,20 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { AllMetrics, HistoricalData } from "@/lib/rwa/types";
+import { getFacility, type RWAFacility } from "@/lib/rwa/facilities";
+import type { FacilityMetrics, HistoricalData } from "@/lib/rwa/types";
 import { CHIP, OFF } from "./ProtocolFilters";
 import { readAll } from "./RwaTransactions";
 
-/* The old dashboard's export menu: the pool's figures and daily history
-   as CSV, every transfer as CSV, and the dashboard itself as a PDF report
-   or a PNG image, both captured in the light theme. */
+/* The old dashboard's export menu: the facility's figures and daily
+   history as CSV (OatFi's in their old columns, a line of credit's without
+   transacted volume or OatFi's breakdown), every row of its ledger as CSV,
+   and the dashboard itself as a PDF report or a PNG image, both captured
+   in the light theme. */
 
 interface ExportSource {
   slug: string;
-  metrics: AllMetrics | null;
+  metrics: FacilityMetrics | null;
   historical: HistoricalData | null;
   /** the id of the element the PDF and the image capture */
   target: string;
@@ -29,15 +32,23 @@ interface ExportKind {
   run: (s: ExportSource) => Promise<void>;
 }
 
+/** the facility the menu exports; the dashboard hands it only its own view's facility, so the throw is a guard */
+function facilityOf(slug: string): RWAFacility {
+  const facility = getFacility(slug);
+  if (!facility) throw new Error(`Unknown facility: ${slug}`);
+  return facility;
+}
+
 export const EXPORTS: ExportKind[] = [
   {
     label: "CSV data",
     group: "data",
     ready: (s) => !!(s.metrics || s.historical),
-    run: async ({ metrics, historical }) => {
+    run: async ({ slug, metrics, historical }) => {
+      const facility = facilityOf(slug);
       const { exportHistoricalToCSV, exportMetricsToCSV } = await import("@/lib/rwa/export/csv");
-      if (metrics) exportMetricsToCSV(metrics);
-      if (historical) exportHistoricalToCSV(historical);
+      if (metrics) exportMetricsToCSV(metrics, facility);
+      if (historical) exportHistoricalToCSV(historical, facility);
     },
   },
   {
@@ -45,9 +56,10 @@ export const EXPORTS: ExportKind[] = [
     group: "data",
     ready: () => true,
     run: async ({ slug }) => {
+      const facility = facilityOf(slug);
       const transfers = await readAll(slug, "all", "date", "desc");
       const { exportTransactionsToCSV } = await import("@/lib/rwa/export/csv");
-      exportTransactionsToCSV(transfers);
+      exportTransactionsToCSV(transfers, facility);
     },
   },
   {

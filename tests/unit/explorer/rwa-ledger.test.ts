@@ -28,6 +28,17 @@ describe('a cut of the whole ledger, made in the browser', () => {
     expect(hashes(cutOf(rows, 'all', 'date', 'desc'))).toEqual(['0x2', '0x3', '0x1']);
   });
 
+  it('keeps one type, or every row for all', () => {
+    // a line of credit's rows, each on its own day, so only a sort by date puts 0x3 before 0x1
+    const line = [
+      transfer('0x1', { kind: 'draw', timestamp: '2026-09-01T00:00:00.000Z' }),
+      transfer('0x2', { kind: 'repayment', timestamp: '2026-09-02T00:00:00.000Z' }),
+      transfer('0x3', { kind: 'draw', timestamp: '2026-09-03T00:00:00.000Z' }),
+    ];
+    expect(hashes(cutOf(line, 'draw', 'date', 'desc', 'kind'))).toEqual(['0x3', '0x1']);
+    expect(hashes(cutOf(line, 'all', 'date', 'desc', 'kind'))).toEqual(['0x3', '0x2', '0x1']);
+  });
+
   it('sorts by date or by amount, either way', () => {
     expect(hashes(cutOf(rows, 'all', 'date', 'asc'))).toEqual(['0x1', '0x3', '0x2']);
     expect(hashes(cutOf(rows, 'all', 'amount', 'desc'))).toEqual(['0x2', '0x3', '0x1']);
@@ -67,11 +78,26 @@ describe('reading every transfer of a cut', () => {
     expect(asked).toHaveLength(1);
   });
 
+  it("asks for OatFi's pages with the URL it always has", async () => {
+    serve({ 1: page([transfer('0x1')], 1) });
+    await readAll('oatfi', 'inbound', 'amount', 'asc');
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual([
+      '/api/dapps/rwa/oatfi/transactions?page=1&pageSize=100&direction=inbound&sortField=amount&sortDirection=asc',
+    ]);
+  });
+
   it('reads the remaining pages, a hundred rows each', async () => {
     const asked = serve({ 1: page([transfer('0x1')], 250), 2: page([transfer('0x2')], 250), 3: page([transfer('0x3')], 250) });
     expect((await readAll('oatfi', 'inbound', 'amount', 'asc')).map((t) => t.txHash)).toEqual(['0x1', '0x2', '0x3']);
     expect(asked.map((q) => q.get('page'))).toEqual(['1', '2', '3']);
     expect(asked.every((q) => q.get('pageSize') === '100' && q.get('direction') === 'inbound' && q.get('sortField') === 'amount' && q.get('sortDirection') === 'asc')).toBe(true);
+  });
+
+  it('asks the route for a type cut by kind, never by direction', async () => {
+    const asked = serve({ 1: page([transfer('0x1')], 1) });
+    await readAll('rain', 'draw', 'date', 'desc', 'kind');
+    expect(asked).toHaveLength(1);
+    expect(asked.every((q) => q.get('kind') === 'draw' && !q.has('direction'))).toBe(true);
   });
 
   it('keeps a transfer that slid onto the next page once', async () => {

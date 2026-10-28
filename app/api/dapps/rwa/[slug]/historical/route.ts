@@ -4,8 +4,9 @@ import {
   calculateHistoricalData,
   getMetricTimeSeries,
 } from '@/lib/rwa/calculations/aggregations'
+import { calculateLineHistory } from '@/lib/rwa/line/figures'
 import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
-import { getRWAProject } from '@/lib/rwa/projects'
+import { getFacility, isLineFacility } from '@/lib/rwa/facilities'
 import type { TimeInterval, HistoricalData } from '@/lib/rwa/types'
 
 export const dynamic = 'force-dynamic'
@@ -50,9 +51,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   try {
     const { slug } = await params
-    const project = getRWAProject(slug)
+    const facility = getFacility(slug)
 
-    if (!project) {
+    if (!facility) {
       return NextResponse.json(
         { error: 'RWA project not found' },
         { status: 404 }
@@ -75,12 +76,16 @@ export async function GET(request: Request, { params }: RouteParams) {
         ? { from: new Date(validatedParams.startDate), to: new Date(validatedParams.endDate) }
         : undefined
 
+    // a line of credit's history comes from its events, read through the cache: nothing here forces a read
     if (validatedParams.metric === 'all') {
-      const historical = await calculateHistoricalData(
-        validatedParams.interval as TimeInterval,
-        forceRefresh,
-        dateRange
-      )
+      const historical = isLineFacility(facility)
+        ? await calculateLineHistory(facility, validatedParams.interval, dateRange)
+        : await calculateHistoricalData(
+            facility,
+            validatedParams.interval as TimeInterval,
+            forceRefresh,
+            dateRange
+          )
 
       return NextResponse.json(historical, {
         headers: {
@@ -90,12 +95,15 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const metricKey = validatedParams.metric as keyof HistoricalData
-    const timeSeries = await getMetricTimeSeries(
-      metricKey,
-      validatedParams.interval as TimeInterval,
-      forceRefresh,
-      dateRange
-    )
+    const timeSeries = isLineFacility(facility)
+      ? (await calculateLineHistory(facility, validatedParams.interval, dateRange))[metricKey]
+      : await getMetricTimeSeries(
+          facility,
+          metricKey,
+          validatedParams.interval as TimeInterval,
+          forceRefresh,
+          dateRange
+        )
 
     return NextResponse.json(
       { metric: validatedParams.metric, interval: validatedParams.interval, data: timeSeries },

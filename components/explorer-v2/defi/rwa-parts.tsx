@@ -5,14 +5,17 @@ import type { ReactNode } from "react";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { SectionHeader } from "@/components/explorer-v2/ui";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { cn } from "@/lib/utils";
 import { bigintToNumber } from "@/lib/rwa/utils";
-import type { AllMetrics, FenceMetrics } from "@/lib/rwa/types";
+import type { AllMetrics, FenceMetrics, LineFacilityMetrics } from "@/lib/rwa/types";
 import { usd } from "./palette";
+import type { PartnerMark } from "./rwa-views";
 
 /* The RWA view's figure sections, the old dashboard's cards in the
-   explorer's readouts: the key metrics, the OatFi breakdown and Fence's
-   facility figures, each with the definition its card's tooltip carried,
-   and the partners' marks. */
+   explorer's readouts: OatFi's key metrics, its breakdown and Fence's
+   facility figures, each with the definition its card's tooltip carried;
+   a line of credit's key metrics under OatFi's labels, each defined by the
+   line's events or its contract; and the partners' marks. */
 
 const EXACT_USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 
@@ -67,6 +70,49 @@ export function KeyMetrics({ metrics, failed }: { metrics: AllMetrics | null; fa
   );
 }
 
+/** a line of credit's key metrics: no transacted volume and no lender split, outstanding from the contract */
+export function LineKeyMetrics({ metrics, failed }: { metrics: LineFacilityMetrics | null; failed: boolean }) {
+  const g = metrics?.general;
+  const draws = metrics?.line.draws;
+  return (
+    <section id="rwa-metrics" className="flex scroll-mt-40 flex-col gap-5">
+      <SectionHeader label="Key Metrics" />
+      <ReadoutRow cols={3}>
+        <Readout
+          label="Lender Invested Capital"
+          value={figureOf(g, failed, (x) => dollars(x.committedCapital))}
+          sub={def("capital committed to the line of credit", "Capital committed to the line of credit, as the contract reads it")}
+        />
+        <Readout
+          label="Assets Financed"
+          value={figureOf(g, failed, (x) => dollars(x.assetsFinanced))}
+          sub={def(
+            draws === undefined ? "draws from the line of credit to the borrower" : `across ${draws.toLocaleString("en-US")} ${draws === 1 ? "draw" : "draws"}`,
+            "Draws from the line of credit to the borrower",
+          )}
+        />
+        <Readout label="Lender Repayments" value={figureOf(g, failed, (x) => dollars(x.lenderRepayments))} sub={def("repayments to the line of credit, interest included")} />
+      </ReadoutRow>
+      <ReadoutRow cols={3}>
+        <Readout
+          label="Capital Outstanding"
+          value={figureOf(metrics?.line, failed, (x) => dollars(x.capitalOutstanding))}
+          sub={def("principal drawn and not yet repaid", "Principal drawn and not yet repaid, as the contract reads it")}
+        />
+        <Readout label="Idle Capital" value={figureOf(g, failed, (x) => dollars(x.idleCapital))} sub={def("committed capital minus outstanding")} />
+        <Readout label="Capital Turnover" value={figureOf(g, failed, (x) => `${x.capitalTurnover.toFixed(2)}×`)} sub={def("assets financed / committed capital")} />
+        <Readout
+          label="Avg Capital Utilization"
+          value={figureOf(g, failed, (x) => `${x.averageCapitalUtilization.toFixed(1)}%`)}
+          sub={def("average over days with line activity", "Average over the days with a draw, a repayment or a change of committed capital")}
+        />
+        <Readout label="Days Active" value={figureOf(g, failed, (x) => String(x.lifeSinceInception))} unit={g ? "days" : undefined} sub={def("since the first draw")} />
+        <Readout label="Avg Recycling Time" value={figureOf(g, failed, (x) => x.avgCapitalRecycling.toFixed(1))} unit={g ? "days" : undefined} sub={def("days active / capital turnover")} />
+      </ReadoutRow>
+    </section>
+  );
+}
+
 export function OatFiBreakdown({ metrics, failed }: { metrics: AllMetrics | null; failed: boolean }) {
   const o = metrics?.oatfi;
   return (
@@ -107,19 +153,13 @@ export function FacilityFigures({ fence, failed }: { fence: FenceMetrics | null;
   );
 }
 
-const PARTNERS = [
-  { name: "Valinor", src: "/rwa/logos/valinor-wordmark.svg" },
-  { name: "OatFi", src: "/rwa/logos/oatfi-wordmark.svg" },
-  { name: "Fence", src: "/rwa/logos/fence.png" },
-];
-
-/** the pilot's partners, as the old dashboard's header showed them */
-export function PartnerLogos() {
+/** the facility's partners after the Avalanche mark, as the old dashboard's header showed the pilot's; a mark's own classes override its height or its dark-mode invert */
+export function PartnerLogos({ partners }: { partners: PartnerMark[] }) {
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Partners</span>
       <AvalancheLogo className="h-6 w-6" aria-label="Avalanche" />
-      {PARTNERS.map((p) => (
+      {partners.map((p) => (
         <Image
           key={p.name}
           src={p.src}
@@ -127,7 +167,7 @@ export function PartnerLogos() {
           width={80}
           height={24}
           unoptimized={p.src.endsWith(".svg")}
-          className="h-6 w-auto object-contain opacity-80 dark:invert dark:hue-rotate-180"
+          className={cn("h-6 w-auto object-contain opacity-80 dark:invert dark:hue-rotate-180", p.className)}
         />
       ))}
     </div>
