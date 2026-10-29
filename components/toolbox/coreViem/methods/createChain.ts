@@ -1,5 +1,4 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
-import { getChains } from '../utils/glacier';
 
 export type CreateChainParams = {
   chainName: string;
@@ -24,18 +23,8 @@ export async function createChain(client: AvalancheWalletClient, params: CreateC
     genesisData: genesisDataObject,
   });
 
-  // Get the chain ID from the unsigned transaction to check for collisions
-  const chainID = txnRequest.createChainTx.getBlockchainId().toString();
-
-  // Check for chain ID collisions using Glacier API
-  const existingChains = await getChains();
-  const chainIdCollision = existingChains.find((chain) => chain.platformChainId === chainID);
-
-  if (chainIdCollision) {
-    throw new Error(`Chain ID collision detected. The generated chain ID "${chainID}" already exists.`);
-  }
-
-  // If no collision, proceed with sending the transaction
+  // The chain ID is the hash of this transaction, which spends fresh UTXOs, so it cannot match an existing chain:
+  // the P-Chain rejects a resent transaction.
   const result = await client.sendXPTransaction(txnRequest);
 
   return result.txHash;

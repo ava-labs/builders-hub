@@ -249,28 +249,6 @@ interface ChainDetails {
   enabledFeatures: string[];
 }
 
-export async function getChainDetails(chainId: string): Promise<ChainDetails> {
-  const endpoint = 'https://glacier-api.avax.network'; //override for dev
-  const url = `${endpoint}/v1/chains/${chainId}`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      accept: 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch chain details for chainId ${chainId}: ${response.status} ${response.statusText}`);
-  }
-
-  const data: ChainDetails = await response.json();
-  return data;
-}
-
 interface GetChainsResponse {
   chains: ChainDetails[];
 }
