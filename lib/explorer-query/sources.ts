@@ -5,6 +5,7 @@ import { minorVersionLine } from "@/lib/node-version";
 import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { fetchAllSubnets } from "@/lib/pchain-subnets";
+import { AVAX_SUPPLY_URL } from "@/lib/stats-api";
 import type { SubnetStats } from "@/types/validator-stats";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, readsPositions, tokensFor, tokensSql } from "./protocols";
 import { FAMILY_NAMES } from "./families";
@@ -302,24 +303,26 @@ const versions: Source = {
 /* ------------------------------------------------------------------ */
 /* p_avax_supply                                                       */
 
-/* The AVAX supply as the Avalanche Data API counts it, the source /api/avax-supply passes on:
+/* The AVAX supply as the Stats API counts it, the source /api/avax-supply passes on:
    the total net of what every chain burned, the burns per chain, staked,
    locked and rewards, and the continuous fees L1 validators have paid.
+   The Stats API does not count locked yet, so locked_avax is NULL until it does.
    The P-Chain's own supply (p_exec_state_history) is gross of the C-Chain
    and X-Chain burns, so the two differ. Mainnet only. */
 
 interface Supply {
   values: number[];
+  /** null until the Stats API counts it */
+  locked: number | null;
   updated: string;
   at: number;
 }
 
-/** column, and the Data API field it is read from, in AVAX */
+/** column, and the Stats API field it is read from, in AVAX */
 const SUPPLY_FIELDS = [
   ["total_supply_avax", "totalSupply"],
   ["circulating_supply_avax", "circulatingSupply"],
   ["staked_avax", "totalStaked"],
-  ["locked_avax", "totalLocked"],
   ["rewards_avax", "totalRewards"],
   ["burned_p_avax", "totalPBurned"],
   ["burned_c_avax", "totalCBurned"],
@@ -328,37 +331,44 @@ const SUPPLY_FIELDS = [
   ["genesis_unlock_avax", "genesisUnlock"],
 ] as const;
 
-const DATA_API_SUPPLY = "https://data-api.avax.network/v1/avax/supply";
-
 async function readSupply(network: Network): Promise<Supply> {
-  if (network !== "mainnet") throw new Error("the Data API publishes the AVAX supply for mainnet only");
+  if (network !== "mainnet") throw new Error("the Stats API publishes the AVAX supply for mainnet only");
   // read at the source, not through our own route: a preview's own host is behind Vercel's login (lib/chat/site-url.ts)
-  const body = await getJson<Record<string, unknown>>(DATA_API_SUPPLY, "the AVAX supply");
+  const body = await getJson<Record<string, unknown>>(AVAX_SUPPLY_URL, "the AVAX supply");
   const values = SUPPLY_FIELDS.map(([, f]) => Number(body[f]));
-  if (values.some((v) => !Number.isFinite(v) || v < 0)) throw new Error("the AVAX supply is incomplete");
+  const locked = body.totalLocked === undefined ? null : Number(body.totalLocked);
+  if ([...values, locked ?? 0].some((v) => !Number.isFinite(v) || v < 0)) throw new Error("the AVAX supply is incomplete");
   const updated = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.exec(String(body.lastUpdated ?? ""))?.[0].replace("T", " ") ?? "";
-  return { values, updated, at: Date.now() };
+  return { values, locked, updated, at: Date.now() };
 }
 
-/** the Data API refreshes every few hours */
+/** the Stats API refreshes every few minutes; the figures move slowly */
 const supplyFeed = kept(readSupply, 30 * 60_000, 12 * 3600_000, "AVAX supply figures");
 
 const supply: Source = {
-  columns: [["chain_id", "UInt8"], ...SUPPLY_FIELDS.map(([c]) => [c, "Float64"] as const), ["updated_at", "DateTime"]],
+  columns: [
+    ["chain_id", "UInt8"],
+    ...SUPPLY_FIELDS.map(([c]) => [c, "Float64"] as const),
+    ["locked_avax", "Nullable(Float64)"],
+    ["updated_at", "DateTime"],
+  ],
   async build(chainId) {
     const s = await supplyFeed.get(networkOf(chainId));
-    const cols = SUPPLY_FIELDS.map(([c], i) => `toFloat64(${s.values[i]}) AS ${c}`).join(", ");
+    const cols = [
+      ...SUPPLY_FIELDS.map(([c], i) => `toFloat64(${s.values[i]}) AS ${c}`),
+      `CAST(${s.locked ?? "NULL"} AS Nullable(Float64)) AS locked_avax`,
+    ].join(", ");
     const sql = `SELECT toUInt8(${chainId}) AS chain_id, ${cols}, ${s.updated ? `toDateTime('${s.updated}', 'UTC')` : "toDateTime(0, 'UTC')"} AS updated_at`;
-    const text = `Supply figures come from the Avalanche Data API${s.updated ? `, updated ${s.updated.slice(0, 16)} UTC` : ""}.`;
+    const text = `Supply figures come from the Avalanche Stats API${s.updated ? `, updated ${s.updated.slice(0, 16)} UTC` : ""}.`;
     return { sql, note: { table: "p_avax_supply", label: "AVAX supply", at: s.at, total: 1, known: 1, text } };
   },
 };
 
-/* The supply at the end of each day, which the Data API does not
+/* The supply at the end of each day, which the Stats API does not
    publish: its total now, less the staking rewards paid after the day
-   (raw_p_reward_utxos, up to when the Data API counted). Burns since the
+   (raw_p_reward_utxos, up to when the Stats API counted). Burns since the
    day are not added back: about 78k AVAX from 2026-07-01 to 2026-10-15,
-   under 0.02% of the supply. The Data API counts circulating as total.
+   under 0.02% of the supply. The Stats API counts circulating as total.
    Rows from the query's own window when the SQL states one, else from the
    first day it can rebuild: the P-Chain's blocks carry a time only since
    Banff (2022-10-18 16:00 UTC), so 534,442 reward outputs before it have
@@ -379,9 +389,9 @@ const supplyDaily: Source = {
     const total = `toFloat64(${s.values[0]}) - ifNull(sum(paid) OVER (ORDER BY t DESC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)`;
     const out = `SELECT toUInt8(${chainId}) AS chain_id, t, ${total} AS total_supply_avax, total_supply_avax AS circulating_supply_avax FROM (${paid})`;
     // the burns not added back: under 0.02% for a recent window, else at most what every chain has burned
-    const burned = s.values[5] + s.values[6] + s.values[7];
+    const burned = s.values[4] + s.values[5] + s.values[6];
     const bound = w && w !== "unknown" && w.start >= Date.now() - RECENT_MS ? "less than 0.02% of the supply" : `at most ${((100 * burned) / s.values[0]).toFixed(1)}% of the supply on the first days, as every chain has burned ${Math.round(burned / 1e6 * 10) / 10}M AVAX in all`;
-    const text = `The supply on each day is rebuilt: the Avalanche Data API's total supply${s.updated ? ` at ${s.updated.slice(0, 16)} UTC` : ""}, less the staking rewards paid after that day. Burns after that day are not added back, a difference of ${bound}. The rebuilt supply starts at ${FIRST_SUPPLY_DAY}, the Banff upgrade, as P-Chain blocks before it carry no time. The Data API counts the circulating supply as equal to the total supply.`;
+    const text = `The supply on each day is rebuilt: the Avalanche Stats API's total supply${s.updated ? ` at ${s.updated.slice(0, 16)} UTC` : ""}, less the staking rewards paid after that day. Burns after that day are not added back, a difference of ${bound}. The rebuilt supply starts at ${FIRST_SUPPLY_DAY}, the Banff upgrade, as P-Chain blocks before it carry no time. The Stats API counts the circulating supply as equal to the total supply.`;
     return { sql: out, note: { table: "p_avax_supply_daily", label: "daily AVAX supply", at: s.at, total: 1, known: 1, text } };
   },
 };

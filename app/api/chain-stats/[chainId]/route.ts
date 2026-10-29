@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
 import { getChainICMData } from "@/lib/icm-clickhouse";
 import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
+import { AVAX_SUPPLY_URL } from "@/lib/stats-api";
 
 export const dynamic = 'force-dynamic';
 
@@ -267,9 +268,6 @@ async function fetchRewardsData(): Promise<RewardsData> {
     return { daily: [], cumulative: [] };
   }
 }
-
-// Authoritative AVAX supply endpoint for offset correction
-const AVAX_SUPPLY_URL = 'https://data-api.avax.network/v1/avax/supply';
 
 interface AvaxSupplyData {
   totalCBurned: string;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AVAX_SUPPLY_URL } from "@/lib/stats-api";
 
 interface CoinGeckoResponse {
   "avalanche-2": {
@@ -11,7 +12,7 @@ interface CoinGeckoResponse {
 export async function GET() {
   try {
     const [supplyResponse, priceResponse] = await Promise.all([
-      fetch("https://data-api.avax.network/v1/avax/supply", {
+      fetch(AVAX_SUPPLY_URL, {
         headers: {
           accept: "application/json",
         },
