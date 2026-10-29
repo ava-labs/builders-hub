@@ -12,7 +12,7 @@ import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput
 import { AmountInput } from '@/components/toolbox/components/AmountInput';
 import SelectBlockchainId from '@/components/toolbox/components/SelectBlockchainId';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import ERC20TokenRemoteABI from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import NativeTokenRemoteABI from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';

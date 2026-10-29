@@ -1,5 +1,5 @@
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { useAccount, useSwitchChain } from 'wagmi';
 
 export function useNetworkActions() {
@@ -21,7 +21,7 @@ export function useNetworkActions() {
     try {
       if (network.isTestnet !== isTestnet) {
         setIsTestnet(network.isTestnet);
-        setAvalancheNetworkID(network.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+        setAvalancheNetworkID(network.isTestnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
       }
 
       if (network.evmChainId) {

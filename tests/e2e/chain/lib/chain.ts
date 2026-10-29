@@ -12,7 +12,7 @@
 
 import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
-import { secp256k1, utils } from '@avalabs/avalanchejs';
+import { secp256k1, utils, Utxo } from '@avalabs/avalanchejs';
 import { createPublicClient, custom, getAddress, type Address, type Hex, type TransactionReceipt } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
@@ -452,10 +452,44 @@ export async function pCurrentValidators<T>(params: { subnetID?: string; nodeIDs
   return validators ?? [];
 }
 
-/** The nAVAX that the address has staked on the P-Chain (platform.getStake): validator and delegator stakes. */
+/** The fields of a Primary Network validator that pStaked reads (primary-stake.ts PrimaryValidator has them all). */
+interface ValidatorOwners {
+  txID: string;
+  validationRewardOwner?: { addresses?: string[] };
+  delegationRewardOwner?: { addresses?: string[] };
+  validatorAuthority?: { addresses?: string[] };
+}
+
+/** One stake output of an add tx (platform.getTx JSON). A stakeable lock wraps the transfer output in `output.output`. */
+interface StakeEntry {
+  assetID: string;
+  output: { addresses?: string[]; amount?: number; output?: { addresses?: string[]; amount?: number } };
+}
+
+/** The address with its 'P-' prefix, which the P-Chain API can leave out of an owner. */
+const withPPrefix = (address: string) => (address.startsWith('P-') ? address : `P-${address}`);
+
+/**
+ * The nAVAX that the address stakes as a Primary Network validator: the AVAX stake outputs that list the address, in the
+ * add tx of each current validator whose validation reward owner, delegation reward owner or validator authority lists
+ * it. It replaces platform.getStake, which avalanchego deprecated, and it equaled it on all 13 Fuji addresses compared
+ * on 2026-10-26. It misses a Primary Network delegation (platform.getCurrentValidators lists delegators only for one
+ * NodeID) and a stake that none of its owners name; the chain tests make neither. Both reads go past the API cache, so
+ * a poll right after an add tx sees the new validator.
+ */
 export async function pStaked(address: string): Promise<bigint> {
-  const { staked } = await jsonRpc<{ staked?: string }>(FUJI.pRpc, 'platform.getStake', { addresses: [address] });
-  return BigInt(staked ?? '0');
+  const key = withPPrefix(address);
+  const lists = (owner?: { addresses?: string[] }) => (owner?.addresses ?? []).map(withPPrefix).includes(key);
+  let staked = 0n;
+  for (const v of await pCurrentValidators<ValidatorOwners>({})) {
+    if (!lists(v.validationRewardOwner) && !lists(v.delegationRewardOwner) && !lists(v.validatorAuthority)) continue;
+    const { stake = [] } = await pTxJson<{ stake?: StakeEntry[] }>(v.txID);
+    for (const { assetID, output } of stake) {
+      const transfer = output.output ?? output;
+      if (assetID === FUJI.avaxAssetId && lists(transfer)) staked += BigInt(transfer.amount ?? 0);
+    }
+  }
+  return staked;
 }
 
 /** The L1 validators of a subnet (platform.getCurrentValidators), active and inactive. */
@@ -466,12 +500,49 @@ export async function pL1Validators(subnetId: string): Promise<L1Validator[]> {
     .map((v) => toL1Validator(v, subnetId));
 }
 
-/** The unlocked P-Chain balance of an address, in nAVAX. */
+// pBalance sums the UTXOs as the Avalanche SDK's pChain.getBalance does (tests/e2e is a separate package, so it keeps its
+// own copy): 1,024 UTXOs a page, each page starts at the endIndex of the page before it, the read stops at a short page
+// or one without an endIndex, each UTXO ID counts once, and more pages than MAX_BALANCE_PAGES is an error.
+const UTXO_PAGE_SIZE = 1_024;
+const MAX_BALANCE_PAGES = 20;
+
+/**
+ * The unlocked AVAX of the UTXOs, in nAVAX, as platform.getBalance's `unlocked`: a transfer output counts when its
+ * locktime is not after now, a stakeable lock when its stakeable locktime is not after now either.
+ */
+function unlockedNanoAvax(utxos: Iterable<Utxo>): bigint {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  let unlocked = 0n;
+  for (const utxo of utxos) {
+    if (!utils.isTransferOut(utxo.output) && !utils.isStakeableLockOut(utxo.output)) continue;
+    const { amount, assetId, locktime, stakeableLocktime } = utils.getUtxoInfo(utxo);
+    if (assetId === FUJI.avaxAssetId && locktime <= now && stakeableLocktime <= now) unlocked += amount;
+  }
+  return unlocked;
+}
+
+/**
+ * The unlocked P-Chain balance of an address, in nAVAX: platform.getBalance's `unlocked`, read from platform.getUTXOs
+ * (avalanchego deprecated getBalance).
+ */
 export async function pBalance(address: string): Promise<bigint> {
-  const result = await jsonRpc<{ unlocked?: string; balance: string }>(FUJI.pRpc, 'platform.getBalance', {
-    addresses: [address],
-  });
-  return BigInt(result.unlocked ?? result.balance);
+  const manager = utils.getManagerForVM('PVM');
+  const byId = new Map<string, Utxo>();
+  let startIndex: { address: string; utxo: string } | undefined;
+  for (let page = 1; page <= MAX_BALANCE_PAGES; page++) {
+    const { utxos, endIndex } = await jsonRpc<{ utxos: string[]; endIndex?: { address: string; utxo: string } }>(
+      FUJI.pRpc,
+      'platform.getUTXOs',
+      { addresses: [address], limit: UTXO_PAGE_SIZE, encoding: 'hex', ...(startIndex ? { startIndex } : {}) },
+    );
+    for (const hex of utxos) {
+      const utxo = manager.unpack(utils.hexToBuffer(hex), Utxo);
+      byId.set(utxo.ID(), utxo);
+    }
+    if (utxos.length < UTXO_PAGE_SIZE || !endIndex) return unlockedNanoAvax(byId.values());
+    startIndex = endIndex;
+  }
+  throw new Error(`platform.getUTXOs: more than ${MAX_BALANCE_PAGES} pages (20,480 UTXOs) for ${address}`);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

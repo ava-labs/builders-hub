@@ -200,7 +200,7 @@ export interface ActiveStake {
  * The Primary Network validators that an earlier run left active: every NodeID of every ledger under `paths` (the
  * `validators` entries and the stake records), asked in a few platform.getCurrentValidators calls. The L1 mock
  * validators of tier 1 never validate the Primary Network, so only a stake can match. CI starts with an empty
- * chain/.run, so there this finds nothing; platform.getStake covers CI.
+ * chain/.run, so there this finds nothing; pStaked covers CI.
  */
 export async function activeStakes(paths: readonly string[] = [RUN_DIR]): Promise<ActiveStake[]> {
   const files = new Map<string, string>();
@@ -228,10 +228,10 @@ const STAKE_RUN_WINDOW_S = 60 * 60;
 
 /**
  * Throws unless a new stake can run next to the stakes that the key has now, and returns the nAVAX that the key
- * stakes now (platform.getStake): the base of the run's own stake check. The unlocked balance check of each stake
+ * stakes now (pStaked): the base of the run's own stake check. The unlocked balance check of each stake
  * file covers the AVAX that the new stake needs. This check makes sure that only the run's own txs change the
  * balances that the run checks. An earlier stake can stay locked when all of these hold:
- * - a ledger under `paths` names it, and the stakes that the ledgers name add up to platform.getStake. CI starts with
+ * - a ledger under `paths` names it, and the stakes that the ledgers name add up to pStaked. CI starts with
  *   an empty chain/.run, so there any earlier stake stops the run;
  * - it does not renew: a fixed-duration validator, or an auto-renewed one with nextPeriod 0;
  * - it ends more than STAKE_RUN_WINDOW_S from now.
@@ -245,7 +245,7 @@ export async function assertStakeRoom(pAddress: string, paths: readonly string[]
   const problems: string[] = [];
   if (named !== staked) {
     problems.push(
-      `platform.getStake: ${formatNanoAvax(staked)} AVAX staked by ${pAddress}. The local ledgers name ` +
+      `P-Chain stake: ${formatNanoAvax(staked)} AVAX staked by ${pAddress}. The local ledgers name ` +
         `${formatNanoAvax(named)} AVAX of it, so the run cannot know when the rest comes back.`,
     );
   }

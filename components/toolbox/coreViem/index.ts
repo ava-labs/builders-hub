@@ -10,7 +10,6 @@ import { createChain, CreateChainParams } from './methods/createChain';
 import { convertToL1, ConvertToL1Params } from './methods/convertToL1';
 import { getEthereumChain, GetEthereumChainResponse } from './methods/getEthereumChain';
 import { extractChainInfo, ExtractChainInfoParams } from './methods/extractChainInfo';
-import { getPChainBalance } from './methods/getPChainBalance';
 import { registerL1Validator } from './methods/registerL1Validator';
 import { RegisterL1ValidatorParams } from './methods/registerL1Validator';
 import { setL1ValidatorWeight } from './methods/setL1ValidatorWeight';
@@ -46,7 +45,6 @@ export type CoreWalletClientType = Omit<AvalancheWalletClient, 'addChain'> & {
   removeSubnetValidator: (args: RemoveSubnetValidatorParams) => Promise<string>;
   getEthereumChain: () => Promise<GetEthereumChainResponse>;
   extractChainInfo: (args: ExtractChainInfoParams) => Promise<ExtractChainInfoResponse>;
-  getPChainBalance: () => Promise<bigint>;
 };
 
 /**
@@ -120,7 +118,6 @@ export async function createCoreWalletClient(
     removeSubnetValidator: (args: RemoveSubnetValidatorParams) => removeSubnetValidator(baseClient, args),
     getEthereumChain: () => getEthereumChain(baseClient),
     extractChainInfo: (args: ExtractChainInfoParams) => extractChainInfo(baseClient, args),
-    getPChainBalance: () => getPChainBalance(baseClient),
   } as CoreWalletClientType;
 
   return clientWithCustomMethods;

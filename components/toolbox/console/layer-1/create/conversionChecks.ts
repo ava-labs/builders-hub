@@ -1,5 +1,5 @@
 import { isAddress, type PublicClient } from 'viem';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { CB58ToHex, hexToCB58 } from '@avalanche-sdk/client/utils';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import type { ConvertToL1Validator } from '@/components/toolbox/coreViem/methods/convertToL1';

@@ -73,30 +73,6 @@ export function exportAmountError(amount: string, maxSpendable: bigint): string 
   return null;
 }
 
-// Public API nodes no longer serve avax.getAtomicTxStatus after Helicon, so the
-// SDK's waitForTxn fails for C-Chain atomic txs. Poll avax.getAtomicTx instead:
-// it returns blockHeight once the tx is accepted, and a "not found" error before.
-async function waitForCChainAtomicTx(isTestnet: boolean, txID: string, sleepTime = 2000, maxRetries = 30) {
-  const endpoint = `${getRPCEndpoint(isTestnet)}/ext/bc/C/avax`;
-  for (let i = 0; i < maxRetries; i++) {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'avax.getAtomicTx', params: { txID, encoding: 'hex' } }),
-    });
-    const { result, error } = (await res.json()) as {
-      result?: { blockHeight?: string };
-      error?: { message?: string };
-    };
-    if (result?.blockHeight) return;
-    if (error && !/not found|could not find tx/i.test(error.message ?? '')) {
-      throw new Error(`avax.getAtomicTx failed for ${txID}: ${error.message}`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, sleepTime));
-  }
-  throw new Error(`Transaction ${txID} was not accepted on C-Chain after ${maxRetries} attempts`);
-}
-
 const EYEBROW = 'font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400';
 const COUNT = 'font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-zinc-400 dark:text-zinc-500';
 const LINK =
@@ -643,7 +619,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-        await waitForCChainAtomicTx(Boolean(isTestnet), String(txnResponse.txHash));
+        await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
         return { txHash: txnResponse.txHash, xpChain: 'C' as const };
       } else {
         const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
@@ -738,7 +714,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-        await waitForCChainAtomicTx(Boolean(isTestnet), String(txnResponse.txHash));
+        await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
         return { txHash: String(txnResponse.txHash), xpChain: 'C' as const };
       }
     })();
@@ -875,7 +851,7 @@ const txnRequest = await coreWalletClient.cChain.prepareExportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-// Poll avax.getAtomicTx until the result has blockHeight (waitForTxn uses the deprecated avax.getAtomicTxStatus)
+await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
 console.log("Export tx:", txnResponse.txHash);`
           : `import { CoreWalletClient } from "@core-wallet/sdk";
 
@@ -923,7 +899,7 @@ const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-// Poll avax.getAtomicTx until the result has blockHeight (waitForTxn uses the deprecated avax.getAtomicTxStatus)
+await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
 console.log("Import tx:", txnResponse.txHash);`,
         description: isCtoP ? 'Import the exported AVAX to P-Chain' : 'Import the exported AVAX to C-Chain',
       },

@@ -24,7 +24,7 @@ import {
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { Success } from '@/components/toolbox/components/Success';
