@@ -60,3 +60,17 @@ export function getClientIP(request: Request): string {
     'unknown'
   );
 }
+
+/**
+ * The rate-limit bucket of an IP from getClientIP. An IPv4 address is its own
+ * bucket. An IPv6 host usually holds a whole /64 and can send each request
+ * from a new address in it, so IPv6 buckets by the /64 prefix.
+ */
+export function rateBucket(ip: string): string {
+  if (!ip.includes(':')) return ip;
+  const [head, tail = ''] = ip.split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = ip.includes('::') ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right] : left;
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '') || '0').join(':')}::/64`;
+}

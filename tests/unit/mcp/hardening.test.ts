@@ -17,7 +17,7 @@ describe('MCP request admission', () => {
     expect(getMCPRequestCost([
       { method: 'ping' },
       { method: 'tools/call', params: { name: 'docs_search' } },
-      { method: 'tools/call', params: { name: 'onchain_query' } },
+      { method: 'tools/call', params: { name: 'chain_stats' } },
     ])).toBe(7)
   })
 

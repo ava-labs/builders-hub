@@ -115,6 +115,10 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [newProxyAdminAddress, setNewProxyAdminAddress] = useState<string>('');
   const [newProxyAddress, setNewProxyAddress] = useState<string>('');
   const [deployImplementationAddress, setDeployImplementationAddress] = useState<string>('');
+  // The proxy this page just deployed, with the admin and the implementation it was deployed with. The read after the
+  // deploy uses them once: a node of the public RPC that has not seen the deploy's block reads the new proxy's slots
+  // as zero, and the page would say it is not a proxy.
+  const deployedProxy = useRef<{ proxy: string; admin: string; implementation: string } | null>(null);
   const [implementationError, setImplementationError] = useState<string | null>(null);
   const [isCheckingImplementation, setIsCheckingImplementation] = useState(false);
   const [deployImplementationError, setDeployImplementationError] = useState<string | null>(null);
@@ -305,8 +309,16 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       return;
     }
 
-    setIsLoadingProxyInfo(true);
     setProxyError('');
+    const deployed = deployedProxy.current;
+    if (deployed && deployed.proxy === address.toLowerCase()) {
+      deployedProxy.current = null;
+      setProxyAdminAddress(deployed.admin);
+      setCurrentImplementation(deployed.implementation);
+      return;
+    }
+
+    setIsLoadingProxyInfo(true);
     setProxyAdminAddress('');
     setCurrentImplementation('');
 
@@ -458,6 +470,11 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
         throw new Error('The proxy deployment reverted.');
       }
       setNewProxyAddress(receipt.contractAddress);
+      deployedProxy.current = {
+        proxy: receipt.contractAddress.toLowerCase(),
+        admin: newProxyAdminAddress,
+        implementation: deployImplementationAddress,
+      };
       // The ProxyAdmin now has its proxy: a reload must not offer a second proxy for it
       setSavedProxyAdmin(null);
       // Auto-fill the upgrade section with the new proxy

@@ -1,11 +1,11 @@
 /**
- * Input validators for gateway-bound on-chain query params.
+ * Input validators for on-chain query params.
  *
- * The MCP holds NO ClickHouse connection — every indexed-data query goes to the
- * hardened query gateway (typed DSL, HMAC-signed; see gateway-client.ts), which
- * validates again authoritatively. These validators are the cheap UX pre-filter:
- * they turn obviously-bad input (unknown chain, malformed address, out-of-range
- * window) into an immediate, clear error instead of a gateway round trip.
+ * The MCP holds no database connection. Aggregated data comes from the Stats
+ * API and identifier lookups from Glacier, and both validate again. These
+ * validators are the cheap UX pre-filter: they turn obviously-bad input (unknown
+ * chain, malformed address, out-of-range window) into an immediate, clear error
+ * instead of an upstream round trip.
  */
 
 import { ALLOWED_CHAIN_IDS } from './constants';

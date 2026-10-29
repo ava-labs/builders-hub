@@ -785,16 +785,6 @@ async function fetchExplorerData(evmChainId: string, rpcUrl: string, coingeckoId
   };
 }
 
-// Glacier dependency removed: the explorer is now served entirely by the
-// self-hosted ClickHouse-backed APIs (/api/evm for EVM chains, /v1 + /api for
-// P-chain), so an external "is this chain Glacier-indexed?" probe is obsolete.
-// Kept as a no-op returning true so existing call sites (the `isIndexed` gate
-// and ExplorerContext) resolve without any external round-trip. Real coverage
-// is still gated by checkChainIndexed()/hasMetricsActivity.
-async function checkGlacierSupport(_chainId: string): Promise<boolean> {
-  return true;
-}
-
 // Probe metrics API for any non-zero activity over the last ~30 days.
 // Returns false if metrics API is unconfigured, errors out, or every value is zero —
 // which is our signal that the chain is not indexed yet. Chains served by the dedicated
@@ -877,25 +867,20 @@ export async function GET(
       );
     }
 
-    // If priceOnly, just fetch price and glacier support (for ExplorerContext)
+    // If priceOnly, just fetch price and indexed status (for ExplorerContext)
     if (priceOnly) {
       const priceOnlyStart = Date.now();
-      const [price, glacierSupported, hasMetricsActivity] = await Promise.all([
+      const [price, isIndexed] = await Promise.all([
         coingeckoId ? fetchPrice(coingeckoId) : Promise.resolve(undefined),
-        checkGlacierSupport(chainId),
         checkChainIndexed(chainId),
       ]);
       requestTiming.priceOnly = Date.now() - priceOnlyStart;
       requestTiming.total = Date.now() - requestStart;
 
-      // Chains on the dedicated metrics source aren't in Glacier, so don't gate their
-      // indexed status on Glacier support — their metrics activity alone is authoritative.
-      const isDedicatedChain = resolveDedicatedMetricsChain(chainId) !== undefined;
       return NextResponse.json({
         price,
         tokenSymbol,
-        glacierSupported,
-        isIndexed: hasMetricsActivity && (glacierSupported || isDedicatedChain),
+        isIndexed,
       });
     }
 
@@ -909,19 +894,12 @@ export async function GET(
       return NextResponse.json(await readNewBlocks(rpcUrl, lastFetchedBlock, Number(searchParams.get("txs")) || 0));
     }
 
-    // Fetch fresh data and check Glacier support in parallel
     const dataFetchStart = Date.now();
-    const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
-      checkGlacierSupport(chainId),
-    ]);
+    const data = await fetchExplorerData(chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock);
     requestTiming.dataFetch = Date.now() - dataFetchStart;
     requestTiming.total = Date.now() - requestStart;
 
-    // Add glacierSupported to the response
-    const responseData = { ...data, glacierSupported };
-
-    return NextResponse.json(responseData);
+    return NextResponse.json(data);
   } catch (error) {
     requestTiming.total = Date.now() - requestStart;
     requestTiming.error = 1;

@@ -6,15 +6,17 @@ if (MANAGED_TESTNET_RELAYERS_SERVICE_URL.endsWith('/')) {
   MANAGED_TESTNET_RELAYERS_SERVICE_URL = MANAGED_TESTNET_RELAYERS_SERVICE_URL.slice(0, -1);
 }
 
+// The admin password goes in the x-admin-password header, not the URL, so it
+// stays out of request logs.
 export const RelayerServiceURLs = {
-  list: (password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers?password=${password}`,
-  create: (password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers?password=${password}`,
-  delete: (relayerId: string, password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}?password=${password}`,
-  restart: (relayerId: string, password: string) => 
-    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}/restart?password=${password}`,
+  list: () =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers`,
+  create: () =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers`,
+  delete: (relayerId: string) =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}`,
+  restart: (relayerId: string) =>
+    `${MANAGED_TESTNET_RELAYERS_SERVICE_URL}/node_admin/relayers/${relayerId}/restart`,
 };
 
 export const RELAYER_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days

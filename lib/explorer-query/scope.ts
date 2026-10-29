@@ -118,7 +118,7 @@ const nearNow = (expr: string) => /^now\(\s*\)(?:\s*-\s*INTERVAL\s+(?:\d+\s+(?:S
 /** a shorthand the query opens with (macros.ts), a quoted slug among its arguments, and those that take a window */
 const HEAD = /^\s*(?:WITH\s+)?\$([A-Za-z]+)\s*\(/;
 const SLUG = /^'[a-z][\w-]*'$/i;
-const WINDOWED = /^(?:DEX|LEND|LIQUIDATIONS|PRICES|ICTT)$/i;
+const WINDOWED = /^(?:DEX|LEND|LIQUIDATIONS|PRICES|AVAXUSD|ICTT)$/i;
 
 /** the query with a window shorthand's start and end written as bounds in its place: the WITH it stands for reads
     further back than its window (a price from the hour before, a debt's last 30 days), in forms this cannot read */

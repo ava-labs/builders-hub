@@ -21,10 +21,10 @@ export async function builderHubAddNode(
   const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
   if (!password) throw new Error('MANAGED_TESTNET_NODE_SERVICE_PASSWORD not configured');
 
-  const url = ManagedTestnetNodesServiceURLs.addNode(subnetId, password, blockchainId, chainName);
+  const url = ManagedTestnetNodesServiceURLs.addNode(subnetId, blockchainId, chainName);
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    headers: { 'x-admin-password': password, 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({}) // we need an empty body to satisfy the POST request
   });
 
@@ -69,9 +69,9 @@ export async function builderHubDeleteNode(
 
   let response: Response;
   try {
-    response = await fetch(ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex, password), {
+    response = await fetch(ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex), {
       method: 'DELETE',
-      headers: { 'Accept': 'application/json' },
+      headers: { 'x-admin-password': password, 'Accept': 'application/json' },
     });
   } catch {
     throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub was unreachable.');
@@ -98,8 +98,8 @@ export async function builderHubGetUpgradeJson(params: {
   let response: Response;
   try {
     response = await fetch(
-      ManagedTestnetNodesServiceURLs.upgradeJson(params.subnetId, params.nodeIndex, params.blockchainId, password),
-      { method: 'GET', headers: { Accept: 'application/json' } },
+      ManagedTestnetNodesServiceURLs.upgradeJson(params.subnetId, params.nodeIndex, params.blockchainId),
+      { method: 'GET', headers: { 'x-admin-password': password, Accept: 'application/json' } },
     );
   } catch {
     throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub was unreachable.');
@@ -127,10 +127,10 @@ export async function builderHubWriteUpgradeJson(params: {
   let response: Response;
   try {
     response = await fetch(
-      ManagedTestnetNodesServiceURLs.upgradeJson(params.subnetId, params.nodeIndex, params.blockchainId, password),
+      ManagedTestnetNodesServiceURLs.upgradeJson(params.subnetId, params.nodeIndex, params.blockchainId),
       {
         method: 'PUT',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers: { 'x-admin-password': password, Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ upgradeJson: params.upgradeJson }),
       },
     );
@@ -157,9 +157,9 @@ export async function builderHubRestartManagedNode(params: {
 
   let response: Response;
   try {
-    response = await fetch(ManagedTestnetNodesServiceURLs.restartNode(params.subnetId, params.nodeIndex, password), {
+    response = await fetch(ManagedTestnetNodesServiceURLs.restartNode(params.subnetId, params.nodeIndex), {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      headers: { 'x-admin-password': password, Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     });
   } catch {

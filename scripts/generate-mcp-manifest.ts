@@ -15,7 +15,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MCP_URL = process.env.MCP_URL || 'http://localhost:3000/api/mcp';
-const VERSION = '2.4.0';
+const VERSION = '2.5.0';
 
 interface ListedTool {
   name: string;
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     name: 'avalanche-mcp',
     version: VERSION,
     description:
-      'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data (Glacier + ClickHouse), build-plan runbooks, and Builder Console guidance.',
+      'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data (Stats API + Glacier), build-plan runbooks, and Builder Console guidance.',
     endpoint: 'https://build.avax.network/api/mcp',
     protocol: 'mcp/http',
     readOnly: true,

@@ -262,12 +262,6 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
         // brand-new chain yet (in which case it would otherwise fall back
         // to mainnet and mislabel the chain in the dashboard).
         isTestnet: job.request.network === 'fuji',
-        // Persist the per-L1 Firn URL the user just saw on this screen so
-        // the My L1 dashboard's ExplorerMenu picks it as default even on
-        // the wallet-only fallback path (managed-side data unavailable,
-        // mid-load, post-Firn-TTL). Undefined when the orchestrator did
-        // not return an explorer (e.g. the local mock path).
-        explorerUrl: result.explorer?.url,
       });
     } finally {
       setAddingToWallet(false);
@@ -362,14 +356,6 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
           primaryRows={
             <>
               <DetailRow label="RPC URL" value={result.rpcUrl} />
-              {result.explorer && (
-                // Per-L1 block explorer at <8-char-slug>.firn.gg, served
-                // by the managed-testnet-nodes platform's firn indexer.
-                // Shareable for the same 3-day window as the validator
-                // node, populated only when managed-nodes accepted the
-                // assignment with explorer enabled (default-on).
-                <DetailRow label="Block Explorer" value={result.explorer.url} href={result.explorer.url} />
-              )}
               <DetailRow label="EVM Chain ID" value={String(result.evmChainId)} />
               <DetailRow
                 label="Validator Manager"

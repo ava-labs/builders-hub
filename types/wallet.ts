@@ -22,10 +22,7 @@ export interface AddChainOptions {
     genesisData?: string;
     /**
      * Optional block explorer URL the caller wants persisted on the
-     * resulting L1ListItem. Quick L1 passes `result.explorer.url` here so
-     * the per-L1 Firn URL survives the wallet-add hop and becomes the
-     * dashboard's default explorer — matching what the user just saw on
-     * the deployment success screen.
+     * resulting L1ListItem. It becomes the dashboard's default explorer.
      */
     explorerUrl?: string;
 }
@@ -48,7 +45,7 @@ export interface ChainData {
     genesisData?: string;
     /** Optional block explorer URL. Carried through Add Chain to seed
      *  L1ListItem.explorerUrl, which drives the default selection in the
-     *  dashboard's <ExplorerMenu> via lib/explorers.ts Firn detection. */
+     *  dashboard's <ExplorerMenu> via lib/explorers.ts. */
     explorerUrl?: string;
 }
 

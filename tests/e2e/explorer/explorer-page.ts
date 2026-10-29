@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
 import type { Browser } from '@e2e-dev/web';
 import { expect, type Locator, type Screen } from 'e2e';
 import { waitForHydration } from '../lib/hydration';
+import { escapeRegExp } from '../lib/regexp';
 
 // A click renders the next page on the server, and the URL changes only when the server answers.
 // Under load the dev server takes up to 40 s for a tx page. The docs and academy folders use the same budget.
@@ -11,6 +13,10 @@ export const DATA = { timeout: 90_000 };
 
 // A test that visits several pages can wait for a first-visit compile at each step, so it gets more than the 180 s default.
 export const MULTI_PAGE = { timeout: 360_000 };
+
+// A tap on the City. CI draws the 3D City with software WebGL, which holds the page's main thread for seconds at a time
+// while the City builds: a tap's input waits for the page that long. On a GPU the tap lands at once.
+export const CITY_TAP = { timeout: 90_000 };
 
 // A "Latest Blocks" row on an overview: an optional chain name, a comma-grouped height, then the next cell.
 export const OVERVIEW_BLOCK_ROW = /^([A-Z][\w .()-]*? )?\d{1,3}(,\d{3})+ [\dA-Z]/;
@@ -70,6 +76,32 @@ export async function expectActiveTab(screen: Screen, browser: Browser, label: s
 
 // The full URL with this exact path. A query string may follow, because a page can keep its own state there.
 export function pathPattern(path: string): RegExp {
-  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`^https?://[^/]+${escaped}(\\?[^#]*)?$`);
+  return new RegExp(`^https?://[^/]+${escapeRegExp(path)}(\\?[^#]*)?$`);
+}
+
+interface CatalogChain {
+  chainName: string;
+  isTestnet?: boolean;
+}
+
+// The chain names of the catalog (constants/l1-chains.json): the Fuji entries, and the mainnet names that no Fuji
+// entry has. Each test that needs them reads the file in its body, not when the runner collects the tests.
+export function catalogNames(): { fuji: Set<string>; mainnetOnly: Set<string> } {
+  const catalog = JSON.parse(
+    readFileSync(new URL('../../../constants/l1-chains.json', import.meta.url), 'utf8'),
+  ) as CatalogChain[];
+  // Some entries have no name. The City shows a short ID for them.
+  const named = (chains: CatalogChain[]) => chains.map((c) => c.chainName.trim()).filter(Boolean);
+  const fuji = new Set(named(catalog.filter((c) => c.isTestnet === true)));
+  const mainnetOnly = new Set(named(catalog.filter((c) => c.isTestnet !== true)).filter((name) => !fuji.has(name)));
+  return { fuji, mainnetOnly };
+}
+
+// A row of the City list reads: the initial of the chain when it has no logo, the name, a 4-character tag when two
+// chains have the same name (the rendered text puts no space before it), the badges on a large screen, then the count
+// (validators by default; on a phone " val" and the badges follow it).
+export function namesOneOf(text: string, names: Set<string>): boolean {
+  return [...names].some((name) =>
+    new RegExp(`^(\\S )?${escapeRegExp(name)}(\\S{4})?( NEW| PRIVATE)* ([\\d.,]+[KMB]?|\\u2014)( |$)`).test(text),
+  );
 }

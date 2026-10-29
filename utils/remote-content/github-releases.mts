@@ -112,8 +112,24 @@ export function extractReleaseSummary(body: string, maxLength: number = 300): st
   summary = summary.replace(/^## Changelog[\s\S]*$/m, '').trim();
   // Get first meaningful paragraph (not starting with * or **)
   const paragraphs = summary.split('\n\n').filter(p => p.trim() && !p.startsWith('*') && !p.startsWith('**'));
-  const briefSummary = paragraphs[0]?.slice(0, maxLength) || '';
-  return briefSummary.length >= maxLength ? `${briefSummary}...` : briefSummary;
+  const paragraph = paragraphs[0] || '';
+  if (paragraph.length <= maxLength) return paragraph;
+  // Drop a list marker that the cut leaves at the end of a line.
+  const dropTrailingListMarker = (text: string) =>
+    text
+      .trimEnd()
+      .replace(/(^|\n)[ \t]*([-*+]|\d+[.)])$/, '')
+      .trimEnd();
+  // Cut between words, and keep a markdown link or image whole or drop it. A cut inside a URL leaves a partial URL,
+  // which MDX turns into a link to a page that does not exist.
+  let briefSummary = '';
+  for (const token of paragraph.match(/!?\[[^\]]*\]\([^)]*\)|\s+|\S+/g) ?? []) {
+    // The first word or link stays even when it alone is longer than maxLength, so the summary is never empty.
+    if (briefSummary.length + token.length > maxLength && dropTrailingListMarker(briefSummary)) break;
+    briefSummary += token;
+  }
+  briefSummary = dropTrailingListMarker(briefSummary);
+  return briefSummary === paragraph.trimEnd() ? briefSummary : `${briefSummary}...`;
 }
 
 /**

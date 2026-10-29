@@ -79,10 +79,7 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     }
 
     // Make the request to Builder Hub API to add node. Pass blockchainId
-    // and chainName so the slot's assignment is registered with both up
-    // front — otherwise the firn-explorer tenant directory omits this
-    // L1 until the first /firn/* proxy hit lazily back-fills it, and
-    // `<slug>.firn.gg` silently falls through to the apex view.
+    // and chainName so the slot's assignment is registered with both.
     const data: SubnetStatusResponse = await builderHubAddNode(subnetId, blockchainId, chainName);
 
     // Store the new node in database

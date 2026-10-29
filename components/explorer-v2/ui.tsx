@@ -602,16 +602,14 @@ export function RowSkeleton({ n }: { n: number }) {
 }
 
 /** underline tabs in the subnav's voice, no boxes */
-export function Tabs<T extends string>({
-  tabs,
-  active,
-  onChange,
-  labels,
-}: {
+export function Tabs<T extends string>({ tabs, active, onChange, labels, onIntent }: {
   tabs: T[];
   active: T;
   onChange: (t: T) => void;
   labels: Record<T, string>;
+  /** a mouse pointer or the focus came to a tab: it may open next (a touch
+   *  that starts on a tab may be a scroll) */
+  onIntent?: (t: T) => void;
 }) {
   return (
     // a phone scrolls the tabs sideways rather than letting the last one fall off
@@ -620,6 +618,8 @@ export function Tabs<T extends string>({
         <button
           key={t}
           onClick={() => onChange(t)}
+          onPointerEnter={onIntent && ((e) => e.pointerType === "mouse" && onIntent(t))}
+          onFocus={onIntent && (() => onIntent(t))}
           aria-pressed={active === t}
           className={cn(
             "-mb-px shrink-0 whitespace-nowrap border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",

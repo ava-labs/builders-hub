@@ -4,7 +4,9 @@
  * two or more of the tool files; this is the single copy.
  */
 
-import type { ToolResult } from '../../types';
+import { getPChainNodeBalance } from '@/components/toolbox/utils/pChainNodeBalance';
+import type { Network, ToolResult } from '../../types';
+import { MCP_MAX_P_CHAIN_BALANCE_REQUESTS } from './constants';
 
 export function getString(args: Record<string, unknown>, key: string, fallback = ''): string {
   const v = args[key];
@@ -30,6 +32,22 @@ export function rejectBadEnum(args: Record<string, unknown>, key: string, allowe
 /** Turn a caught RPC/fetch error into an {isError} ToolResult, falling back for non-Error throws. */
 export function rpcErrorResult(err: unknown, fallback: string): ToolResult {
   return { content: [{ type: 'text', text: err instanceof Error ? err.message : fallback }], isError: true };
+}
+
+/**
+ * The P-Chain balance of the addresses as platform.getBalance's JSON (amounts as decimal strings), from the Avalanche
+ * SDK's pChain.getBalance, which sums platform.getUTXOs. Throws on transport or RPC error, and after
+ * MCP_MAX_P_CHAIN_BALANCE_REQUESTS requests.
+ */
+export async function readPChainBalanceJson(network: Network, addresses: string[]) {
+  const b = await getPChainNodeBalance(network === 'fuji', addresses, MCP_MAX_P_CHAIN_BALANCE_REQUESTS);
+  return {
+    ...b,
+    balance: b.balance.toString(),
+    unlocked: b.unlocked.toString(),
+    lockedStakeable: b.lockedStakeable.toString(),
+    lockedNotStakeable: b.lockedNotStakeable.toString(),
+  };
 }
 
 // --- Pagination — list endpoints (platform.getBlockchains / getCurrentValidators

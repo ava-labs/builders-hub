@@ -1,7 +1,7 @@
 // The text of a failed L1 lookup: the Subnet ID field (InputSubnetId), L1 Node Setup and the Validator Manager lookup
 // (useVMCAddress). The signing steps show the lookup text too (SigningSubnetStatus).
 
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 
 /** The lookup error when no L1 is selected. The signing steps show it as is: it is an instruction, not a failure. */
 export const NO_L1_SELECTED = 'Select an L1.';

@@ -2,62 +2,34 @@ import { describe, expect, test } from 'e2e';
 import { z } from 'zod';
 import { callTool } from './mcp-call';
 
-// WAVAX on the Mainnet C-Chain: a contract with traffic every day.
-const WAVAX = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7';
-
-// chain_stats reads indexed data through the query gateway. A server without MCP_GATEWAY_URL and
-// MCP_GATEWAY_SECRET (a local dev server) cannot reach it. These are the errors for that case.
-const GATEWAY_UNAVAILABLE = /gateway is not configured|gateway 5\d\d|fetch failed|aborted/i;
-
-const ContractStats = z.object({
-  source: z.string().min(1),
-  target: z.literal('contract'),
-  chainId: z.literal(43114),
-  contract: z.literal(WAVAX.toLowerCase()),
-  days: z.literal(90),
-  paramNote: z.string(),
-  stats: z.record(z.string(), z.unknown()),
-});
+// chain_stats reads the public Stats API (stats-api.avax.network), which serves closed periods only.
 
 const ChainSeries = z.object({
-  source: z.string().min(1),
+  source: z.literal('stats-api'),
   target: z.literal('chain'),
   chainId: z.literal(43114),
   timeInterval: z.literal('day'),
   days: z.literal(7),
-  series: z.array(z.record(z.string(), z.unknown())),
+  series: z.array(z.object({ timestamp: z.number(), txCount: z.number() }).passthrough()),
 });
 
-// The answer when the gateway is down: the latest block from Glacier, with no time window.
-const GlacierFallback = z.object({
-  source: z.literal('glacier-fallback'),
+const ChainRecent = z.object({
+  source: z.literal('stats-api'),
   target: z.literal('chain'),
-  chainId: z.literal('43114'),
-  note: z.string().regex(/unreachable/i),
-  latestBlock: z.unknown(),
+  chainId: z.literal(43114),
+  windowHours: z.literal(24),
+  metrics: z.object({ txCount: z.number() }).passthrough(),
 });
 
 // API tests run once, on the target without a browser engine (platform "api").
 describe('MCP chain_stats', { platforms: ['api'], tags: ['api', 'mcp'] }, () => {
-  test('target=contract says that window=series does not apply', async ({ app }) => {
-    const res = await callTool(app, 'chain_stats', {
-      target: 'contract',
-      window: 'series',
-      chainId: 43114,
-      value: WAVAX,
-      days: 90,
-      timeInterval: 'day',
-    });
-    test.skip(
-      res.isError && GATEWAY_UNAVAILABLE.test(res.text),
-      `the server cannot reach the query gateway ("${res.text.slice(0, 120)}"), so per-contract stats are not available`,
-    );
-    expect(res.isError, res.text).toBe(false);
-    const stats = expect(res.json).toMatchSchema(ContractStats);
-    expect(stats.paramNote).toMatch(/window:series was not applied/);
+  test('target=contract explains that per-contract stats moved to the Query page', async ({ app }) => {
+    const res = await callTool(app, 'chain_stats', { target: 'contract', chainId: 43114, value: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7' });
+    expect(res.isError).toBe(true);
+    expect(res.text).toMatch(/explorer\/mainnet\/query/);
   });
 
-  test('series rejects days over 365 with a validation error, not a gateway fallback', async ({ app }) => {
+  test('series rejects days over 365 with a validation error', async ({ app }) => {
     const res = await callTool(app, 'chain_stats', {
       target: 'chain',
       window: 'series',
@@ -67,7 +39,18 @@ describe('MCP chain_stats', { platforms: ['api'], tags: ['api', 'mcp'] }, () => 
     });
     expect(res.isError).toBe(true);
     expect(res.text).toMatch(/days must be an integer 1\.\.365/);
-    expect((res.json as { source?: unknown } | undefined)?.source).not.toBe('glacier-fallback');
+  });
+
+  test('series rejects an hourly series over 90 days', async ({ app }) => {
+    const res = await callTool(app, 'chain_stats', {
+      target: 'chain',
+      window: 'series',
+      chainId: 43114,
+      days: 91,
+      timeInterval: 'hour',
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toMatch(/at most 90 days/);
   });
 
   test('series returns a daily time series for a valid window', async ({ app }) => {
@@ -79,13 +62,14 @@ describe('MCP chain_stats', { platforms: ['api'], tags: ['api', 'mcp'] }, () => 
       timeInterval: 'day',
     });
     expect(res.isError, res.text).toBe(false);
-    const { source } = expect(res.json).toMatchSchema(z.object({ source: z.string().min(1) }));
-    if (source === 'glacier-fallback') {
-      // The fallback answer must still have its documented shape.
-      expect(res.json).toMatchSchema(GlacierFallback);
-      test.skip('the server cannot reach the query gateway, so chain_stats answered from the Glacier fallback');
-    }
     const answer = expect(res.json).toMatchSchema(ChainSeries);
     expect(answer.series.length).toBeGreaterThan(0);
+  });
+
+  test('recent sums the closed hours of the window', async ({ app }) => {
+    const res = await callTool(app, 'chain_stats', { target: 'chain', chainId: 43114, hours: 24 });
+    expect(res.isError, res.text).toBe(false);
+    const answer = expect(res.json).toMatchSchema(ChainRecent);
+    expect(answer.metrics.txCount).toBeGreaterThan(0);
   });
 });

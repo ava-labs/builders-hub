@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, Loader2, Trash2, Wallet } from 'lucide-react';
+import { Loader2, Trash2, Wallet } from 'lucide-react';
 import { NodeRegistration } from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/types';
 import {
   calculateTimeRemaining,
@@ -9,7 +9,7 @@ import {
 } from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/useTimeRemaining';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { Board, HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
 import { CopyBlock, DANGER_BTN, EYEBROW, SECONDARY_BTN, StatusLabel } from './ui';
 
@@ -45,7 +45,7 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
     // Pre-set testnet mode so the console context switches correctly
     // (managed testnet nodes are always Fuji testnet)
     setWalletIsTestnet(true);
-    setAvalancheNetworkID(networkIDs.FujiID);
+    setAvalancheNetworkID(TESTNET_NETWORK_ID);
 
     const result = await addChain({
       rpcUrl: node.rpc_url,
@@ -82,9 +82,6 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
     2,
   );
 
-  // Per-L1 firn block explorer: the slug is the lowercased first 8 chars of the blockchain ID (matches the structural
-  // regex in firn-explorer's middleware), with the same 3-day TTL as the node. The managed-nodes API doesn't expose it.
-  const explorerUrl = `https://${node.blockchain_id.toLowerCase().slice(0, 8)}.firn.gg`;
   const isAccountEntry = node.node_index === null || node.node_index === undefined;
 
   // Disable "Add to Wallet" for 10 seconds after node creation to allow bootstrapping
@@ -140,21 +137,6 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
         </SpecRow>
         <SpecRow label="Blockchain ID">
           <HashChip value={node.blockchain_id} len={64} />
-        </SpecRow>
-        <SpecRow label="Explorer">
-          <span className="inline-flex min-w-0 max-w-full items-center gap-2">
-            <HashChip value={explorerUrl} len={200} />
-            <a
-              href={explorerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Open explorer"
-              title="Open explorer"
-              className="-m-1.5 shrink-0 p-1.5 text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
-            >
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </a>
-          </span>
         </SpecRow>
         <SpecRow label="Lifetime">
           <span className="font-mono text-[12.5px] tabular-nums text-zinc-700 dark:text-zinc-300">
