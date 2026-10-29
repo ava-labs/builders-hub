@@ -70,6 +70,16 @@ describe('getExplorerOptions', () => {
     });
   });
 
+  it('ignores a stored firn.gg explorer URL', () => {
+    const options = getExplorerOptions({
+      evmChainId: 99999,
+      isTestnet: true,
+      customExplorerUrl: 'https://abcdefgh.firn.gg',
+    });
+
+    expect(options.map((o) => o.id)).toEqual(['builder-hub']);
+  });
+
   it('marks only the Builder Hub option as internal', () => {
     const options = getExplorerOptions({
       evmChainId: 43113,

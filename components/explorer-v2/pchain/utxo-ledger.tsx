@@ -7,6 +7,7 @@ import { formatTime, truncate } from "@/components/explorer-v2/format";
 import { crossChainAddressUrl, crossChainTxUrl } from "@/lib/crosschain-links";
 import type { Utxo } from "@/lib/pchain-explorer";
 import { assetAmount, crossOf, homeChain, lockAhead } from "./utxo";
+import { Owners } from "./owners";
 
 /* One side of a tx's UTXOs as a ledger table: each UTXO's exact amount,
    its owners, what holds it (a stake, a time lock, a multisig threshold,
@@ -81,22 +82,16 @@ export function UtxoColumn({ base, title, utxos, side }: { base: string; title: 
                   <CellLabel>{side === "in" ? "Made In" : "Spent In"}</CellLabel>
                   {link}
                 </span>
-                <span className="col-span-2 min-w-0 truncate font-mono text-[12px] md:col-span-1">
+                <span className="col-span-2 min-w-0 font-mono text-[12px] md:col-span-1">
                   <CellLabel>Owner</CellLabel>
                   {u.addresses.length === 0 ? (
                     <span className={MUTED}>{cross ? `on the ${cross}` : "—"}</span>
                   ) : (
-                    u.addresses.map((a, j) => (
-                      <Link
-                        key={a}
-                        href={(side === "in" && cross && crossChainAddressUrl(network, u.createdOnChainId, a)) || `${base}/address/${a}`}
-                        className={cn(idInk, "hover:text-[#E6212F]")}
-                        title={a}
-                      >
-                        {j > 0 && <span className="text-zinc-300 dark:text-zinc-700">, </span>}
-                        {truncate(a, 10)}
-                      </Link>
-                    ))
+                    <Owners
+                      owners={u.addresses}
+                      threshold={u.threshold}
+                      hrefOf={(a) => (side === "in" && cross && crossChainAddressUrl(network, u.createdOnChainId, a)) || `${base}/address/${a}`}
+                    />
                   )}
                 </span>
                 <span className="col-span-2 min-w-0 overflow-hidden md:col-span-1">

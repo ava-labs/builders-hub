@@ -13,7 +13,7 @@ import {
   newWarpMessage,
   packWarpIntoAccessList,
 } from '@avalanche-sdk/interchain/warp';
-import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
+import { justificationFromRegisterMessage } from '@/components/toolbox/utils/registrationJustification';
 import { extractRegisterL1ValidatorMessageFromPChainTx } from '@avalanche-sdk/interchain/validator-manager';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
@@ -260,14 +260,9 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       );
       const l1ValidatorRegistrationMessage = hexToBytes(unsignedRegistrationMsg.toHex() as `0x${string}`);
 
-      // Step 5: Get justification for the validation
-      const justification = await findRegistrationJustification(validationId, subnetIdL1, chainPublicClient!);
-
-      if (!justification) {
-        throw new Error(
-          'No justification logs found for this validation ID. The registration transaction may not have been mined yet.',
-        );
-      }
+      // Step 5: The justification is the RegisterL1ValidatorMessage. The P-Chain tx of step 1 holds it, so no C-Chain
+      // log read is needed.
+      const justification = justificationFromRegisterMessage(registrationMessageData.messageHex, validationId);
 
       // Step 6: Aggregate P-Chain signature.
       // The warp here is from P-Chain (its registration acknowledgement). The

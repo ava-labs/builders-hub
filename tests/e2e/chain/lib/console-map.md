@@ -121,9 +121,10 @@ Count these when you set your own poll rate. They are the app's requests; the No
 
 - After each P-Chain tx, `waitForPChainConfirmation` polls `platform.getTxStatus` every 2 s for up to 60 s (`utils/pchainConfirmation.ts`). After 60 s the page reports a timeout and keeps the issued tx ID, but the tx can still commit. Decide by the chain.
 - The top-up tool reads the P-Chain balance every 10 s.
-- A failed contract simulation on Fuji makes the page call the site's own `/api/debug-rpc`.
+- A reverted C-Chain or Fuji tx makes the page read the site's own `/api/trace` for the revert reason, up to 4 times in about 6 s (`lib/trace-revert.ts`).
 - Each Warp click: one Glacier aggregation request per page-side attempt (up to 4).
-- Remove expired registration: one `eth_getLogs` per 2,000 blocks from 'From Block' to the head.
+- Remove expired registration: one `eth_getLogs` per 100 blocks from 'From Block' to the head.
+- Complete a removal (PoA and PoS): about 10 to 20 `eth_getBlockByNumber` to find the block where the registration completed, then one `eth_getLogs` per 100 blocks back from it, usually one (`utils/registrationJustification.ts`).
 
 ### 1.11 The P-Chain balance warning
 
@@ -385,7 +386,7 @@ Gotcha: if a removal went out earlier and the P-Chain step failed, the initiate 
 - Controls: the subnet field (it starts with the create store's subnet, so fill the old L1's subnet), then `textbox /^From Block/` (the name is 'From Block (defaults to last 100k blocks)'), `fill(<ledger block number>)`. Then `button 'Search for Expired Registrations'`. Then, on the card that shows V2's validation ID (hex), `button 'Remove'`. Scope the card with `filter({ hasText: v2ValidationIdHex })`.
 - Success: 'Removal Successful' on that card.
 - Chain check: `managerValidator(v2ValidationId).status` is `Invalidated`.
-- Gotcha: fill 'From Block' with the ledger's block number: a blank field scans the last 100k blocks, one `eth_getLogs` per 2,000 blocks.
+- Gotcha: fill 'From Block' with the ledger's block number: a blank field scans the last 100k blocks, one `eth_getLogs` per 100 blocks.
 
 ### 2.16 Disable V0 (teardown, P-Chain)
 

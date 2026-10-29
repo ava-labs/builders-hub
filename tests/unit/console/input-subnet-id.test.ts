@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { checkSubnetField, subnetFieldNetwork, type SubnetRead } from '@/components/toolbox/components/InputSubnetId';
 import { GlacierHttpError } from '@/components/toolbox/coreViem/utils/glacier';
 import { SUBNET_ID_FORMAT_ERROR } from '@/components/toolbox/utils/vmcLookupText';
@@ -39,20 +39,20 @@ const signal = () => new AbortController().signal;
 
 describe('subnetFieldNetwork', () => {
   it("reads the caller's network when the caller sets it", () => {
-    expect(subnetFieldNetwork(false, networkIDs.FujiID)).toEqual({ isTestnet: false, pageNetwork: true });
-    expect(subnetFieldNetwork(true, networkIDs.MainnetID)).toEqual({ isTestnet: true, pageNetwork: true });
+    expect(subnetFieldNetwork(false, TESTNET_NETWORK_ID)).toEqual({ isTestnet: false, pageNetwork: true });
+    expect(subnetFieldNetwork(true, MAINNET_NETWORK_ID)).toEqual({ isTestnet: true, pageNetwork: true });
   });
 
   it("reads the wallet's network when the caller does not set one", () => {
-    expect(subnetFieldNetwork(undefined, networkIDs.FujiID)).toEqual({ isTestnet: true, pageNetwork: false });
-    expect(subnetFieldNetwork(undefined, networkIDs.MainnetID)).toEqual({ isTestnet: false, pageNetwork: false });
+    expect(subnetFieldNetwork(undefined, TESTNET_NETWORK_ID)).toEqual({ isTestnet: true, pageNetwork: false });
+    expect(subnetFieldNetwork(undefined, MAINNET_NETWORK_ID)).toEqual({ isTestnet: false, pageNetwork: false });
   });
 });
 
 describe('checkSubnetField on a page with its own network (L1 Node Setup)', () => {
   // The Network toggle is on Mainnet, and the wallet store is on Fuji (its default with no wallet). The texts name the
   // toggle, not the wallet.
-  const pageMainnet = { ...subnetFieldNetwork(false, networkIDs.FujiID), readOnly: false };
+  const pageMainnet = { ...subnetFieldNetwork(false, TESTNET_NETWORK_ID), readOnly: false };
 
   it('gives no error for a Mainnet L1, and reads only Mainnet', async () => {
     const api = stubDataApi();
@@ -88,7 +88,7 @@ describe('checkSubnetField on a page with its own network (L1 Node Setup)', () =
   it('names the toggle, with no read of the other network, when a newer value aborts the check', async () => {
     const controller = new AbortController();
     const api = stubDataApi({}, () => controller.abort());
-    const pageFuji = { ...subnetFieldNetwork(true, networkIDs.MainnetID), readOnly: false };
+    const pageFuji = { ...subnetFieldNetwork(true, MAINNET_NETWORK_ID), readOnly: false };
     const check = await checkSubnetField(MAINNET_ID, pageFuji, controller.signal, api.read);
     expect(check).toEqual({
       status: 'not-found',
@@ -105,7 +105,7 @@ describe('checkSubnetField on a page with its own network (L1 Node Setup)', () =
 });
 
 describe("checkSubnetField on the wallet's network", () => {
-  const walletFuji = { ...subnetFieldNetwork(undefined, networkIDs.FujiID), readOnly: false };
+  const walletFuji = { ...subnetFieldNetwork(undefined, TESTNET_NETWORK_ID), readOnly: false };
 
   it('finds a Fuji L1 with one read', async () => {
     const api = stubDataApi();
@@ -156,7 +156,7 @@ describe("checkSubnetField on the wallet's network", () => {
 
 describe('checkSubnetField on a read-only field (Explorer Setup)', () => {
   // The caller filled in the value from the chain's own network, so the wallet's network does not apply
-  const readOnly = { ...subnetFieldNetwork(undefined, networkIDs.FujiID), readOnly: true };
+  const readOnly = { ...subnetFieldNetwork(undefined, TESTNET_NETWORK_ID), readOnly: true };
 
   it('does not read the Data API and gives no error', async () => {
     const api = stubDataApi();

@@ -5,7 +5,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { BoardHeader, HashChip } from '@/components/explorer-v2/ui';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { GlobalParamNetwork } from '@avalabs/avacloud-sdk/models/components';
 import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -31,8 +31,8 @@ const metadata: ConsoleToolMetadata = {
 };
 
 const networkNames: Record<number, GlobalParamNetwork> = {
-  [networkIDs.MainnetID]: 'mainnet',
-  [networkIDs.FujiID]: 'fuji',
+  [MAINNET_NETWORK_ID]: 'mainnet',
+  [TESTNET_NETWORK_ID]: 'fuji',
 };
 
 /** A hairline board with nothing in it yet: what's missing, one sentence, and the way forward. */

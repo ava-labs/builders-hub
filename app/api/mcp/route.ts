@@ -25,17 +25,17 @@ export const maxDuration = 30;
 
 const server = new MCPServer({
   name: 'avalanche-mcp',
-  version: '2.4.0',
+  version: '2.5.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data via the query gateway (per-field source routing) + Glacier, build-plan runbooks, and Builder Console guidance',
+  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data from the Stats API and Glacier, build-plan runbooks, and Builder Console guidance',
 });
 
 server.registerToolDomain(docsTools);
 server.registerToolDomain(blockchainTools);
 server.registerToolDomain(platformTools);
 server.registerToolDomain(infoTools);
-// dataTools' indexed on-chain queries (onchain_activity / chain_stats / onchain_query) route
-// through the query gateway via MCP_GATEWAY_URL (HMAC-signed); see lib/mcp/tools/lib/gateway-client.ts.
+// dataTools reads aggregated chain data (onchain_activity / chain_stats) from the public
+// Stats API and identifier lookups from Glacier; see lib/mcp/tools/data.ts.
 server.registerToolDomain(dataTools);
 server.registerToolDomain(actionTools);
 server.registerToolDomain(consoleTools);

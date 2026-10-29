@@ -128,7 +128,7 @@ jobs:
           GOAL: ${{ matrix.charter.goal }}
         run: |
           code=0
-          npx e2e explore "$GOAL" --target "$TARGET" --output ".e2e/explore/$KEY" --reporter list,markdown || code=$?
+          npx e2e explore "$GOAL" --agent explore --target "$TARGET" --output ".e2e/explore/$KEY" --reporter list,markdown || code=$?
           if [ "$code" -eq 0 ]; then exit 0; fi
           if [ "$code" -ne 1 ]; then
             echo "::error title=$KEY::e2e explore exited $code: an infrastructure, config or model error, not a finding."

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { Copy, Check } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';

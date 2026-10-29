@@ -58,7 +58,8 @@ export async function findRelayer(userId: string, blockchainIds: string[]): Prom
 
   let relayers: ServiceRelayer[];
   try {
-    const res = await fetch(RelayerServiceURLs.list(password), {
+    const res = await fetch(RelayerServiceURLs.list(), {
+      headers: { 'x-admin-password': password },
       cache: 'no-store',
       signal: AbortSignal.timeout(10_000),
     });
