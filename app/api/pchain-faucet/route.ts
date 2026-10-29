@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAvalancheWalletClient } from '@avalanche-sdk/client';
 import { privateKeyToAvalancheAccount } from '@avalanche-sdk/client/accounts';
+import { formatUnits } from 'viem';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
+import { getPChainUnlockedNAvax } from '@/components/toolbox/utils/pChainNodeBalance';
+import {
+  BALANCE_GATE_STATUS,
+  BALANCE_READ_FAILED_MESSAGE,
+  P_CHAIN_MAX_BALANCE_NAVAX,
+  balanceGateMessage,
+} from '@/lib/faucet/balanceGate';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
@@ -84,6 +92,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         { success: false, message: 'Cannot send tokens to the faucet address' },
         { status: 400 }
+      );
+    }
+
+    // Before the reservation: a refused drip records no claim and uses none of the daily limit
+    let destinationBalance: bigint;
+    try {
+      destinationBalance = await getPChainUnlockedNAvax(true, destinationAddress);
+    } catch (error) {
+      console.error('P-Chain faucet balance read error:', error);
+      return NextResponse.json({ success: false, message: BALANCE_READ_FAILED_MESSAGE }, { status: 503 });
+    }
+    if (destinationBalance > P_CHAIN_MAX_BALANCE_NAVAX) {
+      return NextResponse.json(
+        { success: false, message: balanceGateMessage(formatUnits(P_CHAIN_MAX_BALANCE_NAVAX, 9), 'AVAX') },
+        { status: BALANCE_GATE_STATUS }
       );
     }
 
