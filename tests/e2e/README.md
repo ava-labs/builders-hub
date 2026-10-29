@@ -66,6 +66,7 @@ The `npm` scripts turn telemetry off (`E2E_TELEMETRY_DISABLED=1`). If you call `
 - Explorer data is live. Assert the page structure (heading, active tab, table header), not values.
 - A test runs at both sizes. For a test about one layout, call `desktopOnly(browser)` or `phoneOnly(browser)` from `lib/skip.ts` after `app.open`.
 - Use locators and `expect` when they can state the check. Use an agent step (`agent.act`, `agent.assert`) only when they cannot. Put that test in `ai/`, take the fixtures as one object, and call `needsModel()` from `lib/skip.ts` before you read `agent` (see `ai/agent-smoke.e2e.ts`).
+- An agent step captures the whole page, and `@e2e-dev/web` stops a capture after 15 s. A page that holds its main thread (the City, which CI draws with software WebGL) can pass that limit. Read that page and move through it with locators.
 - The sweeps (every embedded Console tool, every Console tool route, every site route) have the `sweep` tag and are split into shards that run in parallel.
 
 ## Agent tests
