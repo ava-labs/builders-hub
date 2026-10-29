@@ -11,7 +11,14 @@ import { FENCE, FENCE_HISTORY, HISTORY, METRICS } from './rwa-fixtures';
    fails here. The clock is frozen and the "Updated" line, which reads the
    reader's own clock and zone, is cut out. React's useId values (_R_<tree>_,
    and _R_<tree>H<n>_ for a component's later ids) are normalized: they
-   encode the shape of the tree, not anything on the page. */
+   encode the shape of the tree, not anything on the page. The incident
+   banner master added on top of OatFi's page is switched off here and pinned
+   in rwa-incident.test.tsx, so this digest still covers the rest of the page. */
+
+vi.mock('@/lib/rwa/constants/incident', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/rwa/constants/incident')>()),
+  RWA_INCIDENT_BANNER: false,
+}));
 
 const FEEDS: RwaFeeds = {
   metrics: METRICS,

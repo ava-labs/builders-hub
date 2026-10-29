@@ -1,4 +1,4 @@
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 
 /** A P-Chain owner: its addresses, and how many of them must sign. */
 type Owner = { addresses: string[]; threshold: number };

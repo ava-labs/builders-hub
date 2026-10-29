@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useWalletStore } from '../stores/walletStore';
 import { useSwitchChain } from 'wagmi';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { toast } from '@/lib/toast';
 import type { L1ListItem } from '../stores/l1ListStore';
 import { WALLET_REJECTED_TEXT } from '@/components/toolbox/lib/walletRejection';
@@ -91,7 +91,7 @@ export function useWalletSwitch() {
       }
       setWalletChainId(chainId);
       setIsTestnet(testnet);
-      setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
+      setAvalancheNetworkID(testnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
       return true;
     },
     [coreWalletClient, setWalletChainId, setIsTestnet, setAvalancheNetworkID, switchChainAsync],
@@ -115,7 +115,7 @@ export function useWalletSwitch() {
       const sync = () => {
         setWalletChainId(l1.evmChainId);
         setIsTestnet(Boolean(l1.isTestnet));
-        setAvalancheNetworkID(l1.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+        setAvalancheNetworkID(l1.isTestnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
       };
 
       // Cheap path first: works when the chain is already in the wallet.

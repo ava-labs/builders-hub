@@ -1,7 +1,8 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
 import { getTx } from '@avalanche-sdk/client/methods/pChain';
 import { isTestnet } from './isTestnet';
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
+import { utils } from '@avalanche-sdk/client/utils';
 import {
   unpackL1ValidatorWeightPayload,
   extractPayloadFromWarpMessage,
@@ -17,7 +18,7 @@ export type ExtractL1ValidatorWeightMessageResponse = {
   validationID: string;
   nonce: bigint;
   weight: bigint;
-  networkId: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
+  networkId: typeof TESTNET_NETWORK_ID | typeof MAINNET_NETWORK_ID;
 };
 
 /**
@@ -31,7 +32,7 @@ export async function extractL1ValidatorWeightMessage(
   { txId }: ExtractL1ValidatorWeightMessageParams,
 ): Promise<ExtractL1ValidatorWeightMessageResponse> {
   const isTestnetMode = await isTestnet(client);
-  const networkId = isTestnetMode ? networkIDs.FujiID : networkIDs.MainnetID;
+  const networkId = isTestnetMode ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID;
 
   // Use SDK's getTx method to fetch the transaction
   const txData = await getTx(client.pChainClient, {

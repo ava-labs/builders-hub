@@ -73,7 +73,7 @@ import { cn } from '@/lib/utils';
 import { useAddToWallet } from '@/hooks/useAddToWallet';
 import { buildNodeRpcUrl } from '../../lib/rpcUrl';
 import { useL1ListStore, type L1ListItem } from '../../stores/l1ListStore';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 
 export interface AvalancheGoDockerL1Props {
   /**
@@ -217,8 +217,8 @@ function AvalanchegoDockerInner({
   const l1ListStore = useL1ListStore();
 
   // Numeric network ID used by generateNodeConfig/Docker command builders.
-  // Wire through `networkIDs.*` instead of hard-coding 1/5.
-  const effectiveNetworkID = selectedNetwork === 'fuji' ? networkIDs.FujiID : networkIDs.MainnetID;
+  // Wire through the SDK's network IDs instead of hard-coding 1/5.
+  const effectiveNetworkID = selectedNetwork === 'fuji' ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID;
   const isTestnet = selectedNetwork === 'fuji';
   const isRPC = nodeType === 'rpc' || nodeType === 'archival';
   const isValidator = nodeType === 'validator' || (nodeType === 'archival' && isTestnet);
@@ -1321,7 +1321,7 @@ ls -la ~/avalanche-backup/staking/`}
                       const prevNetworkID = useWalletStore.getState().avalancheNetworkID;
 
                       setWalletIsTestnet(isTestnetL1);
-                      setAvalancheNetworkID(isTestnetL1 ? networkIDs.FujiID : networkIDs.MainnetID);
+                      setAvalancheNetworkID(isTestnetL1 ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
 
                       const result = await addToWallet({
                         rpcUrl,

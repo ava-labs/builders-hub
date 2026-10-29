@@ -19,6 +19,8 @@
 /** Epoch duration D on both Fuji and Mainnet (ACP-181, Granite activation).
  *  Changing D requires a network upgrade. Used for countdown UX only; the
  *  advance loop's correctness never depends on it. */
+import { createPChainClient, createProposervmApiClient } from '@avalanche-sdk/client';
+
 export const EPOCH_DURATION_MS = 5 * 60_000;
 
 export interface ProposerVMEpoch {
@@ -77,15 +79,9 @@ function toIntField(value: unknown, field: string): number {
 }
 
 /** avalanchego returns number/startTime/pChainHeight as string-encoded ints. */
-export function parseCurrentEpochResponse(body: unknown): ProposerVMEpoch {
-  const envelope = body as {
-    result?: { number?: unknown; startTime?: unknown; pChainHeight?: unknown };
-    error?: { message?: string };
-  } | null;
-  if (envelope?.error) {
-    throw new Error(envelope.error.message || 'proposervm.getCurrentEpoch returned an error');
-  }
-  const result = envelope?.result;
+export function parseCurrentEpoch(
+  result: { number?: unknown; startTime?: unknown; pChainHeight?: unknown } | null | undefined,
+): ProposerVMEpoch {
   if (!result) throw new Error('proposervm.getCurrentEpoch returned no result');
   return {
     number: toBigIntField(result.number, 'number'),
@@ -95,12 +91,8 @@ export function parseCurrentEpochResponse(body: unknown): ProposerVMEpoch {
 }
 
 /** `platform.getHeight` also returns its height as a string-encoded int. */
-export function parsePlatformHeightResponse(body: unknown): bigint {
-  const envelope = body as { result?: { height?: unknown }; error?: { message?: string } } | null;
-  if (envelope?.error) {
-    throw new Error(envelope.error.message || 'platform.getHeight returned an error');
-  }
-  const height = envelope?.result?.height;
+export function parsePlatformHeight(result: { height?: unknown } | null | undefined): bigint {
+  const height = result?.height;
   if (typeof height !== 'string' && typeof height !== 'number') {
     throw new Error('platform.getHeight returned no height');
   }
@@ -111,23 +103,23 @@ export function parsePlatformHeightResponse(body: unknown): bigint {
   }
 }
 
-async function postJsonRpc(url: string, method: string, timeoutMs: number): Promise<unknown> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: {} }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`${method} request failed with HTTP ${res.status}`);
-  return res.json();
-}
+/** An HTTP transport to exactly `url` (no chain, so the Avalanche SDK keeps the path), one try within `timeoutMs`. */
+const httpTo = (url: string, timeoutMs: number) => ({
+  type: 'http' as const,
+  url,
+  config: { timeout: timeoutMs, retryCount: 0 },
+});
 
 export async function fetchCurrentEpoch(proposerVMUrl: string, timeoutMs = 8000): Promise<ProposerVMEpoch> {
-  return parseCurrentEpochResponse(await postJsonRpc(proposerVMUrl, 'proposervm.getCurrentEpoch', timeoutMs));
+  const client = createProposervmApiClient({
+    transport: httpTo(proposerVMUrl, timeoutMs),
+    clientType: 'proposervmCChain',
+  });
+  return parseCurrentEpoch(await client.getCurrentEpoch());
 }
 
 export async function fetchLivePChainHeight(pChainRpcUrl: string, timeoutMs = 8000): Promise<bigint> {
-  return parsePlatformHeightResponse(await postJsonRpc(pChainRpcUrl, 'platform.getHeight', timeoutMs));
+  return parsePlatformHeight(await createPChainClient({ transport: httpTo(pChainRpcUrl, timeoutMs) }).getHeight());
 }
 
 /**
