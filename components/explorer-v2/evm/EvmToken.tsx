@@ -159,6 +159,8 @@ export function EvmToken({
         ) : tab === "txs" ? (
           <TxTable
             txs={txs.data?.transactions ?? []}
+            total={summary.data?.txCount}
+            rpcUrl={readRpc(c.chainId, c.rpcUrl)}
             self={addr}
             base={base}
             symbol={c.nativeToken ?? "AVAX"}

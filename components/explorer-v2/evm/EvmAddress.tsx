@@ -4,28 +4,36 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD } from "@/components/explorer-v2/ui";
-import { formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
+import { Board, DetailSkeleton, SectionHeader, SubjectHeadline, HEAD } from "@/components/explorer-v2/ui";
+import { ageWords, formatTime } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown } from "./bits";
-import { useEvmData, useMorePages, usePrice, usdOfWei } from "./hooks";
+import { useEvmData, useMorePages, usePrice } from "./hooks";
 import { EvmContract, useIsContract, useVerifiedContract } from "./EvmContract";
 import { EvmToken } from "./EvmToken";
 import { TokenMark, NativeMark } from "./TokenMark";
-import { FIG, UNIT, Tabs, TxTable, TransferTable, EmptyRow } from "./AddressTables";
+import { TxTable, TransferTable, EmptyRow } from "./AddressTables";
+import { AddressChips, OverviewCards, PillTabs, type Who } from "./AddressOverview";
 import { useAddressBalances } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
 import { readRpc } from "@/lib/explorer-rpc";
 
-/* An address, read as a portfolio: what it holds (native balance, tokens,
-   the dollar total) in a strip, who it is in a sheet, what it has done in
-   tabs. Same grammar as the block and transaction pages. When the address
-   is itself a token contract the page becomes the token's. */
+/* An address, laid out like the Etherscan account page: chips that say
+   what it is, three cards (what it holds, where its history starts and
+   ends, what it is worth), then its transactions, which the page opens
+   on. When the address is itself a token contract the page becomes the
+   token's. */
 
-type Tab = "holdings" | "txs" | "transfers" | "contract";
-const LABELS: Record<Tab, string> = { holdings: "Holdings", txs: "Transactions", transfers: "Token Transfers", contract: "Contract" };
+type Tab = "txs" | "transfers" | "holdings" | "contract";
+const LABELS: Record<Tab, string> = { txs: "Transactions", transfers: "Token Transfers", holdings: "Holdings", contract: "Contract" };
+const TABS = Object.keys(LABELS) as Tab[];
+
+/** ?tab= names a view; anything else opens the transactions */
+function tabOf(param: string | undefined): Tab {
+  return TABS.includes(param as Tab) ? (param as Tab) : "txs";
+}
 
 /* Tokens every C-Chain wallet is asked about even when its recent
    transfers do not mention them: the majors, by symbol, resolved against
@@ -40,8 +48,8 @@ export function EvmAddress({
 }: {
   network: string;
   addr: string;
-  /** ?tab=contract lands here from the verify form, so a freshly verified
-   *  contract opens on its source rather than its transaction list. */
+  /** ?tab= opens a view other than the transactions: the verify form sends
+   *  ?tab=contract, so a freshly verified contract opens on its source. */
   initialTab?: string;
   /** Set by the verify form's redirect, so the Contract tab knows to wait
    *  for a verification it has just been told about. */
@@ -51,7 +59,7 @@ export function EvmAddress({
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
   const me = addr.toLowerCase();
-  const [tab, setTab] = useState<Tab>(initialTab === "contract" ? "contract" : "holdings");
+  const [tab, setTab] = useState<Tab>(() => tabOf(initialTab));
 
   const summary = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, { retry404Ms: 15_000 });
   const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: 50 });
@@ -82,7 +90,9 @@ export function EvmAddress({
     for (const [a, t] of tokens) if (MAJORS.has(t.symbol.toUpperCase())) set.add(a);
     return [...set];
   }, [transfers.data, tokens]);
-  const { nativeWei, balances, ready: balancesReady } = useAddressBalances(liveRpc, addr, candidates);
+  const { nativeWei, balances, ready: tokensRead } = useAddressBalances(liveRpc, addr, candidates);
+  // a chain with no token list (most L1s) has no candidates: nothing to wait for once the transfers are in
+  const balancesReady = tokensRead || (candidates.length === 0 && !!transfers.data && nativeWei !== null);
   const held = useMemo(
     () => [...balances.entries()].map(([a, amount]) => ({ address: a, amount, token: tokens.get(a)! })).filter((h) => h.token),
     [balances, tokens],
@@ -95,20 +105,25 @@ export function EvmAddress({
         .sort((a, b) => b.usd - a.usd || Number(b.amount - a.amount)),
     [held, prices],
   );
-  const tokensUsd = holdings.reduce((acc, h) => acc + h.usd, 0);
   const nativeUsd = nativeWei !== null && usd ? (Number(nativeWei) / 1e18) * usd : 0;
-  const netWorth = nativeUsd + tokensUsd;
   const pricedAll = holdings.every((h) => h.usd > 0 || !prices.size) && usd !== null;
 
   const s = summary.data;
   const loading = summary.loading && !s;
   const error = s ? null : summary.error;
 
-  const tabs: Tab[] = isContract ? ["holdings", "txs", "transfers", "contract"] : ["holdings", "txs", "transfers"];
-  const activeTab: Tab = tab === "contract" && !isContract ? "holdings" : tab;
+  const tabs: Tab[] = isContract ? TABS : TABS.filter((t) => t !== "contract");
+  const activeTab: Tab = tab === "contract" && !isContract ? "txs" : tab;
 
   // a fixture with an ABI is a precompile: built in, so nothing to verify
-  const who = listed ? "Token" : verified ? "Verified contract" : fixture?.abi ? "Precompile" : isContract ? "Contract" : "Account";
+  const who: Who = verified ? "Verified contract" : fixture?.abi ? "Precompile" : isContract ? "Contract" : "Account";
+
+  // the first transaction and the first one that sent value in: known only
+  // once the whole history is in hand, since the API pages newest first
+  const latest = txs.data?.transactions[0];
+  const whole = !!txs.data && !txPages.hasMore ? txPages.items : null;
+  const first = whole?.[whole.length - 1];
+  const fundedBy = whole ? [...whole].reverse().find((t) => t.to.toLowerCase() === me && t.from.toLowerCase() !== me && BigInt(t.value) > 0n) : undefined;
 
   return (
     <EvmShell network={network}>
@@ -129,85 +144,48 @@ export function EvmAddress({
               <section className="flex flex-col gap-5">
                 <SectionHeader
                   label="Address"
-                  action={<span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">{who}</span>}
-                />
-
-                {/* the subject: a name when it has one, the address beneath */}
-                <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
-                  <span className="flex min-w-0 flex-col gap-1.5">
-                    {(verified?.name || fixture) && (
-                      <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                        {verified?.name ?? fixture?.label}
+                  action={
+                    s.lastSeen ? (
+                      <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400" title={formatTime(s.lastSeen)}>
+                        Last active {ageWords(s.lastSeen)}
                       </span>
-                    )}
-                    <SubjectHeadline value={addr} copyLabel="Copy address" />
-                  </span>
-                  {s.lastSeen ? (
-                    <span className="shrink-0 font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      active {timeAgo(s.lastSeen)}
-                      {s.firstSeen ? <span className="text-zinc-400 dark:text-zinc-500"> · since {formatTime(s.firstSeen).slice(0, 10)}</span> : null}
-                    </span>
-                  ) : null}
+                    ) : undefined
+                  }
+                />
+                <div className="flex flex-col gap-3">
+                  <SubjectHeadline value={addr} copyLabel="Copy address" />
+                  <AddressChips
+                    who={who}
+                    name={verified?.name ?? fixture?.label}
+                    note={fixture?.note}
+                    verifyHref={isContract && !verified && !fixture?.abi ? `${base}/verify/${addr}` : undefined}
+                  />
                 </div>
-
-                {/* the portfolio */}
-                <StatStrip cols={5}>
-                  <StatCell label="Balance" sub={nativeWei !== null ? usdOfWei(nativeWei, usd) : undefined}>
-                    <span className={FIG}>
-                      {nativeWei === null ? "…" : formatEther(nativeWei.toString(), { decimals: Number(nativeWei) / 1e18 >= 1 ? 4 : 6 })}{" "}
-                      <span className={UNIT}>{sym}</span>
-                    </span>
-                  </StatCell>
-                  <StatCell
-                    label="Tokens"
-                    sub={balancesReady ? `${holdings.length} ${holdings.length === 1 ? "token" : "tokens"} held` : undefined}
-                  >
-                    <span className={cn(FIG, tokensUsd === 0 && "text-zinc-400 dark:text-zinc-600")}>
-                      {!balancesReady ? "…" : tokensUsd > 0 ? formatUsd(tokensUsd) : holdings.length ? "unpriced" : "—"}
-                    </span>
-                  </StatCell>
-                  <StatCell label="Net Worth" sub={pricedAll ? `${sym} + tokens, at market` : "priced tokens only"}>
-                    <span className={cn(FIG, netWorth === 0 && "text-zinc-400 dark:text-zinc-600")}>
-                      {nativeWei === null || !balancesReady ? "…" : netWorth > 0 ? formatUsd(netWorth) : "—"}
-                    </span>
-                  </StatCell>
-                  <StatCell label="Transactions" sub="all time">
-                    <span className={FIG}>{formatNumber(s.txCount)}</span>
-                  </StatCell>
-                  <StatCell label="Last Active">
-                    <span className={FIG}>{s.lastSeen ? timeAgo(s.lastSeen).replace(" ago", "") : "—"}</span>
-                  </StatCell>
-                </StatStrip>
-
-                <Board divide={false} className="px-5 md:px-6">
-                  <SpecSheet>
-                    <SpecLine label="Address">
-                      <HashChip value={addr} len={66} />
-                    </SpecLine>
-                    <SpecLine label="Type">
-                      {who}
-                      {fixture && <span className="ml-3 font-normal text-zinc-500 dark:text-zinc-400">{fixture.note}</span>}
-                    </SpecLine>
-                    {verified && (
-                      <SpecLine label="Source">
-                        <button onClick={() => setTab("contract")} className="font-mono text-[13px] text-zinc-900 underline-offset-4 hover:text-[#E6212F] hover:underline dark:text-zinc-50">
-                          {verified.name ?? "verified"}
-                        </button>
-                        {verified.compilerVersion && <span className="ml-3 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">{verified.compilerVersion}</span>}
-                      </SpecLine>
-                    )}
-                    {s.firstSeen ? <SpecLine label="First Seen">{formatTime(s.firstSeen)} · {timeAgo(s.firstSeen)}</SpecLine> : null}
-                    {s.lastSeen ? <SpecLine label="Last Seen">{formatTime(s.lastSeen)} · {timeAgo(s.lastSeen)}</SpecLine> : null}
-                  </SpecSheet>
-                </Board>
+                <OverviewCards
+                  sym={sym}
+                  chainId={c.chainId}
+                  base={base}
+                  summary={s}
+                  nativeWei={nativeWei}
+                  price={usd}
+                  holdings={holdings}
+                  balancesReady={balancesReady}
+                  pricedAll={pricedAll}
+                  latest={latest}
+                  first={first}
+                  fundedBy={fundedBy}
+                  lastTransfer={transfers.data?.transfers[0]}
+                  source={verified ? { name: verified.name, compiler: verified.compilerVersion, open: () => setTab("contract") } : undefined}
+                  onHoldings={() => setTab("holdings")}
+                />
               </section>
 
               <section className="flex flex-col gap-4">
-                <Tabs tabs={tabs} active={activeTab} onChange={setTab} labels={LABELS} />
+                <PillTabs tabs={tabs} active={activeTab} onChange={setTab} labels={LABELS} />
                 {activeTab === "contract" ? (
                   <EvmContract network={network} addr={addr} justVerified={justVerified} />
                 ) : activeTab === "txs" ? (
-                  <TxTable txs={txPages.items} self={addr} base={base} symbol={sym} usd={usd} chainId={c.chainId} tokens={tokens} loading={txs.loading} error={txs.error} retry={txs.retry} more={{ onMore: txPages.more, hasMore: txPages.hasMore, loading: txPages.loadingMore }} />
+                  <TxTable txs={txPages.items} total={s.txCount} rpcUrl={liveRpc} self={addr} base={base} symbol={sym} usd={usd} chainId={c.chainId} tokens={tokens} loading={txs.loading} error={txs.error} retry={txs.retry} more={{ onMore: txPages.more, hasMore: txPages.hasMore, loading: txPages.loadingMore }} />
                 ) : activeTab === "transfers" ? (
                   <TransferTable transfers={transferPages.items} self={addr} base={base} chainId={c.chainId} tokens={tokens} prices={prices} loading={transfers.loading} error={transfers.error} retry={transfers.retry} rpcUrl={readRpc(c.chainId, c.rpcUrl)} more={{ onMore: transferPages.more, hasMore: transferPages.hasMore, loading: transferPages.loadingMore }} />
                 ) : (
