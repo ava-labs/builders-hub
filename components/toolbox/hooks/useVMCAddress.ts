@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork, GlacierHttpError } from '../coreViem/utils/glacier';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
@@ -133,7 +133,7 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
       }
 
       try {
-        const network = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'testnet';
+        const network = avalancheNetworkID === MAINNET_NETWORK_ID ? 'mainnet' : 'testnet';
 
         // A 404 or a 400 here is the user's: the ID is not a Subnet ID on this network
         const subnetInfo = await fromDataApi(getSubnetInfoForNetwork(network, subnetId), (status) =>

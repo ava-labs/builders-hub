@@ -1,5 +1,5 @@
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Check, X } from 'lucide-react';
+import { Check, Pencil, X } from 'lucide-react';
 import { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { cn } from '@/lib/utils';
 import { ChainLogo } from './ChainLogo';
@@ -10,6 +10,7 @@ interface NetworkMenuItemProps {
   onSelect: (network: L1ListItem, tokenAddress?: string | null) => void;
   isEditMode?: boolean;
   onRemove?: (network: L1ListItem) => void;
+  onEditRpc?: (network: L1ListItem) => void;
   /** null = balance could not be fetched for this network. */
   balance?: number | string | null;
 }
@@ -28,6 +29,7 @@ export function NetworkMenuItem({
   onSelect,
   isEditMode = false,
   onRemove,
+  onEditRpc,
   balance = 0,
 }: NetworkMenuItemProps) {
   const builtIn = isCChain(network.evmChainId);
@@ -51,7 +53,28 @@ export function NetworkMenuItem({
         builtIn ? (
           <span className="text-[11px] text-muted-foreground">Built in</span>
         ) : (
-          <X className="h-3.5 w-3.5 text-red-500" aria-label={`Remove ${network.name}`} />
+          <>
+            {onEditRpc && (
+              // In edit mode a click on the row removes the network. Radix clicks the row on a pointer-up
+              // whose pointer-down it did not see, and on Enter or Space, so the button keeps all of them.
+              <button
+                type="button"
+                aria-label={`Edit RPC URL for ${network.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEditRpc(network);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                className="-my-1 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <X className="h-3.5 w-3.5 text-red-500" aria-label={`Remove ${network.name}`} />
+          </>
         )
       ) : (
         <>

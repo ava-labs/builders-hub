@@ -548,6 +548,51 @@
         }
       ]
     },
+    "1205": {
+      "question": "Which chain of the Primary Network coordinates validators and manages Avalanche L1s?",
+      "options": [
+        "P-Chain",
+        "C-Chain",
+        "X-Chain",
+        "Each Avalanche L1 manages itself without the Primary Network"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about which of the three built-in chains is the Platform Chain.",
+      "explanation": "The P-Chain (Platform Chain) coordinates validators, tracks active L1s and manages staking. Developers register new Avalanche L1s on the P-Chain. The C-Chain runs EVM smart contracts, and the X-Chain is optimized for creating and transferring digital assets.",
+      "chapter": "Multi-Chain Architecture",
+      "alternates": [
+        {
+          "question": "Which chain of the Primary Network is EVM-compatible and used for smart contracts and DeFi applications?",
+          "options": [
+            "P-Chain",
+            "C-Chain",
+            "X-Chain",
+            "None of them: smart contracts can only run on Avalanche L1s"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about which chain is named after contracts.",
+          "explanation": "The C-Chain (Contract Chain) is the EVM-compatible chain of the Primary Network, used for smart contracts and DeFi applications. The P-Chain coordinates validators and L1s, and the X-Chain is optimized for creating and transferring digital assets."
+        },
+        {
+          "question": "How does the Primary Network differ from an Avalanche L1?",
+          "options": [
+            "The Primary Network runs fixed virtual machines (AVM, EVM, PlatformVM), while an L1 can run a customized VM",
+            "The Primary Network can be made permissioned, while every L1 must be permissionless",
+            "An L1 must use AVAX as its gas token, while the Primary Network can use any token",
+            "The Primary Network lets each chain choose its own consensus rules, while L1s share fixed rules"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about which side offers stability and which side offers customization.",
+          "explanation": "The Primary Network provides a stable foundation: its virtual machines (AVM, EVM, PlatformVM), consensus rules and AVAX gas token are fixed, and access is permissionless. Avalanche L1s can customize their VM, consensus rules, gas token and validator set, and can be permissionless or permissioned."
+        }
+      ]
+    },
     "309": {
       "question": "What is the purpose of the `Recover` algorithm in some signature schemes?",
       "options": [

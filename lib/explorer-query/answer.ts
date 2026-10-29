@@ -8,6 +8,7 @@ import { familyQuestion } from "./families";
 import { icttQuestion } from "./ictt";
 import { icttNamed } from "./names";
 import { mevQuestion } from "./mev";
+import { missingPrice, showPrice } from "./avax-usd";
 import { lendingQuestion, pricedNote, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
 import { DEX_CHAIN_ID } from "./protocols";
@@ -175,7 +176,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
       totals,
       names,
       // a kept layout holds no marks (cache.ts layoutOnly): an upgrade the question names is marked again on these rows
-      visual: markUpgrades(visual ?? basicVisual(recipe.chart, result.columns), [a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n"), result.rows, a.chainId),
+      visual: showPrice(markUpgrades(visual ?? basicVisual(recipe.chart, result.columns), [a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n"), result.rows, a.chainId), result.rows, a.chainId),
       draftVisual: !visual,
       coverage: cover,
       key: key ?? undefined,
@@ -317,6 +318,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let negOnce = false;
     let bigOnce = false;
     let zeroOnce = false;
+    let priceOnce = false;
     let datedOnce = false;
     let windowOnce = false;
     let scopeOnce = false;
@@ -486,6 +488,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             zeroOnce = true;
             return fail(zero, Date.now() - q0);
           }
+          // an answer valued at the AVAX price shows that price: ask once
+          const price = priceOnce ? null : missingPrice(g.sql, result, a.chainId);
+          if (price) {
+            priceOnce = true;
+            return fail(price, Date.now() - q0);
+          }
           // a note that says an asset has no USD price, over rows that all have theirs, loses those sentences here: the
           // writer's own fix each time it was sent back for one, with no second call
           note = pricedNote(g.sql, note, result, a.chainId) ?? note;
@@ -634,7 +642,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   // draw something at once; the page asks the designer for the real layout
   if (done.result) {
     const asked = [a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n");
-    done.visual = markUpgrades(basicVisual(done.chart, done.result.columns), asked, done.result.rows, a.chainId);
+    done.visual = showPrice(markUpgrades(basicVisual(done.chart, done.result.columns), asked, done.result.rows, a.chainId), done.result.rows, a.chainId);
     done.sources = [...(done.sources ?? []), ...upgradeLines(asked, done.chart, done.result.rows, a.chainId)];
     done.draftVisual = true;
   }

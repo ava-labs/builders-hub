@@ -17,6 +17,7 @@ import { NETWORK_ID, PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
 import { DAY, WEEK } from "./values";
 import { MAINNET_UPGRADES } from "@/constants/network-upgrades";
+import { avaxUsdNotes } from "./avax-usd";
 import { STAKE_FILL, gapNotes } from "./gaps";
 import { sqlWindow } from "./scope";
 import { upgradeTime } from "./upgrades";
@@ -662,6 +663,9 @@ export function refsIn(sql: string, chainId: number): string[] {
   return targetOf(chainId).refs.filter((r) => SOURCES[r] && reads(sql, r));
 }
 
+/** the lines a query's SQL alone calls for: the P-Chain gaps it reads, and where its AVAX/USD price comes from */
+const sqlNotes = (sql: string, chainId: number): SourceNote[] => [...gapNotes(sql, chainId), ...avaxUsdNotes(sql, chainId)];
+
 /** the SQL with each chain table it names, as this chain's rows, and
     each reference table it reads, defined in front of it; and what the
     reference tables cover. Throws when a source cannot be read or the
@@ -672,7 +676,7 @@ export async function withSources(sql: string, chainId: number): Promise<{ sql: 
   const scoped = scopeDefs(sql, chainId, ids);
   // the lending and family names the query reads (lending.ts, families.ts), on the C-Chain the registry describes
   const names = chainId === LENDING_CHAIN_ID ? namesIn(sql, SERVER_NAMES) : [];
-  if (used.length === 0 && scoped.length === 0 && names.length === 0) return { sql, sources: gapNotes(sql, chainId) };
+  if (used.length === 0 && scoped.length === 0 && names.length === 0) return { sql, sources: sqlNotes(sql, chainId) };
   const built = await Promise.all(used.map((r) => SOURCES[r].build(chainId, sql)));
   // the inner name is the table itself: a WITH does not see its own names. The chain tables come first, so the
   // names and reference tables after them read the same chain's rows as the query
@@ -685,14 +689,14 @@ export async function withSources(sql: string, chainId: number): Promise<{ sql: 
     const what = [...used, ...(names.length ? ["the names our server defines"] : []), ...(scoped.length ? ["its chain's tables"] : [])].join(" and ");
     throw new Error(`the query is too long to send with ${what}: the definitions take ${bytes - own} of the ${SQL_BUDGET} bytes the query service accepts, so the query may use ${SQL_BUDGET - (bytes - own)} and it uses ${own}. Write a shorter query.`);
   }
-  return { sql: out, sources: [...built.map((b) => b.note), ...gapNotes(sql, chainId)] };
+  return { sql: out, sources: [...built.map((b) => b.note), ...sqlNotes(sql, chainId)] };
 }
 
 /** what the reference tables a query reads cover, for an answer made without anchored() */
 export async function sourceNotes(sql: string, chainId: number): Promise<SourceNote[]> {
   const used = refsIn(sql, chainId);
   const built = used.length ? await within(Promise.all(used.map(async (r) => (await SOURCES[r].build(chainId, sql)).note)), 4000, []) : [];
-  return [...built, ...gapNotes(sql, chainId)];
+  return [...built, ...sqlNotes(sql, chainId)];
 }
 
 /** the version lines in the set, newest first, as last read; null before the first read. Reads nothing */

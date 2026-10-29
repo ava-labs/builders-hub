@@ -5,7 +5,8 @@
    swap, and the fee it paid when the query reads that), or $POOLS() or
    $POOLS('slug') for its Swap topic names and pools alone; and $LEND,
    $LIQUIDATIONS, $PRICES, $DEBTS or $MARKETS for a lending WITH
-   (lending.ts); and $ICTT for interchain token transfers (ictt.ts). The
+   (lending.ts); $AVAXUSD for the hourly AVAX/USD price (avax-usd.ts); and
+   $ICTT for interchain token transfers (ictt.ts). The
    guard writes it out before it reads the query, so what the guard
    checks, what runs and what the page shows is the whole WITH. The prompt
    prints none of it, so the writer has no WITH to copy. The DEX and
@@ -13,6 +14,7 @@
    EVM chain's and the network's, and stats-api writes it out: the guard
    checks it and sends it on as typed, with its window. */
 
+import { avaxUsdWith } from "./avax-usd";
 import { icttChain, icttMisread } from "./ictt";
 import { debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
 import { DEX_CHAIN_ID, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, FIRST_DAY, V2_FEE_PROTOCOLS, type DexFamily } from "./protocols";
@@ -142,6 +144,7 @@ const MACROS: Record<string, Macro> = {
   LEND: { window: true, slugs: lendSlugs, slug: "optional", chains: cchain, text: lendWith },
   LIQUIDATIONS: { window: true, slugs: lendSlugs, slug: "optional", chains: cchain, text: liquidationsWith },
   PRICES: { window: true, slugs: () => [], slug: "none", chains: cchain, text: (start, end) => pricesWith(start, end) },
+  AVAXUSD: { window: true, slugs: () => [], slug: "none", chains: cchain, text: (start, end) => avaxUsdWith(start, end) },
   DEBTS: { window: false, slugs: lendSlugs, slug: "optional", chains: cchain, text: (_s, _e, slug) => debtsWith(slug) },
   MARKETS: { window: false, slugs: lendSlugs, slug: "optional", chains: cchain, text: (_s, _e, slug) => marketsWith(slug) },
   SWAPORDER: { window: true, slugs: () => [], slug: "none", chains: cchain, text: (start, end) => SWAP_ORDER.replace("$START", () => start).replace("$END", () => (end ? ` AND block_time < ${end}` : "")) },
@@ -153,7 +156,7 @@ const ICTT_USAGE = "$ICTT(start), $ICTT(start, end) or $ICTT() for interchain to
 /** how to open a query with a shorthand, on this chain */
 const usage = (chainId: number) =>
   chainId === DEX_CHAIN_ID
-    ? `open the query with one shorthand: $DEX, $LEND or $LIQUIDATIONS with the window's start, then its end if it has one, then a slug for one protocol, as in $DEX(start, end, 'slug'); $PRICES(start) or $PRICES(start, end); $POOLS() or $POOLS('slug'); $DEBTS() or $DEBTS('slug'); $MARKETS() or $MARKETS('slug'); $SWAPORDER(start) or $SWAPORDER(start, end) for MEV; ${ICTT_USAGE}. Then SELECT, or , name AS (…)`
+    ? `open the query with one shorthand: $DEX, $LEND or $LIQUIDATIONS with the window's start, then its end if it has one, then a slug for one protocol, as in $DEX(start, end, 'slug'); $PRICES(start) or $PRICES(start, end); $AVAXUSD(start) or $AVAXUSD(start, end) for AVAX in USD; $POOLS() or $POOLS('slug'); $DEBTS() or $DEBTS('slug'); $MARKETS() or $MARKETS('slug'); $SWAPORDER(start) or $SWAPORDER(start, end) for MEV; ${ICTT_USAGE}. Then SELECT, or , name AS (…)`
     : `open the query with ${ICTT_USAGE}. Then SELECT, or , name AS (…)`;
 const quoted = (xs: readonly string[]) => xs.map((s) => `'${s}'`).join(", ");
 /** a quoted word, as a slug is; a quoted date is a DateTime */

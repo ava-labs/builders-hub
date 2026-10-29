@@ -9,7 +9,7 @@ import {
 } from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/useTimeRemaining';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { Board, HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
 import { CopyBlock, DANGER_BTN, EYEBROW, SECONDARY_BTN, StatusLabel } from './ui';
 
@@ -45,7 +45,7 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
     // Pre-set testnet mode so the console context switches correctly
     // (managed testnet nodes are always Fuji testnet)
     setWalletIsTestnet(true);
-    setAvalancheNetworkID(networkIDs.FujiID);
+    setAvalancheNetworkID(TESTNET_NETWORK_ID);
 
     const result = await addChain({
       rpcUrl: node.rpc_url,
