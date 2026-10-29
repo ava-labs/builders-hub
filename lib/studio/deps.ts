@@ -115,6 +115,6 @@ export function sharedContractsReader(root = /* turbopackIgnore: true */ process
   return async (unit) => {
     if (!unit.startsWith('blueprints/_shared/contracts/') || !unit.endsWith('.sol') || !isSafeUnitPath(unit))
       return undefined;
-    return fs.readFile(path.join(root, unit), 'utf8').catch(() => undefined);
+    return fs.readFile(path.join(/* turbopackIgnore: true */ root, unit), 'utf8').catch(() => undefined);
   };
 }
