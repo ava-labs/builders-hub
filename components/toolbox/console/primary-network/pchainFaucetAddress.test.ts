@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { utils, secp256k1 } from '@avalabs/avalanchejs';
+import { utils, secp256k1 } from '@avalanche-sdk/client/utils';
 import { normalizePChainFaucetAddress } from './pchainFaucetAddress';
 
 // A real, checksum-valid Fuji address ("fuji1…") derived from a random key.

@@ -27,15 +27,13 @@ for (const file of mdxFiles(ACADEMY_DIR)) {
   }
 }
 
+function fileQuizIds(file: string): Set<string> {
+  const content = fs.readFileSync(file, 'utf8')
+  return new Set([...content.matchAll(/<Quiz\s+quizId=["'{]+\s*["']?(\w+)/g)].map((match) => match[1]))
+}
+
 function embeddedQuizIds(dir: string): Set<string> {
-  const ids = new Set<string>()
-  for (const file of mdxFiles(dir)) {
-    const content = fs.readFileSync(file, 'utf8')
-    for (const match of content.matchAll(/<Quiz\s+quizId=["'{]+\s*["']?(\w+)/g)) {
-      ids.add(match[1])
-    }
-  }
-  return ids
+  return new Set(mdxFiles(dir).flatMap((file) => [...fileQuizIds(file)]))
 }
 
 // Quiz data files left over from removed/renamed courses: no content dir, no
@@ -64,6 +62,21 @@ describe('course quiz integrity', () => {
         missing,
         `quizzes counted by the ${courseId} certificate but not embedded in ${path.relative(process.cwd(), courseDir)} — certificate is unobtainable`
       ).toEqual([])
+    })
+  }
+
+  // A quiz embedded on two lessons of one course shows up on a page whose
+  // content it doesn't cover (e.g. the BLS quiz on the Primary Network lesson).
+  for (const { courseId, courseDir } of certificateCourses) {
+    it(`${courseId}: no quiz is embedded on more than one lesson of the course`, () => {
+      const pages = new Map<string, string[]>()
+      for (const file of mdxFiles(courseDir)) {
+        for (const id of fileQuizIds(file)) {
+          pages.set(id, [...(pages.get(id) ?? []), path.relative(courseDir, file)])
+        }
+      }
+      const repeated = [...pages].filter(([, files]) => files.length > 1)
+      expect(repeated, `quizzes embedded on several lessons of ${courseId}`).toEqual([])
     })
   }
 

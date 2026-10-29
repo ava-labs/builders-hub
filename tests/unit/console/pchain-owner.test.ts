@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { firstOwnerProblem, pChainOwnerProblem } from '@/components/toolbox/coreViem/utils/pchainOwner';
 import { ownerWithAddresses } from '@/components/toolbox/components/OwnerAddressesInput';
 

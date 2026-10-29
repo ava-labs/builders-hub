@@ -15,6 +15,7 @@ import { FacilityFigures, KeyMetrics, OatFiBreakdown, PartnerLogos, fenceAsOfDay
 import { CapitalFlow } from "./rwa-flow";
 import { ExportMenu } from "./rwa-export";
 import { RwaCollections } from "./RwaCollections";
+import { RwaIncidentBanner } from "./rwa-incident";
 import { RwaHistory } from "./RwaHistory";
 import { RwaTransactions } from "./RwaTransactions";
 
@@ -123,6 +124,7 @@ export function RwaDashboard({ slug, feeds, onRefresh }: { slug: string; feeds: 
   return (
     <div className={`${DEFI_SCOPE} flex flex-col gap-8`}>
       <style>{DEFI_STYLE}</style>
+      <RwaIncidentBanner />
       <Header metrics={feeds.metrics} />
       {/* the rail bleeds across the shell's padding like the subnav above it, so nothing peeks past its edges */}
       <StickyNavBar

@@ -5,7 +5,7 @@ import { useL1ListStore } from '../stores/l1ListStore';
 import { useCreateChainStore } from '../stores/createChainStore';
 import { useWalletStore } from '../stores/walletStore';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { getSubnetInfoForNetwork, GlacierHttpError } from '../coreViem/utils/glacier';
 import {
   isSubnetMiss,
@@ -38,7 +38,7 @@ export function subnetFieldNetwork(
   avalancheNetworkID: number,
 ): { isTestnet: boolean; pageNetwork: boolean } {
   if (isTestnet !== undefined) return { isTestnet, pageNetwork: true };
-  return { isTestnet: avalancheNetworkID !== networkIDs.MainnetID, pageNetwork: false };
+  return { isTestnet: avalancheNetworkID !== MAINNET_NETWORK_ID, pageNetwork: false };
 }
 
 /** The HTTP status of a failed Data API read, or undefined for a network error. */

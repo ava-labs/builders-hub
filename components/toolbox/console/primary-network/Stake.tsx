@@ -32,7 +32,7 @@ import { createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { sendXPTransaction } from '@avalanche-sdk/client/methods/wallet';
 import { toNanoAvax } from '@/components/toolbox/coreViem/utils/units';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { AddValidatorControls } from '@/components/toolbox/components/ValidatorListInput/AddValidatorControls';
 import type { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import {
@@ -645,7 +645,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
 
   const { notify } = useConsoleNotifications();
 
-  const onFuji = isTestnet === true || avalancheNetworkID === networkIDs.FujiID;
+  const onFuji = isTestnet === true || avalancheNetworkID === TESTNET_NETWORK_ID;
   const config = onFuji ? NETWORK_CONFIG.fuji : NETWORK_CONFIG.mainnet;
   const networkName = onFuji ? 'Fuji' : 'Mainnet';
   const isAutoRenew = stakingMode === 'autoRenew';

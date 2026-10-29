@@ -69,7 +69,7 @@ const TX_HISTORY_STORE = 'v4-tx-history-store-testnet';
 const run: {
   mock?: MockValidator;
   unlockedBefore?: bigint;
-  /** nAVAX that the key staked before this run (platform.getStake): an earlier stake that stays locked. */
+  /** nAVAX that the key staked before this run (pStaked): an earlier stake that stays locked. */
   stakedBefore?: bigint;
   txId?: string;
   validator?: PrimaryValidator;
@@ -297,7 +297,7 @@ describe(
         // The key: 1 AVAX more staked, and the unlocked balance down by 1 AVAX and the fee that the wallet signed. A
         // node can lag the tx.
         const stakedAfter = stakedBefore + STAKE_NAVAX;
-        await chainShows(`platform.getStake shows ${formatNanoAvax(stakedAfter)} AVAX, 1 AVAX more`, async () => {
+        await chainShows(`the P-Chain stake shows ${formatNanoAvax(stakedAfter)} AVAX, 1 AVAX more`, async () => {
           return (await pStaked(signer.pChainAddress)) === stakedAfter;
         });
         const paidFee = signer.totals().pSpent - spentBefore;

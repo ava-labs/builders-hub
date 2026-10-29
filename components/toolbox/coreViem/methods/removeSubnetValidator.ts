@@ -1,5 +1,5 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 
 export type RemoveSubnetValidatorParams = {
   subnetId: string;
