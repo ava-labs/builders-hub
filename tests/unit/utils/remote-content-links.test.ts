@@ -65,4 +65,22 @@ describe("fixMovedLinks", () => {
       "[Foundry Book](https://www.getfoundry.sh/reference/cast/send)",
     );
   });
+
+  it("rewrites a key in a link, in angle brackets, in a quoted attribute and as bare text", () => {
+    expect(fixMovedLinks("[Avalanche Network](https://www.avax.com).", meta)).toBe(
+      "[Avalanche Network](https://www.avalanche.com).",
+    );
+    expect(fixMovedLinks("<https://www.avax.com>", meta)).toBe("<https://www.avalanche.com>");
+    expect(fixMovedLinks('<a href="https://www.avax.com">', meta)).toBe('<a href="https://www.avalanche.com">');
+    expect(fixMovedLinks("see https://www.avax.com\n", meta)).toBe("see https://www.avalanche.com\n");
+  });
+
+  it("matches a whole URL only", () => {
+    const longer =
+      "[ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution/README.md)";
+    expect(fixMovedLinks(longer, meta)).toBe(longer);
+    const archived = "[old](https://web.archive.org/web/2024/https://www.avax.com)";
+    expect(fixMovedLinks(archived, meta)).toBe(archived);
+    expect(fixMovedLinks("[site](https://www.avax.com/about)", meta)).toBe("[site](https://www.avax.com/about)");
+  });
 });
