@@ -1,13 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { cancelFaucetClaim } = vi.hoisted(() => ({ cancelFaucetClaim: vi.fn() }));
+const { cancelFaucetClaim, checkAndReserveFaucetClaim, getPChainUnlockedNAvax } = vi.hoisted(() => ({
+  cancelFaucetClaim: vi.fn(),
+  checkAndReserveFaucetClaim: vi.fn(),
+  getPChainUnlockedNAvax: vi.fn(),
+}));
 
 vi.mock('@/lib/auth/authSession', () => ({ getAuthSession: vi.fn(async () => ({ user: { id: 'user-1' } })) }));
 vi.mock('@/lib/faucet/rateLimit', () => ({
-  checkAndReserveFaucetClaim: vi.fn(async () => ({ allowed: true, claimId: 'claim-1' })),
+  checkAndReserveFaucetClaim,
   completeFaucetClaim: vi.fn(),
   cancelFaucetClaim,
 }));
+vi.mock('@/components/toolbox/utils/pChainNodeBalance', () => ({ getPChainUnlockedNAvax }));
 
 const FAUCET_ADDRESS = 'P-fuji1qyqszqgpqyqszqgpqyqszqgpqyqszqgptrggc7';
 const DESTINATION = 'P-fuji1qgpqyqszqgpqyqszqgpqyqszqgpqyqszfvxe3x';
@@ -38,6 +43,8 @@ function failingNode() {
 
 beforeEach(() => {
   cancelFaucetClaim.mockReset();
+  checkAndReserveFaucetClaim.mockReset().mockResolvedValue({ allowed: true, claimId: 'claim-1' });
+  getPChainUnlockedNAvax.mockReset().mockResolvedValue(0n);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
@@ -73,5 +80,45 @@ describe('GET /api/pchain-faucet', () => {
     await GET(request());
 
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it('refuses a drip to an address that holds more than 0.5 AVAX, and reserves no claim', async () => {
+    getPChainUnlockedNAvax.mockResolvedValue(500_000_001n);
+    const { GET } = await loadRoute(`0x${KEY}`);
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      success: false,
+      message:
+        'This address holds more than 0.5 AVAX. The faucet sends AVAX only to an address that holds 0.5 AVAX or less.',
+    });
+    expect(getPChainUnlockedNAvax).toHaveBeenCalledWith(true, DESTINATION);
+    expect(checkAndReserveFaucetClaim).not.toHaveBeenCalled();
+  });
+
+  it('goes on to the reservation for an address that holds 0.5 AVAX or less', async () => {
+    getPChainUnlockedNAvax.mockResolvedValue(500_000_000n);
+    checkAndReserveFaucetClaim.mockResolvedValue({ allowed: false, reason: 'Rate limit exceeded.' });
+    const { GET } = await loadRoute(`0x${KEY}`);
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(429);
+    expect(checkAndReserveFaucetClaim).toHaveBeenCalledOnce();
+  });
+
+  it('sends nothing and reserves no claim when it cannot read the balance', async () => {
+    getPChainUnlockedNAvax.mockRejectedValue(new Error('no answer from the node in time'));
+    const { GET } = await loadRoute(`0x${KEY}`);
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).message).toBe(
+      'The faucet cannot read the balance of this address. Try again later.',
+    );
+    expect(checkAndReserveFaucetClaim).not.toHaveBeenCalled();
   });
 });
