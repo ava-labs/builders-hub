@@ -166,7 +166,7 @@ describe(
           // The only stake of the key is this one.
           const staked = await pStaked(signer.pChainAddress);
           const earlier = await activeStakes();
-          expect(staked, 'platform.getStake: the key stakes only the resumed 1 AVAX').toBe(STAKE_NAVAX);
+          expect(staked, 'P-Chain stake: the key stakes only the resumed 1 AVAX').toBe(STAKE_NAVAX);
           expect(earlier.map((s) => s.nodeId)).toEqual([resume.nodeId]);
           if (unlocked < MIN_RESUME_UNLOCKED_NAVAX) {
             throw new Error(

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
 import InputSubnetId from '@/components/toolbox/components/InputSubnetId';
 import BlockchainDetailsDisplay from '@/components/toolbox/components/BlockchainDetailsDisplay';
@@ -128,7 +128,7 @@ export default function CreateNodeForm({
                   key={blockchain.blockchainId}
                   blockchain={{
                     ...blockchain,
-                    isTestnet: avalancheNetworkID === networkIDs.FujiID,
+                    isTestnet: avalancheNetworkID === TESTNET_NETWORK_ID,
                   }}
                   isLoading={isLoading}
                   customTitle={`${blockchain.blockchainName} Blockchain Details`}

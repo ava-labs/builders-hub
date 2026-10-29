@@ -1,8 +1,9 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Pencil } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HashChip, SpecPlate, SpecRow } from '@/components/explorer-v2/ui';
+import { useEditRpcUrlModal } from '@/components/toolbox/providers/modals/EditRpcUrlModal';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import type { L1ValidatorManagerInfo } from '@/lib/console/my-l1/useL1ValidatorManager';
 import { DISCLOSURE, DISCLOSURE_HINT, DISCLOSURE_LABEL, FRAME } from './chrome';
@@ -18,6 +19,22 @@ export function NetworkDetailsCard({
   l1: CombinedL1;
   validatorManager?: L1ValidatorManagerInfo;
 }) {
+  const { openEditRpcUrl } = useEditRpcUrlModal();
+
+  // Managed L1s get their RPC URL from the server-side node registration,
+  // which wins over the wallet store in the dashboard merge, so an edit
+  // there would not show up here. Only wallet-sourced entries are editable.
+  const canEditRpc = l1.source === 'wallet' && l1.evmChainId !== null;
+  const handleEditRpc = () => {
+    if (l1.evmChainId === null) return;
+    void openEditRpcUrl({
+      evmChainId: l1.evmChainId,
+      name: l1.chainName,
+      rpcUrl: l1.rpcUrl,
+      isTestnet: l1.isTestnet,
+    });
+  };
+
   // Network identifiers first, then the Validator Manager pair.
   type Item = {
     label: string;
@@ -29,9 +46,12 @@ export function NetworkDetailsCard({
      *  hasn't been deployed yet but the user can configure it via the
      *  prominent banner above. */
     placeholder?: boolean;
+    /** Opens an editor for this value. Only the RPC URL of wallet-sourced
+     *  L1s is editable today (issue #4450). */
+    onEdit?: () => void;
   };
   const items: Item[] = [
-    { label: 'RPC URL', value: l1.rpcUrl, id: 'rpc-url' },
+    { label: 'RPC URL', value: l1.rpcUrl, id: 'rpc-url', onEdit: canEditRpc ? handleEditRpc : undefined },
     { label: 'Subnet ID', value: l1.subnetId, id: 'subnet-id' },
     { label: 'Blockchain ID', value: l1.blockchainId, id: 'blockchain-id' },
   ];
@@ -95,7 +115,19 @@ export function NetworkDetailsCard({
                   {item.value}
                 </span>
               ) : (
-                <HashChip value={item.value} len={120} />
+                <span className="inline-flex min-w-0 max-w-full items-center gap-3">
+                  <HashChip value={item.value} len={120} />
+                  {item.onEdit && (
+                    <button
+                      type="button"
+                      onClick={item.onEdit}
+                      className="-m-1.5 shrink-0 p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+                      aria-label={`Edit ${item.label}`}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  )}
+                </span>
               )}
             </SpecRow>
           ))}

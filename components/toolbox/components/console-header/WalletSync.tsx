@@ -8,7 +8,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { createCoreWalletClient, setAvalancheProviderOverride } from '@/components/toolbox/coreViem';
 import { CONSOLE_WALLET_CONNECTOR_ID, getConsoleCoreProvider } from '@/lib/console-wallets/core-provider';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { MAINNET_NETWORK_ID, TESTNET_NETWORK_ID } from '@avalanche-sdk/client/methods';
 import posthog from 'posthog-js';
 import {
   parseProviderChainId,
@@ -110,7 +110,7 @@ export function WalletSync() {
       const nextIsTestnet = resolveTestnetForChainId(nextChainId);
       if (nextIsTestnet !== current.isTestnet) {
         setIsTestnet(nextIsTestnet);
-        setAvalancheNetworkID(nextIsTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+        setAvalancheNetworkID(nextIsTestnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
       }
     },
     [resolveTestnetForChainId, setAvalancheNetworkID, setIsTestnet, setWalletChainId],
@@ -282,7 +282,7 @@ export function WalletSync() {
                 resolvedCoreChainId === C_CHAIN_FUJI || resolvedCoreChainId === C_CHAIN_MAINNET || !knownL1;
               const nextIsTestnet = chainInfoIsAuthoritative ? chainInfo.isTestnet : knownL1.isTestnet;
               setIsTestnet(nextIsTestnet);
-              setAvalancheNetworkID(nextIsTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+              setAvalancheNetworkID(nextIsTestnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
               setEvmChainName(chainInfo.chainName);
             }
           } catch {
@@ -366,7 +366,7 @@ export function WalletSync() {
             ]);
             if (pAddr) setPChainAddress(pAddr);
             setIsTestnet(testnet);
-            setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
+            setAvalancheNetworkID(testnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
             setEvmChainName(data.chainName);
           }
         } catch {}
@@ -378,7 +378,7 @@ export function WalletSync() {
     } else {
       // Generic EVM wallets: same logic. Only C-Chain IDs toggle testnet
       setIsTestnet(testnet);
-      setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
+      setAvalancheNetworkID(testnet ? TESTNET_NETWORK_ID : MAINNET_NETWORK_ID);
 
       try {
         updateAllBalances();

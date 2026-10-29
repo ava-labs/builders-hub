@@ -31,7 +31,7 @@ import {
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { CB58ToHex, removeChecksum } from '@avalanche-sdk/client/utils';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';

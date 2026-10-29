@@ -74,15 +74,9 @@ jobs:
       - name: Sync remote docs
         run: npx tsx ./utils/remote-content.mts
 
-      - name: Restore lychee cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: .lycheecache
-          key: lychee-${{ github.run_id }}
-          restore-keys: lychee-
-
-      # The synced docs are gitignored, so --no-ignore is needed to check them.
+      # The synced docs are gitignored, so --no-ignore is needed to check them. No --cache: each night checks every
+      # link again, so a result from the night before cannot hide a new dead link.
       - name: Lychee
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --config lychee.toml --no-ignore --cache --max-cache-age 1d 'content/**/*.md' 'content/**/*.mdx'
+          args: --config lychee.toml --no-ignore 'content/**/*.md' 'content/**/*.mdx'

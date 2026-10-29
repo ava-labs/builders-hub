@@ -129,20 +129,22 @@ Making a JSON RPC Request
 
 Most of the built-in APIs use the [JSON RPC 2.0](https://www.jsonrpc.org/specification) format to describe their requests and responses. Such APIs include the Platform API and the X-Chain API.
 
-Suppose we want to call the `getTxStatus` method of the [X-Chain API](/docs/rpcs/x-chain). This method is deprecated since AvalancheGo v1.10.0 and returns only `Accepted` or `Unknown`. This guide uses it only because it is a short example. In new code, use `avm.getTx`. The X-Chain API documentation tells us that the endpoint for this API is `/ext/bc/X`.
+Suppose we want to call the `getTx` method of the [X-Chain API](/docs/rpcs/x-chain). The X-Chain API documentation tells us that the endpoint for this API is `/ext/bc/X`.
 
 That means that the endpoint we send our API call to is:
 
 `[node-ip]:[http-port]/ext/bc/X`
 
-The X-Chain API documentation tells us that the signature of `getTxStatus` is:
+The X-Chain API documentation tells us that the signature of `getTx` is:
 
-[`avm.getTxStatus`](/docs/rpcs/x-chain#avmgettxstatus)`(txID:bytes) -> (status:string)`
+[`avm.getTx`](/docs/rpcs/x-chain#avmgettx)`({txID: string, encoding: string}) -> {tx: string, encoding: string}`
 
 where:
 
-- Argument `txID` is the ID of the transaction we're getting the status of.
-- Returned value `status` is the status of the transaction in question.
+- Argument `txID` is the ID of the transaction we want.
+- Argument `encoding` is the format of the returned transaction: `hex` (the default) or `json`.
+- Returned value `tx` is the transaction. The node returns only accepted transactions; for an ID it does not know, it returns an error.
+- Returned value `encoding` is the format of `tx`.
 
 To call this method, then:
 
@@ -150,15 +152,16 @@ To call this method, then:
 curl -X POST --data '{
     "jsonrpc":"2.0",
     "id"     :4,
-    "method" :"avm.getTxStatus",
+    "method" :"avm.getTx",
     "params" :{
-        "txID":"2QouvFWUbjuySRxeX5xMbNCuAaKWfbk5FeEa2JmoF85RKLk2dD"
+        "txID":"2oJCbb8pfdxEHAf9A8CdN4Afj9VSR3xzyzNkf8tDv7aM1sfNFL",
+        "encoding":"hex"
     }
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/X
 ```
 
 - `jsonrpc` specifies the version of the JSON RPC protocol. (In practice is always 2.0)
-- `method` specifies the service (`avm`) and method (`getTxStatus`) that we want to invoke.
+- `method` specifies the service (`avm`) and method (`getTx`) that we want to invoke.
 - `params` specifies the arguments to the method.
 - `id` is the ID of this request. Request IDs should be unique.
 
@@ -172,14 +175,17 @@ If the call is successful, the response will look like this:
 {
   "jsonrpc": "2.0",
   "result": {
-    "status": "Accepted"
+    "tx": "0x00000000000400000001ed5f38341e436e5d46...",
+    "encoding": "hex"
   },
-  "id": 1
+  "id": 4
 }
 ```
 
+(`tx` is shortened here.)
+
 - `id` is the ID of the request that this response corresponds to.
-- `result` is the returned values of `getTxStatus`.
+- `result` is the returned values of `getTx`.
 
 ### JSON RPC Error Response
 
