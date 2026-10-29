@@ -9,7 +9,7 @@ import {
   newSubnetToL1Conversion,
   compareNodeIDs,
 } from './convertWarp';
-import { utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalanche-sdk/client/utils';
 const { hexToBuffer, bufferToHex } = utils;
 
 const node1Validator = {

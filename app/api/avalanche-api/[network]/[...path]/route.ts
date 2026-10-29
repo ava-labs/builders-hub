@@ -3,7 +3,8 @@ import { getClientId } from '@/lib/mcp-rate-limit';
 import { checkRateLimit } from '@/lib/rateLimit';
 
 /* The same-origin relay for the Avalanche public API. iOS WebKit can refuse the CORS preflight that every JSON-RPC
-   POST to api.avax(-test).network needs, so the console's fetch wrapper retries a refused call here. The upstream is
+   POST to api.avax(-test).network needs, so the console's fetch wrapper retries a refused call here. The explorer
+   search reads avm.getUTXOs here, to learn at once whether the X-Chain holds an address. The upstream is
    one of the two fixed public hosts, never a URL from the request; only the chain and info endpoints the console
    wallet uses are forwarded, and each only with its own method namespace (no admin, no keystore). */
 

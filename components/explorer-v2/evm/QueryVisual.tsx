@@ -291,7 +291,7 @@ function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false
     return (
       <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stack ? "" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
         {stats.map((s) => (
-          <div key={s.label} className={cn(CARD, "min-w-0")}>
+          <div key={`${s.label}:${s.column}:${s.agg}`} className={cn(CARD, "min-w-0")}>
             <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
           </div>
         ))}
@@ -308,7 +308,7 @@ function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false
       )}
     >
       {stats.map((s) => (
-        <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
+        <StatFigure key={`${s.label}:${s.column}:${s.agg}`} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} span={span} x={x} onHoverKey={onHoverKey} onOpen={onOpen} />
       ))}
     </div>
   );

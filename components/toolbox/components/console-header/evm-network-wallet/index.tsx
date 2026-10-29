@@ -11,6 +11,7 @@ import { CONSOLE_WALLET_CONNECTOR_ID, setActiveConsoleWallet } from '@/lib/conso
 
 import { useNetworkData } from './hooks/useNetworkData';
 import { useNetworkActions } from './hooks/useNetworkActions';
+import { useEditRpcUrlModal } from '@/components/toolbox/providers/modals/EditRpcUrlModal';
 import { NetworkList } from './components/NetworkList';
 import { WalletInfo } from './components/WalletInfo';
 import { ChainLogo } from './components/ChainLogo';
@@ -44,6 +45,16 @@ export function EvmNetworkWallet() {
 
   const handleRemoveNetwork = (network: any) => {
     removeL1(network.id);
+  };
+
+  const { openEditRpcUrl } = useEditRpcUrlModal();
+  const handleEditRpc = (network: any) => {
+    void openEditRpcUrl({
+      evmChainId: network.evmChainId,
+      name: network.name,
+      rpcUrl: network.rpcUrl,
+      isTestnet: network.isTestnet,
+    });
   };
 
   if (!walletEVMAddress) {
@@ -85,6 +96,7 @@ export function EvmNetworkWallet() {
             isNetworkActive={isNetworkActive}
             onNetworkSelect={handleNetworkChange}
             onNetworkRemove={handleRemoveNetwork}
+            onNetworkEditRpc={handleEditRpc}
             isEditMode={isEditMode}
             onToggleEditMode={() => setIsEditMode((v) => !v)}
           />

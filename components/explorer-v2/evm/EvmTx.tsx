@@ -20,7 +20,7 @@ import { useTrace } from "./useTrace";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useVerifiedContracts, functionNameFromAbi, decodeEventWithAbi, decodeFunctionWithAbi } from "@/lib/sourcify-client";
 import { getEventByTopic, getFunctionBySelector } from "@/abi/event-signatures.generated";
-import { balanceChanges, flatten } from "@/lib/trace";
+import { flatten } from "@/lib/trace";
 import { storyOf } from "@/lib/tx-story";
 import { precompileActs } from "@/lib/precompiles";
 import { EvmTxStory } from "./EvmTxStory";
@@ -215,10 +215,10 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const icmFallback = useIcmFallback(txHash, error === "not found" && !t);
   const icmMessages = t ? icmMessagesInLogs(t.logs) : [];
 
-  // the execution trace, from the debug node; when it is here it carries
-  // the internal calls, token movements and events, so the flat sections
-  // for those step aside
-  const { trace, state: traceState } = useTrace(c.chainId, txHash, !!liveRpc);
+  // the execution trace, from the ingestion pipeline (bounded by the tx's
+  // block): when it is here it carries the internal calls, token movements
+  // and events, so the flat sections for those step aside
+  const { trace, state: traceState, retrying } = useTrace(c.chainId, txHash, liveRpc && t ? t.blockNumber : null);
   const traced = traceState === "ready";
 
   // where the tx's block stands in Continuous Execution
@@ -283,12 +283,8 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const acts = t ? precompileActs(c.chainId, t) : [];
   const nativeNet = (() => {
     if (!t) return 0n;
-    if (trace) {
-      const mine = balanceChanges(trace).find((ch) => ch.token === null && ch.address === t.from.toLowerCase());
-      return (mine?.delta ?? 0n) + feeWei;
-    }
     const refunds = t.internalTxns.filter((it) => it.to?.toLowerCase() === t.from.toLowerCase()).reduce((acc, it) => acc + BigInt(it.value || "0"), 0n);
-    // with no trace, native coin the Native Minter sent the sender shows only in its log
+    // native coin the Native Minter sent the sender shows only in its log
     const minted = acts.reduce((acc, a) => (a.kind === "mint" && a.to === t.from.toLowerCase() ? acc + a.amount : acc), 0n);
     return refunds + minted - BigInt(t.value || "0");
   })();
@@ -463,8 +459,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                   <span className="text-red-700 dark:text-red-300">{feeFigure.value}</span> <span className={UNIT}>{feeFigure.unit}</span>
                 </RailRow>
                 {/* ACP-194: the receipt charges max(used, limit / 2), and the fee
-                    is paid on that; what execution actually used comes from
-                    the trace's struct log */}
+                    is paid on that */}
                 <RailRow
                   label="Gas Charged"
                   sub={
@@ -479,7 +474,6 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                         {gasPct.toFixed(0)}% of the {formatNumber(t.gasLimit)} limit
                       </span>
                       {halfLimit && <span>the minimum charge: half the gas limit</span>}
-                      {trace?.gas && trace.gas.used !== t.gasUsed && <span>{formatNumber(trace.gas.used)} used by execution</span>}
                     </span>
                   }
                 >
@@ -489,7 +483,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </div>
           </section>
 
-          {liveRpc && <EvmTrace trace={trace} state={traceState} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
+          {liveRpc && <EvmTrace trace={trace} state={traceState} retrying={retrying} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
 
           {!traced && transfers.length > 0 && (
             <section className="flex flex-col gap-4">

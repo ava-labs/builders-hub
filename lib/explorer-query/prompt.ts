@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import { HASH_RANGE, MAX_ROWS } from "./guard";
 import { CREATED, QUOTES, U, pxCte, topic } from "./macros";
+import { AVAX_USD_CHAIN_ID, avaxUsdExample, avaxUsdRule } from "./avax-usd";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, FIRST_DAY, V2_FEE_PROTOCOLS, dexFamilies, dexQuestion, type DexFamily } from "./protocols";
 import { AAVE_ASSETS, AAVE_SLUG, LENDING_CHAIN_ID, LENDING_MARKETS, LENDING_PROTOCOLS } from "./lending";
 import { FAMILY_CHAIN_ID, OPENTRADE_POOLS, SILOS, VAULTS } from "./families";
@@ -462,7 +463,7 @@ ${opts.coverage ? `\n${opts.coverage}` : ""}
 ${
   c
     ? `- Gas, per ACP-194 (Continuous Execution, live since the Helicon upgrade): raw_blocks.gas_used is the gas RESERVED (the sum of the block's tx gas limits, what fills the block against gas_limit). raw_txs.gas_used is the gas CHARGED per receipt, max(used, half the limit); fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. The C-Chain burns every fee.
-- Use these names in titles and notes, never "gas used" for the block figure. A sum of raw_txs.gas_used is gas charged, per block, per hour or per contract alike (name it gas_charged); gas reserved comes only from raw_blocks.gas_used.${opts.chainId === 43114 ? `\n${upgradesLine(true)}` : ""}`
+- Use these names in titles and notes, never "gas used" for the block figure. A sum of raw_txs.gas_used is gas charged, per block, per hour or per contract alike (name it gas_charged); gas reserved comes only from raw_blocks.gas_used.${opts.chainId === AVAX_USD_CHAIN_ID ? `\n${upgradesLine(true)}\n${avaxUsdRule()}` : ""}`
     : `- Gas: raw_blocks.gas_used is the block's gas used, against gas_limit. raw_txs.gas_used is the gas charged per receipt; fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. Whether an L1 burns its fees or pays them to a fee recipient depends on its configuration: say "fees paid", never "burned". A fee question also reads raw_blocks.miner over the same window, as the worked example "Fees per bucket" shows, and the note says where the fees went: to the burn address when not_burned is 0, that is when every block's miner is 0x0100000000000000000000000000000000000000, the one case where it may say "burned"; else to the one recipient, by its full address, when recipients is 1; else to how many recipients. That address or count is the one exception to the note rules against hex, addresses and counts.`
 }
 - ERC-20 Transfer logs: topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'); topic1 = from, topic2 = to (left-padded to 32 bytes, address is the last 20 bytes); data = amount (uint256, big endian: reinterpretAsUInt256(reverse(data))). A transfer's sender and recipient are lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address and the same over topic2 AS to_address. Never take them from tx_from, tx_to or raw_logs.address: those are the transaction's sender, the contract it called and the token contract. An ERC-20 transfer has no topic3 (topic3 IS NULL): an ERC-721 Transfer has the same topic0 and its token id in topic3, so a count of token transfers filters topic3 IS NULL, and a note that says ERC-20 or three topics holds only with that filter. ${
@@ -528,7 +529,7 @@ Then render_chart with the fee query, and a note that says where the fees went:`
 }
 SELECT toStartOfHour(block_time) AS t, sum(toFloat64(gas_used) * gas_price) / 1e18 AS fees_${opts.symbol.toLowerCase()}, max(toFloat64(gas_used) * gas_price) / 1e18 AS max_fee_${opts.symbol.toLowerCase()}, concat('0x', lower(hex(argMax(hash, toFloat64(gas_used) * gas_price)))) AS max_fee_tx, count() AS txs FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR GROUP BY t ORDER BY t
 
-Gas charged against ${c ? "gas reserved" : "the blocks' gas used"} per hour (charged from the receipts in raw_txs, ${c ? "reserved" : "the block figure"} from raw_blocks):
+${opts.chainId === AVAX_USD_CHAIN_ID ? avaxUsdExample(opts.chainId, opts.symbol) : ""}Gas charged against ${c ? "gas reserved" : "the blocks' gas used"} per hour (charged from the receipts in raw_txs, ${c ? "reserved" : "the block figure"} from raw_blocks):
 SELECT t, c.gas_charged AS gas_charged, b.${c ? "gas_reserved" : "block_gas_used"} AS ${c ? "gas_reserved" : "block_gas_used"} FROM (SELECT toStartOfHour(block_time) AS t, sum(gas_used) AS gas_charged FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR GROUP BY t) AS c INNER JOIN (SELECT toStartOfHour(block_time) AS t, sum(gas_used) AS ${c ? "gas_reserved" : "block_gas_used"} FROM raw_blocks WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR GROUP BY t) AS b USING t ORDER BY t
 
 ${

@@ -1,27 +1,53 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
+import { HoverPrefetchLink } from "@/components/landing-v2/HoverPrefetchLink";
 import { track } from "@/components/landing-v2/track";
-import { BODY, Chapter, Figure, Lead, MONO, Reveal, TextLink, Title } from "./kit";
+import { BODY, Chapter, FOCUS, Figure, Lead, MONO, Reveal, TextLink, Title } from "./kit";
+import { StackLinks } from "./StackLinks";
 import { SceneFrame } from "./three/SceneFrame";
-import type { StackLayer } from "./three/StackScene";
+import type { StackLayer, StackPoint } from "./three/StackScene";
 
 const StackScene = dynamic(() => import("./three/StackScene"), { ssr: false });
 
 /* The chain is yours. The drawing names the layers a team sets, from
-   the validator set on the P-Chain plate up to the virtual machine. Then
-   what a chain of your own costs to run, and the way in. */
+   the validator set on the P-Chain plate up to the virtual machine; each
+   layer, and the plate, opens its docs. Then what a chain of your own costs
+   to run, and the way in. */
 
 // bottom to top in the drawing; the text list reads top to bottom
 const LAYERS: StackLayer[] = [
-  { key: "validators", label: "Validator set", line: "Proof of authority, proof of stake or your own rules." },
-  { key: "access", label: "Access", line: "Choose who may deploy contracts and who may transact." },
-  { key: "gas", label: "Gas token", line: "Allocate it at genesis, mint more, burn fees or route them." },
-  { key: "vm", label: "Virtual machine", line: "The EVM by default, or a VM in any language with gRPC." },
+  {
+    key: "validators",
+    label: "Validator set",
+    line: "Proof of authority, proof of stake or your own rules.",
+    href: "/docs/avalanche-l1s#we-need-custom-validator-management",
+  },
+  {
+    key: "access",
+    label: "Access",
+    line: "Choose who may deploy contracts and who may transact.",
+    href: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#restricting-smart-contract-deployers",
+  },
+  {
+    key: "gas",
+    label: "Gas token",
+    line: "Allocate it at genesis, mint more, burn fees or route them.",
+    href: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#setting-the-genesis-allocation",
+  },
+  {
+    key: "vm",
+    label: "Virtual machine",
+    line: "The EVM by default, or a VM in any language with gRPC.",
+    href: "/docs/primary-network/virtual-machines#custom-vms-on-avalanche",
+  },
 ];
+const PLATE = { label: "P-Chain", href: "/docs/primary-network/platformvm-architecture" };
 
 const STILL = { light: "/home/story/stack-light.webp", dark: "/home/story/stack-dark.webp" };
 const STILL_NARROW = { light: "/home/story/stack-narrow-light.webp", dark: "/home/story/stack-narrow-dark.webp" };
@@ -29,9 +55,45 @@ const STILL_NARROW = { light: "/home/story/stack-narrow-light.webp", dark: "/hom
 const BUILD_HREF = "/console/create-l1";
 
 export default function OwnChapter() {
+  const router = useRouter();
+  const reduced = useReducedMotion();
   const drawingRef = useRef<HTMLDivElement>(null);
-  // the layer the reader points at; at rest the validator set (index 0) holds the red
-  const [active, setActive] = useState<number | null>(null);
+  // the part the pointer is on and the part a link over the drawing has the
+  // keyboard's focus on. The newer one shows, and the other shows when it
+  // ends; at rest the validator set (index 0) holds the red
+  const hover = useRef<StackPoint>(null);
+  const focus = useRef<StackPoint>(null);
+  const [point, setPoint] = useState<StackPoint>(null);
+  // true while the canvas shows, not the still. The ref is current at once:
+  // a late pointer event from the still's links (gone at the handover) must not clear the scene's hover
+  const [scene, setScene] = useState(false);
+  const sceneNow = useRef(false);
+  const onShown = useCallback((to: boolean) => {
+    sceneNow.current = to;
+    setScene(to);
+  }, []);
+  // a link over the drawing has the keyboard's focus: the scene holds its rig at rest, where the link's ring is drawn
+  const [focused, setFocused] = useState(false);
+  // the mouse's last place in the window, from the page's load: the scene looks under it when the
+  // drawing moves under a mouse that has not (the canvas mounts and takes over from the still later).
+  // A mouse that leaves the window, or a window that loses focus, has no place
+  const pointerAt = useRef<[number, number] | null>(null);
+  useEffect(() => {
+    const track = (e: PointerEvent) => {
+      if (e.isTrusted && e.pointerType !== "touch") pointerAt.current = [e.clientX, e.clientY];
+    };
+    const away = (e: Event) => {
+      if (e.type === "blur" || !(e as PointerEvent).relatedTarget) pointerAt.current = null;
+    };
+    window.addEventListener("pointermove", track, { passive: true });
+    window.addEventListener("pointerout", away, { passive: true });
+    window.addEventListener("blur", away);
+    return () => {
+      window.removeEventListener("pointermove", track);
+      window.removeEventListener("pointerout", away);
+      window.removeEventListener("blur", away);
+    };
+  }, []);
   // the stack opens as the drawing scrolls in, and is open before it reaches the middle of the screen
   const { scrollYProgress } = useScroll({ target: drawingRef, offset: ["start end", "center center"] });
   const open = useTransform(scrollYProgress, [0.1, 0.65], [0, 1], { clamp: true });
@@ -45,6 +107,70 @@ export default function OwnChapter() {
   useEffect(() => {
     if (scrollYProgress.get() >= 0.8) setShown(true);
   }, [scrollYProgress]);
+  // the links' focus rings are drawn on the open stack; a shut one hides them
+  const [opened, setOpened] = useState(false);
+  useMotionValueEvent(open, "change", (v) => setOpened(v > 0.99));
+  useEffect(() => setOpened(open.get() > 0.99), [open]);
+
+  const select = useCallback(
+    (to: Exclude<StackPoint, null>, newTab: boolean) => {
+      const { label, href } = to === "plate" ? PLATE : LAYERS[to];
+      track("home_cta_clicked", { section: "own", label, href });
+      if (newTab) window.open(href, "_blank", "noopener");
+      else router.push(href);
+    },
+    [router],
+  );
+  // the page the reader points at loads ahead of the click
+  useEffect(() => {
+    if (point !== null) router.prefetch((point === "plate" ? PLATE : LAYERS[point]).href);
+  }, [point, router]);
+  // leaving a part keeps its light while the pointer is still on the drawing,
+  // so a move from one part to the next (across a label's leader, or the gap
+  // between two labels) never flashes the rest pose; off the drawing, the light rests
+  const overDrawing = useRef(false);
+  const pointAt = useCallback((to: StackPoint) => {
+    hover.current = to;
+    if (to !== null || !overDrawing.current) setPoint(to ?? focus.current);
+  }, []);
+  useEffect(() => {
+    const el = drawingRef.current;
+    if (!el) return;
+    const enter = () => {
+      overDrawing.current = true;
+    };
+    const leave = () => {
+      overDrawing.current = false;
+      hover.current = null;
+      setPoint(focus.current);
+    };
+    el.addEventListener("pointerenter", enter);
+    el.addEventListener("pointerleave", leave);
+    return () => {
+      el.removeEventListener("pointerenter", enter);
+      el.removeEventListener("pointerleave", leave);
+    };
+  }, []);
+  const pointAtStill = useCallback(
+    (to: StackPoint) => {
+      if (!sceneNow.current) pointAt(to);
+    },
+    [pointAt],
+  );
+  // a link over the canvas takes the keyboard's focus while the stack is
+  // still shut: bring the drawing to the middle of the screen, where it is open
+  const focusAt = useCallback(
+    (to: StackPoint) => {
+      focus.current = to;
+      setPoint(to ?? hover.current);
+      setFocused(to !== null);
+      if (to === null || !scene || open.get() >= 1) return;
+      requestAnimationFrame(() =>
+        drawingRef.current?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }),
+      );
+    },
+    [scene, open, reduced],
+  );
 
   return (
     <Chapter id="own">
@@ -60,27 +186,60 @@ export default function OwnChapter() {
         </Reveal>
 
         <Reveal delay={0.1} className="-mx-5 md:mx-0 md:-my-12 lg:-my-20 lg:col-span-7">
-          <div ref={drawingRef}>
+          <div ref={drawingRef} className="relative">
             <SceneFrame
               Scene={StackScene}
-              sceneProps={{ layers: LAYERS, active: active ?? 0, spread: open, onPoint: setActive, play: shown }}
+              sceneProps={{
+                layers: LAYERS,
+                active: point ?? 0,
+                spread: open,
+                onPoint: pointAt,
+                onSelect: select,
+                play: shown,
+                rest: focused,
+                shown: scene,
+                pointerAt,
+              }}
               still={STILL}
               stillNarrow={STILL_NARROW}
               alt="An Avalanche L1 drawn as four layers over the P-Chain: validator set, access, gas token and virtual machine."
               aspect={1.12}
               aspectNarrow={780 / 720}
+              onShown={onShown}
+            />
+            <StackLinks
+              layers={LAYERS}
+              plate={PLATE}
+              scene={scene}
+              active={point}
+              rings={!scene || opened}
+              onPoint={pointAtStill}
+              onFocusPoint={focusAt}
+              onSelect={select}
             />
           </div>
         </Reveal>
       </div>
 
-      {/* phones: the layers as text, right after the drawing; from 768 px the drawing labels them */}
-      <Reveal delay={0.1} className="mt-12 md:sr-only">
+      {/* phones: the layers as links, right after the drawing; from 768 px the drawing labels them and its links serve screen readers */}
+      <Reveal delay={0.1} className="mt-12 md:hidden">
         <ol className="divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
           {[...LAYERS].reverse().map((layer) => (
-            <li key={layer.key} className="flex flex-col gap-1 py-4">
-              <span className={`${MONO} text-zinc-900 dark:text-zinc-100`}>{layer.label}</span>
-              <span className={BODY}>{layer.line}</span>
+            <li key={layer.key}>
+              <HoverPrefetchLink
+                href={layer.href}
+                onClick={() => track("home_cta_clicked", { section: "own", label: layer.label, href: layer.href })}
+                className={`group flex items-center justify-between gap-4 py-4 ${FOCUS}`}
+              >
+                <span className="flex flex-col gap-1">
+                  <span className={`${MONO} text-zinc-900 dark:text-zinc-100`}>{layer.label}</span>
+                  <span className={BODY}>{layer.line}</span>
+                </span>
+                <ArrowRight
+                  aria-hidden
+                  className="h-4 w-4 shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 dark:text-zinc-500"
+                />
+              </HoverPrefetchLink>
             </li>
           ))}
         </ol>

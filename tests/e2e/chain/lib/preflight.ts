@@ -7,7 +7,7 @@
 // later tools add more), or when the C-Chain balance is below --min-c-avax (the deploys and the PoS stake). Warns when
 // the C-Chain balance is below 0.01 AVAX. Prints the addresses, never the key.
 //
-// It also prints the Primary Network stake of the key (platform.getStake) and the unlock time of each stake record in
+// It also prints the Primary Network stake of the key (pStaked) and the unlock time of each stake record in
 // the ledgers under chain/.run (lib/primary-stake.ts). A locked stake does not count in the unlocked P-Chain balance.
 
 import { appendFileSync } from 'node:fs';

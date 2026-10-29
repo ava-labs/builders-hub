@@ -6,6 +6,7 @@ import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual, writeReading } from "@/lib/explorer-query/visual";
+import { showPrice } from "@/lib/explorer-query/avax-usd";
 import { markUpgrades, upgradeLines } from "@/lib/explorer-query/upgrades";
 import type { ChartSpec, Names, QueryAnswer, Totals } from "@/lib/explorer-query/types";
 import { monitorNote } from "@/lib/explorer-query/monitor";
@@ -199,7 +200,7 @@ export async function POST(req: Request) {
       const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
       const said = keptWords(recipe, recipe.sql, result.rows, anchor, chainId);
       const out = await designVisual({ question: recipe.question, title: said.title, note: compared(said.note, recipe, result.rows, chainId), symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor, spent });
-      out.visual = markUpgrades(out.visual, recipe.question, result.rows, chainId);
+      out.visual = showPrice(markUpgrades(out.visual, recipe.question, result.rows, chainId), result.rows, chainId);
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       // the design's own time, its model steps and each visual its tool turned back: a slow layout shows whether it retried
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, steps: out.steps, refused: out.refused?.length ? out.refused : undefined, error: out.fromDesigner ? undefined : out.error });
