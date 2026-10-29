@@ -1,5 +1,6 @@
 import type { Browser, WebRoute } from '@e2e-dev/web';
 import type { App, JsonValue } from 'e2e';
+import { escapeRegExp } from './regexp';
 
 // The tests that sign in or sign up drive the real login UI against this fake backend. The fake answers the NextAuth
 // reads and each write of the login flow. Other reads go to the site. No write reaches NextAuth, the database, the
@@ -60,10 +61,6 @@ function htmlPage(heading: string): { headers: Record<string, string>; body: str
     headers: { 'content-type': 'text/html; charset=utf-8' },
     body: `<!doctype html><html><head><title>${heading}</title></head><body><h1>${heading}</h1></body></html>`,
   };
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // The absolute URL of a callbackUrl that the login UI sent, resolved against the request URL as NextAuth does.

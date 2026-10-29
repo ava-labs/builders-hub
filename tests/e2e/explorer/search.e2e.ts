@@ -1,4 +1,4 @@
-import { test } from '@e2e-dev/web';
+import { test, type Browser, type WebRoute } from '@e2e-dev/web';
 import { expect, type App, type Screen } from 'e2e';
 import { DATA, MULTI_PAGE, NAVIGATION, OVERVIEW_BLOCK_ROW } from './explorer-page';
 
@@ -93,15 +93,83 @@ test('all networks search keeps a p-chain tx id on the p-chain', MULTI_PAGE, asy
 
 const X_ONLY_ADDRESS = 'avax1xph3ysxkmj2zlhac6nz9hj9cx2av4f7xa9a245';
 
+// The two X-Chain probes of a bare address: the node's UTXO read (through the public API relay) and the explorer
+// API's history read, which the proxy cuts at 15 s with a soft 504.
+const UTXO_READ = /\/api\/avalanche-api\/mainnet\/ext\/bc\/X$/;
+const HISTORY_READ = new RegExp(`/api/xchain/mainnet/address/${X_ONLY_ADDRESS}$`);
+const X_ROW = /^Address .+ X-Chain$/;
+
+// What the first X-Chain probes answered. A missing X-Chain row then names the read that failed, so a failure in CI
+// shows the soft 504 or the refusal instead of leaving it to be inferred.
+function probeAnswers(browser: Browser): Promise<string> {
+  const answer = (name: string, pattern: RegExp) =>
+    browser.waitForResponse(pattern, DATA).then(
+      (res) => `${name} ${res.status}${res.headers['x-status'] ? ` (x-status ${res.headers['x-status']})` : ''}`,
+      () => `${name} did not answer`,
+    );
+  return Promise.all([answer('UTXO read', UTXO_READ), answer('history read', HISTORY_READ)]).then((a) => a.join(', '));
+}
+
 test('all networks search opens an x-only bech32 address on the x-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
   await app.open('/explorer/mainnet');
   await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
   const box = screen.getByRole('textbox', 'Search or ask a question');
+  const probes = probeAnswers(browser);
   await box.fill(X_ONLY_ADDRESS);
-  await expect(screen.getByRole('button', /^Address .+ X-Chain$/)).toBeVisible(DATA);
+  const missing = await expect(screen.getByRole('button', X_ROW))
+    .toBeVisible(DATA)
+    .then(
+      () => null,
+      (error: Error) => error,
+    );
+  // every step is awaited: the history read can answer after the row shows
+  const answered = await probes;
+  if (missing) throw new Error(`${missing.message}\nThe X-Chain probes answered: ${answered}`);
   await box.press('Enter');
   await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/address/X-${X_ONLY_ADDRESS}`, NAVIGATION);
   await expect(screen.getByText('Address not found')).toBeHidden();
+});
+
+// Rule: a failed X-Chain probe is unknown, not "not on the X-Chain". The search does not keep it: it asks the X-Chain
+// once more, the row says so meanwhile, and the address still opens on the X-Chain. Here the first UTXO read gets a
+// 502 and the first history read the proxy's soft 504; the second UTXO read waits RETRY_HOLD_MS, then goes through.
+// The P-Chain read answers a fixed miss, so a live P-Chain error cannot add the P-Chain to the row's text.
+const RETRY_HOLD_MS = 3_000;
+const PCHAIN_READ = new RegExp(`/api/pchain/mainnet/address/${X_ONLY_ADDRESS}$`);
+
+async function failFirstProbes(browser: Browser): Promise<{ utxo: number; history: number }> {
+  const calls = { utxo: 0, history: 0 };
+  await browser.route(PCHAIN_READ, (route: WebRoute) =>
+    route.fulfill({ json: { utxoCount: 0, utxos: [], balance: { total: '0' } } }),
+  );
+  await browser.route(UTXO_READ, async (route: WebRoute) => {
+    calls.utxo += 1;
+    if (calls.utxo === 1) return route.fulfill({ status: 502, json: { error: 'Upstream unavailable' } });
+    await new Promise((resolve) => setTimeout(resolve, RETRY_HOLD_MS));
+    await route.continue();
+  });
+  await browser.route(HISTORY_READ, async (route: WebRoute) => {
+    calls.history += 1;
+    if (calls.history > 1) return route.continue();
+    await route.fulfill({
+      headers: { 'x-status': '504', 'cache-control': 'no-store' },
+      json: { error: 'upstream timeout' },
+    });
+  });
+  return calls;
+}
+
+test('search asks the x-chain again after a failed probe', MULTI_PAGE, async ({ app, screen, browser }) => {
+  const calls = await failFirstProbes(browser);
+  await app.open('/explorer/mainnet');
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
+  const box = screen.getByRole('textbox', 'Search or ask a question');
+  await box.fill(X_ONLY_ADDRESS);
+  await expect(screen.getByRole('button', /^Address .+ Asking the X-Chain again…$/)).toBeVisible(DATA);
+  await expect(screen.getByRole('button', X_ROW)).toBeVisible(DATA);
+  expect(calls.utxo).toBe(2);
+  await box.press('Enter');
+  await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/address/X-${X_ONLY_ADDRESS}`, NAVIGATION);
 });
 
 test('all networks search opens an x-prefixed address on the x-chain', MULTI_PAGE, async ({ app, screen, browser }) => {
@@ -109,7 +177,7 @@ test('all networks search opens an x-prefixed address on the x-chain', MULTI_PAG
   await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible(DATA);
   const box = screen.getByRole('textbox', 'Search or ask a question');
   await box.fill(`X-${X_ONLY_ADDRESS}`);
-  await expect(screen.getByRole('button', /^Address .+ X-Chain$/)).toBeVisible(DATA);
+  await expect(screen.getByRole('button', X_ROW)).toBeVisible(DATA);
   await box.press('Enter');
   await expect(browser).toHaveURL(`/explorer/mainnet/x-chain/address/X-${X_ONLY_ADDRESS}`, NAVIGATION);
   await expect(screen.getByText('Address not found')).toBeHidden();
