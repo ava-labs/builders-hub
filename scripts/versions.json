@@ -1,8 +1,8 @@
 {
   "mainnet": {
-    "avaplatform/avalanchego": "v1.15.1",
-    "avaplatform/subnet-evm": "v1.15.1",
-    "avaplatform/icm-relayer": "v1.8.2"
+    "avaplatform/avalanchego": "v1.15.2",
+    "avaplatform/subnet-evm": "v1.15.2",
+    "avaplatform/icm-relayer": "v1.8.3"
   },
   "testnet": {
     "avaplatform/avalanchego": "v1.15.0-fuji",
