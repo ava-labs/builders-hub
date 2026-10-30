@@ -3,20 +3,20 @@
  *
  * Three parameterized tools replace the eight PR-#4302 data/stats tools:
  *  - onchain_lookup:   resolve any identifier (address / contract / token / NFT /
- *                      tx / subnet / validator / chain) via the indexed Glacier API.
- *  - onchain_activity: recent feeds: EVM transactions from Glacier with the
- *                      chain's window count from the Stats API, P-chain +
- *                      asset transfers from Glacier.
- *  - chain_stats:      chain metrics from the Stats API, P-chain validator
- *                      snapshot from Glacier.
+ *                      tx / subnet / validator / chain) from the Stats API and RPC.
+ *  - onchain_activity: recent feeds: EVM transactions and transfers, with the
+ *                      chain's window count, and P-/X-Chain feeds, all from the
+ *                      Stats API; token-contract transfers from RPC logs.
+ *  - chain_stats:      chain metrics and the P-chain validator snapshot from the Stats API.
  *
- * Backend split: aggregated EVM data (tx counts, gas, fees, time-series) comes
- * from the public Stats API (stats-api.avax.network), which serves closed
- * periods only. Direct identifier lookups (tx validation, balances, metadata)
- * use Glacier: exact and real-time. The MCP holds no database credentials.
+ * Backend split: indexed data (tx history, transfers, aggregates, P-/X-Chain
+ * records) comes from the public Stats API (stats-api.avax.network), whose
+ * aggregates serve closed periods only. Live reads (balances, contract
+ * metadata, recent logs) use each chain's public RPC. The MCP holds no
+ * database credentials and no API key.
  */
 
-import { glacierFetch, fetchErc20Balances } from '@/lib/rwa/glacier/client';
+import type { Address, Hash } from 'viem';
 import { statsApi } from '@/lib/stats-api';
 import { nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
@@ -27,7 +27,19 @@ import {
   assertSafeDays,
   clampLimit,
 } from './lib/clickhouse-safe';
-import { P_CHAIN_ID, X_CHAIN_ID, C_CHAIN_EVM_ID, NETWORKS, networkSchemaProp } from './lib/constants';
+import { P_CHAIN_ID, X_CHAIN_ID, C_CHAIN_ID, C_CHAIN_EVM_ID, NETWORKS, networkSchemaProp } from './lib/constants';
+import {
+  CHAIN_CATALOG,
+  LOG_BLOCK_WINDOW,
+  readContractInfo,
+  readErc20Balances,
+  readNativeBalance,
+  readNft,
+  readRecentTransfers,
+  readTransaction,
+  statsGet,
+  type CatalogChain,
+} from './lib/onchain-sources';
 import { getString, errorResult, readPChainBalanceJson, rejectBadEnum } from './lib/tool-helpers';
 
 interface StatsPoint {
@@ -56,7 +68,7 @@ function getNetwork(args: Record<string, unknown>): Network {
   return args.network === 'fuji' ? 'fuji' : 'mainnet';
 }
 
-/** EVM chainId as a string for Glacier paths: explicit arg wins, else C-Chain. */
+/** EVM chainId as a string: explicit arg wins, else C-Chain. */
 function getChainId(args: Record<string, unknown>): string {
   const explicit = typeof args.chainId === 'string' && args.chainId.trim() ? args.chainId.trim() : '';
   if (typeof args.chainId === 'number') return String(Math.floor(args.chainId));
@@ -69,21 +81,22 @@ function json(data: unknown): ToolResult {
 
 function asMessage(err: unknown): string {
   if (!(err instanceof Error)) return 'On-chain request failed';
-  // Strip internal API paths/URLs so surfaced errors never leak the upstream
-  // surface (e.g. "Glacier API error: 404 Not Found for /v1/networks/...").
-  return err.message
+  // viem keeps the request body and URL out of shortMessage.
+  const message = (err as { shortMessage?: unknown }).shortMessage;
+  // Strip internal API paths/URLs so surfaced errors never leak the upstream surface.
+  return (typeof message === 'string' ? message : err.message)
     .replace(/\s+for\s+\/\S*/i, '')
     .replace(/https?:\/\/\S+/gi, 'the data API');
 }
 
-// --- Glacier path-segment validators (no path-traversal / SSRF) -------------
-function safeAddr(v: string): string {
+// --- Path-segment validators (no path-traversal / SSRF) ---------------------
+function safeAddr(v: string): Address {
   if (!/^0x[0-9a-fA-F]{40}$/.test(v)) throw new Error('invalid EVM address (0x + 40 hex)');
-  return v.toLowerCase();
+  return v.toLowerCase() as Address;
 }
-function safeTxHash(v: string): string {
+function safeTxHash(v: string): Hash {
   if (!/^0x[0-9a-fA-F]{64}$/.test(v)) throw new Error('invalid tx hash (0x + 64 hex)');
-  return v.toLowerCase();
+  return v.toLowerCase() as Hash;
 }
 function safeId(v: string): string {
   if (!/^[A-Za-z0-9-]{1,80}$/.test(v)) throw new Error('invalid id');
@@ -92,6 +105,10 @@ function safeId(v: string): string {
 function safeChainSeg(v: string): string {
   if (!/^\d{1,12}$/.test(v)) throw new Error('invalid chainId');
   return v;
+}
+function safeTokenId(v: string): bigint {
+  if (!/^\d{1,78}$/.test(v)) throw new Error('invalid tokenId (a decimal integer)');
+  return BigInt(v);
 }
 
 function detectKind(value: string): string {
@@ -121,18 +138,77 @@ function pxNetwork(addr: string, fallback: Network): Network {
   return hrp === 'fuji' ? 'fuji' : hrp === 'avax' ? 'mainnet' : fallback;
 }
 function stripChainPrefix(addr: string): string {
-  return addr.replace(/^[PX]-/i, ''); // Glacier/RPC want the bech32 part (avax1…/fuji1…)
-}
-/** Glacier returns an address-metadata body for EOAs too (ercType UNKNOWN); only a real signal means it is a contract. */
-function isRealContract(meta: unknown): boolean {
-  if (!meta || typeof meta !== 'object') return false;
-  const m = meta as Record<string, unknown>;
-  const erc = typeof m.ercType === 'string' ? m.ercType : '';
-  return (!!erc && erc !== 'UNKNOWN') || !!m.deploymentDetails || !!m.name || !!m.symbol;
+  return addr.replace(/^[PX]-/i, ''); // the Stats API wants the bech32 part (avax1…/fuji1…)
 }
 
-interface NativeBalanceResponse {
-  nativeTokenBalance?: { balance?: string; symbol?: string };
+/** The Stats API has no record of the Primary Network subnet; its chains are fixed. */
+function primaryNetworkSubnet(network: Network) {
+  return {
+    subnetId: P_CHAIN_ID,
+    isPrimaryNetwork: true,
+    isL1: false,
+    blockchains: [
+      { blockchainId: P_CHAIN_ID, blockchainName: 'P-Chain', vmId: 'platformvm' },
+      { blockchainId: X_CHAIN_ID[network], blockchainName: 'X-Chain', vmId: 'jvYyfQTxGMJLuGWa55kdP2p2zSUYsQ5Raupu4TW34ZAUBAbtq' },
+      {
+        blockchainId: C_CHAIN_ID[network],
+        blockchainName: 'C-Chain',
+        vmId: 'mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6',
+        evmChainId: Number(C_CHAIN_EVM_ID[network]),
+      },
+    ],
+  };
+}
+
+interface TimedPage<T> {
+  rows: T[];
+  next?: string;
+}
+
+// The MCP route stops at 30 s, and one cold Stats API address page can take 25 s.
+const FEED_BUDGET_MS = 25_000;
+
+/**
+ * Newest-first rows inside [startSec, endSec]. The Stats API address feeds take no
+ * time filter, so this pages back and filters by timestamp until the window starts,
+ * `want` rows are found, or the time budget runs out (truncated).
+ */
+async function rowsInWindow<T>(
+  load: (cursor: string | undefined, timeoutMs: number) => Promise<TimedPage<T>>,
+  timeOf: (row: T) => number,
+  want: number,
+  startSec?: number,
+  endSec?: number,
+  maxPages = 8,
+): Promise<{ rows: T[]; truncated: boolean }> {
+  const rows: T[] = [];
+  const deadline = Date.now() + FEED_BUDGET_MS;
+  let cursor: string | undefined;
+  for (let page = 0; page < maxPages; page++) {
+    const left = deadline - Date.now();
+    if (page > 0 && left < 1_000) break;
+    let batch: TimedPage<T>;
+    try {
+      batch = await load(cursor, left);
+    } catch (err) {
+      if (page === 0) throw err;
+      break;
+    }
+    for (const row of batch.rows) {
+      const t = timeOf(row);
+      if (endSec != null && t > endSec) continue;
+      if (startSec != null && t < startSec) return { rows, truncated: false };
+      rows.push(row);
+      if (rows.length >= want) return { rows, truncated: false };
+    }
+    if (!batch.next) return { rows, truncated: false };
+    cursor = batch.next;
+  }
+  return { rows, truncated: startSec != null };
+}
+
+interface StatsTransfer {
+  token: string;
 }
 
 function compatibilityChainId(value: unknown): string {
@@ -144,8 +220,8 @@ function compatibilityChainId(value: unknown): string {
 async function compatibilityNativeBalance(addressRaw: unknown, chainIdRaw: unknown): Promise<Record<string, unknown>> {
   const address = safeAddr(typeof addressRaw === 'string' ? addressRaw : '');
   const chainId = compatibilityChainId(chainIdRaw);
-  const result = await glacierFetch<NativeBalanceResponse>(`/v1/chains/${chainId}/addresses/${address}/balances:getNative`);
-  const balanceWei = BigInt(result.nativeTokenBalance?.balance || '0');
+  const native = await readNativeBalance(chainId, address);
+  const balanceWei = BigInt(native.balance);
   const unit = 10n ** 18n;
   const formatted = `${balanceWei / unit}.${(balanceWei % unit).toString().padStart(18, '0').slice(0, 6)}`;
   return {
@@ -153,23 +229,22 @@ async function compatibilityNativeBalance(addressRaw: unknown, chainIdRaw: unkno
     chainId,
     balance: `0x${balanceWei.toString(16)}`,
     balanceFormatted: formatted,
-    symbol: result.nativeTokenBalance?.symbol || 'AVAX',
+    symbol: native.symbol || 'AVAX',
   };
 }
 
 async function compatibilityContractInfo(addressRaw: unknown, chainIdRaw: unknown): Promise<Record<string, unknown>> {
   const address = safeAddr(typeof addressRaw === 'string' ? addressRaw : '');
   const chainId = compatibilityChainId(chainIdRaw);
-  const metadata = await glacierFetch<Record<string, unknown>>(`/v1/chains/${chainId}/addresses/${address}`);
-  const isContract = isRealContract(metadata);
+  const info = await readContractInfo(chainId, address);
   return {
     address,
     chainId,
-    isContract,
-    ...(isContract ? {
-      name: metadata?.name,
-      symbol: metadata?.symbol,
-      ercType: metadata?.ercType,
+    isContract: info.isContract,
+    ...(info.isContract ? {
+      name: info.name,
+      symbol: info.symbol,
+      ercType: info.ercType,
     } : {}),
   };
 }
@@ -186,6 +261,18 @@ async function compatibilityResult(load: () => Promise<unknown>): Promise<ToolRe
 // onchain_lookup
 // ---------------------------------------------------------------------------
 
+/** EVM chains the Stats API indexes; its address and chain feeds are empty for any other chain. */
+async function unindexedNote(chainId: string): Promise<string | undefined> {
+  const chains = await withCache('mcp:stats-evm-chains', CACHE_TTL.CHAINS, () =>
+    statsGet<Array<{ chainId: number }>>('/evm-api/chains'),
+  ).catch(() => null);
+  if (!chains || chains.some((c) => String(c.chainId) === chainId)) return undefined;
+  return `The Stats API does not index chain ${chainId}, so its transaction and transfer fields are empty.`;
+}
+
+// The most tokens an address lookup reads balances for.
+const MAX_BALANCE_TOKENS = 15;
+
 async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult> {
   const value = getString(args, 'value');
   if (!value) return errorResult('Error: value is required');
@@ -201,114 +288,150 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
         const addr = safeAddr(value);
         const chainId = safeChainSeg(getChainId(args));
         const include = Array.isArray(args.include) ? (args.include as unknown[]).map(String) : ['balances'];
-        const [chains, native, erc20, recentTx, contractMeta] = await Promise.all([
-          glacierFetch<unknown>(`/v1/address/${addr}/chains`).catch(() => null),
-          glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/balances:getNative`).catch(() => null),
-          fetchErc20Balances(chainId, addr).then((r) => r.erc20TokenBalances).catch(() => null),
-          glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/transactions`, { pageSize: '5' }).catch(() => null),
-          glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}`).catch(() => null), // contract metadata; null for an EOA
+        const [activity, recentTx, erc20Moves, nftTransfers, native, contract, indexNote] = await Promise.all([
+          statsGet<unknown>(`/evm-api/${chainId}/address/${addr}`).catch(() => null),
+          statsGet<unknown>(`/evm-api/${chainId}/address/${addr}/txs`, { limit: 5 }).catch(() => null),
+          statsGet<{ transfers?: StatsTransfer[] }>(`/evm-api/${chainId}/address/${addr}/transfers`, { standard: 'erc20', limit: 100 }).catch(() => null),
+          include.includes('nfts')
+            ? statsGet<unknown>(`/evm-api/${chainId}/address/${addr}/transfers`, { standard: 'erc721', limit: 10 }).catch(() => null)
+            : undefined,
+          readNativeBalance(chainId, addr).catch(() => null),
+          readContractInfo(chainId, addr).catch(() => null),
+          unindexedNote(chainId),
         ]);
-        const realContract = contractMeta === null ? null : isRealContract(contractMeta);
-        const out: Record<string, unknown> = {
+        // The Stats API has no holdings index: read live balances of the tokens the address moved recently.
+        const tokens = [...new Set((erc20Moves?.transfers ?? []).map((t) => t.token))].slice(0, MAX_BALANCE_TOKENS) as Address[];
+        const erc20 = tokens.length ? await readErc20Balances(chainId, addr, tokens).catch(() => null) : erc20Moves ? [] : null;
+        return json({
           kind: 'address',
           address: addr,
           chainId,
           network,
-          isContract: realContract,
-          contractInfo: realContract ? contractMeta : undefined,
-          contractMetadataAvailable: contractMeta !== null,
-          chainsTouched: chains,
+          source: 'stats-api+rpc',
+          isContract: contract ? contract.isContract : null,
+          contractInfo: contract?.isContract ? contract : undefined,
+          contractMetadataAvailable: contract !== null,
           nativeBalance: native,
           erc20Balances: erc20,
+          activity,
           recentTransactions: recentTx,
-        };
-        if (include.includes('nfts')) {
-          out.collectibles = await glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/balances:listCollectibles`).catch(() => null);
-        }
-        return json(out);
+          recentNftTransfers: nftTransfers,
+          note: [
+            `erc20Balances covers the tokens in the address's last 100 ERC-20 transfers (at most ${MAX_BALANCE_TOKENS}), with live balances from RPC; it is not a full holdings list.`,
+            'chainsTouched is not available: no public index lists the chains an address used.',
+            include.includes('nfts') ? 'NFT holdings are not available; recentNftTransfers lists the latest ERC-721 transfers.' : '',
+            indexNote ?? '',
+          ].filter(Boolean).join(' '),
+        });
       }
       case 'contract':
       case 'token': {
         const addr = safeAddr(value);
         const chainId = safeChainSeg(getChainId(args));
-        const [meta, deployment, recentTransfers] = await Promise.all([
-          glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}`).catch(() => null),
-          glacierFetch<unknown>(`/v1/chains/${chainId}/contracts/${addr}/transactions:getDeployment`).catch(() => null),
-          glacierFetch<unknown>(`/v1/chains/${chainId}/tokens/${addr}/transfers`, { pageSize: '5' }).catch(() => null),
+        const [meta, recentTransfers] = await Promise.all([
+          readContractInfo(chainId, addr).catch(() => null),
+          readRecentTransfers(chainId, addr, 5).catch(() => null),
         ]);
-        return json({ kind, address: addr, chainId, metadata: meta, deployment, recentTransfers });
+        return json({
+          kind,
+          address: addr,
+          chainId,
+          source: 'rpc',
+          metadata: meta,
+          recentTransfers,
+          note: `recentTransfers holds the Transfer logs of the last ${LOG_BLOCK_WINDOW} blocks only (the public RPC log cap). The deployment transaction is not available.`,
+        });
       }
       case 'nft': {
         const addr = safeAddr(value);
         const chainId = safeChainSeg(getChainId(args));
         const tokenId = getString(args, 'tokenId');
-        const path = tokenId
-          ? `/v1/chains/${chainId}/nfts/collections/${addr}/tokens/${safeId(tokenId)}`
-          : `/v1/chains/${chainId}/nfts/collections/${addr}/tokens`;
-        const result = await glacierFetch<unknown>(path, tokenId ? {} : { pageSize: '10' });
-        return json({ kind: 'nft', collection: addr, chainId, tokenId: tokenId || undefined, result });
+        const result = await readNft(chainId, addr, tokenId ? safeTokenId(tokenId) : undefined);
+        return json({
+          kind: 'nft',
+          collection: addr,
+          chainId,
+          tokenId: tokenId || undefined,
+          source: 'rpc',
+          result,
+          note: tokenId
+            ? 'tokenUri is the on-chain metadata URI; the metadata it points to is not fetched.'
+            : 'The collection token list is not available. Pass tokenId for the owner and metadata URI of one token.',
+        });
       }
       case 'transaction': {
         const hash = safeTxHash(value);
         const chainId = safeChainSeg(getChainId(args));
-        const result = await glacierFetch<unknown>(`/v1/chains/${chainId}/transactions/${hash}`);
-        return json({ kind: 'transaction', txHash: hash, chainId, result });
+        const indexed = await statsGet<unknown>(`/evm-api/${chainId}/tx/${hash}`);
+        if (indexed) return json({ kind: 'transaction', txHash: hash, chainId, source: 'stats-api', result: indexed });
+        // Not indexed (yet, or on this chain): ask the chain's node.
+        const live = await readTransaction(chainId, hash);
+        if (!live) return errorResult(`Transaction ${hash} was not found on chain ${chainId}.`);
+        return json({ kind: 'transaction', txHash: hash, chainId, source: 'rpc', result: live });
       }
       case 'subnet': {
         const subnetId = safeId(value);
-        const result = await withCache(`mcp:subnet:${network}:${subnetId}`, CACHE_TTL.CHAINS, () =>
-          glacierFetch<unknown>(`/v1/networks/${network}/subnets/${subnetId}`)
-        );
-        return json({ kind: 'subnet', subnetId, network, result });
+        const result =
+          subnetId === P_CHAIN_ID
+            ? primaryNetworkSubnet(network)
+            : await withCache(`mcp:subnet:${network}:${subnetId}`, CACHE_TTL.CHAINS, () =>
+                statsGet<unknown>(`/v1/networks/${network}/subnets/${subnetId}`),
+              );
+        if (!result) return errorResult(`Subnet ${subnetId} was not found on ${network}.`);
+        return json({ kind: 'subnet', subnetId, network, source: 'stats-api', result });
       }
       case 'validator': {
         const nodeId = safeId(value);
-        const result = await glacierFetch<unknown>(`/v1/networks/${network}/validators/${nodeId}`);
-        // Glacier returns stake/reward/capacity in nAVAX (1 AVAX = 1e9 nAVAX). Pre-convert
-        // to AVAX so the model can't mis-scale into impossible "billions of AVAX" figures.
+        const result = await statsGet<unknown>(`/v1/networks/${network}/validators/${nodeId}`);
+        if (!result) return errorResult(`Validator ${nodeId} was not found on ${network}.`);
+        // Stake and rewards are in nAVAX (1 AVAX = 1e9 nAVAX). Pre-convert to AVAX
+        // so the model can't mis-scale into impossible "billions of AVAX" figures.
         const toAvax = (s: unknown) => (typeof s === 'string' && /^[0-9]+$/.test(s) ? Number(BigInt(s)) / 1e9 : undefined);
-        const r = result as { validators?: Array<Record<string, unknown>> } | null;
-        const withAvax =
-          r && Array.isArray(r.validators)
-            ? {
-                ...r,
-                validators: r.validators.map((v) => {
-                  const pr = (v.potentialRewards ?? {}) as Record<string, unknown>;
-                  return {
-                    ...v,
-                    amountStakedAvax: toAvax(v.amountStaked),
-                    amountDelegatedAvax: toAvax(v.amountDelegated),
-                    delegationCapacityAvax: toAvax(v.delegationCapacity),
-                    validationRewardAvax: toAvax(pr.validationRewardAmount),
-                    delegationRewardAvax: toAvax(pr.delegationRewardAmount),
-                  };
-                }),
-              }
-            : result;
+        const r = result as { validators?: Array<Record<string, unknown>> };
+        const withAvax = Array.isArray(r.validators)
+          ? {
+              ...r,
+              validators: r.validators.map((v) => {
+                const pr = (v.potentialRewards ?? {}) as Record<string, unknown>;
+                return {
+                  ...v,
+                  amountStakedAvax: toAvax(v.amountStaked),
+                  amountDelegatedAvax: toAvax(v.amountDelegated),
+                  validationRewardAvax: toAvax(pr.validationRewardAmount),
+                  delegationRewardAvax: toAvax(pr.delegationRewardAmount),
+                };
+              }),
+            }
+          : result;
         return json({
           kind: 'validator',
           nodeId,
           network,
+          source: 'stats-api',
           result: withAvax,
-          unitsNote: 'Stake/reward/capacity are nAVAX (÷1e9 for AVAX); the *Avax fields are pre-converted. Total AVAX supply is ~472M — any value above that is a unit error.',
+          unitsNote: 'Stake/reward are nAVAX (÷1e9 for AVAX); the *Avax fields are pre-converted. Total AVAX supply is ~472M, so any value above that is a unit error.',
           fieldNotes:
-            "delegationCapacity (and delegationCapacityAvax) is the REMAINING delegation capacity — already net of amountDelegated, so do not subtract again. If present, stakePercentage is this validator's share of TOTAL network stake, not of any returned page.",
+            'potentialRewards is an estimate from the index. For the exact potential reward, uptime and remaining delegation capacity of an active validator, use platform_get_current_validators.',
         });
       }
       case 'pchain': {
         // P-/X-chain bech32 account; network inferred from the address HRP.
         const net = pxNetwork(value, network);
         if (/^X-/i.test(value)) {
-          const balances = await glacierFetch<unknown>(
-            `/v1/networks/${net}/blockchains/${X_CHAIN_ID[net]}/balances`,
-            { addresses: stripChainPrefix(value) }
+          const account = await statsGet<{ balances?: unknown; transactions?: unknown }>(
+            `/x-api/${net}/address/${stripChainPrefix(value)}`,
+            { limit: 5 },
           ).catch(() => null);
           return json({
             kind: 'xchain-address',
             address: value,
             network: net,
-            balances,
-            note: balances ? undefined : 'No X-Chain balance data returned for this address.',
+            source: 'stats-api',
+            balances: account?.balances ?? null,
+            recentTransactions: account?.transactions,
+            note: account
+              ? 'balance is in the smallest unit of the asset (see denomination). Atomic-memory balances are not included.'
+              : 'No X-Chain balance data returned for this address.',
           });
         }
         // platform.getUTXOs requires the chain-prefixed form; a bare Core copy (avax1…) has none.
@@ -328,8 +451,8 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
         });
       }
       case 'chain': {
-        // Resolve a chain by numeric id, blockchainId, or (fuzzy) name via the Glacier chain
-        // list. ChainIds are globally unique, so when the caller didn't pin a network and the
+        // Resolve a chain by numeric id, blockchainId, or (fuzzy) name in the local L1 catalog.
+        // ChainIds are globally unique, so when the caller didn't pin a network and the
         // default one has no hit, also try the other network before giving up — otherwise a
         // Fuji chainId like 43113 comes back not-found just because mainnet is the default.
         const explicitNetwork = getString(args, 'network');
@@ -337,15 +460,12 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
           ? [network]
           : [network, network === 'mainnet' ? 'fuji' : 'mainnet'];
         const needle = value.toLowerCase().trim();
-        const nameOf = (c: Record<string, unknown>) => String(c.chainName || '').toLowerCase();
-        let match: Record<string, unknown> | undefined;
+        const nameOf = (c: CatalogChain) => String(c.chainName || '').toLowerCase();
+        let match: CatalogChain | undefined;
         let matchedNetwork: Network = network;
-        let lastChains: Array<Record<string, unknown>> = [];
+        let lastChains: CatalogChain[] = [];
         for (const net of netsToTry) {
-          const list = await withCache(`mcp:chains:${net}`, CACHE_TTL.CHAINS, () =>
-            glacierFetch<{ chains?: Array<Record<string, unknown>> }>(`/v1/chains`, { network: net })
-          );
-          lastChains = list.chains || [];
+          lastChains = CHAIN_CATALOG.filter((c) => !!c.isTestnet === (net === 'fuji'));
           match =
             lastChains.find((c) => String(c.chainId) === value || String(c.blockchainId || '') === value) ||
             lastChains.find((c) => nameOf(c) === needle) ||
@@ -357,7 +477,7 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
           }
         }
         const candidates = match ? undefined : lastChains.filter((c) => nameOf(c).includes(needle)).slice(0, 5);
-        return json({ kind: 'chain', query: value, network: matchedNetwork, match: match ?? null, candidates });
+        return json({ kind: 'chain', query: value, network: matchedNetwork, source: 'catalog', match: match ?? null, candidates });
       }
       default:
         return errorResult(`Unknown kind "${kind}". One of: ${KINDS.join(', ')}.`);
@@ -391,46 +511,73 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
   }
 
   try {
-    // P-/X-chain account activity — Glacier primary network (address filter + time window).
+    // P-/X-chain account activity from the Stats API, filtered to a time window.
     // Handles "what did P-avax1… do in the last N hours" (fractional hours OK).
     const pxValue = getString(args, 'value');
     if (PX_ADDRESS.test(pxValue)) {
       const net = pxNetwork(pxValue, network);
       const isX = /^X-/i.test(pxValue);
-      const bcId = isX ? X_CHAIN_ID[net] : P_CHAIN_ID;
+      const bare = stripChainPrefix(pxValue);
+      const want = clampLimit(args.pageSize, 100, 25);
       const nowSec = Math.floor(Date.now() / 1000);
-      const params: Record<string, string> = {
-        pageSize: String(clampLimit(args.pageSize, 100, 25)),
-        addresses: stripChainPrefix(pxValue),
-      };
       const h = Number(args.hours);
-      if (Number.isFinite(h) && h > 0) {
-        params.startTimestamp = String(nowSec - Math.floor(Math.min(h, 24 * 90) * 3600));
-        params.endTimestamp = String(nowSec);
-      } else {
-        if (args.fromTimestamp) params.startTimestamp = String(Number(args.fromTimestamp));
-        if (args.toTimestamp) params.endTimestamp = String(Number(args.toTimestamp));
-      }
-      const result = await glacierFetch<unknown>(`/v1/networks/${net}/blockchains/${bcId}/transactions`, params);
+      const windowed = Number.isFinite(h) && h > 0;
+      const startSec = windowed ? nowSec - Math.floor(Math.min(h, 24 * 90) * 3600) : fromTs;
+      const endSec = windowed ? nowSec : toTs;
+      // A window can skip rows, so read full pages; else one page of the size asked for.
+      const limit = startSec != null || endSec != null ? 100 : want;
+      const { rows, truncated } = isX
+        ? await rowsInWindow(
+            async (cursor, timeoutMs) => {
+              const page = await statsGet<{ transactions?: Array<{ timestamp: number }>; nextCursor?: string }>(
+                `/x-api/${net}/address/${bare}`,
+                { limit, cursor },
+                timeoutMs,
+              );
+              return { rows: page?.transactions ?? [], next: page?.nextCursor };
+            },
+            (tx) => tx.timestamp,
+            want,
+            startSec,
+            endSec,
+          )
+        : await rowsInWindow(
+            async (before, timeoutMs) => {
+              const page = await statsGet<{ txs?: Array<{ blockTimestamp: number }>; nextBefore?: number }>(
+                `/api/${net}/address/${bare}/txs`,
+                { limit, before },
+                timeoutMs,
+              );
+              return { rows: page?.txs ?? [], next: page?.nextBefore ? String(page.nextBefore) : undefined };
+            },
+            (tx) => tx.blockTimestamp,
+            want,
+            startSec,
+            endSec,
+          );
       return json({
-        source: 'glacier',
+        source: 'stats-api',
         scope: 'primary',
         chain: isX ? 'X-Chain' : 'P-Chain',
         network: net,
         address: pxValue,
-        windowHours: Number.isFinite(h) && h > 0 ? h : undefined,
-        result,
+        windowHours: windowed ? h : undefined,
+        note: [
+          isX ? '' : 'received, sent and net are nAVAX (÷1e9 for AVAX).',
+          truncated ? 'The search stopped before the start of the window, so its oldest transactions may be missing.' : '',
+        ].filter(Boolean).join(' ') || undefined,
+        result: { transactions: rows },
       });
     }
 
-    // EVM transaction feeds. Glacier gives the latest transactions. For scope=chain the
-    // Stats API adds the transaction count over the last `hours` (closed hours only).
-    // There is no per-address window count, so an address feed is the latest page only.
+    // EVM transaction feeds from the Stats API. For scope=chain it adds the transaction
+    // count over the last `hours` (closed hours only). There is no per-address window
+    // count, so an address feed is the latest page only.
     if ((scope === 'chain' || scope === 'address') && feed === 'transactions') {
       const cid = assertChainId(getChainId(args));
       const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 2), 24 * 30);
       const chainSeg = safeChainSeg(String(cid));
-      const pageSize = String(clampLimit(args.pageSize, 100, 25));
+      const limit = clampLimit(args.pageSize, 100, 25);
       // This feed cannot apply a timestamp range; say so instead of answering as if it matched.
       const rangeNote =
         fromTs != null || toTs != null
@@ -438,88 +585,102 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
           : '';
       if (scope === 'address') {
         const addr = safeAddr(getString(args, 'value'));
-        const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/addresses/${addr}/transactions`, { pageSize });
+        const [result, indexNote] = await Promise.all([
+          statsGet<unknown>(`/evm-api/${chainSeg}/address/${addr}/txs`, { limit }),
+          unindexedNote(chainSeg),
+        ]);
         return json({
-          source: 'glacier',
+          source: 'stats-api',
           scope,
           chainId: chainSeg,
           address: addr,
-          note: `Latest transactions for the address. No time window applies to address feeds.${rangeNote}`,
+          note: `Latest transactions for the address. No time window applies to address feeds.${rangeNote}${indexNote ? ` ${indexNote}` : ''}`,
           result,
         });
       }
-      const [result, hourly] = await Promise.all([
-        glacierFetch<unknown>(`/v1/chains/${chainSeg}/transactions`, { pageSize }),
+      const [result, hourly, indexNote] = await Promise.all([
+        statsGet<unknown>(`/evm-api/${chainSeg}/txs`, { limit }),
         statsMetric(cid, 'txCount', 'hour', Math.floor(Date.now() / 1000) - hours * 3600),
+        unindexedNote(chainSeg),
       ]);
       return json({
-        source: hourly ? 'glacier+stats-api' : 'glacier',
+        source: 'stats-api',
         scope,
         chainId: chainSeg,
         windowHours: hours,
         txCountInWindow: sumOf(hourly),
         note:
           (hourly
-            ? 'txCountInWindow counts closed hours only (Stats API). The sample is the latest transactions (Glacier).'
-            : 'The Stats API has no hourly data for this chain, so there is no window count. The sample is the latest transactions (Glacier).') +
-          rangeNote,
+            ? 'txCountInWindow counts closed hours only. The sample is the latest transactions.'
+            : 'The Stats API has no hourly data for this chain, so there is no window count. The sample is the latest transactions.') +
+          rangeNote +
+          (indexNote ? ` ${indexNote}` : ''),
         result,
       });
     }
 
-    // Glacier — P/X-chain primary network feed.
+    // P-/X-/C-Chain primary network feed.
     if (scope === 'primary') {
       // Default to P-Chain when no blockchainId is given, so "last N P-chain transactions" just works.
       const blockchainId = safeId(getString(args, 'blockchainId') || P_CHAIN_ID);
-      // The chain-wide primary-network transactions route is a "latest transactions" feed:
-      // Glacier 400s ("Latest transaction route does not support ... timestamp filters") if
-      // startTimestamp/endTimestamp are sent here. Time filtering is only supported when the
-      // query is scoped to an `addresses` value (the P-/X-chain address branch above handles
-      // that). So return the latest page and, if a window was requested, say plainly that it
-      // could not be applied — rather than leaking a raw upstream 400.
+      const limit = clampLimit(args.pageSize, 100, 25);
+      // A chain-wide feed is the latest page only: only the address feed above filters by time.
       const windowRequested = args.fromTimestamp != null || args.toTimestamp != null;
-      const params: Record<string, string> = { pageSize: String(clampLimit(args.pageSize, 100, 25)) };
-      const result = await glacierFetch<unknown>(`/v1/networks/${network}/blockchains/${blockchainId}/transactions`, params);
+      let result: unknown;
+      if (blockchainId === P_CHAIN_ID || blockchainId === 'p-chain') {
+        result = await statsGet<unknown>(`/v1/networks/${network}/blockchains/p-chain/transactions`, { pageSize: limit });
+      } else if (blockchainId === X_CHAIN_ID[network]) {
+        result = await statsGet<unknown>(`/x-api/${network}/txs`, { limit });
+      } else if (blockchainId === C_CHAIN_ID[network]) {
+        result = await statsGet<unknown>(`/evm-api/${C_CHAIN_EVM_ID[network]}/atomic-txs`, { limit });
+      } else {
+        return errorResult(`Error: blockchainId must be the ${network} P-Chain, X-Chain or C-Chain id for scope=primary.`);
+      }
       return json({
-        source: 'glacier',
+        source: 'stats-api',
         scope,
         network,
         blockchainId,
         note: windowRequested
-          ? 'Chain-wide primary-network feed returns the LATEST transactions only; the requested time window was NOT applied (the Data API supports time filtering here only when the query is scoped to an address). For a windowed P-/X-Chain feed, pass a P-/X-Chain address as `value`.'
+          ? 'Chain-wide primary-network feed returns the LATEST transactions only; the requested time window was NOT applied. For a windowed P-/X-Chain feed, pass a P-/X-Chain address as `value`.'
           : undefined,
         result,
       });
     }
 
-    // Glacier — asset transfer feeds (ERC-20 / NFT) and token-contract transfers.
     const chainId = safeChainSeg(getChainId(args));
-    const pageSize = String(clampLimit(args.pageSize, 100, 25));
+    const limit = clampLimit(args.pageSize, 100, 25);
+    // Token-contract transfers: Transfer logs from RPC, for the latest blocks only.
     if (scope === 'token' || scope === 'contract') {
       const addr = safeAddr(getString(args, 'value'));
-      const result = await glacierFetch<unknown>(`/v1/chains/${chainId}/tokens/${addr}/transfers`, { pageSize });
+      const result = await readRecentTransfers(chainId, addr, limit);
       // A token contract has a single transfer standard (ERC-20 or ERC-721); this returns that
       // standard's transfers as recorded and does NOT re-filter by `feed`. Surface that so an
       // explicit feed (e.g. nftTransfers on an ERC-20) isn't silently answered with the wrong type.
       const explicitFeed = getString(args, 'feed');
       return json({
-        source: 'glacier',
+        source: 'rpc',
         scope,
         feed: explicitFeed || undefined,
         chainId,
         address: addr,
-        note:
+        note: [
+          `Transfer logs of the last ${LOG_BLOCK_WINDOW} blocks only (the public RPC log cap); an empty list means no transfer in those blocks.`,
           explicitFeed && explicitFeed !== 'transactions'
-            ? `A token contract has one transfer standard (ERC-20 or ERC-721); this returns that standard's transfers and the requested feed "${explicitFeed}" was not applied as a filter. If these aren't the type you expected, this contract is the other standard.`
-            : undefined,
+            ? `A token contract has one transfer standard (ERC-20 or ERC-721); this returns that standard's transfers and the requested feed "${explicitFeed}" was not applied as a filter. Rows with tokenId are ERC-721, rows with value are ERC-20.`
+            : '',
+        ].filter(Boolean).join(' '),
         result,
       });
     }
-    // scope=address with an asset-transfer feed
+    // scope=address with an asset-transfer feed: transfers covers every token standard.
     const addr = safeAddr(getString(args, 'value'));
-    const endpoint = feed === 'nftTransfers' ? 'transactions:listErc721' : 'transactions:listErc20';
-    const result = await glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/${endpoint}`, { pageSize });
-    return json({ source: 'glacier', scope, feed, chainId, address: addr, result });
+    const standard = feed === 'nftTransfers' ? 'erc721' : feed === 'erc20Transfers' ? 'erc20' : undefined;
+    const [result, indexNote] = await Promise.all([
+      statsGet<unknown>(`/evm-api/${chainId}/address/${addr}/transfers`, { standard, limit }),
+      unindexedNote(chainId),
+    ]);
+    return json({ source: 'stats-api', scope, feed, chainId, address: addr, note: indexNote, result });
   } catch (err) {
     return errorResult(asMessage(err));
   }
@@ -608,10 +769,10 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
       });
     }
 
-    // target === 'network' → Glacier P-chain validator snapshot.
-    const result = await glacierFetch<unknown>(`/v1/networks/${network}/validators`, { pageSize: '100' });
+    // target === 'network' → P-chain validator snapshot.
+    const result = await statsGet<unknown>(`/v1/networks/${network}/validators`, { pageSize: 100 });
     return json({
-      source: 'glacier',
+      source: 'stats-api',
       target: 'network',
       network,
       note: 'P-chain validator/delegator metrics are a current snapshot — there is no historical P-chain time-series here.',
@@ -667,7 +828,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_lookup',
       description:
-        'PRIMARY lookup tool — use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, contract metadata + isContract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by Glacier + P-Chain RPC.',
+        'PRIMARY lookup tool: use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native balance, live balances of the ERC-20 tokens it moved recently, recent txs, contract metadata + isContract), a contract/token (metadata + Transfer logs of the last 100 blocks), an NFT (collection, or the owner and metadata URI of one tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-… → P-Chain balance, X-… → X-Chain balances), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by the Avalanche Stats API and public RPC. Not available: the deployment tx of a contract, NFT holdings, the token list of a collection, and the chains an address used.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -676,7 +837,7 @@ export const dataTools: ToolDomain = {
           network: networkSchemaProp({ description: 'Network (default: mainnet)' }),
           chainId: { type: 'string', description: 'EVM chain ID for EVM kinds (default: C-Chain for the network)' },
           tokenId: { type: 'string', description: 'NFT token ID (kind=nft)' },
-          include: { type: 'array', items: { type: 'string', enum: ['balances', 'nfts'] }, description: 'Extra data for an address (e.g. ["nfts"])' },
+          include: { type: 'array', items: { type: 'string', enum: ['balances', 'nfts'] }, description: 'Extra data for an address (["nfts"] adds its latest ERC-721 transfers)' },
         },
         required: ['value'],
       },
@@ -684,13 +845,13 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_activity',
       description:
-        'Recent on-chain activity. scope=chain returns the transaction COUNT over the last `hours` (closed hours, max 720h = 30 days; for longer windows use chain_stats window=series) plus the latest transactions. scope=address returns the latest transactions of the address, with no time window. For a token/contract use scope=token (transfers). scope=primary covers P/X-chain and DEFAULTS to P-Chain when no blockchainId is given (so "last N P-chain transactions" just works). A value with no scope defaults to address.',
+        'Recent on-chain activity. scope=chain returns the transaction COUNT over the last `hours` (closed hours, max 720h = 30 days; for longer windows use chain_stats window=series) plus the latest transactions. scope=address returns the latest transactions of the address, with no time window. For a token/contract use scope=token (Transfer logs of the last 100 blocks). scope=primary covers the P-Chain, the X-Chain and C-Chain atomic txs, and DEFAULTS to P-Chain when no blockchainId is given (so "last N P-chain transactions" just works). A value with no scope defaults to address.',
       inputSchema: {
         type: 'object',
         properties: {
           scope: { type: 'string', enum: [...SCOPES], description: 'address | chain | token | contract | primary' },
           value: { type: 'string', description: 'Address/contract/token (omit for scope=chain)' },
-          feed: { type: 'string', enum: [...FEEDS], description: 'transactions (default) | transfers | erc20Transfers | nftTransfers' },
+          feed: { type: 'string', enum: [...FEEDS], description: 'transactions (default) | transfers (all token standards) | erc20Transfers | nftTransfers (ERC-721)' },
           network: networkSchemaProp({ description: 'Network (default: mainnet)' }),
           chainId: { type: 'string', description: 'EVM chain ID (default: C-Chain for the network)' },
           blockchainId: { type: 'string', description: 'Blockchain ID for scope=primary (default: P-Chain)' },

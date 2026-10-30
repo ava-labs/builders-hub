@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     name: 'avalanche-mcp',
     version: VERSION,
     description:
-      'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data (Stats API + Glacier), build-plan runbooks, and Builder Console guidance.',
+      'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data (Stats API + public RPC), build-plan runbooks, and Builder Console guidance.',
     endpoint: 'https://build.avax.network/api/mcp',
     protocol: 'mcp/http',
     readOnly: true,

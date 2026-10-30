@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { encodeAbiParameters } from 'viem'
 
 import { checkMCPRateLimit, getClientId, getMCPRequestCost } from '@/lib/mcp-rate-limit'
 import { MAX_MCP_BODY_BYTES, MCPBodyTooLargeError, readMCPJson } from '@/lib/mcp/request-body'
@@ -111,23 +112,41 @@ describe('tool compatibility', () => {
     ]))
   })
 
-  it('preserves legacy response shapes without the five-call general lookup fanout', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-      const url = String(input)
-      if (url.includes('balances:getNative')) {
-        return new Response(JSON.stringify({ nativeTokenBalance: { balance: '1500000000000000000', symbol: 'AVAX' } }))
-      }
-      return new Response(JSON.stringify({ name: 'Token', symbol: 'TOK', ercType: 'ERC-20' }))
+  it('preserves legacy response shapes with one RPC batch per lookup', async () => {
+    const callResults: Record<string, string> = {
+      '0x06fdde03': encodeAbiParameters([{ type: 'string' }], ['Token']), // name()
+      '0x95d89b41': encodeAbiParameters([{ type: 'string' }], ['TOK']), // symbol()
+      '0x313ce567': encodeAbiParameters([{ type: 'uint8' }], [18]), // decimals()
+      '0x18160ddd': encodeAbiParameters([{ type: 'uint256' }], [10n ** 24n]), // totalSupply()
+      '0x01ffc9a7': encodeAbiParameters([{ type: 'bool' }], [false]), // supportsInterface(bytes4)
+    }
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      type Call = { id: number; method: string; params: Array<{ data?: string }> }
+      const body = JSON.parse(String(init?.body)) as Call | Call[]
+      const reply = ({ id, method, params }: Call) => ({
+        jsonrpc: '2.0',
+        id,
+        result:
+          method === 'eth_getBalance' ? '0x14d1120d7b160000' // 1.5 AVAX
+          : method === 'eth_getCode' ? '0x6080'
+          : callResults[params[0]?.data?.slice(0, 10) ?? ''],
+      })
+      return Response.json(Array.isArray(body) ? body.map(reply) : reply(body))
     })
     const address = `0x${'a'.repeat(40)}`
 
     const balance = await dataTools.handlers.blockchain_get_native_balance({ address, chainId: '43114' })
     expect(JSON.parse(balance.content[0]!.text)).toMatchObject({ balanceFormatted: '1.500000', symbol: 'AVAX' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]![0])).toBe('https://api.avax.network/ext/bc/C/rpc')
 
     fetchMock.mockClear()
     const lookup = await dataTools.handlers.blockchain_lookup_address({ address, chainId: '43114' })
-    expect(JSON.parse(lookup.content[0]!.text)).toMatchObject({ balance: '1.500000 AVAX', isContract: true })
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(lookup.content[0]!.text)).toMatchObject({
+      balance: '1.500000 AVAX',
+      isContract: true,
+      contractInfo: { name: 'Token', symbol: 'TOK', ercType: 'ERC-20' },
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

@@ -18,6 +18,11 @@ export const X_CHAIN_ID: Record<Network, string> = {
   fuji: '2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm',
 };
 
+export const C_CHAIN_ID: Record<Network, string> = {
+  mainnet: '2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5',
+  fuji: 'yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp',
+};
+
 export const C_CHAIN_EVM_ID: Record<Network, string> = { mainnet: '43114', fuji: '43113' };
 export const EVM_ID_TO_NETWORK: Record<string, Network> = { '43113': 'fuji', '43114': 'mainnet' };
 
