@@ -103,6 +103,29 @@ export function decisionDeadline(quoteDeadline: Date): Date {
 }
 
 /**
+ * The last millisecond of `date`'s UTC calendar day. Every stored quote
+ * deadline is one (2026-10-20): "closes 2026-10-29" means the whole of the
+ * 29th, 23:59 UTC, for every firm in every time zone.
+ */
+export function endOfUtcDay(date: Date): Date {
+  // setUTCHours, not Date.UTC: Date.UTC reads years 0 to 99 as 1900 to 1999.
+  const end = new Date(date.getTime());
+  end.setUTCHours(23, 59, 59, 999);
+  return end;
+}
+
+/** A deadline as emails and pages print it, "2026-10-29 23:59 UTC": the stored
+    instant, so a row stored before the 23:59 rule shows its real time. */
+export function formatUtcDeadline(deadline: Date | string): string {
+  return `${new Date(deadline).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
+/** The "23:59" of a deadline, for sentences that print the date apart. */
+export function formatUtcTime(deadline: Date | string): string {
+  return new Date(deadline).toISOString().slice(11, 16);
+}
+
+/**
  * Whether the project may still accept a quote: the request is stored
  * "collecting" and its pick-by date has not passed (an early pick while
  * quotes are open included). deriveRequestStatus reads it, and the acceptance

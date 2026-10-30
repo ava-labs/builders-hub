@@ -92,7 +92,7 @@ export default function BuildChapter({ academyLine }: { academyLine: string | nu
           />
           <Resource href="/console/primary-network/faucet" label="Testnet faucet" line="Free test tokens for Fuji" />
           <Resource href="/grants" label="Funding" line="Grants and the Blizzard Fund" />
-          <Resource href="/audits" label="Audits" line="Vetted firms, subsidized up to 75%" />
+          <Resource href="/audits" label="Audits" line="Free quotes from vetted firms" />
         </div>
       </Reveal>
     </Chapter>

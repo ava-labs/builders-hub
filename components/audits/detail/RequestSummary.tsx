@@ -1,6 +1,6 @@
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
-import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import { formatUtcDeadline, type DeploymentTarget, type UrgencyOption } from "@/lib/audits/status";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
 import { toAttachmentLinks } from "@/lib/audits/attachments";
@@ -40,7 +40,7 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
     : null;
   const timeline = [
     ...(detail.needed_by ? [`needed by ${formatIsoDate(detail.needed_by)}`] : []),
-    ...(detail.quote_deadline ? [`quotes close ${formatIsoDate(detail.quote_deadline)}`] : []),
+    ...(detail.quote_deadline ? [`quotes close ${formatUtcDeadline(detail.quote_deadline)}`] : []),
     ...(detail.urgency
       ? [lowerFirst(URGENCY_LABELS[detail.urgency as UrgencyOption] ?? "")]
       : []),

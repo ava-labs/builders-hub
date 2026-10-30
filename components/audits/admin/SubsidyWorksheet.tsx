@@ -237,6 +237,9 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
       </div>
 
       <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+        A decline or $0 sends no email; only an approval reaches the project and the firm.
+      </p>
+      <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
         Logged with your name on the request activity trail. The payment itself happens
         off-platform.
       </p>

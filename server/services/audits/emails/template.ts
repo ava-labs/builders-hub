@@ -15,6 +15,9 @@ export interface AuditEmailDetail {
   mono?: boolean;
   /** Brand-soft, for the one line that carries urgency (the closing window). */
   urgent?: boolean;
+  /** Shown instead of value, as links joined by " · " (the approval notice's
+      GitHub usernames); value stays the plain form of the same row. */
+  links?: { label: string; href: string }[];
 }
 
 export interface AuditEmailPanel {
@@ -45,8 +48,9 @@ export interface AuditEmailInput {
 /**
  * The shared dark-card shell for every audit-program email (mockup board E-1
  * to E-4). Inline styles only, email-client-safe (border-trick triangle, no
- * clip-path). Escaping happens HERE exactly once: senders pass raw strings
- * (emails.test.ts asserts the literal single-escaped output). This module
+ * clip-path). Escaping happens HERE exactly once: senders pass raw strings,
+ * row links included (emails.test.ts asserts the literal single-escaped
+ * output). This module
  * must never introduce a dollar sign of its own: the not-selected notice is
  * tested to carry no amounts.
  */
@@ -58,6 +62,15 @@ export function renderAuditEmail(input: AuditEmailInput): string {
       : "background-color: #27272A; border: 1px solid #3F3F46;";
   const button = (cta: AuditEmailCta) =>
     `<a href="${escapeHtml(cta.href)}" target="_blank" style="display: inline-block; padding: 12px 22px; ${buttonStyle(cta.variant)} color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">${escapeHtml(cta.label)}</a>`;
+  // A row link stays whole on its line, so a username splits at its hyphen
+  // only when it is wider than the line itself: a valid 39-character one would
+  // otherwise push the email wider than a phone screen.
+  const rowLink = (link: { label: string; href: string }) =>
+    `<a href="${escapeHtml(link.href)}" target="_blank" style="color: #FAFAFA; text-decoration: underline; display: inline-block; max-width: 100%; overflow-wrap: anywhere;">${escapeHtml(link.label)}</a>`;
+  const rowValue = (row: AuditEmailDetail) =>
+    row.links && row.links.length > 0
+      ? row.links.map(rowLink).join(" · ")
+      : escapeHtml(row.value);
 
   // The raised block. #27272A against the #18181B card is the "window" that
   // stops the detail reading as one flat wall of gray text, and the rows put
@@ -72,7 +85,7 @@ export function renderAuditEmail(input: AuditEmailInput): string {
             ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse; font-size: 13.5px;">${input.panel.rows
                 .map(
                   (row) =>
-                    `<tr><td style="padding: 5px 0; color: #A2AFB2; width: 118px; vertical-align: top;">${escapeHtml(row.label)}</td><td style="padding: 5px 0; color: ${row.urgent ? "#FF7F7B" : "#FAFAFA"};${row.mono ? " font-family: 'Courier New', monospace;" : ""}">${escapeHtml(row.value)}</td></tr>`,
+                    `<tr><td style="padding: 5px 8px 5px 0; color: #A2AFB2; width: 118px; vertical-align: top;">${escapeHtml(row.label)}</td><td style="padding: 5px 0; color: ${row.urgent ? "#FF7F7B" : "#FAFAFA"};${row.mono ? " font-family: 'Courier New', monospace;" : ""}">${rowValue(row)}</td></tr>`,
                 )
                 .join("")}</table>`
             : ""

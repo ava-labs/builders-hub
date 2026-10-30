@@ -149,7 +149,7 @@ export const ecosystemMenu: LinkItemType = {
         </span>
       ),
       description:
-        'Quotes from every vetted firm, free. Subsidized up to 75% by the program.',
+        'Quotes from every vetted firm, free.',
       url: '/audits',
       menu: { className: 'lg:col-start-2 lg:row-start-2' },
     },

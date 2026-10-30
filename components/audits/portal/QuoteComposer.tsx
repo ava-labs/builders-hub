@@ -30,7 +30,12 @@ import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
 import { normalizeUrlInput } from "@/types/audits";
 import { MAX_QUOTE_DURATION } from "@/lib/audits/constants";
-import { QUOTE_DURATION_UNITS, type QuoteDurationUnit } from "@/lib/audits/status";
+import {
+  QUOTE_DURATION_UNITS,
+  formatUtcDeadline,
+  type QuoteDurationUnit,
+} from "@/lib/audits/status";
+import { LocalDeadline } from "@/components/audits/shared/LocalDeadline";
 import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
 import {
   durationLabel,
@@ -114,8 +119,8 @@ export function QuoteComposer({
   if (!editable && !existing) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-[#A2AFB2]">
-        The quote window closed{deadline ? ` ${formatIsoDate(deadline)}` : ""} without a quote from
-        your firm. New requests keep arriving in your inbox.
+        The quote window closed{deadline ? ` ${formatUtcDeadline(deadline)}` : ""} without a quote
+        from your firm. New requests keep arriving in your inbox.
       </div>
     );
   }
@@ -346,11 +351,18 @@ export function QuoteComposer({
         </AlertDialog>
 
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {editable
-            ? `Editable until the window closes${deadline ? ` ${formatIsoDate(deadline)}` : ""}. Your quote is private to the requesting project and the program team.`
-            : existing?.status === "accepted"
-              ? "This quote was accepted. The engagement continues off-platform."
-              : `The window closed${deadline ? ` ${formatIsoDate(deadline)}` : ""}. Quotes can no longer be edited.`}
+          {editable ? (
+            <>
+              {/* The firm's own clock, with UTC beside it (call C6). */}
+              Editable until{" "}
+              {deadline ? <LocalDeadline deadline={deadline} variant="zone" /> : "the window closes"}
+              . Your quote is private to the requesting project and the program team.
+            </>
+          ) : existing?.status === "accepted" ? (
+            "This quote was accepted. The engagement continues off-platform."
+          ) : (
+            `The window closed${deadline ? ` ${formatUtcDeadline(deadline)}` : ""}. Quotes can no longer be edited.`
+          )}
         </p>
         {/* Clears the fixed mobile CTA bar. */}
         <div aria-hidden className="h-10 lg:hidden" />

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { computeSubsidySplit } from "@/lib/audits/subsidy";
+import { computeSubsidySplit, isFundedSubsidy } from "@/lib/audits/subsidy";
 import { subsidyDecisionSchema } from "@/types/audits";
 
 const {
@@ -50,6 +50,17 @@ describe("computeSubsidySplit", () => {
         expect(split.program_amount_usd + split.project_amount_usd).toBe(price);
       }
     }
+  });
+});
+
+describe("isFundedSubsidy", () => {
+  it("is true only for an approval above $0", () => {
+    expect(isFundedSubsidy({ state: "approved", program_amount_usd: 1 })).toBe(true);
+    expect(isFundedSubsidy({ state: "approved", program_amount_usd: 12000 })).toBe(true);
+    expect(isFundedSubsidy({ state: "approved", program_amount_usd: 0 })).toBe(false);
+    expect(isFundedSubsidy({ state: "declined", program_amount_usd: 0 })).toBe(false);
+    // The service stores 0 on a decline; the rule does not lean on that.
+    expect(isFundedSubsidy({ state: "declined", program_amount_usd: 500 })).toBe(false);
   });
 });
 
@@ -215,6 +226,60 @@ describe("decideSubsidy", () => {
     expect(txEventCreateMock.mock.calls[0][0].data).toMatchObject({
       action: "subsidy_declined",
     });
+  });
+
+  // Good news only (2026-10-20): what the project could be emailed about.
+  const ownedRequest = {
+    id: "req-1",
+    status: "engaged",
+    accepted_quote_id: "q-2",
+    project_name: "Glacierswap",
+    user: { email: "owner@glacierswap.example" },
+  };
+
+  it("records a decline and emails no one", async () => {
+    txRequestFindUniqueMock.mockResolvedValue(ownedRequest);
+
+    const result = await decideSubsidy(
+      "req-1",
+      { state: "declined", program_amount_usd: 4000 },
+      ADMIN,
+    );
+
+    expect(result).toEqual({ success: true, decision_id: "dec-1" });
+    expect(txDecisionCreateMock).toHaveBeenCalledTimes(1);
+    expect(txEventCreateMock.mock.calls[0][0].data).toMatchObject({ action: "subsidy_declined" });
+    expect(noticeMock).not.toHaveBeenCalled();
+  });
+
+  it("records a $0 approval and emails no one", async () => {
+    txRequestFindUniqueMock.mockResolvedValue(ownedRequest);
+
+    const result = await decideSubsidy("req-1", { state: "approved", program_amount_usd: 0 }, ADMIN);
+
+    expect(result).toEqual({ success: true, decision_id: "dec-1" });
+    expect(txDecisionCreateMock.mock.calls[0][0].data).toMatchObject({
+      state: "approved",
+      pct: 0,
+      program_amount_usd: 0,
+      project_amount_usd: 22222,
+    });
+    expect(txEventCreateMock.mock.calls[0][0].data).toMatchObject({ action: "subsidy_approved" });
+    expect(noticeMock).not.toHaveBeenCalled();
+  });
+
+  it("emails both sides for an approval of $1", async () => {
+    txRequestFindUniqueMock.mockResolvedValue(ownedRequest);
+
+    await decideSubsidy("req-1", { state: "approved", program_amount_usd: 1 }, ADMIN);
+
+    expect(noticeMock.mock.calls.map((call) => [call[0], call[2]])).toEqual([
+      ["owner@glacierswap.example", "project"],
+      ["quotes@nordlicht.example", "auditor"],
+    ]);
+    for (const call of noticeMock.mock.calls) {
+      expect(call[1]).toMatchObject({ state: "approved", program_amount_usd: 1 });
+    }
   });
 
   it("refuses anything but an engaged request with an accepted quote", async () => {

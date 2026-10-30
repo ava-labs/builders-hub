@@ -3,6 +3,8 @@ import {
   auditDraftSchema,
   auditorGithubUpdateSchema,
   auditSubmitSchema,
+  githubProfileUrl,
+  isGithubUsername,
   submitRequestSchema,
 } from "@/types/audits";
 import {
@@ -243,5 +245,33 @@ describe("auditorGithubUpdateSchema · one person's GitHub username", () => {
       }).success,
     ).toBe(false);
     expect(parse(7).success).toBe(false);
+  });
+});
+
+describe("GitHub username rule (step 2)", () => {
+  // One rule for the portal write and for the reads that turn a stored value
+  // into a profile link: what the schema refuses can never become a link.
+  const cases: [string, boolean][] = [
+    ["a", true],
+    ["alice-kv", true],
+    ["A1b2", true],
+    ["a".repeat(39), true],
+    ["-a", false],
+    ["a-", false],
+    ["a--b", false],
+    ["a".repeat(40), false],
+    ["a_b", false],
+    ["a b", false],
+  ];
+
+  it("isGithubUsername accepts exactly what the schema accepts", () => {
+    for (const [value, want] of cases) {
+      expect(isGithubUsername(value)).toBe(want);
+      expect(auditorGithubUpdateSchema.safeParse({ github_username: value }).success).toBe(want);
+    }
+  });
+
+  it("githubProfileUrl builds the profile link", () => {
+    expect(githubProfileUrl("alice-kv")).toBe("https://github.com/alice-kv");
   });
 });

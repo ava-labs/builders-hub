@@ -270,10 +270,21 @@ export const auditorMemberCreateSchema = z.strictObject({
 });
 export type AuditorMemberCreateInput = z.infer<typeof auditorMemberCreateSchema>;
 
-// GitHub's own rule: 1 to 39 letters, digits and single inner hyphens.
-const GITHUB_USERNAME_RE = /^[A-Za-z0-9](?:-?[A-Za-z0-9])*$/;
+// GitHub's own rule: 1 to 39 letters, digits and single inner hyphens. One
+// definition for the portal write below and for the reads that turn a stored
+// value into a profile link (visibility.ts), so the two cannot drift.
+export const GITHUB_USERNAME_MAX = 39;
+export const GITHUB_USERNAME_RE = /^[A-Za-z0-9](?:-?[A-Za-z0-9])*$/;
 const GITHUB_USERNAME_MESSAGE =
   "Enter a valid GitHub username: up to 39 letters, digits or single hyphens, no hyphen at the start or end.";
+
+/** A value as stored, checked against the same rule (nothing is normalized). */
+export const isGithubUsername = (value: string) =>
+  value.length <= GITHUB_USERNAME_MAX && GITHUB_USERNAME_RE.test(value);
+
+/** The profile a project opens before it invites the person. */
+export const githubProfileUrl = (username: string) =>
+  `https://github.com/${encodeURIComponent(username)}`;
 
 /**
  * A pasted "@name" or profile link works: the prefixes and one trailing slash
@@ -303,7 +314,7 @@ export const auditorGithubUpdateSchema = z.strictObject({
     normalizeGithubUsername,
     z
       .string()
-      .max(39, GITHUB_USERNAME_MESSAGE)
+      .max(GITHUB_USERNAME_MAX, GITHUB_USERNAME_MESSAGE)
       .regex(GITHUB_USERNAME_RE, GITHUB_USERNAME_MESSAGE)
       .nullable(),
   ),

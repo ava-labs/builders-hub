@@ -3,6 +3,9 @@ import {
   decisionDeadline,
   deriveRequestStatus,
   deriveQuoteDisplayStatus,
+  endOfUtcDay,
+  formatUtcDeadline,
+  formatUtcTime,
   isAcceptanceOpen,
   isAdminDeletable,
   isQuoteWindowOpen,
@@ -76,6 +79,33 @@ describe("decisionDeadline", () => {
   it("counts the week from 2026-10-23 for a window that closed before it", () => {
     expect(decisionDeadline(CLOSED_EARLY)).toEqual(GRACE_END);
     expect(decisionDeadline(new Date("2026-10-23T00:00:00Z"))).toEqual(GRACE_END);
+  });
+});
+
+// A quote window closes at 23:59 UTC on its date (2026-10-20, call T2).
+const END_OF_29TH = new Date("2026-10-29T23:59:59.999Z");
+
+describe("endOfUtcDay", () => {
+  it("moves any moment of a UTC day to that day's last millisecond", () => {
+    for (const moment of ["2026-10-29T00:00:00.000Z", "2026-10-29T14:37:12.345Z", "2026-10-29T23:59:59.999Z"]) {
+      expect(endOfUtcDay(new Date(moment)), moment).toEqual(END_OF_29TH);
+    }
+  });
+
+  it("is idempotent", () => {
+    expect(endOfUtcDay(endOfUtcDay(new Date("2026-10-29T08:00:00Z")))).toEqual(END_OF_29TH);
+  });
+
+  it("keeps the year a project typed, even one Date.UTC would read as 19xx", () => {
+    expect(endOfUtcDay(new Date("0050-06-01T12:00:00Z")).toISOString()).toBe("0050-06-01T23:59:59.999Z");
+  });
+});
+
+describe("the UTC deadline label", () => {
+  it("prints the stored instant, so a row the update missed shows its real time", () => {
+    expect(formatUtcDeadline(END_OF_29TH)).toBe("2026-10-29 23:59 UTC");
+    expect(formatUtcDeadline(new Date("2026-10-29T00:00:00Z"))).toBe("2026-10-29 00:00 UTC");
+    expect(formatUtcTime(END_OF_29TH)).toBe("23:59");
   });
 });
 

@@ -16,19 +16,14 @@ const HOW_IT_WORKS = [
   },
   {
     step: "03",
-    title: "Pick one, get subsidized",
-    body: "Contacts revealed on acceptance; the program can pay up to 75%.",
+    title: "Pick one, start the audit",
+    body: "Contacts revealed on acceptance; you work with the firm directly.",
   },
 ];
 
 /** Public landing for anonymous visitors (design 4a). Copy verbatim. */
 export function AuditsLanding({ firmCount }: { firmCount: number }) {
-  const meta = [
-    `${firmCount} vetted firms`,
-    "quotes private to you",
-    "up to 75% subsidized",
-    "$0 fees",
-  ];
+  const meta = [`${firmCount} vetted firms`, "quotes private to you", "$0 fees"];
 
   return (
     <div className="relative mx-auto max-w-4xl px-4 py-12 sm:py-16">
@@ -57,7 +52,7 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
       </h1>
       <p className="mt-4 max-w-2xl text-lg text-zinc-600 dark:text-[#A2AFB2]">
         Describe your scope once. Every security firm on the Ava Labs whitelist, or just the ones
-        you choose, quotes it privately. You compare, pick one, and the program can pay up to 75%.
+        you choose, quotes it privately. You compare the quotes and pick one.
       </p>
       <div className="mt-6">
         <Link
@@ -135,6 +130,11 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
           ))}
         </div>
       </div>
+      {/* Once, quietly, on the plate's 16px rail (call S1): the launch
+          messages told some builders a subsidy was possible. */}
+      <p className="mt-3 pl-4 text-xs text-zinc-500 dark:text-zinc-400">
+        A request gets you quotes to compare. It does not include funding.
+      </p>
     </div>
   );
 }

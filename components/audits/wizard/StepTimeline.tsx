@@ -32,6 +32,7 @@ export function StepTimeline() {
           name="quote_deadline"
           label="Quote deadline"
           required
+          endOfDay
           helper={QUOTE_DEADLINE_HELPER_COPY}
         />
       </div>

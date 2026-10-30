@@ -478,6 +478,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/integrations/areta',
+        destination: '/audits',
+        permanent: true,
+      },
+      {
         source: '/docs/dapps/end-to-end/launch-ethereum-dapp',
         destination: '/academy/blockchain/solidity-foundry',
         permanent: true,

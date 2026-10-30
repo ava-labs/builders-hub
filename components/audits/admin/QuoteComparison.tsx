@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { AdminRequestDetail } from "@/server/services/audits/visibility";
+import { formatUtcDeadline } from "@/lib/audits/status";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { durationLabel, formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
@@ -52,7 +53,7 @@ export function QuoteComparison({
         ...(submittedAt ? [`fan-out ${formatIsoDate(submittedAt)}`] : []),
         ...(quoteDeadline
           ? [
-              `window ${displayStatus === "collecting" ? "closes" : "closed"} ${formatIsoDate(quoteDeadline)}`,
+              `window ${displayStatus === "collecting" ? "closes" : "closed"} ${formatUtcDeadline(quoteDeadline)}`,
             ]
           : []),
       ].join(" · ");

@@ -64,7 +64,7 @@ describe("firm request page", () => {
     expect(html).toContain("@ada_glacier");
     expect(html).not.toContain("t.me");
     expect(html).toContain(
-      "Send your quote here: the program can only subsidize a quote the project accepts on Builder Hub.",
+      "Send your quote here: the project compares and accepts quotes on Builder Hub.",
     );
     expect(html).toContain(
       "The project's name and email are revealed only if your quote is accepted. Competing quotes are never visible to you.",

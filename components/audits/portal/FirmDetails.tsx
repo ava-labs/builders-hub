@@ -285,8 +285,8 @@ export function FirmDetails({
               including project contacts on won requests.
             </p>
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Each person adds their own GitHub username, so projects can add you to their private
-              repos with read access.
+              Each person adds their own GitHub username. Projects whose requests reach your firm
+              see it, so they can add you to their private repos before you quote.
             </p>
           </div>
           <ul className="divide-y divide-zinc-200 rounded-[10px] border border-zinc-200 dark:divide-white/[0.08] dark:border-white/10">

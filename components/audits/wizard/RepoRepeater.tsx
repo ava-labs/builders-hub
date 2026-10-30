@@ -15,8 +15,9 @@ export function RepoRepeater() {
       <div>
         <p className="text-sm font-medium">GitHub repositories</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pin a branch or commit per repo. Private repos: grant read access after you accept a
-          quote.
+          Pin a branch or commit per repo. Private repo? Once your request is approved, you get
+          the GitHub usernames of the firms it reaches, by email and on your request page, so you
+          can add them before they quote. Choosing firms above keeps that list short.
         </p>
       </div>
       {/* The URL takes the full width on phones (board 1k: field pairs stack);

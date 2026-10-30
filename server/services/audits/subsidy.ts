@@ -1,5 +1,5 @@
 import { prisma } from "@/prisma/prisma";
-import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
+import { SUBSIDY_MAX_PCT, isFundedSubsidy } from "@/lib/audits/subsidy";
 import { logAuditEvent } from "@/server/services/audits/events";
 import { getAcceptedQuoteForAdmin } from "@/server/services/audits/visibility";
 import { sendSubsidyDecisionNotice } from "@/server/services/audits/emails/sendSubsidyDecisionNotice";
@@ -100,6 +100,12 @@ export async function decideSubsidy(
   });
 
   if (!committed.success) return committed;
+  const recorded = { success: true as const, decision_id: committed.decision_id };
+
+  // Good news only (2026-10-20): a decline or a $0 approval is recorded and on
+  // the trail, and emails no one, even when it supersedes an approval; the
+  // admin tells the project directly.
+  if (!isFundedSubsidy({ state: input.state, program_amount_usd })) return recorded;
 
   // AFTER commit and non-fatal, like every other send in this program: a mail
   // failure must never undo a recorded decision. The admin sees the outcome
@@ -108,7 +114,7 @@ export async function decideSubsidy(
   const notice = {
     request_id: requestId,
     project_name: committed.notify.project_name,
-    state: input.state,
+    state: "approved" as const,
     program_amount_usd: split.program_amount_usd,
     project_amount_usd: split.project_amount_usd,
     pct,
@@ -125,5 +131,5 @@ export async function decideSubsidy(
     .filter((send): send is PromiseRejectedResult => send.status === "rejected")
     .forEach((send) => console.error("[Audits] subsidy decision notice failed:", send.reason));
 
-  return { success: true as const, decision_id: committed.decision_id };
+  return recorded;
 }

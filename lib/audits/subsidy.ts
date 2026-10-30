@@ -26,3 +26,12 @@ export function computeSubsidySplit(priceUsd: number, pct: number): SubsidySplit
     project_amount_usd: priceUsd - program_amount_usd,
   };
 }
+
+/**
+ * Good news only (2026-10-20): the one decision the project and the firm ever
+ * hear about is an approval with money attached. A decline or a $0 approval
+ * stays admin-side: recorded and trailed, never emailed, never on their pages.
+ */
+export function isFundedSubsidy(decision: { state: string; program_amount_usd: number }): boolean {
+  return decision.state === "approved" && decision.program_amount_usd > 0;
+}

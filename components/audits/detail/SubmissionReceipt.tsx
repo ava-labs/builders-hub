@@ -20,8 +20,9 @@ const shortDate = (date: Date) =>
     .toUpperCase();
 
 /** The fan-out receipt (design 3a): a bordered card with a dark hero band
- * and a mono-gutter schedule. Doubles as expectation-setting, since the
- * project side gets no emails (Builder Hub is the feed). Copy verbatim. */
+ * and a mono-gutter schedule. Doubles as expectation-setting: the project
+ * gets one email, once firms receive the request (the approval notice), and
+ * quotes arrive on Builder Hub. Copy verbatim. */
 export function SubmissionReceipt({
   requestId,
   projectName,
@@ -93,7 +94,7 @@ export function SubmissionReceipt({
               Go to my requests
             </Link>
             <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-zinc-400 dark:text-zinc-500">
-              No emails to you · check back here
+              We email you once firms receive it · quotes arrive here
             </p>
           </div>
         </div>

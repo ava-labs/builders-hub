@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
+import { formatUtcDeadline } from "@/lib/audits/status";
 import { MONO_LABEL } from "@/components/audits/shared/classes";
 import { CHECK_POP } from "@/components/audits/shared/motion";
 import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
@@ -51,7 +52,7 @@ function summaryLines(
   const timelineParts = [
     values.needed_by ? `needed by ${formatIsoDate(values.needed_by)}` : "no needed-by date",
     values.quote_deadline
-      ? `quotes close ${formatIsoDate(values.quote_deadline)}`
+      ? `quotes close ${formatUtcDeadline(values.quote_deadline)}`
       : "no quote deadline",
   ];
   if (values.urgency) timelineParts.push(lowerFirst(URGENCY_LABELS[values.urgency]));

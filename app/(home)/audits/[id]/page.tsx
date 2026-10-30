@@ -1,6 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { getOwnerRequestDetail } from "@/server/services/audits/visibility";
+import {
+  getOwnerFirmUsernames,
+  getOwnerRequestDetail,
+} from "@/server/services/audits/visibility";
 import { RequestDetailView } from "@/components/audits/detail/RequestDetailView";
 import { SubmissionReceipt } from "@/components/audits/detail/SubmissionReceipt";
 
@@ -18,7 +21,12 @@ export default async function AuditRequestPage({ params, searchParams }: AuditRe
   const { id } = await params;
   const { submitted } = await searchParams;
 
-  const detail = await getOwnerRequestDetail(session.user.id, id);
+  // Both reads pin the owner; the usernames come back only for an open
+  // window or an engaged request (visibility.ts), nothing for anyone else.
+  const [detail, firmUsernames] = await Promise.all([
+    getOwnerRequestDetail(session.user.id, id),
+    getOwnerFirmUsernames(session.user.id, id),
+  ]);
   if (!detail) notFound();
   if (detail.status === "draft") redirect(`/audits/new?draft=${detail.id}`);
 
@@ -37,7 +45,11 @@ export default async function AuditRequestPage({ params, searchParams }: AuditRe
           whitelistCount={detail.whitelist_count}
         />
       ) : (
-        <RequestDetailView detail={detail} userId={session.user.id} />
+        <RequestDetailView
+          detail={detail}
+          userId={session.user.id}
+          firmUsernames={firmUsernames}
+        />
       )}
     </main>
   );

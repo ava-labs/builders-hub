@@ -2,7 +2,7 @@ import { Clock } from "lucide-react";
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
-import { formatIsoDate } from "@/components/audits/shared/format";
+import { LocalDeadline } from "@/components/audits/shared/LocalDeadline";
 
 /** The collecting-state banner (design 3b): wash, red clock, honest counts. */
 export function CollectingBanner({ detail }: { detail: OwnerRequestDetail }) {
@@ -16,7 +16,7 @@ export function CollectingBanner({ detail }: { detail: OwnerRequestDetail }) {
             <CountdownChip deadline={detail.quote_deadline} prefix="Window closes" />
             <span className="text-zinc-500 dark:text-zinc-400">
               {" "}
-              · {formatIsoDate(detail.quote_deadline)}{" "}
+              · <LocalDeadline deadline={detail.quote_deadline} variant="your-time" />{" "}
             </span>
           </>
         ) : null}

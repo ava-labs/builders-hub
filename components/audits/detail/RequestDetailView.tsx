@@ -18,13 +18,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DEPLOYMENT_TARGET_LABELS } from "@/lib/audits/constants";
-import type { DeploymentTarget } from "@/lib/audits/status";
-import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
+import { formatUtcDeadline, type DeploymentTarget } from "@/lib/audits/status";
+import type { FirmUsernames, OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { AUDITS_DIALOG, MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { CollectingBanner } from "@/components/audits/detail/CollectingBanner";
 import { EngagedPanel } from "@/components/audits/detail/EngagedPanel";
+import { FirmUsernamesCard } from "@/components/audits/detail/FirmUsernamesCard";
 import { RequestSummary } from "@/components/audits/detail/RequestSummary";
 import { QuotesPanel } from "@/components/audits/quotes/QuotesPanel";
 
@@ -222,9 +223,13 @@ function StartAgainButton({ requestId }: { requestId: string }) {
 export function RequestDetailView({
   detail,
   userId,
+  firmUsernames = [],
 }: {
   detail: OwnerRequestDetail;
   userId: string;
+  /** getOwnerFirmUsernames: the notified firms while quotes are open, the
+      winner once engaged, nothing otherwise. */
+  firmUsernames?: FirmUsernames[];
 }) {
   const status = detail.display_status;
   const acceptedQuote = detail.quotes.find((quote) => quote.status === "accepted") ?? null;
@@ -257,6 +262,7 @@ export function RequestDetailView({
         {status === "collecting" ? (
           <>
             <CollectingBanner detail={detail} />
+            {firmUsernames.length > 0 ? <FirmUsernamesCard firms={firmUsernames} /> : null}
             {detail.quotes.length > 0 ? (
               <QuotesPanel
                 quotes={detail.quotes}
@@ -288,7 +294,7 @@ export function RequestDetailView({
               <p className="text-sm">
                 <span className="font-medium">
                   Window closed
-                  {detail.quote_deadline ? ` ${formatIsoDate(detail.quote_deadline)}` : ""}
+                  {detail.quote_deadline ? ` ${formatUtcDeadline(detail.quote_deadline)}` : ""}
                 </span>{" "}
                 <span className="text-zinc-500 dark:text-zinc-400">
                   · quotes visible only to you and program admins
@@ -314,7 +320,11 @@ export function RequestDetailView({
         {status === "engaged" ? (
           acceptedQuote ? (
             <>
-              <EngagedPanel detail={detail} acceptedQuote={acceptedQuote} />
+              <EngagedPanel
+                detail={detail}
+                acceptedQuote={acceptedQuote}
+                githubUsernames={firmUsernames[0]?.github_usernames ?? []}
+              />
               {detail.quotes.length > 1 ? (
                 <div id="quote-archive" className="scroll-mt-24 space-y-3">
                   <p className={MONO_LABEL_SM}>Archived quotes · read-only</p>
