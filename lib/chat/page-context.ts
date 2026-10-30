@@ -712,7 +712,7 @@ interface SupplyPayload {
   totalCBurned: string;
   totalXBurned: string;
   totalStaked: string;
-  totalLocked: string;
+  totalLocked?: string;
   totalRewards: string;
   genesisUnlock: string;
   l1ValidatorFees?: string;
@@ -723,18 +723,18 @@ interface SupplyPayload {
 
 async function tokenPageData(baseUrl: string): Promise<string> {
   const d = await getJson<SupplyPayload>(`${baseUrl}/api/avax-supply`, 12_000);
-  if (!d) return "The supply feed did not answer; the page shows AVAX supply, staking and burn figures from data-api.avax.network.";
+  if (!d) return "The supply feed did not answer; the page shows AVAX supply, staking and burn figures from the Stats API (stats-api.avax.network).";
   const f = (s: string | number | undefined) => (s === undefined ? "n/a" : `${Math.round(Number(s)).toLocaleString("en-US")} AVAX`);
   const burned = Number(d.totalPBurned) + Number(d.totalCBurned) + Number(d.totalXBurned);
   const total = 720_000_000 - burned;
   return [
-    "AVAX token figures as the page shows them (source: data-api.avax.network/v1/avax/supply, price from CoinGecko). Each line: label = value; how the page defines it.",
+    "AVAX token figures as the page shows them (source: stats-api.avax.network/api/mainnet/avax-supply, price from CoinGecko). Each line: label = value; how the page defines it.",
     `AVAX price = ${d.price ? `$${d.price.toFixed(2)} (${d.priceChange24h && d.priceChange24h > 0 ? "+" : ""}${(d.priceChange24h ?? 0).toFixed(2)}% 24h)` : "n/a"}.`,
     `Total supply = ${f(total)}; the 720,000,000 AVAX cap minus everything burned on the P-, C- and X-Chains.`,
     `Circulating supply = ${f(d.circulatingSupply)}; AVAX unlocked and in the market (vesting and locked allocations excluded).`,
     `Genesis unlock = ${f(d.genesisUnlock)}; AVAX unlocked at the genesis event.`,
     `Total staked = ${f(d.totalStaked)}; AVAX staked by validators and delegated to them on the Primary Network (${pct(Number(d.totalStaked), Number(d.circulatingSupply))} of circulating).`,
-    `Total locked = ${f(d.totalLocked)}; AVAX held in locked UTXOs on the P-Chain and X-Chain.`,
+    ...(d.totalLocked === undefined ? [] : [`Total locked = ${f(d.totalLocked)}; AVAX held in locked UTXOs on the P-Chain and X-Chain.`]),
     `Total rewards = ${f(d.totalRewards)}; cumulative staking rewards ever minted for validators and delegators (this is the only way new AVAX is created).`,
     `Total burned = ${f(burned)}; P-Chain ${f(d.totalPBurned)}, C-Chain ${f(d.totalCBurned)}, X-Chain ${f(d.totalXBurned)}. Every transaction fee on the three chains is burned, not paid to validators.${d.l1ValidatorFees ? ` L1 validator fees (ACP-77 continuous fees) ${f(d.l1ValidatorFees)}.` : ""}`,
     `Reported supply figure from the feed: ${f(d.totalSupply)}.${d.lastUpdated ? ` Feed updated ${d.lastUpdated}.` : ""}`,

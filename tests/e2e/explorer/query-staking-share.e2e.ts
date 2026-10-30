@@ -15,7 +15,7 @@ const PATH = '/explorer/mainnet/p-chain/query';
 const QUESTION = 'has the % of circulating avax staked increased since the helicon upgrade';
 const TITLE = 'Staked share around Helicon upgrade';
 const PANEL = 'Staked share of the circulating supply';
-const SUPPLY = "The supply on each day is rebuilt: the Avalanche Data API's total supply at 2026-10-16 14:15 UTC, less the staking rewards paid after that day. Burns after that day are not added back, a difference of less than 0.02% of the supply over 90 days. The Data API counts the circulating supply as equal to the total supply.";
+const SUPPLY = "The supply on each day is rebuilt: the Avalanche Stats API's total supply at 2026-10-16 14:15 UTC, less the staking rewards paid after that day. Burns after that day are not added back, a difference of less than 0.02% of the supply over 90 days. The Stats API counts the circulating supply as equal to the total supply.";
 const FILL = "The stake from 2026-08-13 to 2026-08-25 comes from the P-Chain's validator sets (platform.getValidatorsAt at each day's last block), because no validator snapshots exist for those days. Where both exist, the two are equal to the nAVAX.";
 const GAP = 'No delegator snapshots exist from 2026-08-13 11:20 to 2026-08-26 12:03 UTC. The indexer stopped while the stats database moved hosts, so those days are empty.';
 

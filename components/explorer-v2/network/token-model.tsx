@@ -139,7 +139,8 @@ export function SupplyModel({
 }: {
   circulating: number;
   staked: number;
-  locked: number;
+  /** null: not counted, so no Locked floor */
+  locked: number | null;
   burned: number;
   burnedBy: { c: number; p: number; x: number };
   genesis: number;
@@ -159,11 +160,11 @@ export function SupplyModel({
     // a floor's share of the cap, to one place
     const pct = (v: number) => `${((v / TOKEN_CAP) * 100).toFixed(1)}% of cap`;
     const usd = (v: number) => (usdOf(v, price) ? ` · ${usdOf(v, price)}` : "");
-    const liquid = Math.max(0, circulating - staked - locked);
+    const liquid = Math.max(0, circulating - staked - (locked ?? 0));
     const unissued = Math.max(0, supply - circulating);
     const parts: Omit<Floor, "lo" | "hi">[] = [
       { key: "staked", label: "Staked", value: staked, sub: `${pct(staked)}${usd(staked)}` },
-      { key: "locked", label: "Locked", value: locked, sub: `${pct(locked)}${usd(locked)}` },
+      ...(locked === null ? [] : [{ key: "locked" as const, label: "Locked", value: locked, sub: `${pct(locked)}${usd(locked)}` }]),
       { key: "liquid", label: "Liquid", value: liquid, sub: `${pct(liquid)}${usd(liquid)}` },
       { key: "unissued", label: "Not yet minted", value: unissued, sub: `${pct(unissued)} · staking rewards still to mint` },
     ];

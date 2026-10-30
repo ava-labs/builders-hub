@@ -27,15 +27,15 @@ const server = new MCPServer({
   name: 'avalanche-mcp',
   version: '2.5.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data from the Stats API and Glacier, build-plan runbooks, and Builder Console guidance',
+  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data from the Stats API and public RPC, build-plan runbooks, and Builder Console guidance',
 });
 
 server.registerToolDomain(docsTools);
 server.registerToolDomain(blockchainTools);
 server.registerToolDomain(platformTools);
 server.registerToolDomain(infoTools);
-// dataTools reads aggregated chain data (onchain_activity / chain_stats) from the public
-// Stats API and identifier lookups from Glacier; see lib/mcp/tools/data.ts.
+// dataTools reads indexed chain data from the public Stats API and live reads from
+// public RPC; see lib/mcp/tools/data.ts.
 server.registerToolDomain(dataTools);
 server.registerToolDomain(actionTools);
 server.registerToolDomain(consoleTools);

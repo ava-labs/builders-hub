@@ -7,6 +7,9 @@ import { EXPLORER_API_BASE } from "./pchain-explorer";
 
 export const STATS_API_BASE = EXPLORER_API_BASE;
 
+/** The mainnet AVAX supply in Glacier's /v1/avax/supply shape, without totalLocked. */
+export const AVAX_SUPPLY_URL = `${STATS_API_BASE}/api/mainnet/avax-supply`;
+
 export async function statsApi<T>(path: string, timeoutMs = 10_000): Promise<T | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);

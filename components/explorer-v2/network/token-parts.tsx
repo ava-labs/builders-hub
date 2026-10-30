@@ -108,13 +108,13 @@ function ShareBar({ parts, total, hover, setHover, unit = "AVAX" }: { parts: Par
   );
 }
 
-export function SupplyBoard({ circulating, staked, locked, burned }: { circulating: number; staked: number; locked: number; burned: number }) {
+export function SupplyBoard({ circulating, staked, locked, burned }: { circulating: number; staked: number; locked: number | null; burned: number }) {
   const [hover, setHover] = useState<string | null>(null);
   const supply = TOKEN_CAP - burned;
   const parts: Part[] = [
     { key: "staked", label: "Staked", value: staked, tone: "bg-zinc-800 dark:bg-zinc-200", href: "/explorer/mainnet/p-chain/staking" },
-    { key: "locked", label: "Locked", value: locked, tone: "bg-zinc-500 dark:bg-zinc-500" },
-    { key: "liquid", label: "Liquid", value: Math.max(0, circulating - staked - locked), tone: "bg-[#A2AFB2]" },
+    ...(locked === null ? [] : [{ key: "locked", label: "Locked", value: locked, tone: "bg-zinc-500 dark:bg-zinc-500" }]),
+    { key: "liquid", label: "Liquid", value: Math.max(0, circulating - staked - (locked ?? 0)), tone: "bg-[#A2AFB2]" },
     { key: "unissued", label: "Not yet minted", value: Math.max(0, supply - circulating), tone: "bg-[#A2AFB2]/35" },
     { key: "burned", label: "Burned", value: burned, tone: "bg-[#E6212F]" },
   ];

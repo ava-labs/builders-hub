@@ -47,7 +47,7 @@ interface BlockProposer {
 }
 
 /** the validator that built the block, from the Snowman++ wrapper. The
- *  Data API trails a fresh block by seconds, so a miss is asked again a
+ *  Stats API trails a fresh block by seconds, so a miss is asked again a
  *  few times before the page gives up on it. */
 function useBlockProposer(chainId: string, block: number | null): BlockProposer | null {
   const [p, setP] = useState<BlockProposer | null>(null);

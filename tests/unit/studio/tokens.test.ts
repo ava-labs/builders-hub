@@ -1,13 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { frontendContext, fetchErc20Balances, readContract } = vi.hoisted(() => ({
+const { frontendContext, readContract } = vi.hoisted(() => ({
   frontendContext: vi.fn(),
-  fetchErc20Balances: vi.fn(),
   readContract: vi.fn(),
 }));
 
 vi.mock('@/server/services/studio/frontend', () => ({ frontendContext }));
-vi.mock('@/lib/rwa/glacier/client', () => ({ fetchErc20Balances }));
 vi.mock('@/server/services/studio/chain', () => ({
   publicClient: () => ({ readContract }),
   rpcUrlOf: () => 'https://api.avax-test.network/ext/bc/C/rpc',
@@ -52,25 +50,7 @@ describe('tokenList', () => {
 });
 
 describe('tokenBalances', () => {
-  it('uses the Data API when it covers every project token', async () => {
-    fetchErc20Balances.mockResolvedValue({
-      erc20TokenBalances: [
-        { address: FUJI_USDC, balance: '2500000', decimals: 6, symbol: 'USDC' },
-        { address: PROJECT_TOKEN, balance: '1000000000000000000', decimals: 18, symbol: 'MOON' },
-        { address: '0x5555555555555555555555555555555555555555', balance: '0', decimals: 18 },
-      ],
-    });
-    const result = await tokenBalances('user-1', 'proj-1', 43113, OWNER);
-    expect(result.source).toBe('data-api');
-    expect(result.balances.map((b) => [b.symbol, b.formatted])).toEqual([
-      ['USDC', '2.5'],
-      ['MOON', '1'],
-    ]);
-    expect(readContract).not.toHaveBeenCalled();
-  });
-
-  it('falls back to balanceOf over the token list when the Data API has no answer', async () => {
-    fetchErc20Balances.mockRejectedValue(new Error('unsupported chain'));
+  it('reads balanceOf over the token list through the RPC', async () => {
     readContract.mockImplementation(async ({ address, functionName }: { address: string; functionName: string }) => {
       if (functionName === 'balanceOf') return address === FUJI_USDC ? 1_000_000n : 0n;
       return functionName === 'decimals' ? 6 : 'USDC';

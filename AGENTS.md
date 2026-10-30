@@ -126,7 +126,7 @@ Do not edit these by hand:
 
 The repo has no `.env.example`. Local dev reads `.env.local`. Most pages work without keys. Features that need keys:
 - Database and auth: `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, GitHub and Google OAuth.
-- Explorer data: `EXPLORER_API_URL` (default `https://stats-api.avax.network`), `STATS_QUERY_URL`, `STATS_QUERY_KEY`, `GLACIER_API_KEY`, `CCHAIN_DEBUG_RPC_URL`, `FUJI_DEBUG_RPC_URL`.
+- Explorer data: `EXPLORER_API_URL` (default `https://stats-api.avax.network`), `STATS_QUERY_URL`, `STATS_QUERY_KEY`, `CCHAIN_DEBUG_RPC_URL`, `FUJI_DEBUG_RPC_URL`.
 - AI features: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`.
 - Analytics: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`.
 

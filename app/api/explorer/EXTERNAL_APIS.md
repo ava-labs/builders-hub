@@ -6,17 +6,16 @@ This document lists all external API calls made within the explorer scope, inclu
 
 ## 1. Glacier (AvaCloud Data API)
 
-The explorer is moving off Glacier onto stats-api. These are the calls that remain, each waiting on a stats-api equivalent.
+The explorer is moving off Glacier onto stats-api. One call remains. The stats-api serves the same route (`/v1/networks/{network}/validators/{nodeId}`), but it splits a term's rewards between the validator and its delegation fee differently from the P-Chain, so the route stays on Glacier until that is fixed.
 
 | File | Call | Purpose |
 |------|------|---------|
-| `app/api/block-proposer/[chainId]/[block]/route.ts` | `GET /v1/networks/{network}/blockchains/c-chain/blocks/{id}` | The C-Chain block's proposer (Snowman++ `proposerDetails`) |
 | `app/api/pchain-validations/[network]/[nodeId]/route.ts` | `@avalanche-sdk/chainkit` `primaryNetwork.getValidatorDetails()` | A node's completed validation terms and their rewards |
-| `app/api/avax-supply/route.ts` | `GET /v1/avax/supply` | Circulating and total supply, burn per chain |
-| `app/api/chain-stats/[chainId]/route.ts` | `GET /v1/avax/supply` | Burn totals that correct the indexer's burn offset |
 
-**Base URLs**: `https://data-api.avax.network`, `https://glacier-api.avax.network`
-**Authentication**: the SDK authenticates on its own; the proposer route sends `GLACIER_API_KEY` when it is set.
+**Base URL**: `https://data-api.avax.network`
+**Authentication**: none.
+
+The block proposer (`/evm-api/{chainId}/block/{id}`, field `proposer`) and the AVAX supply (`/api/mainnet/avax-supply`) come from stats-api.
 
 ---
 
@@ -177,7 +176,7 @@ These are internal API endpoints called by frontend components (not external API
 
 | Service | Total Calls | Rate Limited? | Cached? |
 |---------|-------------|---------------|---------|
-| **Glacier (Data API)** | 4 | No | Proposer: 1 day; supply: 4 hours |
+| **Glacier (Data API)** | 1 | No | Validation terms: 1 hour |
 | **CoinGecko** | 2 | Yes | Yes (60s in-memory) |
 | **Dune Analytics** | 3 | Yes | Yes (1 hour labels / 5 min pending) |
 | **Sourcify** | 4 (client-side) | No | No (client fetches per page load) |
@@ -195,7 +194,7 @@ These are internal API endpoints called by frontend components (not external API
 
 ## Notes
 
-1. **Glacier API**: four calls remain (section 1): the block proposer, completed validation terms and AVAX supply. Each moves to stats-api when it serves the same data.
+1. **Glacier API**: one call remains (section 1): completed validation terms. It moves to stats-api when stats-api splits the rewards as the P-Chain does.
 
 2. **Dune Analytics**: Uses a 3-step process (execute → poll → results) with caching to avoid duplicate queries. Labels are cached for 1 hour.
 

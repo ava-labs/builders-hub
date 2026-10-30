@@ -33,7 +33,8 @@ interface AvaxSupplyData {
   totalCBurned: string;
   totalXBurned: string;
   totalStaked: string;
-  totalLocked: string;
+  /** absent: the Stats API does not count it yet */
+  totalLocked?: string;
   totalRewards: string;
   lastUpdated: string;
   genesisUnlock: string;
@@ -233,7 +234,7 @@ export function NetworkToken() {
   };
   const price = data?.price ?? 0;
   const burned = data ? n(data.totalPBurned) + n(data.totalCBurned) + n(data.totalXBurned) : 0;
-  // the Data API's figure: genesis plus its staking rewards figure, minus burns
+  // the Stats API's figure: genesis plus its staking rewards figure, minus burns
   const totalSupply = n(data?.totalSupply);
   // the cap minus burns: rewards mint from 720M minus the P-Chain's supply counter, and no burn lowers that counter,
   // so the supply stays below this figure
@@ -293,7 +294,7 @@ export function NetworkToken() {
             <SupplyModel
               circulating={circulating}
               staked={n(data.totalStaked)}
-              locked={n(data.totalLocked)}
+              locked={data.totalLocked === undefined ? null : n(data.totalLocked)}
               burned={burned}
               burnedBy={{ c: n(data.totalCBurned), p: n(data.totalPBurned), x: n(data.totalXBurned) }}
               genesis={n(data.genesisUnlock)}
@@ -360,9 +361,11 @@ export function NetworkToken() {
                     <SpecLine label="Max Supply">
                       {whole(maxSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· the cap minus burned; the total supply stays below it</span>
                     </SpecLine>
-                    <SpecLine label="Locked">
-                      {avax(n(data.totalLocked))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.totalLocked), circulating)} of circulating</span>
-                    </SpecLine>
+                    {data.totalLocked !== undefined && (
+                      <SpecLine label="Locked">
+                        {avax(n(data.totalLocked))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.totalLocked), circulating)} of circulating</span>
+                      </SpecLine>
+                    )}
                     <SpecLine label="L1 Validator Fees">
                       {avax(n(data.l1ValidatorFees))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· paid, all time</span>
                     </SpecLine>

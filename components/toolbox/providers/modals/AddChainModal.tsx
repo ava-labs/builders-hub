@@ -9,7 +9,8 @@ import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1L
 import { classifyRpcUrlForPage, rpcUrlsEquivalent } from '@/components/toolbox/lib/rpcUrl';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Input } from '../../components/Input';
-import { getBlockchainInfo, getChainDetails, getSubnetInfo } from '../../coreViem/utils/glacier';
+import { getBlockchainInfo, getSubnetInfo } from '../../coreViem/utils/glacier';
+import { findCatalogChain } from '@/components/toolbox/utils/chainCatalog';
 import { Dialog, DialogContent, DialogOverlay, DialogTitle } from '../../components/ui/dialog';
 import { fetchChainId } from '../../lib/chainId';
 import { useWallet } from '../../hooks/useWallet';
@@ -195,8 +196,8 @@ function AddChainModalInner() {
         setValue('validatorManagerBlockchainId', subnetInfo.l1ValidatorManagerDetails?.blockchainId || '');
 
         try {
-          const chainDetails = await getChainDetails(String(ethereumChainId));
-          setValue('logoUrl', chainDetails.chainLogoUri || '');
+          const chainDetails = await findCatalogChain(ethereumChainId);
+          setValue('logoUrl', chainDetails?.chainLogoURI || '');
         } catch {
           setValue('logoUrl', '');
         }

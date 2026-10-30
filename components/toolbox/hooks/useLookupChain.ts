@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { utils } from '@avalanche-sdk/client/utils';
-import { getBlockchainInfo, getChainDetails } from '../coreViem/utils/glacier';
+import { getBlockchainInfo } from '../coreViem/utils/glacier';
+import { findCatalogChain } from '@/components/toolbox/utils/chainCatalog';
 
 interface LookupResult {
   rpcUrl: string;
@@ -37,8 +38,12 @@ export function useLookupChain() {
         }
       }
 
-      // Use Glacier API to get chain details instead of Core-specific getEthereumChain
-      const chainDetails = await getChainDetails(String(evmChainId));
+      // The site's chain catalog, not the Core-specific getEthereumChain
+      const chainDetails = await findCatalogChain(evmChainId);
+      if (!chainDetails?.rpcUrl) {
+        setError(`Chain ${evmChainId} is not in the Builder Hub chain list, so its RPC URL is unknown.`);
+        return null;
+      }
 
       return {
         rpcUrl: chainDetails.rpcUrl,

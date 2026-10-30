@@ -90,8 +90,8 @@ function route(url: string): Response {
   }
   if (u.pathname === '/api/validator-stats') return Response.json(nets[net].stats ?? []);
   if (/^\/v1\/networks\/(mainnet|fuji)\/subnets$/.test(u.pathname)) return Response.json({ subnets: nets[net].subnets ?? [] });
-  if (u.pathname === '/v1/avax/supply') {
-    return Response.json({ totalSupply: '467980000.5', circulatingSupply: '420000000', totalStaked: '221000000', totalLocked: '1000', totalRewards: '9000', totalPBurned: '1', totalCBurned: '4500000', totalXBurned: '2', l1ValidatorFees: '18151.28', genesisUnlock: '3', lastUpdated: '2026-09-27T04:30:17.000Z' });
+  if (u.pathname === '/api/mainnet/avax-supply') {
+    return Response.json({ totalSupply: '467980000.5', circulatingSupply: '420000000', totalStaked: '221000000', totalRewards: '9000', totalPBurned: '1', totalCBurned: '4500000', totalXBurned: '2', l1ValidatorFees: '18151.28', genesisUnlock: '3', lastUpdated: '2026-09-27T04:30:17.000Z' });
   }
   return new Response('not found', { status: 404 });
 }
@@ -146,7 +146,7 @@ describe('guard', () => {
     expect(guardSql('SELECT count() FROM decoded_p_txs WHERE chain_id = 1 AND block_time >= now() - INTERVAL 1 DAY UNION ALL SELECT count() FROM p_node_info_x WHERE chain_id = 1', 1).ok).toBe(false);
   });
 
-  it('gives Fuji no supply table: the Data API counts mainnet only', () => {
+  it('gives Fuji no supply table: the Stats API counts mainnet only', () => {
     const sql = 'SELECT total_supply_avax FROM p_avax_supply WHERE chain_id = ';
     expect(guardSql(`${sql}1`, 1).ok).toBe(true);
     expect(guardSql(`${sql}5`, 5).ok).toBe(false);
@@ -214,12 +214,14 @@ describe('withSources', () => {
     expect(sources[0].text).toMatch(/^This table holds \d+ of 401 validator sets, the ones the query names, then the largest: /);
   });
 
-  it('builds the supply as one row from the Data API, with when it was counted', async () => {
+  it('builds the supply as one row from the Stats API, with when it was counted', async () => {
     const query = 'SELECT l1_validator_fees_avax FROM p_avax_supply WHERE chain_id = 1';
     const { sql, sources } = await (await fresh()).withSources(query, 1);
     expect(sql).toContain('toFloat64(18151.28) AS l1_validator_fees_avax');
     expect(sql).toContain("toDateTime('2026-09-27 04:30:17', 'UTC') AS updated_at");
-    expect(sources).toEqual([expect.objectContaining({ table: 'p_avax_supply', text: 'Supply figures come from the Avalanche Data API, updated 2026-09-27 04:30 UTC.' })]);
+    // the Stats API does not count the locked AVAX yet
+    expect(sql).toContain('CAST(NULL AS Nullable(Float64)) AS locked_avax');
+    expect(sources).toEqual([expect.objectContaining({ table: 'p_avax_supply', text: 'Supply figures come from the Avalanche Stats API, updated 2026-09-27 04:30 UTC.' })]);
   });
 });
 

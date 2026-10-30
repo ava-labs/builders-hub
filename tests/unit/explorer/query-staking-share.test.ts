@@ -65,7 +65,7 @@ describe('the mainnet P-Chain prompt', () => {
   it('gives the supply a history, its base for a share, and no longer says it has none', () => {
     // the versions table still has none; the supply's line no longer says so
     expect(main).not.toMatch(/- p_avax_supply: [^\n]*no history/);
-    expect(main).toContain('circulating_supply_avax (which the Data API counts as equal to total_supply_avax)');
+    expect(main).toContain('circulating_supply_avax (which the Stats API counts as equal to total_supply_avax)');
     expect(main).toContain('- p_avax_supply_daily: the AVAX supply at the end of each day (t)');
     expect(main).toContain('a share of the supply divides by that, never by the P-Chain supply');
     expect(main).toContain(SHARE);
@@ -95,7 +95,7 @@ describe('the supply per day our server builds', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) =>
-        new URL(String(url)).pathname === '/v1/avax/supply'
+        new URL(String(url)).pathname === '/api/mainnet/avax-supply'
           ? Response.json({ totalSupply: '468647013.18', circulatingSupply: '468647013.18', totalStaked: '204627887.06', totalLocked: '27921780.13', totalRewards: '113820230.02', totalPBurned: '19430.1', totalCBurned: '5108165.63', totalXBurned: '45621.11', l1ValidatorFees: '18151.28', genesisUnlock: '360000000', lastUpdated: '2026-10-16T14:15:16.895Z' })
           : new Response('not found', { status: 404 }),
       ),
@@ -112,14 +112,14 @@ describe('the supply per day our server builds', () => {
     return import('@/lib/explorer-query/sources');
   };
 
-  it('rebuild the supply per day from the Data API total less the rewards paid after each day, over the query window', async () => {
+  it('rebuild the supply per day from the Stats API total less the rewards paid after each day, over the query window', async () => {
     const { sql, sources } = await (await fresh()).withSources(SHARE, 1);
     expect(sql).toContain('p_avax_supply_daily AS (SELECT toUInt8(1) AS chain_id, t, toFloat64(468647013.18) - ifNull(sum(paid) OVER (ORDER BY t DESC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS total_supply_avax, total_supply_avax AS circulating_supply_avax FROM (');
-    // a day before the window's start, up to when the Data API counted
+    // a day before the window's start, up to when the Stats API counted
     expect(sql).toContain("FROM raw_p_reward_utxos WHERE chain_id = 1 AND block_time >= toDateTime('2026-08-22 00:00:00', 'UTC') AND block_time <= toDateTime('2026-10-16 14:15:16', 'UTC')");
     expect(sources.map((s) => s.table)).toEqual(['p_avax_supply_daily', 'p_stake_fill']);
     expect(sources[0].text).toBe(
-      "The supply on each day is rebuilt: the Avalanche Data API's total supply at 2026-10-16 14:15 UTC, less the staking rewards paid after that day. Burns after that day are not added back, a difference of less than 0.02% of the supply. The rebuilt supply starts at 2022-10-18, the Banff upgrade, as P-Chain blocks before it carry no time. The Data API counts the circulating supply as equal to the total supply.",
+      "The supply on each day is rebuilt: the Avalanche Stats API's total supply at 2026-10-16 14:15 UTC, less the staking rewards paid after that day. Burns after that day are not added back, a difference of less than 0.02% of the supply. The rebuilt supply starts at 2022-10-18, the Banff upgrade, as P-Chain blocks before it carry no time. The Stats API counts the circulating supply as equal to the total supply.",
     );
     expect(sources[1].text).toBe("The stake from 2026-08-13 to 2026-08-25 comes from the P-Chain's validator sets (platform.getValidatorsAt at each day's last block), because no validator snapshots exist for those days. Where both exist, the two are equal to the nAVAX.");
   });

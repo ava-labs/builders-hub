@@ -94,7 +94,7 @@ async function read(app: App, sql: string, chainId = PCHAIN) {
   return expect(JSON.parse(text)).toMatchSchema(Read);
 }
 
-// The supply tables read the Data API when an instance has no copy yet, which can take longer than the read's
+// The supply tables read the Stats API when an instance has no copy yet, which can take longer than the read's
 // timeout on a cold instance: read once to warm it, and allow one more try.
 async function warmSupply(app: App): Promise<void> {
   for (let i = 0; i < 2; i++) {
@@ -228,7 +228,7 @@ describe('Explorer query: the staked share of the supply around an upgrade', { p
     expect(after.filter((s) => s.text.startsWith('No delegator snapshots exist'))).toEqual([]);
   });
 
-  test('rebuilds the supply per day: a row a day that rises each whole day, and the Data API total today', { timeout: 6 * READ_MS }, async ({ app }) => {
+  test('rebuilds the supply per day: a row a day that rises each whole day, and the Stats API total today', { timeout: 6 * READ_MS }, async ({ app }) => {
     await warmSupply(app);
     const first = '2026-09-01';
     const { result, sources } = await read(app, `SELECT toString(t) AS day, total_supply_avax, circulating_supply_avax FROM p_avax_supply_daily WHERE chain_id = 1 AND t >= toDate('${first}') ORDER BY t`);
@@ -247,8 +247,8 @@ describe('Explorer query: the staked share of the supply around an upgrade', { p
       expect(Number(r.total_supply_avax)).toBeGreaterThan(360e6);
       expect(Number(r.total_supply_avax)).toBeLessThan(720e6);
     }
-    expect(sources?.[0].text).toMatch(/^The supply on each day is rebuilt: the Avalanche Data API's total supply/);
-    // the last day subtracts no rewards, so it is the Data API's own figure: this holds the base to that source, and the
+    expect(sources?.[0].text).toMatch(/^The supply on each day is rebuilt: the Avalanche Stats API's total supply/);
+    // the last day subtracts no rewards, so it is the Stats API's own figure: this holds the base to that source, and the
     // read and the table to one copy of it
     const now = await read(app, 'SELECT total_supply_avax FROM p_avax_supply WHERE chain_id = 1');
     expect(Math.abs(Number(rows.at(-1)?.total_supply_avax) / Number(now.result.rows[0].total_supply_avax) - 1)).toBeLessThan(0.001);

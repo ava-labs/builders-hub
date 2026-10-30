@@ -2,7 +2,7 @@
  * Input validators for on-chain query params.
  *
  * The MCP holds no database connection. Aggregated data comes from the Stats
- * API and identifier lookups from Glacier, and both validate again. These
+ * API and identifier lookups from the Stats API and RPC, which validate again. These
  * validators are the cheap UX pre-filter: they turn obviously-bad input (unknown
  * chain, malformed address, out-of-range window) into an immediate, clear error
  * instead of an upstream round trip.

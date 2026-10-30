@@ -1,7 +1,7 @@
 {
   "name": "avalanche-mcp",
   "version": "2.5.0",
-  "description": "Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data from the Stats API and Glacier, build-plan runbooks, and Builder Console guidance.",
+  "description": "Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, on-chain data (Stats API + public RPC), build-plan runbooks, and Builder Console guidance.",
   "endpoint": "https://build.avax.network/api/mcp",
   "protocol": "mcp/http",
   "readOnly": true,
@@ -210,11 +210,11 @@
     },
     {
       "name": "onchain_lookup",
-      "description": "PRIMARY lookup tool — use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, contract metadata + isContract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by Glacier + P-Chain RPC."
+      "description": "PRIMARY lookup tool: use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native balance, live balances of the ERC-20 tokens it moved recently, recent txs, contract metadata + isContract), a contract/token (metadata + Transfer logs of the last 100 blocks), an NFT (collection, or the owner and metadata URI of one tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-… → P-Chain balance, X-… → X-Chain balances), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by the Avalanche Stats API and public RPC. Not available: the deployment tx of a contract, NFT holdings, the token list of a collection, and the chains an address used."
     },
     {
       "name": "onchain_activity",
-      "description": "Recent on-chain activity. scope=chain returns the transaction COUNT over the last `hours` (closed hours, max 720h = 30 days; for longer windows use chain_stats window=series) plus the latest transactions. scope=address returns the latest transactions of the address, with no time window. For a token/contract use scope=token (transfers). scope=primary covers P/X-chain and DEFAULTS to P-Chain when no blockchainId is given (so \"last N P-chain transactions\" just works). A value with no scope defaults to address."
+      "description": "Recent on-chain activity. scope=chain returns the transaction COUNT over the last `hours` (closed hours, max 720h = 30 days; for longer windows use chain_stats window=series) plus the latest transactions. scope=address returns the latest transactions of the address, with no time window. For a token/contract use scope=token (Transfer logs of the last 100 blocks). scope=primary covers the P-Chain, the X-Chain and C-Chain atomic txs, and DEFAULTS to P-Chain when no blockchainId is given (so \"last N P-chain transactions\" just works). A value with no scope defaults to address."
     },
     {
       "name": "chain_stats",

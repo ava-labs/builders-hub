@@ -1,7 +1,6 @@
 import 'server-only';
 import { erc20Abi, formatUnits, getAddress, isAddress, type Abi } from 'viem';
 import { loadRegistry } from '@/lib/blueprints';
-import { fetchErc20Balances } from '@/lib/rwa/glacier/client';
 import { publicClient, rpcUrlOf } from './chain';
 import { StudioError } from './errors';
 import { frontendContext } from './frontend';
@@ -10,9 +9,8 @@ import { frontendContext } from './frontend';
  * Tokens for a Studio frontend, answered through the Preview bridge:
  * a token list for a chain (the verified registry, CoinGecko's list where the
  * explorer uses one, and ERC-20s this project deployed), and an address's
- * ERC-20 balances (the Avalanche Data API where it covers the chain, else
- * balanceOf over that list through an RPC the server chose). The frame never
- * names an RPC or an upstream itself.
+ * ERC-20 balances (balanceOf over that list through an RPC the server chose).
+ * The frame never names an RPC or an upstream itself.
  */
 
 export interface TokenEntry {
@@ -140,44 +138,9 @@ export async function tokenBalancesIn(
   scope: TokenScope,
   chainId: number,
   owner: string,
-): Promise<{ source: 'data-api' | 'rpc'; balances: TokenBalance[] }> {
+): Promise<{ source: 'rpc'; balances: TokenBalance[] }> {
   if (!isAddress(owner)) throw new StudioError(400, 'Pass an EVM address');
   const list = await tokenListIn(scope, chainId);
-  const meta = new Map(list.map((t) => [t.address.toLowerCase(), t]));
-
-  try {
-    const res = await fetchErc20Balances(String(chainId), owner);
-    const items = (res.erc20TokenBalances ?? []) as {
-      address: string;
-      balance: string;
-      decimals: number;
-      name?: string;
-      symbol?: string;
-      logoUri?: string;
-    }[];
-    const project = list.filter((t) => t.source === 'project');
-    const balances = items
-      .filter((b) => BigInt(b.balance || '0') > 0n)
-      .map((b) => {
-        const m = meta.get(b.address.toLowerCase());
-        return {
-          address: getAddress(b.address),
-          symbol: b.symbol ?? m?.symbol ?? null,
-          name: b.name ?? m?.name ?? null,
-          decimals: b.decimals,
-          balance: b.balance,
-          formatted: formatUnits(BigInt(b.balance), b.decimals),
-          logoURI: b.logoUri ?? m?.logoURI ?? null,
-        };
-      });
-    // The Data API may not have indexed a token this project just deployed.
-    if (project.every((p) => balances.some((b) => b.address.toLowerCase() === p.address.toLowerCase()))) {
-      return { source: 'data-api', balances };
-    }
-  } catch {
-    /* chain not covered, or the Data API is unavailable: fall back to the RPC */
-  }
-
   const rpc = rpcFor(scope, chainId);
   if (!rpc) throw new StudioError(400, `Studio has no RPC for chain ${chainId}`);
   const client = publicClient(rpc);
