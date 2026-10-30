@@ -8,10 +8,12 @@ import { usd } from "./palette";
 import { RwaChart, zipRows, type ChartRow, type RwaSeries } from "./rwa-chart";
 import { IntervalSwitch, RangePicker, TimedHeader } from "./rwa-time";
 
-/* The old dashboard's historical trends: the pool's volume, utilization,
-   financing against repayments, invested capital and outstanding principal
-   over the reader's range, by day, week or month. The charts share one
-   tooltip, so a day reads across all of them. */
+/* The old dashboard's historical trends: the facility's volume,
+   utilization, financing against repayments, invested capital and
+   outstanding principal over the reader's range, by day, week or month.
+   Only OatFi's pool has a volume chart: a line of credit has no transacted
+   volume, so there the utilization chart takes the whole row. The charts
+   share one tooltip, so a day reads across all of them. */
 
 const TONE = "var(--rwa-1)";
 const INK = "var(--rwa-2)";
@@ -32,7 +34,7 @@ const FLOWS: RwaSeries[] = [...FINANCED, ...REPAID];
 const INVESTED: RwaSeries[] = [{ key: "v", label: "Invested capital", color: TONE }];
 const OUTSTANDING: RwaSeries[] = [{ key: "v", label: "Outstanding principal", color: TONE }];
 
-export function RwaHistory({ historical, failed }: { historical: HistoricalData | null; failed: boolean }) {
+export function RwaHistory({ historical, failed, volume }: { historical: HistoricalData | null; failed: boolean; volume: boolean }) {
   const [interval, setInterval] = useState<TimeInterval>("daily");
   const [range, setRange] = useState<RangeChoice>({ preset: "all" });
   const [split, setSplit] = useState(false);
@@ -62,8 +64,17 @@ export function RwaHistory({ historical, failed }: { historical: HistoricalData 
         <RangePicker value={range} shown={w} bounds={{ from: first ?? today, to: today }} onChange={setRange} />
       </TimedHeader>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <RwaChart id="rwa-volume" title="Transaction Volume Over Time" series={VOLUME} rows={rows.volume} fmt={usd} kind="bar" cumulative {...state} />
-        <RwaChart id="rwa-utilization" title="Capital Utilization" series={UTILIZATION} rows={rows.utilization} fmt={pct} kind="line" {...state} />
+        {volume && <RwaChart id="rwa-volume" title="Transaction Volume Over Time" series={VOLUME} rows={rows.volume} fmt={usd} kind="bar" cumulative {...state} />}
+        <RwaChart
+          id="rwa-utilization"
+          title="Capital Utilization"
+          className={volume ? undefined : "lg:col-span-2"}
+          series={UTILIZATION}
+          rows={rows.utilization}
+          fmt={pct}
+          kind="line"
+          {...state}
+        />
         {split ? (
           <>
             <RwaChart id="rwa-financed" title="Assets Financed" series={FINANCED} rows={rows.flows} fmt={usd} kind="bar" cumulative extra={splitSwitch} {...state} />

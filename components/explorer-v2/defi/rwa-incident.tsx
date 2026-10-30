@@ -4,10 +4,10 @@ import { RWA_INCIDENT, RWA_INCIDENT_BANNER } from "@/lib/rwa/constants/incident"
 import { truncate } from "@/components/explorer-v2/format";
 
 /* The incident banner at the top of the RWA dashboard. It tells the reader
-   not to deposit into the drained tranche pool. The flag in
-   lib/rwa/constants/incident.ts turns it off. */
-export function RwaIncidentBanner() {
-  if (!RWA_INCIDENT_BANNER) return null;
+   not to deposit into the drained tranche pool, on that pool's facility page
+   only. The flag in lib/rwa/constants/incident.ts turns it off. */
+export function RwaIncidentBanner({ facilityPool }: { facilityPool: string }) {
+  if (!RWA_INCIDENT_BANNER || facilityPool.toLowerCase() !== RWA_INCIDENT.pool.toLowerCase()) return null;
   const { title, date, pool } = RWA_INCIDENT;
   return (
     <Alert variant="destructive" className="border-red-500/50 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300">

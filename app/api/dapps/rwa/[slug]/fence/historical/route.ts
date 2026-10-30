@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { fetchFenceHistorical } from '@/lib/rwa/fence/metrics'
 import { cache, CacheKeys } from '@/lib/rwa/glacier/cache'
 import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
-import { getRWAProject } from '@/lib/rwa/projects'
+import { getFacility } from '@/lib/rwa/facilities'
 import { isFenceWindow } from '@/lib/rwa/series'
 import type { FenceHistoricalData } from '@/lib/rwa/types'
 
@@ -54,21 +54,22 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
   }
   const dateRange = startDate && endDate ? { from: new Date(startDate), to: new Date(endDate) } : undefined
+  const facility = getFacility(slug)
+
+  if (!facility) {
+    return NextResponse.json({ error: 'RWA project not found' }, { status: 404 })
+  }
+
+  if (!facility.features.fence) {
+    return NextResponse.json({ error: 'Fence metrics not available for this project' }, { status: 404 })
+  }
+
   // the key fetchFenceHistorical stores a window under, so the HIT check
-  // and the stale fallback both read the copy it kept
-  const cacheKey = CacheKeys.fenceHistorical(slug, dateRange?.from.toISOString(), dateRange?.to.toISOString())
+  // and the stale fallback both read the copy it kept; the facility's slug,
+  // not the URL's, so the old partner slugs share one Fence read
+  const cacheKey = CacheKeys.fenceHistorical(facility.slug, dateRange?.from.toISOString(), dateRange?.to.toISOString())
 
   try {
-    const project = getRWAProject(slug)
-
-    if (!project) {
-      return NextResponse.json({ error: 'RWA project not found' }, { status: 404 })
-    }
-
-    if (!project.features?.fence) {
-      return NextResponse.json({ error: 'Fence metrics not available for this project' }, { status: 404 })
-    }
-
     // no caller can skip the cache: a public refresh would let anyone drive the Fence reads
     const cached = cache.get<FenceHistoricalData>(cacheKey)
     if (cached && !cached.isStale) {
@@ -80,7 +81,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       })
     }
 
-    const historical = await fetchFenceHistorical(slug, dateRange)
+    const historical = await fetchFenceHistorical(facility.slug, dateRange)
 
     return NextResponse.json(historical, {
       headers: {

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAllTrackedTransfers } from '@/lib/rwa/glacier/transactions'
-import { ADDRESSES, normalizeAddress } from '@/lib/rwa/constants/addresses'
+import { listLineTransactions } from '@/lib/rwa/line/figures'
+import { normalizeAddress } from '@/lib/rwa/constants/addresses'
 import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
-import { serializeBigints } from '@/lib/rwa/utils'
-import { getRWAProject } from '@/lib/rwa/projects'
+import { ledgerLabels, serializeBigints } from '@/lib/rwa/utils'
+import { getFacility, isLineFacility } from '@/lib/rwa/facilities'
+import type { RWAFacility } from '@/lib/rwa/facilities'
 import type { TransactionRecord, ParsedTransfer } from '@/lib/rwa/types'
 
 export const dynamic = 'force-dynamic'
@@ -18,26 +20,21 @@ const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   direction: z.enum(['inbound', 'outbound', 'internal', 'all']).default('all'),
+  // a line of credit's event kind: a facility without a line has none, so a kind other than all leaves it no rows
+  kind: z.enum(['draw', 'repayment', 'commitment', 'withdrawal', 'all']).default('all'),
   sortField: z.enum(['date', 'amount']).default('date'),
   sortDirection: z.enum(['asc', 'desc']).default('desc'),
 })
 
-const ADDRESS_LABELS: Record<string, string> = {
-  [normalizeAddress(ADDRESSES.TRANCHE_POOL)]: 'Tranche Pool',
-  [normalizeAddress(ADDRESSES.BORROWER_OPERATING)]: 'Borrower Operating',
-  [normalizeAddress(ADDRESSES.LENDER_VALINOR)]: 'Valinor',
-  [normalizeAddress(ADDRESSES.LENDER_AVALANCHE)]: 'Avalanche',
+function labelAddress(labels: Record<string, string>, address: string): string {
+  return labels[address] ?? address
 }
 
-function labelAddress(address: string): string {
-  return ADDRESS_LABELS[address] ?? address
-}
-
-function classifyDirection(transfer: ParsedTransfer): TransactionRecord['direction'] {
+function classifyDirection(facility: RWAFacility, transfer: ParsedTransfer): TransactionRecord['direction'] {
   if (transfer.isInternal) return 'internal'
 
-  const tranchePool = normalizeAddress(ADDRESSES.TRANCHE_POOL)
-  const borrower = normalizeAddress(ADDRESSES.BORROWER_OPERATING)
+  const tranchePool = normalizeAddress(facility.pool.address)
+  const borrower = normalizeAddress(facility.borrower.address)
   const isToTracked = transfer.to === tranchePool || transfer.to === borrower
   const isFromTracked = transfer.from === tranchePool || transfer.from === borrower
 
@@ -46,17 +43,39 @@ function classifyDirection(transfer: ParsedTransfer): TransactionRecord['directi
   return 'internal'
 }
 
-function toTransactionRecord(transfer: ParsedTransfer): TransactionRecord {
+function toTransactionRecord(facility: RWAFacility, labels: Record<string, string>, transfer: ParsedTransfer): TransactionRecord {
   return {
     txHash: transfer.txHash,
     timestamp: transfer.timestamp.toISOString(),
     from: transfer.from,
-    fromLabel: labelAddress(transfer.from),
+    fromLabel: labelAddress(labels, transfer.from),
     to: transfer.to,
-    toLabel: labelAddress(transfer.to),
+    toLabel: labelAddress(labels, transfer.to),
     amount: transfer.amount,
-    direction: classifyDirection(transfer),
+    direction: classifyDirection(facility, transfer),
   }
+}
+
+/** the ledger of a facility whose capital moves in USDC transfers, as its tracked addresses list them */
+async function listTransferRecords(facility: RWAFacility): Promise<TransactionRecord[]> {
+  const transfersByAddress = await getAllTrackedTransfers(facility)
+  const labels = ledgerLabels(facility)
+
+  const seen = new Set<string>()
+  const allRecords: TransactionRecord[] = []
+
+  // one row per transfer, as the metrics count them: a transaction can carry
+  // several tracked transfers, and an internal one is listed under both addresses
+  for (const [, transfers] of transfersByAddress) {
+    for (const transfer of transfers) {
+      const key = `${transfer.txHash}-${transfer.from}-${transfer.to}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      allRecords.push(toTransactionRecord(facility, labels, transfer))
+    }
+  }
+
+  return allRecords
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
@@ -74,9 +93,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   try {
     const { slug } = await params
-    const project = getRWAProject(slug)
+    const facility = getFacility(slug)
 
-    if (!project) {
+    if (!facility) {
       return NextResponse.json(
         { error: 'RWA project not found' },
         { status: 404 }
@@ -88,26 +107,16 @@ export async function GET(request: Request, { params }: RouteParams) {
       page: searchParams.get('page') ?? '1',
       pageSize: searchParams.get('pageSize') ?? '20',
       direction: searchParams.get('direction') ?? 'all',
+      kind: searchParams.get('kind') ?? 'all',
       sortField: searchParams.get('sortField') ?? 'date',
       sortDirection: searchParams.get('sortDirection') ?? 'desc',
     }
 
     const validatedParams = querySchema.parse(rawParams)
-    const transfersByAddress = await getAllTrackedTransfers()
-
-    const seen = new Set<string>()
-    const allRecords: TransactionRecord[] = []
-
-    // one row per transfer, as the metrics count them: a transaction can carry
-    // several tracked transfers, and an internal one is listed under both addresses
-    for (const [, transfers] of transfersByAddress) {
-      for (const transfer of transfers) {
-        const key = `${transfer.txHash}-${transfer.from}-${transfer.to}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        allRecords.push(toTransactionRecord(transfer))
-      }
-    }
+    // a line of credit lists its position's events, never its transfers
+    const allRecords = isLineFacility(facility)
+      ? await listLineTransactions(facility)
+      : await listTransferRecords(facility)
 
     allRecords.sort((a, b) => {
       const multiplier = validatedParams.sortDirection === 'asc' ? 1 : -1
@@ -119,9 +128,12 @@ export async function GET(request: Request, { params }: RouteParams) {
       return 0
     })
 
-    const filtered = validatedParams.direction === 'all'
+    const byDirection = validatedParams.direction === 'all'
       ? allRecords
       : allRecords.filter((r) => r.direction === validatedParams.direction)
+    const filtered = validatedParams.kind === 'all'
+      ? byDirection
+      : byDirection.filter((r) => r.kind === validatedParams.kind)
 
     const total = filtered.length
     const startIndex = (validatedParams.page - 1) * validatedParams.pageSize

@@ -1,28 +1,27 @@
 import { fetchStatsTransfers, fetchStatsBalance } from '../stats/client'
 import type { StatsTransfer } from '../stats/client'
 import { cache, CacheKeys } from './cache'
-import {
-  ADDRESSES,
-  USDC_TOKENS,
-  normalizeAddress,
-  isInternalAddress,
-} from '../constants/addresses'
+import { normalizeAddress } from '../constants/addresses'
+import type { RWAFacility } from '../facilities'
 import type { ParsedTransfer } from '../types'
 
 function parseUsdcValue(value: string): bigint {
   return BigInt(value)
 }
 
-// The Stats API is queried once per tracked USDC contract (native + bridged);
+// The Stats API is queried once per USDC contract the facility tracks;
 // each call already returns only that token's transfers for the address.
-async function fetchAllTransfers(address: string): Promise<StatsTransfer[]> {
+async function fetchAllTransfers(facility: RWAFacility, address: string): Promise<StatsTransfer[]> {
   const perToken = await Promise.all(
-    USDC_TOKENS.map((token) => fetchStatsTransfers(address, token))
+    facility.usdcTokens.map((token) => fetchStatsTransfers(address, token))
   )
   return perToken.flat()
 }
 
-function parseTransfers(transfers: StatsTransfer[]): ParsedTransfer[] {
+function parseTransfers(facility: RWAFacility, transfers: StatsTransfer[]): ParsedTransfer[] {
+  const poolAndBorrower = [facility.pool.address, facility.borrower.address].map(normalizeAddress)
+  const isPoolOrBorrower = (address: string) => poolAndBorrower.includes(normalizeAddress(address))
+
   return transfers.map((t) => ({
     txHash: t.txHash,
     blockNumber: t.blockNumber,
@@ -31,15 +30,16 @@ function parseTransfers(transfers: StatsTransfer[]): ParsedTransfer[] {
     to: normalizeAddress(t.to),
     amount: parseUsdcValue(t.amount),
     isInternal:
-      isInternalAddress(t.from) && isInternalAddress(t.to),
+      isPoolOrBorrower(t.from) && isPoolOrBorrower(t.to),
   }))
 }
 
 export async function getTransfersForAddress(
+  facility: RWAFacility,
   address: string,
   forceRefresh = false
 ): Promise<ParsedTransfer[]> {
-  const cacheKey = CacheKeys.transactions(address)
+  const cacheKey = CacheKeys.transactions(facility.slug, address)
 
   if (!forceRefresh) {
     const cached = cache.get<ParsedTransfer[]>(cacheKey)
@@ -47,34 +47,37 @@ export async function getTransfersForAddress(
 
     if (cached && cached.isStale && !cache.isRevalidating(cacheKey)) {
       cache.setRevalidating(cacheKey, true)
-      fetchAndCacheTransfers(address, cacheKey).finally(() => {
+      fetchAndCacheTransfers(facility, address, cacheKey).finally(() => {
         cache.setRevalidating(cacheKey, false)
       })
       return cached.data
     }
   }
 
-  return fetchAndCacheTransfers(address, cacheKey)
+  return fetchAndCacheTransfers(facility, address, cacheKey)
 }
 
 async function fetchAndCacheTransfers(
+  facility: RWAFacility,
   address: string,
   cacheKey: string
 ): Promise<ParsedTransfer[]> {
-  const rawTransfers = await fetchAllTransfers(address)
-  const parsed = parseTransfers(rawTransfers)
+  const rawTransfers = await fetchAllTransfers(facility, address)
+  const parsed = parseTransfers(facility, rawTransfers)
   cache.set(cacheKey, parsed)
   return parsed
 }
 
 export async function getAllTrackedTransfers(
+  facility: RWAFacility,
   forceRefresh = false
 ): Promise<Map<string, ParsedTransfer[]>> {
-  const addresses = [ADDRESSES.TRANCHE_POOL, ADDRESSES.BORROWER_OPERATING]
+  // the pool before the borrower: the ledger lists same-time transfers in this order
+  const addresses = [facility.pool.address, facility.borrower.address]
 
   const results = await Promise.all(
     addresses.map(async (addr) => {
-      const transfers = await getTransfersForAddress(addr, forceRefresh)
+      const transfers = await getTransfersForAddress(facility, addr, forceRefresh)
       return [normalizeAddress(addr), transfers] as const
     })
   )
@@ -82,15 +85,15 @@ export async function getAllTrackedTransfers(
   return new Map(results)
 }
 
-export async function getUsdcBalance(address: string): Promise<bigint> {
-  const cacheKey = CacheKeys.balance(address)
+export async function getUsdcBalance(facility: RWAFacility, address: string): Promise<bigint> {
+  const cacheKey = CacheKeys.balance(facility.slug, address)
   const cached = cache.get<bigint>(cacheKey)
 
   if (cached && !cached.isStale) return cached.data
 
   try {
     const balances = await Promise.all(
-      USDC_TOKENS.map((token) => fetchStatsBalance(address, token))
+      facility.usdcTokens.map((token) => fetchStatsBalance(address, token))
     )
 
     const totalBalance = balances.reduce(
@@ -107,17 +110,16 @@ export async function getUsdcBalance(address: string): Promise<bigint> {
 }
 
 export async function getLenderTransfers(
+  facility: RWAFacility,
   forceRefresh = false
 ): Promise<ParsedTransfer[]> {
   const tranchePoolTransfers = await getTransfersForAddress(
-    ADDRESSES.TRANCHE_POOL,
+    facility,
+    facility.pool.address,
     forceRefresh
   )
 
-  const lenderAddresses = [
-    normalizeAddress(ADDRESSES.LENDER_VALINOR),
-    normalizeAddress(ADDRESSES.LENDER_AVALANCHE),
-  ]
+  const lenderAddresses = facility.lenders.map((lender) => normalizeAddress(lender.address))
 
   return tranchePoolTransfers.filter((t) => lenderAddresses.includes(t.from))
 }

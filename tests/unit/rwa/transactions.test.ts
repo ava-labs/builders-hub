@@ -13,16 +13,17 @@ import {
   getUsdcBalance,
   getLenderTransfers,
 } from '@/lib/rwa/glacier/transactions'
-import { ADDRESSES } from '@/lib/rwa/constants/addresses'
+import { RWA_FACILITIES } from '@/lib/rwa/facilities'
 
+const OATFI = RWA_FACILITIES.oatfi
 const statsTransfersMock = vi.mocked(fetchStatsTransfers)
 const statsBalanceMock = vi.mocked(fetchStatsBalance)
 
 function row(overrides: Partial<StatsTransfer> = {}): StatsTransfer {
   return {
-    token: ADDRESSES.USDC_NATIVE.toLowerCase(),
-    from: ADDRESSES.BORROWER_OPERATING.toLowerCase(),
-    to: ADDRESSES.TRANCHE_POOL.toLowerCase(),
+    token: OATFI.usdcTokens[0].toLowerCase(),
+    from: OATFI.borrower.address.toLowerCase(),
+    to: OATFI.pool.address.toLowerCase(),
     amount: '297198040000',
     txHash: '0x98ed',
     blockNumber: 85167402,
@@ -61,20 +62,20 @@ describe('getTransfersForAddress', () => {
         }),
       ])
 
-    const result = await getTransfersForAddress(ADDRESSES.TRANCHE_POOL, true)
+    const result = await getTransfersForAddress(OATFI, OATFI.pool.address, true)
 
     expect(statsTransfersMock).toHaveBeenCalledTimes(2)
     expect(statsTransfersMock.mock.calls.map((c) => c[1])).toEqual([
-      ADDRESSES.USDC_NATIVE,
-      ADDRESSES.USDC_BRIDGED,
+      OATFI.usdcTokens[0],
+      OATFI.usdcTokens[1],
     ])
     expect(result).toHaveLength(2)
     expect(result[0]).toEqual({
       txHash: '0x98ed',
       blockNumber: 85167402,
       timestamp: new Date(1778508240 * 1000),
-      from: ADDRESSES.BORROWER_OPERATING.toLowerCase(),
-      to: ADDRESSES.TRANCHE_POOL.toLowerCase(),
+      from: OATFI.borrower.address.toLowerCase(),
+      to: OATFI.pool.address.toLowerCase(),
       amount: BigInt('297198040000'),
       isInternal: true,
     })
@@ -86,11 +87,11 @@ describe('getAllTrackedTransfers', () => {
   it('returns a map keyed by normalized tracked addresses', async () => {
     statsTransfersMock.mockResolvedValue([])
 
-    const result = await getAllTrackedTransfers(true)
+    const result = await getAllTrackedTransfers(OATFI, true)
 
     expect([...result.keys()]).toEqual([
-      ADDRESSES.TRANCHE_POOL.toLowerCase(),
-      ADDRESSES.BORROWER_OPERATING.toLowerCase(),
+      OATFI.pool.address.toLowerCase(),
+      OATFI.borrower.address.toLowerCase(),
     ])
     expect(statsTransfersMock).toHaveBeenCalledTimes(4)
   })
@@ -102,13 +103,13 @@ describe('getUsdcBalance', () => {
       .mockResolvedValueOnce(balance('100'))
       .mockResolvedValueOnce(balance('23'))
 
-    const result = await getUsdcBalance(ADDRESSES.TRANCHE_POOL)
+    const result = await getUsdcBalance(OATFI, OATFI.pool.address)
 
     expect(result).toBe(BigInt(123))
     expect(statsBalanceMock).toHaveBeenCalledTimes(2)
     expect(statsBalanceMock.mock.calls.map((c) => c[1])).toEqual([
-      ADDRESSES.USDC_NATIVE,
-      ADDRESSES.USDC_BRIDGED,
+      OATFI.usdcTokens[0],
+      OATFI.usdcTokens[1],
     ])
   })
 
@@ -116,7 +117,7 @@ describe('getUsdcBalance', () => {
     statsBalanceMock.mockRejectedValue(new Error('Stats API error: 503'))
 
     await expect(
-      getUsdcBalance('0x000000000000000000000000000000000000dEaD')
+      getUsdcBalance(OATFI, '0x000000000000000000000000000000000000dEaD')
     ).rejects.toThrow('Stats API error: 503')
   })
 })
@@ -125,13 +126,13 @@ describe('getLenderTransfers', () => {
   it('returns only transfers sent by lender addresses', async () => {
     statsTransfersMock
       .mockResolvedValueOnce([
-        row({ txHash: '0x1', from: ADDRESSES.LENDER_VALINOR.toLowerCase() }),
-        row({ txHash: '0x2', from: ADDRESSES.LENDER_AVALANCHE.toLowerCase() }),
+        row({ txHash: '0x1', from: OATFI.lenders[0].address.toLowerCase() }),
+        row({ txHash: '0x2', from: OATFI.lenders[1].address.toLowerCase() }),
         row({ txHash: '0x3' }),
       ])
       .mockResolvedValueOnce([])
 
-    const result = await getLenderTransfers(true)
+    const result = await getLenderTransfers(OATFI, true)
 
     expect(result.map((t) => t.txHash)).toEqual(['0x1', '0x2'])
   })

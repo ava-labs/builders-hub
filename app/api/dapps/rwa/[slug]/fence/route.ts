@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { fetchFenceMetrics } from '@/lib/rwa/fence/metrics'
 import { cache, CacheKeys } from '@/lib/rwa/glacier/cache'
 import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
-import { getRWAProject } from '@/lib/rwa/projects'
+import { getFacility } from '@/lib/rwa/facilities'
 import type { FenceMetrics } from '@/lib/rwa/types'
 
 export const dynamic = 'force-dynamic'
@@ -22,20 +22,23 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 
   const { slug } = await params
+  const facility = getFacility(slug)
+
+  if (!facility) {
+    return NextResponse.json({ error: 'RWA project not found' }, { status: 404 })
+  }
+
+  if (!facility.features.fence) {
+    return NextResponse.json({ error: 'Fence metrics not available for this project' }, { status: 404 })
+  }
+
+  // the facility's slug, not the URL's: an old partner slug reads and fills
+  // its facility's entry, so the aliases share one Fence read
+  const cacheKey = CacheKeys.fenceMetrics(facility.slug)
 
   try {
-    const project = getRWAProject(slug)
-
-    if (!project) {
-      return NextResponse.json({ error: 'RWA project not found' }, { status: 404 })
-    }
-
-    if (!project.features?.fence) {
-      return NextResponse.json({ error: 'Fence metrics not available for this project' }, { status: 404 })
-    }
-
     // no caller can skip the cache: a public refresh would let anyone drive the Fence reads
-    const cached = cache.get<FenceMetrics>(CacheKeys.fenceMetrics(slug))
+    const cached = cache.get<FenceMetrics>(cacheKey)
     if (cached && !cached.isStale) {
       return NextResponse.json(cached.data, {
         headers: {
@@ -45,7 +48,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       })
     }
 
-    const metrics = await fetchFenceMetrics(slug)
+    const metrics = await fetchFenceMetrics(facility.slug)
 
     return NextResponse.json(metrics, {
       headers: {
@@ -55,7 +58,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     })
   } catch (error) {
     console.error('[Fence API] Route error:', error)
-    const stale = cache.get<FenceMetrics>(CacheKeys.fenceMetrics(slug))
+    const stale = cache.get<FenceMetrics>(cacheKey)
     if (stale) {
       return NextResponse.json(stale.data, {
         headers: {

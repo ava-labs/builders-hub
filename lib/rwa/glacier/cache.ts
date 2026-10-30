@@ -1,3 +1,5 @@
+import { BaseError } from 'viem'
+
 interface CacheEntry<T> {
   data: T
   timestamp: number
@@ -56,8 +58,10 @@ class InMemoryCache {
     }
   }
 
+  /** an invalidated key is read again at once: its copy and a failure remembered for it both go */
   invalidate(key: string): void {
     this.cache.delete(key)
+    this.cache.delete(failureKey(key))
     this.revalidating.delete(key)
   }
 }
@@ -70,12 +74,79 @@ if (!globalCache.__rwaCache) {
 export const cache: InMemoryCache = globalCache.__rwaCache
 
 export const CacheKeys = {
-  transactions: (address: string) => `rwa:transactions:${address.toLowerCase()}`,
-  metrics: () => 'rwa:metrics:all',
-  historical: (metric: string, interval: string) =>
-    `rwa:historical:${metric}:${interval}`,
-  balance: (address: string) => `rwa:balance:${address.toLowerCase()}`,
+  transactions: (slug: string, address: string) =>
+    `rwa:transactions:${slug}:${address.toLowerCase()}`,
+  metrics: (slug: string) => `rwa:metrics:${slug}`,
+  historical: (slug: string, metric: string, interval: string) =>
+    `rwa:historical:${slug}:${metric}:${interval}`,
+  balance: (slug: string, address: string) => `rwa:balance:${slug}:${address.toLowerCase()}`,
   fenceMetrics: (slug: string) => `rwa:fence:metrics:${slug}`,
   fenceHistorical: (slug: string, startDate?: string, endDate?: string) =>
     `rwa:fence:historical:${slug}:${startDate ?? 'all'}:${endDate ?? 'all'}`,
+  line: (slug: string, read: 'days' | 'ledger' | 'position') => `rwa:line:${read}:${slug}`,
+}
+
+/** the reads still running for keys the cache misses: callers that miss together share one */
+const pending = new Map<string, Promise<unknown>>()
+
+// A failed read is remembered for a minute, by readThrough and by Fence (fence/metrics.ts): until then its key is
+// not read again, so an outage costs each key one read a minute, not one a request.
+export const FAILURE_MEMORY_MS = 60_000
+
+/** the cache entry that remembers a failed read of `key`, readThrough's or Fence's */
+export function failureKey(key: string): string {
+  return `${key}:failed`
+}
+
+const rememberFailure = (key: string, error: unknown) =>
+  cache.set(failureKey(key), error, { ttl: FAILURE_MEMORY_MS, staleWhileRevalidate: 0 })
+const forgetFailure = (key: string) => cache.invalidate(failureKey(key))
+
+/**
+ * The cached value at key, or read's. A fresh copy is served as is. A stale copy is served at once, and one refresh
+ * runs behind it; a refresh that fails keeps the stale copy. A miss waits for the read, which every caller that
+ * misses meanwhile shares; a read that fails reaches each of them. A failed read or refresh is remembered for a
+ * minute: until then a stale copy is served with no refresh, and a miss gets that failure without a read.
+ */
+export function readThrough<T>(key: string, read: () => Promise<T>): Promise<T> {
+  const cached = cache.get<T>(key)
+  const failure = cache.get(failureKey(key))
+  if (cached) {
+    if (cached.isStale && !failure && !cache.isRevalidating(key)) void refresh(key, read)
+    return Promise.resolve(cached.data)
+  }
+
+  const running = pending.get(key) as Promise<T> | undefined
+  if (running) return running
+  if (failure) return Promise.reject(failure.data)
+
+  const reading = read()
+    .then(
+      (data) => {
+        cache.set(key, data)
+        forgetFailure(key)
+        return data
+      },
+      (error: unknown) => {
+        rememberFailure(key, error)
+        throw error
+      }
+    )
+    .finally(() => pending.delete(key))
+  pending.set(key, reading)
+  return reading
+}
+
+async function refresh<T>(key: string, read: () => Promise<T>): Promise<void> {
+  cache.setRevalidating(key, true)
+  try {
+    cache.set(key, await read())
+    forgetFailure(key)
+  } catch (error) {
+    rememberFailure(key, error)
+    // viem writes the RPC's URL, for the position our own node's, into its errors' full text: log the short one
+    console.error('[rwa] refresh failed:', key, error instanceof BaseError ? error.shortMessage : String(error))
+  } finally {
+    cache.setRevalidating(key, false)
+  }
 }
