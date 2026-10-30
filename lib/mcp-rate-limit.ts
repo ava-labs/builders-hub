@@ -54,7 +54,7 @@ async function getRedisClient() {
 
 const WINDOW_MS = 60 * 1000; // 1 minute
 // Per-client anti-abuse guard (origin/hashed-IP). The upstream APIs (Stats API,
-// Glacier) rate-limit themselves, so this is sized only to stop a single client
+// public RPC) rate-limit themselves, so this is sized only to stop a single client
 // from hammering the MCP.
 const MAX_REQUESTS = 120; // per client per minute
 const MAX_LOCAL_CLIENTS = 10_000;

@@ -211,7 +211,7 @@ async function evmRPC(network: Network, method: string, params: unknown[]): Prom
 //
 // NOTE: blockchain_get_native_balance / blockchain_get_contract_info /
 // blockchain_lookup_address were retired — they hit live public RPC (rate-
-// limited) and overlap onchain_lookup (Glacier-indexed). Use onchain_lookup for
+// limited) and overlap onchain_lookup. Use onchain_lookup for
 // balances, contract info, and address details.
 // ---------------------------------------------------------------------------
 
@@ -412,7 +412,7 @@ export const blockchainTools: ToolDomain = {
               text: JSON.stringify({
                 found: false,
                 indeterminate: true,
-                error: 'Could not verify this transaction — the upstream RPC was rate-limited or unreachable, so this is NOT a confirmed "not found". Retry shortly, or use onchain_lookup (Glacier-indexed).',
+                error: 'Could not verify this transaction: the upstream RPC was rate-limited or unreachable, so this is NOT a confirmed "not found". Retry shortly, or use onchain_lookup (Stats API index).',
                 txHash,
               }),
             }],
