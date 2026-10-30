@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { dayShort, localDayShort, localHourLong } from '@/components/explorer-v2/format';
+import { dayShort, localDayShort, localHourLong, timeUntil } from '@/components/explorer-v2/format';
 import { wholeDays } from '@/components/explorer-v2/pchain/node-data';
 
 /* On 2026-10-05 at 20:10 EDT (00:10 UTC on Oct 6) the node page's charts
@@ -39,5 +39,26 @@ describe('the days of the blocks chart', () => {
   it('keep a day from the moment it ends', () => {
     const now = Date.parse('2026-10-07T00:00:00Z');
     expect(wholeDays(days, now)).toHaveLength(3);
+  });
+});
+
+describe('the countdown beside a stake end date', () => {
+  const now = Date.parse('2026-10-06T00:00:00Z') / 1000;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now * 1000);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('counts whole days, hours, then minutes', () => {
+    expect(timeUntil(now + 41 * 86400 + 3600)).toBe('in 41d');
+    expect(timeUntil(now + 3 * 3600 + 59)).toBe('in 3h');
+    expect(timeUntil(now + 125)).toBe('in 2m');
+    expect(timeUntil(now + 20)).toBe('in 1m');
+  });
+
+  it('reads ended once the time has passed', () => {
+    expect(timeUntil(now)).toBe('ended');
+    expect(timeUntil(now - 86400)).toBe('ended');
   });
 });
