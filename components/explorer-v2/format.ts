@@ -96,6 +96,21 @@ export function timeAgo(unixSecs: number | undefined): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+/** "13 secs ago", "3 hrs ago", "1 yr 351 days ago": an age in words, in
+ *  the largest unit and, past a year, the days beyond it */
+export function ageWords(unixSecs: number | undefined, now = Date.now() / 1000): string {
+  if (!unixSecs) return "n/a";
+  const s = Math.max(0, Math.floor(now - unixSecs));
+  const n = (v: number, unit: string) => `${v} ${unit}${v === 1 ? "" : "s"}`;
+  if (s < 60) return `${n(s, "sec")} ago`;
+  if (s < 3600) return `${n(Math.floor(s / 60), "min")} ago`;
+  if (s < 86400) return `${n(Math.floor(s / 3600), "hr")} ago`;
+  const days = Math.floor(s / 86400);
+  if (days < 365) return `${n(days, "day")} ago`;
+  const rest = days % 365;
+  return `${n(Math.floor(days / 365), "yr")}${rest ? ` ${n(rest, "day")}` : ""} ago`;
+}
+
 export function formatTime(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
   return new Date(unixSecs * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC";

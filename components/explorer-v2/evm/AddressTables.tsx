@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Check, Copy, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, CellLabel, HEAD, ROW, FIG, UNIT, Tabs, EmptyRow, LoadMore, idInk, fnInk, RowDoor } from "@/components/explorer-v2/ui";
-import { ageShort, truncate } from "@/components/explorer-v2/format";
+import { Board, CellLabel, HEAD, ROW, FIG, INK, UNIT, Tabs, EmptyRow, LoadMore, HashChip, idInk, fnInk, RowDoor } from "@/components/explorer-v2/ui";
+import { ageShort, ageWords, formatNumber, formatTime, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
 import { TokenMark, TokenLogo } from "./TokenMark";
@@ -14,10 +14,14 @@ import { formatTokenAmount, usdOfToken, type TokenMap } from "@/lib/token-list";
 import { isGenesisCode, type Transfer, type TxSummary } from "@/lib/evm-explorer";
 import { Party } from "./LiveBoards";
 import { useUnlistedTokenMeta } from "./useErc20";
+import { useTxFees } from "./useTxFees";
+import { useVerifiedContracts } from "@/lib/sourcify-client";
 
 /* The tables an address page and a token page share, in the ledger's
    grammar: headed columns, one line per row, ink for identity, a red X
-   for a revert, direction as an arrow and a word rather than a pill. */
+   for a revert. The transaction table follows the Etherscan account page
+   (hash, method, block, age, from, IN or OUT, to, amount, fee); the
+   transfer table keeps direction as an arrow and a word. */
 
 export { FIG, UNIT, Tabs, EmptyRow };
 
@@ -73,6 +77,8 @@ export function TxTable({
   error,
   retry,
   more,
+  total,
+  rpcUrl,
 }: {
   more?: { onMore: () => void; hasMore: boolean; loading: boolean };
   txs: TxSummary[];
@@ -86,83 +92,211 @@ export function TxTable({
   loading: boolean;
   error: string | null;
   retry: () => void;
+  /** the address's transaction count, all time, for the line above the table */
+  total?: number;
+  /** where the fee column reads each row's receipt */
+  rpcUrl?: string;
 }) {
   const me = self.toLowerCase();
   const method = useMethodNames(chainId, txs);
-  const cols = "md:grid-cols-[0.75rem_11rem_minmax(0,9rem)_2.5rem_minmax(0,1fr)_minmax(0,9rem)_6rem_3.5rem]";
+  const named = useVerifiedContracts(chainId, txs.flatMap((t) => [t.from, t.to]));
+  const fee = useTxFees(rpcUrl, txs.map((t) => t.hash));
+  // the Age header switches the column between age and UTC time, as on Etherscan
+  const [clock, setClock] = useState(false);
+  const cols = "md:grid-cols-[minmax(0,10rem)_minmax(0,8rem)_6rem_8rem_minmax(0,1fr)_3.25rem_minmax(0,1fr)_minmax(0,8.5rem)_minmax(0,7rem)]";
   return (
     <div className="flex flex-col gap-4">
-    <Board>
-      <div className={cn(HEAD, cols)}>
-        <span />
-        <span>Hash</span>
-        <span>Method</span>
-        <span />
-        <span>Counterparty</span>
-        <span className="text-right">Value</span>
-        <span className="text-right">USD</span>
-        <span className="text-right">Age</span>
-      </div>
-      {txs.length === 0 && (error && !loading ? <FeedDown compact onRetry={retry} /> : <EmptyRow>{loading ? "Loading…" : "no transactions"}</EmptyRow>)}
-      {txs.map((t) => {
-        const out = t.from.toLowerCase() === me;
-        const other = out ? t.to : t.from;
-        const tok = other ? tokens.get(other.toLowerCase()) : undefined;
-        const m = method(t);
-        const value = Number(t.value);
-        return (
-          <RowDoor key={t.hash} href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
-            <span className="flex h-3 w-3 items-center justify-center">
-              {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
-            </span>
-            <Link href={`${base}/tx/${t.hash}`} className={cn("min-w-0 truncate font-mono text-[12.5px] hover:text-[#E6212F]", idInk)} onClick={(e) => e.stopPropagation()}>
-              {truncate(t.hash, HASH_LEN)}
-            </Link>
-            {/* a call into genesis code names a function that no longer runs */}
-            <span
-              className={cn("min-w-0 truncate font-mono text-[12px]", m.named && !isGenesisCode(chainId, t.to) ? fnInk : "text-zinc-400 dark:text-zinc-500")}
-              title={isGenesisCode(chainId, t.to) ? "genesis code: every call to it reverts" : t.methodId || undefined}
-            >
-              <CellLabel>Method</CellLabel>
-              {/* never a guessed name on genesis code: it reads like a way
-                  to move the AVAX burned there */}
-              {isGenesisCode(chainId, t.to) ? t.methodId || m.label : m.label}
-            </span>
-            <span className={cn("font-mono text-[10px] uppercase tracking-[0.12em]", out ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-700 dark:text-zinc-300")}>
-              {out ? "out" : "in"}
-            </span>
-            <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-              <CellLabel>Counterparty</CellLabel>
-              <span className="shrink-0 text-zinc-300 dark:text-zinc-700">{out ? "→" : "←"}</span>
-              {other ? (
-                <Party addr={other} name={null} token={tok} chainId={chainId} href={`${base}/address/${other}`} full />
-              ) : (
-                <span className="truncate">contract creation</span>
-              )}
-            </span>
-            <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", value > 0 ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 dark:text-zinc-600")}>
-              <CellLabel>Value</CellLabel>
-              {value > 0 ? (
-                <>
-                  {etherShort(t.value)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
-                </>
-              ) : (
-                <span className="text-zinc-300 dark:text-zinc-700">—</span>
-              )}
-            </span>
-            <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
-              {(value > 0 && usdOfWei(t.value, usd)) || ""}
-            </span>
-            <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
-              <CellLabel>Age</CellLabel>
-              {ageShort(t.timestamp)}
-            </span>
-          </RowDoor>
-        );
-      })}
-    </Board>
-    {more?.hasMore && txs.length > 0 && <LoadMore onClick={more.onMore} disabled={more.loading} />}
+      <Board>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 font-mono text-[12px] text-zinc-500 md:px-6 dark:text-zinc-400">
+          <span>
+            {txs.length === 0
+              ? loading
+                ? "Loading transactions…"
+                : "No transactions"
+              : total !== undefined && total > txs.length
+                ? <>Latest <span className={INK}>{formatNumber(txs.length)}</span> of <span className={INK}>{formatNumber(total)}</span> transactions</>
+                : <><span className={INK}>{formatNumber(txs.length)}</span> {txs.length === 1 ? "transaction" : "transactions"}</>}
+          </span>
+        </div>
+        {/* nine columns need more room than a tablet has: the table scrolls
+            sideways there; a phone reads each row as a labeled card */}
+        <div className="md:overflow-x-auto">
+          <div className="divide-y divide-zinc-200 md:min-w-[68rem] dark:divide-zinc-800">
+            <div className={cn(HEAD, cols)}>
+              <span>Transaction Hash</span>
+              <span>Method</span>
+              <span>Block</span>
+              <button
+                type="button"
+                onClick={() => setClock((v) => !v)}
+                title={clock ? "Show the age" : "Show the time in UTC"}
+                className={cn("text-left uppercase tracking-[0.14em] underline decoration-dotted underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-100", idInk)}
+              >
+                {clock ? "Time (UTC)" : "Age"}
+              </button>
+              <span>From</span>
+              <span />
+              <span>To</span>
+              <span className="text-right">Amount</span>
+              <span className="text-right">Txn Fee</span>
+            </div>
+            {txs.length === 0 && (error && !loading ? <FeedDown compact onRetry={retry} /> : <EmptyRow>{loading ? "Loading…" : "This address has no transactions."}</EmptyRow>)}
+            {txs.map((t) => {
+              const from = t.from.toLowerCase();
+              const to = t.to.toLowerCase();
+              const dir = from === me && to === me ? "self" : from === me ? "out" : "in";
+              const m = method(t);
+              const genesis = isGenesisCode(chainId, t.to);
+              const value = Number(t.value);
+              const paid = fee(t.hash);
+              return (
+                <RowDoor key={t.hash} href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    {!t.success && <X className="h-3 w-3 shrink-0 text-[#E6212F]" strokeWidth={2.5} aria-label="Reverted" />}
+                    <HashChip value={t.hash} href={`${base}/tx/${t.hash}`} len={HASH_LEN} />
+                  </span>
+                  {/* a call into genesis code names a function that no longer
+                      runs: never a guessed name there, it reads like a way to
+                      move the AVAX burned there */}
+                  <span className="min-w-0">
+                    <CellLabel>Method</CellLabel>
+                    <span
+                      className={cn(
+                        "inline-block max-w-full truncate border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 align-middle font-mono text-[11px] dark:border-zinc-800 dark:bg-zinc-900",
+                        m.named && !genesis ? fnInk : "text-zinc-500 dark:text-zinc-400",
+                      )}
+                      title={genesis ? "Genesis code: every call to it reverts" : t.methodId || m.label}
+                    >
+                      {genesis ? t.methodId || m.label : m.label}
+                    </span>
+                  </span>
+                  <span className="min-w-0 font-mono text-[12.5px] tabular-nums">
+                    <CellLabel>Block</CellLabel>
+                    <Link href={`${base}/block/${t.blockNumber}`} className={cn("hover:text-[#E6212F]", idInk)} onClick={(e) => e.stopPropagation()}>
+                      {t.blockNumber}
+                    </Link>
+                  </span>
+                  <span className="min-w-0 truncate font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400" title={clock ? ageWords(t.timestamp) : formatTime(t.timestamp)}>
+                    <CellLabel>{clock ? "Time (UTC)" : "Age"}</CellLabel>
+                    {clock ? formatTime(t.timestamp).replace(" UTC", "") : ageWords(t.timestamp)}
+                  </span>
+                  <span className="min-w-0">
+                    <CellLabel>From</CellLabel>
+                    <AddressCell addr={t.from} self={from === me} base={base} chainId={chainId} tokens={tokens} name={named.get(from)?.name} />
+                  </span>
+                  <span className="self-end md:self-center">
+                    <DirectionBadge dir={dir} />
+                  </span>
+                  <span className="min-w-0">
+                    <CellLabel>To</CellLabel>
+                    {t.to ? (
+                      <AddressCell addr={t.to} self={to === me} base={base} chainId={chainId} tokens={tokens} name={named.get(to)?.name} contract={named.has(to)} />
+                    ) : (
+                      <span className="font-mono text-[12px] text-zinc-500 dark:text-zinc-400">Contract creation</span>
+                    )}
+                  </span>
+                  <span
+                    className={cn("min-w-0 truncate font-mono text-[12.5px] tabular-nums md:text-right", value > 0 ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 dark:text-zinc-500")}
+                    title={(value > 0 && usdOfWei(t.value, usd)) || undefined}
+                  >
+                    <CellLabel>Amount</CellLabel>
+                    {value > 0 ? etherShort(t.value) : "0"} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
+                  </span>
+                  <span className="min-w-0 truncate font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    <CellLabel>Txn Fee</CellLabel>
+                    {paid === undefined ? <span className="text-zinc-300 dark:text-zinc-700">…</span> : paid === null ? <span className="text-zinc-300 dark:text-zinc-700">n/a</span> : feeShort(paid)}
+                  </span>
+                </RowDoor>
+              );
+            })}
+          </div>
+        </div>
+      </Board>
+      {more?.hasMore && txs.length > 0 && <LoadMore onClick={more.onMore} disabled={more.loading} />}
     </div>
+  );
+}
+
+/** a fee in the native unit at eight places, so a few cents still reads */
+function feeShort(wei: bigint): string {
+  const s = formatEther(wei.toString(), { decimals: 8 });
+  return Number(s.replace(/,/g, "")) === 0 && wei > 0n ? "<0.00000001" : s;
+}
+
+/** IN, OUT or SELF, as a tinted square badge */
+function DirectionBadge({ dir }: { dir: "in" | "out" | "self" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex w-11 items-center justify-center border py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em]",
+        dir === "out"
+          ? "border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+          : dir === "in"
+            ? "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+            : "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400",
+      )}
+    >
+      {dir}
+    </span>
+  );
+}
+
+/** a party in a row: its name where it has one, a contract mark on a
+ *  verified contract, a copy button; the page's own address is not a link */
+function AddressCell({
+  addr,
+  self,
+  base,
+  chainId,
+  tokens,
+  name,
+  contract = false,
+}: {
+  addr: string;
+  self: boolean;
+  base: string;
+  chainId: string;
+  tokens: TokenMap;
+  name?: string | null;
+  contract?: boolean;
+}) {
+  const tok = tokens.get(addr.toLowerCase());
+  return (
+    <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px]">
+      {contract && !tok && <FileText className="h-3 w-3 shrink-0 text-zinc-400 dark:text-zinc-500" aria-label="Contract" />}
+      {self ? (
+        <span className="truncate text-zinc-900 dark:text-zinc-50" title={addr}>
+          {truncate(addr, 8)}
+        </span>
+      ) : (
+        <Party addr={addr} name={name ?? null} token={tok} chainId={chainId} href={`${base}/address/${addr}`} len={8} />
+      )}
+      <CopyMini value={addr} />
+    </span>
+  );
+}
+
+/** the copy button a table cell carries beside an address */
+function CopyMini({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label="Copy address"
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard
+          ?.writeText(value)
+          .then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          })
+          .catch(() => {});
+      }}
+      className="-m-1 shrink-0 p-1 text-zinc-300 transition-colors hover:text-zinc-900 dark:text-zinc-600 dark:hover:text-zinc-100"
+    >
+      {copied ? <Check className="h-3 w-3 text-[#E6212F]" /> : <Copy className="h-3 w-3" />}
+    </button>
   );
 }
 
