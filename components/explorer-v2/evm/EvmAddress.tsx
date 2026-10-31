@@ -17,7 +17,7 @@ import { AddressChips, OverviewCards, PillTabs, type Who } from "./AddressOvervi
 import { useAddressBalances } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import { knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
+import { ADDRESS_TX_PAGE, knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
 import { readRpc } from "@/lib/explorer-rpc";
 
 /* An address, laid out like the Etherscan account page: chips that say
@@ -62,10 +62,10 @@ export function EvmAddress({
   const [tab, setTab] = useState<Tab>(() => tabOf(initialTab));
 
   const summary = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, { retry404Ms: 15_000 });
-  const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: 50 });
+  const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: ADDRESS_TX_PAGE }, { retryFailedMs: 5_000 });
   const transfers = useEvmData<TransferListResponse>(c.chainId, `address/${addr}/transfers`, { limit: 50 });
-  // past the first 50, on request, off the API's block cursor
-  const txPages = useMorePages<TxSummary>(c.chainId, `address/${addr}/txs`, "transactions", txs.data as unknown as Record<string, unknown> | null);
+  // past the first page, on request, off the API's block cursor
+  const txPages = useMorePages<TxSummary>(c.chainId, `address/${addr}/txs`, "transactions", txs.data as unknown as Record<string, unknown> | null, ADDRESS_TX_PAGE);
   const transferPages = useMorePages<Transfer>(c.chainId, `address/${addr}/transfers`, "transfers", transfers.data as unknown as Record<string, unknown> | null);
 
   // who: a verified record proves a contract; otherwise ask the chain

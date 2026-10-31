@@ -15,6 +15,10 @@ import { softStatus } from "@/lib/explorer-soft-status";
 export const dynamic = "force-dynamic";
 
 const REQUEST_TIMEOUT_MS = 8000;
+// An address's tx list is a cold ClickHouse read the first time: 1 to 30 s for a busy address. Past the 8 s cap
+// the page asked again from the start, up to three times. The longer cap stays under the page's 15 s read deadline
+// (usePolledJson), with room for the proxy itself, so a read of up to 12 s now answers on the first try.
+const ADDRESS_TXS_TIMEOUT_MS = 12_000;
 // Live data (lists, stats, addresses)
 const CACHE_CONTROL = "public, max-age=3, s-maxage=3, stale-while-revalidate=10";
 const FAST_CACHE_CONTROL = "public, max-age=0, s-maxage=1";
@@ -65,7 +69,7 @@ export async function GET(
   const upstream = `${EVM_API_BASE}/evm-api/${upstreamChainId}/${resource}${search}`;
 
   try {
-    const res = await fetchWithTimeout(upstream);
+    const res = await fetchWithTimeout(upstream, /^address\/[^/]+\/txs$/.test(resource) ? ADDRESS_TXS_TIMEOUT_MS : REQUEST_TIMEOUT_MS);
     const body = await res.text();
     // Pass through status + body; attach cache headers only on success. A
     // miss or an upstream error comes back soft to a read that asks.

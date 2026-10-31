@@ -37,6 +37,10 @@ export function evmApiPath(
   return qs ? `${base}?${qs}` : base;
 }
 
+/** An address's transactions, this many at a time, as Etherscan shows them. The address page, the token page and
+ *  the link warmer ask for the same URL, so they share one read and one upstream cache entry. */
+export const ADDRESS_TX_PAGE = 25;
+
 /* Unambiguous EVM query shapes route with no API round-trip: block heights are
    digits, addresses are 0x + 40 hex, tx hashes are 0x + 64 hex. */
 export function classifyEvmLocally(
