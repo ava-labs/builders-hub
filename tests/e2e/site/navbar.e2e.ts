@@ -6,7 +6,6 @@ import { NAVIGATION_TIMEOUT, TWO_ROUTE_TIMEOUT, openAsReturningVisitor, openSite
 // One item of each top menu, and the page it must open.
 // Desktop names a link by its label and its description, the phone sheet by its label only.
 const MENU_ITEMS = [
-  { menu: 'Solutions', item: /^Why Avalanche\b/, path: '/solutions', title: 'Solutions | Avalanche Builder Hub' },
   {
     menu: 'Developers',
     item: /^Documentation\b/,
@@ -63,7 +62,7 @@ test('privacy banner leaves the end of the phone menu tappable', async ({ app, s
 
 // The phone sheet gives every section at least one picture card (components/navigation/nav-config.ts).
 // A section with one card shows its text links in a column beside the card.
-const PHONE_SECTIONS = ['Solutions', 'Developers', 'Console', 'Explorer', 'Ecosystem'];
+const PHONE_SECTIONS = ['Developers', 'Console', 'Explorer', 'Ecosystem'];
 
 test('phone menu shows a picture card in every section, and its links fit their column', async ({
   app,
@@ -72,7 +71,7 @@ test('phone menu shows a picture card in every section, and its links fit their 
 }) => {
   await openAsReturningVisitor(app, browser, '/');
   await phoneOnly(browser);
-  const sheet = await openSiteMenu(screen, browser, 'Solutions');
+  const sheet = await openSiteMenu(screen, browser, 'Developers');
   for (const title of PHONE_SECTIONS) {
     // The Console card has the same name as the Console title. The title comes first.
     await expect(sheet.getByRole('link', title).first()).toBeVisible();
