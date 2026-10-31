@@ -3,6 +3,10 @@ import { ManagedTestnetNodesServiceURLs } from './constants';
 import { SubnetStatusResponse, NodeInfo, SubnetStatusResponseSchema, ServiceErrorSchema } from './types';
 import { toDateFromEpoch, NODE_TTL_MS, extractServiceErrorMessage } from './utils';
 
+// Not 502: Cloudflare in front of build.avax.network replaces an origin 502 or
+// 504 with its own HTML page, and the console then cannot read the JSON error.
+const UPSTREAM_ERROR_STATUS = 503;
+
 export class ManagedTestnetNodeServiceRequestError extends Error {
   status: number;
 
@@ -32,7 +36,10 @@ export async function builderHubAddNode(
   try {
     json = await response.json();
   } catch {
-    throw new Error('Invalid JSON response from Managed Testnet Node Service');
+    throw new ManagedTestnetNodeServiceRequestError(
+      UPSTREAM_ERROR_STATUS,
+      `The managed nodes service returned HTTP ${response.status} with a non-JSON response.`,
+    );
   }
 
   if (!response.ok) {
@@ -82,7 +89,7 @@ export async function builderHubDeleteNode(
   }
 
   const message = await extractServiceErrorMessage(response) || 'Failed to delete node from Builder Hub.';
-  throw new ManagedTestnetNodeServiceRequestError(502, message);
+  throw new ManagedTestnetNodeServiceRequestError(UPSTREAM_ERROR_STATUS, message);
 }
 
 export async function builderHubGetUpgradeJson(params: {
@@ -107,7 +114,7 @@ export async function builderHubGetUpgradeJson(params: {
 
   if (!response.ok) {
     const message = await extractServiceErrorMessage(response) || 'Failed to fetch upgrade.json from Builder Hub.';
-    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : 502, message);
+    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : UPSTREAM_ERROR_STATUS, message);
   }
 
   return (await response.json()) as { exists: boolean; upgradeJson: unknown | null };
@@ -140,7 +147,7 @@ export async function builderHubWriteUpgradeJson(params: {
 
   if (!response.ok) {
     const message = await extractServiceErrorMessage(response) || 'Failed to write upgrade.json in Builder Hub.';
-    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : 502, message);
+    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : UPSTREAM_ERROR_STATUS, message);
   }
 
   return (await response.json()) as { success: boolean; path?: string };
@@ -168,7 +175,7 @@ export async function builderHubRestartManagedNode(params: {
 
   if (!response.ok) {
     const message = await extractServiceErrorMessage(response) || 'Failed to restart managed node.';
-    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : 502, message);
+    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : UPSTREAM_ERROR_STATUS, message);
   }
 
   return (await response.json()) as { success: boolean; message?: string };
