@@ -6,7 +6,12 @@ const isKept = vi.hoisted(() => vi.fn(() => false));
 vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion: vi.fn(), drillSql: vi.fn((sql: string) => ({ ok: true, sql })), keptWords: vi.fn() }));
 vi.mock('@/lib/explorer-query/run-cache', () => ({ runKept, isKept }));
 vi.mock('@/lib/explorer-query/visual', () => ({ designVisual: vi.fn(), writeReading: vi.fn() }));
-vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery: vi.fn(), anchored: vi.fn(), indexState: vi.fn(async () => null) }));
+vi.mock('@/lib/explorer-query/clickhouse', () => ({
+  QueryBusyError: class QueryBusyError extends Error {},
+  runQuery: vi.fn(),
+  anchored: vi.fn(),
+  indexState: vi.fn(async () => null),
+}));
 vi.mock('@/lib/explorer-query/enrich', () => ({ nameRows: vi.fn(async () => ({})) }));
 vi.mock('@/lib/explorer-query/cut', () => ({ totalsOf: vi.fn(async () => null) }));
 vi.mock('@/lib/explorer-query/guard', () => ({ guardSql: vi.fn((sql: string) => ({ ok: true, sql })) }));
@@ -17,6 +22,7 @@ vi.mock('next/server', async (importOriginal) => ({ ...(await importOriginal<typ
 
 import { POST } from '@/app/api/explorer/query/route';
 import { checkChatRateLimit } from '@/lib/chat/rateLimit';
+import { QueryBusyError } from '@/lib/explorer-query/clickhouse';
 
 /* Reads with no model in front of them (an edited query, a board's tile, a drill) ran with no limit before
    2026-10-07, on the stats-api key every reader shares. Each address now has 120 an hour that the run cache did not
@@ -52,5 +58,26 @@ describe('reads with no model', () => {
   it("leave the address's questions their own budget", async () => {
     for (let i = 0; i < 121; i++) await post({ sql: SQL }, '198.51.100.4');
     expect(checkChatRateLimit('198.51.100.4', false).allowed).toBe(true);
+  });
+});
+
+/* The query service turns a read away when it is busy or over the key's rate (stats-api 503 or 429, a QueryBusyError
+   after runQuery's waits). That is no fault in the SQL: the route says 503 with Retry-After, not 400. */
+describe('a read the query service turns away', () => {
+  it('is a 503 with Retry-After, for an edited query and a drill', async () => {
+    runKept.mockRejectedValue(new QueryBusyError('rate limit reached, retry in 0s'));
+    for (const body of [{ sql: SQL }, { drill: { sql: SQL, row: {} } }]) {
+      const res = await post(body, '198.51.100.5');
+      expect(res.status).toBe(503);
+      expect(res.headers.get('retry-after')).toBe('5');
+      expect((await res.json()).error).toBe('The query service is busy. Try again in a few seconds.');
+    }
+  });
+
+  it("is still a 400 when the database refuses the query itself", async () => {
+    runKept.mockRejectedValue(new Error('Unknown identifier x'));
+    const res = await post({ sql: SQL }, '198.51.100.6');
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('Unknown identifier x');
   });
 });

@@ -1,7 +1,7 @@
 import { NextResponse, after } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { guardSql } from "@/lib/explorer-query/guard";
-import { runQuery, anchored, indexState, type ColumnMeta, type QueryResult } from "@/lib/explorer-query/clickhouse";
+import { QueryBusyError, runQuery, anchored, indexState, type ColumnMeta, type QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
@@ -84,6 +84,13 @@ function overReads(req: Request, sql: string, chainId: number): NextResponse | n
   return limit.allowed ? null : NextResponse.json({ error: `This address has run ${limit.limit} queries this hour. Try again ${formatResetTime(limit.resetTime)}.` }, { status: 429 });
 }
 
+/** a read that failed. A query service still busy or over its rate (QueryBusyError) is a 503 the same read gets past
+    shortly, not a fault in the SQL; anything else is the query's own error, a 400 */
+function readFailed(e: unknown, fallback: string): NextResponse {
+  if (e instanceof QueryBusyError) return NextResponse.json({ error: "The query service is busy. Try again in a few seconds." }, { status: 503, headers: { "Retry-After": "5" } });
+  return NextResponse.json({ error: e instanceof Error ? e.message : fallback }, { status: 400 });
+}
+
 /** the answer's read while it is fresh, else the kept SQL read again with its names and totals */
 async function readOf(key: string, sql: string, chainId: number, baseUrl: string): Promise<Read> {
   const hit = reads.get(key);
@@ -153,7 +160,7 @@ export async function POST(req: Request) {
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
       return NextResponse.json({ sql: d.sql, result, names, anchor: run.anchor, sources: run.sources, profile });
     } catch (e) {
-      return NextResponse.json({ error: e instanceof Error ? e.message : "drill failed" }, { status: 400 });
+      return readFailed(e, "drill failed");
     }
   }
 
@@ -170,7 +177,7 @@ export async function POST(req: Request) {
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
       return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor, sources: run.sources });
     } catch (e) {
-      return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
+      return readFailed(e, "query failed");
     }
   }
 
@@ -191,7 +198,7 @@ export async function POST(req: Request) {
         const callouts = await writeReading({ question: recipe.question, title: said.title, note: compared(said.note, recipe, result.rows, chainId), symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor, spent });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
-        return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
+        return readFailed(e, "reading failed");
       }
     }
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
@@ -205,7 +212,7 @@ export async function POST(req: Request) {
       // the design's own time, its model steps and each visual its tool turned back: a slow layout shows whether it retried
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, steps: out.steps, refused: out.refused?.length ? out.refused : undefined, error: out.fromDesigner ? undefined : out.error });
     } catch (e) {
-      return NextResponse.json({ error: e instanceof Error ? e.message : "design failed" }, { status: 400 });
+      return readFailed(e, "design failed");
     }
   }
 
