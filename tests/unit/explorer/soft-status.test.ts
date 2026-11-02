@@ -137,7 +137,12 @@ describe('the explorer proxies', () => {
 });
 
 describe('a node this deployment does not have', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('leaves the tx page of an untraced chain without a trace, softly', async () => {
+    // stats-api answers 400 for a chain it does not serve. The test read the live API until that API began to
+    // answer 503 for chain 1, which failed every branch
+    vi.stubGlobal('fetch', vi.fn(async () => json({ error: 'unsupported chain' }, 400)));
     const { GET } = await import('@/app/api/trace/[chainId]/[txHash]/route');
     const res = await GET(soft(`http://localhost/api/trace/1/${HASH}?block=1`), { params: Promise.resolve({ chainId: '1', txHash: HASH }) });
     expect(res.status).toBe(200);

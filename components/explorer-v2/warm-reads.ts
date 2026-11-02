@@ -1,4 +1,4 @@
-import { evmApiPath } from "@/lib/evm-explorer";
+import { ADDRESS_TX_PAGE, evmApiPath } from "@/lib/evm-explorer";
 import { PCHAIN_NETWORKS, isPchainNetwork, pchainActivityPath, pchainApiPath, pchainL1OpsPath, type PchainNetwork } from "@/lib/pchain-explorer";
 import { resolveCatalogChain } from "@/lib/explorer-catalog";
 import { readJson, recall } from "./page-data";
@@ -33,7 +33,7 @@ const EVM_PAGES: Record<string, (id: string, arg: string | undefined) => string[
   tx: (id, hash) => (hash ? [evmApiPath(id, `tx/${hash}`), priceOf(id)] : []),
   block: (id, n) => (n ? [evmApiPath(id, `block/${n}`), priceOf(id)] : []),
   address: (id, a) =>
-    a ? [evmApiPath(id, `address/${a}`), evmApiPath(id, `address/${a}/txs`, { limit: 50 }), evmApiPath(id, `address/${a}/transfers`, { limit: 50 }), priceOf(id)] : [],
+    a ? [evmApiPath(id, `address/${a}`), evmApiPath(id, `address/${a}/txs`, { limit: ADDRESS_TX_PAGE }), evmApiPath(id, `address/${a}/transfers`, { limit: 50 }), priceOf(id)] : [],
 };
 
 const PCHAIN_PAGES: Record<string, (network: string, arg: string | undefined) => string[]> = {

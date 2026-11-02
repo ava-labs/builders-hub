@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, BadgeCheck, ChevronDown, Cpu, FileCode2, Tag, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Board, BoardHeader, FIG } from "@/components/explorer-v2/ui";
 import { ageWords, formatNumber, formatTime } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
@@ -237,74 +238,65 @@ export function OverviewCards({
 /** the token total as a button that opens the largest holdings, with a door to the whole list */
 function HoldingsMenu({ chainId, holdings, ready, total, onAll }: { chainId: string; holdings: Holding[]; ready: boolean; total: number; onAll: () => void }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", close);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", close);
-    };
-  }, [open]);
-
   const n = holdings.length;
+  // the list opens in a portal: a Board's backdrop blur makes each card its own stacking context, so a list drawn
+  // inside the card went under the tab row and the table below it. The portal is outside the Field, so the list
+  // sets the Field's type and ink itself
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        disabled={!ready}
-        className="flex w-full items-center justify-between gap-3 border border-zinc-200 bg-white px-3 py-2 text-left transition-colors hover:border-zinc-400 disabled:cursor-default disabled:hover:border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600 dark:disabled:hover:border-zinc-800"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={!ready}
+          className="flex w-full items-center justify-between gap-3 border border-zinc-200 bg-white px-3 py-2 text-left transition-colors hover:border-zinc-400 disabled:cursor-default disabled:hover:border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600 dark:disabled:hover:border-zinc-800"
+        >
+          <span className="min-w-0 truncate">
+            {!ready ? (
+              <span className={QUIET}>…</span>
+            ) : (
+              <>
+                {total > 0 ? formatUsd(total) : "$0.00"} <span className={cn("text-[12px]", QUIET)}>({n} {n === 1 ? "token" : "tokens"})</span>
+              </>
+            )}
+          </span>
+          <ChevronDown className={cn("h-4 w-4 shrink-0 text-zinc-400 transition-transform", open && "rotate-180")} aria-hidden />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        collisionPadding={8}
+        className="w-(--radix-popover-trigger-width) max-w-[95vw] rounded-none border-zinc-200 bg-white p-0 font-mono text-[13.5px] tabular-nums text-zinc-900 shadow-lg dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
       >
-        <span className="min-w-0 truncate">
-          {!ready ? (
-            <span className={QUIET}>…</span>
-          ) : (
-            <>
-              {total > 0 ? formatUsd(total) : "$0.00"} <span className={cn("text-[12px]", QUIET)}>({n} {n === 1 ? "token" : "tokens"})</span>
-            </>
-          )}
-        </span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-zinc-400 transition-transform", open && "rotate-180")} aria-hidden />
-      </button>
-      {open && (
-        <div className="absolute inset-x-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
-          {n === 0 ? (
-            <p className={cn("px-3 py-3 text-[12px]", QUIET)}>No listed tokens held</p>
-          ) : (
-            <ul className="max-h-72 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-900">
-              {holdings.slice(0, 8).map((h) => (
-                <li key={h.address} className="flex items-center justify-between gap-3 px-3 py-2 text-[12px]">
-                  <span className="flex min-w-0 flex-col">
-                    <TokenMark address={h.address} chainId={chainId} token={h.token} size={14} />
-                    <span className={cn("truncate pl-5 text-[11px]", QUIET)}>
-                      {formatTokenAmount(h.amount, h.token.decimals)} {h.token.symbol}
-                    </span>
+        {n === 0 ? (
+          <p className={cn("px-3 py-3 text-[12px]", QUIET)}>No listed tokens held</p>
+        ) : (
+          <ul className="max-h-72 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-900">
+            {holdings.slice(0, 8).map((h) => (
+              <li key={h.address} className="flex items-center justify-between gap-3 px-3 py-2 text-[12px]">
+                <span className="flex min-w-0 flex-col">
+                  <TokenMark address={h.address} chainId={chainId} token={h.token} size={14} />
+                  <span className={cn("truncate pl-5 text-[11px]", QUIET)}>
+                    {formatTokenAmount(h.amount, h.token.decimals)} {h.token.symbol}
                   </span>
-                  <span className="shrink-0 tabular-nums">{h.usd > 0 ? formatUsd(h.usd) : <span className={QUIET}>No price</span>}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onAll();
-            }}
-            className="flex w-full items-center justify-between border-t border-zinc-200 px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
-          >
-            Show all holdings
-            <ArrowUpRight className="h-3 w-3" aria-hidden />
-          </button>
-        </div>
-      )}
-    </div>
+                </span>
+                <span className="shrink-0 tabular-nums">{h.usd > 0 ? formatUsd(h.usd) : <span className={QUIET}>No price</span>}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            onAll();
+          }}
+          className="flex w-full items-center justify-between border-t border-zinc-200 px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+        >
+          Show all holdings
+          <ArrowUpRight className="h-3 w-3" aria-hidden />
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }
 

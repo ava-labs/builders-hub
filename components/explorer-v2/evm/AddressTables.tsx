@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, CellLabel, HEAD, ROW, FIG, INK, UNIT, Tabs, EmptyRow, LoadMore, HashChip, idInk, fnInk, RowDoor } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, HEAD, ROW, RowSkeleton, FIG, INK, UNIT, Tabs, EmptyRow, LoadMore, HashChip, idInk, fnInk, RowDoor } from "@/components/explorer-v2/ui";
 import { ageShort, ageWords, formatNumber, formatTime, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
 import { TokenMark, TokenLogo } from "./TokenMark";
 import { usdOfWei } from "./hooks";
 import { formatTokenAmount, usdOfToken, type TokenMap } from "@/lib/token-list";
-import { isGenesisCode, type Transfer, type TxSummary } from "@/lib/evm-explorer";
+import { ADDRESS_TX_PAGE, isGenesisCode, type Transfer, type TxSummary } from "@/lib/evm-explorer";
 import { Party } from "./LiveBoards";
 import { useUnlistedTokenMeta } from "./useErc20";
 import { useTxFees } from "./useTxFees";
@@ -140,7 +140,7 @@ export function TxTable({
               <span className="text-right">Amount</span>
               <span className="text-right">Txn Fee</span>
             </div>
-            {txs.length === 0 && (error && !loading ? <FeedDown compact onRetry={retry} /> : <EmptyRow>{loading ? "Loading…" : "This address has no transactions."}</EmptyRow>)}
+            {txs.length === 0 && (error && !loading ? <FeedDown compact onRetry={retry} /> : loading ? <RowSkeleton n={ADDRESS_TX_PAGE} /> : <EmptyRow>This address has no transactions.</EmptyRow>)}
             {txs.map((t) => {
               const from = t.from.toLowerCase();
               const to = t.to.toLowerCase();
