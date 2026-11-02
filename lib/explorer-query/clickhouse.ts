@@ -146,13 +146,6 @@ async function statsSlot<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-/** the Cloudflare WAF rule on /v2/query lets a request in by this URL token */
-function tokenUrl(token: string): string {
-  const url = new URL(STATS_QUERY_URL);
-  url.searchParams.set("token", token);
-  return url.toString();
-}
-
 /** what a writer and a reader are told when the rows stop short, and how to write the query so they do not */
 const CUT_OFF = "the query service cut its answer off, as it does when a value is NaN or infinite: divide by nullIf(x, 0), and wrap ratios and quantiles in ifNotFinite(x, NULL)";
 
@@ -167,9 +160,9 @@ async function postStats(sql: string, chainId?: number): Promise<RawJson> {
   for (let attempt = 0; attempt < 4; attempt += 1) {
     // the rows stream: the query runs until the body is read, so the slot is held until then
     const got = await statsSlot(async () => {
-      const r = await fetch(tokenUrl(key), {
+      const r = await fetch(STATS_QUERY_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Query-Key": key },
         // chainId is the chain stats-api reads $ICTT on (ictt.ts); other SQL ignores it
         body: JSON.stringify({ sql, maxRows: MAX_ROWS, timeoutSeconds: QUERY_TIMEOUT_S, format: "json", chainId }),
         signal: AbortSignal.timeout((QUERY_TIMEOUT_S + 10) * 1000),
