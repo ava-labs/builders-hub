@@ -306,12 +306,24 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     [focusSectionTop],
   );
 
+  // A control to focus when its section opens. The section renders when the
+  // router commits the new URL, in a transition that can take many frames on
+  // a slow device, so a wait of a fixed number of frames can come too early.
+  const pendingFocusRef = React.useRef<{ section: SectionId; focus: () => void } | null>(null);
+
   // A new section takes the focus to its heading, so a screen reader and a
-  // keyboard user start at its top; the page scrolls up to it if needed.
+  // keyboard user start at its top; the page scrolls up to it if needed. A
+  // pending control of the section gets the focus instead.
   const firstRender = React.useRef(true);
   React.useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
+      return;
+    }
+    const pending = pendingFocusRef.current;
+    pendingFocusRef.current = null;
+    if (pending?.section === active) {
+      pending.focus();
       return;
     }
     const heading = contentRef.current?.querySelector<HTMLElement>("#section-title");
@@ -414,10 +426,14 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     setSaveError(result.message);
     const field = result.field;
     if (!field) return;
-    // the field can be in the other form section: open it, then focus the
-    // field after the heading-focus effect, as jumpToNext does
+    // the field can be in the other form section: open it, and the section
+    // effect focuses the field when it is on the page
     const section = sectionOfField(field);
-    if (section !== active) select(section);
+    if (section !== active) {
+      pendingFocusRef.current = { section, focus: () => focusField(field) };
+      select(section);
+      return;
+    }
     requestAnimationFrame(() => requestAnimationFrame(() => focusField(field)));
   };
 
@@ -432,9 +448,20 @@ function SignedInProfile({ teamLabel }: { teamLabel: string | null }) {
     const next = completion.next?.key;
     const target = next ? STEP_SECTION[next] : undefined;
     if (!target) return;
-    select(target.section);
-    const field = target.field;
-    if (field) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(field)?.focus()));
+    const { section, field } = target;
+    if (!field) {
+      select(section);
+      return;
+    }
+    const focus = () => document.getElementById(field)?.focus();
+    // another section: the section effect focuses the field when it is on the page
+    if (section !== active) {
+      pendingFocusRef.current = { section, focus };
+      select(section);
+      return;
+    }
+    select(section);
+    requestAnimationFrame(() => requestAnimationFrame(focus));
   };
 
   const handleConnectGithub = () => {
