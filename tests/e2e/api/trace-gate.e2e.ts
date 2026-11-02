@@ -10,11 +10,13 @@ const BROWSER =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 
 describe('trace route gate', { platforms: ['api'], tags: ['api', 'explorer'] }, () => {
-  test('robots.txt disallows the trace route and nothing else', async ({ app }) => {
+  test('robots.txt disallows the trace route, and the API routes for Baidu only', async ({ app }) => {
     const res = await appFetch(app, '/robots.txt');
     expect(res.status).toBe(200);
     const text = await res.text();
     expect(text).toMatch(/^Disallow: \/api\/trace\/$/m);
+    expect(text).toMatch(/^User-Agent: Baiduspider\nUser-Agent: Baiduspider-render\nDisallow: \/api\/$/m);
+    expect(text.match(/^Disallow: \/api\/$/gm)).toHaveLength(1);
     expect(text).not.toMatch(/debug-rpc/);
     expect(text).not.toMatch(/^Disallow: \/$/m);
     expect(text).not.toMatch(/^Allow:/m);

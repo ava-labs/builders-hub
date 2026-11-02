@@ -77,11 +77,22 @@ describe('the explorer proxies', () => {
   });
 
   it('keeps a success as it was, cache headers and all', async () => {
-    upstream.mockImplementation(async () => json({ hash: HASH }));
+    upstream.mockImplementation(async () => {
+      const res = json({ hash: HASH });
+      res.headers.set('cache-control', 'public, max-age=3600, s-maxage=31536000, immutable');
+      return res;
+    });
     const s = await evm(`tx/${HASH}`, soft(`http://localhost/api/evm/43114/tx/${HASH}`));
     expect(s.status).toBe(200);
     expect(isOk(s)).toBe(true);
     expect(s.headers.get('cache-control')).toContain('s-maxage=86400');
+  });
+
+  it('caches a tx the indexer has not finished only briefly', async () => {
+    upstream.mockImplementation(async () => json({ hash: HASH }));
+    const s = await evm(`tx/${HASH}`, soft(`http://localhost/api/evm/43114/tx/${HASH}`));
+    expect(isOk(s)).toBe(true);
+    expect(s.headers.get('cache-control')).not.toContain('s-maxage=86400');
   });
 
   it('answers a P-Chain upstream that does not answer as a soft 504', async () => {

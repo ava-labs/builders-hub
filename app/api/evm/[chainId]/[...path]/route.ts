@@ -19,15 +19,16 @@ const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_CONTROL = "public, max-age=3, s-maxage=3, stale-while-revalidate=10";
 const FAST_CACHE_CONTROL = "public, max-age=0, s-maxage=1";
 const FAST_CHAINS = new Set(["43114"]);
-// tx/{hash} and block/{id} are final at acceptance — once the upstream returns
-// a 200 the payload never changes, so cache hard and spare the origin box.
+// block/{id} is final at acceptance — once the upstream returns a 200 the
+// payload never changes, so cache hard and spare the origin box. tx/{hash} is
+// final only when stats-api marks it immutable: before the indexer covers its
+// block, the logs and internal txns may not be in yet.
 const IMMUTABLE_CACHE_CONTROL =
   "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
-function cacheControlFor(resource: string, chainId: string, query: URLSearchParams): string {
-  if (resource.startsWith("tx/") || resource.startsWith("block/")) {
-    return IMMUTABLE_CACHE_CONTROL;
-  }
+function cacheControlFor(resource: string, chainId: string, query: URLSearchParams, upstreamCC: string): string {
+  if (resource.startsWith("block/")) return IMMUTABLE_CACHE_CONTROL;
+  if (resource.startsWith("tx/") && upstreamCC.includes("immutable")) return IMMUTABLE_CACHE_CONTROL;
   // The newest transactions are polled every 5 s (a chain's home and its
   // live list). With stale-while-revalidate each poll got the copy the poll
   // before had asked for, 3 to 5 s old: one poll behind. A page of older
@@ -73,7 +74,7 @@ export async function GET(
       body,
       softStatus(req, res.status, {
         "content-type": res.headers.get("content-type") ?? "application/json",
-        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId, req.nextUrl.searchParams) } : {}),
+        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId, req.nextUrl.searchParams, res.headers.get("cache-control") ?? "") } : {}),
       }),
     );
   } catch (err) {
