@@ -15,6 +15,14 @@ const LIVE_SHOW_MS = 30_000;
 const RECORD_SHOW_MS = 10 * 60_000;
 /* a payload this young (a hover's read a moment ago) is not asked for again when its page opens */
 const FRESH_MS = 3_000;
+/* the longest wait between two reads of a feed that keeps failing */
+const RETRY_FAILED_MAX_MS = 2 * 60_000;
+
+/** how long a failed feed waits before its next read: `firstMs` after the
+ *  first failure, twice as long after each one since, at most 2 minutes */
+export function failedReadDelay(firstMs: number, failures: number): number {
+  return Math.min(firstMs * 2 ** failures, RETRY_FAILED_MAX_MS);
+}
 
 const memory = new Map<string, { data: unknown; at: number }>();
 const reading = new Map<string, Promise<unknown>>();
@@ -75,10 +83,15 @@ export function usePolledJson<T>(
     /** keep re-checking a 404 for this long: fresh txs/blocks exist
      *  on-chain seconds before the indexer has ingested them */
     retry404Ms?: number;
+    /** a feed with no refreshMs whose first read failed, with nothing to
+     *  show, reads again this long after, then twice as long each time
+     *  (failedReadDelay), until it answers. A 404 is an answer. */
+    retryFailedMs?: number;
   },
 ): { data: T | null; loading: boolean; error: string | null; retry: () => void } {
   const refreshMs = opts?.refreshMs ?? 0;
   const retry404Ms = opts?.retry404Ms ?? 0;
+  const retryFailedMs = opts?.retryFailedMs ?? 0;
   const [opening] = useState(() => recall<T>(key, refreshMs > 0));
   const [data, setData] = useState<T | null>(opening?.data ?? null);
   const [loading, setLoading] = useState(!opening);
@@ -136,10 +149,44 @@ export function usePolledJson<T>(
         else void refresh();
       }, refreshMs);
     };
+
+    // retryFailedMs: a feed read once that failed reads again, further
+    // apart each time, until it answers. Without it, a feed slower than
+    // the deadline (a server with a cold cache) is gone until a reload.
+    // A read that comes due while the tab is hidden waits for the tab.
+    let failures = 0;
+    let parked = false;
+    const readFailedAgain = async () => {
+      try {
+        const res = await fetch(key, { ...SOFT_READ, signal: pollSignal() });
+        if (isOk(res)) {
+          got((await res.json()) as T);
+          return;
+        }
+        // a 404 or another client error is an answer: only a busy or failed server is asked again
+        const status = statusOf(res);
+        if (status < 500 && status !== 429) return;
+      } catch {
+        /* the next wait is longer */
+      }
+      if (!controller.signal.aborted) retryFailed();
+    };
+    const retryFailed = () => {
+      const wait = failedReadDelay(retryFailedMs, failures++);
+      timer = setTimeout(() => {
+        if (document.visibilityState === "hidden") parked = true;
+        else void readFailedAgain();
+      }, wait);
+    };
+
     // hidden-tab timers are heavily throttled: on return, poll NOW rather
     // than leaving minutes-old rows on screen until the next tick lands
     const onVisible = () => {
-      if (document.visibilityState === "visible" && live && !controller.signal.aborted) {
+      if (document.visibilityState !== "visible" || controller.signal.aborted) return;
+      if (parked) {
+        parked = false;
+        void readFailedAgain();
+      } else if (live) {
         if (timer) clearTimeout(timer);
         void refresh();
       }
@@ -181,6 +228,7 @@ export function usePolledJson<T>(
       // the upstream explorer API times out intermittently under load
       // (504 through the proxy); one spaced retry absorbs almost all of it.
       let notFound = false;
+      let failed = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const res = await fetch(key, { ...SOFT_READ, signal: pollSignal() });
@@ -200,6 +248,7 @@ export function usePolledJson<T>(
           // with the memory's payload on screen, a failed read is a failed refresh
           if (hit) break;
           notFound = message === "not found";
+          failed = !notFound;
           setError(message);
           setData(null);
         }
@@ -208,6 +257,7 @@ export function usePolledJson<T>(
       setLoading(false);
       if (notFound && retry404Ms > 0) retry404Until(Date.now() + retry404Ms);
       else if (refreshMs > 0) schedule();
+      else if (failed && retryFailedMs > 0) retryFailed();
     })();
 
     return () => {
@@ -215,7 +265,7 @@ export function usePolledJson<T>(
       document.removeEventListener("visibilitychange", onVisible);
       if (timer) clearTimeout(timer);
     };
-  }, [key, refreshMs, retry404Ms, nonce]);
+  }, [key, refreshMs, retry404Ms, retryFailedMs, nonce]);
 
   return { data, loading, error, retry };
 }

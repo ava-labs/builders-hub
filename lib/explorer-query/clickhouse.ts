@@ -113,7 +113,7 @@ interface RawJson {
 
 /* Two ways in. ClickHouse now sits inside the stats-api cluster with no
    public port, so the usual path is stats-api's own query endpoint
-   (/v2/query, a key per holder). A direct URL (QUERY_CLICKHOUSE_URL, the
+   (/v2/query, behind a Cloudflare WAF token rule). A direct URL (QUERY_CLICKHOUSE_URL, the
    local test harness) still wins when it is set. */
 const STATS_QUERY_URL = process.env.STATS_QUERY_URL || "https://stats-api.avax.network/v2/query";
 

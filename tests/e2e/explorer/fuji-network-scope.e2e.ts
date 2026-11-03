@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
 import { test, type Browser } from '@e2e-dev/web';
 import { expect, type Locator, type Screen } from 'e2e';
+import { escapeRegExp } from '../lib/regexp';
 import { isPhoneLayout } from '../lib/skip';
 import { answerFirstVisitPrompts } from '../lib/visitor';
 import {
@@ -9,7 +9,9 @@ import {
   MULTI_PAGE,
   NAVIGATION,
   OVERVIEW_BLOCK_ROW,
+  catalogNames,
   expectActiveTab,
+  namesOneOf,
   networkSwitch,
   openChainSwitcher,
   pathPattern,
@@ -27,41 +29,15 @@ import {
 const MAINNET_CITY = '/explorer/mainnet/chains';
 // How long the linked-chain test holds the overview feed: longer than the P-Chain registry takes to answer.
 const OVERVIEW_DELAY_MS = 20_000;
+// The page reads the overview feed up to 3 times, then sets an error and hides the boards (usePolledJson in
+// components/explorer-v2/page-data.ts). After that error it reads the feed again 20 s later (OVERVIEW_RETRY_MS in
+// components/explorer-v2/network/NetworkOverview.tsx).
+const FAILED_OVERVIEW_READS = 3;
+const OVERVIEW_RETRY_MS = 20_000;
 const FUJI_CITY = '/explorer/fuji/chains';
 
 // A short hash or address link on an overview board, as truncate() writes it: "0x1281…9d13".
 const SHORT_HASH = /^(0x)?[0-9A-Za-z]{4,6}…[0-9A-Za-z]{4}$/;
-
-interface CatalogChain {
-  chainName: string;
-  isTestnet?: boolean;
-}
-
-// The chain names of the catalog (constants/l1-chains.json): the Fuji entries, and the mainnet names that no Fuji
-// entry has. Each test that needs them reads the file in its body, not when the runner collects the tests.
-function catalogNames(): { fuji: Set<string>; mainnetOnly: Set<string> } {
-  const catalog = JSON.parse(
-    readFileSync(new URL('../../../constants/l1-chains.json', import.meta.url), 'utf8'),
-  ) as CatalogChain[];
-  // Some entries have no name. The City shows a short ID for them.
-  const named = (chains: CatalogChain[]) => chains.map((c) => c.chainName.trim()).filter(Boolean);
-  const fuji = new Set(named(catalog.filter((c) => c.isTestnet === true)));
-  const mainnetOnly = new Set(named(catalog.filter((c) => c.isTestnet !== true)).filter((name) => !fuji.has(name)));
-  return { fuji, mainnetOnly };
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// A row of the City list reads: the initial of the chain when it has no logo, the name, a 4-character tag when two
-// chains have the same name (the rendered text puts no space before it), the badges on a large screen, then the count
-// (validators by default; on a phone " val" and the badges follow it).
-function namesOneOf(text: string, names: Set<string>): boolean {
-  return [...names].some((name) =>
-    new RegExp(`^(\\S )?${escapeRegExp(name)}(\\S{4})?( NEW| PRIVATE)* ([\\d.,]+[KMB]?|\\u2014)( |$)`).test(text),
-  );
-}
 
 // A test that opens the City answers the privacy banner first, so the banner does not cover the controls.
 async function openCity(app: { open(path: string): Promise<unknown> }, browser: Browser, path: string): Promise<void> {
@@ -146,6 +122,26 @@ test('the Fuji overview boards link Fuji pages only', async ({ app, screen }) =>
     return hrefs.filter((href) => !href?.startsWith('/explorer/fuji/'));
   };
   await expect.poll(notFuji).toEqual([]);
+});
+
+// A server with no cache can take longer to answer the overview feed than the page waits for each read. Here each of
+// the page's first reads fails at once. The boards must fill when a later read of the feed answers.
+test('the Fuji overview boards fill when the first reads of the overview feed fail', async ({
+  app,
+  screen,
+  browser,
+}) => {
+  let failed = 0;
+  await browser.route(/\/api\/overview-stats\?.*network=fuji/, async (route) => {
+    if (failed >= FAILED_OVERVIEW_READS) return route.continue();
+    failed++;
+    await route.abort();
+  });
+  await app.open('/explorer/fuji');
+  await expect.poll(() => failed, DATA).toBe(FAILED_OVERVIEW_READS);
+  await expect(screen.getByRole('link', OVERVIEW_BLOCK_ROW).first()).toBeVisible({
+    timeout: OVERVIEW_RETRY_MS + DATA.timeout,
+  });
 });
 
 test('the Fuji City lists no mainnet chain', MULTI_PAGE, async ({ app, screen, browser }) => {

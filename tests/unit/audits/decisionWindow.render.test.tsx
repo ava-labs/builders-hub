@@ -260,6 +260,15 @@ describe("the project's request page", () => {
     expect(html).not.toContain("Pick one to reveal contacts");
   });
 
+  it("names the moment the window closed, as stored", () => {
+    // The fixture's 12:00 UTC is an instant from before the 23:59 rule: the
+    // page prints it as it is, never a 23:59 it does not hold.
+    const html = detailPage(ownerDetail()).replace(/<!-- -->/g, "");
+
+    expect(html).toContain("Window closed 2026-11-10 12:00 UTC");
+    expect(html).toContain("quotes close 2026-11-10 12:00 UTC");
+  });
+
   it("offers Start again on a lapsed request, its quotes read-only", () => {
     const html = detailPage(
       ownerDetail({ display_status: "expired", quotes: [ownerQuote({ display_status: "expired" })] }),

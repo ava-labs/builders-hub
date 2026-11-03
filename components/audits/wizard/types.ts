@@ -1,4 +1,4 @@
-import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import { endOfUtcDay, type DeploymentTarget, type UrgencyOption } from "@/lib/audits/status";
 import { parseStoredAttachments } from "@/lib/audits/attachments";
 import type { AuditAttachment, AuditDraftInput } from "@/types/audits";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
@@ -90,8 +90,8 @@ export function wizardDefaults(prefill: {
     doc_links: [],
     attachments: [],
     needed_by: null,
-    // Pre-filled per design: "Defaulted to +10 days · the recommended window".
-    quote_deadline: new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY),
+    // Pre-filled per design, closing at 23:59 UTC of that day like a picked one.
+    quote_deadline: endOfUtcDay(new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY)),
     urgency: "",
     contact_name: prefill.contact_name,
     contact_email: prefill.contact_email,

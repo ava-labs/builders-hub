@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { evmApiPath } from "@/lib/evm-explorer";
 import { usePolledJson } from "@/components/explorer-v2/page-data";
-import { SOFT_READ, isOk } from "@/lib/explorer-soft-status";
+import { SOFT_READ, isOk, statusOf } from "@/lib/explorer-soft-status";
 
 // Default client poll interval for "live" views (home, tx/block lists).
 export const LIVE_REFRESH_MS = 5_000;
@@ -79,12 +79,13 @@ export function useMorePages<T>(
     if (cursor === undefined || loadingMore) return;
     setLoadingMore(true);
     fetch(evmApiPath(chainId, resource, { limit, before: cursor }), SOFT_READ)
-      .then((res) => (isOk(res) ? res.json() : null))
-      .then((page: ({ nextBefore?: number } & Record<string, unknown>) | null) => {
-        const rows = (page?.[listKey] as T[] | undefined) ?? [];
+      // a failed read (a 504 past the proxy's cap) keeps the cursor, so the button stays to ask again
+      .then((res) => (isOk(res) ? res.json() : Promise.reject(new Error(`HTTP ${statusOf(res)}`))))
+      .then((page: { nextBefore?: number } & Record<string, unknown>) => {
+        const rows = (page[listKey] as T[] | undefined) ?? [];
         setExtra((x) => [...x, ...rows]);
         // a short or cursorless page is the end of the list
-        setCursor(rows.length >= limit ? page?.nextBefore : undefined);
+        setCursor(rows.length >= limit ? page.nextBefore : undefined);
       })
       .catch(() => {})
       .finally(() => setLoadingMore(false));

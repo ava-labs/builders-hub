@@ -34,7 +34,14 @@ export interface DeliverResult {
   errors: string[];
 }
 
-const message = (error: unknown) => (error instanceof Error ? error.message : String(error)).split('\n')[0];
+// The whole message on one line: a page failure puts the tool card's text after the first line (console.ts), and that
+// text names the page's own error.
+const message = (error: unknown) =>
+  (error instanceof Error ? error.message : String(error))
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' | ');
 
 /**
  * Runs up to `attempts` deliveries, `intervalMs` apart, and returns as soon as `landed()` is true. After the last

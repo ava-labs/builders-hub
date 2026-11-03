@@ -8,7 +8,9 @@ name: E2E
 # flows that send transactions are in tests/e2e/chain and run only in e2e-chain.yml.
 #
 # Targets: a PR tests the Vercel preview of its head commit, a master push the production deployment of its commit,
-# and the nightly run build.avax.network.
+# and the nightly run build.avax.network. The tests run at the commit of the target: on a PR the plan and test jobs
+# check out the head commit, not the merge ref (refs/pull/N/merge), so a branch that is behind master does not run
+# the newer tests of master against a preview that lacks their features.
 #
 # Secrets:
 #   - VERCEL_AUTOMATION_BYPASS_SECRET opens the SSO-protected deployments. The engine sends it only to the app's site.
@@ -16,6 +18,8 @@ name: E2E
 # Fork and Dependabot PRs get no bypass secret, so the plan skips their tests. The master push after a merge runs them.
 #
 # The check to require on master is `E2E result`: it fails when the plan or a test job failed or was cancelled.
+# Also require branches to be up to date before merging. A PR tests its head commit only, so that rule is what makes
+# a branch take the newer tests of master, and pass them, before the merge.
 
 on:
   pull_request:
@@ -83,9 +87,13 @@ jobs:
             exit 1
           fi
 
+      # On a PR, the head commit: the commit of the preview that the tests open. The default, the merge ref, also holds
+      # the newer tests of master. On other events the value is empty, and checkout keeps its default.
       - name: Checkout
         if: steps.access.outputs.testable == 'true'
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup Node.js
         if: steps.access.outputs.testable == 'true'
@@ -143,8 +151,11 @@ jobs:
       run:
         working-directory: tests/e2e
     steps:
+      # The commit that the plan job read and the target deploys (see the plan job).
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

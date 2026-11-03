@@ -6,16 +6,25 @@ import { cn } from "@/lib/utils";
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/** "in 2d 4h" with a day or more left, both floored, then a live clock,
+    "in 05:12:44", for the last 24 hours (2026-10-20, call T1 B); null once
+    the deadline has passed. */
 export function formatRemaining(deadline: Date, now: Date): string | null {
   const diff = deadline.getTime() - now.getTime();
   if (diff <= 0) return null;
-  const days = Math.floor(diff / DAY);
-  if (days >= 2) return `in ${days} days`;
-  if (days === 1) return "in 1 day";
-  const hours = Math.floor(diff / HOUR);
-  if (hours >= 1) return `in ${hours} hour${hours === 1 ? "" : "s"}`;
-  const minutes = Math.max(1, Math.floor(diff / 60_000));
-  return `in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  if (diff >= DAY) return `in ${Math.floor(diff / DAY)}d ${Math.floor((diff % DAY) / HOUR)}h`;
+  const seconds = Math.floor(diff / 1000);
+  const [h, m, s] = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60];
+  return `in ${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+/** How soon the chip redraws: every second while the clock shows, once a
+    minute otherwise. */
+export function countdownTickMs(deadline: Date, now: Date): number {
+  const diff = deadline.getTime() - now.getTime();
+  return diff > 0 && diff < DAY ? 1000 : 60_000;
 }
 
 interface CountdownChipProps {
@@ -43,7 +52,8 @@ const CLOSED_PILL = "border-zinc-300 text-zinc-600 dark:border-white/15 dark:tex
 /**
  * Live deadline countdown. Renders nothing until mounted (the mount gate from
  * components/ui/custom-countdown-banner.tsx) so server and client HTML never
- * disagree. Inline text tiers with distance (round-4 X4-A): red <=3 days,
+ * disagree. Two units until the last 24 hours, then a clock that redraws
+ * every second. Inline text tiers with distance (round-4 X4-A): red <=3 days,
  * amber 4-7, quiet ink beyond. The pill keeps red at <=7 days: portal triage
  * reads a whole week as urgent.
  */
@@ -56,12 +66,20 @@ export function CountdownChip({
   className,
 }: CountdownChipProps) {
   const [now, setNow] = useState<Date | null>(null);
+  const deadlineMs = new Date(deadline).getTime();
 
   useEffect(() => {
-    setNow(new Date());
-    const interval = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(interval);
-  }, []);
+    // One timeout at a time, re-armed each tick at the pace the countdown
+    // needs: a minute apart until the last 24 hours, then every second.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = () => {
+      const current = new Date();
+      setNow(current);
+      timer = setTimeout(tick, countdownTickMs(new Date(deadlineMs), current));
+    };
+    tick();
+    return () => clearTimeout(timer);
+  }, [deadlineMs]);
 
   if (!now) return null;
 
@@ -70,6 +88,8 @@ export function CountdownChip({
   const msLeft = target.getTime() - now.getTime();
   const urgent = msLeft <= 3 * DAY;
   const soon = msLeft <= 7 * DAY;
+  // The live clock's digits keep one width so the pill never jitters.
+  const clock = remaining !== null && msLeft < DAY;
 
   if (pill) {
     const tone = !remaining ? CLOSED_PILL : soon ? URGENT_PILL : CALM_PILL;
@@ -78,6 +98,7 @@ export function CountdownChip({
         className={cn(
           "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium",
           tone,
+          clock && "tabular-nums",
           className,
         )}
       >
@@ -99,6 +120,7 @@ export function CountdownChip({
               : soon || palette === "portal"
                 ? CALM_TEXT
                 : "text-zinc-900 dark:text-zinc-100",
+            clock && "tabular-nums",
           )}
         >
           {remaining}

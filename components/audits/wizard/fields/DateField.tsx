@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { endOfUtcDay } from "@/lib/audits/status";
 import {
   formatIsoDate,
   fromUtcCalendarDate,
@@ -28,6 +29,15 @@ interface DateFieldProps {
   required?: boolean;
   helper?: string;
   placeholder?: string;
+  /** Store the day's last millisecond (UTC) instead of its start: the quote
+      deadline, which closes at 23:59 UTC on the day picked. */
+  endOfDay?: boolean;
+}
+
+/** The stored value of a picked day: its UTC start, or its UTC end. */
+export function toStoredDay(picked: Date, endOfDay: boolean): Date {
+  const day = toUtcCalendarDate(picked);
+  return endOfDay ? endOfUtcDay(day) : day;
 }
 
 export function DateField({
@@ -37,6 +47,7 @@ export function DateField({
   required,
   helper,
   placeholder = "Pick a date",
+  endOfDay = false,
 }: DateFieldProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -72,10 +83,11 @@ export function DateField({
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  // Shown as the local calendar day, stored as UTC midnight of
-                  // that same day, so the two never drift apart.
+                  // Shown as the local calendar day, stored as that same UTC
+                  // day (its start, or its end for a deadline), so the two
+                  // never drift apart.
                   selected={value ? fromUtcCalendarDate(value) : undefined}
-                  onSelect={(date) => field.onChange(date ? toUtcCalendarDate(date) : null)}
+                  onSelect={(date) => field.onChange(date ? toStoredDay(date, endOfDay) : null)}
                   disabled={(date) => date < today}
                 />
               </PopoverContent>

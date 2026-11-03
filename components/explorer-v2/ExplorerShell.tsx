@@ -205,7 +205,8 @@ export function SearchBox({
     if (local?.type === "address") {
       setBusy(true);
       try {
-        const [h] = await bech32AddressCached(network, local.id);
+        // hits is never empty: the P-Chain stands in when no chain is known to hold it
+        const [h] = (await bech32AddressCached(network, local.id)).hits;
         setRecents(saveRecent(network, { type: "address", id: h.id }));
         goToHref(`/explorer/${network}/${h.chain}/address/${h.id}`);
       } finally {

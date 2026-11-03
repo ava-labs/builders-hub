@@ -5,7 +5,7 @@ import {
   QUOTE_DEADLINE_DEFAULT_DAYS,
   URGENCY_LABELS,
 } from "@/lib/audits/constants";
-import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import { formatUtcDeadline, type DeploymentTarget, type UrgencyOption } from "@/lib/audits/status";
 import { toAttachmentLinks } from "@/lib/audits/attachments";
 import { isValidHttpUrl } from "@/lib/url-validation";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
@@ -69,7 +69,7 @@ export function SubmissionDetails({ detail }: { detail: AdminRequestDetail }) {
     ...(pending
       ? [
           detail.quote_deadline
-            ? `quotes close ${formatIsoDate(detail.quote_deadline)}`
+            ? `quotes close ${formatUtcDeadline(detail.quote_deadline)}`
             : `quotes close ${QUOTE_DEADLINE_DEFAULT_DAYS} days after approval`,
         ]
       : []),

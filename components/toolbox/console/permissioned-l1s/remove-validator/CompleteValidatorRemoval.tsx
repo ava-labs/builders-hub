@@ -166,15 +166,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       });
 
       // Step 2: Get justification for the validation (using the extracted validation ID)
-      const justification = await findRegistrationJustification(
-        weightMessageData.validationIdHex,
-        subnetIdL1,
-        chainPublicClient,
-      );
-
-      if (!justification) {
-        throw new Error('No justification logs found for this validation ID');
-      }
+      const justification = await findRegistrationJustification({
+        validationId: weightMessageData.validationIdHex,
+        subnetId: subnetIdL1,
+        publicClient: chainPublicClient,
+        validatorManager: validatorManagerAddress as `0x${string}`,
+      });
 
       // Step 3: Create P-Chain warp signature for validator removal
       const innerRemovalMsg = newL1ValidatorRegistrationMessage(

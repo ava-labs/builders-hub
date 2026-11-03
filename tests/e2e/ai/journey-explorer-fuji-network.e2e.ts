@@ -1,15 +1,27 @@
-import { readFileSync } from 'node:fs';
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { z } from 'zod';
-import { CITY_TAP, DATA, MULTI_PAGE, NAVIGATION, OVERVIEW_BLOCK_ROW, pathPattern } from '../explorer/explorer-page';
+import {
+  CITY_TAP,
+  DATA,
+  MULTI_PAGE,
+  NAVIGATION,
+  OVERVIEW_BLOCK_ROW,
+  catalogNames,
+  namesOneOf,
+  pathPattern,
+  sectionTabs,
+} from '../explorer/explorer-page';
 import { desktopOnly, needsModel } from '../lib/skip';
 import { waitForHydration } from '../lib/hydration';
 import { answerFirstVisitPrompts } from '../lib/visitor';
 
 // A visitor opens the All Networks view, switches it to Fuji, then opens the City. Each view must show Fuji chains
 // only. explorer/fuji-network-scope.e2e.ts checks the switch, the empty states and the chain menu with locators.
-// This test gives the two moves in plain words, and the agent reads the chain names that each view shows.
+// Here the agent makes the move to Fuji from plain words, and it reads the chain names on the boards.
+// The City link and the City list use locators. @e2e-dev/web stops the page capture of an agent step after 15 s, and
+// in CI the capture of the City page took longer than that. The cause in CI is inferred, not traced: CI draws the City
+// with software WebGL, which holds the page's main thread for seconds at a time.
 //
 // The live boards read the busiest chains that the Fuji catalog (constants/l1-chains.json) gives an RPC, so each
 // board name is a Fuji catalog name. A board writes "C-Chain" for the catalog's "Avalanche (C-Chain)".
@@ -17,25 +29,11 @@ import { answerFirstVisitPrompts } from '../lib/visitor';
 // ID. Many Fuji L1s are not in the catalog, so a City name can be in no catalog. A mainnet chain in the City shows
 // as a name that only the mainnet catalog holds.
 
-interface CatalogChain {
-  chainName: string;
-  isTestnet?: boolean;
-}
-
 test('visitor switches All Networks to Fuji and sees only Fuji chains there and in the City', MULTI_PAGE, async (fixtures) => {
   needsModel();
   const { app, agent, browser, screen } = fixtures;
-  const catalog = JSON.parse(
-    readFileSync(new URL('../../../constants/l1-chains.json', import.meta.url), 'utf8'),
-  ) as CatalogChain[];
-  const fujiNames = new Set(catalog.filter((c) => c.isTestnet === true).map((c) => c.chainName.trim()));
-  const mainnetOnly = new Set(
-    catalog
-      .filter((c) => c.isTestnet !== true)
-      .map((c) => c.chainName.trim())
-      .filter((name) => !fujiNames.has(name)),
-  );
-  fujiNames.add('C-Chain');
+  const { fuji, mainnetOnly } = catalogNames();
+  fuji.add('C-Chain');
 
   await app.open('/explorer/mainnet');
   await desktopOnly(browser, 'explorer/fuji-network-scope.e2e.ts tests the Fuji view and City at both sizes');
@@ -56,10 +54,11 @@ test('visitor switches All Networks to Fuji and sees only Fuji chains there and 
   );
   expect(boards.latestBlocks.length).toBeGreaterThan(0);
   expect(boards.latestTransactions.length).toBeGreaterThan(0);
-  const notFuji = [...boards.latestBlocks, ...boards.latestTransactions].filter((name) => !fujiNames.has(name.trim()));
+  const notFuji = [...boards.latestBlocks, ...boards.latestTransactions].filter((name) => !fuji.has(name.trim()));
   expect(notFuji).toEqual([]);
 
-  await agent.act('open the City view');
+  // The tap's last check runs on the page that starts to build the City, so the tap gets the City tap budget.
+  await sectionTabs(screen).getByRole('link', 'City').tap(CITY_TAP);
   await expect(browser).toHaveURL(pathPattern('/explorer/fuji/chains'), NAVIGATION);
   const network = screen.getByRole('group', 'Network');
   await expect(network.getByText('Fuji')).toHaveAttribute('aria-current', 'page');
@@ -72,18 +71,20 @@ test('visitor switches All Networks to Fuji and sees only Fuji chains there and 
   await expect(door).toHaveAttribute('aria-expanded', 'true');
   const sidebar = screen.getByRole('complementary', 'Chains');
   await expect(sidebar.getByRole('group', 'Network').getByRole('link', 'Mainnet')).toBeVisible(DATA);
-  const city = await agent.extract(
-    'Read the list of chains in the open "Chains" sidebar. Copy the name of every chain that it lists, from the top ' +
-      'to the bottom. Copy only the name: not the short grey code after a name that two chains share, not a badge, ' +
-      'and not the figure at the end of the row.',
-    { schema: z.object({ names: z.array(z.string()) }) },
-  );
-  const names = city.names.map((name) => name.trim());
-  // The door shows the number of chains in the list. The agent must read the whole list, not only its first rows.
-  const listed = Number(/\d+/.exec((await door.textContent()) ?? '')?.[0]);
-  expect(listed).toBeGreaterThan(0);
-  expect(names.length).toBeGreaterThanOrEqual(Math.floor(listed * 0.9));
-  expect(names).toContain('C-Chain');
-  expect(names.filter((name) => fujiNames.has(name)).length).toBeGreaterThan(1);
-  expect(names.filter((name) => mainnetOnly.has(name))).toEqual([]);
+  // The door shows the number of chains in the list, and a feed update can change both. Each read takes the door and
+  // the rows together, and the poll ends at a read where the two counts agree.
+  const rows = sidebar.getByRole('listitem');
+  let texts: string[] = [];
+  const doorAndRows = async () => {
+    const listed = /\d+/.exec((await door.textContent()) ?? '')?.[0];
+    texts = await rows.allTextContents();
+    return `door ${listed}, rows ${texts.length}`;
+  };
+  await expect.poll(doorAndRows, DATA).toMatch(/^door ([1-9]\d*), rows \1$/);
+  const cChain = texts.filter((text) => namesOneOf(text, new Set(['C-Chain'])));
+  const catalogued = texts.filter((text) => namesOneOf(text, fuji));
+  const mainnet = texts.filter((text) => !namesOneOf(text, fuji) && namesOneOf(text, mainnetOnly));
+  expect(cChain.length, 'rows that name the C-Chain').toBeGreaterThan(0);
+  expect(catalogued.length, 'rows that name a Fuji catalog chain').toBeGreaterThan(1);
+  expect(mainnet, 'rows that name a mainnet-only chain').toEqual([]);
 });

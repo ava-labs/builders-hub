@@ -15,19 +15,24 @@ import { softStatus } from "@/lib/explorer-soft-status";
 export const dynamic = "force-dynamic";
 
 const REQUEST_TIMEOUT_MS = 8000;
+// An address's tx list is a cold ClickHouse read the first time: 1 to 30 s for a busy address. Past the 8 s cap
+// the page asked again from the start, up to three times. The longer cap stays under the page's 15 s read deadline
+// (usePolledJson), with room for the proxy itself, so a read of up to 12 s now answers on the first try.
+const ADDRESS_TXS_TIMEOUT_MS = 12_000;
 // Live data (lists, stats, addresses)
 const CACHE_CONTROL = "public, max-age=3, s-maxage=3, stale-while-revalidate=10";
 const FAST_CACHE_CONTROL = "public, max-age=0, s-maxage=1";
 const FAST_CHAINS = new Set(["43114"]);
-// tx/{hash} and block/{id} are final at acceptance — once the upstream returns
-// a 200 the payload never changes, so cache hard and spare the origin box.
+// block/{id} is final at acceptance — once the upstream returns a 200 the
+// payload never changes, so cache hard and spare the origin box. tx/{hash} is
+// final only when stats-api marks it immutable: before the indexer covers its
+// block, the logs and internal txns may not be in yet.
 const IMMUTABLE_CACHE_CONTROL =
   "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
-function cacheControlFor(resource: string, chainId: string, query: URLSearchParams): string {
-  if (resource.startsWith("tx/") || resource.startsWith("block/")) {
-    return IMMUTABLE_CACHE_CONTROL;
-  }
+function cacheControlFor(resource: string, chainId: string, query: URLSearchParams, upstreamCC: string): string {
+  if (resource.startsWith("block/")) return IMMUTABLE_CACHE_CONTROL;
+  if (resource.startsWith("tx/") && upstreamCC.includes("immutable")) return IMMUTABLE_CACHE_CONTROL;
   // The newest transactions are polled every 5 s (a chain's home and its
   // live list). With stale-while-revalidate each poll got the copy the poll
   // before had asked for, 3 to 5 s old: one poll behind. A page of older
@@ -65,7 +70,7 @@ export async function GET(
   const upstream = `${EVM_API_BASE}/evm-api/${upstreamChainId}/${resource}${search}`;
 
   try {
-    const res = await fetchWithTimeout(upstream);
+    const res = await fetchWithTimeout(upstream, /^address\/[^/]+\/txs$/.test(resource) ? ADDRESS_TXS_TIMEOUT_MS : REQUEST_TIMEOUT_MS);
     const body = await res.text();
     // Pass through status + body; attach cache headers only on success. A
     // miss or an upstream error comes back soft to a read that asks.
@@ -73,7 +78,7 @@ export async function GET(
       body,
       softStatus(req, res.status, {
         "content-type": res.headers.get("content-type") ?? "application/json",
-        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId, req.nextUrl.searchParams) } : {}),
+        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId, req.nextUrl.searchParams, res.headers.get("cache-control") ?? "") } : {}),
       }),
     );
   } catch (err) {

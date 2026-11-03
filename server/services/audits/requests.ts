@@ -6,6 +6,7 @@ import { parseStoredAttachments } from "@/lib/audits/attachments";
 import {
   ADMIN_DELETABLE_STATUSES,
   deriveRequestStatus,
+  endOfUtcDay,
   isAdminDeletable,
 } from "@/lib/audits/status";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
@@ -293,7 +294,7 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
     });
     if (priorReopens >= 1) return { kind: "already_reopened" };
 
-    const quote_deadline = new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY);
+    const quote_deadline = endOfUtcDay(new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY));
     await tx.auditRequest.update({ where: { id: row.id }, data: { quote_deadline } });
 
     const shortlistIds = row.shortlist_auditor_ids;

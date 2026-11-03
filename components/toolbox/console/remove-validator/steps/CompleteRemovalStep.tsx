@@ -63,6 +63,7 @@ export default function CompleteRemovalStep() {
           <StakingCompleteValidatorRemoval
             validationID={store.validationId}
             stakingManagerAddress={stakingManagerAddress}
+            validatorManagerAddress={vmcCtx.validatorManagerAddress}
             tokenType={tokenType}
             subnetIdL1={store.subnetIdL1}
             signingSubnetId={vmcCtx.signingSubnetId}

@@ -63,8 +63,10 @@ import {
   getAdminOverview,
   getAdminRequestDetail,
   getAdminRequests,
+  getApprovalNotice,
   getAuditorInbox,
   getOwnFirm,
+  getOwnerFirmUsernames,
   getOwnerRequests,
   getOwnerRequestDetail,
   getPublicFirms,
@@ -270,6 +272,47 @@ describe("getOwnerRequestDetail", () => {
     });
     expect(JSON.stringify(detail!.subsidy)).not.toContain("admin-1");
     expect(JSON.stringify(detail!.subsidy)).not.toContain("Board approved");
+  });
+
+  // Good news only (2026-10-20): the latest decision reaches the project's
+  // browser only when the program pays something.
+  const engagedWithLatest = (latest: Record<string, unknown>) => ({
+    ...baseRequest,
+    status: "engaged",
+    _count: { fanout_deliveries: 12 },
+    quotes: [],
+    subsidy_decisions: [
+      { decided_by: "admin-1", note: null, decided_at: new Date(), ...latest },
+    ],
+  });
+
+  it("never hands the project a declined decision", async () => {
+    requestFindFirstMock.mockResolvedValue(
+      engagedWithLatest({ state: "declined", pct: 0, program_amount_usd: 0, project_amount_usd: 24000 }),
+    );
+
+    const detail = await getOwnerRequestDetail(OWNER, "req-1");
+
+    expect(detail!.subsidy).toBeNull();
+    // Nor the raw row: the whole detail reaches the browser.
+    expect(detail).not.toHaveProperty("subsidy_decisions");
+    expect(JSON.stringify(detail)).not.toContain("admin-1");
+    // The latest decision is the one that counts, so a decline that
+    // supersedes an approval hides it.
+    expect(requestFindFirstMock.mock.calls[0][0].include.subsidy_decisions).toEqual({
+      orderBy: { decided_at: "desc" },
+      take: 1,
+    });
+  });
+
+  it("never hands the project a $0 approval", async () => {
+    requestFindFirstMock.mockResolvedValue(
+      engagedWithLatest({ state: "approved", pct: 0, program_amount_usd: 0, project_amount_usd: 24000 }),
+    );
+
+    const detail = await getOwnerRequestDetail(OWNER, "req-1");
+
+    expect(detail!.subsidy).toBeNull();
   });
 });
 
@@ -520,6 +563,20 @@ describe("auditor scope · subsidy", () => {
     const view = await getRequestForAuditor("aud-1", "req-1");
 
     expect(view!.subsidy).toBeNull();
+  });
+
+  it("hides a $0 approval from the winning firm", async () => {
+    quoteFindUniqueMock.mockResolvedValue({ id: "q-1", status: "accepted", price_usd: 12500 });
+    subsidyFindFirstMock.mockResolvedValue({ state: "approved", program_amount_usd: 0, pct: 0 });
+
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.subsidy).toBeNull();
+    // The latest decision is the one the firm reads.
+    expect(subsidyFindFirstMock.mock.calls[0][0]).toMatchObject({
+      where: { request_id: "req-1" },
+      orderBy: { decided_at: "desc" },
+    });
   });
 
   it("never looks up a subsidy for a firm that did not win", async () => {
@@ -1160,5 +1217,224 @@ describe("shortlist projections", () => {
     });
     expect(detail!.shortlist_firms.map((f) => f.firm_name)).toEqual(["Halborn", "Nordlicht Security"]);
     expect(detail!.whitelist_count).toBe(15);
+  });
+});
+
+// Step 2: the project reads the GitHub usernames of the firms its request
+// reached. Names and usernames only, so no address can ride along.
+const FIRM_USERNAMES = {
+  select: {
+    id: true,
+    firm_name: true,
+    github_username: true,
+    members: { orderBy: { created_at: "asc" }, select: { github_username: true } },
+  },
+};
+const NOTIFIED_ACTIVE = { active: true, fanout_deliveries: { some: { request_id: "req-1" } } };
+const REPOS = [{ url: "https://github.com/glacierswap/core", ref: "" }];
+
+describe("getOwnerFirmUsernames (step 2)", () => {
+  const ownerRow = (over: Record<string, unknown> = {}) => ({
+    status: "collecting",
+    quote_deadline: FUTURE,
+    repos: REPOS,
+    ...over,
+  });
+
+  it("pins the request id and the owner, and reads no firm for anyone else", async () => {
+    requestFindFirstMock.mockResolvedValue(null);
+
+    expect(await getOwnerFirmUsernames(OWNER, "req-1")).toEqual([]);
+    expect(requestFindFirstMock.mock.calls[0][0].where).toEqual({ id: "req-1", user_id: OWNER });
+    expect(auditorFindManyMock).not.toHaveBeenCalled();
+  });
+
+  it("while the window is open, reads the active firms the request reached, names and usernames only", async () => {
+    requestFindFirstMock.mockResolvedValue(ownerRow());
+    auditorFindManyMock.mockResolvedValue([]);
+
+    await getOwnerFirmUsernames(OWNER, "req-1");
+
+    expect(auditorFindManyMock.mock.calls[0][0]).toEqual({
+      where: NOTIFIED_ACTIVE,
+      ...FIRM_USERNAMES,
+    });
+  });
+
+  it("orders firms by name, puts the quote-email person first, drops duplicates and invalid values", async () => {
+    requestFindFirstMock.mockResolvedValue(ownerRow());
+    auditorFindManyMock.mockResolvedValue([
+      {
+        id: "z",
+        firm_name: "zeta",
+        github_username: "z1",
+        members: [{ github_username: "Z1" }, { github_username: "-bad" }],
+      },
+      {
+        id: "m",
+        firm_name: "Mid",
+        github_username: "lead",
+        members: [{ github_username: "mate" }],
+      },
+      {
+        id: "a",
+        firm_name: "Alpha",
+        github_username: null,
+        members: [
+          { github_username: null },
+          { github_username: "a".repeat(40) },
+          { github_username: "alpha-sec" },
+        ],
+      },
+    ]);
+
+    const firms = await getOwnerFirmUsernames(OWNER, "req-1");
+
+    expect(firms).toEqual([
+      { id: "a", firm_name: "Alpha", github_usernames: ["alpha-sec"] },
+      { id: "m", firm_name: "Mid", github_usernames: ["lead", "mate"] },
+      { id: "z", firm_name: "zeta", github_usernames: ["z1"] },
+    ]);
+    expect(Object.keys(firms[0]).sort()).toEqual(["firm_name", "github_usernames", "id"]);
+  });
+
+  it("keeps a firm that has no username yet, with an empty list", async () => {
+    requestFindFirstMock.mockResolvedValue(ownerRow());
+    auditorFindManyMock.mockResolvedValue([
+      { id: "f", firm_name: "Foxline Security", github_username: null, members: [] },
+    ]);
+
+    expect(await getOwnerFirmUsernames(OWNER, "req-1")).toEqual([
+      { id: "f", firm_name: "Foxline Security", github_usernames: [] },
+    ]);
+  });
+
+  it("returns nothing outside the open window", async () => {
+    for (const row of [
+      ownerRow({ quote_deadline: PAST }),
+      ownerRow({ status: "withdrawn" }),
+      ownerRow({ status: "pending_review", quote_deadline: null }),
+      ownerRow({ status: "rejected", quote_deadline: null }),
+      ownerRow({ status: "draft", quote_deadline: null }),
+    ]) {
+      requestFindFirstMock.mockResolvedValueOnce(row);
+      expect(await getOwnerFirmUsernames(OWNER, "req-1")).toEqual([]);
+    }
+    expect(auditorFindManyMock).not.toHaveBeenCalled();
+    expect(quoteFindFirstMock).not.toHaveBeenCalled();
+  });
+
+  it("once engaged, returns the winning firm only, even if it was deactivated since", async () => {
+    requestFindFirstMock.mockResolvedValue(ownerRow({ status: "engaged", quote_deadline: PAST }));
+    quoteFindFirstMock.mockResolvedValue({
+      auditor: { id: "w", firm_name: "Ledgerproof Labs", github_username: "lp-ops", members: [] },
+    });
+
+    const firms = await getOwnerFirmUsernames(OWNER, "req-1");
+
+    expect(firms).toEqual([{ id: "w", firm_name: "Ledgerproof Labs", github_usernames: ["lp-ops"] }]);
+    expect(quoteFindFirstMock.mock.calls[0][0]).toEqual({
+      where: { request_id: "req-1", status: "accepted" },
+      select: { auditor: FIRM_USERNAMES },
+    });
+    expect(auditorFindManyMock).not.toHaveBeenCalled();
+  });
+
+  it("treats a request without a usable repository list as none, in every status", async () => {
+    for (const repos of [[], null, {}]) {
+      for (const status of ["collecting", "engaged"]) {
+        requestFindFirstMock.mockResolvedValueOnce(ownerRow({ repos, status }));
+        expect(await getOwnerFirmUsernames(OWNER, "req-1")).toEqual([]);
+      }
+    }
+    expect(auditorFindManyMock).not.toHaveBeenCalled();
+    expect(quoteFindFirstMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("getApprovalNotice (step 2)", () => {
+  const STAMP = new Date("2026-10-18T14:02:00Z");
+  const noticeRow = (over: Record<string, unknown> = {}) => ({
+    id: "req-1",
+    project_name: "Glacierswap",
+    quote_deadline: FUTURE,
+    repos: REPOS,
+    contact_handle: null,
+    contact_handle_shared_at: null,
+    contact_calendar_url: null,
+    contact_calendar_shared_at: null,
+    user: { email: "owner@glacierswap.example" },
+    ...over,
+  });
+
+  it("reads the collecting request with the account email, never the contact field", async () => {
+    requestFindFirstMock.mockResolvedValue(noticeRow());
+    auditorFindManyMock.mockResolvedValue([]);
+
+    const notice = await getApprovalNotice("req-1");
+
+    const call = requestFindFirstMock.mock.calls[0][0];
+    expect(call.where).toEqual({ id: "req-1", status: "collecting" });
+    expect(call.select.user).toEqual({ select: { email: true } });
+    expect(call.select.contact_email).toBeUndefined();
+    expect(notice?.email).toBe("owner@glacierswap.example");
+  });
+
+  it("returns null when the request is not collecting", async () => {
+    requestFindFirstMock.mockResolvedValue(null);
+
+    expect(await getApprovalNotice("req-1")).toBeNull();
+    expect(auditorFindManyMock).not.toHaveBeenCalled();
+  });
+
+  it("reports a share only with its stamp and a value", async () => {
+    const cases: [Record<string, unknown>, "shared_handle" | "shared_calendar", boolean][] = [
+      [{ contact_handle: "@ada", contact_handle_shared_at: STAMP }, "shared_handle", true],
+      [{ contact_handle: "   ", contact_handle_shared_at: STAMP }, "shared_handle", false],
+      [{ contact_handle: "@ada", contact_handle_shared_at: null }, "shared_handle", false],
+      [
+        { contact_calendar_url: "https://cal.com/ada", contact_calendar_shared_at: STAMP },
+        "shared_calendar",
+        true,
+      ],
+      [{ contact_calendar_url: null, contact_calendar_shared_at: STAMP }, "shared_calendar", false],
+      [
+        { contact_calendar_url: "https://cal.com/ada", contact_calendar_shared_at: null },
+        "shared_calendar",
+        false,
+      ],
+    ];
+    for (const [over, key, want] of cases) {
+      requestFindFirstMock.mockResolvedValueOnce(noticeRow(over));
+      auditorFindManyMock.mockResolvedValueOnce([]);
+      expect((await getApprovalNotice("req-1"))?.[key]).toBe(want);
+    }
+  });
+
+  it("carries the notified firms through the same select, and whether a repository is pinned", async () => {
+    requestFindFirstMock.mockResolvedValue(noticeRow());
+    auditorFindManyMock.mockResolvedValue([
+      { id: "n", firm_name: "Nordlicht Security", github_username: "nordlicht-sec", members: [] },
+    ]);
+
+    const notice = await getApprovalNotice("req-1");
+
+    expect(auditorFindManyMock.mock.calls[0][0]).toEqual({ where: NOTIFIED_ACTIVE, ...FIRM_USERNAMES });
+    expect(notice).toEqual({
+      email: "owner@glacierswap.example",
+      request_id: "req-1",
+      project_name: "Glacierswap",
+      quote_deadline: FUTURE,
+      pins_repository: true,
+      shared_handle: false,
+      shared_calendar: false,
+      firms: [{ id: "n", firm_name: "Nordlicht Security", github_usernames: ["nordlicht-sec"] }],
+    });
+
+    for (const repos of [[], null]) {
+      requestFindFirstMock.mockResolvedValueOnce(noticeRow({ repos }));
+      auditorFindManyMock.mockResolvedValueOnce([]);
+      expect((await getApprovalNotice("req-1"))?.pins_repository).toBe(false);
+    }
   });
 });

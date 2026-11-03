@@ -135,7 +135,7 @@ describe("FirmDetails", () => {
 
 describe("FirmDetails · GitHub usernames (D2.5)", () => {
   const HINT =
-    "Each person adds their own GitHub username, so projects can add you to their private repos with read access.";
+    "Each person adds their own GitHub username. Projects whose requests reach your firm see it, so they can add you to their private repos before you quote.";
 
   it("the quote-email person edits their own under the quote email; teammates' read only", () => {
     const html = render({ isOwner: true, readOnly: false, firm: team() });

@@ -65,8 +65,7 @@ const renderFirmPage = (view: AuditorRequestView) =>
 const anchorTo = (html: string, label: string) =>
   html.match(new RegExp(`<a [^>]*>${label}</a>`))?.[0] ?? "";
 
-const REMINDER =
-  "Send your quote here: the program can only subsidize a quote the project accepts on Builder Hub.";
+const REMINDER = "Send your quote here: the project compares and accepts quotes on Builder Hub.";
 
 describe("firm request page", () => {
   it("shows the shared calendar link in the shared box, opening in a new tab", () => {

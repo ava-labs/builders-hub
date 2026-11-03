@@ -26,7 +26,7 @@ interface AcceptQuoteDialogProps {
 }
 
 /**
- * The decisive moment (design 1j): the facts in a bordered plate, the four
+ * The decisive moment (design 1j): the facts in a bordered plate, the three
  * consequences with explicit dots, and the red solid appears only here
  * (deliberately without the sweep hover: irreversible, not playful).
  * Below 640px it docks as a bottom sheet.
@@ -64,7 +64,6 @@ export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: Acc
         otherCount > 0
           ? `This request closes; the ${otherCount} other firm${otherCount === 1 ? " is" : "s are"} notified they weren't selected.`
           : "This request closes.",
-        "Program admins see your pick and process any subsidy from here.",
         "The engagement itself continues off-platform under standardized terms.",
       ]
     : [];

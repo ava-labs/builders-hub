@@ -4,11 +4,9 @@ import { getChainICMCount } from "@/lib/icm-clickhouse";
 import { DEDICATED_STATS_BASE_URL, toStatsChainId } from "@/lib/dedicated-stats";
 import { pchainPost } from "@/lib/pchain-rpc";
 import { latestComplete, sumComplete } from "@/lib/stats-windows";
-import { fetchAllSubnets, fetchSubnetsById, runningL1Count, type RegistrySubnet } from "@/lib/pchain-subnets";
 import { fetchIndexedChainIds } from "@/lib/stats-coverage";
 import { isPchainNetwork, type PchainNetwork } from "@/lib/pchain-explorer";
 import { activeChains } from "@/lib/explorer-catalog";
-import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,11 +17,13 @@ const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
 const STATS_API_URL = DEDICATED_STATS_BASE_URL;
 
-// P-Chain is the authority on how many L1s exist, and it answers for every
-// subnet whether or not we index it. Chain *counts* must come from here, not
-// from how many chains we happen to have figures for (lib/pchain-rpc.ts).
 // A "network" param ("mainnet", the default, or "fuji") picks the chains and
 // the P-Chain; every cache below keys by it.
+//
+// The network's L1 count is not in this feed. It needs stats-api's subnet
+// list (on Fuji, one read for each of ~160 running sets). With a cold
+// stats-api cache those reads held this response for up to a minute.
+// /api/l1-registry/[network] serves the count (totals.activeL1s).
 
 // days = daily buckets to pull from the stats API (the window and a 2-day
 // buffer). "day" reads hourly buckets instead: the explorer labels it
@@ -84,9 +84,6 @@ interface OverviewMetrics {
     totalMarketCap: number;
     totalValidators: number;
     activeChains: number;
-    // Active L1s from P-Chain (source of truth). Falls back to enriched chain
-    // count if P-Chain is unreachable.
-    activeL1Count: number;
     contributors: { txCount: number; activeAddresses: number; icmMessages: number };
   };
   timeRange: TimeRangeKey;
@@ -126,21 +123,18 @@ async function processInBatches<T, R>(items: T[], processor: (item: T) => Promis
 }
 
 /**
- * How many L1s are live on the network, straight from P-Chain.
+ * Each subnet's validator count, straight from P-Chain.
  *
  * `getAllValidatorsAt` at height `proposed` returns the validator set per
  * subnet, and a subnet with a non-empty set is running. Deliberately not
  * `getCurrentValidators`: that lists registered validators regardless of state,
  * so under ACP-77 it reports healthy-looking sets for chains whose L1 validators
- * have run out of fee balance. The running sets are the ones
- * scripts/enrich-chains.ts marks isActive; legacy subnets (gunz, StepNetwork)
- * run sets too, so the count keeps only the subnets the subnet list marks
- * isL1, as /api/validator-stats and /api/l1-registry's totals.activeL1s do.
+ * have run out of fee balance.
  *
- * Returns null if P-Chain is unreachable; the caller falls back rather than
- * publishing a count it did not verify.
+ * Returns null if P-Chain is unreachable and no earlier read is kept; a chain's
+ * row then reads "N/A" rather than a count it did not verify.
  */
-const l1CountCache = new Map<PchainNetwork, { counts: Map<string, number>; at: number }>();
+const validatorSetsCache = new Map<PchainNetwork, { counts: Map<string, number>; at: number }>();
 // one P-Chain read per network at a time: every chain's row asks for the sets at once
 const pendingSets = new Map<PchainNetwork, Promise<Map<string, number> | null>>();
 
@@ -149,41 +143,8 @@ async function getPChainValidatorCounts(network: PchainNetwork): Promise<Map<str
   return fresh;
 }
 
-async function getActiveL1CountFromPChain(network: PchainNetwork): Promise<number | null> {
-  const sets = loadPChainValidatorSets(network);
-  // mainnet reads its subnet list beside the sets; Fuji names the sets it gets
-  const [counts, subnets] = await Promise.all([
-    sets,
-    network === 'fuji' ? sets.then((c) => (c ? loadSubnets(network, c) : null)) : loadSubnets(network, null),
-  ]);
-  if (!counts || !subnets) return null;
-  return runningL1Count(counts, subnets);
-}
-
-// the subnet list moves only when a subnet is created or converted: read
-// hourly, the last good list kept through a failure. Fuji has ~8,000 subnets
-// (80 pages), so it names only its running sets, by ID, on each read: those
-// reads keep their own hour cache, and a set that starts running counts at once.
-const SUBNETS_TTL_MS = 60 * 60 * 1000;
-const subnetsCache = new Map<PchainNetwork, { subnets: RegistrySubnet[]; at: number }>();
-
-async function loadSubnets(network: PchainNetwork, counts: Map<string, number> | null): Promise<RegistrySubnet[] | null> {
-  const hit = subnetsCache.get(network);
-  if (network === 'mainnet' && hit && Date.now() - hit.at < SUBNETS_TTL_MS) return hit.subnets;
-  try {
-    const running = [...(counts?.keys() ?? [])].filter((id) => id !== PRIMARY_SUBNET_ID);
-    const subnets = network === 'fuji' ? await fetchSubnetsById(network, running) : await fetchAllSubnets(network);
-    if (network === 'fuji' && running.length > 0 && subnets.length === 0) throw new Error('no fuji subnet answered');
-    subnetsCache.set(network, { subnets, at: Date.now() });
-    return subnets;
-  } catch (error) {
-    console.error(`[loadSubnets] ${network} failed:`, error);
-    return hit?.subnets ?? null;
-  }
-}
-
 function loadPChainValidatorSets(network: PchainNetwork): Promise<Map<string, number> | null> {
-  const hit = l1CountCache.get(network);
+  const hit = validatorSetsCache.get(network);
   if (hit && Date.now() - hit.at < STATS_CONFIG.CACHE.SHORT_DURATION) {
     return Promise.resolve(hit.counts);
   }
@@ -213,13 +174,13 @@ async function readPChainValidatorSets(network: PchainNetwork): Promise<Map<stri
       if (!Array.isArray(validators) || validators.length === 0) continue;
       counts.set(subnetId, validators.length);
     }
-    l1CountCache.set(network, { counts, at: Date.now() });
+    validatorSetsCache.set(network, { counts, at: Date.now() });
     return counts;
   } catch (error) {
     console.error(`[loadPChainValidatorSets] ${network} failed:`, error);
     // a busy or rate-limited P-Chain serves the last good sets rather than none,
     // so the city keeps its buildings through a 429
-    return l1CountCache.get(network)?.counts ?? null;
+    return validatorSetsCache.get(network)?.counts ?? null;
   }
 }
 
@@ -474,7 +435,6 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey, network: PchainNe
       aggregated: {
         ...aggregated,
         totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange,
-        activeL1Count: (await getActiveL1CountFromPChain(network)) ?? chainMetrics.length,
       },
       timeRange,
       last_updated: Date.now()

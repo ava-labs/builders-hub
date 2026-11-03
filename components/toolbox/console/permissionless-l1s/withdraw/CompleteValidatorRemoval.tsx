@@ -30,7 +30,7 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { SigningSubnetStatus, signingSubnetWaitText } from '@/components/toolbox/console/shared/SigningSubnetStatus';
 import { WALLET_REJECTED_TEXT, failureText } from '@/components/toolbox/lib/walletRejection';
-import { NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
+import { INVALID_L1_SELECTED, NO_L1_SELECTED } from '@/components/toolbox/utils/vmcLookupText';
 
 type TokenType = 'native' | 'erc20';
 
@@ -40,6 +40,8 @@ const WARP_MESSAGE_INDEX = 0;
 interface CompleteValidatorRemovalProps {
   validationID?: string;
   stakingManagerAddress: string;
+  /** The ValidatorManager under the staking manager: it sent the registration message. */
+  validatorManagerAddress: string;
   tokenType: TokenType;
   subnetIdL1: string;
   signingSubnetId?: string;
@@ -67,8 +69,8 @@ interface CompleteValidatorRemovalProps {
  *
  * Correct flow (same as PoA, same as ICM-contracts' StakingManager expects per
  * `unpackL1ValidatorRegistrationMessage` in completeValidatorRemoval):
- *   1. Fetch the registration justification preimage from the L1's logs
- *      (GetRegistrationJustification walks the WarpMessenger event history)
+ *   1. Fetch the registration justification preimage from the ValidatorManager's
+ *      logs (findRegistrationJustification)
  *   2. Pack L1ValidatorRegistration(validationID, registered=false) with
  *      sourceChainID = P-Chain (zero ID)
  *   3. Aggregate signatures against the signing subnet: the subnet of the chain that hosts the Validator Manager
@@ -77,6 +79,7 @@ interface CompleteValidatorRemovalProps {
 const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   validationID,
   stakingManagerAddress,
+  validatorManagerAddress,
   tokenType,
   subnetIdL1,
   signingSubnetId,
@@ -128,6 +131,11 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       onError(msg);
       return;
     }
+    if (!validatorManagerAddress) {
+      setLocalError(INVALID_L1_SELECTED);
+      onError(INVALID_L1_SELECTED);
+      return;
+    }
     if (!chainPublicClient) {
       const msg = 'Chain client unavailable.';
       setLocalError(msg);
@@ -143,16 +151,16 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
     setIsAggregating(true);
     try {
-      // Fetch the registration justification from the L1's WarpMessenger logs.
+      // Fetch the registration justification from the ValidatorManager's logs.
       // This is the preimage that proves the validationID corresponds to a
       // validator that was previously registered, as P-Chain's
       // verifyL1ValidatorRegistration requires for the registered=false case.
-      const justification = await findRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
-      if (!justification) {
-        throw new Error(
-          'No registration justification found for this validation ID. The validator may not have been registered through the standard flow, or its registration logs may be on a chain we cannot reach.',
-        );
-      }
+      const justification = await findRegistrationJustification({
+        validationId: validationID as `0x${string}`,
+        subnetId: subnetIdL1,
+        publicClient: chainPublicClient,
+        validatorManager: validatorManagerAddress as `0x${string}`,
+      });
 
       // registered = false → "this validator no longer exists on P-Chain"
       const innerRemovalMsg = newL1ValidatorRegistrationMessage(hexToCB58(validationID as `0x${string}`), false);

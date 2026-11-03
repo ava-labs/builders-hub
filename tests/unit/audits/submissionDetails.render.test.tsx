@@ -160,8 +160,12 @@ describe("SubmissionDetails", () => {
     expect(render(adminDetail({ quote_deadline: null }))).toMatch(
       /quotes close \d+ days after approval/,
     );
+    expect(render(adminDetail({ quote_deadline: new Date("2026-10-12T23:59:59.999Z") }))).toContain(
+      "quotes close 2026-10-12 23:59 UTC",
+    );
+    // A draft saved before the 23:59 rule shows its real time until approval moves it.
     expect(render(adminDetail({ quote_deadline: new Date("2026-10-12T00:00:00Z") }))).toContain(
-      "quotes close 2026-10-12",
+      "quotes close 2026-10-12 00:00 UTC",
     );
     // Once approved, the quotes card header carries the window.
     const collecting = render(

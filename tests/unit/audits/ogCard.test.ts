@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+
+const { createOGResponseMock } = vi.hoisted(() => ({ createOGResponseMock: vi.fn() }));
+// The route renders through next/og with fonts fetched from disk; the test
+// reads what it hands the renderer.
+vi.mock('@/utils/og-image', () => ({
+  loadFonts: async () => ({}),
+  createOGResponse: createOGResponseMock,
+}));
+
 import { SectionCard, sectionFromPath, taglineFromPath } from '@/utils/og/section-card';
 import { metadata } from '@/app/(home)/audits/layout';
+import { GET } from '@/app/api/og/audits/route';
 
 /**
  * The /audits social card. Until this branch the section fell through to the
@@ -32,14 +42,15 @@ describe('audits section card', () => {
     const html = renderToStaticMarkup(
       createElement(SectionCard, {
         title: 'Security Audits',
-        description:
-          'Request audit quotes from the vetted security firms on the Ava Labs whitelist. Free, private, subsidized up to 75%.',
+        description: String(metadata.description),
         path: 'audits',
       }),
     );
     expect(html).toContain('SECURITY AUDITS');
     expect(html).toContain('THE VETTED SECURITY FIRMS ON THE AVA LABS WHITELIST');
-    expect(html).toContain('SUBSIDIZED UP TO 75%.');
+    // The subsidy is no longer advertised (2026-10-20).
+    expect(html).toContain('FREE AND PRIVATE.');
+    expect(html).not.toContain('SUBSIDIZED');
     expect(html).toContain('BUILD.AVAX.NETWORK/AUDITS');
     expect(html).toContain('AVA LABS AUDIT PROGRAM · FREE FOR BUILDERS');
     expect(html).not.toContain('ONE NETWORK · TWO WAYS TO BUILD');
@@ -52,5 +63,22 @@ describe('audits layout metadata', () => {
   it('points og:image and twitter:image at the audits card', () => {
     expect(firstImageUrl(metadata.openGraph?.images)).toBe(AUDITS_OG_IMAGE);
     expect(firstImageUrl(metadata.twitter?.images)).toBe(AUDITS_OG_IMAGE);
+  });
+
+  it('describes the program as free and private, with no subsidy', () => {
+    expect(metadata.description).toBe(
+      'Request audit quotes from the vetted security firms on the Ava Labs whitelist. Free and private.',
+    );
+  });
+
+  it('prints the same description on the social card', async () => {
+    await GET();
+
+    expect(createOGResponseMock).toHaveBeenCalledTimes(1);
+    expect(createOGResponseMock.mock.calls[0][0]).toMatchObject({
+      title: 'Security Audits',
+      description: metadata.description,
+      path: 'audits',
+    });
   });
 });

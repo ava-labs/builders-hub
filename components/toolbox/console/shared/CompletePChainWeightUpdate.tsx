@@ -8,7 +8,6 @@ import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { newL1ValidatorWeightMessage, newWarpMessage, packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
-import { findRegistrationJustification } from '@/components/toolbox/utils/registrationJustification';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -227,25 +226,11 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       );
       const l1ValidatorWeightMessage = hexToBytes(unsignedMsg.toHex() as `0x${string}`);
 
-      // Step 3: Get justification (only for ChangeWeight, delegation doesn't need it)
-      let justification: Uint8Array | undefined;
-      if (isChangeWeight) {
-        const fetchedJustification = await findRegistrationJustification(
-          weightMessageData.validationIdHex,
-          subnetIdL1,
-          chainPublicClient!,
-        );
-
-        if (!fetchedJustification) {
-          throw new Error('No justification logs found for this validation ID');
-        }
-        justification = fetchedJustification;
-      }
-
-      // Step 4: Aggregate P-Chain signature
+      // Step 3: Aggregate P-Chain signature. No justification: the P-Chain checks an L1ValidatorWeight message
+      // against its own state only, for a weight change and a delegation alike (avalanchego
+      // vms/platformvm/network/warp.go, verifyL1ValidatorWeight).
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(l1ValidatorWeightMessage),
-        ...(justification && { justification: bytesToHex(justification) }),
         signingSubnetId,
       });
 
@@ -260,7 +245,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       const signature = await aggregateSignaturePromise;
       setPChainSignature(signature.signedMessage);
 
-      // Step 5: Complete the weight update on EVM
+      // Step 4: Complete the weight update on EVM
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
       setCastAccessList(accessList);

@@ -14,6 +14,13 @@ const BLOCK = '96532770';
 test('explorer search leads to a transaction that shows its sender, recipient and value', MULTI_PAGE, async (fixtures) => {
   needsModel();
   const { app, agent, browser, screen } = fixtures;
+  // The tx page reads its trace from stats-api after it renders, and a loaded trace adds a calls count to the page.
+  // That read is live: a late or refused trace left the count out, and the replay of the act step failed its end check
+  // (master E2E, 2026-10-27). The step and the judge read the receipt only, so the trace gets the answer the route
+  // gives a tx with no trace (a soft 404, no_index), and the page shows the same receipt view on every run.
+  await browser.route(/\/api\/trace\//, async (route) => {
+    await route.fulfill({ headers: { 'x-status': '404', 'cache-control': 'no-store' }, json: { error: 'no_index' } });
+  });
   await app.open('/explorer/mainnet/c-chain');
   await desktopOnly(browser, 'explorer/pages.e2e.ts tests the phone layout of these pages');
   await waitForHydration(browser, '#nd-nav');

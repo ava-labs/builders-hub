@@ -77,4 +77,10 @@ export const AUDITOR_MEMBER_LIMIT = 10;
     whitelist outgrows it (16 firms today). */
 export const SHORTLIST_LIMIT = 50;
 export const QUOTE_DEADLINE_HELPER_COPY =
-  "Defaulted to +10 days · the recommended window for competitive quotes.";
+  "Closes at 23:59 UTC that day · defaulted to +10 days, the recommended window.";
+/** Said the same way in the approval email and on the request page's GitHub
+    card (FDE-249 step 2). */
+export const GITHUB_PROFILE_WARNING =
+  "Open each profile before you invite it: each person types their own username, and a typo would give a stranger access.";
+export const GITHUB_ACCESS_LIMITS =
+  "On a repository owned by your personal account, GitHub gives every collaborator write access. Read-only access needs a repository owned by an organization, where each outside collaborator takes a paid seat unless the organization is on the free plan. Invitations expire after 7 days.";

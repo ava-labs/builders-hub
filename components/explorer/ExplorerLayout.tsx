@@ -230,7 +230,8 @@ export function ExplorerLayout({
       // a bech32 address asks the chains which hold it: a prefix selects the
       // chain, a bare address lands on the chain with the account
       if (pchain?.type === "address") {
-        const [h] = await bech32AddressCached(network, pchain.id);
+        // hits is never empty: the P-Chain stands in when no chain is known to hold it
+        const [h] = (await bech32AddressCached(network, pchain.id)).hits;
         router.push(`/explorer/${network}/${h.chain}/address/${h.id}`);
         return;
       }

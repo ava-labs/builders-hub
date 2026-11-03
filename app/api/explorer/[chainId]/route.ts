@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
-import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
 import { assertPublicRpcTarget } from "@/lib/rpcUrlValidator";
 import { readNewBlocks } from "./new-blocks";
 
@@ -785,38 +784,6 @@ async function fetchExplorerData(evmChainId: string, rpcUrl: string, coingeckoId
   };
 }
 
-// Probe metrics API for any non-zero activity over the last ~30 days.
-// Returns false if metrics API is unconfigured, errors out, or every value is zero —
-// which is our signal that the chain is not indexed yet. Chains served by the dedicated
-// metrics source are probed there (with their remapped id) instead of the shared API.
-async function checkChainIndexed(chainId: string): Promise<boolean> {
-  const baseUrl = DEDICATED_STATS_BASE_URL;
-  const resolvedChainId = resolveDedicatedMetricsChain(chainId) ?? chainId;
-  try {
-    const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - 30 * 24 * 60 * 60;
-    const url = new URL(`${baseUrl}/v2/chains/${resolvedChainId}/metrics/cumulativeTxCount`);
-    url.searchParams.set('timeInterval', 'day');
-    url.searchParams.set('startTimestamp', String(startTimestamp));
-    url.searchParams.set('endTimestamp', String(endTimestamp));
-    url.searchParams.set('pageSize', '30');
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    try {
-      const res = await fetch(url.toString(), { signal: controller.signal });
-      if (!res.ok) return false;
-      const data = await res.json();
-      const results: { value?: number }[] = Array.isArray(data?.results) ? data.results : [];
-      return results.some((r) => Number(r?.value) > 0);
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  } catch {
-    return false;
-  }
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ chainId: string }> }
@@ -867,21 +834,19 @@ export async function GET(
       );
     }
 
-    // If priceOnly, just fetch price and indexed status (for ExplorerContext)
+    // priceOnly returns the token price and symbol. The response is the same
+    // for every visitor, so the CDN keeps it for 60 s. No caller reads an
+    // indexed flag here: the explorer layout gets it from fetchIndexedChainIds.
     if (priceOnly) {
       const priceOnlyStart = Date.now();
-      const [price, isIndexed] = await Promise.all([
-        coingeckoId ? fetchPrice(coingeckoId) : Promise.resolve(undefined),
-        checkChainIndexed(chainId),
-      ]);
+      const price = coingeckoId ? await fetchPrice(coingeckoId) : undefined;
       requestTiming.priceOnly = Date.now() - priceOnlyStart;
       requestTiming.total = Date.now() - requestStart;
 
-      return NextResponse.json({
-        price,
-        tokenSymbol,
-        isIndexed,
-      });
+      return NextResponse.json(
+        { price, tokenSymbol },
+        { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
+      );
     }
 
     if (!rpcUrl) {

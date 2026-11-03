@@ -11,7 +11,7 @@ export async function GET(): Promise<ImageResponse> {
   return createOGResponse({
     title: 'Security Audits',
     description:
-      'Request audit quotes from the vetted security firms on the Ava Labs whitelist. Free, private, subsidized up to 75%.',
+      'Request audit quotes from the vetted security firms on the Ava Labs whitelist. Free and private.',
     path: 'audits',
     fonts,
   });
