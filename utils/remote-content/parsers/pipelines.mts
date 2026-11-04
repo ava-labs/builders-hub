@@ -9,9 +9,17 @@ export interface TransformMeta {
   editUrl?: string;
 }
 
+// Every remote page gets its Mermaid blocks converted. The charts are held out while the transforms run, so no
+// transform rewrites the chart source the upstream README wrote, and the Mermaid components go back in at the end.
+const MERMAID_PLACEHOLDER = /RemoteMermaidChart(\d+)Placeholder/g;
+
 export function createParser(transforms: TransformFunction[]): (content: string, meta: TransformMeta) => string {
   return (content: string, meta: TransformMeta): string => {
-    return transforms.reduce((acc, transform) => transform(acc, meta), content);
+    const charts: string[] = [];
+    const held = content.replace(MERMAID_BLOCK, (_, chart: string) => `RemoteMermaidChart${charts.push(chart) - 1}Placeholder`);
+    return transforms
+      .reduce((acc, transform) => transform(acc, meta), held)
+      .replace(MERMAID_PLACEHOLDER, (_, i: string) => mermaidComponent(charts[Number(i)]));
   };
 }
 
@@ -225,18 +233,17 @@ export const convertAngleBracketLinks: TransformFunction = (content) => {
   return content.replace(/<((https?:\/\/[^\s>]+))>/g, '[$2]($1)');
 };
 
-export const convertMermaidBlocks: TransformFunction = (content) => {
-  // Convert standard Mermaid code blocks to <Mermaid> component format
-  // This works in conjunction with the shared MDX components in components/mdx/shared-components.tsx
-  // which provides a unified Mermaid component registration across all pages (docs, blog, academy)
-  return content.replace(/```mermaid\n([\s\S]*?)\n```/g, (match, diagramContent) => {
-    // Escape backticks in the diagram content for the template literal
-    const escapedContent = diagramContent.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+// A ```mermaid block, also with CRLF line endings or an indented fence.
+const MERMAID_BLOCK = /^[ \t]*```mermaid[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```[ \t]*$/gm;
 
-    // Return the Mermaid component with the diagram content
-    return `<Mermaid chart={\`${escapedContent}\`} />`;
-  });
-};
+// The <Mermaid> component of components/mdx/shared-components.tsx, with the chart in a template literal.
+function mermaidComponent(chart: string): string {
+  const escaped = chart.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+  return `<Mermaid chart={\`${escaped}\`} />`;
+}
+
+export const convertMermaidBlocks: TransformFunction = (content) =>
+  content.replace(MERMAID_BLOCK, (_, chart: string) => mermaidComponent(chart));
 
 export const escapeJSXExpressions: TransformFunction = (content) => {
   // Escape problematic JSX-like expressions in markdown that cause acorn parsing errors
@@ -445,14 +452,12 @@ export const apisPipeline: TransformFunction[] = [
 
 export const avalancheL1sPipeline: TransformFunction[] = [
   removeEmoji,
-  convertMermaidBlocks,
   ...defaultPipeline,
 ];
 
 export const acpsPipeline: TransformFunction[] = [
   aggressivelyFixMalformedHTML,
   convertAngleBracketLinks,
-  convertMermaidBlocks,
   fixUnicodeMathSymbols,
   fixCodeBlockLanguage,
   ...defaultPipeline,
