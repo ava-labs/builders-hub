@@ -279,7 +279,7 @@ function ProbeBanner({ probe, onRetry }: { probe: ProbeState; onRetry: () => voi
       ? "The contract says this validator hasn't met the rewards threshold."
       : probe.reason === 'not-found'
         ? "The L1 node's /validators endpoint didn't return this validator."
-        : "The L1 node's /validators endpoint is unreachable.";
+        : "The L1 node's /validators endpoint is unreachable. Public RPC gateways don't proxy this API; it's only served directly by a node (http://<node-ip>:9650/ext/bc/<blockchainID>/validators).";
 
   return (
     <div className="flex items-start gap-3 border border-amber-300 bg-white px-4 py-3 dark:border-amber-900/70 dark:bg-zinc-950">
