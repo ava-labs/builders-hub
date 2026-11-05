@@ -9,8 +9,8 @@ import { ECOSYSTEM_GROUPS, type EcosystemEntry } from './entries';
 /* ------------------------------------------------------------------ */
 /* /ecosystem: every item of the Ecosystem menu as one index           */
 /*                                                                      */
-/* The /solutions sheet (90rem column, hairline edges, the snow         */
-/* lattice in the margins) and the pillar pages' resource index: a      */
+/* The landing sheet (90rem column, hairline edges, the snow lattice    */
+/* in the margins) and a resource index: a                              */
 /* group per menu column, a row per item. Each row says what the page   */
 /* is, quotes its live figure when the page has one, and opens it.      */
 /* ------------------------------------------------------------------ */
@@ -121,7 +121,7 @@ function Row({ entry, figure }: { entry: EcosystemEntry; figure: Figure | null }
   const Arrow = entry.external ? ArrowUpRight : ArrowRight;
   const body = (
     <>
-      {/* the pillar index's hover mark: a red rule grows on the left edge (keyboard focus too) */}
+      {/* the hover mark: a red rule grows on the left edge (keyboard focus too) */}
       <span
         aria-hidden
         className="absolute -left-4 bottom-5 top-5 hidden w-0.5 origin-top scale-y-0 bg-[#E6212F] transition-transform duration-300 group-hover:scale-y-100 group-focus-visible:scale-y-100 lg:block"

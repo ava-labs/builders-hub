@@ -7,8 +7,8 @@ import { EASE, MaskText } from '@/components/landing-v2/SpecKit';
 
 /* The header: a base camp under the peaks, full-bleed across the sheet,
    the title on the open snowfield to its left. Tents and paths lead to
-   one hall, and its beacon is the only red in the photograph. As on the
-   /solutions hero, the desktop band holds the photograph's own aspect,
+   one hall, and its beacon is the only red in the photograph. The
+   desktop band holds the photograph's own aspect,
    so the glow pins to the beacon's pixel, and the band zooms toward it
    as the page scrolls away. Phones get a taller crop on the camp. */
 

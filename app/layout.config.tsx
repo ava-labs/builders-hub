@@ -18,81 +18,9 @@ import {
   Blocks,
   Search,
   Bell,
-  Gauge,
-  EyeOff,
   ShieldCheck,
-  Landmark,
 } from 'lucide-react';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
-
-export const solutionsMenu: LinkItemType = {
-  type: 'menu',
-  text: 'Solutions',
-  url: '/solutions',
-  items: [
-    {
-      icon: <Landmark />,
-      text: 'Why Avalanche',
-      description:
-        'The guarantees enterprise chains are built on: interoperability, performance, privacy, and compliance.',
-      url: '/solutions',
-      menu: {
-        // featured panel: the image leads, the four pillars stack in the
-        // right rail. .nav-featured + the :has() popover rules in global.css.
-        className: 'nav-featured lg:col-start-1 lg:row-start-1 lg:row-span-4',
-        banner: (
-          <Image
-            src="/nav/why-avalanche.webp"
-            alt="Why Avalanche"
-            width={2400}
-            height={890}
-            className="nav-banner border border-zinc-200 dark:border-zinc-800"
-          />
-        ),
-      },
-    },
-    {
-      icon: <ArrowLeftRight />,
-      text: 'Interoperability',
-      description:
-        'Native messaging and asset transfer between public, permissioned, and private chains.',
-      url: '/solutions/interoperability',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-1',
-      },
-    },
-    {
-      icon: <Gauge />,
-      text: 'Performance',
-      description:
-        'Sub-second, irreversible finality on dedicated blockspace.',
-      url: '/solutions/performance',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-2',
-      },
-    },
-    {
-      icon: <EyeOff />,
-      text: 'Privacy',
-      description:
-        'Privacy configured to your requirements: closed networks, placed data, and the cryptography you choose.',
-      url: '/solutions/privacy',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-3',
-      },
-    },
-    {
-      icon: <ShieldCheck />,
-      text: 'Compliance',
-      description:
-        'Permissioning enforced on-chain with allowlist precompiles.',
-      url: '/solutions/compliance',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-4',
-      },
-    },
-  ],
-};
 
 // The Ecosystem trigger opens the /ecosystem overview and does not prefetch it,
 // for the reason the Console trigger gives below.
@@ -358,7 +286,6 @@ export const baseOptions: BaseLayoutProps = {
     ),
   },
   links: [
-    solutionsMenu,
     developersMenu,
     consoleMenu,
     explorerMenu,

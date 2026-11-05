@@ -154,7 +154,7 @@ function WaveCanvas({ snowOnly = false }: { snowOnly?: boolean }) {
       // the story's anchors come from the real page, not guesses: the
       // avalanche releases at the offering chapter ("One network. Two ways
       // to build.") and reaches FULL BLEED at the finale ("Launch yours.")
-      // Pages without the story (solutions, pillars) opt into snowOnly:
+      // Pages without the story opt into snowOnly:
       // the release never comes, the whole sheet stays a quiet flurry.
       if (snowOnly) {
         releaseY = docH + h;
