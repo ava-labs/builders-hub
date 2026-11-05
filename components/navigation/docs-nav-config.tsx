@@ -96,13 +96,15 @@ export const apiReferenceOptions: NavOption[] = [
   },
   {
     title: 'Metrics API',
-    description: 'Network metrics and statistics',
+    badge: 'Deprecated',
+    description: 'Deprecated: network metrics and statistics',
     icon: <Activity className="w-5 h-5" />,
     url: '/docs/api-reference/metrics-api',
   },
   {
     title: 'Webhook API',
-    description: 'Real-time blockchain notifications',
+    badge: 'Deprecated',
+    description: 'Deprecated: real-time blockchain notifications',
     icon: <Webhook className="w-5 h-5" />,
     url: '/docs/api-reference/webhook-api',
   },
