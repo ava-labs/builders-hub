@@ -68,7 +68,8 @@ export interface ValidatorAlertConfig {
 
 export interface ValidatorAlertResponse {
   id: string;
-  user_id: string;
+  /** null only for an imported row that no account has claimed. The API never returns such a row. */
+  user_id: string | null;
   node_id: string;
   subnet_id: string;
   label: string | null;
@@ -82,6 +83,8 @@ export interface ValidatorAlertResponse {
   balance_threshold_days: number;
   security_alert: boolean;
   last_known_ip: string | null;
+  /** null for a row made in Builder Hub, "avalanche-notify" for an import */
+  source: string | null;
   email: string;
   active: boolean;
   created_at: string;

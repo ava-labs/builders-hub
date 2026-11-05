@@ -25,8 +25,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
+    // Imported rows have user_id null. Prisma drops a filter whose value is
+    // undefined, so a session without an id must not reach the query.
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
+    }
+
     const alerts = await prisma.validatorAlert.findMany({
-      where: { user_id: session.user.id },
+      where: { user_id: userId },
       include: {
         alert_logs: {
           orderBy: { sent_at: 'desc' },
@@ -46,7 +53,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await getAuthSession();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 

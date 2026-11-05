@@ -36,6 +36,7 @@ function alert(over: Partial<ValidatorAlertResponse> = {}): ValidatorAlertRespon
     balance_threshold_days: 30,
     security_alert: false,
     last_known_ip: null,
+    source: null,
     email: "ada@example.com",
     active: true,
     created_at: "2026-10-01T00:00:00.000Z",
