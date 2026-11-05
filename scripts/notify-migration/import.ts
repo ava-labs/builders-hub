@@ -6,11 +6,17 @@
  * Keep the export out of git. Delete it after the import.
  *
  * Usage:
- *   tsx ./scripts/notify-migration/import.ts <scan export> [--apply] [--active-only]
+ *   tsx ./scripts/notify-migration/import.ts <scan export> [--apply] [--active-only] [--send-notice]
  *
- *   --dry-run      Default. Read the database, print counts, write nothing.
+ *   --dry-run      Default. Read the database, print counts, write nothing, send nothing.
  *   --apply        Write the rows (createMany, batches of 500). No welcome emails.
  *   --active-only  Skip nodes that are not in the current Primary Network validator set.
+ *   --send-notice  Off by default. After the import, send the one-time migration notice:
+ *                  one email per address that has active imported rows and no notice yet,
+ *                  with a signed unsubscribe link per alert. A notice log on each row
+ *                  records the send, so a second run skips the address. Without --apply
+ *                  it sends nothing and counts the addresses whose rows the database holds now. Sending needs the production SENDGRID_API_KEY,
+ *                  EMAIL_FROM and VALIDATOR_ALERTS_API_KEY (the unsubscribe link secret).
  *
  * Rules (scripts/notify-migration/map.ts): a valid NodeID, a plaintext email, one row per
  * (email, NodeID), subnet "primary", source "avalanche-notify". A pair that ValidatorAlert
@@ -23,11 +29,14 @@
 import fs from 'fs';
 import { prisma } from '@/prisma/prisma';
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
+import { LEGACY_NOTICE_ALERT_TYPE, LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
+import { legacyNotifyNoticeTemplate } from '@/server/templates/validator-alerts';
 import {
   PRIMARY,
   attributeCensus,
   chunk,
   extractPairs,
+  groupNotices,
   pairKey,
   parseScanExport,
   planImport,
@@ -37,21 +46,29 @@ import {
 const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const WRITE_BATCH = 500;
 const READ_BATCH = 1000;
+/** The day the old service stops. */
+const OLD_SERVICE_END = new Date('2026-11-30T00:00:00Z');
 
 interface Args {
   file: string;
   apply: boolean;
   activeOnly: boolean;
+  sendNotice: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
   const flags = new Set(argv.filter((a) => a.startsWith('--')));
-  const known = new Set(['--dry-run', '--apply', '--active-only']);
+  const known = new Set(['--dry-run', '--apply', '--active-only', '--send-notice']);
   for (const flag of flags) if (!known.has(flag)) throw new Error(`Unknown flag ${flag}.`);
   if (flags.has('--dry-run') && flags.has('--apply')) throw new Error('Give --dry-run or --apply, not both.');
   const [file] = argv.filter((a) => !a.startsWith('--'));
   if (!file) throw new Error('Give the path to the scan export.');
-  return { file, apply: flags.has('--apply'), activeOnly: flags.has('--active-only') };
+  return {
+    file,
+    apply: flags.has('--apply'),
+    activeOnly: flags.has('--active-only'),
+    sendNotice: flags.has('--send-notice'),
+  };
 }
 
 /** NodeIDs in the current Primary Network validator set. Throws when the source is down. */
@@ -63,8 +80,56 @@ async function fetchActiveNodes(): Promise<Set<string>> {
   return new Set(validators.map((v) => v.node_id));
 }
 
+/** Refuse to send with a missing secret: an unsigned or wrongly signed unsubscribe link fails. */
+function requireMailEnv(): void {
+  const missing = ['SENDGRID_API_KEY', 'EMAIL_FROM'].filter((name) => !process.env[name]);
+  if (!process.env.VALIDATOR_ALERTS_API_KEY && !process.env.CRON_SECRET) missing.push('VALIDATOR_ALERTS_API_KEY');
+  if (missing.length > 0) throw new Error(`--send-notice needs ${missing.join(', ')}.`);
+}
+
+/** Send the migration notice to each address that has not had one. Counts only. */
+async function sendNotices(apply: boolean) {
+  const rows = await prisma.validatorAlert.findMany({
+    where: { source: LEGACY_NOTIFY_SOURCE, active: true },
+    select: {
+      id: true,
+      email: true,
+      node_id: true,
+      alert_logs: { where: { alert_type: LEGACY_NOTICE_ALERT_TYPE }, select: { id: true }, take: 1 },
+    },
+    orderBy: { created_at: 'asc' },
+  });
+  const { groups, alreadyNoticed } = groupNotices(
+    rows.map((r) => ({ id: r.id, email: r.email, node_id: r.node_id, noticed: r.alert_logs.length > 0 })),
+  );
+  const report = { addresses: groups.length, alreadyNoticed, sent: 0, failed: 0 };
+  if (!apply) return report;
+
+  // Load SendGrid only when it sends.
+  const { sendMail } = await import('@/server/services/mail');
+  for (const group of groups) {
+    const notice = legacyNotifyNoticeTemplate({ alerts: group.alerts, endDate: OLD_SERVICE_END });
+    try {
+      await sendMail(group.email, notice.html, notice.subject, notice.text, { logRecipient: false });
+    } catch {
+      report.failed++;
+      continue;
+    }
+    await prisma.validatorAlertLog.createMany({
+      data: group.alerts.map((a) => ({
+        validator_alert_id: a.alertId,
+        alert_type: LEGACY_NOTICE_ALERT_TYPE,
+        message: notice.text,
+      })),
+    });
+    report.sent++;
+  }
+  return report;
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  if (args.sendNotice && args.apply) requireMailEnv();
   const items = parseScanExport(JSON.parse(fs.readFileSync(args.file, 'utf8')));
   const { pairs, report: extract } = extractPairs(items);
 
@@ -101,6 +166,8 @@ async function main(): Promise<void> {
     }
   }
 
+  const notice = args.sendNotice ? await sendNotices(args.apply) : null;
+
   console.log(
     JSON.stringify(
       {
@@ -110,6 +177,7 @@ async function main(): Promise<void> {
         extract,
         plan,
         inserted,
+        notice,
       },
       null,
       2,

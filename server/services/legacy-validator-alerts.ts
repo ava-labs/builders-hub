@@ -4,6 +4,9 @@ import { normalizeEmail } from '@/lib/utils';
 /** `ValidatorAlert.source` for a row imported from the retired Avalanche Notify service. */
 export const LEGACY_NOTIFY_SOURCE = 'avalanche-notify';
 
+/** `ValidatorAlertLog.alert_type` of the one-time migration notice. Its presence means "sent". */
+export const LEGACY_NOTICE_ALERT_TYPE = 'migration_notice';
+
 interface AlertKey {
   node_id: string;
   subnet_id: string;

@@ -189,3 +189,38 @@ export function chunk<T>(list: T[], size: number): T[][] {
   for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
   return out;
 }
+
+export interface NoticeCandidate {
+  id: string;
+  email: string;
+  node_id: string;
+  /** True when a migration notice log exists for this row. */
+  noticed: boolean;
+}
+
+export interface NoticeGroup {
+  email: string;
+  alerts: { alertId: string; nodeId: string }[];
+}
+
+/**
+ * One notice per address, listing each of its alerts. An address that has a notice on any
+ * of its rows is skipped as a whole, so a second run sends nothing twice.
+ */
+export function groupNotices(rows: NoticeCandidate[]): { groups: NoticeGroup[]; alreadyNoticed: number } {
+  const byEmail = new Map<string, NoticeCandidate[]>();
+  for (const row of rows) {
+    const email = normalizeEmail(row.email);
+    byEmail.set(email, [...(byEmail.get(email) ?? []), row]);
+  }
+  const groups: NoticeGroup[] = [];
+  let alreadyNoticed = 0;
+  for (const [email, list] of byEmail) {
+    if (list.some((r) => r.noticed)) {
+      alreadyNoticed++;
+      continue;
+    }
+    groups.push({ email, alerts: list.map((r) => ({ alertId: r.id, nodeId: r.node_id })) });
+  }
+  return { groups, alreadyNoticed };
+}
