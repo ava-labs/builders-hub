@@ -7,6 +7,9 @@ export const LEGACY_NOTIFY_SOURCE = 'avalanche-notify';
 /** `ValidatorAlertLog.alert_type` of the one-time migration notice. Its presence means "sent". */
 export const LEGACY_NOTICE_ALERT_TYPE = 'migration_notice';
 
+/** The day Avalanche Notify stops. The notice gives this date. */
+export const LEGACY_NOTIFY_END = new Date('2026-11-30T00:00:00Z');
+
 interface AlertKey {
   node_id: string;
   subnet_id: string;
