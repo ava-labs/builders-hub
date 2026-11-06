@@ -38,7 +38,7 @@ export async function sendInvitation(
   const ignore = t(lang, "invitation.email.ignore");
 
   // Plain-text part keeps the raw values; only the HTML part needs escaping.
-  const text = `${body} "${headline}" — ${inviteLink}`;
+  const text = `${body} "${headline}": ${inviteLink}`;
   const safeInviterName = escapeHtml(inviterName);
   const safeHeadline = escapeHtml(headline);
   // inviteLink must be https or a relative path; strip anything else to prevent javascript: injection
