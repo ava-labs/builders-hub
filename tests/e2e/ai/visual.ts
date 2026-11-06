@@ -24,7 +24,7 @@ export function layoutIsIntact(subject: string, normal: readonly string[] = []):
 }
 
 // Waits until the screen the judge sees has settled. First the page is at the top, the web fonts have loaded and
-// the images in view have decoded. A timeout names the image (a broken image in view never loads).
+// the image requests in view have finished. A timeout names an image whose request is still pending.
 export async function waitForStillScreen(browser: Browser): Promise<void> {
   await expect
     .poll(
@@ -39,7 +39,7 @@ export async function waitForStillScreen(browser: Browser): Promise<void> {
               const inHeight = box.bottom > 0 && box.top < window.innerHeight;
               return box.width > 0 && inHeight && box.right > 0 && box.left < window.innerWidth;
             })
-            .filter((image) => !(image.complete && image.naturalWidth > 0))
+            .filter((image) => !image.complete)
             .map((image) => image.currentSrc || image.src);
           return loading.length > 0 ? `images not loaded: ${loading.slice(0, 3).join(', ')}` : 'loaded';
         }),

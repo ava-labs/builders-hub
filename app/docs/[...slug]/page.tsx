@@ -7,8 +7,10 @@ import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
+import { ApiDeprecationNotice } from "@/components/api/api-deprecation-notice";
 import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, VerificationAPIPage, XChainAPIPage } from "@/components/api/api-pages";
 import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
+import { getApiDeprecation } from "@/lib/api-deprecations";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import { sharedMDXComponents } from "@/components/mdx/shared-components";
@@ -45,6 +47,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
+  const apiDeprecation = getApiDeprecation(page.slugs);
   // Use page.path which contains the actual file path relative to collection root
   // (e.g., "tooling/avalanche-sdk/index.mdx" for an index file)
   // This correctly handles both regular .mdx files and index.mdx files
@@ -84,6 +87,7 @@ export default async function Page(props: {
         <DocsDescription>{page.data.description}</DocsDescription>
       )}
       <DocsBody className="text-fd-foreground/80">
+        {apiDeprecation && <ApiDeprecationNotice deprecation={apiDeprecation} />}
         <MDX
           components={{
             ...(() => {
