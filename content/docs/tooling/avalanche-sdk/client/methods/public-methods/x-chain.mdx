@@ -11,8 +11,8 @@ The X-Chain (Exchange Chain) is Avalanche's DAG-based chain designed for creatin
 
 ### getBalance
 
-<Callout type="warn" title="Deprecated">
-`getBalance` calls `avm.getBalance`, which is deprecated. AvalancheGo will remove it in an upcoming release, and the public API endpoints will stop serving it. Use [getUTXOs](#getutxos) instead: page through all UTXOs, decode each with `getUtxoFromBytes` from `@avalanche-sdk/client/utils`, and add the amounts of the transfer outputs for the asset whose locktime has passed.
+<Callout type="warn" title="Removed in AvalancheGo v1.15.4">
+`getBalance` calls `avm.getBalance`, which AvalancheGo v1.15.4 removes. The call fails on nodes that run v1.15.4 or later. Use [getUTXOs](#getutxos) instead: page through all UTXOs, decode each with `getUtxoFromBytes` from `@avalanche-sdk/client/utils`, and add the amounts of the transfer outputs for the asset whose locktime has passed.
 </Callout>
 
 Get the balance of a specific asset controlled by a given address.
@@ -81,15 +81,15 @@ console.log("UTXO IDs:", balance.utxoIDs);
 **Related:**
 
 - [API Reference: `avm.getUTXOs`](https://build.avax.network/docs/rpcs/x-chain#avmgetutxos)
-- [getAllBalances](#getallbalances) - Get balances for all assets (deprecated)
+- [getAllBalances](#getallbalances) - Get balances for all assets (removed in AvalancheGo v1.15.4)
 - [getUTXOs](#getutxos) - Get UTXOs for addresses
 
 ---
 
 ### getAllBalances
 
-<Callout type="warn" title="Deprecated">
-`getAllBalances` calls `avm.getAllBalances`, which is deprecated. AvalancheGo will remove it in an upcoming release, and the public API endpoints will stop serving it. Use [getUTXOs](#getutxos) instead: page through all UTXOs, decode each with `getUtxoFromBytes` from `@avalanche-sdk/client/utils`, and for each asset add the amounts of the transfer outputs whose locktime has passed.
+<Callout type="warn" title="Removed in AvalancheGo v1.15.4">
+`getAllBalances` calls `avm.getAllBalances`, which AvalancheGo v1.15.4 removes. The call fails on nodes that run v1.15.4 or later. Use [getUTXOs](#getutxos) instead: page through all UTXOs, decode each with `getUtxoFromBytes` from `@avalanche-sdk/client/utils`, and for each asset add the amounts of the transfer outputs whose locktime has passed.
 </Callout>
 
 Get the balances of all assets controlled by given addresses.
@@ -147,7 +147,7 @@ allBalances.balances.forEach(({ assetID, balance }) => {
 **Related:**
 
 - [API Reference: `avm.getUTXOs`](https://build.avax.network/docs/rpcs/x-chain#avmgetutxos)
-- [getBalance](#getbalance) - Get balance for specific asset (deprecated)
+- [getBalance](#getbalance) - Get balance for specific asset (removed in AvalancheGo v1.15.4)
 - [getAssetDescription](#getassetdescription) - Get asset information
 
 ---
@@ -213,7 +213,7 @@ console.log("Denomination:", asset.denomination);
 **Related:**
 
 - [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetassetdescription)
-- [getBalance](#getbalance) - Get balance for this asset (deprecated)
+- [getBalance](#getbalance) - Get balance for this asset (removed in AvalancheGo v1.15.4)
 
 ---
 
@@ -438,15 +438,15 @@ console.log("Transaction:", tx.tx);
 **Related:**
 
 - [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgettx)
-- [getTxStatus](#gettxstatus) - Get transaction status (deprecated)
+- [getTxStatus](#gettxstatus) - Get transaction status (removed in AvalancheGo v1.15.4)
 - [issueTx](#issuetx) - Submit transaction
 
 ---
 
 ### getTxStatus
 
-<Callout type="warn" title="Deprecated">
-`getTxStatus` calls `avm.getTxStatus`, which is deprecated. AvalancheGo will remove it in an upcoming release, and the public API endpoints will stop serving it. Use [getTx](#gettx) instead: the transaction is accepted when `getTx` returns it.
+<Callout type="warn" title="Removed in AvalancheGo v1.15.4">
+`getTxStatus` calls `avm.getTxStatus`, which AvalancheGo v1.15.4 removes. The call fails on nodes that run v1.15.4 or later. Use [getTx](#gettx) instead: the transaction is accepted when `getTx` returns it.
 </Callout>
 
 Get the status of a transaction.
@@ -653,7 +653,7 @@ if (utxos.endIndex) {
 **Related:**
 
 - [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmgetutxos)
-- [getBalance](#getbalance) - Get balance summary (deprecated)
+- [getBalance](#getbalance) - Get balance summary (removed in AvalancheGo v1.15.4)
 
 ---
 
@@ -711,7 +711,7 @@ console.log("Transaction ID:", txID.txID);
 **Related:**
 
 - [API Reference](https://build.avax.network/docs/rpcs/x-chain#avmissuetx)
-- [getTxStatus](#gettxstatus) - Check transaction status (deprecated)
+- [getTxStatus](#gettxstatus) - Check transaction status (removed in AvalancheGo v1.15.4)
 
 ---
 

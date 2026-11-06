@@ -100,7 +100,7 @@ const balance = await client.pChain.getBalance({
 ### Query X-Chain Data
 
 ```typescript
-// Get the UTXOs of an address (getBalance and getAllBalances are deprecated)
+// Get the UTXOs of an address (AvalancheGo v1.15.4 removes getBalance and getAllBalances)
 const utxos = await client.xChain.getUTXOs({
   addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
 });

@@ -39,11 +39,11 @@ const xChainClient = createXChainClient({
 
 The X-Chain Client provides methods for:
 
-- **Balance Operations**: `getBalance` (deprecated), `getAllBalances` (deprecated)
+- **Balance Operations**: `getBalance` and `getAllBalances` (removed in AvalancheGo v1.15.4)
 - **Asset Operations**: `getAssetDescription`, `buildGenesis`
 - **UTXO Operations**: `getUTXOs`
 - **Block Operations**: `getHeight`, `getBlock`, `getBlockByHeight`
-- **Transaction Operations**: `getTx`, `getTxStatus` (deprecated), `getTxFee`, `issueTx`
+- **Transaction Operations**: `getTx`, `getTxStatus` (removed in AvalancheGo v1.15.4), `getTxFee`, `issueTx`
 
 For complete method documentation with signatures, parameters, and examples, see the [X-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/x-chain).
 
@@ -51,8 +51,8 @@ For complete method documentation with signatures, parameters, and examples, see
 
 ### Query Balances
 
-<Callout type="warn" title="Deprecated">
-`getBalance` and `getAllBalances` call `avm.getBalance` and `avm.getAllBalances`, which AvalancheGo will remove in an upcoming release. Read the UTXOs with `getUTXOs` and add the output amounts instead. See [getBalance](/docs/tooling/avalanche-sdk/client/methods/public-methods/x-chain#getbalance).
+<Callout type="warn" title="Removed in AvalancheGo v1.15.4">
+`getBalance` and `getAllBalances` call `avm.getBalance` and `avm.getAllBalances`, which AvalancheGo v1.15.4 removes. Read the UTXOs with `getUTXOs` and add the output amounts instead. See [getBalance](/docs/tooling/avalanche-sdk/client/methods/public-methods/x-chain#getbalance).
 </Callout>
 
 ```typescript
@@ -116,7 +116,7 @@ const tx = await client.xChain.getTx({
   encoding: "hex",
 });
 
-// Get transaction status (deprecated: getTx returns a transaction only after it is accepted)
+// Get transaction status (removed in AvalancheGo v1.15.4: use getTx, which returns only accepted transactions)
 const status = await client.xChain.getTxStatus({
   txID: "11111111111111111111111111111111LpoYY",
 });
