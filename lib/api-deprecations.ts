@@ -16,13 +16,6 @@ export const API_DEPRECATIONS: ApiDeprecation[] = [
     sunsetAt: '2026-11-16T12:00:00Z',
     decommissionedAt: '2026-11-30T12:00:00Z',
   },
-  {
-    name: 'Webhooks API',
-    slugPrefix: ['api-reference', 'webhook-api'],
-    deprecatedAt: '2026-11-05T00:00:00Z',
-    sunsetAt: '2026-11-16T12:00:00Z',
-    decommissionedAt: '2026-12-07T12:00:00Z',
-  },
 ];
 
 export function getApiDeprecation(slugs: string[]): ApiDeprecation | undefined {

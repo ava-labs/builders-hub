@@ -2,18 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { formatDeprecationDate, getApiDeprecation } from '@/lib/api-deprecations';
 
 describe('getApiDeprecation', () => {
-  it('covers every page of the Metrics and Webhooks API references', () => {
+  it('covers every page of the Metrics API reference', () => {
     expect(getApiDeprecation(['api-reference', 'metrics-api'])?.name).toBe('Metrics API');
     expect(getApiDeprecation(['api-reference', 'metrics-api', 'evm-chains', 'getEvmChainMetrics'])?.name).toBe(
       'Metrics API',
-    );
-    expect(getApiDeprecation(['api-reference', 'webhook-api', 'webhooks', 'createWebhook'])?.name).toBe(
-      'Webhooks API',
     );
   });
 
   it('leaves other pages alone', () => {
     expect(getApiDeprecation(['api-reference', 'data-api'])).toBeUndefined();
+    expect(getApiDeprecation(['api-reference', 'webhook-api', 'webhooks', 'createWebhook'])).toBeUndefined();
     expect(getApiDeprecation(['api-reference'])).toBeUndefined();
     expect(getApiDeprecation(['rpcs', 'other', 'metrics-api'])).toBeUndefined();
   });

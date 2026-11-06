@@ -103,8 +103,7 @@ export const apiReferenceOptions: NavOption[] = [
   },
   {
     title: 'Webhook API',
-    badge: 'Deprecated',
-    description: 'Deprecated: real-time blockchain notifications',
+    description: 'Real-time blockchain notifications',
     icon: <Webhook className="w-5 h-5" />,
     url: '/docs/api-reference/webhook-api',
   },
