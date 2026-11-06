@@ -4,11 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const db = vi.hoisted(() => ({
   rows: [] as { id: string; email: string; node_id: string; alert_logs: { id: string }[] }[],
   logs: [] as { validator_alert_id: string; alert_type: string }[],
+  locked: true,
 }));
 const mail = vi.hoisted(() => ({ sendMail: vi.fn() }));
 
-vi.mock('@/prisma/prisma', () => ({
-  prisma: {
+vi.mock('@/prisma/prisma', () => {
+  const client = {
     validatorAlert: { findMany: vi.fn(async () => db.rows) },
     validatorAlertLog: {
       createMany: vi.fn(async ({ data }: { data: { validator_alert_id: string; alert_type: string }[] }) => {
@@ -16,8 +17,10 @@ vi.mock('@/prisma/prisma', () => ({
         return { count: data.length };
       }),
     },
-  },
-}));
+    $queryRaw: vi.fn(async () => [{ locked: db.locked }]),
+  };
+  return { prisma: { ...client, $transaction: vi.fn(async (fn: (tx: typeof client) => unknown) => fn(client)) } };
+});
 vi.mock('@/server/services/mail', () => mail);
 
 import { NOTICES_PER_RUN, sendPendingLegacyNotices } from '@/server/services/legacy-notice';
@@ -34,6 +37,7 @@ describe('sendPendingLegacyNotices', () => {
   beforeEach(() => {
     db.rows = [];
     db.logs = [];
+    db.locked = true;
     mail.sendMail.mockReset();
     mail.sendMail.mockResolvedValue(undefined);
   });
@@ -62,5 +66,14 @@ describe('sendPendingLegacyNotices', () => {
     const result = await sendPendingLegacyNotices();
     expect(result.sent).toBe(NOTICES_PER_RUN);
     expect(result.withoutNotice.size).toBe(NOTICES_PER_RUN + 5);
+  });
+
+  it('sends nothing when another run holds the lock, and still holds back alerts without a notice', async () => {
+    db.rows = [row('a1', 'user1@example.com')];
+    db.locked = false;
+    const result = await sendPendingLegacyNotices();
+    expect(result).toMatchObject({ sent: 0, failed: 0 });
+    expect(mail.sendMail).not.toHaveBeenCalled();
+    expect(result.withoutNotice.has('a1')).toBe(true);
   });
 });
