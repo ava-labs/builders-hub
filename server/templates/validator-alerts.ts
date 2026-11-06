@@ -544,6 +544,12 @@ export function legacyNotifyNoticeTemplate(params: {
     'A new AvalancheGo release is available or required.',
     'Your stake ends in 7 days or less.',
   ];
+  const noAction = 'You do not need to do anything.';
+  // Avalanche Notify sent an alert when a node went offline. Builder Hub does not, so say it.
+  const noDownAlert =
+    'Builder Hub does not send an alert when a node goes offline. The uptime check uses the uptime that other validators report for your node, so a short outage may not trigger it.';
+  const signIn =
+    'To change the thresholds or pause an alert, sign in at https://build.avax.network/validator-alerts with this email address. If you sign in with Google or GitHub, use an account with this email address.';
 
   const nodeRows = params.alerts
     .map(
@@ -559,11 +565,12 @@ export function legacyNotifyNoticeTemplate(params: {
     'Avalanche Notify Is Moving to Builder Hub',
     section(
       '#3B82F6',
-      `Avalanche Notify stops on ${escapeHtml(end)}. Builder Hub Validator Alerts now watches ${count === 1 ? 'this validator' : `these ${count} validators`} for this address:`,
+      `Avalanche Notify stops on ${escapeHtml(end)}. Builder Hub Validator Alerts now watches ${count === 1 ? 'this validator' : `these ${count} validators`} for this address. ${noAction}`,
       dataTable(nodeRows) +
         `<p style="font-size: 13px; color: #D1D5DB; margin: 16px 0 6px 0;">You get an email when:</p>` +
         `<ul style="font-size: 13px; color: #D1D5DB; margin: 0; padding-left: 20px;">${checks.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>` +
-        `<p style="font-size: 13px; color: #D1D5DB; margin: 16px 0 0 0;">To change the thresholds or pause an alert, sign in at <a href="https://build.avax.network/validator-alerts" style="color: #3B82F6; text-decoration: underline;">build.avax.network/validator-alerts</a> with this email address.</p>` +
+        `<p style="font-size: 13px; color: #D1D5DB; margin: 12px 0 0 0;">${escapeHtml(noDownAlert)}</p>` +
+        `<p style="font-size: 13px; color: #D1D5DB; margin: 16px 0 0 0;">To change the thresholds or pause an alert, sign in at <a href="https://build.avax.network/validator-alerts" style="color: #3B82F6; text-decoration: underline;">build.avax.network/validator-alerts</a> with this email address. If you sign in with Google or GitHub, use an account with this email address.</p>` +
         `<p style="font-size: 13px; color: #D1D5DB; margin: 12px 0 0 0;">Until ${escapeHtml(end)}, both services send alerts. You can get two emails for one event.</p>`,
       'You get this email because this address subscribed to Avalanche Notify.',
     ),
@@ -571,13 +578,15 @@ export function legacyNotifyNoticeTemplate(params: {
   );
 
   const text = [
-    `Avalanche Notify stops on ${end}. Builder Hub Validator Alerts now watches these validators for this address:`,
+    `Avalanche Notify stops on ${end}. Builder Hub Validator Alerts now watches these validators for this address. ${noAction}`,
     ...params.alerts.map((a) => `- ${a.nodeId} (unsubscribe: ${getUnsubscribeUrl(a.alertId)})`),
     '',
     'You get an email when:',
     ...checks.map((c) => `- ${c}`),
     '',
-    'To change the thresholds or pause an alert, sign in at https://build.avax.network/validator-alerts with this email address.',
+    noDownAlert,
+    '',
+    signIn,
     `Until ${end}, both services send alerts. You can get two emails for one event.`,
   ].join('\n');
 

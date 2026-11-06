@@ -63,6 +63,14 @@ describe('legacyNotifyNoticeTemplate', () => {
     expect(notice.html).toContain('these 2 validators');
   });
 
+  it('says no action is needed, that there is no offline alert, and how to sign in', () => {
+    for (const body of [notice.html, notice.text]) {
+      expect(body).toContain('You do not need to do anything.');
+      expect(body).toContain('does not send an alert when a node goes offline');
+      expect(body).toContain('If you sign in with Google or GitHub, use an account with this email address.');
+    }
+  });
+
   it('has no em dash', () => {
     expect(`${notice.subject}${notice.html}${notice.text}`).not.toContain('\u2014');
   });
