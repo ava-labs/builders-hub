@@ -41,7 +41,7 @@ The P-Chain Client provides methods for:
 
 - **Balance Operations**: `getBalance`, `getUTXOs`
 - **Validator Operations**: `getCurrentValidators`, `getValidatorsAt`, `sampleValidators`, `getL1Validator`
-- **Staking Operations**: `getStake`, `getTotalStake`, `getMinStake`
+- **Staking Operations**: `getStake` (deprecated), `getTotalStake`, `getMinStake`
 - **Subnet Operations**: `getSubnet`, `getSubnets`, `getStakingAssetID`
 - **Blockchain Operations**: `getBlockchains`, `getBlockchainStatus`, `validatedBy`, `validates`
 - **Block Operations**: `getHeight`, `getBlock`, `getBlockByHeight`, `getProposedHeight`, `getTimestamp`
@@ -85,7 +85,7 @@ const totalStake = await client.pChain.getTotalStake({
   subnetID: "11111111111111111111111111111111LpoYY",
 });
 
-// Get stake for specific addresses
+// Get stake for specific addresses (deprecated: see the getStake reference)
 const stake = await client.pChain.getStake({
   addresses: ["P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p"],
   subnetID: "11111111111111111111111111111111LpoYY",

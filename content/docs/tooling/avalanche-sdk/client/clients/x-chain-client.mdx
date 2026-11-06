@@ -39,17 +39,21 @@ const xChainClient = createXChainClient({
 
 The X-Chain Client provides methods for:
 
-- **Balance Operations**: `getBalance`, `getAllBalances`
+- **Balance Operations**: `getBalance` (deprecated), `getAllBalances` (deprecated)
 - **Asset Operations**: `getAssetDescription`, `buildGenesis`
 - **UTXO Operations**: `getUTXOs`
 - **Block Operations**: `getHeight`, `getBlock`, `getBlockByHeight`
-- **Transaction Operations**: `getTx`, `getTxStatus`, `getTxFee`, `issueTx`
+- **Transaction Operations**: `getTx`, `getTxStatus` (deprecated), `getTxFee`, `issueTx`
 
 For complete method documentation with signatures, parameters, and examples, see the [X-Chain Methods Reference](/avalanche-sdk/client-sdk/methods/public-methods/x-chain).
 
 ## Common Use Cases
 
 ### Query Balances
+
+<Callout type="warn" title="Deprecated">
+`getBalance` and `getAllBalances` call `avm.getBalance` and `avm.getAllBalances`, which AvalancheGo will remove in an upcoming release. Read the UTXOs with `getUTXOs` and add the output amounts instead. See [getBalance](/docs/tooling/avalanche-sdk/client/methods/public-methods/x-chain#getbalance).
+</Callout>
 
 ```typescript
 // Get balance for specific asset
@@ -112,7 +116,7 @@ const tx = await client.xChain.getTx({
   encoding: "hex",
 });
 
-// Get transaction status
+// Get transaction status (deprecated: getTx returns a transaction only after it is accepted)
 const status = await client.xChain.getTxStatus({
   txID: "11111111111111111111111111111111LpoYY",
 });

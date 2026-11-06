@@ -100,14 +100,8 @@ const balance = await client.pChain.getBalance({
 ### Query X-Chain Data
 
 ```typescript
-// Get balance for specific asset
-const balance = await client.xChain.getBalance({
-  addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
-  assetID: "AVAX",
-});
-
-// Get all balances
-const allBalances = await client.xChain.getAllBalances({
+// Get the UTXOs of an address (getBalance and getAllBalances are deprecated)
+const utxos = await client.xChain.getUTXOs({
   addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
 });
 
@@ -203,9 +197,8 @@ try {
 const validators = await client.pChain.getCurrentValidators({});
 
 // Good: Use X-Chain client for asset operations
-const balance = await client.xChain.getBalance({
+const utxos = await client.xChain.getUTXOs({
   addresses: ["X-avax..."],
-  assetID: "AVAX",
 });
 
 // Good: Use C-Chain client for EVM operations
