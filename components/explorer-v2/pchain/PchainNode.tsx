@@ -13,6 +13,7 @@ import { usePchainData } from "./hooks";
 import { SubscribeAlerts } from "./SubscribeAlerts";
 import { MAX_TOTAL_STAKE_NAVAX, avax, currentUptime, delegationFeeCut, feePercentAt, leadSeat, useConversion, useP2PDetail, useStakeContext, useValidationHistory, validatedAsSubnet } from "./node-data";
 import { NodePerformance } from "./node-performance";
+import { NodeProposedBlocks } from "./node-blocks";
 import { ActivityTable, DelegatorsTable, SubnetTerms, ValidationHistory, ValidationsTable } from "./node-record";
 import { L1ValidatorView } from "./node-l1";
 import { STORY, STORY_INK } from "./tx-story";
@@ -366,6 +367,8 @@ export function PchainNode({
 
           {/* how it has performed: uptime by the hour, blocks by the day */}
           {n.hasSnapshot && <NodePerformance n={n} p2p={p2p} uptimeReq={uptimeReq} />}
+
+      <NodeProposedBlocks network={network} nodeId={nodeId} />
 
           {terms}
 
