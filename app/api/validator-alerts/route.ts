@@ -9,7 +9,8 @@ import {
   checkL1Alert,
   sendWelcomeEmail,
 } from '@/server/services/validator-alert-check';
-import { fetchAutoRenewPeriods, stakeEndIsFinal, stakeRenews, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
+import { getAutoRenewPeriods, stakeRenews, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
+import { stakeEnd } from '@/lib/validator-stake-end';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
@@ -18,7 +19,7 @@ const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{32,}$/;
 const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
-// The list waits for this P-Chain read, so it gets a short timeout.
+// A request waits for the P-Chain read on a cache miss, so it gets a short timeout.
 const LIST_PCHAIN_TIMEOUT_MS = 3000;
 
 export async function GET() {
@@ -46,12 +47,11 @@ export async function GET() {
       orderBy: { created_at: 'desc' },
     });
 
-    // One P-Chain read for the user's Primary Network nodes. A failed read gives null, not an error.
-    const primaryNodes = [...new Set(alerts.filter((a) => a.subnet_id === 'primary').map((a) => a.node_id))];
+    // The cached mainnet map (one P-Chain read per minute). A failed read gives null, not an error.
     let periods: AutoRenewPeriods | null = null;
-    if (primaryNodes.length > 0) {
+    if (alerts.some((a) => a.subnet_id === 'primary')) {
       try {
-        periods = await fetchAutoRenewPeriods(primaryNodes, LIST_PCHAIN_TIMEOUT_MS);
+        periods = await getAutoRenewPeriods({ timeoutMs: LIST_PCHAIN_TIMEOUT_MS });
       } catch (err) {
         console.error('Auto-renew read failed (non-fatal):', err);
       }
@@ -242,17 +242,18 @@ export async function POST(req: NextRequest) {
     // Run immediate checks + welcome email after creation.
     const [releaseResult, autoRenewResult] = await Promise.allSettled([
       fetchLatestRelease(),
-      isL1 ? Promise.resolve(null) : fetchAutoRenewPeriods([body.node_id]),
+      isL1 ? Promise.resolve(null) : getAutoRenewPeriods({ timeoutMs: LIST_PCHAIN_TIMEOUT_MS }),
     ]);
     const latestRelease = releaseResult.status === 'fulfilled' ? releaseResult.value : null;
     // False when the node auto-renews or the P-Chain read failed: no expiry alert, no expiry date.
     const autoRenewPeriods = autoRenewResult.status === 'fulfilled' ? autoRenewResult.value : null;
-    const stakeEnds = stakeEndIsFinal(body.node_id, autoRenewPeriods);
+    // Expiry alerts and the welcome email's expiry date need a known stake end.
+    const primaryStakeEnd = stakeEnd(stakeRenews(body.node_id, autoRenewPeriods), primaryValidator?.p50_uptime ?? 0);
 
     let l1ValidatorForWelcome: L1ValidatorData | null = null;
     try {
       if (!isL1 && primaryValidator) {
-        await checkSingleAlert(txResult.alert, primaryValidator, latestRelease, stakeEnds);
+        await checkSingleAlert(txResult.alert, primaryValidator, latestRelease, primaryStakeEnd);
       } else if (isL1) {
         const l1Validators = await fetchL1Validators(detectedSubnetId);
         l1ValidatorForWelcome = l1Validators.find((v) => v.nodeId === body.node_id) ?? null;
@@ -270,7 +271,7 @@ export async function POST(req: NextRequest) {
         await sendWelcomeEmail(txResult.alert, {
           primaryValidator,
           latestRelease,
-          stakeEndIsFinal: stakeEnds,
+          stakeEndIsFinal: primaryStakeEnd === 'final',
         });
       } else {
         await sendWelcomeEmail(txResult.alert, {

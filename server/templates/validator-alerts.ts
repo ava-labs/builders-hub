@@ -1,4 +1,5 @@
 import { getUnsubscribeUrl } from '@/server/services/unsubscribe-token';
+import { RENEWAL_UPTIME_PERCENT } from '@/lib/validator-stake-end';
 import {
   BRAND,
   SITE,
@@ -221,16 +222,25 @@ export function expiryAlertTemplate(params: {
   daysLeft: number;
   expiryDate: string;
   urgency: 'notice' | 'urgent';
+  /** the stake auto-renews, but the uptime is below the 90% renewal threshold */
+  renewalAtRisk?: boolean;
 }): { subject: string; html: string; text: string } {
   const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
   const prefix = params.urgency === 'urgent' ? '⚠️ ' : '';
-  const subject = `${prefix}Stake Expiry Alert: ${params.nodeId}: ${params.daysLeft} day${params.daysLeft === 1 ? '' : 's'} remaining`;
-  const text = `Your validator ${name} stake expires in ${params.daysLeft} day(s) (${params.expiryDate}).`;
+  const days = `${params.daysLeft} day${params.daysLeft === 1 ? '' : 's'}`;
+  const subject = params.renewalAtRisk
+    ? `${prefix}Renewal At Risk: ${params.nodeId}: cycle ends in ${days}`
+    : `${prefix}Stake Expiry Alert: ${params.nodeId}: ${days} remaining`;
+  const text = params.renewalAtRisk
+    ? `Your validator ${name} auto-renews, but its uptime is below ${RENEWAL_UPTIME_PERCENT}%. Its cycle ends in ${params.daysLeft} day(s) (${params.expiryDate}). If its uptime for the cycle is below ${RENEWAL_UPTIME_PERCENT}% then, the P-Chain removes the validator and returns the stake.`
+    : `Your validator ${name} stake expires in ${params.daysLeft} day(s) (${params.expiryDate}).`;
 
   const borderColor = params.urgency === 'urgent' ? '#E6212F' : '#FF7F7B';
-  const heading = params.urgency === 'urgent'
-    ? 'Your validator stake expires tomorrow'
-    : 'Your validator stake is expiring soon';
+  const heading = params.renewalAtRisk
+    ? 'Your validator renewal is at risk'
+    : params.urgency === 'urgent'
+      ? 'Your validator stake expires tomorrow'
+      : 'Your validator stake is expiring soon';
   const cooldown = params.urgency === 'urgent' ? '6 hours' : '24 hours';
 
   const html = wrapTemplate(
@@ -244,7 +254,9 @@ export function expiryAlertTemplate(params: {
         dataRow('Expiry Date', params.expiryDate, '#C9D1D3')
       ) +
       `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
-      `We'll alert you again in ${cooldown} if your validator is still expiring.`
+      params.renewalAtRisk
+        ? `The validator renews only with ${RENEWAL_UPTIME_PERCENT}% uptime for the cycle. We'll alert you again in ${cooldown} if its uptime is still low.`
+        : `We'll alert you again in ${cooldown} if your validator is still expiring.`
     ),
     borderColor,
     params.alertId,
@@ -263,16 +275,21 @@ export function expiryCriticalTemplate(params: {
   label: string | null;
   expiryDate: string;
   hoursLeft: number;
+  /** the stake auto-renews, but the uptime is below the 90% renewal threshold */
+  renewalAtRisk?: boolean;
 }): { subject: string; html: string; text: string } {
   const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
   const minutesLeft = Math.max(1, Math.round(params.hoursLeft * 60));
-  const subject = `🚨 Stake Expires Within 1 Hour: ${params.nodeId}`;
-  const text = `CRITICAL: Your validator ${name} stake expires in approximately ${minutesLeft} minutes (${params.expiryDate}). Immediate action required.`;
+  const title = params.renewalAtRisk ? '🚨 Renewal At Risk, Cycle Ends Within 1 Hour' : '🚨 Stake Expires Within 1 Hour';
+  const subject = `${title}: ${params.nodeId}`;
+  const text = params.renewalAtRisk
+    ? `CRITICAL: Your validator ${name} cycle ends in approximately ${minutesLeft} minutes (${params.expiryDate}). Its uptime is below ${RENEWAL_UPTIME_PERCENT}%, so the P-Chain can remove the validator instead of renewing it.`
+    : `CRITICAL: Your validator ${name} stake expires in approximately ${minutesLeft} minutes (${params.expiryDate}). Immediate action required.`;
   const html = wrapTemplate(
-    '🚨 Stake Expires Within 1 Hour',
+    title,
     section(
       '#E6212F',
-      'Your stake is about to expire',
+      params.renewalAtRisk ? 'Your validator may not renew' : 'Your stake is about to expire',
       dataTable(
         dataRow('Validator', name, 'white') +
         dataRow('Time Remaining', `~${minutesLeft} minutes`, '#E6212F') +

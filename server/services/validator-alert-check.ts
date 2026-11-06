@@ -16,6 +16,7 @@ import type { ValidatorP2P, AlertType, ReleaseClassification, L1ValidatorData } 
 import { getL1ChainName } from '@/server/services/l1-chain-metadata';
 import net from 'node:net';
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
+import type { StakeEnd } from '@/lib/validator-stake-end';
 
 const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const GITHUB_RELEASES_URL = 'https://api.github.com/repos/ava-labs/avalanchego/releases';
@@ -470,15 +471,16 @@ interface AlertRecord {
 
 /**
  * Run alert checks for a single alert + validator pair.
- * stakeEndIsFinal: true when validator.end_time is a real stake end (see
- * validator-auto-renew.ts). False skips the expiry alerts.
+ * stakeEnd: what validator.end_time means (lib/validator-stake-end.ts). Expiry
+ * alerts go out when the stake ends there ('final') or its renewal is at risk
+ * ('at_risk'); 'renews' and 'unknown' skip them.
  * Returns the number of emails sent.
  */
 export async function checkSingleAlert(
   alert: AlertRecord,
   validator: ValidatorP2P,
   latestRelease: ReleaseClassification | null,
-  stakeEndIsFinal: boolean,
+  stakeEnd: StakeEnd,
 ): Promise<{ sent: number; errors: string[] }> {
   let sent = 0;
   const errors: string[] = [];
@@ -580,7 +582,8 @@ export async function checkSingleAlert(
 
   // --- 3. Stake expiry check (tiered) ---
   // An auto-renewed validator's end_time is the end of its current cycle, not of its stake.
-  if (alert.expiry_alert && stakeEndIsFinal && validator.days_left >= 0) {
+  const renewalAtRisk = stakeEnd === 'at_risk';
+  if (alert.expiry_alert && (stakeEnd === 'final' || renewalAtRisk) && validator.days_left >= 0) {
     const endTime = new Date(validator.end_time);
     const hoursToExpiry = (endTime.getTime() - Date.now()) / 3_600_000;
 
@@ -595,6 +598,7 @@ export async function checkSingleAlert(
           label: alert.label,
           expiryDate: validator.end_time,
           hoursLeft: Math.max(0, hoursToExpiry),
+          renewalAtRisk,
         }),
         errors,
         alert.node_id
@@ -612,6 +616,7 @@ export async function checkSingleAlert(
           daysLeft: validator.days_left,
           expiryDate: validator.end_time,
           urgency: 'urgent',
+          renewalAtRisk,
         }),
         errors,
         alert.node_id
@@ -629,6 +634,7 @@ export async function checkSingleAlert(
           daysLeft: validator.days_left,
           expiryDate: validator.end_time,
           urgency: 'notice',
+          renewalAtRisk,
         }),
         errors,
         alert.node_id

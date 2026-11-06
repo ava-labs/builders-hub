@@ -8,7 +8,8 @@ import {
   checkL1Alert,
 } from '@/server/services/validator-alert-check';
 import type { L1ValidatorData } from '@/types/validator-alerts';
-import { fetchAutoRenewPeriods, stakeEndIsFinal, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
+import { getAutoRenewPeriods, stakeRenews, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
+import { stakeEnd } from '@/lib/validator-stake-end';
 import { sendPendingLegacyNotices } from '@/server/services/legacy-notice';
 import { LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
 
@@ -58,7 +59,8 @@ async function run(req: NextRequest) {
     const [validatorResult, releaseResult, autoRenewResult] = await Promise.allSettled([
       fetchValidators(),
       fetchLatestRelease(),
-      fetchAutoRenewPeriods(),
+      // A fresh read (it refreshes the API's cache), with one retry like fetchValidators.
+      getAutoRenewPeriods({ maxAgeMs: 0, attempts: 2 }),
     ]);
 
     const validators = validatorResult.status === 'fulfilled'
@@ -137,7 +139,7 @@ async function run(req: NextRequest) {
           alert,
           validator,
           latestRelease,
-          stakeEndIsFinal(alert.node_id, autoRenewPeriods),
+          stakeEnd(stakeRenews(alert.node_id, autoRenewPeriods), validator.p50_uptime),
         );
         sent += result.sent;
         errors.push(...result.errors);

@@ -78,6 +78,8 @@ export interface CurrentValidator {
   deactivationOwner?: PchainOwner;
   /** Primary Network: where the validator's own staking reward pays out */
   validationRewardOwner?: PchainOwner;
+  /** ACP-236 auto-renewed validators only: the next cycle in seconds; "0" means renewal is off */
+  nextPeriod?: string;
   /** Primary Network: where the delegation-fee cut pays out */
   delegationRewardOwner?: PchainOwner;
   /** pre-Banff validators carry a single rewardOwner instead of the split pair */
