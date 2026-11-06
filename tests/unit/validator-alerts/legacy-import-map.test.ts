@@ -67,6 +67,13 @@ describe('extractPairs', () => {
     expect(report).toEqual({ items: 2, invalidNodeId: 0, emailNotPlaintext: 0, duplicatePairs: 0 });
   });
 
+  it('keeps a 32-character NodeID', () => {
+    const short = 'NodeID-r8cX652m7iGmBd19UmTQxtb7GHSBNK5p';
+    const { pairs, report } = extractPairs([item(short, 'user1@example.com')]);
+    expect(pairs).toEqual([{ email: 'user1@example.com', node_id: short }]);
+    expect(report.invalidNodeId).toBe(0);
+  });
+
   it('counts invalid NodeIDs with the create route rule', () => {
     const { pairs, report } = extractPairs([
       item('NodeID-short', 'user1@example.com'),
