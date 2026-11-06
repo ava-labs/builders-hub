@@ -9,6 +9,7 @@ import {
   checkL1Alert,
   sendWelcomeEmail,
 } from '@/server/services/validator-alert-check';
+import { fetchAutoRenewPeriods, stakeEndIsFinal } from '@/server/services/validator-auto-renew';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
@@ -221,13 +222,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Run immediate checks + welcome email after creation.
-    const [releaseResult] = await Promise.allSettled([fetchLatestRelease()]);
+    const [releaseResult, autoRenewResult] = await Promise.allSettled([
+      fetchLatestRelease(),
+      isL1 ? Promise.resolve(null) : fetchAutoRenewPeriods([body.node_id]),
+    ]);
     const latestRelease = releaseResult.status === 'fulfilled' ? releaseResult.value : null;
+    // False when the node auto-renews or the P-Chain read failed: no expiry alert, no expiry date.
+    const stakeEnds = stakeEndIsFinal(
+      body.node_id,
+      autoRenewResult.status === 'fulfilled' ? autoRenewResult.value : null,
+    );
 
     let l1ValidatorForWelcome: L1ValidatorData | null = null;
     try {
       if (!isL1 && primaryValidator) {
-        await checkSingleAlert(txResult.alert, primaryValidator, latestRelease);
+        await checkSingleAlert(txResult.alert, primaryValidator, latestRelease, stakeEnds);
       } else if (isL1) {
         const l1Validators = await fetchL1Validators(detectedSubnetId);
         l1ValidatorForWelcome = l1Validators.find((v) => v.nodeId === body.node_id) ?? null;
@@ -245,6 +254,7 @@ export async function POST(req: NextRequest) {
         await sendWelcomeEmail(txResult.alert, {
           primaryValidator,
           latestRelease,
+          stakeEndIsFinal: stakeEnds,
         });
       } else {
         await sendWelcomeEmail(txResult.alert, {

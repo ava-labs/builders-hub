@@ -319,6 +319,8 @@ export async function sendWelcomeEmail(
     primaryValidator?: ValidatorP2P | null;
     l1Validator?: L1ValidatorData | null;
     latestRelease?: ReleaseClassification | null;
+    /** false hides the expiry: the node auto-renews, or its renewal is unknown */
+    stakeEndIsFinal?: boolean;
   }
 ): Promise<{ sent: number; errors: string[] }> {
   const errors: string[] = [];
@@ -326,6 +328,7 @@ export async function sendWelcomeEmail(
   const l1Validator = options.l1Validator ?? null;
   const primaryValidator = options.primaryValidator ?? null;
   const latestRelease = options.latestRelease ?? null;
+  const showExpiry = options.stakeEndIsFinal ?? false;
   const currentVersion = isL1
     ? (l1Validator?.version ? normalizeVersionTag(l1Validator.version) : null)
     : (primaryValidator?.version ?? null);
@@ -343,8 +346,8 @@ export async function sendWelcomeEmail(
       uptime: primaryValidator?.p50_uptime ?? null,
       currentVersion,
       latestVersion: latestRelease?.tag ?? null,
-      expiryDate: primaryValidator?.end_time ?? null,
-      daysLeft: primaryValidator?.days_left ?? null,
+      expiryDate: showExpiry ? (primaryValidator?.end_time ?? null) : null,
+      daysLeft: showExpiry ? (primaryValidator?.days_left ?? null) : null,
       remainingBalance: l1Validator?.remainingBalance ?? null,
       balanceDaysRemaining: l1Validator ? estimateL1DaysRemaining(l1Validator.remainingBalance) : null,
       securityEnabled: alert.security_alert,
@@ -467,12 +470,15 @@ interface AlertRecord {
 
 /**
  * Run alert checks for a single alert + validator pair.
+ * stakeEndIsFinal: true when validator.end_time is a real stake end (see
+ * validator-auto-renew.ts). False skips the expiry alerts.
  * Returns the number of emails sent.
  */
 export async function checkSingleAlert(
   alert: AlertRecord,
   validator: ValidatorP2P,
   latestRelease: ReleaseClassification | null,
+  stakeEndIsFinal: boolean,
 ): Promise<{ sent: number; errors: string[] }> {
   let sent = 0;
   const errors: string[] = [];
@@ -573,7 +579,8 @@ export async function checkSingleAlert(
   }
 
   // --- 3. Stake expiry check (tiered) ---
-  if (alert.expiry_alert && validator.days_left >= 0) {
+  // An auto-renewed validator's end_time is the end of its current cycle, not of its stake.
+  if (alert.expiry_alert && stakeEndIsFinal && validator.days_left >= 0) {
     const endTime = new Date(validator.end_time);
     const hoursToExpiry = (endTime.getTime() - Date.now()) / 3_600_000;
 
