@@ -4,7 +4,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  // Direct (non-pooler) Neon URL. Prisma Migrate needs a session; the pooler cannot hold one.
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Hackathon {

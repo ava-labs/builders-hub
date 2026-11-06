@@ -1,5 +1,5 @@
 {
-  "buildCommand": "yarn build:remote && node ./scripts/build-with-typecheck.mjs && yarn update-index",
+  "buildCommand": "yarn build:remote && node ./scripts/migrate.mjs && node ./scripts/build-with-typecheck.mjs && yarn update-index",
   "crons": [
     {
       "path": "/api/validator-alerts/check",
