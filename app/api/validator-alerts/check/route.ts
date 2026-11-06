@@ -8,6 +8,7 @@ import {
   checkL1Alert,
 } from '@/server/services/validator-alert-check';
 import type { L1ValidatorData } from '@/types/validator-alerts';
+import { getAutoRenewPeriods, stakeEndFor, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
 import { sendPendingLegacyNotices } from '@/server/services/legacy-notice';
 import { LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
 
@@ -52,10 +53,13 @@ async function run(req: NextRequest) {
   try {
     const dataErrors: string[] = [];
 
-    // Fetch data sources independently so one failure doesn't block the other
-    const [validatorResult, releaseResult] = await Promise.allSettled([
+    // Fetch data sources independently so one failure doesn't block the other.
+    // The P-Chain read is one request per run: the public RPC bans bursts.
+    const [validatorResult, releaseResult, autoRenewResult] = await Promise.allSettled([
       fetchValidators(),
       fetchLatestRelease(),
+      // A fresh read (it refreshes the API's cache), with one retry like fetchValidators.
+      getAutoRenewPeriods({ maxAgeMs: 0, attempts: 2 }),
     ]);
 
     const validators = validatorResult.status === 'fulfilled'
@@ -65,6 +69,11 @@ async function run(req: NextRequest) {
     const latestRelease = releaseResult.status === 'fulfilled'
       ? releaseResult.value
       : (() => { dataErrors.push(`GitHub API error: ${releaseResult.reason}`); return null; })();
+
+    // null: the auto-renew state is unknown, so this run sends only the 1-hour expiry alert.
+    const autoRenewPeriods: AutoRenewPeriods | null = autoRenewResult.status === 'fulfilled'
+      ? autoRenewResult.value
+      : (() => { dataErrors.push(`P-Chain RPC error (only 1-hour expiry alerts sent): ${autoRenewResult.reason}`); return null; })();
 
     // If both sources failed, log to all active alerts (with 1-hour cooldown) and bail
     if (validators.length === 0 && !latestRelease) {
@@ -125,7 +134,12 @@ async function run(req: NextRequest) {
           skipped++;
           continue;
         }
-        const result = await checkSingleAlert(alert, validator, latestRelease);
+        const result = await checkSingleAlert(
+          alert,
+          validator,
+          latestRelease,
+          stakeEndFor(alert.node_id, autoRenewPeriods, validator.p50_uptime),
+        );
         sent += result.sent;
         errors.push(...result.errors);
       }

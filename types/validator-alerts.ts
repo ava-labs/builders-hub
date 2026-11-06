@@ -90,6 +90,12 @@ export interface ValidatorAlertResponse {
   created_at: string;
   updated_at: string;
   alert_logs: AlertLogResponse[];
+  /** Primary Network only: true when the stake auto-renews (ACP-236), false when it
+   *  ends at its end time, null when unknown or not primary. Absent from PUT answers. */
+  stake_renews?: boolean | null;
+  /** Primary Network only: uptime percent since the current cycle start (the one the
+   *  P-Chain renews on), null when unknown or not primary. Absent from PUT answers. */
+  cycle_uptime?: number | null;
 }
 
 export interface AlertLogResponse {
