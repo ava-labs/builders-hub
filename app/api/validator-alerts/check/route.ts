@@ -8,6 +8,8 @@ import {
   checkL1Alert,
 } from '@/server/services/validator-alert-check';
 import type { L1ValidatorData } from '@/types/validator-alerts';
+import { sendPendingLegacyNotices } from '@/server/services/legacy-notice';
+import { LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
 
 export const maxDuration = 60;
 
@@ -73,9 +75,26 @@ async function run(req: NextRequest) {
 
     const validatorMap = new Map(validators.map(v => [v.node_id, v]));
 
-    const activeAlerts = await prisma.validatorAlert.findMany({
-      where: { active: true },
-    });
+    // Imported Avalanche Notify alerts get their one-time notice first. Alerts whose
+    // notice is not sent yet are skipped this run. If the notice step fails, skip every
+    // imported alert, so nobody gets an alert before the notice.
+    let noticesSent = 0;
+    let isWithoutNotice: (alert: { id: string; source: string | null }) => boolean;
+    try {
+      const notices = await sendPendingLegacyNotices();
+      noticesSent = notices.sent;
+      if (notices.failed > 0) dataErrors.push(`Legacy notice: ${notices.failed} send(s) failed`);
+      isWithoutNotice = (alert) => notices.withoutNotice.has(alert.id);
+    } catch (err) {
+      dataErrors.push(`Legacy notice error: ${err}`);
+      isWithoutNotice = (alert) => alert.source === LEGACY_NOTIFY_SOURCE;
+    }
+
+    const activeAlerts = (
+      await prisma.validatorAlert.findMany({
+        where: { active: true },
+      })
+    ).filter((alert) => !isWithoutNotice(alert));
 
     // Partition alerts into primary vs L1
     const primaryAlerts = activeAlerts.filter((a) => a.subnet_id === 'primary');
@@ -143,6 +162,7 @@ async function run(req: NextRequest) {
       checked,
       sent,
       skipped,
+      noticesSent,
       primaryCheckSkipped: primaryUpstreamFailed,
       release: latestRelease ? {
         tag: latestRelease.tag,

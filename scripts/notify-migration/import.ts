@@ -29,7 +29,7 @@
 import fs from 'fs';
 import { prisma } from '@/prisma/prisma';
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
-import { LEGACY_NOTICE_ALERT_TYPE, LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
+import { LEGACY_NOTICE_ALERT_TYPE, LEGACY_NOTIFY_END, LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
 import { legacyNotifyNoticeTemplate } from '@/server/templates/validator-alerts';
 import {
   PRIMARY,
@@ -47,7 +47,7 @@ const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const WRITE_BATCH = 500;
 const READ_BATCH = 1000;
 /** The day the old service stops. */
-const OLD_SERVICE_END = new Date('2026-11-30T00:00:00Z');
+const OLD_SERVICE_END = LEGACY_NOTIFY_END;
 
 interface Args {
   file: string;
