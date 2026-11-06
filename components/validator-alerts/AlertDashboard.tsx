@@ -73,7 +73,7 @@ function subscriptionStatus(
   if (validator) {
     if (alert.uptime_alert && validator.p50_uptime < alert.uptime_threshold)
       return { tone: 'alerting', label: 'Uptime below threshold' };
-    const warning = expiryWarning(alert, validator.days_left, validator.p50_uptime);
+    const warning = expiryWarning(alert, validator.days_left, alert.cycle_uptime ?? validator.p50_uptime);
     if (warning) return { tone: 'warning', label: warning };
     return { tone: 'healthy', label: 'Healthy' };
   }
@@ -428,7 +428,9 @@ export function AlertDashboard() {
                 const validator = validatorData.get(alert.node_id);
                 const isL1 = alert.subnet_id !== 'primary';
                 const state = subscriptionStatus(alert, validator, validatorData.size > 0);
-                const expires = validator ? expiryReading(validator.days_left, alert.stake_renews, validator.p50_uptime) : null;
+                const expires = validator
+                  ? expiryReading(validator.days_left, alert.stake_renews, alert.cycle_uptime ?? validator.p50_uptime)
+                  : null;
                 const name = alert.label ?? alert.node_id;
                 return (
                   <div key={alert.id}>

@@ -8,8 +8,7 @@ import {
   checkL1Alert,
 } from '@/server/services/validator-alert-check';
 import type { L1ValidatorData } from '@/types/validator-alerts';
-import { getAutoRenewPeriods, stakeRenews, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
-import { stakeEnd } from '@/lib/validator-stake-end';
+import { getAutoRenewPeriods, stakeEndFor, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
 import { sendPendingLegacyNotices } from '@/server/services/legacy-notice';
 import { LEGACY_NOTIFY_SOURCE } from '@/server/services/legacy-validator-alerts';
 
@@ -71,10 +70,10 @@ async function run(req: NextRequest) {
       ? releaseResult.value
       : (() => { dataErrors.push(`GitHub API error: ${releaseResult.reason}`); return null; })();
 
-    // null: the auto-renew state is unknown, so this run sends no expiry alerts.
+    // null: the auto-renew state is unknown, so this run sends only the 1-hour expiry alert.
     const autoRenewPeriods: AutoRenewPeriods | null = autoRenewResult.status === 'fulfilled'
       ? autoRenewResult.value
-      : (() => { dataErrors.push(`P-Chain RPC error (expiry checks skipped): ${autoRenewResult.reason}`); return null; })();
+      : (() => { dataErrors.push(`P-Chain RPC error (only 1-hour expiry alerts sent): ${autoRenewResult.reason}`); return null; })();
 
     // If both sources failed, log to all active alerts (with 1-hour cooldown) and bail
     if (validators.length === 0 && !latestRelease) {
@@ -139,7 +138,7 @@ async function run(req: NextRequest) {
           alert,
           validator,
           latestRelease,
-          stakeEnd(stakeRenews(alert.node_id, autoRenewPeriods), validator.p50_uptime),
+          stakeEndFor(alert.node_id, autoRenewPeriods, validator.p50_uptime),
         );
         sent += result.sent;
         errors.push(...result.errors);

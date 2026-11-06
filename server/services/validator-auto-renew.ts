@@ -1,5 +1,6 @@
 import { pchainPost } from '@/lib/pchain-rpc';
 import type { CurrentValidator } from '@/lib/pchain-node';
+import { stakeEnd, type StakeEnd } from '@/lib/validator-stake-end';
 
 /* ACP-236 auto-renewed Primary Network validators. Their end time is the end
    of the current cycle, and the cycle renews while nextPeriod > 0. The stake
@@ -14,16 +15,20 @@ export interface AutoRenewPeriods {
   listed: Set<string>;
   /** node ID -> nextPeriod in seconds, for the validators that have the field */
   nextPeriod: Map<string, number>;
+  /** node ID -> uptime percent since the current cycle start, as the answering node measures it */
+  cycleUptime: Map<string, number>;
 }
 
 /** Parse a platform.getCurrentValidators answer into the listed set and the nextPeriod map. */
 export function parseAutoRenewPeriods(json: unknown): AutoRenewPeriods {
   const validators = (json as { result?: { validators?: unknown } })?.result?.validators;
   if (!Array.isArray(validators)) throw new Error('getCurrentValidators: no validators in the answer');
-  const periods: AutoRenewPeriods = { listed: new Set(), nextPeriod: new Map() };
-  for (const v of validators as Partial<Pick<CurrentValidator, 'nodeID' | 'nextPeriod'>>[]) {
+  const periods: AutoRenewPeriods = { listed: new Set(), nextPeriod: new Map(), cycleUptime: new Map() };
+  for (const v of validators as Partial<Pick<CurrentValidator, 'nodeID' | 'nextPeriod' | 'uptime'>>[]) {
     if (typeof v?.nodeID !== 'string') continue;
     periods.listed.add(v.nodeID);
+    const uptime = Number(v.uptime);
+    if (v.uptime != null && Number.isFinite(uptime)) periods.cycleUptime.set(v.nodeID, uptime);
     if (v.nextPeriod === undefined || v.nextPeriod === null) continue;
     const seconds = Number(v.nextPeriod);
     if (Number.isFinite(seconds) && seconds >= 0) periods.nextPeriod.set(v.nodeID, seconds);
@@ -81,4 +86,18 @@ export function getAutoRenewPeriods(
 export function stakeRenews(nodeId: string, periods: AutoRenewPeriods | null): boolean | null {
   if (!periods || !periods.listed.has(nodeId)) return null;
   return (periods.nextPeriod.get(nodeId) ?? 0) > 0;
+}
+
+/**
+ * The uptime the P-Chain renews on: the percent since the current cycle start
+ * (prefersCommit in block/executor/options.go). Null when the read failed or
+ * the node is not in the answer.
+ */
+export function cycleUptime(nodeId: string, periods: AutoRenewPeriods | null): number | null {
+  return periods?.cycleUptime.get(nodeId) ?? null;
+}
+
+/** The node's stake end, judged on its cycle uptime (fallbackUptime when that is unknown). */
+export function stakeEndFor(nodeId: string, periods: AutoRenewPeriods | null, fallbackUptime: number): StakeEnd {
+  return stakeEnd(stakeRenews(nodeId, periods), cycleUptime(nodeId, periods) ?? fallbackUptime);
 }

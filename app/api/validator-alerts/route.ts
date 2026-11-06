@@ -9,8 +9,13 @@ import {
   checkL1Alert,
   sendWelcomeEmail,
 } from '@/server/services/validator-alert-check';
-import { getAutoRenewPeriods, stakeRenews, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
-import { stakeEnd } from '@/lib/validator-stake-end';
+import {
+  cycleUptime,
+  getAutoRenewPeriods,
+  stakeEndFor,
+  stakeRenews,
+  type AutoRenewPeriods,
+} from '@/server/services/validator-auto-renew';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
@@ -61,6 +66,7 @@ export async function GET() {
       alerts.map((a) => ({
         ...a,
         stake_renews: a.subnet_id === 'primary' ? stakeRenews(a.node_id, periods) : null,
+        cycle_uptime: a.subnet_id === 'primary' ? cycleUptime(a.node_id, periods) : null,
       })),
     );
   } catch (error) {
@@ -245,10 +251,10 @@ export async function POST(req: NextRequest) {
       isL1 ? Promise.resolve(null) : getAutoRenewPeriods({ timeoutMs: LIST_PCHAIN_TIMEOUT_MS }),
     ]);
     const latestRelease = releaseResult.status === 'fulfilled' ? releaseResult.value : null;
-    // False when the node auto-renews or the P-Chain read failed: no expiry alert, no expiry date.
+    // Null when the P-Chain read failed: the stake end is unknown.
     const autoRenewPeriods = autoRenewResult.status === 'fulfilled' ? autoRenewResult.value : null;
     // Expiry alerts and the welcome email's expiry date need a known stake end.
-    const primaryStakeEnd = stakeEnd(stakeRenews(body.node_id, autoRenewPeriods), primaryValidator?.p50_uptime ?? 0);
+    const primaryStakeEnd = stakeEndFor(body.node_id, autoRenewPeriods, primaryValidator?.p50_uptime ?? 0);
 
     let l1ValidatorForWelcome: L1ValidatorData | null = null;
     try {
@@ -297,6 +303,7 @@ export async function POST(req: NextRequest) {
       {
         ...(responseAlert ?? txResult.alert),
         stake_renews: isL1 ? null : stakeRenews(body.node_id, autoRenewPeriods),
+        cycle_uptime: isL1 ? null : cycleUptime(body.node_id, autoRenewPeriods),
       },
       { status: 201 },
     );

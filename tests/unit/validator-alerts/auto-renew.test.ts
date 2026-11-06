@@ -12,7 +12,7 @@ vi.mock('@/prisma/prisma', () => ({
   },
 }));
 
-import { parseAutoRenewPeriods, stakeRenews } from '@/server/services/validator-auto-renew';
+import { cycleUptime, parseAutoRenewPeriods, stakeEndFor, stakeRenews } from '@/server/services/validator-auto-renew';
 import { stakeEnd } from '@/lib/validator-stake-end';
 import { expiryReading, expiryWarning } from '@/components/validator-alerts/expiry';
 import { checkSingleAlert } from '@/server/services/validator-alert-check';
@@ -28,7 +28,7 @@ const ANSWER = {
   id: 1,
   result: {
     validators: [
-      { nodeID: RENEWING, endTime: '1790000000', nextPeriod: '172800' },
+      { nodeID: RENEWING, endTime: '1790000000', nextPeriod: '172800', uptime: '82.5000' },
       { nodeID: RENEWAL_OFF, endTime: '1790000000', nextPeriod: '0' },
       { nodeID: FIXED, endTime: '1790000000' },
     ],
@@ -44,6 +44,12 @@ describe('parseAutoRenewPeriods', () => {
       [RENEWING, 172800],
       [RENEWAL_OFF, 0],
     ]);
+  });
+
+  it('keeps the cycle uptime where present', () => {
+    expect(cycleUptime(RENEWING, periods)).toBe(82.5);
+    expect(cycleUptime(FIXED, periods)).toBeNull();
+    expect(cycleUptime(RENEWING, null)).toBeNull();
   });
 
   it('throws on an answer without validators', () => {
@@ -81,6 +87,26 @@ describe('stakeEnd', () => {
   it('is unknown when the renewal state is unknown', () => {
     expect(stakeEnd(null, 100)).toBe('unknown');
     expect(stakeEnd(undefined, 100)).toBe('unknown');
+  });
+});
+
+describe('stakeEndFor', () => {
+  it('judges renewal on the cycle uptime, not the fallback', () => {
+    expect(stakeEndFor(RENEWING, periods, 99)).toBe('at_risk');
+  });
+
+  it('uses the fallback uptime when the cycle uptime is missing', () => {
+    const noUptime = parseAutoRenewPeriods({
+      result: { validators: [{ nodeID: RENEWING, nextPeriod: '172800' }] },
+    });
+    expect(stakeEndFor(RENEWING, noUptime, 99)).toBe('renews');
+    expect(stakeEndFor(RENEWING, noUptime, 80)).toBe('at_risk');
+  });
+
+  it('is final or unknown regardless of uptime', () => {
+    expect(stakeEndFor(RENEWAL_OFF, periods, 99)).toBe('final');
+    expect(stakeEndFor(ABSENT, periods, 99)).toBe('unknown');
+    expect(stakeEndFor(RENEWING, null, 99)).toBe('unknown');
   });
 });
 
@@ -181,10 +207,38 @@ describe('checkSingleAlert expiry gate', () => {
 
   beforeEach(() => mail.sendMail.mockReset());
 
-  it.each(['renews', 'unknown'] as const)('sends no expiry email when the stake end is %s', async (end) => {
-    const result = await checkSingleAlert(alert, validator, null, end);
+  it('sends no expiry email when the stake renews', async () => {
+    const result = await checkSingleAlert(alert, validator, null, 'renews');
     expect(result.sent).toBe(0);
     expect(mail.sendMail).not.toHaveBeenCalled();
+  });
+
+  it('sends the 1-hour expiry email when the stake end is unknown', async () => {
+    const result = await checkSingleAlert(alert, validator, null, 'unknown');
+    expect(result.sent).toBe(1);
+    expect(mail.sendMail.mock.calls[0][2]).toMatch(/^🚨 Stake Expires Within 1 Hour/);
+  });
+
+  it('sends no day-tier expiry email when the stake end is unknown', async () => {
+    const inThreeDays = {
+      ...validator,
+      end_time: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+      days_left: 3,
+    } as ValidatorP2P;
+    const result = await checkSingleAlert(alert, inThreeDays, null, 'unknown');
+    expect(result.sent).toBe(0);
+    expect(mail.sendMail).not.toHaveBeenCalled();
+  });
+
+  it('sends the day-tier expiry email when the stake end is final', async () => {
+    const inThreeDays = {
+      ...validator,
+      end_time: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+      days_left: 3,
+    } as ValidatorP2P;
+    const result = await checkSingleAlert(alert, inThreeDays, null, 'final');
+    expect(result.sent).toBe(1);
+    expect(mail.sendMail.mock.calls[0][2]).toMatch(/^Stake Expiry Alert/);
   });
 
   it('sends the expiry email when the stake end is final', async () => {

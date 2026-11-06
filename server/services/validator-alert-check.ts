@@ -473,7 +473,8 @@ interface AlertRecord {
  * Run alert checks for a single alert + validator pair.
  * stakeEnd: what validator.end_time means (lib/validator-stake-end.ts). Expiry
  * alerts go out when the stake ends there ('final') or its renewal is at risk
- * ('at_risk'); 'renews' and 'unknown' skip them.
+ * ('at_risk'); 'renews' skips them. 'unknown' sends only the 1-hour alert: the
+ * day tiers can wait for a later run that knows the stake end, that window may not.
  * Returns the number of emails sent.
  */
 export async function checkSingleAlert(
@@ -583,7 +584,8 @@ export async function checkSingleAlert(
   // --- 3. Stake expiry check (tiered) ---
   // An auto-renewed validator's end_time is the end of its current cycle, not of its stake.
   const renewalAtRisk = stakeEnd === 'at_risk';
-  if (alert.expiry_alert && (stakeEnd === 'final' || renewalAtRisk) && validator.days_left >= 0) {
+  const onlyCritical = stakeEnd === 'unknown';
+  if (alert.expiry_alert && stakeEnd !== 'renews' && validator.days_left >= 0) {
     const endTime = new Date(validator.end_time);
     const hoursToExpiry = (endTime.getTime() - Date.now()) / 3_600_000;
 
@@ -604,7 +606,7 @@ export async function checkSingleAlert(
         alert.node_id
       );
       if (didSend) sent++;
-    } else if (validator.days_left <= 1 && validator.days_left >= 0) {
+    } else if (!onlyCritical && validator.days_left <= 1 && validator.days_left >= 0) {
       const didSend = await trySend(
         alert.id,
         alert.email,
@@ -622,7 +624,7 @@ export async function checkSingleAlert(
         alert.node_id
       );
       if (didSend) sent++;
-    } else if (validator.days_left > 0 && validator.days_left <= alert.expiry_days) {
+    } else if (!onlyCritical && validator.days_left > 0 && validator.days_left <= alert.expiry_days) {
       const didSend = await trySend(
         alert.id,
         alert.email,
