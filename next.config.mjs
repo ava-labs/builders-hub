@@ -757,6 +757,17 @@ const config = {
         destination: '/docs/rpcs/c-chain/txn-format',
         permanent: true,
       },
+      // AvalancheGo v1.15.4 removes platform.getBalance and platform.getStake.
+      {
+        source: '/docs/rpcs/p-chain/balances-utxos/platform_getBalance',
+        destination: '/docs/rpcs/p-chain/balances-utxos/platform_getUTXOs',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/p-chain/staking/platform_getStake',
+        destination: '/docs/rpcs/p-chain/validators/platform_getCurrentValidators',
+        permanent: true,
+      },
       {
         source: '/docs/api-reference/x-chain/txn-format',
         destination: '/docs/rpcs/x-chain/txn-format',
