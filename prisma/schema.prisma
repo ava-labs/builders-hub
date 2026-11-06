@@ -4,7 +4,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  // Direct (non-pooler) Neon URL. Prisma Migrate needs a session; the pooler cannot hold one.
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Hackathon {
@@ -576,7 +578,9 @@ model ResearchProposalApplication {
 
 model ValidatorAlert {
   id                     String              @id @default(dbgenerated("gen_random_uuid()"))
-  user_id                String
+  // Null for a subscriber imported from Avalanche Notify who has no Builder
+  // Hub account yet. Sign-in attaches the row (server/services/legacy-validator-alerts.ts).
+  user_id                String?
   node_id                String
   label                  String?
   uptime_alert           Boolean             @default(true)
@@ -595,12 +599,15 @@ model ValidatorAlert {
   security_alert         Boolean             @default(false)
   last_known_ip          String?
   last_security_check_at DateTime?           @db.Timestamptz(3)
-  user                   User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  // Where the row came from: null for a row made in Builder Hub, "avalanche-notify" for an import.
+  source                 String?
+  user                   User?               @relation(fields: [user_id], references: [id], onDelete: Cascade)
   alert_logs             ValidatorAlertLog[]
 
   @@unique([user_id, node_id, subnet_id])
   @@index([user_id])
   @@index([node_id])
+  @@index([email])
   @@index([subnet_id])
   @@index([active])
   @@index([security_alert])

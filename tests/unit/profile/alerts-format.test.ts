@@ -36,6 +36,7 @@ function alert(over: Partial<ValidatorAlertResponse> = {}): ValidatorAlertRespon
     balance_threshold_days: 30,
     security_alert: false,
     last_known_ip: null,
+    source: null,
     email: "ada@example.com",
     active: true,
     created_at: "2026-10-01T00:00:00.000Z",
@@ -182,6 +183,13 @@ describe("buildCreateRequest", () => {
   it("sends the L1 and the label", () => {
     expect(buildCreateRequest({ nodeId: NODE, label: " Main ", subnetId: SUBNET })).toEqual({
       request: { node_id: NODE, subnet_id: SUBNET, label: "Main" },
+    });
+  });
+  it("accepts a 32-character NodeID", () => {
+    // CB58 drops leading zero bits, so some real NodeIDs have 32 characters.
+    const short = "NodeID-r8cX652m7iGmBd19UmTQxtb7GHSBNK5p";
+    expect(buildCreateRequest({ nodeId: short, label: "", subnetId: "" })).toEqual({
+      request: { node_id: short, subnet_id: "primary" },
     });
   });
   it("rejects a bad node id or L1 id before the request", () => {
