@@ -9,7 +9,7 @@ import {
   checkL1Alert,
   sendWelcomeEmail,
 } from '@/server/services/validator-alert-check';
-import { fetchAutoRenewPeriods, stakeEndIsFinal } from '@/server/services/validator-auto-renew';
+import { fetchAutoRenewPeriods, stakeEndIsFinal, stakeRenews, type AutoRenewPeriods } from '@/server/services/validator-auto-renew';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
@@ -18,6 +18,8 @@ const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{32,}$/;
 const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
+// The list waits for this P-Chain read, so it gets a short timeout.
+const LIST_PCHAIN_TIMEOUT_MS = 3000;
 
 export async function GET() {
   try {
@@ -44,7 +46,23 @@ export async function GET() {
       orderBy: { created_at: 'desc' },
     });
 
-    return NextResponse.json(alerts);
+    // One P-Chain read for the user's Primary Network nodes. A failed read gives null, not an error.
+    const primaryNodes = [...new Set(alerts.filter((a) => a.subnet_id === 'primary').map((a) => a.node_id))];
+    let periods: AutoRenewPeriods | null = null;
+    if (primaryNodes.length > 0) {
+      try {
+        periods = await fetchAutoRenewPeriods(primaryNodes, LIST_PCHAIN_TIMEOUT_MS);
+      } catch (err) {
+        console.error('Auto-renew read failed (non-fatal):', err);
+      }
+    }
+
+    return NextResponse.json(
+      alerts.map((a) => ({
+        ...a,
+        stake_renews: a.subnet_id === 'primary' ? stakeRenews(a.node_id, periods) : null,
+      })),
+    );
   } catch (error) {
     console.error('Error fetching validator alerts:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -228,10 +246,8 @@ export async function POST(req: NextRequest) {
     ]);
     const latestRelease = releaseResult.status === 'fulfilled' ? releaseResult.value : null;
     // False when the node auto-renews or the P-Chain read failed: no expiry alert, no expiry date.
-    const stakeEnds = stakeEndIsFinal(
-      body.node_id,
-      autoRenewResult.status === 'fulfilled' ? autoRenewResult.value : null,
-    );
+    const autoRenewPeriods = autoRenewResult.status === 'fulfilled' ? autoRenewResult.value : null;
+    const stakeEnds = stakeEndIsFinal(body.node_id, autoRenewPeriods);
 
     let l1ValidatorForWelcome: L1ValidatorData | null = null;
     try {
@@ -276,7 +292,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(responseAlert ?? txResult.alert, { status: 201 });
+    return NextResponse.json(
+      {
+        ...(responseAlert ?? txResult.alert),
+        stake_renews: isL1 ? null : stakeRenews(body.node_id, autoRenewPeriods),
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error('Error creating validator alert:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

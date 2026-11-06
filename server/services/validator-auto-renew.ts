@@ -32,7 +32,10 @@ export function parseAutoRenewPeriods(json: unknown): AutoRenewPeriods {
  * Read the mainnet Primary Network validators once and return their nextPeriod
  * map. Give nodeIds to read only those validators. One JSON-RPC request.
  */
-export async function fetchAutoRenewPeriods(nodeIds?: string[]): Promise<AutoRenewPeriods> {
+export async function fetchAutoRenewPeriods(
+  nodeIds?: string[],
+  timeoutMs = PCHAIN_TIMEOUT_MS,
+): Promise<AutoRenewPeriods> {
   const res = await pchainPost(
     'mainnet',
     {
@@ -41,7 +44,7 @@ export async function fetchAutoRenewPeriods(nodeIds?: string[]): Promise<AutoRen
       method: 'platform.getCurrentValidators',
       params: nodeIds ? { nodeIDs: nodeIds } : {},
     },
-    PCHAIN_TIMEOUT_MS,
+    timeoutMs,
   );
   if (!res.ok) throw new Error(`getCurrentValidators returned ${res.status}`);
   const json = await res.json();
@@ -50,13 +53,20 @@ export async function fetchAutoRenewPeriods(nodeIds?: string[]): Promise<AutoRen
 }
 
 /**
+ * True when the node auto-renews (nextPeriod > 0). False when renewal is off
+ * (nextPeriod 0) or the node has a fixed duration. Null when the P-Chain read
+ * failed (periods is null).
+ */
+export function stakeRenews(nodeId: string, periods: AutoRenewPeriods | null): boolean | null {
+  if (!periods) return null;
+  return (periods.get(nodeId) ?? 0) > 0;
+}
+
+/**
  * True when the node's end time is a real stake end, so expiry alerts and an
- * expiry date make sense. False for a node that auto-renews (nextPeriod > 0),
- * and false when the P-Chain read failed (periods is null): no "stake ends"
- * email without proof that the stake ends.
+ * expiry date make sense. False for a node that auto-renews, and false when
+ * the P-Chain read failed: no "stake ends" email without proof that the stake ends.
  */
 export function stakeEndIsFinal(nodeId: string, periods: AutoRenewPeriods | null): boolean {
-  if (!periods) return false;
-  const nextPeriod = periods.get(nodeId);
-  return nextPeriod === undefined || nextPeriod === 0;
+  return stakeRenews(nodeId, periods) === false;
 }

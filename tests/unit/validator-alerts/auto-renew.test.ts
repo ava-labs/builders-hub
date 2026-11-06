@@ -10,7 +10,8 @@ vi.mock('@/prisma/prisma', () => ({
   },
 }));
 
-import { parseAutoRenewPeriods, stakeEndIsFinal } from '@/server/services/validator-auto-renew';
+import { parseAutoRenewPeriods, stakeEndIsFinal, stakeRenews } from '@/server/services/validator-auto-renew';
+import { expiryReading, isStakeExpiring } from '@/components/validator-alerts/expiry';
 import { checkSingleAlert } from '@/server/services/validator-alert-check';
 import type { ValidatorP2P } from '@/types/validator-alerts';
 
@@ -59,6 +60,39 @@ describe('stakeEndIsFinal', () => {
   it('is false when the P-Chain read failed', () => {
     expect(stakeEndIsFinal(FIXED, null)).toBe(false);
     expect(stakeEndIsFinal(RENEWING, null)).toBe(false);
+  });
+});
+
+describe('stakeRenews', () => {
+  it('is true only for a node that auto-renews', () => {
+    expect(stakeRenews(RENEWING, periods)).toBe(true);
+    expect(stakeRenews(RENEWAL_OFF, periods)).toBe(false);
+    expect(stakeRenews(FIXED, periods)).toBe(false);
+  });
+
+  it('is null when the P-Chain read failed', () => {
+    expect(stakeRenews(RENEWING, null)).toBeNull();
+  });
+});
+
+describe('dashboard expiry reading', () => {
+  it('reads "Renews" with no tone for a stake that auto-renews', () => {
+    expect(expiryReading(1, true)).toEqual({ text: 'Renews', tone: null });
+  });
+
+  it('keeps days left and the tone when renewal is off or unknown', () => {
+    expect(expiryReading(1, false)).toEqual({ text: '1d', tone: 'alerting' });
+    expect(expiryReading(20, null)).toEqual({ text: '20d', tone: 'warning' });
+    expect(expiryReading(90, undefined)).toEqual({ text: '90d', tone: null });
+  });
+
+  it('never warns "Stake expiring soon" for a stake that auto-renews', () => {
+    const alert = { expiry_alert: true, expiry_days: 7 };
+    expect(isStakeExpiring({ ...alert, stake_renews: true }, 1)).toBe(false);
+    expect(isStakeExpiring({ ...alert, stake_renews: false }, 1)).toBe(true);
+    expect(isStakeExpiring({ ...alert, stake_renews: null }, 1)).toBe(true);
+    expect(isStakeExpiring(alert, 30)).toBe(false);
+    expect(isStakeExpiring({ ...alert, expiry_alert: false }, 1)).toBe(false);
   });
 });
 
