@@ -1,10 +1,19 @@
-import { USDC_DECIMALS } from './constants/addresses'
+import { normalizeAddress, USDC_DECIMALS } from './constants/addresses'
+import { isLineFacility } from './facilities'
+import type { RWAFacility } from './facilities'
+import type { FacilityMetrics, LineEventKind, LineFacilityMetrics } from './types'
 
 export function bigintToNumber(value: bigint, decimals: number = USDC_DECIMALS): number {
   const divisor = BigInt(10 ** decimals)
   const wholePart = value / divisor
   const fractionalPart = value % divisor
   return Number(wholePart) + Number(fractionalPart) / Number(divisor)
+}
+
+export function bigintDivideAsNumber(numerator: bigint, denominator: bigint): number {
+  if (denominator === BigInt(0)) return 0
+  const scaled = (numerator * BigInt(10000)) / denominator
+  return Number(scaled) / 10000
 }
 
 export function formatBigintCurrency(value: bigint, decimals: number = USDC_DECIMALS): string {
@@ -70,3 +79,26 @@ export const BIGINT_METRIC_KEYS = [
   'convertedUsdc',
   'amount',
 ]
+
+/** the ledger's name for each of the facility's addresses, by lower-cased address; a line's Spigot included */
+export function ledgerLabels(facility: RWAFacility): Record<string, string> {
+  return Object.fromEntries([
+    [normalizeAddress(facility.pool.address), facility.pool.label],
+    [normalizeAddress(facility.borrower.address), facility.borrower.label],
+    ...facility.lenders.map((lender) => [normalizeAddress(lender.address), lender.partner]),
+    ...(isLineFacility(facility) ? [[normalizeAddress(facility.line.spigot.address), facility.line.spigot.label]] : []),
+  ])
+}
+
+/** whether the figures are a line of credit's, which carry the line's own in place of OatFi's breakdown */
+export function isLineMetrics(metrics: FacilityMetrics): metrics is LineFacilityMetrics {
+  return 'line' in metrics
+}
+
+/** each line event's type as the ledger and its CSV name it, in the order the ledger's type chips list them */
+export const LINE_EVENT_LABELS: Record<LineEventKind, string> = {
+  draw: 'Draw',
+  repayment: 'Repayment',
+  commitment: 'Commitment',
+  withdrawal: 'Withdrawal',
+}

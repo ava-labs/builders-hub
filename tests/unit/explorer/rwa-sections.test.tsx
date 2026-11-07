@@ -1,13 +1,14 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { FacilityFigures, KeyMetrics, OatFiBreakdown, PartnerLogos } from '@/components/explorer-v2/defi/rwa-parts';
+import { FacilityFigures, KeyMetrics, LineKeyMetrics, OatFiBreakdown, PartnerLogos } from '@/components/explorer-v2/defi/rwa-parts';
 import { CapitalFlow } from '@/components/explorer-v2/defi/rwa-flow';
 import { RwaHistory } from '@/components/explorer-v2/defi/RwaHistory';
 import { RwaCollections } from '@/components/explorer-v2/defi/RwaCollections';
 import { RwaTransactions, TxCell, matchesSearch } from '@/components/explorer-v2/defi/RwaTransactions';
+import { RWA_VIEWS } from '@/components/explorer-v2/defi/rwa-views';
 import type { TransactionRecord } from '@/lib/rwa/types';
-import { FENCE, FENCE_HISTORY, HISTORY, METRICS } from './rwa-fixtures';
+import { FENCE, FENCE_HISTORY, HISTORY, METRICS, RAIN_HISTORY, RAIN_METRICS } from './rwa-fixtures';
 
 describe('the key metrics', () => {
   it('show every figure of the old dashboard, the lender split under the invested capital', () => {
@@ -88,7 +89,7 @@ describe('the facility figures', () => {
 
 describe('the capital flow pipeline', () => {
   it('draws the forward flow, the return flow and the pool status, each figure once', () => {
-    const html = renderToStaticMarkup(<CapitalFlow metrics={METRICS} since="2025-10-07" failed={false} />);
+    const html = renderToStaticMarkup(<CapitalFlow copy={RWA_VIEWS.oatfi.flow} metrics={METRICS} since="2025-10-07" failed={false} />);
     for (const label of ['Forward Flow', 'Lenders', 'Capital source', 'Tranche Pool', 'SPV vehicle', 'Borrower', 'Asset originator', 'Return Flow', 'Repayments', 'Pool', 'Redistribution', 'Pool Status', 'Idle', 'Utilization']) {
       expect(html, label).toContain(label);
     }
@@ -100,7 +101,7 @@ describe('the capital flow pipeline', () => {
   });
 
   it('says the pool figures are unavailable when the read failed before anything arrived', () => {
-    const html = renderToStaticMarkup(<CapitalFlow metrics={null} since={null} failed />);
+    const html = renderToStaticMarkup(<CapitalFlow copy={RWA_VIEWS.oatfi.flow} metrics={null} since={null} failed />);
     expect(html).toContain('unavailable');
     expect(html).not.toContain('…');
   });
@@ -108,14 +109,14 @@ describe('the capital flow pipeline', () => {
 
 describe('the partner logos', () => {
   it('name the four partners', () => {
-    const html = renderToStaticMarkup(<PartnerLogos />);
+    const html = renderToStaticMarkup(<PartnerLogos partners={RWA_VIEWS.oatfi.partners} />);
     for (const name of ['Avalanche', 'Valinor', 'OatFi', 'Fence']) expect(html, name).toContain(name);
   });
 });
 
 describe('the historical trends', () => {
   it('draw all five charts of the old dashboard under the interval and range controls', () => {
-    const html = renderToStaticMarkup(<RwaHistory historical={HISTORY} failed={false} />);
+    const html = renderToStaticMarkup(<RwaHistory historical={HISTORY} failed={false} volume />);
     for (const text of [
       'Historical Trends',
       'Transaction Volume Over Time',
@@ -163,7 +164,7 @@ describe('the recent transactions', () => {
   };
 
   it('offer the search, the direction cut and the row count, and open every transaction on the Builder Hub explorer', () => {
-    const html = renderToStaticMarkup(<RwaTransactions slug="oatfi" />);
+    const html = renderToStaticMarkup(<RwaTransactions slug="oatfi" ledger={RWA_VIEWS.oatfi.ledger} />);
     for (const text of ['Recent Transactions', 'Search tx hash or address', 'All', 'Inbound', 'Outbound', 'Internal', 'Show 20 rows']) {
       expect(html, text).toContain(text);
     }
@@ -184,6 +185,70 @@ describe('the recent transactions', () => {
     expect(matchesSearch(transfer, 'tranche')).toBe(true);
     expect(matchesSearch(transfer, '41d95696')).toBe(true);
     expect(matchesSearch(transfer, 'valinor')).toBe(false);
+  });
+});
+
+/** the titles of the charts that span both columns from lg up */
+const wideCharts = (html: string) =>
+  [...html.matchAll(/<div class="[^"]*\blg:col-span-2\b[^"]*"><div[^>]*><p[^>]*><span class="truncate">([^<]+)<\/span>/g)].map((m) => m[1]);
+
+/** the classes of the partner mark with this name */
+const markClasses = (html: string, name: string) => /class="([^"]*)"/.exec(new RegExp(`<img[^>]*alt="${name}"[^>]*>`).exec(html)?.[0] ?? '')?.[1].split(' ') ?? [];
+
+describe("Rain's sections", () => {
+  it("Rain's key metrics read n/a after a failed read, not zero", () => {
+    const html = renderToStaticMarkup(<LineKeyMetrics metrics={null} failed />);
+    expect(html).toContain('n/a');
+    expect(html).not.toContain('$');
+    expect(html).toContain('id="rwa-metrics"');
+  });
+
+  it("Rain's capital flow draws the vault, the line, Rain and the Spigot, each figure once", () => {
+    const html = renderToStaticMarkup(<CapitalFlow copy={RWA_VIEWS.rain.flow} metrics={RAIN_METRICS} since="2026-02-12" failed={false} />);
+    for (const label of ['Valinor Credit Vault', 'Capital source', 'Invested', 'Line of credit', 'Credit Coop', 'Drawn', 'Rain', 'Borrower', 'Spigot', 'Rain&#x27;s revenue', 'Repaid', 'Line Status']) {
+      expect(html, label).toContain(label);
+    }
+    for (const gone of ['Lenders', 'Tranche Pool', 'Deployed', 'Pool Status']) expect(html, gone).not.toContain(gone);
+    for (const figure of ['$250K', '$17.2M', '$17M']) expect(html.split(figure), figure).toHaveLength(2);
+    // outstanding over committed: 1 - idle / committed
+    expect(html).toContain('81.4%');
+    expect(html).toContain('255 days since Feb 12, 2026');
+    expect(html).toContain('aria-label="Committed capital drawn from the line"');
+  });
+
+  it("Rain's capital flow says its figures are unavailable when the read failed", () => {
+    const html = renderToStaticMarkup(<CapitalFlow copy={RWA_VIEWS.rain.flow} metrics={null} since={null} failed />);
+    expect(html).toContain('Line figures are unavailable right now');
+    expect(html).not.toContain('…');
+  });
+
+  it("Rain's history leaves the volume chart out and lets the utilization chart take the whole row", () => {
+    const html = renderToStaticMarkup(<RwaHistory historical={RAIN_HISTORY} failed={false} volume={false} />);
+    expect(html).not.toContain('Transaction Volume Over Time');
+    expect(html).toContain('Capital Utilization');
+    expect(wideCharts(html)).toEqual(['Capital Utilization', 'Assets Financed vs Repayments']);
+  });
+
+  it("Rain's partner marks name the three partners, Credit Coop's drawn taller", () => {
+    const html = renderToStaticMarkup(<PartnerLogos partners={RWA_VIEWS.rain.partners} />);
+    for (const partner of ['Valinor', 'Rain', 'Credit Coop']) expect(html, partner).toContain(`alt="${partner}"`);
+    expect(markClasses(html, 'Credit Coop')).toContain('h-9');
+    expect(markClasses(html, 'Credit Coop')).not.toContain('h-6');
+  });
+
+  it('inverts every partner mark in dark mode, Credit Coop included, with no plate behind it', () => {
+    const html = renderToStaticMarkup(<PartnerLogos partners={RWA_VIEWS.rain.partners} />);
+    for (const partner of ['Valinor', 'Rain', 'Credit Coop']) {
+      expect(markClasses(html, partner), partner).toContain('dark:invert');
+      expect(markClasses(html, partner), partner).toContain('dark:hue-rotate-180');
+    }
+    expect(markClasses(html, 'Credit Coop')).not.toContain('dark:bg-white');
+  });
+
+  it("Rain's transactions offer the type cut and count transactions", () => {
+    const html = renderToStaticMarkup(<RwaTransactions slug="rain" ledger={RWA_VIEWS.rain.ledger} />);
+    for (const text of ['Recent Transactions', 'Type', 'All', 'Draw', 'Repayment', 'Commitment', 'Withdrawal', '0 transactions']) expect(html, text).toContain(text);
+    for (const gone of ['Inbound', 'Outbound', 'Direction', 'transfers']) expect(html, gone).not.toContain(gone);
   });
 });
 

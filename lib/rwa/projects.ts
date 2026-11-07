@@ -1,3 +1,5 @@
+import { RWA_FACILITIES } from './facilities'
+
 export interface RWAPartner {
   name: string
   role: 'lender' | 'borrower' | 'protocol' | 'network'
@@ -13,29 +15,13 @@ export interface RWAProject {
   darkInvert?: boolean
   addresses: {
     tranchePool: string
-    borrower: string
-    lenders: Record<string, string>
   }
-  usdcTokens: string[]
   partners: RWAPartner[]
-  features?: {
-    fence?: boolean
-  }
 }
 
 const SHARED_ADDRESSES = {
-  tranchePool: '0xE25CB545Bdd47a8Ec2d08001cb5661B00D47621a',
-  borrower: '0x41d9569610DaE2B6696797382fb26B5156Db426F',
-  lenders: {
-    Valinor: '0xE3cdE6F051872E67d0a7C2124E9A024D80E2733f',
-    Avalanche: '0x7a75539cd0647625217EF93302855DDeB02F7093',
-  },
+  tranchePool: RWA_FACILITIES.oatfi.pool.address,
 }
-
-const SHARED_USDC_TOKENS = [
-  '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
-  '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664',
-]
 
 const SHARED_PARTNERS: RWAPartner[] = [
   { name: 'Avalanche', role: 'network', logo: '/avalanche-logo.svg' },
@@ -52,9 +38,7 @@ export const RWA_PROJECTS: Record<string, RWAProject> = {
     icon: '/rwa/logos/valinor.svg',
     darkInvert: true,
     addresses: SHARED_ADDRESSES,
-    usdcTokens: SHARED_USDC_TOKENS,
     partners: SHARED_PARTNERS,
-    features: { fence: true },
   },
   'oatfi': {
     slug: 'oatfi',
@@ -63,9 +47,7 @@ export const RWA_PROJECTS: Record<string, RWAProject> = {
     icon: '/rwa/logos/oatfi.svg',
     darkInvert: true,
     addresses: SHARED_ADDRESSES,
-    usdcTokens: SHARED_USDC_TOKENS,
     partners: SHARED_PARTNERS,
-    features: { fence: true },
   },
   'fence': {
     slug: 'fence',
@@ -74,9 +56,7 @@ export const RWA_PROJECTS: Record<string, RWAProject> = {
     icon: '/rwa/logos/fence_logo.jpeg',
     darkInvert: false,
     addresses: SHARED_ADDRESSES,
-    usdcTokens: SHARED_USDC_TOKENS,
     partners: SHARED_PARTNERS,
-    features: { fence: true },
   },
 }
 

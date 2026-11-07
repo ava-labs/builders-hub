@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { calculateAllMetrics } from '@/lib/rwa/calculations/metrics'
+import { calculateLineMetrics } from '@/lib/rwa/line/figures'
 import { cache, CacheKeys } from '@/lib/rwa/glacier/cache'
 import { serializeBigints } from '@/lib/rwa/utils'
 import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
-import { getRWAProject } from '@/lib/rwa/projects'
+import { getFacility, isLineFacility } from '@/lib/rwa/facilities'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -25,20 +26,21 @@ export async function GET(request: Request, { params }: RouteParams) {
     )
   }
 
-  // the stale fallback below reads the same key a success writes
   const { slug } = await params
-  const cacheKey = `${CacheKeys.metrics()}:${slug}`
+  const facility = getFacility(slug)
+
+  if (!facility) {
+    return NextResponse.json(
+      { error: 'RWA project not found' },
+      { status: 404 }
+    )
+  }
+
+  // the stale fallback below reads the same key a success writes: the
+  // facility's, so an old partner slug shares its facility's entry
+  const cacheKey = CacheKeys.metrics(facility.slug)
 
   try {
-    const project = getRWAProject(slug)
-
-    if (!project) {
-      return NextResponse.json(
-        { error: 'RWA project not found' },
-        { status: 404 }
-      )
-    }
-
     // no caller can skip the cache: a public refresh would let anyone drive the Stats API reads
     const cached = cache.get(cacheKey)
     if (cached && !cached.isStale) {
@@ -50,7 +52,10 @@ export async function GET(request: Request, { params }: RouteParams) {
       })
     }
 
-    const metrics = await calculateAllMetrics()
+    // a line of credit's figures come from its events and its position, never from transfers
+    const metrics = isLineFacility(facility)
+      ? await calculateLineMetrics(facility)
+      : await calculateAllMetrics(facility)
     const serializedMetrics = serializeBigints(metrics)
 
     cache.set(cacheKey, serializedMetrics)

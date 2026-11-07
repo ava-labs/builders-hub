@@ -2,7 +2,7 @@
 // Do NOT import this file from client components
 
 import { FENCE_METRIC_IDS, FENCE_CACHE_TTL, FENCE_STALE_TTL } from '../constants/fence'
-import { cache, CacheKeys } from '../glacier/cache'
+import { cache, CacheKeys, FAILURE_MEMORY_MS, failureKey } from '../glacier/cache'
 import { fetchMetricLatest, fetchMetricValues } from './client'
 import { transformCollectionLatest, transformCollectionSeries, transformCL01 } from './transform'
 import type { FenceMetrics, FenceHistoricalData, DateRange } from '../types'
@@ -10,12 +10,9 @@ import type { FenceMetrics, FenceHistoricalData, DateRange } from '../types'
 // A failed read is remembered for a minute: until then the same read throws
 // at once, so an outage answers from the route's stale copy or a 503 instead
 // of holding a function for the full timeout on every view.
-const FAILURE_MEMORY_MS = 60_000
 
 /** the cache entry that remembers a failed read of `key` */
-export function fenceFailureKey(key: string): string {
-  return `${key}:failed`
-}
+export const fenceFailureKey = failureKey
 
 const failedRecently = (key: string) => cache.get<true>(fenceFailureKey(key)) !== null
 const rememberFailure = (key: string) =>

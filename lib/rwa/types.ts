@@ -30,6 +30,16 @@ export interface AllMetrics {
   lastUpdated: string
 }
 
+/** a line of credit's figures: OatFi's general figures without transacted volume, and the line's own; no lender split */
+export interface LineFacilityMetrics {
+  general: Omit<GeneralMetrics, 'transactedVolume'>
+  line: { capitalOutstanding: bigint; draws: number }
+  lastUpdated: string
+}
+
+/** what the metrics route answers for a facility */
+export type FacilityMetrics = AllMetrics | LineFacilityMetrics
+
 export interface TimeSeriesDataPoint {
   date: string
   value: number
@@ -72,7 +82,12 @@ export interface TransactionRecord {
   toLabel: string
   amount: bigint
   direction: 'inbound' | 'outbound' | 'internal'
+  /** set on a line facility's rows only, so OatFi's rows keep their shape */
+  kind?: LineEventKind
 }
+
+/** a line of credit's events on a position, by kind: a repayment is one amount, its interest included */
+export type LineEventKind = 'draw' | 'repayment' | 'commitment' | 'withdrawal'
 
 // Fence Finance API types
 
