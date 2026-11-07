@@ -36,8 +36,6 @@ export const maxDuration = 120;
 const STALE_MS = 6 * 60 * 60 * 1000;
 const RETRY_MS = 5 * 60 * 1000;
 const RPC_TIMEOUT_MS = 5_000;
-// the waits before each new try while the query service is busy: its other readers finish in seconds
-const BUSY_WAITS_MS = [5_000, 10_000, 15_000];
 
 /* the last complete board of each window, and the last unfinished one */
 const complete = new Map<BurnDays, GasBurners>();
@@ -85,20 +83,8 @@ async function withKinds(chainId: number, board: GasBurners): Promise<GasBurners
   return { ...board, burners: board.burners.map((r) => (r.target && r.targetKind === null ? { ...r, targetKind: kinds.get(r.target) ?? null } : r)) };
 }
 
-/** the query's rows, after the waits of BUSY_WAITS_MS while the query service is busy */
-async function query(sql: string) {
-  for (let tried = 0; ; tried += 1) {
-    try {
-      return await runQuery(sql);
-    } catch (error) {
-      if (!(error instanceof QueryBusyError) || tried >= BUSY_WAITS_MS.length) throw error;
-      await new Promise((r) => setTimeout(r, BUSY_WAITS_MS[tried]));
-    }
-  }
-}
-
 async function build(chainId: number, days: BurnDays, win: ReturnType<typeof burnWindow>): Promise<{ board: GasBurners; done: boolean }> {
-  const result = await query(burnersSql(chainId, win.start, win.end));
+  const result = await runQuery(burnersSql(chainId, win.start, win.end));
   const { complete: done, ...parsed } = parseBurners(result.rows as unknown as BurnerRow[]);
   const board: GasBurners = {
     chainId,

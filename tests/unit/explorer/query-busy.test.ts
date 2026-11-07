@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import type { BurnerRow } from '@/lib/gas-burners';
 
-// The query service runs two ad-hoc queries at once and turns a third away with a 503 ("too many ad-hoc queries in
-// flight, retry shortly"). runQuery waits a few seconds and asks again; a service still busy after that is a
-// QueryBusyError, and the gas page's top burners route waits it out in the request instead of failing the board.
+// The query service runs two ad-hoc queries per replica, for every caller, and turns a third away with a 503 ("too many
+// ad-hoc queries in flight, retry shortly"). Under load one query holds its slot 10 to 30 s, so runQuery waits about
+// 23 s for a slot; a service still busy after that is a QueryBusyError, and the gas page's top burners route reads
+// again on the next request.
 
 vi.mock('@/lib/clickhouse/client', () => ({ withQuerySlot: vi.fn(async (run: () => unknown) => run()) }));
 
@@ -33,9 +34,22 @@ describe('a busy query service', () => {
     const answer = runQuery('SELECT 7 AS n').catch((x: unknown) => x);
     await vi.runAllTimersAsync();
     const e = await answer;
-    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(fetch).toHaveBeenCalledTimes(6);
     expect(e).toBeInstanceOf(QueryBusyError);
     expect((e as Error).message).toBe('too many ad-hoc queries in flight, retry shortly');
+  });
+
+  it('waits for a slot that frees within the waits, and answers', async () => {
+    const { runQuery } = await import('@/lib/explorer-query/clickhouse');
+    const rows = JSON.stringify({ columns: ['n'], types: ['UInt8'], rows: [[7]], rowCount: 1, truncated: false, elapsedMs: 5, complete: true });
+    const fetch = vi.fn(async () => new Response(BUSY, { status: 503 }));
+    fetch.mockResolvedValueOnce(new Response(BUSY, { status: 503 })).mockResolvedValueOnce(new Response(BUSY, { status: 503 }));
+    fetch.mockResolvedValueOnce(new Response(BUSY, { status: 503 })).mockResolvedValueOnce(new Response(rows));
+    vi.stubGlobal('fetch', fetch);
+    const answer = runQuery('SELECT 7 AS n');
+    await vi.runAllTimersAsync();
+    expect((await answer).rows).toEqual([{ n: 7 }]);
+    expect(fetch).toHaveBeenCalledTimes(4);
   });
 
   it('is not the answer to a query the service refuses', async () => {
@@ -72,33 +86,18 @@ describe('the top burners route', () => {
   const ask = (GET: Awaited<ReturnType<typeof routeWith>>['GET']) =>
     GET(new NextRequest('http://localhost/api/explorer/43114/burners?days=7'), { params: Promise.resolve({ chainId: '43114' }) });
 
-  it('waits out a busy service and answers with the board', async () => {
-    const { QueryBusyError } = await import('@/lib/explorer-query/clickhouse');
-    const runQuery = vi
-      .fn()
-      .mockRejectedValueOnce(new QueryBusyError('too many ad-hoc queries in flight, retry shortly'))
-      .mockResolvedValueOnce({ rows: [ROW] });
-    const { GET } = await routeWith(runQuery);
-    const res = ask(GET);
-    await vi.runAllTimersAsync();
-    const r = await res;
-    expect(runQuery).toHaveBeenCalledTimes(2);
-    expect(r.status).toBe(200);
-    expect(((await r.json()) as { burners: unknown[] }).burners).toHaveLength(1);
-  });
-
   it('reads again on the next request after a service that stayed busy, not 5 minutes later', async () => {
     const { QueryBusyError } = await import('@/lib/explorer-query/clickhouse');
     const busy = new QueryBusyError('too many ad-hoc queries in flight, retry shortly');
-    const runQuery = vi.fn().mockRejectedValueOnce(busy).mockRejectedValueOnce(busy).mockRejectedValueOnce(busy).mockRejectedValueOnce(busy).mockResolvedValueOnce({ rows: [ROW] });
+    const runQuery = vi.fn().mockRejectedValueOnce(busy).mockResolvedValueOnce({ rows: [ROW] });
     const { GET } = await routeWith(runQuery);
-    const first = ask(GET);
-    await vi.runAllTimersAsync();
-    expect((await first).status).toBeGreaterThanOrEqual(500);
-    expect(runQuery).toHaveBeenCalledTimes(4);
+    // runQuery has waited already: the route does not wait again on top of it
+    expect((await ask(GET)).status).toBeGreaterThanOrEqual(500);
+    expect(runQuery).toHaveBeenCalledTimes(1);
     const second = await ask(GET);
-    expect(runQuery).toHaveBeenCalledTimes(5);
+    expect(runQuery).toHaveBeenCalledTimes(2);
     expect(second.status).toBe(200);
+    expect(((await second.json()) as { burners: unknown[] }).burners).toHaveLength(1);
   });
 
   it('holds a read that failed for another reason for 5 minutes', async () => {

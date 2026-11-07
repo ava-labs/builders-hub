@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { createMetadata } from "@/utils/metadata";
-import { NETWORK_SLUG, queryTarget } from "@/lib/explorer-query/target";
-import { indexState } from "@/lib/explorer-query/clickhouse";
+import { NETWORK_ID, NETWORK_SLUG, queryTarget } from "@/lib/explorer-query/target";
+import { indexStates } from "@/lib/explorer-query/clickhouse";
 import type { NetworkQueryChain } from "@/components/explorer-v2/evm/network-query";
 import { NetworkQueryClient } from "./page.client";
 
@@ -53,7 +53,7 @@ export default async function NetworkQueryPage({ params }: { params: Promise<{ n
   const { network } = await params;
   if (network !== "mainnet") redirect("/explorer/mainnet/query");
   const chains = queryChains();
-  // streamed, not awaited: the page goes out at once and the reads follow it
-  const index = Promise.all(chains.map((c) => (c.chainSlug === NETWORK_SLUG ? null : indexState(Number(c.chainId)))));
+  // streamed, not awaited: the page goes out at once and the reads follow it, as one read for the EVM chains
+  const index = indexStates(chains.map((c) => (c.chainSlug === NETWORK_SLUG ? NETWORK_ID : Number(c.chainId))));
   return <NetworkQueryClient network={network} chains={chains} index={index} />;
 }

@@ -38,7 +38,7 @@ export class ScanLimitError extends Error {
   }
 }
 
-/** the query service was still busy (503) or over the rate (429) after the short waits: the same read works again shortly */
+/** the query service was still busy (503) or over the rate (429) after the waits of BUSY_WAITS_MS: the same read works again shortly */
 export class QueryBusyError extends Error {
   constructor(message: string) {
     super(message);
@@ -132,6 +132,10 @@ interface StatsQueryJson {
 /* the endpoint runs two ad-hoc queries at once and turns a third away
    (503), so this instance holds its own two slots and waits for one */
 const STATS_SLOTS = 2;
+/* the waits before each new try while the service is busy (503) or over the rate (429, which says how long). Each
+   replica runs two queries, for every caller, and turns a third away at once; under load one query holds its slot
+   10 to 30 s (2026-10-27), so a read waits about 23 s for a slot */
+const BUSY_WAITS_MS = [1_000, 2_000, 4_000, 8_000, 8_000];
 let statsBusy = 0;
 const statsQueue: (() => void)[] = [];
 
@@ -152,12 +156,12 @@ const CUT_OFF = "the query service cut its answer off, as it does when a value i
 async function postStats(sql: string, chainId?: number): Promise<RawJson> {
   const key = process.env.STATS_QUERY_KEY;
   if (!key) throw new Error("STATS_QUERY_KEY is not set");
-  // busy (503) and over the rate (429) are worth a short wait; other
+  // busy (503) and over the rate (429) are worth a wait; other
   // instances share the key, so this one's slots are not the whole story
   let res: Response | null = null;
   let text = "";
   let pages = 0;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  for (let attempt = 0; ; attempt += 1) {
     // the rows stream: the query runs until the body is read, so the slot is held until then
     const got = await statsSlot(async () => {
       const r = await fetch(STATS_QUERY_URL, {
@@ -177,9 +181,10 @@ async function postStats(sql: string, chainId?: number): Promise<RawJson> {
       continue;
     }
     if (res.status !== 429 && res.status !== 503) break;
+    const wait = BUSY_WAITS_MS[attempt];
+    if (wait === undefined) break;
     const after = Number(res.headers.get("retry-after"));
-    if (attempt === 3) break;
-    await new Promise((r) => setTimeout(r, Math.min(8, Number.isFinite(after) && after > 0 ? after : 1 + attempt) * 1000));
+    await new Promise((r) => setTimeout(r, Number.isFinite(after) && after > 0 ? Math.min(8_000, after * 1000) : wait));
   }
   if (!res) throw new Error("stats-api did not answer");
   let body: StatsQueryJson;
@@ -388,10 +393,18 @@ const EMPTY_TTL_MS = 60 * 60_000;
     its read after 4 s and the answer asks again, so a cold read (20 s on a large L1) held both query slots */
 const coverageReads = new Map<number, Promise<Coverage | null>>();
 
+/** this chain's window as kept, while it is fresh */
+function keptCoverage(chainId: number) {
+  const hit = coverageCache.get(chainId);
+  return hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS) ? hit : null;
+}
+
+const coverageOf = (row: Record<string, unknown>): Coverage => ({ since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) });
+
 /** the window of this chain the database holds; null when it holds no rows. Throws when the database cannot be read. */
 function readCoverage(chainId: number): Promise<Coverage | null> {
-  const hit = coverageCache.get(chainId);
-  if (hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS)) return Promise.resolve(hit.value);
+  const hit = keptCoverage(chainId);
+  if (hit) return Promise.resolve(hit.value);
   const running = coverageReads.get(chainId);
   if (running) return running;
   const read = queryCoverage(chainId).finally(() => coverageReads.delete(chainId));
@@ -406,12 +419,22 @@ async function queryCoverage(chainId: number): Promise<Coverage | null> {
       : `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
   );
   const row = r.rows[0];
-  const value: Coverage | null =
-    row && row.blocks
-      ? { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) }
-      : null;
+  const value = row && row.blocks ? coverageOf(row) : null;
   coverageCache.set(chainId, { at: Date.now(), value });
   return value;
+}
+
+/** many EVM chains' windows from one read of raw_blocks grouped by chain, each kept as that chain's own; a chain with
+    no rows is kept as one */
+function groupedCoverage(chainIds: readonly number[]): Promise<Map<number, Coverage>> {
+  return runQuery(
+    `SELECT chain_id, toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id IN (${chainIds.join(", ")}) GROUP BY chain_id`,
+  ).then((r) => {
+    const by = new Map(r.rows.map((row) => [Number(row.chain_id), coverageOf(row)]));
+    const at = Date.now();
+    for (const id of chainIds) coverageCache.set(id, { at, value: by.get(id) ?? null });
+    return by;
+  });
 }
 
 /** what window of this chain the database holds; null for the network, whose chains each hold their own */
@@ -436,22 +459,24 @@ export async function indexState(chainId: number, timeoutMs = 4000): Promise<Cov
   return Promise.race([read, late]);
 }
 
+/** indexState for each chain a page lists. The EVM chains not kept yet are read together: every caller of the site
+    shares the stats-api key's reads (60 a minute per replica), and one read per chain on each cold instance spent them
+    all, so other questions got 429s */
+export function indexStates(chainIds: readonly number[], timeoutMs = 4000): Promise<(Coverage | "empty" | null)[]> {
+  const cold = chainIds.filter((id) => id !== NETWORK_ID && targetOf(id).kind !== "pchain" && !keptCoverage(id) && !coverageReads.has(id));
+  if (cold.length > 1) {
+    const read = groupedCoverage(cold);
+    for (const id of cold) coverageReads.set(id, read.then((by) => by.get(id) ?? null).finally(() => coverageReads.delete(id)));
+  }
+  return Promise.all(chainIds.map((id) => indexState(id, timeoutMs)));
+}
+
 /** every network chain's window, from one read of raw_blocks grouped by chain; each seeds that chain's own window, so
     the network costs one read where its chains would cost one each. Kept as a chain's own is */
 let networkRead: { at: number; value: Promise<Map<number, Coverage>> } | null = null;
 function networkCoverage(chains: readonly NetworkChain[]): Promise<Map<number, Coverage>> {
   if (networkRead && Date.now() - networkRead.at < COVERAGE_TTL_MS) return networkRead.value;
-  const value = runQuery(
-    `SELECT chain_id, toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id IN (${chains.map((c) => c.chainId).join(", ")}) GROUP BY chain_id`,
-  ).then((r) => {
-    const by = new Map<number, Coverage>();
-    for (const row of r.rows) {
-      const c = { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
-      by.set(Number(row.chain_id), c);
-      coverageCache.set(Number(row.chain_id), { at: Date.now(), value: c });
-    }
-    return by;
-  });
+  const value = groupedCoverage(chains.map((c) => c.chainId));
   networkRead = { at: Date.now(), value };
   value.catch(() => {
     if (networkRead?.value === value) networkRead = null;
