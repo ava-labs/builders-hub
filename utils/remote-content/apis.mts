@@ -56,11 +56,11 @@ export function getApisConfigs(): FileConfig[] {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/avm/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/saevm/cchain/service.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/evm/imp/cchain/service.md",
       outputPath: "content/docs/rpcs/c-chain/index.mdx",
       title: "AvalancheGo C-Chain RPC",
       description: "This page is an overview of the C-Chain RPC associated with AvalancheGo.",
-      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/saevm/cchain/",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/cchain/",
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/graft/subnet-evm/plugin/evm/service.md",

@@ -3,7 +3,7 @@ title: Coreth Architecture
 description: How the C-Chain runs inside AvalancheGo. Coreth executed blocks before the Helicon upgrade, and the Continuous Execution VM executes them after it.
 ---
 
-Coreth is the EVM implementation that ran the C-Chain until the Helicon upgrade (Fuji July 28, 2026 and Mainnet September 22, 2026, both at 15:00 UTC). Since Helicon, the C-Chain runs the Continuous Execution VM ([`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain)), wrapped by Snowman++ ([`vms/proposervm`](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm)) for block production.
+Coreth is the EVM implementation that ran the C-Chain until the Helicon upgrade (Fuji July 28, 2026 and Mainnet September 22, 2026, both at 15:00 UTC). Since Helicon, the C-Chain runs the Continuous Execution VM ([`vms/evm/imp/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/evm/imp/cchain)), wrapped by Snowman++ ([`vms/proposervm`](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm)) for block production.
 
 At a glance:
 - Snowman++ calls into the C-Chain VM to build and verify blocks. Since Helicon, consensus accepts a block before the VM executes it.
@@ -13,18 +13,18 @@ At a glance:
 ## Consensus & Block Production
 
 - Runs **Snowman++** via the [ProposerVM wrapper](/docs/nodes/architecture/proposervm); a stake-weighted proposer list gates each 5s slot, and since Durango there is no fallback that opens building to anyone.
-- Since Helicon, the Continuous Execution VM builds blocks ([`vms/saevm/sae/block_builder.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/saevm/sae/block_builder.go)). It includes a transaction only if the sender can pay its worst-case cost. The header `baseFeePerGas` is a worst-case upper bound.
+- Since Helicon, the Continuous Execution VM builds blocks ([`vms/evm/sae/block_builder.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/evm/sae/block_builder.go)). It includes a transaction only if the sender can pay its worst-case cost. The header `baseFeePerGas` is a worst-case upper bound.
 - Chain ID: Mainnet `43114`, Fuji `43113`. JSON-RPC is exposed at `/ext/bc/C/rpc` with optional WebSocket at `/ext/bc/C/ws`.
 
 ## Execution Pipeline
 
-- **Execution**: Since Helicon, consensus accepts a block first, and an executor then runs it from a FIFO queue ([`vms/saevm`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm)). A later block records the results (settlement). Before Helicon, Coreth ([`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth)) executed blocks synchronously.
+- **Execution**: Since Helicon, consensus accepts a block first, and an executor then runs it from a FIFO queue ([`vms/evm`](https://github.com/ava-labs/avalanchego/tree/master/vms/evm)). A later block records the results (settlement). Before Helicon, Coreth ([`graft/coreth`](https://github.com/ava-labs/avalanchego/tree/master/graft/coreth)) executed blocks synchronously.
 - **State**: Uses PebbleDB/LevelDB via AvalancheGo's database interface; state pruning and state-sync are configurable.
 - **APIs**: The `apis` chain config key selects the RPC method groups. By default the node serves `web3`, `net`, `txpool`, `price`, `chain`, `tx`, `subscription`, `avalanche` and `trace` (`debug_trace*`). `db` and `profile` are off by default. v1.15.0 removed the `admin`, `personal` and `warp` namespaces.
 
 ## Cross-Chain (Atomic) Transfers
 
-- The C-Chain supports **atomic import/export** to the X-Chain and P-Chain using shared UTXO memory. Since Helicon, [`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain) defines these transactions. Their shared-memory writes apply after the block that contains them executes.
+- The C-Chain supports **atomic import/export** to the X-Chain and P-Chain using shared UTXO memory. Since Helicon, [`vms/evm/imp/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/evm/imp/cchain) defines these transactions. Their shared-memory writes apply after the block that contains them executes.
 - Exports lock AVAX into an atomic UTXO set; imports consume those UTXOs to credit balance on the destination chain.
 - Wallet helpers and SDKs build these atomic txs against the C-Chain RPC; on-chain they show up as `ImportTx`/`ExportTx` wrapping atomic inputs/outputs.
 
@@ -44,7 +44,7 @@ Key knobs:
 - `apis`: List of RPC method groups to serve. The node does not serve groups that you do not list. `eth-apis` is deprecated, and the next release removes it.
 - `pruning-enabled`: Enable state trie pruning.
 - `state-sync-enabled`: Allow state sync bootstrap instead of full replay.
-- For all C-Chain options and defaults, see the [C-Chain config reference](https://github.com/ava-labs/avalanchego/blob/master/vms/saevm/cchain/config.md).
+- For all C-Chain options and defaults, see the [C-Chain config reference](https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/cchain/config.md).
 
 ## Developer Tips
 

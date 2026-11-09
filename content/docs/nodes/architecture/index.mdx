@@ -26,7 +26,7 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 
 - **Networking**: Custom P2P stack with mutual TLS (staking certs), throttling, peer scoring, and subnet-aware gossip.
 - **Consensus engines**: Snowman/Snowman++ for all Primary Network chains (P/C/X post-Cortina). The legacy Avalanche DAG engine runs no consensus. It only bootstraps the X-Chain's pre-Cortina vertices and serves them to peers.
-- **VMs**: PlatformVM (P-Chain), the C-Chain VM (`vms/saevm/cchain`, which replaced Coreth at Helicon), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
+- **VMs**: PlatformVM (P-Chain), the C-Chain VM (`vms/evm/imp/cchain`, which replaced Coreth at Helicon), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
 - **Chain manager**: Boots P/C/X, creates new chains on request, routes consensus messages.
 - **APIs**: HTTP/WS via `/ext/*`, with health/metrics, admin/info, and per-chain RPCs.
 - **Storage**: LevelDB (default) or PebbleDB for the node database, plus shared atomic UTXO memory for cross-chain transfers. EVM chains can store their state in [Firewood](/docs/nodes/architecture/execution/firewood) (experimental, `state-scheme: firewood`).

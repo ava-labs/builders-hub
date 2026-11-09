@@ -6,7 +6,7 @@ description: Learn how Continuous Execution (ACP-194) decouples consensus from e
 Continuous Execution (formerly known as Streaming Asynchronous Execution, or SAE) is a fundamental architectural change that decouples consensus from execution. By allowing these two critical processes to run concurrently, AvalancheGo can achieve significantly higher throughput without sacrificing security guarantees.
 
 <Callout>
-**Specification**: Continuous Execution is defined in [ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution). The reference implementation is [`vms/saevm`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm) in AvalancheGo. Continuous Execution became active on the C-Chain with the Helicon upgrade: on Fuji on July 28, 2026, and on Mainnet on September 22, 2026, both at 15:00 UTC. It does not run on Subnet-EVM L1s.
+**Specification**: Continuous Execution is defined in [ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution). The reference implementation is [`vms/evm`](https://github.com/ava-labs/avalanchego/tree/master/vms/evm) in AvalancheGo. Continuous Execution became active on the C-Chain with the Helicon upgrade: on Fuji on July 28, 2026, and on Mainnet on September 22, 2026, both at 15:00 UTC. It does not run on Subnet-EVM L1s.
 </Callout>
 
 ## Summary
@@ -214,7 +214,7 @@ These features are not yet implemented but require Continuous Execution as a pre
 
 ### saevm
 
-The reference implementation of Continuous Execution is [`vms/saevm`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm) in AvalancheGo. The C-Chain VM, [`vms/saevm/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm/cchain), is built on it. The StreVM repository is archived, and its code moved to AvalancheGo.
+The reference implementation of Continuous Execution is [`vms/evm`](https://github.com/ava-labs/avalanchego/tree/master/vms/evm) in AvalancheGo. The C-Chain VM, [`vms/evm/imp/cchain`](https://github.com/ava-labs/avalanchego/tree/master/vms/evm/imp/cchain), is built on it. The StreVM repository is archived, and its code moved to AvalancheGo.
 
 <Callout type="info">
 Continuous Execution runs only on the C-Chain. It became active with the Helicon upgrade: on Fuji on July 28, 2026 at 15:00 UTC, and on Mainnet on September 22, 2026 at 15:00 UTC. Subnet-EVM L1s still execute blocks synchronously.
@@ -257,5 +257,5 @@ flowchart TB
 ### External Links
 
 - [ACP-194 Specification](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution)
-- [saevm in AvalancheGo](https://github.com/ava-labs/avalanchego/tree/master/vms/saevm)
+- [saevm in AvalancheGo](https://github.com/ava-labs/avalanchego/tree/master/vms/evm)
 - [ACP-194 Discussion](https://github.com/avalanche-foundation/ACPs/discussions/196)
