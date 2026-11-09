@@ -11,6 +11,10 @@ The P-Chain (Platform Chain) is Avalanche's coordinating chain responsible for m
 
 ### getBalance
 
+<Callout type="info">
+From `@avalanche-sdk/client` 0.1.4, `getBalance` reads `platform.getUTXOs` and adds the amounts. It does not call `platform.getBalance`, which AvalancheGo v1.15.4 removes. Earlier versions call `platform.getBalance`: upgrade to 0.1.4 or later.
+</Callout>
+
 Get the balance of AVAX controlled by a given address.
 
 **Function Signature:**
@@ -80,7 +84,7 @@ console.log("Locked stakeable:", balance.lockedStakeable);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetbalance)
+- [API Reference: `platform.getUTXOs`](https://build.avax.network/docs/rpcs/p-chain#platformgetutxos)
 - [getUTXOs](#getutxos) - Get UTXOs for addresses
 
 ---
@@ -655,6 +659,10 @@ console.log("Block:", block.block);
 
 ### getStake
 
+<Callout type="warn" title="Removed in AvalancheGo v1.15.4">
+`getStake` calls `platform.getStake`, which AvalancheGo v1.15.4 removes. The call fails on nodes that run v1.15.4 or later. Calculate the stake with [getCurrentValidators](#getcurrentvalidators) and `getTx` instead: add the stake outputs that the addresses own in each staker transaction. To get the delegator transaction IDs, call `getCurrentValidators` with one node ID in `nodeIDs`.
+</Callout>
+
 Get the stake amount for a set of addresses.
 
 **Function Signature:**
@@ -704,7 +712,7 @@ console.log("Stake amount:", stake.stakeAmount);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetstake)
+- [API Reference: `platform.getCurrentValidators`](https://build.avax.network/docs/rpcs/p-chain#platformgetcurrentvalidators)
 - [getTotalStake](#gettotalstake) - Get total subnet stake
 - [getMinStake](#getminstake) - Get minimum stake requirements
 
@@ -764,7 +772,7 @@ console.log("Total weight:", totalStake.weight);
 **Related:**
 
 - [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgettotalstake)
-- [getStake](#getstake) - Get stake for addresses
+- [getStake](#getstake) - Get stake for addresses (removed in AvalancheGo v1.15.4)
 - [getMinStake](#getminstake) - Get minimum stake
 
 ---

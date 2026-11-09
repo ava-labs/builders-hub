@@ -216,7 +216,7 @@ The main client provides access to all chains. You can also create standalone ch
 // Main client - access all chains
 const client = createAvalancheClient({ ... });
 await client.pChain.getHeight();
-await client.xChain.getBalance({ ... });
+await client.xChain.getUTXOs({ ... });
 
 // Chain-specific client
 import { createPChainClient } from "@avalanche-sdk/client";
