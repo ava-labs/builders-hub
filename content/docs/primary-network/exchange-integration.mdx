@@ -146,7 +146,7 @@ Golang, we recommend using our
 `customtypes.Register()` from `graft/coreth/plugin/evm/customtypes` once in your `main` package. The
 standard `go-ethereum` Ethereum client does not compute block hashes correctly
 (when you call `block.Hash()`) because it doesn't take into account the added
-[`extDataHash`](https://github.com/ava-labs/avalanchego/blob/master/vms/saevm/cchain/README.md#block-header-changes)
+[`extDataHash`](https://github.com/ava-labs/avalanchego/blob/master/vms/evm/imp/cchain/README.md#block-header-changes)
 header field in Avalanche C-Chain blocks, which is used move AVAX between chains
 (X-Chain and P-Chain). You can read more about our multi-chain abstraction
 [here](/docs/primary-network) (out of scope for a
