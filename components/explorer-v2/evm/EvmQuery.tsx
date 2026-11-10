@@ -395,7 +395,7 @@ export function QueryPage({
     setSel([]);
     setInspect(false);
     try {
-      const out = await post<{ sql: string; result: QueryResult; names: Names; sources?: SourceNote[]; moves?: QueryAnswer["moves"] }>({ sql: sqlDraft, x: answer?.chart.x });
+      const out = await post<{ sql: string; result: QueryResult; names: Names; totals?: QueryAnswer["totals"]; sources?: SourceNote[]; moves?: QueryAnswer["moves"] }>({ sql: sqlDraft, x: answer?.chart.x });
       const cols = new Set(out.result.columns.map((k) => k.name));
       origin.current = null;
       let next: QueryAnswer | null = null;
@@ -404,7 +404,7 @@ export function QueryPage({
         const v = prev?.visual;
         const fits = !!v && v.panels.every((p) => (!p.x || cols.has(p.x)) && p.series.every((s) => cols.has(s.column))) && v.stats.every((s) => cols.has(s.column));
         const dFits = !!prev?.drill && [...prev.drill.sql.matchAll(/\{\{\s*(\w+)/g)].every((m) => cols.has(m[1]));
-        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, totals: null, names: out.names ?? {}, sources: out.sources ?? [], moves: out.moves ?? null, visual: fits ? v! : null };
+        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, totals: out.totals ?? null, names: out.names ?? {}, sources: out.sources ?? [], moves: out.moves ?? null, visual: fits ? v! : null };
         return next;
       });
       if (next && !(next as QueryAnswer).visual) void design(history[history.length - 1]?.prompt ?? "", next);

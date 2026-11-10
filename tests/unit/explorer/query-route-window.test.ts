@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const runKept = vi.hoisted(() => vi.fn());
 const answerQuestion = vi.hoisted(() => vi.fn());
+const totalsOf = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion, drillSql: vi.fn(), keptWords: vi.fn() }));
 vi.mock('@/lib/explorer-query/run-cache', () => ({ runKept, isKept: vi.fn(() => false) }));
@@ -9,7 +10,7 @@ vi.mock('@/lib/explorer-query/visual', () => ({ designVisual: vi.fn() }));
 vi.mock('@/lib/explorer-query/reading', () => ({ writeReading: vi.fn() }));
 vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery: vi.fn(), anchored: vi.fn(), indexState: vi.fn(async () => null) }));
 vi.mock('@/lib/explorer-query/enrich', () => ({ nameRows: vi.fn(async () => ({})) }));
-vi.mock('@/lib/explorer-query/cut', () => ({ totalsOf: vi.fn(async () => null), cutOf: vi.fn(() => null) }));
+vi.mock('@/lib/explorer-query/cut', () => ({ totalsOf, cutOf: vi.fn(() => null) }));
 vi.mock('@/lib/explorer-query/cache', () => ({ getRecipe: vi.fn(async () => null), putVisual: vi.fn(async () => {}) }));
 vi.mock('@/lib/explorer-query/sources', () => ({ sourceNotes: vi.fn(async () => []) }));
 vi.mock('@/lib/auth/authSession', () => ({ getAuthSession: vi.fn(async () => null) }));
@@ -30,6 +31,7 @@ const post = (body: object, chainId = C) =>
 beforeEach(() => {
   runKept.mockReset().mockResolvedValue(run);
   answerQuestion.mockReset();
+  totalsOf.mockReset().mockResolvedValue(null);
 });
 
 describe('POST { move }', () => {
@@ -84,5 +86,19 @@ describe('POST { prior }', () => {
     const res = await post({ prior: { sql: 'SELECT count() AS n FROM raw_txs WHERE chain_id = 43114' } });
     expect(res.status).toBe(400);
     expect(runKept).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST { sql }', () => {
+  it('returns the whole result\'s figures with rows a LIMIT cut, so a tile\'s figures stay whole after a refresh', async () => {
+    const totals = { rows: 1689, newest: false, sum: { transfers: 1689 }, count: {}, min: {}, max: {}, distinct: {} };
+    totalsOf.mockResolvedValue(totals);
+    const res = await post({ sql: fixed.sql });
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(out.totals).toEqual(totals);
+    // the totals are read for the SQL the guard passed, on the same chain
+    expect(totalsOf).toHaveBeenCalledWith(out.sql, run.result, C);
+    expect(answerQuestion).not.toHaveBeenCalled();
   });
 });

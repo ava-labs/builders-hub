@@ -39,7 +39,7 @@ export interface Snapshot {
   /** unix ms the rows were read */
   at: number;
   anchor?: string | null;
-  /** the whole result's figures when a LIMIT cut the rows, as the answer read them; a refresh reads none */
+  /** the whole result's figures when a LIMIT cut the rows, as the answer or a refresh read them */
   totals?: Totals | null;
   /** the rows stop short of the whole result: at the query's LIMIT, the row cap, or the cap on kept rows */
   cut?: boolean;
@@ -414,8 +414,8 @@ const TABLE_VISUAL: VisualSpec = {
 /** a query that ends in its LIMIT, as the server reads one (cut.ts) */
 const TRAILING_LIMIT = /\sLIMIT\s+(\d+)\s*$/i;
 
-/** whether rows stop short of the whole result. The answer's totals say so exactly; a refresh reads none, so its
-    rows count as cut when they reach the query's LIMIT or the row cap */
+/** whether rows stop short of the whole result. The totals say so exactly; a read that brought none (the totals
+    read failed) counts its rows as cut when they reach the query's LIMIT or the row cap */
 function stopsShort(result: { rows: Row[]; truncated?: boolean }, sql: string | undefined, totals: Totals | null | undefined): boolean {
   const n = result.rows.length;
   if (n > SNAPSHOT_ROWS) return true;

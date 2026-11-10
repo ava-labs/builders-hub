@@ -39,7 +39,7 @@ export function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { t
     setError(null);
     try {
       const r = await runTileSql(`${scope}/${boardId}/${tile.id}`, chainId, tile.sql);
-      api.updateTile(boardId, tile.id, { snapshot: snapshotOf(r.result, r.names, r.anchor, { sql: tile.sql }) });
+      api.updateTile(boardId, tile.id, { snapshot: snapshotOf(r.result, r.names, r.anchor, { sql: tile.sql, totals: r.totals }) });
     } catch (e) {
       setError(e instanceof Error ? e.message : "The query failed");
     } finally {

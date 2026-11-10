@@ -215,8 +215,9 @@ export async function POST(req: Request) {
       // a board's tiles: many readers, one run a minute per query
       const run = await runKept(g.sql, chainId);
       const result = run.result;
-      const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
-      return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor, sources: run.sources, moves: answerMoves(g.sql, typeof body.x === "string" ? body.x : undefined, chainId, Date.now()) });
+      // rows a LIMIT cut carry the whole result's figures, as an answer's do, so a tile's figures stay whole after a refresh
+      const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(g.sql, result, chainId)]);
+      return NextResponse.json({ sql: g.sql, result, names, totals, anchor: run.anchor, sources: run.sources, moves: answerMoves(g.sql, typeof body.x === "string" ? body.x : undefined, chainId, Date.now()) });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
     }

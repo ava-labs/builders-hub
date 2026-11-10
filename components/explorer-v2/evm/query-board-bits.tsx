@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { SIZE_SPAN, sortedTiles, type Board, type Tile } from "@/lib/explorer-query/board";
 import type { QueryResult } from "@/lib/explorer-query/clickhouse";
 import { tileVisual } from "@/lib/explorer-query/tile-visual";
-import type { Names } from "@/lib/explorer-query/types";
+import type { Names, Totals } from "@/lib/explorer-query/types";
 
 /* ------------------------------------------------------------------ */
 /* the refresh queue: the query route is shared and rate limited, so a  */
@@ -45,6 +45,8 @@ export interface SqlRun {
   sql: string;
   result: QueryResult;
   names: Names;
+  /** the whole result's figures, when a LIMIT cut the rows */
+  totals?: Totals | null;
   anchor?: string | null;
 }
 
