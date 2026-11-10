@@ -3,38 +3,32 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { MessageSquarePlus, Rows3 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { setSelection as setDigSelection } from "@/components/explorer-v2/dig/selection";
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, SourceNote, Turn } from "@/lib/explorer-query/types";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
-import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
-import { isAddress, isHash, isTime } from "@/lib/explorer-query/values";
-import { CARD, QueryVisual, fmt, nameFor, tipX, zoneOf } from "./QueryVisual";
-import { type Row, NoteText, PanelRows, doorFor, fillTitle, formatOf, header, isTxList, rowDoor } from "./QueryRows";
-import { QueryHome } from "./QueryHome";
-import { PinToBoard } from "./QueryBoard";
-import { QueryInspector, RowsBody } from "./QueryInspector";
-import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
+import { type Selection, applySelection } from "@/lib/explorer-query/selection";
+import { type Row, doorFor, fillTitle, isTxList, rowDoor } from "./QueryRows";
+import { QueryInspector } from "./QueryInspector";
+import { type OpenDrill, ZoomStage } from "./QueryZoom";
 import { bucketOf } from "./drill-plot";
-import { QueryLoader } from "./QueryLoader";
-import { PromptBox, ThreadLine, placeholderOf } from "./QueryWorking";
-import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
-import { QueryMonitor } from "./QueryMonitor";
+import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, readerError, streamQuery, withEdges } from "./query-client";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
 import { askHref } from "@/lib/explorer-query/board-links";
 import { NETWORK_SLUG, rowBase } from "@/lib/explorer-query/target";
-import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { type Kept, threadOf } from "@/lib/explorer-query/threads";
 import { QueryHow } from "./QueryHow";
 import { type TabLink, QueryTabs } from "./query-tabs";
 import { runTileSql } from "./query-board-bits";
+import { AnswerHead } from "./query/answer-head";
+import { AnswerStage } from "./query/answer-stage";
+import { AskSection } from "./query/ask-section";
+import { StageBar } from "./query/stage-bar";
+import { useQueryKeys } from "./query/use-query-keys";
+import { useSelectionWords } from "./query/use-selection-words";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -171,7 +165,6 @@ export function QueryPage({
   const [error, setError] = useState<string | null>(null);
   // the anonymous limit was hit: the error offers sign-in, which lifts it
   const [gated, setGated] = useState(false);
-  const { openLoginModal } = useLoginModalTrigger();
   const [answer, setAnswer] = useState<QueryAnswer | null>(seed?.answer ?? null);
   const [history, setHistory] = useState<Turn[]>(seed?.turns ?? []);
   // what the tab gave the page: drawn again, not reported back as new
@@ -187,7 +180,6 @@ export function QueryPage({
   // the next question is about the selection
   const [about, setAbout] = useState(false);
   const [inspect, setInspect] = useState(false);
-  const still = useReducedMotion();
   const [started, setStarted] = useState<number | null>(null);
   // one pointer for the whole sheet: a bar and its row, a dot and its row
   const [hoverKey, setHoverKey] = useState<unknown>(undefined);
@@ -515,49 +507,12 @@ export function QueryPage({
     ? { title: drill.title, columns: drilled?.columns ?? [], rows: drilled?.rows ?? [], total: drilled?.rows.length ?? 0, names: drill.answer?.names ?? {}, visual: null }
     : { title: answer?.title ?? "", columns: answer?.result?.columns ?? [], rows: picked, total: allRows.length, names, visual };
 
-  /** a picked value in words a person reads: its name, its clock, its figure */
-  const humanValue = (col: string, v: unknown): string => {
-    const n = nameFor(names, col, v);
-    if (n) return n;
-    // in the zone the chart's axis and chips read in, named: the words also go to the model, which reads UTC rows
-    if (isTime(v)) return tipX(v, "hours", zoneOf(allRows.map((r) => r[col])));
-    if (isAddress(v) || isHash(v)) return truncate(v, 5);
-    if (typeof v === "number") return fmt(v, formatOf(col, visual), sym);
-    return String(v ?? "");
-  };
-  const selWords = useMemo(() => {
-    if (!sel.length) return "";
-    const back: Record<string, string> = {};
-    const human = sel.map((p) => {
-      const h = header(p.column);
-      back[h] = p.column;
-      return { ...p, column: h };
-    });
-    return describe(human, (h, v) => humanValue(back[h] ?? h, v));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sel, names, visual, sym]);
-  // the same filter as the model needs it: raw columns and values, names beside
-  const selForModel = () =>
-    describe(sel, (col, v) => {
-      const n = nameFor(names, col, v);
-      return n ? `${String(v)} (${n})` : String(v);
-    });
+  const { selWords, selForModel } = useSelectionWords({ sel, allRows, names, visual, sym });
 
   const submit = () => {
     const extra = answer && about && sel.length ? `${FILTER_MARK}${selForModel()}.)` : "";
     // a live monitor ran no SQL for the writer to refine: what is typed under it is a new question
     void ask(prompt + extra, !!answer && !answer.monitor);
-  };
-
-  const askAboutSelection = () => {
-    setAbout(true);
-    setPrompt(`For ${selWords}: `);
-    requestAnimationFrame(() => {
-      const el = inputRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    });
   };
 
   const popZoom = useCallback(() => {
@@ -568,57 +523,7 @@ export function QueryPage({
   }, []);
 
   // keys: / asks, R opens the rows, Esc steps back out (sheet, zoom, selection)
-  const keyState = useRef({ inspect, drill: !!drill, sel: sel.length, rows: level.total, answer: !!answer });
-  keyState.current = { inspect, drill: !!drill, sel: sel.length, rows: level.total, answer: !!answer };
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // a focused chart handles its own Escape first (it clears the picks)
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-      const k = keyState.current;
-      if (e.key === "/") {
-        e.preventDefault();
-        setInspect(false);
-        inputRef.current?.focus();
-      } else if ((e.key === "r" || e.key === "R") && k.answer && k.rows > 0) {
-        e.preventDefault();
-        setInspect((v) => !v);
-      } else if (e.key === "Escape") {
-        if (k.inspect) setInspect(false);
-        else if (k.drill) popZoom();
-        else if (k.sel) setSel([]);
-        else return;
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [popZoom]);
-
-  const input = (
-    <PromptBox
-      inputRef={inputRef}
-      value={prompt}
-      onChange={(v) => {
-        setPrompt(v);
-        if (!v) setAbout(false);
-      }}
-      onSend={submit}
-      autoFocus={!answer}
-      disabled={busy}
-      label={answer ? "Refine" : "Ask"}
-      placeholder={
-        answer?.monitor
-          ? "Monitor something else, or ask a new question"
-          : answer
-            ? c.kind === "pchain"
-              ? "Refine this answer: only L1s, per week, add delegators"
-              : "Refine this answer: only reverted, per hour, add fees"
-            : placeholderOf(c.kind, c.chainName)
-      }
-    />
-  );
+  useQueryKeys({ inspect, drill: !!drill, sel: sel.length, rows: level.total, answer: !!answer }, { inputRef, setInspect, setSel, popZoom });
 
   return (
     // the prompt box below is this page's search bar, so its shell (query-tabs.tsx) draws none. An answer's title is the h1
@@ -634,200 +539,29 @@ export function QueryPage({
       ) : (
       <div className="flex flex-col gap-8">
         {/* the question */}
-        <section className="flex flex-col gap-3">
-          {/* the thread, and the question on its way */}
-          {crumbs.length > 0 && <ThreadLine prompts={crumbs} />}
-          {/* the selection, offered as the subject of the next question */}
-          <AnimatePresence initial={false}>
-            {answer && !drill && sel.length > 0 && !busy && (
-              <motion.div
-                key="about"
-                initial={still ? { opacity: 0 } : { opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: still ? 0 : 0.18 }}
-                className="flex"
-              >
-                <button
-                  type="button"
-                  onClick={askAboutSelection}
-                  className="flex max-w-full items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12.5px] text-zinc-600 transition-colors hover:bg-zinc-200/80 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                >
-                  <MessageSquarePlus className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">Ask about {selWords}</span>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {input}
-          {stale && (
-            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-              Indexed {stale.since.slice(0, 10)} to {stale.until.slice(0, 10)} UTC. Answers read that window, not today.
-            </p>
-          )}
-          {busy && <QueryLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
-          {error && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-l-2 border-[#E6212F] pl-3">
-              <p className="font-mono text-[12px] text-[#E6212F]">{error}</p>
-              {gated && (
-                <button
-                  type="button"
-                  onClick={() => openLoginModal()}
-                  className="border border-zinc-900 bg-zinc-900 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-                >
-                  Sign in
-                </button>
-              )}
-            </div>
-          )}
-          {!answer && !busy && (
-            <div className="flex flex-col gap-6 pt-3">
-              <QueryHome chain={c.chainSlug ?? String(c.chainId)} network={network} examples={examples} onAsk={(q) => void ask(q, false)} />
-            </div>
-          )}
-        </section>
+        <AskSection
+          crumbs={crumbs} answer={answer} drill={drill} sel={sel} selWords={selWords}
+          prompt={prompt} setPrompt={setPrompt} setAbout={setAbout} submit={submit} inputRef={inputRef}
+          phase={phase} events={events} elapsed={elapsed} stale={stale} error={error} gated={gated}
+          c={c} network={network} examples={examples} ask={ask}
+        />
 
         {answer && (
           <section className="flex flex-col gap-5">
             {/* the answer, and its takeaway in one quiet lead */}
-            <div className="flex flex-col gap-2">
-              {cameFrom && cameFrom !== c.chainSlug && (
-                <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                  Asked on the {cameFrom === "p-chain" ? "P-Chain" : "C-Chain"} page. This data lives on the {c.kind === "pchain" ? "P-Chain" : "C-Chain"}, so it is answered here.
-                </span>
-              )}
-              <div className="flex items-start justify-between gap-4">
-                <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
-                {pinnable && !laying && !answer.monitor && <PinToBoard chain={c.chainSlug!} network={network} answer={answer} thread={history.map((t) => t.prompt)} className="mt-1 shrink-0" />}
-              </div>
-              {!laying && reading && (
-                <span aria-busy="true" aria-label="Writing the reading" className="flex max-w-3xl flex-col gap-1.5 pt-1">
-                  {[92, 64].map((w) => (
-                    <span key={w} className="h-3 animate-pulse rounded-sm bg-zinc-200/80 dark:bg-zinc-800" style={{ width: `${w}%` }} />
-                  ))}
-                </span>
-              )}
-              {!laying && !reading && visual && visual.callouts.length > 0 ? (
-                <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{reads(visual.callouts)}</p>
-              ) : (
-                !reading && answer.note && <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>
-              )}
-              {/* what a table from our server covers, and how recent it is */}
-              {sourceLines(answer).map((t) => (
-                <p key={t} className="max-w-3xl font-mono text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                  {t}
-                </p>
-              ))}
-            </div>
+            <AnswerHead answer={answer} visual={visual} history={history} c={c} network={network} base={base} cameFrom={cameFrom} pinnable={pinnable} laying={laying} reading={reading} />
 
             {/* the chart, full width; a drill zooms it in place */}
             <div className="flex min-w-0 flex-col gap-3">
-              <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1">
-                {drill ? (
-                  <Crumbs items={[{ label: answer.title, onClick: popZoom }, { label: drill.title }]} />
-                ) : (
-                  <span className="min-w-0 truncate font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {sel.length ? `${formatNumber(picked.length)} of ${rowCount(allRows.length)}` : [cutLine(answer), charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""].filter(Boolean).join(" · ")}
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  {level.total > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setInspect(true)}
-                      aria-haspopup="dialog"
-                      aria-keyshortcuts="R"
-                      className="flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 font-mono text-[11px] tabular-nums text-zinc-700 transition-colors hover:bg-zinc-200/80 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                    >
-                      <Rows3 className="h-3.5 w-3.5" />
-                      Rows ({drill || sel.length || !answer ? formatNumber(level.rows.length) : rowsLabel(answer, level.rows.length)})
-                      <kbd className="hidden rounded bg-white px-1 text-[10px] text-zinc-400 sm:inline dark:bg-zinc-950 dark:text-zinc-500">R</kbd>
-                    </button>
-                  )}
-                </span>
-              </div>
+              <StageBar answer={answer} drill={drill} sel={sel} picked={picked} allRows={allRows} level={level} charted={charted} canDrill={canDrill} popZoom={popZoom} setInspect={setInspect} />
 
               <ZoomStage level={drill ? `drill-${drill.index}` : laying ? "laying" : "answer"}>
-                {answer.monitor ? (
-                  // a live feed of the chain's own moves, read from its RPC as each block is made
-                  <QueryMonitor spec={answer.monitor} base={base} />
-                ) : drill ? (
-                  <div className={cn(CARD, "px-4 py-4 sm:px-5 sm:py-5")}>
-                    <DrillView drill={drill} base={rowBase(base, drill.row) ?? base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
-                  </div>
-                ) : laying ? (
-                  // one draw: the loader holds the space until the layout is final
-                  <div aria-busy="true" className={cn(CARD, "flex min-h-[18rem] flex-1 flex-col")}>
-                    <QueryLoader status="Rows are in. Laying out the chart" fill framed={false} />
-                  </div>
-                ) : charted && visual ? (
-                  <QueryVisual
-                    visual={drawn ?? visual}
-                    rows={allRows}
-                    names={names}
-                    sym={sym}
-                    totals={answer.totals}
-                    span={answer.span}
-                    base={base}
-                    canDrill={canDrill || recordRows}
-                    // a mark that is one thing on the chain (a transaction, a
-                    // contract, a validator, a block) opens that thing's own page
-                    onPick={openRow}
-                    hoverKey={hoverKey}
-                    onHoverKey={setHoverKey}
-                    range={range}
-                    onRange={setRange}
-                    onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
-                    selection={sel}
-                    onSelection={setSel}
-                    panelAction={pinnable ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} thread={history.map((t) => t.prompt)} /> : undefined}
-                    // the designer's tables: the rows in its columns, each row a door
-                    renderTable={(p) => (
-                      <PanelRows
-                        panel={p}
-                        columns={answer.result?.columns ?? []}
-                        rows={picked}
-                        names={names}
-                        visual={visual}
-                        base={base}
-                        sym={sym}
-                        onPick={canDrill || recordRows ? openRow : undefined}
-                        onAll={() => setInspect(true)}
-                      />
-                    )}
-                  />
-                ) : allRows.length === 1 ? (
-                  // one row is a set of figures: each column on its own card
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {(answer.result?.columns ?? []).map((col) => {
-                      const v = allRows[0][col.name];
-                      const f = formatOf(col.name, visual);
-                      return (
-                        <div key={col.name} className={cn(CARD, "flex min-w-0 flex-col gap-2 px-4 py-4 sm:px-5 sm:py-5")}>
-                          <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{header(col.name)}</span>
-                          <span className="truncate font-mono text-[22px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">
-                            {typeof v === "number" ? fmt(v, f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : allRows.length ? (
-                  // no chart to index the rows: the rows, by their shape, are the view
-                  <div className={cn(CARD, "px-2 py-3")}>
-                    <RowsBody
-                      columns={answer.result?.columns ?? []}
-                      rows={allRows}
-                      names={names}
-                      visual={visual}
-                      base={base}
-                      sym={sym}
-                      onOpen={canDrill ? (r) => void openDrill(r, allRows.indexOf(r)) : undefined}
-                    />
-                  </div>
-                ) : (
-                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>{answer.result ? "The query returned no rows." : NO_QUERY}</p>
-                )}
+                <AnswerStage
+                  answer={answer} visual={visual} drawn={drawn} drill={drill} laying={laying} charted={charted} canDrill={canDrill} recordRows={recordRows} pinnable={pinnable}
+                  allRows={allRows} picked={picked} names={names} history={history} c={c} network={network} base={base} sym={sym}
+                  sel={sel} setSel={setSel} range={range} setRange={setRange} hoverKey={hoverKey} setHoverKey={setHoverKey} hoverTx={hoverTx} setHoverTx={setHoverTx}
+                  setInspect={setInspect} openRow={openRow} openDrill={openDrill} ask={ask}
+                />
               </ZoomStage>
             </div>
 
