@@ -42,7 +42,7 @@ import {
  *   chain. The default numerator is 67, the minimum 33, the maximum 100, and 0 means 67:
  *   graft/subnet-evm/precompile/contracts/warp/config.go:23-25,53,98-104,191,203-206 (the same in
  *   graft/coreth/precompile/contracts/warp/config.go:23-25,53,98-104,202-205). The C-Chain uses the default:
- *   vms/saevm/cchain/genesis.go:127-129, graft/coreth/precompile/contracts/warp/config.go:69-71. The P-Chain uses a
+ *   vms/evm/imp/cchain/genesis.go:127-129, graft/coreth/precompile/contracts/warp/config.go:69-71. The P-Chain uses a
  *   fixed 67 / 100 for the Warp messages in RegisterL1ValidatorTx and SetL1ValidatorWeightTx:
  *   vms/platformvm/txs/executor/warp_verifier.go:15-16,117-122,153-159.
  *

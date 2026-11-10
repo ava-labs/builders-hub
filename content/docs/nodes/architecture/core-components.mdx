@@ -167,7 +167,7 @@ The `Node` struct is the central coordinator. Here are its key responsibilities:
 // Register built-in VMs
 n.VMManager.RegisterFactory(ctx, constants.PlatformVMID, &platformvm.Factory{})
 n.VMManager.RegisterFactory(ctx, constants.AVMID, &avm.Factory{})
-n.VMManager.RegisterFactory(ctx, constants.EVMID, &saevm.Factory{}) // C-Chain (Continuous Execution)
+n.VMManager.RegisterFactory(ctx, constants.EVMID, &cchain.Factory{}) // C-Chain (Continuous Execution)
 ```
 
 ### Chain Creation

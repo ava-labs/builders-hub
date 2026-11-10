@@ -377,7 +377,7 @@ func (n *Node) initVMs() error {
     n.VMManager.RegisterFactory(ctx, constants.AVMID,
         &avm.Factory{})
     n.VMManager.RegisterFactory(ctx, constants.EVMID,
-        &saevm.Factory{}) // C-Chain (SAE)
+        &cchain.Factory{}) // C-Chain (SAE)
 
     // Plugin VMs are discovered from the plugins directory
     // (default: ~/.avalanchego/plugins/)
