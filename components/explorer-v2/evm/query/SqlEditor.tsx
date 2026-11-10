@@ -110,7 +110,8 @@ export function SqlEditor({
 
   return (
     <div className={cn("flex flex-col gap-2", className)} aria-busy={busy}>
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:gap-3">
+      {/* from lg the editor is as tall as the schema beside it */}
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch lg:gap-3">
         {schema && <SchemaFold tables={schema} onPick={pick} />}
         <div className="flex min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-colors focus-within:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
           <div aria-hidden className="relative w-11 shrink-0 select-none overflow-hidden border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -162,7 +163,7 @@ export function SqlEditor({
               aria-errormessage={error ? alert : undefined}
               className={cn(
                 TYPE,
-                "relative block w-full resize-y overflow-auto whitespace-pre bg-transparent px-3 py-2 text-transparent caret-zinc-900 outline-none selection:bg-sky-500/25 dark:caret-zinc-50",
+                "relative block w-full resize-y lg:min-h-full overflow-auto whitespace-pre bg-transparent px-3 py-2 text-transparent caret-zinc-900 outline-none selection:bg-sky-500/25 dark:caret-zinc-50",
               )}
             />
           </div>
