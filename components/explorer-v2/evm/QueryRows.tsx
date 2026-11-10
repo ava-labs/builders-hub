@@ -347,7 +347,9 @@ export function PanelRows({
   limit?: number;
 }) {
   const named = panel.series.map((s) => columns.find((c) => c.name === s.column)).filter((c): c is ColumnMeta => !!c);
-  const cols = named.length ? named : columns;
+  // the panel's x names each row: it leads the table's columns unless the designer placed it among them
+  const lead = columns.find((c) => c.name === panel.x && !named.includes(c));
+  const cols = named.length ? (lead ? [lead, ...named] : named) : columns;
   const when = cols.find((c) => isTime(rows[0]?.[c.name]))?.name;
   const span = when ? spanOf(rows.map((r) => r[when])) : "other";
   if (!rows.length) return <p className="py-6 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">No rows in this selection.</p>;
