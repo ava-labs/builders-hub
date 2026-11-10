@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
 import { sqlScopeOf } from "../QueryWorking";
 import { CARD } from "./sheet";
+import { SqlEditor } from "./SqlEditor";
 
 const KEPT = "explorer-query:sql-open";
 
@@ -40,6 +41,7 @@ export function SqlDrawer({
   answer,
   c,
   busy,
+  error,
   draft,
   onDraft,
   onRun,
@@ -48,6 +50,8 @@ export function SqlDrawer({
   answer: QueryAnswer;
   c: { kind: "evm" | "pchain"; chainId: string | number; chainSlug?: string };
   busy: boolean;
+  /** why the last run of the reader's SQL failed: the editor marks the place it names */
+  error: string | null;
   draft: string;
   onDraft: (sql: string) => void;
   onRun: () => void;
@@ -73,14 +77,7 @@ export function SqlDrawer({
           </button>
         </span>
       </div>
-      <textarea
-        value={draft}
-        onChange={(e) => onDraft(e.target.value)}
-        spellCheck={false}
-        aria-label="The SQL behind this answer"
-        rows={Math.min(18, Math.max(5, draft.split("\n").length + 1))}
-        className="w-full resize-y rounded-xl bg-zinc-50 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-900 outline-none ring-1 ring-zinc-200/70 focus:ring-zinc-400 dark:bg-zinc-900/50 dark:text-zinc-100 dark:ring-zinc-800"
-      />
+      <SqlEditor value={draft} onChange={onDraft} busy={busy} error={error} chainId={c.chainId} onRun={() => draft.trim() !== answer.sql.trim() && onRun()} />
       <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
         <span className="text-zinc-400 dark:text-zinc-500">{sqlScopeOf(c)}</span>
         <button type="button" onClick={onRun} disabled={busy || draft.trim() === answer.sql.trim()} className="rounded-full bg-zinc-900 px-3.5 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">

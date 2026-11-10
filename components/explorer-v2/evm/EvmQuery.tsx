@@ -181,6 +181,8 @@ export function QueryPage({
   const [moving, setMoving] = useState<SpanKey | null>(null);
   const origin = useRef<QueryAnswer | null>(null);
   const [sqlDraft, setSqlDraft] = useState(seed?.answer.sql ?? "");
+  // why the reader's own SQL last failed: said in the editor, at the place it names
+  const [sqlError, setSqlError] = useState<string | null>(null);
   const [range, setRange] = useState<[number, number] | null>(null);
   const [drill, setDrill] = useState<OpenDrill | null>(null);
   const drillNow = useRef(drill);
@@ -351,6 +353,7 @@ export function QueryPage({
         origin.current = null;
         setAnswer(a);
         setSqlDraft(a.sql);
+        setSqlError(null);
         setHistory(next);
         setPrompt("");
         if (!opts.replay) writeThread(text, refine);
@@ -380,6 +383,7 @@ export function QueryPage({
   /** the reader's own SQL, run through the same guard */
   const runSql = useCallback(async () => {
     setPhase("running");
+    setSqlError(null);
     setError(null);
     setGated(false);
     setRange(null);
@@ -401,7 +405,7 @@ export function QueryPage({
       });
       if (next && !(next as QueryAnswer).visual) void design(history[history.length - 1]?.prompt ?? "", next);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The query failed.");
+      setSqlError(e instanceof Error ? e.message : "The query failed.");
     } finally {
       setPhase("idle");
     }
@@ -412,6 +416,7 @@ export function QueryPage({
   const show = (a: QueryAnswer) => {
     setAnswer(a);
     setSqlDraft(a.sql);
+    setSqlError(null);
     setHistory((h) => h.map((t, i) => (i === h.length - 1 ? { ...t, sql: a.sql, title: a.title } : t)));
     setRange(null);
     setDrill(null);
@@ -616,7 +621,7 @@ export function QueryPage({
                 own={(origin.current ?? answer).moves?.own ?? null} moving={moving} busy={busy || laying} onMove={(k) => void moveWindow(k)} onOwn={() => origin.current && show(origin.current)}
                 sqlOpen={sqlOpen} onSql={setSqlOpen}
               />
-              {sqlOpen && answer.result && !drill && <SqlDrawer answer={answer} c={c} busy={busy} draft={sqlDraft} onDraft={setSqlDraft} onRun={() => void runSql()} onClose={() => setSqlOpen(false)} />}
+              {sqlOpen && answer.result && !drill && <SqlDrawer answer={answer} c={c} busy={busy} error={sqlError} draft={sqlDraft} onDraft={setSqlDraft} onRun={() => void runSql()} onClose={() => setSqlOpen(false)} />}
 
               <ZoomStage level={drill ? `drill-${drill.index}` : laying ? "laying" : "answer"}>
                 <AnswerStage
