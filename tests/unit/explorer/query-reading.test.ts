@@ -4,7 +4,8 @@ vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof impor
 
 import { generateText } from 'ai';
 import { designVisual } from '@/lib/explorer-query/visual';
-import { distinctColumns, figures, sharesOf, withShares } from '@/lib/explorer-query/figures';
+import { distinctColumns } from '@/lib/explorer-query/column-kinds';
+import { figures, sharesOf, withShares } from '@/lib/explorer-query/figures';
 import { plainDecimals } from '@/lib/explorer-query/reader-words';
 import { READ_ONLY, writeReading } from '@/lib/explorer-query/reading';
 import { visualSpecSchema } from '@/lib/explorer-query/visual-spec';

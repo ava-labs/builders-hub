@@ -4,7 +4,7 @@
    is laid out again. */
 
 import type { ColumnMeta } from "./clickhouse";
-import { EXTREME_NAME, MEAN_NAME, NUMERIC, RATE, distinctColumns } from "./figures";
+import { EXTREME_NAME, MEAN_NAME, NUMERIC, RATE, distinctColumns } from "./column-kinds";
 import { HISTOGRAM_ROWS, TREEMAP_PARTS, type Panel } from "./visual-spec";
 
 type Row = Record<string, unknown>;

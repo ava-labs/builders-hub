@@ -27,6 +27,8 @@ import { runTileSql } from "./query-board-bits";
 import { AnswerHead } from "./query/answer-head";
 import { AnswerSkeleton } from "./query/answer-skeleton";
 import { AnswerStage } from "./query/answer-stage";
+import { findingsOf } from "./query/findings";
+import { FindingsBlock } from "./query/findings-block";
 import { AskSection } from "./query/ask-section";
 import { type Moved, movedAnswer } from "./query/moved-answer";
 import { SQL_DRAWER_ID, SqlDrawer, useSqlOpen } from "./query/sql-drawer";
@@ -556,6 +558,11 @@ export function QueryPage({
   const { selWords, selForModel } = useSelectionWords({ sel, allRows, names, visual, sym });
   // each figure says how it moved against the period before, once that period is read
   const prior = usePrior(answer, c.chainId);
+  // what stands out in the rows, by rule: the lines gain the movers once the period before is read
+  const findings = useMemo(
+    () => (answer?.result && !answer.monitor && !laying ? findingsOf({ columns: answer.result.columns, rows: answer.result.rows, names: answer.names, visual, chart: answer.chart, sql: answer.sql, anchor: answer.anchor, totals: answer.totals, prior, span: answer.span, sym }) : []),
+    [answer, visual, prior, laying, sym],
+  );
 
   const submit = () => {
     const extra = answer && about && sel.length ? `${FILTER_MARK}${selForModel()}.)` : "";
@@ -617,6 +624,7 @@ export function QueryPage({
                   allRows={allRows} picked={picked} names={names} history={history} c={c} network={network} base={base} sym={sym}
                   sel={sel} setSel={setSel} range={range} setRange={setRange} hoverKey={hoverKey} setHoverKey={setHoverKey} hoverTx={hoverTx} setHoverTx={setHoverTx}
                   setInspect={setInspect} openRow={openRow} openDrill={openDrill} ask={ask} prior={prior} onSql={openSql}
+                  lead={<FindingsBlock findings={findings} onHoverKey={setHoverKey} onOpen={canDrill || recordRows ? openRow : undefined} />}
                 />
               </ZoomStage>
             </div>

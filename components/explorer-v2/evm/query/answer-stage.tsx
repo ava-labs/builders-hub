@@ -2,6 +2,7 @@
 
 /* the answer's stage: the live monitor, the drilled records, the layout loader, the chart, one row's figures, the rows, or the empty line */
 
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { truncate } from "@/components/explorer-v2/format";
 import type { Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
@@ -54,6 +55,7 @@ export function AnswerStage({
   ask,
   prior,
   onSql,
+  lead,
 }: {
   answer: QueryAnswer;
   visual: VisualSpec | null;
@@ -90,6 +92,8 @@ export function AnswerStage({
   prior: Prior | null;
   /** show the SQL behind the answer */
   onSql: () => void;
+  /** the findings, set between the figures and the panels */
+  lead?: ReactNode;
 }) {
   return answer.monitor ? (
     // a live feed of the chain's own moves, read from its RPC as each block is made
@@ -110,6 +114,7 @@ export function AnswerStage({
       totals={answer.totals}
       span={answer.span}
       prior={prior}
+      lead={lead}
       base={base}
       canDrill={canDrill || recordRows}
       // a mark that is one thing on the chain (a transaction, a

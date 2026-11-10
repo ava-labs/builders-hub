@@ -11,7 +11,8 @@ import { labelError } from "./stat-label";
 import { kindError } from "./kind-checks";
 import { CALLOUT_SHOWN, HISTOGRAM_ROWS, TREEMAP_PARTS, visualSpecSchema, type VisualSpec } from "./visual-spec";
 import { READER_RULES, codeWords, heldHex, readerSpec, rowWords, shownLength } from "./reader-words";
-import { ALL_ROWS, EXTREME_NAME, MEAN_NAME, NUMERIC, RATE, distinctColumns, edgeOf, numOf, plain, rowsBrief, sampleOf, sharesOf, staleBrief, weightOf, weighted, withShares, type DesignInput } from "./figures";
+import { EXTREME_NAME, MEAN_NAME, NUMERIC, RATE, distinctColumns } from "./column-kinds";
+import { ALL_ROWS, edgeOf, numOf, plain, rowsBrief, sampleOf, sharesOf, staleBrief, weightOf, weighted, withShares, type DesignInput } from "./figures";
 
 export const DESIGN_MODEL = "claude-opus-5-5";
 /** the designer runs at low effort: in 20 blind pairs its charts were rated as good as the default's (7 wins each, 6 ties), in about half the time */

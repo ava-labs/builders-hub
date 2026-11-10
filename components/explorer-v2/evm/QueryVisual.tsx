@@ -233,11 +233,13 @@ export type QueryVisualProps = {
   span?: string | null;
   /** the same query over the period before its window: each figure says how it moved */
   prior?: Prior | null;
+  /** what the page sets between the figures and the panels: the findings */
+  lead?: ReactNode;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, base, span, prior }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, base, span, prior, lead }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
@@ -261,6 +263,7 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
       {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} span={span} prior={prior} x={rowX} onHoverKey={onHoverKey} onOpen={canDrill ? onPick : undefined} />}
+      {lead}
       {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} rows={rows} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>

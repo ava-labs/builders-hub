@@ -5,7 +5,8 @@ import type { ColumnMeta } from "./clickhouse";
 import type { ChartSpec, Names, Totals } from "./types";
 import { edgesOf, msOf, windowOf } from "./edges";
 import { staleLine } from "./scope";
-import { exprOf, uniqAliases } from "./aliases";
+import { exprOf } from "./aliases";
+import { EXTREME_NAME, MEAN_NAME, NUMERIC, RATE, distinctColumns } from "./column-kinds";
 import { ownTokens } from "./checks";
 
 type Row = Record<string, unknown>;
@@ -35,31 +36,13 @@ export interface DesignInput {
 
 type Seen = Pick<DesignInput, "columns" | "rows" | "names" | "totals" | "x" | "sql" | "anchor">;
 
-export const NUMERIC = /^(Nullable\()?(U?Int\d+|Float\d+|Decimal)/;
 const TIME = /^(Nullable\()?Date/;
 
-/* a column that counts distinct things in each row (active addresses, senders, holders) has no total over the rows:
-   a sum counts one address once for each row it is in (the L1 audit's L14 summed a week's daily active addresses,
-   149 against 85 distinct). A count of new ones, first seen in their row, adds up */
-const DISTINCT_NAME = /(?:^|_)(?:addresses|addrs|senders|recipients|receivers|callers|holders|wallets|users|accounts|traders|swappers|depositors|borrowers|signers|participants|(?:uniq|distinct|unique)\w*)(?:_|$)/i;
-const NEW_NAME = /(?:^|_)(?:new|first)(?:_|$)/i;
-/** the columns that count distinct things in each row, by their name or by the uniq call that makes them */
-export function distinctColumns(columns: readonly ColumnMeta[], sql?: string): Set<string> {
-  const made = sql ? uniqAliases(sql) : new Set<string>();
-  return new Set(columns.filter((c) => NUMERIC.test(c.type) && !NEW_NAME.test(c.name) && (made.has(c.name) || DISTINCT_NAME.test(c.name))).map((c) => c.name));
-}
-
-/* an average in each row (avg_gwei, median_fee) has no total, and the mean of the rows' averages is not the average
-   over what they count: the follow-up audit's T10 read the mean of 8 hourly means as today's average gas price. A
-   count beside it (txs) weighs each row's average, which gives that average. A maximum in each row (max_fee) ranks
-   rows, not the items in them: T02 read the second-highest hourly maximum as the second-highest block */
-export const MEAN_NAME = /(?:^|_)(?:avg|average|mean|median|p\d{2})(?:_|$)/i;
 /* a median or a percentile in each row has no weighted average either: no count beside it weighs the rows' medians
    into the median of what they count (the r6 audit's C05b called the transaction-weighted mean of 8 hourly medians,
    6.54, the day's median, which is 6.50) */
 const QUANTILE_NAME = /(?:^|_)(?:median|p\d{2})(?:_|$)/i;
 const MAX_NAME = /(?:^|_)(?:max|maximum|peak|highest)(?:_|$)/i;
-export const EXTREME_NAME = /(?:^|_)(?:max|maximum|peak|highest|min|minimum|lowest)(?:_|$)/i;
 const COUNT_NAME = /(?:^|_)(?:txs|transactions|transfers|count|blocks|calls|swaps)(?:_|$)/i;
 /** the period words of a period that runs to now */
 const CURRENT_PERIOD = /^(?:current|today|this|this_week|this_month|cur)$/;
@@ -127,8 +110,6 @@ const pct = (f: number) => {
   if (edge >= 0.05) return `${(Math.round(f * 1000) / 10).toFixed(1)}%`;
   return `${p.toFixed(1 - Math.floor(Math.log10(edge))).replace(/\.?0+$/, "")}%`;
 };
-/** a figure whose sum means nothing: a rate, a price, an average, a share already */
-export const RATE = /(?:^|_)(?:pct|percent|rate|ratio|share|price|avg|average|median|mean|apr|apy|bps|index|decimals|of_total)(?:_|$)/i;
 
 /** the figures of one column a reading names most, each with its share of the column's total: the highest, the
     next two, and the highest two and three together. None when a share means nothing: a rate, a figure below
