@@ -117,7 +117,7 @@ test('an answer shows how each figure moved, what stands out, and reads again ov
 
   // what stands out: the hour far above the median one, and the share that reverted
   const findings = screen.getByRole('region', 'Findings');
-  await expect(findings.getByText(/held 9,000 transactions, [\d.]+ times the median period\./)).toBeVisible();
+  await expect(findings.getByText(/held 9,000 transactions, [\d.]+ times the median hour\./)).toBeVisible();
   await expect(findings.getByText(/^20% of transactions reverted: /)).toBeVisible();
 
   // the window: the answer's own span, and the spans it can be read over again

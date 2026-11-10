@@ -143,7 +143,10 @@ export function findingsOf(input: FindInput): Finding[] {
     if (gaps.filter((g) => g === step).length < gaps.length * 0.6) return [];
     const span: Span = spanOf(xs);
     const zone = zoneOf(xs);
-    const each = span === "days" ? "day" : "period";
+    // the period's own length names it, whatever the window's width: an hourly series over a week holds hours
+    const each = step === 86400e3 ? "day" : step === 7 * 86400e3 ? "week" : step === 3600e3 ? "hour" : "period";
+    // a period shorter than a day is named with its time, also where the axis writes days
+    const stamp: Span = span === "days" && step < 86400e3 ? "hours" : span;
     // a period the window cuts through is short by the cut, not by what happened in it
     const win = windowOf(input.sql, input.anchor, input.now);
     const edge = win ? edgesOf(xs, win) : null;
@@ -154,7 +157,7 @@ export function findingsOf(input: FindInput): Finding[] {
       const hi = Math.max(...vals);
       const at = full[vals.indexOf(hi)];
       if (mid > 0 && hi >= 2 * mid)
-        found.push({ kind: "peak", tag: "Peak", key: at[x], row: at, tone: "plain", score: Math.min(hi / mid, 8) / 8, ask: `What drove the peak at ${fmtX(at[x], span === "days" ? "days" : "hours", "UTC")} UTC?`, text: `${tipX(at[x], span, zone)} held ${amount(hi)}, ${times(hi / mid)} the median ${each}.` });
+        found.push({ kind: "peak", tag: "Peak", key: at[x], row: at, tone: "plain", score: Math.min(hi / mid, 8) / 8, ask: `What drove the peak at ${fmtX(at[x], step >= 86400e3 ? "days" : "hours", "UTC")} UTC?`, text: `${tipX(at[x], stamp, zone)} held ${amount(hi)}${hi / mid >= 100 ? `; the median ${each} held ${amount(mid)}.` : `, ${times(hi / mid)} the median ${each}.`}` });
     }
     if (full.length >= 8) {
       const half = full.length >> 1;

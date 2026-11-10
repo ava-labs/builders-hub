@@ -33,8 +33,15 @@ describe("a series", () => {
   it("names a period far above the usual one", () => {
     const out = find(hours([10, 11, 9, 60, 10, 12, 11, 10]), cols, txs);
     expect(out[0]).toMatchObject({ kind: "peak", key: stamp(3), tone: "plain" });
-    expect(out[0].text).toMatch(/held 60 transactions, 5\.7 times the median period\.$/);
+    expect(out[0].text).toMatch(/held 60 transactions, 5\.7 times the median hour\.$/);
     expect(out[0].row).toEqual({ t: stamp(3), txs: 60 });
+  });
+
+  it("names an hour of a series that runs over days with its time, and a peak far above the median by both values", () => {
+    const week = Array.from({ length: 96 }, (_, i) => ({ t: stamp(i), txs: i === 50 ? 5_000 : 10 + (i % 3) }));
+    const out = find(week, cols, txs);
+    // the day and the time of day, and the median value in place of a ratio in the hundreds
+    expect(out[0].text).toMatch(/^[A-Z][a-z]{2} \d{1,2} \d{2}:\d{2} \S+ held 5,000 transactions; the median hour held 11 transactions\.$/);
   });
 
   it("says nothing of a flat series", () => {
@@ -43,7 +50,7 @@ describe("a series", () => {
 
   it("reads a later half that runs above the earlier one", () => {
     const out = find(hours([10, 10, 10, 10, 20, 20, 20, 20]), cols, txs);
-    expect(out.find((f) => f.kind === "trend")).toMatchObject({ tone: "up", text: "The later half averaged 20 transactions per period, 100% above the earlier half." });
+    expect(out.find((f) => f.kind === "trend")).toMatchObject({ tone: "up", text: "The later half averaged 20 transactions per hour, 100% above the earlier half." });
   });
 
   it("leaves the period the window cuts out of the series", () => {
