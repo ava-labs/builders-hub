@@ -15,7 +15,8 @@ const INK: Record<Finding["tone"], string> = {
   plain: "text-zinc-500 dark:text-zinc-400",
 };
 
-const LINE = "grid w-full grid-cols-[6.5rem_minmax(0,1fr)_auto] items-baseline gap-x-3 rounded-lg px-2 py-1.5 text-left";
+// on a phone the tag stands over its line; from a tablet up it stands beside it
+const LINE = "grid w-full grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 rounded-lg px-2 py-1.5 text-left sm:grid-cols-[6.5rem_minmax(0,1fr)_auto]";
 
 export function FindingsBlock({ findings, onHoverKey, onOpen }: { findings: Finding[]; onHoverKey?: (key: unknown) => void; /** open the row a finding is about; without it the lines are read only */ onOpen?: (row: Row) => void }) {
   if (!findings.length) return null;
@@ -26,7 +27,7 @@ export function FindingsBlock({ findings, onHoverKey, onOpen }: { findings: Find
         {findings.map((f) => {
           const body = (
             <>
-              <span className={cn("font-mono text-[10px] font-bold uppercase tracking-[0.14em]", INK[f.tone])}>{f.tag}</span>
+              <span className={cn("col-span-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] sm:col-span-1", INK[f.tone])}>{f.tag}</span>
               <span className="text-[13.5px] leading-relaxed text-zinc-700 dark:text-zinc-300">{f.text}</span>
             </>
           );

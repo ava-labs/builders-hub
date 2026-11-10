@@ -146,10 +146,10 @@ function StatFigure({ s, rows, all, names, sym, active, totals, base, span, prio
           animate={{ opacity: 1 }}
           transition={reduced ? { duration: 0 } : MOTION}
           title={`${fmt(change.before, s.format, sym)} in the ${priorWords(span)}`}
-          className="flex min-w-0 items-baseline gap-1.5 font-mono text-[11px] tabular-nums"
+          className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 font-mono text-[11px] tabular-nums"
         >
           <span className={cn("shrink-0 font-bold", change.rose !== fails(s) ? "text-emerald-700 dark:text-emerald-400" : "text-[#C81B28] dark:text-red-400")}>{change.text}</span>
-          <span className="truncate text-zinc-400 dark:text-zinc-500">vs {priorWords(span)}</span>
+          <span className="text-zinc-400 dark:text-zinc-500">vs {priorWords(span)}</span>
         </motion.span>
       )}
       <Spark s={s} rows={rows} all={all} />
