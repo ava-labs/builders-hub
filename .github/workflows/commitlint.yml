@@ -6,8 +6,12 @@ on:
       - master
       - main
 
+permissions: {}
+
 jobs:
   commitlint:
+    permissions:
+      contents: read
     name: Lint Commit Messages
     runs-on: ubuntu-latest
     steps:
@@ -15,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

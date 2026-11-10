@@ -18,8 +18,7 @@ on:
     - cron: '29 6 * * *'
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: link-check-${{ github.ref }}
@@ -27,6 +26,8 @@ concurrency:
 
 jobs:
   pr:
+    permissions:
+      contents: read
     name: Link check (added lines)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -36,6 +37,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Collect added lines
         id: added
@@ -54,6 +56,8 @@ jobs:
           failIfEmpty: false
 
   nightly:
+    permissions:
+      contents: read
     name: Link check (all content)
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -61,6 +65,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

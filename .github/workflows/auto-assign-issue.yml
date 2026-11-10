@@ -7,8 +7,11 @@ on:
 env:
   MY_GITHUB_TOKEN: ${{ secrets.ADMIN_GH_TOKEN }}
 
+permissions: {}
+
 jobs:
   assign_one_project:
+    permissions: {}
     runs-on: ubuntu-latest
     name: Assign to Project
     steps:
