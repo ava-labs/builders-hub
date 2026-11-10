@@ -106,7 +106,7 @@ export function PanelBlock(props: PanelProps) {
           {props.titled !== false && panel.title}
           {running && <span className="ml-2 font-normal text-zinc-400 dark:text-zinc-500">running total</span>}
         </span>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div data-no-shot className="flex shrink-0 items-center gap-1.5">
         {props.action && <span className="hidden opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 sm:inline [@media(hover:none)]:opacity-100">{props.action}</span>}
         <div
           role="group"

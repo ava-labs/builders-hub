@@ -14,19 +14,24 @@ import { type Row, doorFor, fillTitle, isTxList, rowDoor } from "./QueryRows";
 import { QueryInspector } from "./QueryInspector";
 import { type OpenDrill, ZoomStage } from "./QueryZoom";
 import { bucketOf } from "./drill-plot";
-import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, readerError, streamQuery, withEdges } from "./query-client";
+import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, progress, readerError, streamQuery, withEdges } from "./query-client";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
 import { askHref } from "@/lib/explorer-query/board-links";
 import { NETWORK_SLUG, rowBase } from "@/lib/explorer-query/target";
 import { type Kept, threadOf } from "@/lib/explorer-query/threads";
+import type { SpanKey } from "@/lib/explorer-query/window-shift";
 import { QueryHow } from "./QueryHow";
 import { type TabLink, QueryTabs } from "./query-tabs";
 import { runTileSql } from "./query-board-bits";
 import { AnswerHead } from "./query/answer-head";
+import { AnswerSkeleton } from "./query/answer-skeleton";
 import { AnswerStage } from "./query/answer-stage";
 import { AskSection } from "./query/ask-section";
+import { type Moved, movedAnswer } from "./query/moved-answer";
+import { SQL_DRAWER_ID, SqlDrawer, useSqlOpen } from "./query/sql-drawer";
 import { StageBar } from "./query/stage-bar";
+import { usePrior } from "./query/use-prior";
 import { useQueryKeys } from "./query/use-query-keys";
 import { useSelectionWords } from "./query/use-selection-words";
 
@@ -169,7 +174,10 @@ export function QueryPage({
   const [history, setHistory] = useState<Turn[]>(seed?.turns ?? []);
   // what the tab gave the page: drawn again, not reported back as new
   const seeded = useRef<QueryAnswer | null>(seed?.answer ?? null);
-  const [sqlOpen, setSqlOpen] = useState(false);
+  const [sqlOpen, setSqlOpen] = useSqlOpen();
+  // a window button: the span being read, and the answer as first given, which its own button brings back
+  const [moving, setMoving] = useState<SpanKey | null>(null);
+  const origin = useRef<QueryAnswer | null>(null);
   const [sqlDraft, setSqlDraft] = useState(seed?.answer.sql ?? "");
   const [range, setRange] = useState<[number, number] | null>(null);
   const [drill, setDrill] = useState<OpenDrill | null>(null);
@@ -320,7 +328,6 @@ export function QueryPage({
       setAbout(false);
       setInspect(false);
       setDesigning(false);
-      setSqlOpen(false);
       // a new question that names another chain is asked there, and this page works until that one opens; a follow-up stays on this chain
       const named = !refine && resolve && onRoute ? await resolve(text) : null;
       if (gone(my)) return null;
@@ -339,6 +346,7 @@ export function QueryPage({
         }
         const next = [...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6);
         answerSql.current = a.sql;
+        origin.current = null;
         setAnswer(a);
         setSqlDraft(a.sql);
         setHistory(next);
@@ -377,15 +385,16 @@ export function QueryPage({
     setSel([]);
     setInspect(false);
     try {
-      const out = await post<{ sql: string; result: QueryResult; names: Names; sources?: SourceNote[] }>({ sql: sqlDraft });
+      const out = await post<{ sql: string; result: QueryResult; names: Names; sources?: SourceNote[]; moves?: QueryAnswer["moves"] }>({ sql: sqlDraft, x: answer?.chart.x });
       const cols = new Set(out.result.columns.map((k) => k.name));
+      origin.current = null;
       let next: QueryAnswer | null = null;
       setAnswer((prev) => {
         const chart: ChartSpec = prev?.chart ?? { kind: "table", series: [] };
         const v = prev?.visual;
         const fits = !!v && v.panels.every((p) => (!p.x || cols.has(p.x)) && p.series.every((s) => cols.has(s.column))) && v.stats.every((s) => cols.has(s.column));
         const dFits = !!prev?.drill && [...prev.drill.sql.matchAll(/\{\{\s*(\w+)/g)].every((m) => cols.has(m[1]));
-        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, totals: null, names: out.names ?? {}, sources: out.sources ?? [], visual: fits ? v! : null };
+        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, totals: null, names: out.names ?? {}, sources: out.sources ?? [], moves: out.moves ?? null, visual: fits ? v! : null };
         return next;
       });
       if (next && !(next as QueryAnswer).visual) void design(history[history.length - 1]?.prompt ?? "", next);
@@ -395,7 +404,44 @@ export function QueryPage({
       setPhase("idle");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.chainId, sqlDraft, history, design]);
+  }, [c.chainId, sqlDraft, history, design, answer?.chart.x]);
+
+  /** an answer in the page's state, with the thread's last turn following its SQL: a follow-up refines what is in view */
+  const show = (a: QueryAnswer) => {
+    setAnswer(a);
+    setSqlDraft(a.sql);
+    setHistory((h) => h.map((t, i) => (i === h.length - 1 ? { ...t, sql: a.sql, title: a.title } : t)));
+    setRange(null);
+    setDrill(null);
+    setSel([]);
+    setInspect(false);
+  };
+
+  /** a window button: the answer in view, read again over another span. No model is asked */
+  const moveWindow = async (key: SpanKey) => {
+    const from = answer;
+    if (!from?.result) return;
+    setMoving(key);
+    setPhase("running");
+    setError(null);
+    setGated(false);
+    try {
+      const out = await post<Moved>({ move: { sql: from.sql, drill: from.drill?.sql, x: from.chart.x, span: key, title: from.title, note: from.note } });
+      origin.current ??= from;
+      show(movedAnswer(from, out, key));
+    } catch (e) {
+      setError(e instanceof Error ? readerError(e.message) : "The query failed.");
+    } finally {
+      setMoving(null);
+      setPhase("idle");
+    }
+  };
+
+  /** the SQL, opened from a tile or from the provenance block: brought into view */
+  const openSql = () => {
+    setSqlOpen(true);
+    requestAnimationFrame(() => document.getElementById(SQL_DRAWER_ID)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  };
 
   /** one group, opened into the transactions behind it */
   const openDrill = useCallback(
@@ -508,6 +554,8 @@ export function QueryPage({
     : { title: answer?.title ?? "", columns: answer?.result?.columns ?? [], rows: picked, total: allRows.length, names, visual };
 
   const { selWords, selForModel } = useSelectionWords({ sel, allRows, names, visual, sym });
+  // each figure says how it moved against the period before, once that period is read
+  const prior = usePrior(answer, c.chainId);
 
   const submit = () => {
     const extra = answer && about && sel.length ? `${FILTER_MARK}${selForModel()}.)` : "";
@@ -542,25 +590,33 @@ export function QueryPage({
         <AskSection
           crumbs={crumbs} answer={answer} drill={drill} sel={sel} selWords={selWords}
           prompt={prompt} setPrompt={setPrompt} setAbout={setAbout} submit={submit} inputRef={inputRef}
-          phase={phase} events={events} elapsed={elapsed} stale={stale} error={error} gated={gated}
+          phase={phase} moving={moving !== null} elapsed={elapsed} stale={stale} error={error} gated={gated}
           c={c} network={network} examples={examples} ask={ask}
         />
 
-        {answer && (
+        {/* a question on its way stands in the answer's frame: the grid shows at once, and fills as each part lands */}
+        {working && <AnswerSkeleton question={asking.text} status={`${progress(events)} · ${elapsed} s`} />}
+
+        {answer && !working && (
           <section className="flex flex-col gap-5">
             {/* the answer, and its takeaway in one quiet lead */}
             <AnswerHead answer={answer} visual={visual} history={history} c={c} network={network} base={base} cameFrom={cameFrom} pinnable={pinnable} laying={laying} reading={reading} />
 
             {/* the chart, full width; a drill zooms it in place */}
             <div className="flex min-w-0 flex-col gap-3">
-              <StageBar answer={answer} drill={drill} sel={sel} picked={picked} allRows={allRows} level={level} charted={charted} canDrill={canDrill} popZoom={popZoom} setInspect={setInspect} />
+              <StageBar
+                answer={answer} drill={drill} sel={sel} picked={picked} allRows={allRows} level={level} charted={charted} canDrill={canDrill} popZoom={popZoom} setInspect={setInspect}
+                own={(origin.current ?? answer).moves?.own ?? null} moving={moving} busy={busy || laying} onMove={(k) => void moveWindow(k)} onOwn={() => origin.current && show(origin.current)}
+                sqlOpen={sqlOpen} onSql={setSqlOpen}
+              />
+              {sqlOpen && answer.result && !drill && <SqlDrawer answer={answer} c={c} busy={busy} draft={sqlDraft} onDraft={setSqlDraft} onRun={() => void runSql()} onClose={() => setSqlOpen(false)} />}
 
               <ZoomStage level={drill ? `drill-${drill.index}` : laying ? "laying" : "answer"}>
                 <AnswerStage
                   answer={answer} visual={visual} drawn={drawn} drill={drill} laying={laying} charted={charted} canDrill={canDrill} recordRows={recordRows} pinnable={pinnable}
                   allRows={allRows} picked={picked} names={names} history={history} c={c} network={network} base={base} sym={sym}
                   sel={sel} setSel={setSel} range={range} setRange={setRange} hoverKey={hoverKey} setHoverKey={setHoverKey} hoverTx={hoverTx} setHoverTx={setHoverTx}
-                  setInspect={setInspect} openRow={openRow} openDrill={openDrill} ask={ask}
+                  setInspect={setInspect} openRow={openRow} openDrill={openDrill} ask={ask} prior={prior} onSql={openSql}
                 />
               </ZoomStage>
             </div>
@@ -573,16 +629,11 @@ export function QueryPage({
                 visual={visual}
                 names={names}
                 base={base}
-                c={c}
                 drill={drill}
                 designing={designing}
-                busy={busy}
                 linked={history.length > 0}
                 sqlOpen={sqlOpen}
-                onSqlOpen={setSqlOpen}
-                sqlDraft={sqlDraft}
-                onSqlDraft={setSqlDraft}
-                onRun={() => void runSql()}
+                onSqlOpen={(open) => (open ? openSql() : setSqlOpen(false))}
               />
             )}
             {answer.result && <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>}

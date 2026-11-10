@@ -9,6 +9,8 @@ import type { Panel } from "@/lib/explorer-query/visual-spec";
    inks for further series */
 export const TONES = ["currentColor", "#0061E2", "#0d9488", "#d97706", "#7c3aed"];
 const FAIL = /revert|fail|error|drop/i;
+/** a figure that counts what failed: more of it is the bad direction */
+export const fails = (s: { column: string; label: string }) => FAIL.test(`${s.column} ${s.label}`);
 export const toneOf = (s: { column: string; label: string }, i: number) => (FAIL.test(`${s.column} ${s.label}`) ? "#E6212F" : TONES[i % TONES.length]);
 export const MONO = { fontSize: 10, fontFamily: "var(--font-geist-mono)" };
 /** the selection's one accent: brush, picked range */
@@ -17,6 +19,10 @@ export const ACCENT = "#0061E2";
 export const DIM = 0.22;
 /** a scatter's dot in the pointer's focus, and the dots around it */
 export const DOT_INK = { "--qv-on": 1, "--qv-off": 0.35 } as CSSProperties;
+
+/** one tile of an answer: a figure or a chart stands on its own card */
+export const CARD =
+  "rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_-18px_rgba(24,24,27,0.18)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_14px_32px_-18px_rgba(24,24,27,0.28)] dark:bg-zinc-950 dark:ring-zinc-800/80 dark:shadow-none";
 
 export type Row = Record<string, unknown>;
 /* ------------------------------------------------------------------ */

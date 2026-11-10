@@ -9,7 +9,7 @@ import { NETWORK_SLUG } from "@/lib/explorer-query/target";
 import { cn } from "@/lib/utils";
 import { FILTER_MARK, WRITING } from "./query-client";
 import { useAskedPath } from "./query-asking";
-import { QueryLoader } from "./QueryLoader";
+import { AnswerSkeleton } from "./query/answer-skeleton";
 import { TabsFrame } from "./query-tab-strip";
 
 /* The Query page's question area, and the page's first frame while it
@@ -156,7 +156,7 @@ export function PromptBox({
   );
 }
 
-/** a Query page's first frame while it asks: its tabs, the question, the box held while the answer is written, the loader */
+/** a Query page's first frame while it asks: its tabs, the question, the box held while the answer is written, the answer's frame */
 export function QueryWorking({ question, kind, chainName, scope }: { question: string; kind: "evm" | "pchain"; chainName: string; scope?: "network" }) {
   const all = scope === "network" && networkAsked(question);
   // the page the question is on its way to, whose tabs it lands in: a chain's, or the network's
@@ -174,8 +174,9 @@ export function QueryWorking({ question, kind, chainName, scope }: { question: s
         <section className="flex flex-col gap-3">
           <ThreadLine prompts={[question]} />
           <PromptBox value="" disabled placeholder={placeholderOf(kind, all ? "every chain" : chainName)} label="Ask" />
-          <QueryLoader status={`${WRITING} · 0 s`} />
         </section>
+        {/* the frame the page draws while it asks (EvmQuery.tsx), so the page takes over with no jump */}
+        <AnswerSkeleton question={question} status={`${WRITING} · 0 s`} />
       </div>
     </TabsFrame>
   );

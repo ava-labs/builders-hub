@@ -544,6 +544,9 @@ export const isTxList = (cols: ColumnMeta[]) => ["tx_hash", "from_address", "to_
 
 /** the rows exactly as the query returned them, with decoded names beside
     the raw values they name */
+/** a download's file name, from the title of what it holds */
+export const fileName = (title: string, ext: string) => `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "query"}.${ext}`;
+
 export function downloadCsv(a: { title: string; columns: ColumnMeta[]; rows: Row[]; names: Names }) {
   const cols = a.columns.map((k) => k.name);
   const named = cols.filter((k) => a.names[k] && Object.keys(a.names[k]).length);
@@ -557,7 +560,7 @@ export function downloadCsv(a: { title: string; columns: ColumnMeta[]; rows: Row
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${a.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "query"}.csv`;
+  link.download = fileName(a.title, "csv");
   link.click();
   URL.revokeObjectURL(url);
 }

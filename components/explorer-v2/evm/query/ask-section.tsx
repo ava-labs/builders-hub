@@ -6,7 +6,6 @@ import type { RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { MessageSquarePlus } from "lucide-react";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
-import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { Coverage } from "@/lib/explorer-query/clickhouse";
 import type { Selection } from "@/lib/explorer-query/selection";
 import type { EXAMPLES } from "@/lib/explorer-query/examples";
@@ -15,7 +14,6 @@ import { QueryHome } from "../QueryHome";
 import { QueryLoader } from "../QueryLoader";
 import { PromptBox, ThreadLine, placeholderOf } from "../QueryWorking";
 import type { OpenDrill } from "../QueryZoom";
-import { progress } from "../query-client";
 
 export function AskSection({
   crumbs,
@@ -29,7 +27,7 @@ export function AskSection({
   submit,
   inputRef,
   phase,
-  events,
+  moving,
   elapsed,
   stale,
   error,
@@ -52,8 +50,8 @@ export function AskSection({
   submit: () => void;
   inputRef: RefObject<HTMLTextAreaElement | null>;
   phase: "idle" | "query" | "running";
-  /** what the model has done so far on this question */
-  events: QueryEvent[];
+  /** a window button is reading the answer over another span */
+  moving: boolean;
   elapsed: number;
   /** the indexed window, when it ends more than a day ago */
   stale: Coverage | null;
@@ -136,7 +134,8 @@ export function AskSection({
           Indexed {stale.since.slice(0, 10)} to {stale.until.slice(0, 10)} UTC. Answers read that window, not today.
         </p>
       )}
-      {busy && <QueryLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
+      {/* a question's wait is drawn in the answer's frame (answer-skeleton.tsx); a window button says its own */}
+      {phase === "running" && !moving && <QueryLoader status={`Running your SQL · ${elapsed} s`} />}
       {error && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-l-2 border-[#E6212F] pl-3">
           <p className="font-mono text-[12px] text-[#E6212F]">{error}</p>

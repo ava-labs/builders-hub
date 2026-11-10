@@ -7,6 +7,7 @@ import { toggleValue } from "@/lib/explorer-query/selection";
 import type { Panel } from "@/lib/explorer-query/visual-spec";
 import { fmt, xText } from "../query-format";
 import { DIM, inSelection, type PanelProps, type Row } from "./sheet";
+import { changeText } from "./stat-figures";
 
 /* Rankings that compare. A dumbbell sets each row's figure beside the same figure of the period before; diverging
    bars set gains and losses either side of zero. The figure and its change stand on the row, so no axis is read.
@@ -28,14 +29,6 @@ function ranked(panel: Panel, rows: Row[], column: string): Row[] {
     .filter((r) => num(r[column]) !== null)
     .sort((a, b) => dir * ((num(a[by]) ?? 0) - (num(b[by]) ?? 0)))
     .slice(0, panel.topN ?? ROWS);
-}
-
-/** a change as a reader says it: +50.6%, -8.8%, +203%; a figure with nothing before it is new */
-export function changeText(now: number, before: number | null): string {
-  if (before === null || before === 0) return now === 0 ? "0%" : "new";
-  const p = ((now - before) / Math.abs(before)) * 100;
-  const a = Math.abs(p);
-  return `${p >= 0 ? "+" : "-"}${a >= 100 ? Math.round(a) : a.toFixed(1)}%`;
 }
 
 /** one row of a ranking: its name, its drawing, its figure, and the arrow to its records */

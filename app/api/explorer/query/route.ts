@@ -13,7 +13,10 @@ import type { ChartSpec, Names, QueryAnswer, Totals } from "@/lib/explorer-query
 import { monitorNote } from "@/lib/explorer-query/monitor";
 import { monitorFor } from "@/lib/explorer-query/monitor-feed";
 import { answerQuestion, drillSql, keptWords, type QueryEvent } from "@/lib/explorer-query/answer";
-import { totalsOf } from "@/lib/explorer-query/cut";
+import { cutOf, totalsOf } from "@/lib/explorer-query/cut";
+import { msOf } from "@/lib/explorer-query/edges";
+import { answerMoves, movedSql, movedWords, priorOf } from "@/lib/explorer-query/window-ops";
+import { SPANS, type SpanKey } from "@/lib/explorer-query/window-shift";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { isKept, runKept } from "@/lib/explorer-query/run-cache";
 import { profileSql, type DrillProfile } from "@/lib/explorer-query/drill-profile";
@@ -29,7 +32,9 @@ import type { ModelCall } from "@/lib/explorer-query/meter";
    it ends, then the answer with its rows and the SQL that made them, so
    every figure can be audited and re-run by hand. POST { sql } re-runs a
    query the reader edited; POST { drill } opens one row into its
-   records; POST { design } lays out rows the page already has. Each
+   records; POST { design } lays out rows the page already has; POST
+   { move } reads an answer again over another span, and POST { prior }
+   over the period before its window (window-ops.ts). Each
    question, and what its model calls cost, goes to PostHog
    (lib/explorer-query/analytics.ts). */
 
@@ -41,6 +46,12 @@ interface Body {
   prompt?: string;
   history?: Turn[];
   sql?: string;
+  /** with sql: the column the answer's chart runs along, so the page learns whether its window can move */
+  x?: string;
+  /** read an answer again over another span: its query, its drill and its words, as the page holds them */
+  move?: { sql: string; drill?: string | null; x?: string; span: string; title?: string; note?: string };
+  /** read an answer's query over the period before its window */
+  prior?: { sql: string; x?: string };
   /** open one row of an answer into its records; span is the opened mark's bucket, in unix seconds */
   drill?: { sql: string; row: Record<string, unknown>; span?: [number, number] };
   /** lay out a kept answer, by its key */
@@ -158,6 +169,41 @@ export async function POST(req: Request) {
     }
   }
 
+  // a window button: the answer's own query over another span, no model
+  if (body.move && typeof body.move.sql === "string" && SPANS.some((s) => s.key === body.move!.span)) {
+    const mv = body.move;
+    const [x, span] = [typeof mv.x === "string" ? mv.x : undefined, mv.span as SpanKey];
+    const moved = movedSql(mv.sql, typeof mv.drill === "string" ? mv.drill : null, x, span, chainId, Date.now());
+    if (!moved.ok) return NextResponse.json({ error: moved.error }, { status: 400 });
+    const over = overReads(req, moved.sql, chainId);
+    if (over) return over;
+    try {
+      const run = await runKept(moved.sql, chainId);
+      const result = { ...run.result, truncated: run.result.truncated || !!cutOf(moved.sql, run.result.rowCount) };
+      const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(moved.sql, result, chainId)]);
+      if (totals && totals.rows <= result.rowCount) result.truncated = false;
+      const now = run.anchor ? msOf(run.anchor) : Date.now();
+      const said = movedWords({ title: String(mv.title ?? "").slice(0, 200), note: String(mv.note ?? "").slice(0, 800) }, mv.sql, moved.sql, x, span, result.rows, chainId, now, Date.now());
+      return NextResponse.json({ ...said, sql: moved.sql, drill: moved.drill, result, names, totals, anchor: run.anchor, sources: run.sources, moves: answerMoves(moved.sql, x, chainId, Date.now()) });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
+    }
+  }
+
+  // the period before an answer's window: the same query, its window moved back by its own length, no model
+  if (body.prior && typeof body.prior.sql === "string") {
+    const before = priorOf(body.prior.sql, typeof body.prior.x === "string" ? body.prior.x : undefined, chainId, Date.now());
+    if (!before.ok) return NextResponse.json({ error: before.error }, { status: 400 });
+    const over = overReads(req, before.sql, chainId);
+    if (over) return over;
+    try {
+      const { result } = await runKept(before.sql, chainId);
+      return NextResponse.json({ result, totals: await totalsOf(before.sql, result, chainId) });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
+    }
+  }
+
   // the reader edited the SQL: run it, no model
   if (typeof body.sql === "string" && !body.prompt) {
     const g = guardSql(body.sql, chainId);
@@ -169,7 +215,7 @@ export async function POST(req: Request) {
       const run = await runKept(g.sql, chainId);
       const result = run.result;
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
-      return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor, sources: run.sources });
+      return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor, sources: run.sources, moves: answerMoves(g.sql, typeof body.x === "string" ? body.x : undefined, chainId, Date.now()) });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
     }
@@ -293,7 +339,7 @@ export async function POST(req: Request) {
         // what the server's tables in the answer cover, for the page to state
         if (answer?.sql && !answer.sources) answer.sources = await sourceNotes(answer.sql, chainId);
         // the page sends the trace back with the answer's layout and reading, so their model calls join the question's
-        if (answer) emit({ type: "answer", answer: { ...answer, trace } });
+        if (answer) emit({ type: "answer", answer: { ...answer, trace, moves: answer.result ? answerMoves(answer.sql, answer.chart.x, chainId, Date.now()) : null } });
       } catch (e) {
         emit({ type: "error", error: e instanceof Error ? e.message : "the query failed", status: 500 });
       } finally {

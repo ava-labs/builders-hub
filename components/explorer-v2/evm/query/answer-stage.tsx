@@ -9,16 +9,18 @@ import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import type { Selection } from "@/lib/explorer-query/selection";
 import { isAddress } from "@/lib/explorer-query/values";
 import { rowBase } from "@/lib/explorer-query/target";
-import { CARD, QueryVisual } from "../QueryVisual";
+import { QueryVisual } from "../QueryVisual";
 import { fmt, nameFor } from "../query-format";
 import { PanelRows, formatOf, header } from "../QueryRows";
 import { PinToBoard } from "../QueryBoard";
 import { RowsBody } from "../QueryInspector";
 import { DrillView, type OpenDrill } from "../QueryZoom";
-import { QueryLoader } from "../QueryLoader";
 import { QueryMonitor } from "../QueryMonitor";
 import { NO_QUERY } from "../query-client";
-import type { Row } from "./sheet";
+import { SkeletonGrid } from "./answer-skeleton";
+import { CARD, type Row } from "./sheet";
+import type { Prior } from "./stat-figures";
+import { TileActions } from "./tile-actions";
 
 export function AnswerStage({
   answer,
@@ -50,6 +52,8 @@ export function AnswerStage({
   openRow,
   openDrill,
   ask,
+  prior,
+  onSql,
 }: {
   answer: QueryAnswer;
   visual: VisualSpec | null;
@@ -82,6 +86,10 @@ export function AnswerStage({
   openRow: (r: Row) => void;
   openDrill: (row: Row, index: number) => Promise<void>;
   ask: (q: string, refine: boolean) => Promise<unknown>;
+  /** the answer's query over the period before its window, once read */
+  prior: Prior | null;
+  /** show the SQL behind the answer */
+  onSql: () => void;
 }) {
   return answer.monitor ? (
     // a live feed of the chain's own moves, read from its RPC as each block is made
@@ -91,10 +99,8 @@ export function AnswerStage({
       <DrillView drill={drill} base={rowBase(base, drill.row) ?? base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
     </div>
   ) : laying ? (
-    // one draw: the loader holds the space until the layout is final
-    <div aria-busy="true" className={cn(CARD, "flex min-h-[18rem] flex-1 flex-col")}>
-      <QueryLoader status="Rows are in. Laying out the chart" fill framed={false} />
-    </div>
+    // one draw: the grid's frame holds the space until the layout is final
+    <SkeletonGrid status="Rows are in. Laying out the chart" />
   ) : charted && visual ? (
     <QueryVisual
       visual={drawn ?? visual}
@@ -103,6 +109,7 @@ export function AnswerStage({
       sym={sym}
       totals={answer.totals}
       span={answer.span}
+      prior={prior}
       base={base}
       canDrill={canDrill || recordRows}
       // a mark that is one thing on the chain (a transaction, a
@@ -115,7 +122,12 @@ export function AnswerStage({
       onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
       selection={sel}
       onSelection={setSel}
-      panelAction={pinnable ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} thread={history.map((t) => t.prompt)} /> : undefined}
+      panelAction={(i) => (
+        <span className="inline-flex items-center">
+          <TileActions panel={visual.panels[i]} title={answer.title} columns={answer.result?.columns ?? []} rows={picked} names={names} onSql={onSql} />
+          {pinnable && <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} thread={history.map((t) => t.prompt)} />}
+        </span>
+      )}
       // the designer's tables: the rows in its columns, each row a door
       renderTable={(p) => (
         <PanelRows
