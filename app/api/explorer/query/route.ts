@@ -18,6 +18,7 @@ import { msOf } from "@/lib/explorer-query/edges";
 import { answerMoves, movedSql, movedWords, priorOf } from "@/lib/explorer-query/window-ops";
 import { SPANS, type SpanKey } from "@/lib/explorer-query/window-shift";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
+import { fixedRecipe } from "@/lib/explorer-query/fixed";
 import { isKept, runKept } from "@/lib/explorer-query/run-cache";
 import { profileSql, type DrillProfile } from "@/lib/explorer-query/drill-profile";
 import { sourceNotes } from "@/lib/explorer-query/sources";
@@ -305,17 +306,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error }, { status: 404 });
   }
 
-  // the same budget as the chat: model calls are the cost here
   const session = await getAuthSession();
   const isAuthenticated = !!session?.user?.id;
   const who = askerOf(req, session?.user?.id);
-  const limit = checkChatRateLimit(isAuthenticated ? session!.user!.id! : getClientIP(req), isAuthenticated);
+  // a suggestion runs its fixed SQL and asks no model: it is a read, counted with the reads and not with the questions.
+  // Any other question takes the same budget as the chat: model calls are the cost there
+  const fixed = history.length === 0 && !!fixedRecipe(chainId, prompt, symbol);
+  const limit = fixed ? checkChatRateLimit(getClientIP(req), false, READS, "query-read") : checkChatRateLimit(isAuthenticated ? session!.user!.id! : getClientIP(req), isAuthenticated);
   if (!limit.allowed) {
-    // signed out, the reader can lift the limit now: the page offers sign-in
+    // signed out, the reader can lift the question limit now: the page offers sign-in
     const when = formatResetTime(limit.resetTime);
-    const out = isAuthenticated
-      ? { error: `Question limit reached. Try again ${when}.` }
-      : { error: `You have asked ${limit.limit} questions this hour. Sign in to keep asking, or try again ${when}.`, signIn: true };
+    const out = fixed
+      ? { error: `This address has run ${limit.limit} queries this hour. Try again ${when}.` }
+      : isAuthenticated
+        ? { error: `Question limit reached. Try again ${when}.` }
+        : { error: `You have asked ${limit.limit} questions this hour. Sign in to keep asking, or try again ${when}.`, signIn: true };
     after(() => asked(who, { failed: { error: out.error, status: 429 } }));
     return NextResponse.json(out, { status: 429 });
   }

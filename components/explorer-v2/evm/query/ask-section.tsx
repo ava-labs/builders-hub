@@ -144,7 +144,7 @@ export function AskSection({
       )}
       {!answer && !busy && (
         <div className="flex flex-col gap-6 pt-3">
-          <QueryHome chain={c.chainSlug ?? String(c.chainId)} network={network} examples={examples} onAsk={(q) => void ask(q, false)} />
+          <QueryHome chain={c.chainSlug ?? String(c.chainId)} chainId={c.chainId} network={network} examples={examples} onAsk={(q) => void ask(q, false)} />
         </div>
       )}
     </section>

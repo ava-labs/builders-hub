@@ -8,6 +8,10 @@
     {
       "path": "/api/verify/cleanup",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/explorer/query/scan",
+      "schedule": "*/15 * * * *"
     }
   ],
   "functions": {
