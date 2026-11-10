@@ -216,6 +216,87 @@ describe('dialogRows', () => {
   });
 });
 
+describe('dialogRows with pinned pages', () => {
+  const FAUCET = {
+    url: '/console/primary-network/faucet',
+    title: 'Testnet Faucet',
+    label: ['Console', 'Primary Network'],
+    note: 'Get free testnet AVAX for development and testing.',
+  };
+  const OVERVIEW = '/docs/cross-chain/avalanche-warp-messaging/overview';
+
+  it('lists the pinned pages first, each with its note, and leaves out their found rows', () => {
+    const rows = dialogRows(
+      [
+        pageHit(ADDRESSES, 'ICM Contract Addresses'),
+        hit(OVERVIEW, 'What is ICM?', 'ICM lets L1s exchange messages that their validators sign.'),
+      ],
+      { top: [{ url: OVERVIEW, title: 'What is ICM?', note: 'A line under the title.' }] },
+    );
+    expect(rows).toEqual([
+      {
+        id: OVERVIEW,
+        type: 'page',
+        url: OVERVIEW,
+        content: 'What is ICM?',
+        breadcrumbs: ['Docs', 'Cross-Chain', 'Avalanche Warp Messaging'],
+      },
+      { id: `${OVERVIEW}#pinned`, type: 'text', url: OVERVIEW, content: 'A line under the title.' },
+      {
+        id: ADDRESSES,
+        type: 'page',
+        url: ADDRESSES,
+        content: 'ICM Contract Addresses',
+        breadcrumbs: ['Docs', 'Cross-Chain', 'ICM Contracts'],
+      },
+    ]);
+  });
+
+  it('lists the bottom pinned pages after the found pages, under their own labels', () => {
+    const rows = dialogRows([pageHit(ADDRESSES, 'ICM Contract Addresses')], { bottom: [FAUCET] });
+    expect(rows).toEqual([
+      {
+        id: ADDRESSES,
+        type: 'page',
+        url: ADDRESSES,
+        content: 'ICM Contract Addresses',
+        breadcrumbs: ['Docs', 'Cross-Chain', 'ICM Contracts'],
+      },
+      {
+        id: FAUCET.url,
+        type: 'page',
+        url: FAUCET.url,
+        content: 'Testnet Faucet',
+        breadcrumbs: ['Console', 'Primary Network'],
+      },
+      { id: `${FAUCET.url}#pinned`, type: 'text', url: FAUCET.url, content: FAUCET.note },
+    ]);
+  });
+
+  it('labels a pinned row only when its label differs from the page row above', () => {
+    const devnet = {
+      url: '/console/primary-network/devnet-faucet',
+      title: 'Devnet Faucet',
+      label: ['Console', 'Primary Network'],
+    };
+    const rows = dialogRows([pageHit(ADDRESSES, 'ICM Contract Addresses')], { top: [FAUCET, devnet] });
+    expect(rows.filter((row) => row.type === 'page').map((row) => row.breadcrumbs)).toEqual([
+      ['Console', 'Primary Network'],
+      undefined,
+      ['Docs', 'Cross-Chain', 'ICM Contracts'],
+    ]);
+  });
+
+  it('keeps 12 found pages besides the pinned ones, even when Algolia also found a pinned page', () => {
+    const pages = Array.from({ length: 14 }, (_, i) => pageHit(`/docs/nodes/page-${i}`, `Page ${i}`));
+    const rows = dialogRows([pageHit(FAUCET.url, 'Testnet Faucet'), ...pages], { top: [FAUCET] });
+    expect(rows.filter((row) => row.type === 'page').map((row) => row.url)).toEqual([
+      FAUCET.url,
+      ...pages.slice(0, 12).map((page) => page.url),
+    ]);
+  });
+});
+
 describe('sectionLabel', () => {
   it.each([
     [ADDRESSES, 'ICM Contract Addresses', ['Docs', 'Cross-Chain', 'ICM Contracts']],
