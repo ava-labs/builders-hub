@@ -1,7 +1,6 @@
 {
   "components/explorer-v2/network/city-app.tsx": 1538,
   "components/explorer-v2/network/city3d/HubTower.tsx": 1299,
-  "components/explorer-v2/evm/QueryBoard.tsx": 1265,
   "components/explorer-v2/staking/PrimaryStaking.tsx": 1074,
   "components/explorer-v2/network/city3d/City3D.tsx": 970,
   "components/explorer-v2/network/city3d/Backdrop.tsx": 963,
