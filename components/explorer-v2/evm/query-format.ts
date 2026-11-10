@@ -1,7 +1,7 @@
 import { formatNumber, truncate, zoneName, zoneStamp } from "@/components/explorer-v2/format";
 import { msOf } from "@/lib/explorer-query/edges";
 import type { Names } from "@/lib/explorer-query/types";
-import type { Format } from "@/lib/explorer-query/visual";
+import type { Format } from "@/lib/explorer-query/visual-spec";
 import { DAY, MONTHS_SHORT, isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 
 /* A query answer's figures and times as the page writes them: in the

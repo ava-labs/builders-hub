@@ -4,7 +4,7 @@ const runQuery = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery, anchored: vi.fn(async (sql: string) => ({ sql, anchor: null, sources: [] })) }));
 
 import { totalsOf } from '@/lib/explorer-query/cut';
-import { figures } from '@/lib/explorer-query/visual';
+import { figures } from '@/lib/explorer-query/figures';
 
 // D04's form: the top 15 of 721 providers, the whole set counted in the same read
 const SQL = 'SELECT provider, round(sum(usd), 2) AS value_usd, count() OVER () AS of_total FROM v GROUP BY provider ORDER BY value_usd DESC LIMIT 15';

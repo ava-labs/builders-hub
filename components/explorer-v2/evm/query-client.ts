@@ -8,7 +8,7 @@ import posthog from "posthog-js";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
+import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { edgesOf, msOf, STALE_MS, windowOf } from "@/lib/explorer-query/edges";
 
 /** a failed ask; signIn marks the anonymous limit, which sign-in lifts */

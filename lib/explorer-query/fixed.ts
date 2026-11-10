@@ -2,7 +2,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import type { Recipe } from "./cache";
 import { NETWORK_ID } from "./target";
 import type { ChartSpec, Drill } from "./types";
-import type { VisualSpec } from "./visual";
+import type { VisualSpec } from "./visual-spec";
 
 /* The suggested questions' answers, fixed: the SQL, chart, drill and
    layout the model wrote for each one (captured 2026-09-28), kept here so a

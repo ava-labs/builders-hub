@@ -2,7 +2,7 @@ import type { DrillProfile } from "./drill-profile";
 import type { MonitorSpec } from "./monitor";
 import { z } from "zod";
 import type { Coverage, QueryResult } from "./clickhouse";
-import type { VisualSpec } from "./visual";
+import type { VisualSpec } from "./visual-spec";
 
 /* The shapes that cross from the query route to the page. */
 

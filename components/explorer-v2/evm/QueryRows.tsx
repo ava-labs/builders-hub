@@ -10,7 +10,7 @@ import { HEAD, ROW, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
-import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
+import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { order } from "@/lib/explorer-query/selection";
 import { PERCENT_COLUMN } from "@/lib/explorer-query/stat-label";
 import { isAddress, isHash, isSelector, isTime } from "@/lib/explorer-query/values";

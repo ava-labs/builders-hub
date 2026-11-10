@@ -19,7 +19,8 @@ vi.mock('@/lib/explorer-query/sources', () => ({ versionLines: vi.fn(async () =>
 
 import { answerQuestion } from '@/lib/explorer-query/answer';
 import { averageLabel, wholeFigure, wholeLabel } from '@/lib/explorer-query/stat-label';
-import { figures, type VisualSpec } from '@/lib/explorer-query/visual';
+import { figures } from '@/lib/explorer-query/figures';
+import type { VisualSpec } from '@/lib/explorer-query/visual-spec';
 import type { Totals } from '@/lib/explorer-query/types';
 
 // the hour's 20 largest fees, of 10,938 transactions: the replay of "Which transactions paid the highest fees in the

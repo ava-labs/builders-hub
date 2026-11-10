@@ -14,7 +14,7 @@
      $24.4. That pool also starts only on 2023-07-12. */
 
 import type { SourceNote } from "./types";
-import type { VisualSpec } from "./visual";
+import type { VisualSpec } from "./visual-spec";
 
 export const AVAX_USD_CHAIN_ID = 43114;
 /** the feed's proxy: what a contract that reads AVAX/USD calls */

@@ -22,7 +22,7 @@ import { NETWORK_ID, isCChain, isFuji, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey, type Recipe } from "./cache";
 import { fixedRecipe, fixedRoute } from "./fixed";
 import { networkChains, versionLines, withSources } from "./sources";
-import { codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
+import { codeWords, plainLabel, sqlNames, withoutCode } from "./reader-words";
 import { basicVisual } from "./draft";
 import { labelError } from "./stat-label";
 import { cutOf, newestSql, totalsOf } from "./cut";

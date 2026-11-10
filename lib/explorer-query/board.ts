@@ -9,7 +9,7 @@
 import { useSyncExternalStore } from "react";
 import type { ColumnMeta } from "./clickhouse";
 import type { Drill, Names, QueryAnswer } from "./types";
-import type { Panel, VisualSpec } from "./visual";
+import type { Panel, VisualSpec } from "./visual-spec";
 import { metricColumns, seriesLabels, type MetricKey } from "./stats-metrics";
 import { useBoardSync } from "./board-sync";
 // the gate lives with the targets, so a server page can read it too

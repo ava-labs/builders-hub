@@ -9,7 +9,7 @@ import { fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
+import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { isAddress, isTime } from "@/lib/explorer-query/values";
 import { rowBase } from "@/lib/explorer-query/target";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";

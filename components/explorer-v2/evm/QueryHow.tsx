@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { formatNumber } from "@/components/explorer-v2/format";
 import { askAbout } from "@/components/explorer-v2/dig/selection";
 import type { Names, QueryAnswer } from "@/lib/explorer-query/types";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
+import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { NoteText, downloadCsv, duration, toUnix } from "./QueryRows";
 import type { OpenDrill } from "./QueryZoom";
 import { sqlScopeOf } from "./QueryWorking";

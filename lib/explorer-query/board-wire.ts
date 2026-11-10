@@ -3,7 +3,7 @@
    other device runs the SQL again. Shared by the API routes and the sync. */
 
 import { z } from "zod";
-import { visualSpecSchema } from "./visual";
+import { visualSpecSchema } from "./visual-spec";
 import { MAX_METRIC_SERIES, METRIC_CHAIN, METRIC_KEYS } from "./stats-metrics";
 import { MAX_TILES } from "./board-limits";
 

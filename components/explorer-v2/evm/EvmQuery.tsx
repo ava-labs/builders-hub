@@ -12,7 +12,7 @@ import { setSelection as setDigSelection } from "@/components/explorer-v2/dig/se
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, SourceNote, Turn } from "@/lib/explorer-query/types";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
+import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { isAddress, isHash, isTime } from "@/lib/explorer-query/values";
 import { CARD, QueryVisual, fmt, nameFor, tipX, zoneOf } from "./QueryVisual";

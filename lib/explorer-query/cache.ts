@@ -11,7 +11,7 @@ import { registryTurn } from "./registry-turn";
 import { NETWORK_ID, isFuji, targetOf } from "./target";
 import { upgradeTurn } from "./upgrades";
 import type { ChartSpec, Drill, Turn } from "./types";
-import type { VisualSpec } from "./visual";
+import type { VisualSpec } from "./visual-spec";
 
 /* Answers are kept as recipes: the question's SQL, chart, drill and
    layout, never the rows. A hit re-runs the SQL, so the figures are

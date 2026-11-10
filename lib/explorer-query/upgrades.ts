@@ -12,7 +12,7 @@ import { msOf } from "./edges";
 import { isFuji } from "./target";
 import { DAY } from "./values";
 import type { SourceNote } from "./types";
-import type { VisualSpec } from "./visual";
+import type { VisualSpec } from "./visual-spec";
 
 /** the names no other word on Avalanche uses */
 const NAMED = /\b(?:apricot(?:\s*phase)?\s*|ap)([1-6])\b|\b(banff|cortina|durango|etna|helicon)\b/gi;

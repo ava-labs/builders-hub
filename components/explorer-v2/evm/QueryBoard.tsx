@@ -101,7 +101,7 @@ import {
 } from "@/lib/explorer-query/stats-metrics";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { DrillAnswer, Names, QueryAnswer } from "@/lib/explorer-query/types";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
+import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { formatNumber } from "@/components/explorer-v2/format";
 import { QueryVisual } from "./QueryVisual";
 import { PanelRows, doorFor, fillTitle, isTxList, rowDoor } from "./QueryRows";

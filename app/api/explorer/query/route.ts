@@ -5,7 +5,8 @@ import { runQuery, anchored, indexState, type ColumnMeta, type QueryResult } fro
 import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
-import { designVisual, writeReading } from "@/lib/explorer-query/visual";
+import { designVisual } from "@/lib/explorer-query/visual";
+import { writeReading } from "@/lib/explorer-query/reading";
 import { showPrice } from "@/lib/explorer-query/avax-usd";
 import { markUpgrades, upgradeLines } from "@/lib/explorer-query/upgrades";
 import type { ChartSpec, Names, QueryAnswer, Totals } from "@/lib/explorer-query/types";

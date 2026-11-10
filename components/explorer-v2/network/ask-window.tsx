@@ -21,7 +21,7 @@ import { rememberQuestion } from "@/lib/explorer-query/recent";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { DrillAnswer, QueryAnswer, Turn } from "@/lib/explorer-query/types";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
+import type { VisualSpec } from "@/lib/explorer-query/visual-spec";
 import { isAddress } from "@/lib/explorer-query/values";
 import type { Node } from "@/components/explorer-v2/network/icm-map";
 

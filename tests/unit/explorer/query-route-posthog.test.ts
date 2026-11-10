@@ -16,7 +16,8 @@ const later = vi.hoisted(() => [] as (() => unknown)[]);
 
 vi.mock('next/server', async (importOriginal) => ({ ...(await importOriginal<typeof import('next/server')>()), after: (fn: () => unknown) => void later.push(fn) }));
 vi.mock('@/lib/explorer-query/answer', () => ({ answerQuestion, drillSql: vi.fn(), keptWords: vi.fn((r: { title: string; note: string }) => ({ title: r.title, note: r.note })) }));
-vi.mock('@/lib/explorer-query/visual', () => ({ designVisual, writeReading: vi.fn() }));
+vi.mock('@/lib/explorer-query/visual', () => ({ designVisual }));
+vi.mock('@/lib/explorer-query/reading', () => ({ writeReading: vi.fn() }));
 vi.mock('@/lib/explorer-query/monitor-feed', () => ({ monitorFor }));
 vi.mock('@/lib/explorer-query/monitor', () => ({ monitorNote: vi.fn(() => 'Live from the chain.') }));
 vi.mock('@/lib/explorer-query/clickhouse', () => ({ runQuery: vi.fn(async () => ({ columns: [], rows: [{ n: 1 }], rowCount: 1, truncated: false })), anchored: vi.fn(async (sql: string) => ({ sql, anchor: null, sources: [] })), indexState: vi.fn(async () => null) }));

@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { READ_ONLY, designVisual, distinctColumns, figures, plainDecimals, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
+import { designVisual } from '@/lib/explorer-query/visual';
+import { distinctColumns, figures, sharesOf, withShares } from '@/lib/explorer-query/figures';
+import { plainDecimals } from '@/lib/explorer-query/reader-words';
+import { READ_ONLY, writeReading } from '@/lib/explorer-query/reading';
+import { visualSpecSchema } from '@/lib/explorer-query/visual-spec';
 
 // a model call that hands the reading tool these callouts, as the model would
 type Call = { tools: { reading: { execute: (input: { callouts: string[] }) => Promise<unknown> } } };
