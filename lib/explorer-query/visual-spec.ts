@@ -7,6 +7,11 @@ export const CALLOUT_SHOWN = 160;
 /** a callout's cap as written: the shown cap and room for six full hashes, so naming transactions never fails a schema */
 export const CALLOUT_RAW = CALLOUT_SHOWN + 6 * 55;
 
+/** the fewest values a histogram spreads */
+export const HISTOGRAM_ROWS = 20;
+/** the fewest parts a treemap divides a whole among */
+export const TREEMAP_PARTS = 6;
+
 export const formatSchema = z.enum(["number", "compact", "percent", "avax", "gas", "seconds", "usd"]);
 export type Format = z.infer<typeof formatSchema>;
 
@@ -34,10 +39,17 @@ export const panelSchema = z.object({
   title: z.string().max(60),
   /** hbar: a horizontal ranking; bar: buckets; line and area: continuous;
    *  scatter: one numeric column against another; flow: where value went,
-   *  from x to target; table: the rows */
-  kind: z.enum(["hbar", "bar", "line", "area", "scatter", "flow", "table"]),
-  /** the category or time column; for scatter, the numeric x column; for flow, the column value comes from */
+   *  from x to target; dumbbell: each row's figure now beside the same figure
+   *  before; diverging: one signed figure per row, either side of zero;
+   *  histogram: how the values of x are spread; heatmap: one value for each
+   *  pair of x and y; treemap: how a whole divides among many parts;
+   *  table: the rows */
+  kind: z.enum(["hbar", "bar", "line", "area", "scatter", "flow", "dumbbell", "diverging", "histogram", "heatmap", "treemap", "table"]),
+  /** the category or time column; for scatter, the numeric x column; for flow, the column value comes from; for a
+   *  histogram, the number column whose spread is drawn */
   x: z.string().optional(),
+  /** for heatmap: the second category column, down the side */
+  y: z.string().optional(),
   /** for flow: the column value goes to */
   target: z.string().optional(),
   series: z.array(seriesSchema).max(6).default([]),

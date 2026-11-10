@@ -8,7 +8,8 @@ import { anthropic } from "./meter";
 import { generateText, stepCountIs, tool } from "ai";
 import { basicVisual } from "./draft";
 import { labelError } from "./stat-label";
-import { CALLOUT_SHOWN, visualSpecSchema, type VisualSpec } from "./visual-spec";
+import { kindError } from "./kind-checks";
+import { CALLOUT_SHOWN, HISTOGRAM_ROWS, TREEMAP_PARTS, visualSpecSchema, type VisualSpec } from "./visual-spec";
 import { READER_RULES, codeWords, heldHex, readerSpec, rowWords, shownLength } from "./reader-words";
 import { ALL_ROWS, EXTREME_NAME, MEAN_NAME, NUMERIC, RATE, distinctColumns, edgeOf, numOf, plain, rowsBrief, sampleOf, sharesOf, staleBrief, weightOf, weighted, withShares, type DesignInput } from "./figures";
 
@@ -44,6 +45,12 @@ Comparisons and overlays (use them whenever the rows hold more than one thing to
 - Ins and outs per period (deposits and withdrawals, bought and sold, bridged in and out): one bar series for each side, the outflow with below true, so each period's ins stand above zero and its outs below; set net true on the panel for a line of each period's net. Never draw ins and outs as two lines or as bars side by side.
 - Two numeric measures per group or per record (gas against fee, calls against callers): kind "scatter", x the first measure, one series the second.
 - Flows: when the question asks where value went, from whom or to whom, and each row is a pair (a column value comes from, a column it goes to, names or addresses, and the amount between them), use kind "flow" at full width: x is the column value comes from, target the column it goes to, and the one series the amount. The page draws the largest 30 flows and folds the rest into Other; a receiver that sends on becomes a second stage. A name stands in one row per partner, so never put an hbar or a pie over such rows: it would show one sender many times. Rows with one name each (who received the most) stay an hbar.
+- A figure beside the same figure of the period before, one row for each name (this_week and last_week, current and previous): kind "dumbbell", x the name, two series, the figure now then the figure before. Never draw such a pair as two hbar series.
+- A signed figure for each name, with values on both sides of zero (a change, a net flow): kind "diverging", one series.
+- How values are spread, when each row is one record and there are ${HISTOGRAM_ROWS} rows or more (transfer sizes, gas per transaction, stake per validator): kind "histogram", x the number column, one series the same column. Never rank records by size with their times on the axis.
+- One value for each pair of two categories (hour of day by weekday, protocol by day): kind "heatmap", x the column across, y the column down, one series the value.
+- How a whole divides among ${TREEMAP_PARTS} parts or more whose figures add up (gas per contract, stake per validator, volume per pool): kind "treemap", x the name, one series the size. Use hbar when the order matters more than the share.
+- One ranking for each set of rows: never draw three rankings of the same names. Rank the figure that answers the question, give it at most one supporting panel, and put the other measures in a table panel.
 - Markers: put one on the peak and on anything a callout names. Bands: shade the window the question compares.
 - A strong answer usually has one overlay panel that makes the comparison and one supporting panel that explains it.
 
@@ -109,7 +116,9 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     // a stat is named for its figure (the whole answer's, a share as a percent) and a stack adds up parts of a whole
     const label = labelError(spec, input.rows, input.totals, input.sql);
     if (label) return { error: label };
-    if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
+    // each kind draws rows of its own shape (kind-checks.ts)
+    const unfit = kindError(spec.panels, input.columns, input.rows, input.sql, !!input.totals && input.totals.rows > input.rows.length);
+    if (unfit) return { error: unfit };
     // a flow runs from one column to another and draws one amount
     const flows = spec.panels.filter((p) => p.kind === "flow");
     if (flows.some((p) => !p.target || p.target === p.x || p.series.length !== 1)) return { error: "a flow panel needs x (the column value comes from), target (the column it goes to, not x) and one series (the amount)" };

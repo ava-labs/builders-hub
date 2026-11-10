@@ -56,4 +56,6 @@ export type PanelProps = {
   compact: boolean;
   /** a log y axis: one outlier no longer flattens every other mark */
   log?: boolean;
+  /** the rows stop at a LIMIT: a share of them is not a share of the whole */
+  cut?: boolean;
 };

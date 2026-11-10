@@ -25,6 +25,7 @@ import { networkChains, versionLines, withSources } from "./sources";
 import { codeWords, plainLabel, sqlNames, withoutCode } from "./reader-words";
 import { basicVisual } from "./draft";
 import { labelError } from "./stat-label";
+import { kindError } from "./kind-checks";
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
 import { asOfWords, scopeError, snapshotSql, sqlWindow, windowSpan, withWindow } from "./scope";
@@ -156,7 +157,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     // rows that only reach their LIMIT leave nothing out
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
     // a kept layout that misstates these rows (stats named for the rows a LIMIT kept, a share, a stack) is laid out again
-    const stale = !!key && !!recipe.visual && !!labelError(recipe.visual, result.rows, totals, sql);
+    const stale = !!key && !!recipe.visual && !!(labelError(recipe.visual, result.rows, totals, sql) ?? kindError(recipe.visual.panels, result.columns, result.rows, sql, !!totals && totals.rows > result.rowCount));
     if (stale && key) await putRecipe(key, { ...recipe, sql, visual: null });
     const visual = stale ? null : recipe.visual;
     const said = keptWords(recipe, sql, result.rows, run.anchor, a.chainId);

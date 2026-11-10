@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
-import { Area, Bar, CartesianGrid, Cell, ComposedChart, Customized, Line, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, CartesianGrid, Cell, ComposedChart, Customized, LabelList, Line, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { truncate } from "@/components/explorer-v2/format";
@@ -99,6 +99,8 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
   // ins and outs: a series drawn below zero stacks the panel by sign, each period's ins above the axis and its outs below
   const signed = panel.series.some((s) => s.below);
   const stack = panel.stacked || signed;
+  // a ranking of one figure writes it at the end of each bar, so no axis is read
+  const valued = horizontal && panel.series.length === 1 && !stack;
   const netTone = TONES[panel.series.length % TONES.length];
   const left = panel.series.filter((s) => s.axis !== "right");
   const right = panel.series.filter((s) => s.axis === "right");
@@ -111,14 +113,23 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
   // lines and areas cannot dim point by point: the whole trace recedes and
   // the selected stretch is drawn again over it in full ink
   const traces = !scatter && panel.series.some((s) => markOf(s) !== "bar");
+  // a count beside its own parts (transactions and the reverted ones): the parts are never above the first series,
+  // so they stand inside its bar, not beside it. The first series is then drawn as what is left of it
+  const nested = useMemo(
+    () =>
+      !horizontal && !scatter && !stack && panel.series.length > 1 && panel.series.every((s) => markOf(s) === "bar" && s.axis !== "right") &&
+      base.every((r) => typeof r.__s0 === "number" && panel.series.slice(1).reduce((sum, _, i) => (typeof r[`__s${i + 1}`] === "number" && (r[`__s${i + 1}`] as number) >= 0 ? sum + (r[`__s${i + 1}`] as number) : Infinity), 0) <= r.__s0),
+    [base, panel.series, horizontal, scatter, stack],
+  );
+  const shaped = useMemo((): Row[] => (nested ? base.map((r) => ({ ...r, __d0: panel.series.slice(1).reduce((left, _, i) => left - (r[`__s${i + 1}`] as number), r.__s0 as number) })) : base), [base, nested, panel.series]);
   const data = useMemo(() => {
-    if (!hasSel || !traces) return base;
-    return base.map((r, j) => {
+    if (!hasSel || !traces) return shaped;
+    return shaped.map((r, j) => {
       const o: Row = { ...r };
       panel.series.forEach((_, i) => (o[`__in${i}`] = lit[j] ? r[`__s${i}`] : null));
       return o;
     });
-  }, [base, lit, hasSel, traces, panel.series]);
+  }, [shaped, lit, hasSel, traces, panel.series]);
 
   // markers and bands name x values; match them to the drawn category. An x that repeats has no one place (recharts lays
   // such an axis out by row), so nothing is marked on it
@@ -304,7 +315,7 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
             <ComposedChart
               data={data}
               layout={horizontal ? "vertical" : "horizontal"}
-              margin={{ top: (horizontal ? panel.referenceLines.length > 0 : drillMark || (!scatter && panel.markers.length > 0)) ? 5 + 13 * markRows : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
+              margin={{ top: (horizontal ? panel.referenceLines.length > 0 : drillMark || (!scatter && panel.markers.length > 0)) ? 5 + 13 * markRows : 4, right: valued ? (drillMark ? 76 : 52) : drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
               barCategoryGap={horizontal ? "26%" : "18%"}
               stackOffset={signed ? "sign" : undefined}
               onMouseDown={(s) => ev.current.down(s)}
@@ -315,7 +326,7 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
             >
               <CartesianGrid vertical={horizontal} horizontal={!horizontal} stroke="rgba(161,161,170,0.14)" />
               {/* recharts reads axes as direct children: no fragments here */}
-              {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
+              {horizontal && <XAxis type="number" hide={valued} tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
               {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
               {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={<FitTick />} tickLine={false} axisLine={false} minTickGap={28} interval="preserveEnd" />}
               {scatter && (
@@ -443,15 +454,16 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
                   <Bar
                     key={`${key}-bar`}
                     {...axis}
-                    dataKey={dataKey}
+                    dataKey={nested && i === 0 ? "__d0" : dataKey}
                     fill={tone}
                     stroke={s.dashed ? tone : undefined}
                     strokeDasharray={dash}
-                    stackId={stack ? `s-${s.axis}` : undefined}
+                    stackId={stack || nested ? `s-${s.axis}` : undefined}
                     {...anim}
-                    minPointSize={1}
-                    radius={stack ? 0 : horizontal ? [0, 2, 2, 0] : [2, 2, 0, 0]}
+                    minPointSize={nested ? 0 : 1}
+                    radius={stack || nested ? 0 : horizontal ? [0, 2, 2, 0] : [2, 2, 0, 0]}
                   >
+                    {valued && <LabelList dataKey={dataKey} position="right" offset={6} formatter={(v: number) => fmt(v, s.format, sym, true)} style={MONO} className="fill-zinc-600 dark:fill-zinc-300" />}
                     {data.map((_, j) => {
                       const ink = inkOf(j, s.dashed);
                       return <Cell key={j} fillOpacity={ink.base} className={`qv-m qv-i-${j}`} style={ink.style} />;

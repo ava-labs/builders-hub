@@ -263,6 +263,8 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
     [visual, panelIndex, tables],
   );
   const single = panelIndex !== undefined || charts.length === 1;
+  // the rows stop at a LIMIT: the whole result's size, or the query's own count of it, is past them
+  const cut = (!!totals && totals.rows > rows.length) || (typeof rows[0]?.of_total === "number" && rows[0].of_total > rows.length);
   // the column a chart names each row by: a figure that is one row finds that row's mark by it
   const rowX = charts.find(({ p }) => isChart(p))?.p.x;
   return (
@@ -300,6 +302,7 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
                   compact={compact}
                   action={panelAction?.(idx)}
                   titled={titles}
+                  cut={cut}
                 />
               )}
             </div>
