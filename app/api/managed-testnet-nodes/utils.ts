@@ -81,6 +81,10 @@ export async function extractServiceErrorMessage(response: Response): Promise<st
   } else {
     try {
       const text = await response.text();
+      // An HTML body is a proxy or firewall page (Cloudflare), not a service message.
+      if (text.trimStart().startsWith('<')) {
+        return `The managed nodes service returned HTTP ${response.status} with an HTML page instead of JSON.`;
+      }
       if (text) return text.slice(0, 200);
     } catch {}
   }
