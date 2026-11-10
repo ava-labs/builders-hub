@@ -72,9 +72,28 @@ describe('GET /api/explorer/query/scan', () => {
     expect(scanChain).not.toHaveBeenCalled();
   });
 
-  it('never scans a scheduled chain or a fresh L1 on a read', async () => {
-    getScan.mockResolvedValue(null);
+  it('scans a scheduled chain on a read only when its schedule missed two runs, or no scan is kept', async () => {
+    // one period late: the schedule is due, and the read leaves it alone
+    getScan.mockResolvedValue({ at: Date.now() - 20 * 60_000, cards: { q: card } });
     await get('?chainId=43114');
+    await later();
+    expect(scanChain).not.toHaveBeenCalled();
+    // two periods late
+    after.mockClear();
+    getScan.mockResolvedValue({ at: Date.now() - 31 * 60_000, cards: { q: card } });
+    await get('?chainId=43114');
+    await later();
+    expect(scanChain.mock.calls.map((c) => c[0])).toEqual([43114]);
+    // none kept: a deployment with no schedule
+    scanChain.mockClear();
+    after.mockClear();
+    getScan.mockResolvedValue(null);
+    await get('?chainId=all');
+    await later();
+    expect(scanChain.mock.calls.map((c) => c[0])).toEqual([0]);
+  });
+
+  it('never scans a fresh L1 on a read', async () => {
     getScan.mockResolvedValue({ at: Date.now() - 60_000, cards: {} });
     await get('?chainId=43419');
     await later();

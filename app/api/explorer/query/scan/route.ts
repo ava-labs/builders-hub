@@ -11,7 +11,9 @@ import { NETWORK_ID, NETWORK_SLUG, isFuji, targetOf } from "@/lib/explorer-query
    scans the C-Chain, the P-Chain and the network, one after the other
    (vercel.json runs it every 15 minutes). An L1 has no schedule: a read
    of its cards starts its scan once the response is out, when the kept
-   one is old and no other instance is at it. */
+   one is old and no other instance is at it. A scheduled chain gets the
+   same scan from a read only when its schedule missed two runs, or when
+   no scan is kept (a preview deployment runs no schedule). */
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -55,7 +57,9 @@ export async function GET(req: Request) {
   // Fuji has no live cards: its page shows the questions
   if (!symbol || isFuji(chainId)) return NextResponse.json({ at: null, cards: {} });
   const scan = await getScan(chainId);
-  if (!SCHEDULED.includes(chainId) && (!scan || Date.now() - scan.at > SCAN_FRESH_MS)) {
+  // a scheduled chain waits two periods, so a read never races a schedule that runs on time
+  const fresh = SCHEDULED.includes(chainId) ? 2 * SCAN_FRESH_MS : SCAN_FRESH_MS;
+  if (!scan || Date.now() - scan.at > fresh) {
     after(async () => {
       if (await claim(chainId)) await scanChain(chainId, symbol, baseUrl).catch(() => undefined);
     });
