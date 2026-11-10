@@ -136,6 +136,12 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
   const once = useMemo(() => new Set(data.map((r) => String(r[x]))).size === data.length, [data, x]);
   const xOf = useCallback((v: string | number) => (once ? (data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined) : undefined), [data, x, once]);
   const label = useCallback((v: unknown) => xText(names, x, v, span, zone), [names, x, span, zone]);
+  // hours over several days: one tick where each day opens, so no date repeats along the axis
+  const dayTicks = useMemo(() => {
+    if (span !== "days") return undefined;
+    const opens = base.map((r) => r[x]).filter((v, i, all) => i === 0 || fmtX(v, span, zone) !== fmtX(all[i - 1], span, zone));
+    return opens.length < base.length ? (opens as (string | number)[]) : undefined;
+  }, [base, x, span, zone]);
   const rowH = compact ? 22 : 26;
   const height = horizontal ? Math.max(compact ? 120 : 160, data.length * rowH + 36) : compact ? 180 : 260;
   const active = hoverIdx ?? kb;
@@ -328,7 +334,7 @@ export function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected
               {/* recharts reads axes as direct children: no fragments here */}
               {horizontal && <XAxis type="number" hide={valued} tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
               {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
-              {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={<FitTick />} tickLine={false} axisLine={false} minTickGap={28} interval="preserveEnd" />}
+              {!horizontal && !scatter && <XAxis dataKey={x} ticks={dayTicks} tickFormatter={label} tick={<FitTick />} tickLine={false} axisLine={false} minTickGap={28} interval="preserveEnd" />}
               {scatter && (
                 <XAxis
                   type="number"

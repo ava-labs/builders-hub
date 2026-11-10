@@ -132,6 +132,7 @@ describe("bucketWords", () => {
     expect(bucketWords("Daily transactions over the last 30 days", "7d")).toBe("Hourly transactions over the last 30 days");
     expect(bucketWords("Daily transactions", "24h")).toBe("transactions per 15 minutes");
     expect(bucketWords("Fees burned per day", "24h")).toBe("Fees burned per 15 minutes");
+    expect(bucketWords("Transactions charged per 5-minute period in the last 6 hours.", "7d")).toBe("Transactions charged per hour in the last 6 hours.");
     expect(bucketWords("The current day period is not over.", "24h")).toBe("The current 15-minute period is not over.");
   });
 });

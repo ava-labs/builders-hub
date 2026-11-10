@@ -118,7 +118,8 @@ export function movesOf(m: Movable): Moves {
   return { span: null, own: period ? CALENDAR[period] : null, prior };
 }
 
-const PER = /\bper (?:\d+[- ])?(?:second|minute|hour|day|week|month)s?\b/gi;
+/** per 5 minutes, per 5-minute period: the bucket a series counts in */
+const PER = /\bper (?:\d+[- ])?(?:second|minute|hour|day|week|month)s?\b(?:\s+(?:period|bucket)s?\b)?/gi;
 const EACH = /\b(hourly|daily|weekly|monthly)\s+(\w+)/gi;
 const LONG = /\b(?:\d+[- ])?(?:second|minute|hour|day|week|month)(?=\s+(?:period|bucket)s?\b)/gi;
 /** a figure named for one bucket (Peak 5 minutes, Busiest hour), and a drill's bucket (the 5 minutes from) */
