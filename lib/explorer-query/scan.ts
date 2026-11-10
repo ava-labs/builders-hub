@@ -2,10 +2,10 @@ import "server-only";
 import { redis } from "@/lib/redis";
 import { anchored, runQuery } from "./clickhouse";
 import { nameRows } from "./enrich";
-import { examplesFor } from "./examples";
+import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
 import { fixedRecipe } from "./fixed";
 import { cardOf, type ScanCard } from "./scan-card";
-import { isFuji } from "./target";
+import { isFuji, targetOf } from "./target";
 
 /* The landing page's live cards. A scan runs each suggestion's fixed SQL once, one query after the other (the
    database key allows two in flight), and keeps what each card shows (scan-card.ts) in Redis. The C-Chain, the
@@ -53,7 +53,9 @@ export function scanChain(chainId: number, symbol: string, baseUrl: string): Pro
   const run = (async () => {
     const before = (await getScan(chainId))?.cards ?? {};
     const cards: Record<string, ScanCard> = {};
-    for (const { q } of isFuji(chainId) ? [] : examplesFor(chainId).flatMap((g) => g.items)) {
+    // the P-Chain has its own suggestions: examplesFor names an EVM chain's
+    const groups = isFuji(chainId) ? [] : targetOf(chainId).kind === "pchain" ? PCHAIN_EXAMPLES : examplesFor(chainId);
+    for (const { q } of groups.flatMap((g) => g.items)) {
       const recipe = fixedRecipe(chainId, q, symbol);
       if (!recipe) continue;
       try {
