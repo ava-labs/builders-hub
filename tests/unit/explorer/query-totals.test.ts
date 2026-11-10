@@ -33,11 +33,24 @@ describe('the totals of a cut ranking', () => {
       [SQL.replace(' LIMIT 15', ' LIMIT 1 BY provider LIMIT 15'), rows(15)],
       [SQL.replace('count() OVER () AS of_total', '721 AS of_total'), rows(15)],
     ];
-    for (const [sql, r] of cases) {
+    // a chain of its own for each case: one query on one chain shares its totals read for a minute
+    for (const [i, [sql, r]] of cases.entries()) {
       runQuery.mockClear();
-      expect((await totalsOf(sql, result(r), 43114))?.sum, sql).toEqual({ value_usd: 5, of_total: 1 });
+      expect((await totalsOf(sql, result(r), 100 + i))?.sum, sql).toEqual({ value_usd: 5, of_total: 1 });
       expect(runQuery, sql).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it('share one read a minute for a query on a chain, so a repeated request reads nothing', async () => {
+    runQuery.mockResolvedValue({ columns: [], rows: [{ __rows: 721, d0: 721, s1: 5, n1: 721, lo1: 0, hi1: 1000, ha1: '0x0', la1: '0x720', s2: 1, n2: 721, lo2: 721, hi2: 721 }], rowCount: 1 });
+    const sql = SQL.replace('count() OVER () AS of_total', '721 AS of_total');
+    const [a, b] = await Promise.all([totalsOf(sql, result(rows(15)), 200), totalsOf(sql, result(rows(15)), 200)]);
+    expect(a).toEqual(b);
+    expect((await totalsOf(sql, result(rows(15)), 200))?.rows).toBe(721);
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    // another chain is another query
+    await totalsOf(sql, result(rows(15)), 201);
+    expect(runQuery).toHaveBeenCalledTimes(2);
   });
 
   it('are read as the size alone: no total over the whole set is promised beside the rows', () => {
