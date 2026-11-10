@@ -19,6 +19,7 @@ import { DAY, WEEK } from "./values";
 import { MAINNET_UPGRADES } from "@/constants/network-upgrades";
 import { avaxUsdNotes } from "./avax-usd";
 import { STAKE_FILL, gapNotes } from "./gaps";
+import { SUBNET_COLUMNS, subnetsSql } from "./pchain-sets";
 import { sqlWindow } from "./scope";
 import { upgradeTime } from "./upgrades";
 
@@ -397,6 +398,16 @@ const stakeFill: Source = {
   },
 };
 
+/** every subnet as it stands now: an L1 or not, and the validators in its set (pchain-sets.ts). The box's own rows, so
+    it is as fresh as the transactions and the newest L1 snapshot */
+const subnets: Source = {
+  columns: SUBNET_COLUMNS,
+  async build(chainId) {
+    const text = "Each subnet's validators now come from the P-Chain's own records: an L1's active seats from the newest L1 validator snapshot, and a subnet that has not converted from its AddSubnetValidatorTx terms that have not ended.";
+    return { sql: subnetsSql(chainId), note: { table: "p_subnets", label: "subnets and their validators", at: Date.now(), total: 1, known: 1, text } };
+  },
+};
+
 /** each network upgrade's mainnet activation (constants/network-upgrades.ts), on the mainnet P-Chain and C-Chain */
 const upgrades: Source = {
   columns: [["chain_id", "UInt64"], ["upgrade", "String"], ["activated_at", "DateTime('UTC')"], ["acps", "String"]],
@@ -635,6 +646,7 @@ const SOURCES: Record<string, Source> = {
   p_avax_supply_daily: supplyDaily,
   p_stake_fill: stakeFill,
   network_upgrades: upgrades,
+  p_subnets: subnets,
   dex_factories: factories,
   dex_tokens: tokens,
   lending_markets: markets,

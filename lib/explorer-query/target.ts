@@ -29,8 +29,10 @@ export const PCHAIN_TABLES = [
     ClickHouse box does not hold them. The Data API counts the AVAX
     supply on mainnet only, and the supply per day, the stake on the days
     the snapshots miss and the upgrade times are mainnet's, so Fuji keeps
-    p_validator_versions alone, as it was */
-export const PCHAIN_REFS = ["p_validator_versions", "p_avax_supply", "p_avax_supply_daily", "p_stake_fill", "network_upgrades"] as const;
+    p_validator_versions alone, as it was. p_subnets is each subnet as
+    it stands now, which the server reads from the box's own tables
+    (pchain-sets.ts) */
+export const PCHAIN_REFS = ["p_validator_versions", "p_avax_supply", "p_avax_supply_daily", "p_stake_fill", "network_upgrades", "p_subnets"] as const;
 const FUJI_REFS = ["p_validator_versions"] as const;
 
 /** tables our server builds for the C-Chain's DEXs (protocols.ts): its
