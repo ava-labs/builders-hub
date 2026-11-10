@@ -36,16 +36,17 @@ export function TileActions({ panel, title, columns, rows, names, onSql }: { pan
   const cols = panel.kind === "table" && !panel.series.length ? columns : columns.filter((k) => own.has(k.name));
   return (
     <span className="inline-flex items-center">
-      <button type="button" className={ACT} title="See the SQL behind this answer" onClick={onSql}>
+      <button type="button" className={ACT} aria-label={`SQL behind ${name}`} title="See the SQL behind this answer" onClick={onSql}>
         SQL
       </button>
-      <button type="button" className={ACT} title={`Download ${name} as CSV`} onClick={() => downloadCsv({ title: name, columns: cols, rows, names })}>
+      <button type="button" className={ACT} aria-label={`Download ${name} as CSV`} title={`Download ${name} as CSV`} onClick={() => downloadCsv({ title: name, columns: cols, rows, names })}>
         CSV
       </button>
       <button
         type="button"
         className={ACT}
         disabled={busy}
+        aria-label={`Download ${name} as an image`}
         title={`Download ${name} as an image`}
         onClick={(e) => {
           setBusy(true);
